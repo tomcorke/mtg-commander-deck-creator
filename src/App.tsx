@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 
-type Card = { name: string; typeLine: string; reason: string; detail: string; image: string; printsUri: string; printings?: string[]; printing?: number }
-type DeckCard = { name: string; typeLine: string }
+type Printing = { image: string; set: string; collectorNumber: string }
+type Card = { name: string; typeLine: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; printings?: Printing[]; printing?: number }
+type DeckCard = { name: string; typeLine: string; set: string; collectorNumber: string }
 type CommanderDetails = { image: string; colours: string[] }
+type ExportFormat = 'moxfield' | 'plain' | 'csv'
 
 const colourNames: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' }
 
@@ -18,6 +20,15 @@ const themeCommanders: Record<string, string[]> = {
 
 const defaultCommanders = Object.values(themeCommanders).flat()
 const randomThree = (items: string[]) => [...items].sort(() => Math.random() - 0.5).slice(0, 3)
+
+function OracleText({ text }: { text: string }) {
+  return <>{text.split(/(\{[^}]+\})/g).map((part, index) => {
+    const symbol = part.match(/^\{(.+)\}$/)?.[1]
+    if (!symbol) return part
+    const file = symbol.replace('/', '')
+    return <img className="mana-symbol" src={`https://svgs.scryfall.io/card-symbols/${file}.svg`} alt={part} title={part} key={`${part}-${index}`} />
+  })}</>
+}
 
 function App() {
   const [commander, setCommander] = useState('')
@@ -35,7 +46,12 @@ function App() {
   const [excludeTutors, setExcludeTutors] = useState(true)
   const [excludeExtraTurns, setExcludeExtraTurns] = useState(true)
   const [decisions, setDecisions] = useState<Record<string, 'add' | 'later' | 'ignore'>>({})
+  const [liked, setLiked] = useState<string[]>([])
   const [deck, setDeck] = useState<DeckCard[]>([])
+  const [showExport, setShowExport] = useState(false)
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('moxfield')
+  const [copied, setCopied] = useState(false)
+  const [darkMode, setDarkMode] = useState(true)
 
   useEffect(() => {
     if (search.trim().length < 2) return
@@ -92,16 +108,17 @@ function App() {
     const chosen = name.trim()
     if (!chosen) return
     setCommander(chosen)
-    if (!preserveDeck) setDeck([{ name: chosen, typeLine: 'Legendary Creature' }])
+    if (!preserveDeck) setDeck([])
     setCommanderDetails(null)
     setQueue([])
     setRecommendationState('loading')
 
     const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(chosen)}`)
     if (!response.ok) { setRecommendationState('error'); return }
-    const card = await response.json() as { color_identity: string[]; image_uris?: { normal: string }; card_faces?: { image_uris?: { normal: string } }[] }
+    const card = await response.json() as { color_identity: string[]; set: string; collector_number: string; image_uris?: { normal: string }; card_faces?: { image_uris?: { normal: string } }[] }
     const image = card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal
     if (image) setCommanderDetails({ image, colours: card.color_identity })
+    if (!preserveDeck) setDeck([{ name: chosen, typeLine: 'Legendary Creature', set: card.set, collectorNumber: card.collector_number }])
 
     const identity = card.color_identity.join('').toLowerCase() || 'c'
     const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn'].filter(Boolean).join(' ')
@@ -109,7 +126,7 @@ function App() {
     const mainResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} -t:land -o:"add {"`)}&order=edhrec`)
     const manaResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} (t:land or o:"add {")`)}&order=edhrec`)
     if (!mainResponse.ok || !manaResponse.ok) { setRecommendationState('error'); return }
-    type ScryfallCard = { name: string; type_line: string; oracle_text?: string; color_identity: string[]; prints_search_uri: string; image_uris?: { normal: string }; card_faces?: { image_uris?: { normal: string } }[] }
+    type ScryfallCard = { name: string; type_line: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; image_uris?: { normal: string }; card_faces?: { image_uris?: { normal: string } }[] }
     const main = await mainResponse.json() as { data: ScryfallCard[] }
     const mana = await manaResponse.json() as { data: ScryfallCard[] }
     const mainCards = main.data.sort(() => Math.random() - 0.5)
@@ -127,8 +144,10 @@ function App() {
       name: item.name,
       typeLine: item.type_line,
       reason: index % 4 === 3 ? 'Land or mana' : item.color_identity.length === card.color_identity.length ? 'Strong colour fit' : item.color_identity.length === 0 ? 'Colourless utility' : 'Popular inclusion',
-      detail: item.oracle_text?.split('\n')[0] || item.type_line,
+      detail: item.oracle_text || item.type_line,
       image: item.image_uris?.normal ?? item.card_faces?.[0]?.image_uris?.normal ?? '',
+      set: item.set,
+      collectorNumber: item.collector_number,
       printsUri: item.prints_search_uri,
     }))
     setQueue(offeredCards)
@@ -138,7 +157,10 @@ function App() {
       const printResponse = await fetch(offered.printsUri)
       if (!printResponse.ok) continue
       const printResult = await printResponse.json() as { data: ScryfallCard[] }
-      const printings = [...new Set(printResult.data.map((printing) => printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal).filter((printing): printing is string => Boolean(printing)))]
+      const printings = printResult.data.flatMap((printing) => {
+        const image = printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal
+        return image ? [{ image, set: printing.set, collectorNumber: printing.collector_number }] : []
+      }).filter((printing, index, all) => all.findIndex((item) => item.image === printing.image) === index)
       setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings } : item))
     }
   }
@@ -146,13 +168,28 @@ function App() {
   function decide(card: Card, action: 'add' | 'later' | 'ignore') {
     const previous = decisions[card.name]
     if (previous === 'add' && action !== 'add') setDeck((list) => list.filter((item) => item.name !== card.name))
-    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine }])
+    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, set: card.set, collectorNumber: card.collectorNumber }])
     setDecisions((current) => ({ ...current, [card.name]: action }))
   }
 
   function cyclePrinting(card: Card) {
     if (!card.printings || card.printings.length < 2) return
-    setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: ((item.printing ?? 0) + 1) % card.printings!.length, image: card.printings![((item.printing ?? 0) + 1) % card.printings!.length] } : item))
+    const index = ((card.printing ?? 0) + 1) % card.printings.length
+    const selected = card.printings[index]
+    setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber } : item))
+    if (decisions[card.name] === 'add') setDeck((current) => current.map((item) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber } : item))
+  }
+
+  function deckList(format: ExportFormat) {
+    if (format === 'plain') return deck.map((card) => `1 ${card.name}`).join('\n')
+    if (format === 'csv') return ['Quantity,Name,Set,Collector Number', ...deck.map((card) => `1,"${card.name.replaceAll('"', '""')}",${card.set.toUpperCase()},${card.collectorNumber}`)].join('\n')
+    return deck.map((card) => `1 ${card.name} (${card.set.toUpperCase()}) ${card.collectorNumber}`).join('\n')
+  }
+
+  async function copyDeck() {
+    await navigator.clipboard.writeText(deckList(exportFormat))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   function nextBatch() {
@@ -173,8 +210,8 @@ function App() {
   }
 
   if (!commander) return (
-    <main>
-      <header><a className="brand" href="/">Commander's Table</a><span className="fresh">New deck</span></header>
+    <main className={darkMode ? 'dark' : ''}>
+      <header><a className="brand" href="/">Commander's Table</a><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button></header>
       <section className="start">
         <p className="eyebrow">Build from scratch</p>
         <h1>What do you want to play?</h1>
@@ -213,18 +250,18 @@ function App() {
   )
 
   return (
-    <main>
+    <main className={darkMode ? 'dark' : ''}>
       <header>
         <button className="brand reset" onClick={() => { setCommander(''); setCommanderDetails(null); setDeck([]); setQueue([]); setDecisions({}) }}>Commander's Table</button>
         <div className="progress"><span />{deck.length} / 100 cards</div>
-        <button className="export" type="button">Export deck</button>
+        <div className="header-actions"><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
       <section className="intro commander-header">
         {commanderDetails && <figure className="commander-card" tabIndex={0} aria-label={`View ${commander} card`}>
           <img src={commanderDetails.image} alt={`${commander} card`} />
           <span className="card-zoom"><img src={commanderDetails.image} alt={`${commander} full card`} /></span>
         </figure>}
-        <div><p className="eyebrow">Building around</p><h1>{commander}</h1>
+        <div className="commander-summary"><p className="eyebrow">Building around</p><h1>{commander}</h1>
           <div className="identity" aria-label={`Colour identity: ${commanderDetails?.colours.map((colour) => colourNames[colour]).join(', ') || 'loading'}`}>
             <span>Colour identity</span>
             {commanderDetails?.colours.length === 0 && <img className="colour" src="https://svgs.scryfall.io/card-symbols/C.svg" alt="Colourless" />}
@@ -232,30 +269,45 @@ function App() {
           </div>
           <button className="change" onClick={() => { setCommander(''); setCommanderDetails(null); setDeck([]); setQueue([]); setDecisions({}) }}>Change commander</button>
         </div>
-      </section>
-      <div className="workspace">
-        <section className="recommendations">
-          <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>What belongs in your deck?</h2></div><span>{queue.length} suggestions left</span></div>
+        <div className="recommendation-setup">
+          <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>Add to your deck</h2></div><span>{queue.length} suggestions left</span></div>
           <div className="recommendation-options">
-            <label><input type="checkbox" checked={includeCreature} onChange={(event) => setIncludeCreature(event.target.checked)} /> Include a creature in each batch when possible</label>
+            <label><input type="checkbox" checked={includeCreature} onChange={(event) => setIncludeCreature(event.target.checked)} /> Include a creature when possible</label>
             <fieldset><legend>Bracket safety</legend>
-              <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => setExcludeGameChangers(event.target.checked)} /> Exclude Game Changers</label>
-              <label><input type="checkbox" checked={excludeTutors} onChange={(event) => setExcludeTutors(event.target.checked)} /> Exclude tutors</label>
-              <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => setExcludeExtraTurns(event.target.checked)} /> Exclude extra turns</label>
-              <button type="button" onClick={() => void start(commander, true)}>Apply filters</button>
+              <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => setExcludeGameChangers(event.target.checked)} /> Game Changers</label>
+              <label><input type="checkbox" checked={excludeTutors} onChange={(event) => setExcludeTutors(event.target.checked)} /> Tutors</label>
+              <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => setExcludeExtraTurns(event.target.checked)} /> Extra turns</label>
+              <button type="button" onClick={() => void start(commander, true)}>Apply</button>
             </fieldset>
           </div>
+        </div>
+      </section>
+      {showExport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowExport(false) }}>
+        <section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title">
+          <div className="export-heading"><div><p className="eyebrow">Export deck</p><h2 id="export-title">Copy your deck list</h2></div><button className="modal-close" onClick={() => setShowExport(false)} aria-label="Close export">×</button></div>
+          <div className="format-tabs" role="group" aria-label="Deck list format">
+            <button className={exportFormat === 'moxfield' ? 'selected' : ''} onClick={() => setExportFormat('moxfield')}>Moxfield</button>
+            <button className={exportFormat === 'plain' ? 'selected' : ''} onClick={() => setExportFormat('plain')}>Plain text</button>
+            <button className={exportFormat === 'csv' ? 'selected' : ''} onClick={() => setExportFormat('csv')}>CSV</button>
+          </div>
+          <textarea readOnly value={deckList(exportFormat)} onFocus={(event) => event.currentTarget.select()} aria-label={`${exportFormat} deck list`} />
+          <div className="export-actions"><a href="https://www.moxfield.com/decks/new" target="_blank" rel="noreferrer">Open Moxfield importer ↗</a><button className="primary" onClick={() => void copyDeck()}>{copied ? 'Copied' : 'Copy to clipboard'}</button></div>
+        </section>
+      </div>}
+      <div className="workspace">
+        <section className="recommendations">
+          {queue.length > 0 && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={nextBatch}>Next recommendations →</button></div>}
           {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid">
             {queue.slice(0, 4).map((card) => <article className={`card-offer ${decisions[card.name] ?? ''}`} key={card.name}>
               <h3 className="suggestion-type">{card.reason}{decisions[card.name] === 'add' ? ' · Accepted' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>
-              <div className="offered-image"><img src={card.image} alt={`${card.name} card`} />{card.printings && card.printings.length > 1 && <button type="button" onClick={() => cyclePrinting(card)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</div>
-              <div className="card-copy"><h3>{card.name}</h3><p>{card.detail}</p>
-                <div className="actions"><button className="primary" onClick={() => decide(card, 'add')}>Add</button><button onClick={() => decide(card, 'later')}>Later</button><button className="quiet" onClick={() => decide(card, 'ignore')}>Ignore</button></div>
-                <button className="similar" type="button">♡ More like this</button>
+              <div className="actions">
+                <div><button className="primary" onClick={() => decide(card, 'add')}>Add</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
+                <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
+              <div className="offered-image"><img src={card.image} alt={`${card.name} card`} />{card.printings && card.printings.length > 1 && <button type="button" onClick={() => cyclePrinting(card)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</div>
+              <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p></div>
             </article>)}
           </div> : <div className="empty"><h3>No more suggestions</h3><p>Review your deck or choose another commander.</p></div>}
-          {queue.length > 0 && <div className="batch-controls"><button className="primary" onClick={nextBatch}>Next recommendations →</button></div>}
         </section>
         <aside>
           <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
