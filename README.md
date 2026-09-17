@@ -7,8 +7,8 @@ Interactive browser app for building a 100-card MTG Commander deck. Pick a theme
 Requires Node.js 22.
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Vite prints the local URL and reloads the page after source changes.
@@ -16,9 +16,9 @@ Vite prints the local URL and reloads the page after source changes.
 ## Checks
 
 ```bash
-npm run lint
-npm run typecheck
-npm run build
+pnpm lint
+pnpm typecheck
+pnpm build
 ```
 
 ## Design decisions
@@ -37,4 +37,4 @@ npm run build
 
 ## Publishing
 
-Build source from `feature/initial-app`, then replace the root contents of `publish` with `dist/` and push that branch. Configure GitHub Pages to deploy from the `publish` branch root.
+Run `pnpm build` from `feature/initial-app`, then replace the root contents of `publish` with `dist/` and push that branch. Configure GitHub Pages to deploy from the `publish` branch root.
