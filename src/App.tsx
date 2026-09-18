@@ -60,7 +60,11 @@ function App() {
   const [showExport, setShowExport] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('moxfield')
   const [copied, setCopied] = useState(false)
-  const [darkMode, setDarkMode] = useState(true)
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') !== 'light')
+
+  useEffect(() => {
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light')
+  }, [darkMode])
 
   useEffect(() => {
     if (search.trim().length < 2) return
