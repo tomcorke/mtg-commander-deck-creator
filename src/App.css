@@ -120,6 +120,7 @@ main > .commander-header { z-index: 2; }
 .recommendation-options { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-top: 18px; color: #68657c; font-size: 13px; }
 .recommendation-options label { display: flex; gap: 7px; align-items: center; cursor: pointer; }
 .recommendation-options input { width: 17px; height: 17px; accent-color: #36327f; }
+.recommendation-options select { padding: 5px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: transparent; color: inherit; }
 .recommendation-options fieldset { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0; padding: 9px 12px; border: 1px solid #d2d0df; border-radius: 7px; }
 .recommendation-options legend { padding: 0 5px; color: #69409a; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; }
 .recommendation-options button { padding: 5px 9px; border: 1px solid #36327f; border-radius: 5px; background: transparent; color: #36327f; font-size: 12px; }
@@ -179,7 +180,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .lead, .dark .start-panel > p, .dark .section-title > span, .dark .recommendation-options, .dark .card-copy > p, .dark dt, .dark .identity, .dark .progress { color: #aaa8c2; }
 .dark .change, .dark .reroll, .dark .export-actions a { color: #b786f2; }
 .dark .change:hover, .dark .reroll:hover, .dark .export-actions a:hover { color: #d1b0ff; }
-.dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset { border-color: #4b4867; color: #ccc9df; }
+.dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select { border-color: #4b4867; color: #ccc9df; }
 .dark .themes button:hover, .dark .themes button.selected, .dark .format-tabs button.selected, .dark .actions .primary, .dark .empty .primary, .dark .batch-controls .primary, .dark .export-actions .primary { border-color: #7169ca; background: #5851a6; color: white; }
 .dark .actions .primary:hover { background: #6d65bf; }
 .dark .action-help-wrap > button:not(.quiet):hover { background: #35334d; }

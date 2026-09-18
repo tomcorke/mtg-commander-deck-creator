@@ -6,6 +6,7 @@ type Card = { name: string; typeLine: string; manaCost: string; reason: string; 
 type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
+type PowerTarget = 'precon' | 'upgraded' | 'high'
 type ScryfallCard = { name: string; type_line: string; mana_cost?: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; game_changer?: boolean; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; oracle_text?: string; image_uris?: { normal: string } }[] }
 type EdhrecEntry = { name: string; tag: string; header: string }
 
@@ -28,6 +29,7 @@ const recommendationReasons: Record<string, string> = {
 
 const cardText = (card: ScryfallCard) => card.oracle_text ?? card.card_faces?.map((face) => face.oracle_text).filter(Boolean).join('\n') ?? card.type_line
 const isManaCard = (card: ScryfallCard) => card.type_line.includes('Land') || /add \{/i.test(cardText(card))
+const preconFastMana = new Set(['Chrome Mox', 'Grim Monolith', 'Jeweled Lotus', 'Lotus Petal', 'Mana Crypt', 'Mana Vault', 'Mox Diamond'])
 const toCard = (card: ScryfallCard, reason: string): Card => ({ name: card.name, typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', reason, detail: cardText(card), image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri })
 const edhrecSlug = (url: string | undefined, name: string) => url?.match(/\/commanders\/([^/?#]+)/)?.[1] ?? name.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
@@ -86,6 +88,34 @@ const defaultCommanders = Object.values(themeCommanders).flat()
 const randomItems = <T,>(items: T[], count: number) => [...items].sort(() => Math.random() - 0.5).slice(0, count)
 const randomThree = (items: string[]) => randomItems(items, 3)
 
+function batchRecommendations(cards: Card[], includeCreature: boolean) {
+  const remaining = [...cards]
+  const ordered: Card[] = []
+  while (remaining.length) {
+    const picks: Card[] = []
+    const take = (test: (card: Card) => boolean) => {
+      const index = remaining.findIndex((card) => !picks.includes(card) && test(card))
+      if (index >= 0) picks.push(remaining[index])
+    }
+    if (includeCreature) take((card) => card.reason !== 'Land or mana' && card.typeLine.includes('Creature'))
+    while (picks.filter((card) => card.reason !== 'Land or mana').length < 3) {
+      const before = picks.length
+      take((card) => card.reason !== 'Land or mana')
+      if (picks.length === before) break
+    }
+    take((card) => card.reason === 'Land or mana')
+    while (picks.length < 4) {
+      const next = remaining.find((card) => !picks.includes(card))
+      if (!next) break
+      picks.push(next)
+    }
+    ordered.push(...picks)
+    for (const pick of picks) remaining.splice(remaining.indexOf(pick), 1)
+  }
+  if (ordered.length !== cards.length || new Set(ordered.map((card) => card.name)).size !== cards.length) throw new Error('Recommendation queue lost or duplicated cards')
+  return ordered
+}
+
 function symbolName(symbol: string) {
   const names: Record<string, string> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green', C: 'colourless', X: 'X mana', T: 'tap', Q: 'untap', P: 'Phyrexian' }
   if (/^\d+$/.test(symbol)) return `${symbol} generic mana`
@@ -119,6 +149,7 @@ function App() {
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [limitedRecommendations, setLimitedRecommendations] = useState(false)
   const [includeCreature, setIncludeCreature] = useState(true)
+  const [powerTarget, setPowerTarget] = useState<PowerTarget>('upgraded')
   const [excludeGameChangers, setExcludeGameChangers] = useState(true)
   const [excludeTutors, setExcludeTutors] = useState(true)
   const [excludeExtraTurns, setExcludeExtraTurns] = useState(true)
@@ -217,6 +248,14 @@ function App() {
     setColours((selected) => selected.includes(colour) ? selected.filter((item) => item !== colour) : [...selected, colour])
   }
 
+  function choosePowerTarget(target: PowerTarget) {
+    setPowerTarget(target)
+    const exclude = target !== 'high'
+    setExcludeGameChangers(exclude)
+    setExcludeTutors(exclude)
+    setExcludeExtraTurns(exclude)
+  }
+
   async function fallbackRecommendations(identityColours: string[]) {
     const identity = identityColours.join('').toLowerCase() || 'c'
     const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn'].filter(Boolean).join(' ')
@@ -226,9 +265,10 @@ function App() {
       fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} (t:land or o:"add {")`)}&order=edhrec`),
     ])
     if (!mainResponse.ok || !manaResponse.ok) throw new Error('Scryfall unavailable')
-    const main = (await mainResponse.json() as { data: ScryfallCard[] }).data.sort(() => Math.random() - 0.5)
-    const mana = (await manaResponse.json() as { data: ScryfallCard[] }).data.sort(() => Math.random() - 0.5)
-    return Array.from({ length: Math.min(Math.ceil(main.length / 3), mana.length) }, (_, index) => [...main.slice(index * 3, index * 3 + 3).map((card) => toCard(card, 'Popular inclusion')), toCard(mana[index], 'Land or mana')]).flat()
+    const allowed = (cards: ScryfallCard[]) => cards.filter((card) => powerTarget !== 'precon' || !preconFastMana.has(card.name))
+    const main = allowed((await mainResponse.json() as { data: ScryfallCard[] }).data).sort(() => Math.random() - 0.5)
+    const mana = allowed((await manaResponse.json() as { data: ScryfallCard[] }).data).sort(() => Math.random() - 0.5)
+    return batchRecommendations([...main.map((card) => toCard(card, 'Popular inclusion')), ...mana.map((card) => toCard(card, 'Land or mana'))], includeCreature)
   }
 
   async function edhrecRecommendations(slug: string) {
@@ -254,24 +294,12 @@ function App() {
     const allowed = entries.filter((entry) => {
       const card = cards.get(entry.name)
       const text = card ? cardText(card) : ''
-      return card && !(excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) && !(excludeTutors && /search your library/i.test(text)) && !(excludeExtraTurns && /extra turn/i.test(text))
+      return card && !(excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) && !(excludeTutors && /search your library/i.test(text)) && !(excludeExtraTurns && /extra turn/i.test(text)) && !(powerTarget === 'precon' && preconFastMana.has(card.name))
     })
-    const mana = allowed.filter((entry) => isManaCard(cards.get(entry.name)!))
-    const main = allowed.filter((entry) => !isManaCard(cards.get(entry.name)!))
-    const creatures = main.filter((entry) => cards.get(entry.name)!.type_line.includes('Creature'))
-    const others = main.filter((entry) => !cards.get(entry.name)!.type_line.includes('Creature'))
-    const used = new Set<string>()
-    const take = (pool: EdhrecEntry[], count: number) => pool.filter((entry) => !used.has(entry.name)).slice(0, count).map((entry) => { used.add(entry.name); return entry })
-    const batchCount = Math.min(Math.ceil(main.length / 3), mana.length)
-    return Array.from({ length: batchCount }, () => {
-      const picks = includeCreature ? [...take(creatures, 1), ...take(others, 2)] : take(main, 3)
-      if (picks.length < 3) picks.push(...take(main, 3 - picks.length))
-      picks.push(...take(mana, 1))
-      return picks.map((entry) => {
-        const card = cards.get(entry.name)!
-        return toCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''))
-      })
-    }).flat()
+    return batchRecommendations(allowed.map((entry) => {
+      const card = cards.get(entry.name)!
+      return toCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''))
+    }), includeCreature)
   }
 
   async function loadPrintings(cards: Card[], preferredSet = '') {
@@ -385,17 +413,7 @@ function App() {
   function nextBatch() {
     const batch = queue.slice(0, 4)
     const deferred = batch.filter((card) => decisions[card.name] !== 'add' && decisions[card.name] !== 'ignore')
-    const remaining = queue.slice(4)
-    const mana = remaining.filter((card) => card.reason === 'Land or mana')
-    const main = remaining.filter((card) => card.reason !== 'Land or mana')
-    const creatures = main.filter((card) => card.typeLine.includes('Creature'))
-    const others = main.filter((card) => !card.typeLine.includes('Creature'))
-    const batches = mana.flatMap((manaCard, index) => {
-      const creature = creatures[index]
-      const pool = includeCreature && creature ? others.slice(index * 2, index * 2 + 2) : main.slice(index * 3, index * 3 + 3)
-      return [...(includeCreature && creature ? [creature, ...pool] : pool), manaCard]
-    })
-    const nextQueue = [...batches, ...deferred]
+    const nextQueue = [...queue.slice(4), ...deferred]
     setQueue(nextQueue)
     setDecisions({})
     void loadPrintings(nextQueue.slice(0, 4), preferredPrintSet)
@@ -472,6 +490,7 @@ function App() {
         <div className="recommendation-setup">
           <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>Add to your deck</h2></div><span>{queue.length} suggestions left</span></div>
           <div className="recommendation-options">
+            <label>Power target <select value={powerTarget} onChange={(event) => choosePowerTarget(event.target.value as PowerTarget)}><option value="precon">Precon / Core (Bracket 2)</option><option value="upgraded">Upgraded (Bracket 3)</option><option value="high">High power / Optimized (Bracket 4)</option></select></label>
             <label><input type="checkbox" checked={includeCreature} onChange={(event) => setIncludeCreature(event.target.checked)} /> Include a creature when possible</label>
             <label><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label>
             <fieldset><legend>Exclude from recommendations</legend>
