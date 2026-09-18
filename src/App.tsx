@@ -1,10 +1,11 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
+import { analyseDeck, curveBucket, deckGuidance, defaultDeckTargets, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
-type Card = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
-type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
+type Card = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
+type DeckCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 
@@ -152,6 +153,8 @@ function App() {
   const [preferredPrintSet, setPreferredPrintSet] = useState('')
   const [loadingArt, setLoadingArt] = useState('')
   const [recommendationOptionsChanged, setRecommendationOptionsChanged] = useState(false)
+  const [deckTargets, setDeckTargets] = useState<DeckTargets>(defaultDeckTargets)
+  const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
 
   useEffect(() => {
     if (search.trim().length < 2) return
@@ -335,7 +338,7 @@ function App() {
         return [primary, ...alternatives]
       }))
       if (images.length) setCommanderDetails({ images, art, colours: identityColours, printings: commanderPrintings, selections: commanders.map(() => 0) })
-      if (!preserveDeck) setDeck(commanders.map((card, index) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', tags: cardTags(card), printings: commanderPrintings[index], printing: 0 })))
+      if (!preserveDeck) setDeck(commanders.map((card, index) => ({ name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', tags: cardTags(card), printings: commanderPrintings[index], printing: 0 })))
 
       let offeredCards: Card[]
       try {
@@ -359,7 +362,7 @@ function App() {
   function decide(card: Card, action: 'add' | 'later' | 'ignore') {
     const previous = decisions[card.name]
     if (previous === 'add' && action !== 'add') setDeck((list) => list.filter((item) => item.name !== card.name))
-    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, manaCost: card.manaCost, set: card.set, collectorNumber: card.collectorNumber, image: card.image, tags: card.tags, printings: card.printings, printing: card.printing ?? 0, printingManuallySelected: card.printingManuallySelected }])
+    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, layout: card.layout, typeLine: card.typeLine, manaCost: card.manaCost, manaValue: card.manaValue, detail: card.detail, producedMana: card.producedMana, faces: card.faces, set: card.set, collectorNumber: card.collectorNumber, image: card.image, tags: card.tags, printings: card.printings, printing: card.printing ?? 0, printingManuallySelected: card.printingManuallySelected }])
     if (action === 'ignore') setLiked((current) => current.filter((name) => name !== card.name))
     setDecisions((current) => ({ ...current, [card.name]: action }))
   }
@@ -498,6 +501,9 @@ function App() {
   const inferredThemeOptions = [...new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))].filter((name) => supportedThemes.includes(name))
   const subThemeOptions = [...new Set([...commanderSubThemes, ...inferredThemeOptions])]
   const filteredSubThemes = subThemeOptions.filter((name) => name.toLowerCase().includes(subThemeSearch.toLowerCase()) && name !== theme && !activeSubThemes.includes(name))
+  const analysis = analyseDeck(deck)
+  const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
+  const maxCurveCount = Math.max(1, ...analysis.curve.map((point) => point.permanents + point.nonPermanents))
   const cardReason = (card: Card) => {
     const subTheme = card.tags.find((tag) => activeSubThemes.includes(tag))
     if (subTheme) return `${subTheme} sub-theme`
@@ -589,8 +595,27 @@ function App() {
         <aside>
           <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
           <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
-          <dl><div><dt>Commander</dt><dd>{commanderNames(commander).length}</dd></div><div><dt>Creatures</dt><dd>{deck.slice(commanderNames(commander).length).filter((card) => card.typeLine.includes('Creature')).length}</dd></div><div><dt>Enchantments</dt><dd>{deck.filter((card) => card.typeLine.includes('Enchantment')).length}</dd></div><div><dt>Lands</dt><dd>{deck.filter((card) => card.typeLine.includes('Land')).length}</dd></div></dl>
-          <ol>{deck.map((card, index) => <li key={`${card.name}-${index}`} tabIndex={0}><span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index < commanderNames(commander).length ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} />{loadingArt === card.name && <span className="art-loading" role="status"><i />Loading art…</span>}{card.printings && card.printings.length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cycleDeckPrinting(index)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</span>}</li>)}</ol>
+          <section className="deck-analysis" aria-labelledby="analysis-title">
+            <h3 id="analysis-title">Deck analysis</h3>
+            <p className="sr-only" aria-live="polite">{highlightedManaValue === null ? 'Mana-value filter cleared.' : `Showing mana value ${highlightedManaValue === 7 ? '7 or more' : highlightedManaValue} cards.`}</p>
+            <div className="curve-scroll">
+              <div className="mana-curve" aria-label="Mana-value curve">
+                {analysis.curve.map((point) => <button type="button" className={highlightedManaValue === point.manaValue ? 'selected' : ''} onClick={() => setHighlightedManaValue((current) => current === point.manaValue ? null : point.manaValue)} aria-pressed={highlightedManaValue === point.manaValue} aria-label={`Mana value ${point.manaValue === 7 ? '7 or more' : point.manaValue}: ${point.permanents} permanents, ${point.nonPermanents} non-permanents`} key={point.manaValue}>
+                  <span className="curve-bars"><i className="permanent" style={{ height: `${point.permanents / maxCurveCount * 100}%` }} /><i className="non-permanent" style={{ height: `${point.nonPermanents / maxCurveCount * 100}%` }} /></span><b>{point.manaValue === 7 ? '7+' : point.manaValue}</b>{highlightedManaValue === point.manaValue && <span className="sr-only">Selected</span>}
+                </button>)}
+              </div>
+            </div>
+            <div className="curve-legend"><span><i className="permanent" /> Permanent</span><span><i className="non-permanent" /> Non-permanent</span><b>Avg {analysis.averageManaValue.toFixed(1)}</b></div>
+            <div className="mana-balance"><h4>Colour balance</h4>{(['W', 'U', 'B', 'R', 'G'] as const).map((colour) => <div key={colour}><img src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`} alt={colourNames[colour]} /><span>{analysis.required[colour]} pips</span><b>{analysis.produced[colour]} sources</b></div>)}</div>
+            <div className="target-heading"><h4>Deck targets</h4><span>Suggested lands {analysis.landRange[0]}-{analysis.landRange[1]}</span></div>
+            <div className="deck-targets">{targetKeys.map((key) => <label key={key}><span>{targetLabels[key]}</span><b>{analysis.counts[key]}</b><span>/</span><input type="number" min="0" max="99" value={deckTargets[key]} onChange={(event) => setDeckTargets((current) => ({ ...current, [key]: Math.max(0, Number(event.target.value)) }))} aria-label={`${targetLabels[key]} target`} /></label>)}</div>
+            {guidance.length > 0 && <div className="deck-guidance" aria-live="polite">{guidance.map((item) => <p className={item.strong ? 'strong' : ''} key={item.key}>{item.text}</p>)}</div>}
+          </section>
+          <ol>{deck.map((card, index) => {
+            const curveValue = curveBucket(card)
+            const highlighted = highlightedManaValue === null || highlightedManaValue === curveValue
+            return <li className={highlighted ? '' : 'curve-dimmed'} key={`${card.name}-${index}`} tabIndex={0}>{highlightedManaValue !== null && highlighted && <span className="sr-only">Matches active mana-value filter. </span>}<span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index < commanderNames(commander).length ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} />{loadingArt === card.name && <span className="art-loading" role="status"><i />Loading art…</span>}{card.printings && card.printings.length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cycleDeckPrinting(index)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</span>}</li>
+          })}</ol>
         </aside>
       </div>
     </main>

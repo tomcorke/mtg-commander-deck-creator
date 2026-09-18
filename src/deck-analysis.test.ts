@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { analyseDeck, curveBucket, deckGuidance, defaultDeckTargets, type AnalysisCard } from './deck-analysis.ts'
+
+const card = (overrides: Partial<AnalysisCard> = {}): AnalysisCard => ({ name: 'Card', layout: 'normal', typeLine: 'Creature', manaCost: '{2}{G}', manaValue: 3, detail: '', producedMana: [], faces: [], ...overrides })
+
+test('analyses curve, coloured requirements, production, roles, and land range', () => {
+  const analysis = analyseDeck([
+    card(),
+    card({ name: 'Growth', typeLine: 'Sorcery', manaCost: '{1}{G}', manaValue: 2, detail: 'Search your library for a basic land card.' }),
+    card({ name: 'Dual', typeLine: 'Land', manaCost: '', manaValue: 0, detail: '{T}: Add {G} or {W}.', producedMana: ['G', 'W'] }),
+    card({ name: 'Draw', detail: 'Draw cards equal to the number of creatures you control.' }),
+    card({ name: 'Removal', typeLine: 'Instant', detail: 'Return target permanent to its owner’s hand.' }),
+    card({ name: 'Wipe', typeLine: 'Sorcery', detail: 'Destroy all creatures.' }),
+  ])
+  assert.deepEqual(analysis.curve[2], { manaValue: 2, permanents: 0, nonPermanents: 1 })
+  assert.equal(analysis.required.G, 5)
+  assert.deepEqual(analysis.produced, { W: 1, U: 0, B: 0, R: 0, G: 1 })
+  assert.deepEqual(analysis.counts, { lands: 1, ramp: 1, draw: 1, removal: 1, wipes: 1 })
+  assert.equal(analysis.landRange.length, 2)
+})
+
+test('classifies common removal without treating one sacrifice as a wipe', () => {
+  const analysis = analyseDeck([
+    card({ detail: 'Each player sacrifices a creature.' }),
+    card({ detail: 'This creature fights target creature you don’t control.' }),
+    card({ detail: 'It deals 3 damage to target creature.' }),
+    card({ detail: 'Target creature gets -X/-X until end of turn.' }),
+  ])
+  assert.equal(analysis.counts.wipes, 0)
+  assert.equal(analysis.counts.removal, 3)
+})
+
+test('modal spell-land counts as a land source and front spell in curve', () => {
+  const analysis = analyseDeck([card({
+    layout: 'modal_dfc', typeLine: 'Sorcery // Land', manaCost: '{1}{U}', manaValue: 2, producedMana: ['U'],
+    faces: [{ typeLine: 'Sorcery', manaCost: '{1}{U}' }, { typeLine: 'Land', manaCost: '' }],
+  })])
+  assert.equal(analysis.counts.lands, 1)
+  assert.deepEqual(analysis.curve[2], { manaValue: 2, permanents: 0, nonPermanents: 1 })
+  assert.equal(analysis.required.U, 1)
+  assert.equal(analysis.produced.U, 1)
+})
+
+test('counts castable multiface colour pips', () => {
+  const analysis = analyseDeck([card({ layout: 'split', manaCost: '{1}{R} // {1}{U}', faces: [{ typeLine: 'Instant', manaCost: '{1}{R}' }, { typeLine: 'Instant', manaCost: '{1}{U}' }] })])
+  assert.equal(analysis.required.R, 1)
+  assert.equal(analysis.required.U, 1)
+})
+
+test('uses front face for adventure curve and excludes all-land modal cards', () => {
+  const adventure = card({ layout: 'adventure', typeLine: 'Creature // Instant', manaValue: 3, faces: [{ typeLine: 'Creature', manaCost: '{2}{G}' }, { typeLine: 'Instant — Adventure', manaCost: '{G}' }] })
+  const pathway = card({ layout: 'modal_dfc', typeLine: 'Land // Land', manaCost: '', manaValue: 0, faces: [{ typeLine: 'Land', manaCost: '' }, { typeLine: 'Land', manaCost: '' }] })
+  const analysis = analyseDeck([adventure, pathway])
+  assert.deepEqual(analysis.curve[3], { manaValue: 3, permanents: 1, nonPermanents: 0 })
+  assert.equal(curveBucket(pathway), null)
+})
+
+test('guidance starts at 70 and strengthens aggregate impossible late gaps', () => {
+  assert.deepEqual(deckGuidance(69, { ...defaultDeckTargets }, defaultDeckTargets), [])
+  const quiet = deckGuidance(70, { ...defaultDeckTargets, lands: 30 }, defaultDeckTargets)
+  assert.equal(quiet[0].strong, false)
+  const strong = deckGuidance(95, { lands: 33, ramp: 8, draw: 8, removal: 8, wipes: 3 }, defaultDeckTargets)
+  assert.equal(strong.every((item) => item.strong), true)
+})
