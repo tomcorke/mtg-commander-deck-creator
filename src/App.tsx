@@ -159,6 +159,7 @@ function App() {
   const [cardSearch, setCardSearch] = useState('')
   const [cardSearchResults, setCardSearchResults] = useState<string[]>([])
   const [cardSearchState, setCardSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [filterCardIdentity, setFilterCardIdentity] = useState(true)
   const [selectedManualCard, setSelectedManualCard] = useState<ScryfallCard | null>(null)
   const cardSearchButton = useRef<HTMLButtonElement>(null)
   const cardSearchInput = useRef<HTMLInputElement>(null)
@@ -193,17 +194,19 @@ function App() {
     const timer = setTimeout(async () => {
       setCardSearchState('loading')
       try {
-        const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(cardSearch.trim())}`, { signal: controller.signal })
-        if (!response.ok) throw new Error('Scryfall unavailable')
-        const result = await response.json() as { data: string[] }
-        setCardSearchResults(result.data.slice(0, 8))
+        const identity = commanderDetails?.colours.join('').toLowerCase() || 'c'
+        const query = `name:${cardSearch.trim()}${filterCardIdentity ? ` id<=${identity}` : ''}`
+        const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards`, { signal: controller.signal })
+        if (!response.ok && response.status !== 404) throw new Error('Scryfall unavailable')
+        const result = response.ok ? await response.json() as { data: ScryfallCard[] } : { data: [] }
+        setCardSearchResults([...new Set(result.data.map((card) => card.name))].slice(0, 8))
         setCardSearchState('idle')
       } catch (error) {
         if (!(error instanceof DOMException && error.name === 'AbortError')) setCardSearchState('error')
       }
     }, 250)
     return () => { clearTimeout(timer); controller.abort() }
-  }, [cardSearch, showCardSearch])
+  }, [cardSearch, showCardSearch, filterCardIdentity, commanderDetails?.colours])
 
   useEffect(() => {
     if (showCardSearch) cardSearchInput.current?.focus()
@@ -716,6 +719,7 @@ function App() {
             <input ref={cardSearchInput} value={cardSearch} onChange={(event) => { setCardSearch(event.target.value); setCardSearchResults([]); setCardSearchState('idle'); setSelectedManualCard(null) }} placeholder="Search card names…" aria-label="Card name" autoComplete="off" />
             <button className="primary" disabled={!cardSearchResults.length || cardSearchState === 'loading'}>Search</button>
           </form>
+          <label className="card-search-filter"><input type="checkbox" checked={filterCardIdentity} onChange={(event) => { setFilterCardIdentity(event.target.checked); setCardSearchResults([]); setSelectedManualCard(null) }} /> Only show cards in commander colour identity</label>
           {cardSearchState === 'loading' && <p className="card-search-status" role="status">Searching…</p>}
           {cardSearchState === 'error' && <p className="form-error" role="alert">Scryfall unavailable. Try again.</p>}
           {cardSearch.length >= 2 && cardSearchState === 'idle' && !cardSearchResults.length && !selectedManualCard && <p className="card-search-status">No cards found.</p>}

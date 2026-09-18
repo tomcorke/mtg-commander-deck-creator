@@ -42,6 +42,8 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .card-search-form { display: flex; gap: 8px; margin-top: 22px; }
 .card-search-form input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #bbb9cd; border-radius: 6px; background: white; color: #28273b; font: inherit; }
 .card-search-form .primary { padding: 0 18px; border: 0; border-radius: 6px; background: #36327f; color: white; }
+.card-search-filter { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: #625f76; font-size: 13px; cursor: pointer; }
+.card-search-filter input { accent-color: var(--commander-accent, #36327f); }
 .card-search-status { margin: 18px 0 0; color: #706d82; }
 .card-search-results { max-height: 360px; margin-top: 12px; overflow: auto; border-top: 1px solid #dad8e6; }
 .card-search-results button { display: flex; width: 100%; justify-content: space-between; padding: 13px 2px; border: 0; border-bottom: 1px solid #dad8e6; background: transparent; color: inherit; text-align: left; }
@@ -300,7 +302,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .suggestions button { padding: 14px 16px; }
 .dark .suggestions button, .dark .start-panel input, .dark .export-modal textarea, .dark .card-search-form input { color: #e5e3f0; background: #121121; }
 .dark .card-search-results, .dark .card-search-results button { border-color: #39374f; }
-.dark .manual-card-preview p, .dark .card-search-status { color: #aaa8c2; }
+.dark .manual-card-preview p, .dark .card-search-status, .dark .card-search-filter { color: #aaa8c2; }
 .dark .manual-card-button { border-color: #615b96; color: #d4d0ed; }
 .dark .offered-image, .dark .commander-placeholder { background-image: linear-gradient(110deg, #29273d 30%, #3b3852 45%, #29273d 60%); }
 .dark .offered-image > img { outline: 2px solid #696681; outline-offset: 2px; box-shadow: 0 14px 35px #0009; }
