@@ -67,7 +67,25 @@ h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
 .start-panel input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #bcbacd; border-radius: 6px; background: white; font: inherit; }
 .start-panel .primary { border: 0; border-radius: 6px; padding: 0 18px; background: #36327f; color: white; }
 .suggestions { margin-top: 18px; border-top: 1px solid #dedcea; }
-.suggestions button { display: flex; justify-content: space-between; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid #dedcea; background: transparent; color: #302e47; text-align: left; }
+.suggestions button { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid #dedcea; background: transparent; color: #302e47; text-align: left; }
+.commander-option { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.commander-cost { position: relative; display: flex; flex: none; width: 78px; min-width: 78px; max-width: 78px; min-height: 18px; justify-content: flex-end; align-items: center; overflow: visible; white-space: nowrap; }
+.commander-cost.loaded { animation: cost-in .2s ease-out; }
+.commander-cost .mana-symbol { position: relative; width: 18px; height: 18px; margin: 0 1px; }
+.commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol { margin: 0 0 0 -8px; }
+.commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:first-child { margin-left: 0; }
+.commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(1) { z-index: 1; }
+.commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(2) { z-index: 2; }
+.commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(3) { z-index: 3; }
+.commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(4) { z-index: 4; }
+.commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(5) { z-index: 5; }
+.commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(6) { z-index: 6; }
+.commander-cost:has(.mana-symbol:nth-child(5)):hover .mana-symbol { flex: 0 0 18px; margin-left: 1px; }
+.commander-cost:has(.mana-symbol:nth-child(5)):hover .mana-symbol:first-child { margin-left: 0; }
+.commander-cost .mana-symbol { transition: margin .15s; }
+.cost-placeholder { width: 70px; height: 14px; border-radius: 9px; background: linear-gradient(90deg, #39374f 25%, #514e70 50%, #39374f 75%); background-size: 200% 100%; animation: cost-loading 1.2s infinite; }
+@keyframes cost-loading { to { background-position: -200% 0; } }
+@keyframes cost-in { from { opacity: 0; } to { opacity: 1; } }
 .reroll { margin-top: 15px; padding: 0; border: 0; background: transparent; color: #69409a; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: calc(100vh - 213px); }
 .recommendations { padding: 24px 6vw 60px 8vw; }
@@ -118,6 +136,9 @@ dl div { display: flex; justify-content: space-between; padding: 4px 0; font-siz
 dt { color: #706d82; } dd { margin: 0; font-weight: 600; }
 ol { list-style: none; margin: 0; padding: 0; }
 li { display: flex; justify-content: space-between; gap: 10px; padding: 11px 0; border-bottom: 1px solid #dad8e6; font-size: 13px; }
+.deck-card-meta { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
+.deck-mana { display: flex; min-width: 54px; justify-content: flex-end; white-space: nowrap; }
+.deck-mana .mana-symbol { width: 16px; height: 16px; margin: 0 1px; }
 li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: uppercase; }
 .empty { margin-top: 25px; padding: 60px; border: 1px dashed #bbb2a3; text-align: center; }
 .batch-controls { display: flex; justify-content: flex-end; margin-top: 20px; }
@@ -128,13 +149,15 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark aside { background: #17162a; }
 .dark h1, .dark h2, .dark h3, .dark .brand { color: #d9d8ff; }
 .dark .lead, .dark .start-panel > p, .dark .section-title > span, .dark .recommendation-options, .dark .card-copy > p, .dark dt, .dark .identity, .dark .progress { color: #aaa8c2; }
+.dark .change, .dark .reroll, .dark .export-actions a { color: #b786f2; }
+.dark .change:hover, .dark .reroll:hover, .dark .export-actions a:hover { color: #d1b0ff; }
 .dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset { border-color: #4b4867; color: #ccc9df; }
 .dark .themes button:hover, .dark .themes button.selected, .dark .format-tabs button.selected, .dark .actions .primary, .dark .empty .primary, .dark .batch-controls .primary, .dark .export-actions .primary { border-color: #7169ca; background: #5851a6; color: white; }
 .dark .actions .primary:hover { background: #6d65bf; }
 .dark .action-help-wrap > button:not(.quiet):hover { background: #35334d; }
 .dark .card-offer.add { border-color: #7169ca; background: #282646; }
 .dark .suggestions, .dark .suggestions button, .dark li, .dark dl { border-color: #39374f; }
-.dark .suggestions { overflow: hidden; border: 1px solid #39374f; border-radius: 7px; }
+.dark .suggestions { overflow: visible; border: 1px solid #39374f; border-radius: 7px; }
 .dark .suggestions button { padding: 14px 16px; }
 .dark .suggestions button, .dark .start-panel input, .dark .export-modal textarea { color: #e5e3f0; background: #121121; }
 .dark .offered-image > img { outline: 2px solid #696681; outline-offset: 2px; box-shadow: 0 14px 35px #0009; }

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import './App.css'
 
 type Printing = { image: string; set: string; collectorNumber: string }
-type Card = { name: string; typeLine: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; printings?: Printing[]; printing?: number }
-type DeckCard = { name: string; typeLine: string; set: string; collectorNumber: string }
+type Card = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; printings?: Printing[]; printing?: number }
+type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string }
 type CommanderDetails = { image: string; colours: string[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 
@@ -21,14 +21,22 @@ const themeCommanders: Record<string, string[]> = {
 const defaultCommanders = Object.values(themeCommanders).flat()
 const randomThree = (items: string[]) => [...items].sort(() => Math.random() - 0.5).slice(0, 3)
 
+function symbolName(symbol: string) {
+  const names: Record<string, string> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green', C: 'colourless', X: 'X mana', T: 'tap', Q: 'untap', P: 'Phyrexian' }
+  if (/^\d+$/.test(symbol)) return `${symbol} generic mana`
+  return symbol.split('/').map((part) => names[part] ?? part).join(' or ')
+}
+
 function OracleText({ text }: { text: string }) {
   return <>{text.split(/(\{[^}]+\})/g).map((part, index) => {
     const symbol = part.match(/^\{(.+)\}$/)?.[1]
     if (!symbol) return part
     const file = symbol.replace('/', '')
-    return <img className="mana-symbol" src={`https://svgs.scryfall.io/card-symbols/${file}.svg`} alt={part} title={part} key={`${part}-${index}`} />
+    const label = symbolName(symbol)
+    return <img className="mana-symbol" src={`https://svgs.scryfall.io/card-symbols/${file}.svg`} alt={label} title={label} key={`${part}-${index}`} />
   })}</>
 }
+
 
 function App() {
   const [commander, setCommander] = useState('')
@@ -39,6 +47,7 @@ function App() {
   const [matches, setMatches] = useState<string[]>([])
   const [suggestions, setSuggestions] = useState(() => randomThree(defaultCommanders))
   const [suggestionPool, setSuggestionPool] = useState(defaultCommanders)
+  const [commanderCosts, setCommanderCosts] = useState<Record<string, string>>({})
   const [queue, setQueue] = useState<Card[]>([])
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [includeCreature, setIncludeCreature] = useState(true)
@@ -61,8 +70,10 @@ function App() {
       try {
         const query = encodeURIComponent(`is:commander name:${search.trim()}`)
         const response = await fetch(`https://api.scryfall.com/cards/search?q=${query}`, { signal: controller.signal })
-        const result = await response.json() as { data?: { name: string }[] }
-        setMatches([...new Set(result.data?.map((card) => card.name) ?? [])].slice(0, 6))
+        const result = await response.json() as { data?: { name: string; mana_cost?: string; card_faces?: { mana_cost?: string }[] }[] }
+        const cards = result.data ?? []
+        setMatches([...new Set(cards.map((card) => card.name))].slice(0, 6))
+        setCommanderCosts((current) => ({ ...current, ...Object.fromEntries(cards.map((card) => [card.name, card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''])) }))
       } catch (error) {
         if (!(error instanceof DOMException && error.name === 'AbortError')) setMatches([])
       }
@@ -78,10 +89,12 @@ function App() {
       try {
         const identity = colours.join('').toLowerCase()
         const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`is:commander id=${identity}`)}&order=edhrec`, { signal: controller.signal })
-        const result = await response.json() as { data?: { name: string }[] }
-        const names = result.data?.map((card) => card.name) ?? []
+        const result = await response.json() as { data?: { name: string; mana_cost?: string; card_faces?: { mana_cost?: string }[] }[] }
+        const cards = result.data ?? []
+        const names = cards.map((card) => card.name)
         setSuggestionPool(names)
         setSuggestions(randomThree(names))
+        setCommanderCosts((current) => ({ ...current, ...Object.fromEntries(cards.map((card) => [card.name, card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''])) }))
       } catch (error) {
         if (!(error instanceof DOMException && error.name === 'AbortError')) setSuggestions([])
       }
@@ -89,6 +102,23 @@ function App() {
     void load()
     return () => controller.abort()
   }, [colours])
+
+  useEffect(() => {
+    const missing = suggestions.filter((name) => commanderCosts[name] === undefined)
+    if (!missing.length) return
+    const controller = new AbortController()
+    const load = async () => {
+      for (const name of missing) {
+        const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`, { signal: controller.signal })
+        if (!response.ok) continue
+        const card = await response.json() as { mana_cost?: string; card_faces?: { mana_cost?: string }[] }
+        setCommanderCosts((current) => ({ ...current, [name]: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '' }))
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+    }
+    void load().catch(() => undefined)
+    return () => controller.abort()
+  }, [suggestions, commanderCosts])
 
   function chooseTheme(name: string) {
     setTheme(name)
@@ -115,10 +145,10 @@ function App() {
 
     const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(chosen)}`)
     if (!response.ok) { setRecommendationState('error'); return }
-    const card = await response.json() as { color_identity: string[]; set: string; collector_number: string; image_uris?: { normal: string }; card_faces?: { image_uris?: { normal: string } }[] }
+    const card = await response.json() as { color_identity: string[]; mana_cost?: string; set: string; collector_number: string; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
     const image = card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal
     if (image) setCommanderDetails({ image, colours: card.color_identity })
-    if (!preserveDeck) setDeck([{ name: chosen, typeLine: 'Legendary Creature', set: card.set, collectorNumber: card.collector_number }])
+    if (!preserveDeck) setDeck([{ name: chosen, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number }])
 
     const identity = card.color_identity.join('').toLowerCase() || 'c'
     const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn'].filter(Boolean).join(' ')
@@ -126,7 +156,7 @@ function App() {
     const mainResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} -t:land -o:"add {"`)}&order=edhrec`)
     const manaResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} (t:land or o:"add {")`)}&order=edhrec`)
     if (!mainResponse.ok || !manaResponse.ok) { setRecommendationState('error'); return }
-    type ScryfallCard = { name: string; type_line: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; image_uris?: { normal: string }; card_faces?: { image_uris?: { normal: string } }[] }
+    type ScryfallCard = { name: string; type_line: string; mana_cost?: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
     const main = await mainResponse.json() as { data: ScryfallCard[] }
     const mana = await manaResponse.json() as { data: ScryfallCard[] }
     const mainCards = main.data.sort(() => Math.random() - 0.5)
@@ -143,6 +173,7 @@ function App() {
     const offeredCards = picks.map((item, index) => ({
       name: item.name,
       typeLine: item.type_line,
+      manaCost: item.mana_cost ?? item.card_faces?.[0]?.mana_cost ?? '',
       reason: index % 4 === 3 ? 'Land or mana' : item.color_identity.length === card.color_identity.length ? 'Strong colour fit' : item.color_identity.length === 0 ? 'Colourless utility' : 'Popular inclusion',
       detail: item.oracle_text || item.type_line,
       image: item.image_uris?.normal ?? item.card_faces?.[0]?.image_uris?.normal ?? '',
@@ -168,7 +199,7 @@ function App() {
   function decide(card: Card, action: 'add' | 'later' | 'ignore') {
     const previous = decisions[card.name]
     if (previous === 'add' && action !== 'add') setDeck((list) => list.filter((item) => item.name !== card.name))
-    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, set: card.set, collectorNumber: card.collectorNumber }])
+    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, manaCost: card.manaCost, set: card.set, collectorNumber: card.collectorNumber }])
     setDecisions((current) => ({ ...current, [card.name]: action }))
   }
 
@@ -240,7 +271,7 @@ function App() {
               <button className="primary" type="submit">Choose</button>
             </form>
             <div className="suggestions" aria-live="polite">
-              {(search.trim().length >= 2 ? matches : suggestions).map((name) => <button key={name} onClick={() => start(name)}>{name}<span>→</span></button>)}
+              {(search.trim().length >= 2 ? matches : suggestions).map((name) => <button key={name} onClick={() => start(name)}><span className="commander-option"><span className={`commander-cost ${commanderCosts[name] === undefined ? 'loading' : 'loaded'}`}>{commanderCosts[name] === undefined ? <span className="cost-placeholder" aria-label="Loading mana cost" /> : <OracleText text={commanderCosts[name]} />}</span><span>{name}</span></span><span>→</span></button>)}
             </div>
             {search.trim().length < 2 && <button className="reroll" onClick={() => setSuggestions(randomThree(suggestionPool))}>↻ Show different commanders</button>}
           </article>
@@ -313,7 +344,7 @@ function App() {
           <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
           <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
           <dl><div><dt>Commander</dt><dd>1</dd></div><div><dt>Creatures</dt><dd>{deck.slice(1).filter((card) => card.typeLine.includes('Creature')).length}</dd></div><div><dt>Enchantments</dt><dd>{deck.filter((card) => card.typeLine.includes('Enchantment')).length}</dd></div><div><dt>Lands</dt><dd>{deck.filter((card) => card.typeLine.includes('Land')).length}</dd></div></dl>
-          <ol>{deck.map((card, index) => <li key={`${card.name}-${index}`}><span>{card.name}</span><b>{index === 0 ? 'Commander' : card.typeLine.split(' — ')[0]}</b></li>)}</ol>
+          <ol>{deck.map((card, index) => <li key={`${card.name}-${index}`}><span>{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index === 0 ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span></li>)}</ol>
         </aside>
       </div>
     </main>

@@ -26,7 +26,7 @@ pnpm build
 - React, TypeScript, and Vite provide a client-only single-page app with fast local HMR.
 - Production output is static. The `publish` branch contains the built app at its root for GitHub Pages.
 - No backend is required. The browser reads card data, images, colour symbols, printings, and popularity ordering from Scryfall.
-- Deck creation starts empty. Users can choose a theme, combine colour identity filters, or search all commanders.
+- Deck creation starts empty. Users can choose a theme, combine colour identity filters, or search all commanders. Commander suggestions show aligned mana costs, including generic mana.
 - Recommendations arrive in manual batches of four: three non-land cards and one land or mana card.
 - Batches include a creature when possible. Users can disable this once their creature count is high enough.
 - Game Changers, tutors, and extra-turn cards are excluded by default. Users can disable each bracket-safety filter.
@@ -34,7 +34,7 @@ pnpm build
 - Alternate art uses Scryfall printings and appears only when more than one image exists. Selected set and collector number carry into exports.
 - Export opens an in-app modal with Moxfield, plain-text, and CSV formats plus clipboard copy. Moxfield has no documented public URL for a prefilled import, so the app links to its deck importer.
 - Commander previews use native CSS Anchor Positioning so the full card stays attached to its thumbnail and flips when space is limited.
-- Dark mode is the default, with a user-controlled light mode.
+- Dark mode is the default, with a user-controlled light mode. Headings use Spectral and body copy uses DM Sans.
 - Current state is in memory. Refreshing the page resets the deck. Persistence can wait until users need it.
 
 ## Publishing
