@@ -69,6 +69,8 @@ const defaultCommanders = Object.values(themeCommanders).flat()
 const selectableThemes = Object.keys(themeCommanders).filter((name) => supportedThemes.includes(name))
 const randomItems = <T,>(items: T[], count: number) => [...items].sort(() => Math.random() - 0.5).slice(0, count)
 const randomThree = (items: string[]) => randomItems(items, 3)
+const basicNames = [...Object.values(basicLandNames), 'Wastes']
+const basicCardCache = new Map<string, ScryfallCard>()
 
 function useStoredOption<T>(key: string, fallback: () => T) {
   const [value, setValue] = useState<T>(() => {
@@ -159,6 +161,13 @@ function App() {
   const [deckTargets, setDeckTargets] = useState<DeckTargets>(defaultDeckTargets)
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<number | null>(null)
+
+  useEffect(() => {
+    void fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: basicNames.map((name) => ({ name })) }) })
+      .then((response) => response.ok ? response.json() as Promise<{ data: ScryfallCard[] }> : Promise.reject())
+      .then(({ data }) => data.forEach((card) => basicCardCache.set(card.name, card)))
+      .catch(() => undefined)
+  }, [])
 
   useEffect(() => {
     if (pendingRemoval === null) return
@@ -443,9 +452,13 @@ function App() {
   const toDeckCard = (card: ScryfallCard): DeckCard => ({ name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', tags: cardTags(card), printing: 0 })
 
   async function fetchBasic(name: string) {
+    const cached = basicCardCache.get(name)
+    if (cached) return toDeckCard(cached)
     const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)
     if (!response.ok) throw new Error('Basic land unavailable')
-    return toDeckCard(await response.json() as ScryfallCard)
+    const card = await response.json() as ScryfallCard
+    basicCardCache.set(name, card)
+    return toDeckCard(card)
   }
 
   async function addBasicLands(plan: { name: string; count: number }[]) {
