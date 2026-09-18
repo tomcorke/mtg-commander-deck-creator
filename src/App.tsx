@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import './App.css'
 
 type Printing = { image: string; set: string; collectorNumber: string }
 type Card = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; printings?: Printing[]; printing?: number }
 type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string }
-type CommanderDetails = { images: string[]; colours: string[] }
+type CommanderDetails = { images: string[]; art: string[]; colours: string[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 type ScryfallCard = { name: string; type_line: string; mana_cost?: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; game_changer?: boolean; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; oracle_text?: string; image_uris?: { normal: string } }[] }
 type EdhrecEntry = { name: string; tag: string; header: string }
@@ -32,6 +32,9 @@ const toCard = (card: ScryfallCard, reason: string): Card => ({ name: card.name,
 const edhrecSlug = (url: string | undefined, name: string) => url?.match(/\/commanders\/([^/?#]+)/)?.[1] ?? name.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const colourNames: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' }
+const colourThemes: Record<string, [string, string]> = {
+  W: ['#9b772e', '#f3df9b'], U: ['#286da8', '#8dc9ee'], B: ['#67506f', '#bf9ac8'], R: ['#a83b32', '#ee8b68'], G: ['#32734c', '#8bc795'], C: ['#666879', '#b8bac7'],
+}
 
 const themeCommanders: Record<string, string[]> = {
   'Tokens': ['Chatterfang, Squirrel General', 'Rhys the Redeemed', 'Jetmir, Nexus of Revels', 'Baylen, the Haymaker', 'Adrix and Nev, Twincasters', 'Krenko, Mob Boss'],
@@ -126,6 +129,7 @@ function App() {
   const [exportFormat, setExportFormat] = useState<ExportFormat>('moxfield')
   const [copied, setCopied] = useState(false)
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') !== 'light')
+  const [commanderStyling, setCommanderStyling] = useState(true)
 
   useEffect(() => {
     localStorage.setItem('theme', darkMode ? 'dark' : 'light')
@@ -282,11 +286,12 @@ function App() {
     try {
       const responses = await Promise.all(commanderNames(chosen).map((name) => fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)))
       if (responses.some((response) => !response.ok)) throw new Error('Commander unavailable')
-      type CommanderCard = { name: string; color_identity: string[]; mana_cost?: string; set: string; collector_number: string; related_uris?: { edhrec?: string }; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
+      type CommanderCard = { name: string; color_identity: string[]; mana_cost?: string; set: string; collector_number: string; related_uris?: { edhrec?: string }; image_uris?: { normal: string; art_crop?: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string; art_crop?: string } }[] }
       const commanders = await Promise.all(responses.map((response) => response.json() as Promise<CommanderCard>))
       const images = commanders.flatMap((card) => card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? [])
+      const art = commanders.flatMap((card) => card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop ?? [])
       const identityColours = [...new Set(commanders.flatMap((card) => card.color_identity))]
-      if (images.length) setCommanderDetails({ images, colours: identityColours })
+      if (images.length) setCommanderDetails({ images, art, colours: identityColours })
       if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '' })))
 
       let offeredCards: Card[]
@@ -404,8 +409,12 @@ function App() {
     </main>
   )
 
+  const primaryTheme = colourThemes[commanderDetails?.colours[0] ?? 'C']
+  const secondaryTheme = colourThemes[commanderDetails?.colours[1] ?? commanderDetails?.colours[0] ?? 'C']
+
   return (
-    <main className={darkMode ? 'dark' : ''}>
+    <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`} style={{ '--commander-accent': primaryTheme[0], '--commander-highlight': secondaryTheme[1] } as CSSProperties}>
+      {commanderStyling && commanderDetails?.art.length ? <div className="commander-backdrop" aria-hidden="true">{commanderDetails.art.map((image) => <span style={{ backgroundImage: `url(${image})` }} key={image} />)}</div> : null}
       <header>
         <button className="brand reset" onClick={() => { setCommander(''); setCommanderDetails(null); setDeck([]); setQueue([]); setDecisions({}) }}>Commander's Table</button>
         <div className="progress"><span />{deck.length} / 100 cards</div>
@@ -428,6 +437,7 @@ function App() {
           <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>Add to your deck</h2></div><span>{queue.length} suggestions left</span></div>
           <div className="recommendation-options">
             <label><input type="checkbox" checked={includeCreature} onChange={(event) => setIncludeCreature(event.target.checked)} /> Include a creature when possible</label>
+            <label><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label>
             <fieldset><legend>Bracket safety</legend>
               <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => setExcludeGameChangers(event.target.checked)} /> Game Changers</label>
               <label><input type="checkbox" checked={excludeTutors} onChange={(event) => setExcludeTutors(event.target.checked)} /> Tutors</label>

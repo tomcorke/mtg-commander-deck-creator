@@ -5,8 +5,14 @@
 body { margin: 0; }
 button, a { font: inherit; }
 button { cursor: pointer; }
-main { min-height: 100vh; background: #f2f3fb; color: #25243a; }
+main { position: relative; min-height: 100vh; background: #f2f3fb; color: #25243a; }
 main.dark { color-scheme: dark; background: #111123; color: #d8d8ea; }
+.commander-themed { --commander-accent: #36327f; --commander-highlight: #b8bac7; }
+.commander-backdrop { position: fixed; z-index: 0; inset: 0; display: flex; pointer-events: none; }
+.commander-backdrop span { flex: 1; background-position: center 22%; background-size: cover; }
+.commander-backdrop::after { position: absolute; inset: 0; content: ''; background: linear-gradient(180deg, #f2f3fbe6 0, #f2f3fbf2 38%, #f2f3fb 78%); }
+.dark .commander-backdrop::after { background: linear-gradient(180deg, #111123cc 0, #111123ee 38%, #111123 78%); }
+main > :not(.commander-backdrop) { position: relative; z-index: 1; }
 header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dad8e6; background: #f8f8ff; }
 .brand { color: #36327f; font: 600 21px 'Spectral', serif; text-decoration: none; }
 .reset { border: 0; padding: 0; background: transparent; }
@@ -31,6 +37,11 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .export-actions .primary { padding: 11px 16px; border: 0; border-radius: 6px; background: #36327f; color: white; }
 .intro { padding: 24px 5vw; background: #f8f8ff; border-bottom: 1px solid #dad8e6; }
 .eyebrow { margin: 0 0 7px; color: #7546a8; font-size: 11px; font-weight: 600; letter-spacing: 1.8px; text-transform: uppercase; }
+.commander-themed .eyebrow, .commander-themed .change, .commander-themed .section-title > span, .commander-themed .deck-heading span { color: var(--commander-accent); }
+.commander-themed .actions .primary, .commander-themed .batch-controls .primary { border-color: var(--commander-accent); background: var(--commander-accent); }
+.commander-themed .meter span { background: linear-gradient(90deg, var(--commander-accent), var(--commander-highlight)); }
+.commander-themed .card-offer.add { border-color: var(--commander-accent); background: color-mix(in srgb, var(--commander-highlight) 20%, #f8f8ff); }
+.dark.commander-themed .card-offer.add { background: color-mix(in srgb, var(--commander-accent) 28%, #19182d); }
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { font-family: 'Spectral', serif; color: #28245f; }
 h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
