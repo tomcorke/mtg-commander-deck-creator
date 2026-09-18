@@ -37,8 +37,10 @@ h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
 .commander-header { display: grid; grid-template-columns: 88px minmax(260px, .8fr) minmax(480px, 1.5fr); align-items: center; gap: 24px; }
 .commander-card { position: relative; z-index: 2; flex: 0 0 88px; width: 88px; margin: 0; anchor-name: --commander-card; }
 .commander-card > img { display: block; width: 100%; height: auto; border-radius: 4.75%; box-shadow: 0 5px 18px #24203e30; }
-.card-zoom { position: fixed; position-anchor: --commander-card; position-area: right center; position-try-fallbacks: flip-inline, flip-block, flip-inline flip-block; position-try-order: most-width; z-index: 10; width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - 32px); margin: 12px; padding: 8px; border-radius: 14px; background: #f8f8ff; box-shadow: 0 20px 60px #201c3c66; opacity: 0; pointer-events: none; transform: scale(.96); transition: opacity .15s, transform .15s; }
-.card-zoom img { display: block; width: 100%; max-height: calc(100vh - 48px); border-radius: 4.75%; object-fit: contain; }
+.commander-card.pair > img { width: 72px; }
+.commander-card.pair > img + img { position: absolute; top: 8px; left: 24px; }
+.card-zoom { position: fixed; position-anchor: --commander-card; position-area: right center; position-try-fallbacks: flip-inline, flip-block, flip-inline flip-block; position-try-order: most-width; z-index: 10; display: flex; gap: 8px; width: max-content; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); margin: 12px; padding: 8px; border-radius: 14px; background: #f8f8ff; box-shadow: 0 20px 60px #201c3c66; opacity: 0; pointer-events: none; transform: scale(.96); transition: opacity .15s, transform .15s; }
+.card-zoom img { display: block; width: min(360px, calc((100vw - 56px) / 2)); max-height: calc(100vh - 48px); border-radius: 4.75%; object-fit: contain; }
 .commander-card:hover .card-zoom, .commander-card:focus-visible .card-zoom { opacity: 1; transform: scale(1); }
 .commander-header h1 { margin-bottom: 8px; font-size: clamp(28px, 3vw, 44px); }
 .recommendation-setup { min-width: 0; padding-left: 24px; border-left: 1px solid #dedcea; }

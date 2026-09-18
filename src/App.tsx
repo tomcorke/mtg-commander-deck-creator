@@ -4,7 +4,7 @@ import './App.css'
 type Printing = { image: string; set: string; collectorNumber: string }
 type Card = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; printings?: Printing[]; printing?: number }
 type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string }
-type CommanderDetails = { image: string; colours: string[] }
+type CommanderDetails = { images: string[]; colours: string[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 
 const colourNames: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' }
@@ -28,8 +28,33 @@ const themeCommanders: Record<string, string[]> = {
   'Big mana': ['Zhulodok, Void Gorger', 'Goreclaw, Terror of Qal Sisma', 'Kozilek, the Great Distortion', 'Klauth, Unrivaled Ancient', 'Imoti, Celebrant of Bounty', 'Selvala, Heart of the Wilds'],
   'Blink': ['Brago, King Eternal', 'Roon of the Hidden Realm', 'Abdel Adrian, Gorion\'s Ward', 'Preston, the Vanisher', 'Yorion, Sky Nomad', 'Aminatou, the Fateshifter'],
   'Political': ['Queen Marchesa', 'Breena, the Demagogue', 'Kenrith, the Returned King', 'The Council of Four', 'Pramikon, Sky Rampart', 'Xantcha, Sleeper Agent'],
+  'Vampires': ['Edgar Markov', 'Clavileño, First of the Blessed', 'Strefan, Maurer Progenitor', 'Carmen, Cruel Skymarcher', 'Elenda, the Dusk Rose', 'Olivia, Crimson Bride'],
+  'Angels': ['Giada, Font of Hope', 'Kaalia of the Vast', 'Liesa, Shroud of Dusk', 'Shalai and Hallar', 'Aurelia, the Warleader', 'Sigarda, Font of Blessings'],
+  'Demons': ["Be'lakor, the Dark Master", 'Rakdos, Lord of Riots', "K'rrik, Son of Yawgmoth", 'Raphael, Fiendish Savior', 'Vilis, Broker of Blood', 'Beledros Witherbloom'],
+  'Faeries': ['Alela, Cunning Conqueror', 'Tegwyll, Duke of Splendor', 'Obyra, Dreaming Duelist', 'Talion, the Kindly Lord', 'Alela, Artful Provocateur', 'Nymris, Oona\'s Trickster'],
+  'Vehicles': ['Shorikai, Genesis Engine', 'Kotori, Pilot Prodigy', 'Sydri, Galvanic Genius', 'Depala, Pilot Exemplar', 'Greasefang, Okiba Boss', 'Magda, Brazen Outlaw'],
+  'Indestructible': ['Karametra, God of Harvests', 'Avacyn, Angel of Hope', 'Zurgo Helmsmasher', 'Toski, Bearer of Secrets', 'Hazoret the Fervent', 'Mogis, God of Slaughter'],
+  'Mill': ['The Wise Mothman', "Captain N'ghathrod", 'Phenax, God of Deception', 'Bruvac the Grandiloquent', 'Zellix, Sanity Flayer', 'Anowon, the Ruin Thief'],
+  'Dual commanders': ['Thrasios & Tymna', 'Kraum & Tymna', 'Malcolm & Breeches', 'Akiri & Silas Renn', 'Ishai & Jeska', 'Kodama & Sakashima'],
+  'Zombies': ['Wilhelt, the Rotcleaver', 'The Scarab God', 'Varina, Lich Queen', 'Gisa and Geralf', 'Sidisi, Brood Tyrant', "Temmet, Naktamun's Will"],
+  'Elves': ['Lathril, Blade of the Elves', 'Marwyn, the Nurturer', 'Ezuri, Renegade Leader', 'Abomination of Llanowar', 'Galadriel, Light of Valinor', 'Tyvar the Bellicose'],
+  'Goblins': ['Krenko, Mob Boss', 'Muxus, Goblin Grandee', 'Wort, Boggart Auntie', 'Krenko, Tin Street Kingpin', 'Shattergang Brothers', 'Moria Marauder'],
+  'Dinosaurs': ['Pantlaza, Sun-Favored', "Gishath, Sun's Avatar", 'Atla Palani, Nest Tender', 'Indoraptor, the Perfect Hybrid', 'Owen Grady, Raptor Trainer', 'Wayta, Trainer Prodigy'],
+  'Merfolk': ['Hakbal of the Surging Soul', 'Kumena, Tyrant of Orazca', 'Emperor Mihail II', 'Svyelun of Sea and Sky', 'Tishana, Voice of Thunder', 'Prime Speaker Zegana'],
+  'Knights': ['Sidar Jabari of Zhalfir', 'Syr Gwyn, Hero of Ashvale', 'Éowyn, Shieldmaiden', 'Aryel, Knight of Windgrace', 'Wintermoor Commander', 'Elenda and Azor'],
+  'Spirits': ['Millicent, Restless Revenant', 'Kykar, Wind\'s Fury', 'Shilgengar, Sire of Famine', 'Katilda, Dawnhart Martyr', 'O-Kagachi, Vengeful Kami', 'King of the Oathbreakers'],
+  'Slivers': ['The First Sliver', 'Sliver Overlord', 'Sliver Gravemother', 'Sliver Legion', 'Morophon, the Boundless', 'Sliver Hivelord'],
 }
 
+const dualCommanders: Record<string, string[]> = {
+  'Thrasios & Tymna': ['Thrasios, Triton Hero', 'Tymna the Weaver'],
+  'Kraum & Tymna': ['Kraum, Ludevic\'s Opus', 'Tymna the Weaver'],
+  'Malcolm & Breeches': ['Malcolm, Keen-Eyed Navigator', 'Breeches, Brazen Plunderer'],
+  'Akiri & Silas Renn': ['Akiri, Line-Slinger', 'Silas Renn, Seeker Adept'],
+  'Ishai & Jeska': ['Ishai, Ojutai Dragonspeaker', 'Jeska, Thrice Reborn'],
+  'Kodama & Sakashima': ['Kodama of the East Tree', 'Sakashima of a Thousand Faces'],
+}
+const commanderNames = (name: string) => dualCommanders[name] ?? [name]
 const defaultCommanders = Object.values(themeCommanders).flat()
 const randomItems = <T,>(items: T[], count: number) => [...items].sort(() => Math.random() - 0.5).slice(0, count)
 const randomThree = (items: string[]) => randomItems(items, 3)
@@ -127,11 +152,15 @@ function App() {
     const controller = new AbortController()
     const load = async () => {
       for (const name of missing) {
-        const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`, { signal: controller.signal })
-        if (!response.ok) continue
-        const card = await response.json() as { mana_cost?: string; card_faces?: { mana_cost?: string }[] }
-        setCommanderCosts((current) => ({ ...current, [name]: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '' }))
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        const costs: string[] = []
+        for (const cardName of commanderNames(name)) {
+          const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`, { signal: controller.signal })
+          if (!response.ok) continue
+          const card = await response.json() as { mana_cost?: string; card_faces?: { mana_cost?: string }[] }
+          costs.push(card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '')
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
+        setCommanderCosts((current) => ({ ...current, [name]: costs.join(' ') }))
       }
     }
     void load().catch(() => undefined)
@@ -161,14 +190,16 @@ function App() {
     setQueue([])
     setRecommendationState('loading')
 
-    const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(chosen)}`)
-    if (!response.ok) { setRecommendationState('error'); return }
-    const card = await response.json() as { color_identity: string[]; mana_cost?: string; set: string; collector_number: string; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
-    const image = card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal
-    if (image) setCommanderDetails({ image, colours: card.color_identity })
-    if (!preserveDeck) setDeck([{ name: chosen, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number }])
+    const responses = await Promise.all(commanderNames(chosen).map((name) => fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)))
+    if (responses.some((response) => !response.ok)) { setRecommendationState('error'); return }
+    type CommanderCard = { name: string; color_identity: string[]; mana_cost?: string; set: string; collector_number: string; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
+    const commanders = await Promise.all(responses.map((response) => response.json() as Promise<CommanderCard>))
+    const images = commanders.flatMap((card) => card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? [])
+    const identityColours = [...new Set(commanders.flatMap((card) => card.color_identity))]
+    if (images.length) setCommanderDetails({ images, colours: identityColours })
+    if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number })))
 
-    const identity = card.color_identity.join('').toLowerCase() || 'c'
+    const identity = identityColours.join('').toLowerCase() || 'c'
     const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn'].filter(Boolean).join(' ')
     const baseQuery = `id<=${identity} legal:commander -is:commander ${bracketFilters}`
     const mainResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} -t:land -o:"add {"`)}&order=edhrec`)
@@ -192,7 +223,7 @@ function App() {
       name: item.name,
       typeLine: item.type_line,
       manaCost: item.mana_cost ?? item.card_faces?.[0]?.mana_cost ?? '',
-      reason: index % 4 === 3 ? 'Land or mana' : item.color_identity.length === card.color_identity.length ? 'Strong colour fit' : item.color_identity.length === 0 ? 'Colourless utility' : 'Popular inclusion',
+      reason: index % 4 === 3 ? 'Land or mana' : item.color_identity.length === identityColours.length ? 'Strong colour fit' : item.color_identity.length === 0 ? 'Colourless utility' : 'Popular inclusion',
       detail: item.oracle_text || item.type_line,
       image: item.image_uris?.normal ?? item.card_faces?.[0]?.image_uris?.normal ?? '',
       set: item.set,
@@ -307,9 +338,9 @@ function App() {
         <div className="header-actions"><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
       <section className="intro commander-header">
-        {commanderDetails && <figure className="commander-card" tabIndex={0} aria-label={`View ${commander} card`}>
-          <img src={commanderDetails.image} alt={`${commander} card`} />
-          <span className="card-zoom"><img src={commanderDetails.image} alt={`${commander} full card`} /></span>
+        {commanderDetails && <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
+          {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} key={image} />)}
+          <span className="card-zoom">{commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} full card`} key={image} />)}</span>
         </figure>}
         <div className="commander-summary"><p className="eyebrow">Building around</p><h1>{commander}</h1>
           <div className="identity" aria-label={`Colour identity: ${commanderDetails?.colours.map((colour) => colourNames[colour]).join(', ') || 'loading'}`}>
@@ -362,7 +393,7 @@ function App() {
         <aside>
           <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
           <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
-          <dl><div><dt>Commander</dt><dd>1</dd></div><div><dt>Creatures</dt><dd>{deck.slice(1).filter((card) => card.typeLine.includes('Creature')).length}</dd></div><div><dt>Enchantments</dt><dd>{deck.filter((card) => card.typeLine.includes('Enchantment')).length}</dd></div><div><dt>Lands</dt><dd>{deck.filter((card) => card.typeLine.includes('Land')).length}</dd></div></dl>
+          <dl><div><dt>Commander</dt><dd>{commanderNames(commander).length}</dd></div><div><dt>Creatures</dt><dd>{deck.slice(commanderNames(commander).length).filter((card) => card.typeLine.includes('Creature')).length}</dd></div><div><dt>Enchantments</dt><dd>{deck.filter((card) => card.typeLine.includes('Enchantment')).length}</dd></div><div><dt>Lands</dt><dd>{deck.filter((card) => card.typeLine.includes('Land')).length}</dd></div></dl>
           <ol>{deck.map((card, index) => <li key={`${card.name}-${index}`}><span>{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index === 0 ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span></li>)}</ol>
         </aside>
       </div>
