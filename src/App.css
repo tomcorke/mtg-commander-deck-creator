@@ -94,6 +94,7 @@ h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
 .cost-placeholder { width: 70px; height: 14px; border-radius: 9px; background: linear-gradient(90deg, #39374f 25%, #514e70 50%, #39374f 75%); background-size: 200% 100%; animation: cost-loading 1.2s infinite; }
 @keyframes cost-loading { to { background-position: -200% 0; } }
 @keyframes cost-in { from { opacity: 0; } to { opacity: 1; } }
+.theme-actions { display: flex; flex-wrap: wrap; gap: 16px; }
 .reroll { margin-top: 15px; padding: 0; border: 0; background: transparent; color: #69409a; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: calc(100vh - 213px); }
 .recommendations { padding: 24px 6vw 60px 8vw; }
