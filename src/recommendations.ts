@@ -9,6 +9,13 @@ export type EdhrecEntry = { name: string; tag: string; header: string }
 export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; tags: string[] }
 export type RecommendationOptions = { includeCreature: boolean; excludeGameChangers: boolean; excludeTutors: boolean; excludeExtraTurns: boolean; powerTarget: PowerTarget }
 
+export function manualCardError(card: Pick<ScryfallCard, 'name' | 'type_line' | 'color_identity'>, deckNames: string[], commanderColours: string[], deckSize: number) {
+  if (deckSize >= 100) return 'Deck already has 100 cards.'
+  if (card.color_identity.some((colour) => !commanderColours.includes(colour))) return 'Card is outside your commander’s colour identity.'
+  if (!card.type_line.includes('Basic Land') && deckNames.includes(card.name)) return 'Card is already in your deck.'
+  return ''
+}
+
 export const recommendationReasons: Record<string, string> = {
   highsynergycards: 'Commander synergy', topcards: 'Commander favourite', newcards: 'Interesting new pick', creatures: 'Creature synergy', instants: 'Interaction', sorceries: 'Sorcery support', utilityartifacts: 'Utility artifact', utilityenchantments: 'Utility enchantment', enchantments: 'Enchantment synergy', artifacts: 'Artifact synergy', planeswalkers: 'Planeswalker support', lands: 'Land or mana', utilitylands: 'Land or mana', manafixing: 'Land or mana',
 }

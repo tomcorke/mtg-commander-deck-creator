@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -23,6 +23,15 @@ test('synergy pair requires concrete complementary rules text', () => {
   ]
   assert.match(findSynergyPair(cards)?.explanation ?? '', /creates tokens/)
   assert.equal(findSynergyPair(cards.map((card) => ({ ...card, detail: 'Artifact creature.' }))), null)
+})
+
+test('manual card validation enforces deck legality', () => {
+  const card = { name: 'Swords to Plowshares', type_line: 'Instant', color_identity: ['W'] }
+  assert.equal(manualCardError(card, [], ['W'], 1), '')
+  assert.match(manualCardError(card, [], ['U'], 1), /colour identity/)
+  assert.match(manualCardError(card, [card.name], ['W'], 1), /already in/)
+  assert.match(manualCardError(card, [], ['W'], 100), /100 cards/)
+  assert.equal(manualCardError({ name: 'Plains', type_line: 'Basic Land — Plains', color_identity: [] }, ['Plains'], ['W'], 2), '')
 })
 
 test('printing preference preserves defaults and manual choices', () => {

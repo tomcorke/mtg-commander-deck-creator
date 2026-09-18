@@ -1,5 +1,5 @@
-import { useEffect, useState, type CSSProperties } from 'react'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckSection, defaultDeckTargets, isBasicLandName, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import './App.css'
 
@@ -155,6 +155,14 @@ function App() {
   const [showExport, setShowExport] = useState(false)
   const [showBasicLands, setShowBasicLands] = useState(false)
   const [basicLandState, setBasicLandState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [showCardSearch, setShowCardSearch] = useState(false)
+  const [cardSearch, setCardSearch] = useState('')
+  const [cardSearchResults, setCardSearchResults] = useState<string[]>([])
+  const [cardSearchState, setCardSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [selectedManualCard, setSelectedManualCard] = useState<ScryfallCard | null>(null)
+  const cardSearchButton = useRef<HTMLButtonElement>(null)
+  const cardSearchInput = useRef<HTMLInputElement>(null)
+  const cardSearchDialog = useRef<HTMLElement>(null)
   const [exportFormat, setExportFormat] = useStoredOption<ExportFormat>('exportFormat', () => 'moxfield')
   const [copied, setCopied] = useState(false)
   const [darkMode, setDarkMode] = useStoredOption('darkMode', () => localStorage.getItem('theme') !== 'light')
@@ -178,6 +186,28 @@ function App() {
     const timer = setTimeout(() => setPendingRemoval(null), 1500)
     return () => clearTimeout(timer)
   }, [pendingRemoval])
+
+  useEffect(() => {
+    if (!showCardSearch || cardSearch.trim().length < 2) return
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      setCardSearchState('loading')
+      try {
+        const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(cardSearch.trim())}`, { signal: controller.signal })
+        if (!response.ok) throw new Error('Scryfall unavailable')
+        const result = await response.json() as { data: string[] }
+        setCardSearchResults(result.data.slice(0, 8))
+        setCardSearchState('idle')
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setCardSearchState('error')
+      }
+    }, 250)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [cardSearch, showCardSearch])
+
+  useEffect(() => {
+    if (showCardSearch) cardSearchInput.current?.focus()
+  }, [showCardSearch])
 
   useEffect(() => {
     if (search.trim().length < 2) return
@@ -477,6 +507,57 @@ function App() {
     }
   }
 
+  function closeCardSearch() {
+    setShowCardSearch(false)
+    setCardSearch('')
+    setCardSearchResults([])
+    setSelectedManualCard(null)
+    setCardSearchState('idle')
+    requestAnimationFrame(() => cardSearchButton.current?.focus())
+  }
+
+  async function selectManualCard(name: string) {
+    setCardSearchState('loading')
+    try {
+      const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)
+      if (!response.ok) throw new Error('Card unavailable')
+      setSelectedManualCard(await response.json() as ScryfallCard)
+      setCardSearchState('idle')
+    } catch {
+      setCardSearchState('error')
+    }
+  }
+
+  function addManualCard() {
+    if (!selectedManualCard || manualCardError(selectedManualCard, deck.map((card) => card.name), commanderDetails?.colours ?? [], deck.length)) return
+    setDeck((current) => [...current, toDeckCard(selectedManualCard)])
+    closeCardSearch()
+  }
+
+  function handleCardSearchKeys(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeCardSearch()
+      return
+    }
+    const focusable = [...(cardSearchDialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)') ?? [])]
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      const index = focusable.indexOf(document.activeElement as HTMLElement)
+      const next = event.key === 'ArrowDown' ? Math.min(index + 1, focusable.length - 1) : Math.max(index - 1, 0)
+      if (index >= 0 && next !== index) {
+        event.preventDefault()
+        focusable[next]?.focus()
+      }
+      return
+    }
+    if (event.key !== 'Tab' || !focusable.length) return
+    const next = event.shiftKey ? focusable.at(-1) : focusable[0]
+    if ((event.shiftKey && document.activeElement === focusable[0]) || (!event.shiftKey && document.activeElement === focusable.at(-1))) {
+      event.preventDefault()
+      next?.focus()
+    }
+  }
+
   async function addOneBasic(name: string) {
     if (deck.length >= 100) return
     try {
@@ -628,6 +709,26 @@ function App() {
           </div>
         </div>
       </section>
+      {showCardSearch && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeCardSearch() }}>
+        <section className="export-modal card-search-modal" ref={cardSearchDialog} role="dialog" aria-modal="true" aria-labelledby="card-search-title" onKeyDown={handleCardSearchKeys}>
+          <div className="export-heading"><div><p className="eyebrow">Add any legal card</p><h2 id="card-search-title">Find a card</h2></div><button className="modal-close" onClick={closeCardSearch} aria-label="Close card search">×</button></div>
+          <form className="card-search-form" onSubmit={(event) => { event.preventDefault(); const name = cardSearchResults.find((item) => item.toLowerCase() === cardSearch.trim().toLowerCase()) ?? cardSearchResults[0]; if (name) void selectManualCard(name) }}>
+            <input ref={cardSearchInput} value={cardSearch} onChange={(event) => { setCardSearch(event.target.value); setCardSearchResults([]); setCardSearchState('idle'); setSelectedManualCard(null) }} placeholder="Search card names…" aria-label="Card name" autoComplete="off" />
+            <button className="primary" disabled={!cardSearchResults.length || cardSearchState === 'loading'}>Search</button>
+          </form>
+          {cardSearchState === 'loading' && <p className="card-search-status" role="status">Searching…</p>}
+          {cardSearchState === 'error' && <p className="form-error" role="alert">Scryfall unavailable. Try again.</p>}
+          {cardSearch.length >= 2 && cardSearchState === 'idle' && !cardSearchResults.length && !selectedManualCard && <p className="card-search-status">No cards found.</p>}
+          {!selectedManualCard && cardSearchResults.length > 0 && <div className="card-search-results" aria-label="Card search results">{cardSearchResults.map((name) => <button type="button" key={name} onClick={() => void selectManualCard(name)}>{name}<span>→</span></button>)}</div>}
+          {selectedManualCard && <div className="manual-card-preview">
+            {(selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal) && <img src={selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal} alt={`${selectedManualCard.name} card`} />}
+            <div><p className="eyebrow">{selectedManualCard.set.toUpperCase()} · {selectedManualCard.collector_number}</p><h3>{selectedManualCard.name}</h3><p>{selectedManualCard.type_line}</p><p><OracleText text={cardText(selectedManualCard)} /></p>
+              {manualCardError(selectedManualCard, deck.map((card) => card.name), commanderDetails?.colours ?? [], deck.length) && <p className="form-error" role="alert">{manualCardError(selectedManualCard, deck.map((card) => card.name), commanderDetails?.colours ?? [], deck.length)}</p>}
+              <div className="export-actions"><button type="button" onClick={() => setSelectedManualCard(null)}>Back</button><button className="primary" type="button" disabled={Boolean(manualCardError(selectedManualCard, deck.map((card) => card.name), commanderDetails?.colours ?? [], deck.length))} onClick={addManualCard}>Add to deck</button></div>
+            </div>
+          </div>}
+        </section>
+      </div>}
       {showBasicLands && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && basicLandState !== 'loading') setShowBasicLands(false) }}>
         <section className="export-modal basic-land-modal" role="dialog" aria-modal="true" aria-labelledby="basic-land-title">
           <div className="export-heading"><div><p className="eyebrow">Complete mana base</p><h2 id="basic-land-title">Add basic lands?</h2></div><button className="modal-close" disabled={basicLandState === 'loading'} onClick={() => setShowBasicLands(false)} aria-label="Close basic land review">×</button></div>
@@ -682,6 +783,7 @@ function App() {
         </section>
         <aside>
           <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
+          <button className="manual-card-button" ref={cardSearchButton} type="button" disabled={deck.length >= 100} onClick={() => setShowCardSearch(true)}>+ Add card by name</button>
           <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
           <section className="deck-analysis" aria-labelledby="analysis-title">
             <h3 id="analysis-title">Deck analysis</h3>
