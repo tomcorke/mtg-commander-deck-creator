@@ -198,13 +198,13 @@ function App() {
 
   useEffect(() => {
     if (pendingRemoval === null) return
-    const timer = setTimeout(() => setPendingRemoval(null), 1500)
+    const timer = setTimeout(() => setPendingRemoval(null), 3000)
     return () => clearTimeout(timer)
   }, [pendingRemoval])
 
   useEffect(() => {
     if (!pendingSavedDeckRemoval) return
-    const timer = setTimeout(() => setPendingSavedDeckRemoval(''), 1500)
+    const timer = setTimeout(() => setPendingSavedDeckRemoval(''), 3000)
     return () => clearTimeout(timer)
   }, [pendingSavedDeckRemoval])
 
