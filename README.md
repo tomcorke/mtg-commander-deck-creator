@@ -38,7 +38,7 @@ The script fetches current Archidekt, EDHREC, and Scryfall data, then imports th
 - Production output is static. The `publish` branch contains the built app at its root for GitHub Pages.
 - No backend is required. Recommendations use public EDHREC commander data, with Scryfall supplying card details and fallback popularity ordering; see [`docs/recommendation-design.md`](docs/recommendation-design.md).
 - Deck creation starts empty. Users can choose a theme, combine colour identity filters, or search all commanders. Commander suggestions show aligned mana costs, including generic mana.
-- Recommendations arrive in manual batches of four where possible, without dropping leftover candidates.
+- Recommendations arrive in manual batches of four where possible, without dropping leftover candidates. Each card gets a 0-100 deck-fit score; only the strongest card gets a `Recommended` badge, and only at 50 or above.
 - Power targets map to Commander brackets and tune safety filters; precon mode also excludes common fast mana.
 - Batches include a creature when possible. Users can disable this once their creature count is high enough.
 - Game Changers, tutors, and extra-turn cards are excluded by default. Users can disable each bracket-safety filter.
