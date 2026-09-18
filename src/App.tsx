@@ -87,6 +87,7 @@ function App() {
   const [suggestions, setSuggestions] = useState(() => randomThree(defaultCommanders))
   const [suggestionPool, setSuggestionPool] = useState(defaultCommanders)
   const [commanderCosts, setCommanderCosts] = useState<Record<string, string>>({})
+  const [commanderImages, setCommanderImages] = useState<Record<string, string[]>>({})
   const [queue, setQueue] = useState<Card[]>([])
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [includeCreature, setIncludeCreature] = useState(true)
@@ -147,25 +148,30 @@ function App() {
   }, [colours])
 
   useEffect(() => {
-    const missing = suggestions.filter((name) => commanderCosts[name] === undefined)
+    const shown = search.trim().length >= 2 ? matches : suggestions
+    const missing = shown.filter((name) => commanderCosts[name] === undefined || commanderImages[name] === undefined)
     if (!missing.length) return
     const controller = new AbortController()
     const load = async () => {
       for (const name of missing) {
         const costs: string[] = []
+        const images: string[] = []
         for (const cardName of commanderNames(name)) {
           const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`, { signal: controller.signal })
           if (!response.ok) continue
-          const card = await response.json() as { mana_cost?: string; card_faces?: { mana_cost?: string }[] }
+          const card = await response.json() as { mana_cost?: string; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
           costs.push(card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '')
+          const image = card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal
+          if (image) images.push(image)
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
         setCommanderCosts((current) => ({ ...current, [name]: costs.join(' ') }))
+        setCommanderImages((current) => ({ ...current, [name]: images }))
       }
     }
     void load().catch(() => undefined)
     return () => controller.abort()
-  }, [suggestions, commanderCosts])
+  }, [suggestions, matches, search, commanderCosts, commanderImages])
 
   function chooseTheme(name: string) {
     setTheme(name)
@@ -321,7 +327,7 @@ function App() {
               <button className="primary" type="submit">Choose</button>
             </form>
             <div className="suggestions" aria-live="polite">
-              {(search.trim().length >= 2 ? matches : suggestions).map((name) => <button key={name} onClick={() => start(name)}><span className="commander-option"><span className={`commander-cost ${commanderCosts[name] === undefined ? 'loading' : 'loaded'}`}>{commanderCosts[name] === undefined ? <span className="cost-placeholder" aria-label="Loading mana cost" /> : <OracleText text={commanderCosts[name]} />}</span><span>{name}</span></span><span>→</span></button>)}
+              {(search.trim().length >= 2 ? matches : suggestions).map((name) => <button key={name} onClick={() => start(name)}><span className="commander-option"><span className={`commander-cost ${commanderCosts[name] === undefined ? 'loading' : 'loaded'}`}>{commanderCosts[name] === undefined ? <span className="cost-placeholder" aria-label="Loading mana cost" /> : <OracleText text={commanderCosts[name]} />}</span><span>{name}</span></span><span>→</span>{commanderImages[name]?.length > 0 && <span className={`suggestion-preview ${commanderImages[name].length > 1 ? 'pair' : ''}`}>{commanderImages[name].map((image, index) => <img src={image} alt={`${commanderNames(name)[index]} card`} key={image} />)}</span>}</button>)}
             </div>
             {search.trim().length < 2 && <button className="reroll" onClick={() => setSuggestions(randomThree(suggestionPool))}>↻ Show different commanders</button>}
           </article>
