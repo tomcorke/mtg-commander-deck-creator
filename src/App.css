@@ -244,8 +244,12 @@ li.curve-dimmed { opacity: .22; }
 .deck-group > h3 span { font: inherit; }
 .deck-group ol > li { align-items: center; }
 .deck-add, .deck-remove { display: grid; width: 22px; height: 22px; padding: 0; place-items: center; border: 1px solid #bbb9cd; border-radius: 50%; background: transparent; color: #706d82; line-height: 1; }
+.deck-remove-wrap { position: relative; }
 .deck-remove { opacity: 0; }
-.deck-group ol > li:hover .deck-remove, .deck-group ol > li:focus-within .deck-remove { opacity: 1; }
+.deck-group ol > li:hover .deck-remove, .deck-group ol > li:focus-within .deck-remove, .deck-remove.confirm { opacity: 1; }
+.deck-remove.confirm { border-color: #a94840; background: #a94840; color: white; }
+.remove-confirm { position: absolute; z-index: 30; right: 0; bottom: calc(100% + 8px); width: 150px; padding: 7px 9px; border-radius: 5px; background: #201c3c; color: white; font-size: 10px; line-height: 1.3; box-shadow: 0 5px 14px #08071255; }
+.remove-confirm::after { position: absolute; top: 100%; right: 7px; border: 5px solid transparent; border-top-color: #201c3c; content: ''; }
 .basic-placeholder { opacity: .45; }
 .basic-placeholder > button { display: flex; width: 100%; justify-content: space-between; padding: 10px 0; border: 0; border-bottom: 1px dashed #aaa8b8; background: transparent; color: inherit; }
 .basic-placeholder > button b { font-size: 18px; }
