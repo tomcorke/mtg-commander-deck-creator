@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { analyseDeck, curveBucket, deckGuidance, defaultDeckTargets, type AnalysisCard } from './deck-analysis.ts'
+import { analyseDeck, basicLandPlan, curveBucket, deckGuidance, defaultDeckTargets, type AnalysisCard } from './deck-analysis.ts'
 
 const card = (overrides: Partial<AnalysisCard> = {}): AnalysisCard => ({ name: 'Card', layout: 'normal', typeLine: 'Creature', manaCost: '{2}{G}', manaValue: 3, detail: '', producedMana: [], faces: [], ...overrides })
 
@@ -55,6 +55,14 @@ test('uses front face for adventure curve and excludes all-land modal cards', ()
   const analysis = analyseDeck([adventure, pathway])
   assert.deepEqual(analysis.curve[3], { manaValue: 3, permanents: 1, nonPermanents: 0 })
   assert.equal(curveBucket(pathway), null)
+})
+
+test('splits basic lands by demand, falls back evenly, and respects open slots', () => {
+  const demand = { W: 1, U: 0, B: 0, R: 0, G: 3 }
+  assert.deepEqual(basicLandPlan(['W'], demand, 30, 35, 90), [{ name: 'Plains', colour: 'W', count: 5 }])
+  assert.deepEqual(basicLandPlan(['W', 'G'], demand, 30, 35, 90), [{ name: 'Plains', colour: 'W', count: 1 }, { name: 'Forest', colour: 'G', count: 4 }])
+  assert.deepEqual(basicLandPlan(['W', 'U'], { W: 0, U: 0, B: 0, R: 0, G: 0 }, 30, 35, 90), [{ name: 'Plains', colour: 'W', count: 3 }, { name: 'Island', colour: 'U', count: 2 }])
+  assert.deepEqual(basicLandPlan([], demand, 30, 35, 98), [{ name: 'Wastes', colour: 'C', count: 2 }])
 })
 
 test('guidance starts at 70 and strengthens aggregate impossible late gaps', () => {

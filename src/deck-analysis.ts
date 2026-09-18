@@ -7,6 +7,8 @@ export const defaultDeckTargets: DeckTargets = { lands: 35, ramp: 10, draw: 10, 
 export const targetLabels: Record<TargetKey, string> = { lands: 'Lands', ramp: 'Ramp', draw: 'Card draw', removal: 'Targeted removal', wipes: 'Board wipes' }
 export const cardTypes = ['Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Planeswalker', 'Battle'] as const
 const colours = ['W', 'U', 'B', 'R', 'G'] as const
+export type ManaColour = typeof colours[number]
+const basicLandNames: Record<ManaColour, string> = { W: 'Plains', U: 'Island', B: 'Swamp', R: 'Mountain', G: 'Forest' }
 
 const isLand = (card: AnalysisCard) => card.typeLine.includes('Land') || card.faces.some((face) => face.typeLine.includes('Land'))
 const curveType = (card: AnalysisCard) => card.layout === 'modal_dfc' ? card.faces.find((face) => !face.typeLine.includes('Land'))?.typeLine : card.faces[0]?.typeLine ?? card.typeLine
@@ -38,6 +40,20 @@ export function analyseDeck(cards: AnalysisCard[]) {
   const averageManaValue = spells.length ? spells.reduce((sum, card) => sum + card.manaValue, 0) / spells.length : 0
   const landCentre = Math.max(32, Math.min(40, Math.round(35 + (averageManaValue - 3) * 2 - (counts.ramp - 10) / 3)))
   return { curve, required, produced, counts, typeCounts, averageManaValue, landRange: [Math.max(30, landCentre - 1), Math.min(42, landCentre + 1)] as [number, number] }
+}
+
+export function basicLandPlan(identity: string[], demand: Record<ManaColour, number>, currentLands: number, targetLands: number, cardCount: number) {
+  const count = Math.min(Math.max(0, 100 - cardCount), Math.max(0, targetLands - currentLands))
+  if (!count) return []
+  const legalColours = colours.filter((colour) => identity.includes(colour))
+  if (!legalColours.length) return [{ name: 'Wastes', colour: 'C', count }]
+  const totalDemand = legalColours.reduce((sum, colour) => sum + demand[colour], 0)
+  const weights = legalColours.map((colour) => totalDemand ? demand[colour] / totalDemand : 1 / legalColours.length)
+  const base = weights.map((weight) => Math.floor(weight * count))
+  let remainder = count - base.reduce((sum, value) => sum + value, 0)
+  const order = legalColours.map((_, index) => index).sort((a, b) => (weights[b] * count - base[b]) - (weights[a] * count - base[a]))
+  for (const index of order) if (remainder-- > 0) base[index]++
+  return legalColours.flatMap((colour, index) => base[index] ? [{ name: basicLandNames[colour], colour, count: base[index] }] : [])
 }
 
 export function deckGuidance(cardCount: number, counts: DeckTargets, targets: DeckTargets) {

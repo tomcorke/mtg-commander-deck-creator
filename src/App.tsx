@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
-import { analyseDeck, cardTypes, curveBucket, deckGuidance, defaultDeckTargets, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
+import { analyseDeck, basicLandPlan, cardTypes, curveBucket, deckGuidance, defaultDeckTargets, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -146,6 +146,8 @@ function App() {
   const [batchAnnouncement, setBatchAnnouncement] = useState('')
   const [deck, setDeck] = useState<DeckCard[]>([])
   const [showExport, setShowExport] = useState(false)
+  const [showBasicLands, setShowBasicLands] = useState(false)
+  const [basicLandState, setBasicLandState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [exportFormat, setExportFormat] = useStoredOption<ExportFormat>('exportFormat', () => 'moxfield')
   const [copied, setCopied] = useState(false)
   const [darkMode, setDarkMode] = useStoredOption('darkMode', () => localStorage.getItem('theme') !== 'light')
@@ -430,6 +432,22 @@ function App() {
     setTimeout(() => setCopied(false), 1500)
   }
 
+  async function addBasicLands(plan: { name: string; count: number }[]) {
+    setBasicLandState('loading')
+    try {
+      const cards = await Promise.all(plan.map(async ({ name, count }) => {
+        const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)
+        if (!response.ok) throw new Error('Basic land unavailable')
+        return { card: await response.json() as ScryfallCard, count }
+      }))
+      setDeck((current) => [...current, ...cards.flatMap(({ card, count }) => Array.from({ length: count }, () => ({ name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', tags: cardTags(card), printing: 0 })))])
+      setBasicLandState('idle')
+      setShowBasicLands(false)
+    } catch {
+      setBasicLandState('error')
+    }
+  }
+
   async function nextBatch(extraSubTheme = '') {
     if (recommendationOptionsChanged) {
       if (await start(commander, true)) setRecommendationOptionsChanged(false)
@@ -503,6 +521,8 @@ function App() {
   const filteredSubThemes = subThemeOptions.filter((name) => name.toLowerCase().includes(subThemeSearch.toLowerCase()) && name !== theme && !activeSubThemes.includes(name))
   const analysis = analyseDeck(deck)
   const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
+  const calculatedLandTarget = Math.round((analysis.landRange[0] + analysis.landRange[1]) / 2)
+  const basicLands = basicLandPlan(commanderDetails?.colours ?? [], analysis.required, analysis.counts.lands, calculatedLandTarget, deck.length)
   const maxCurveCount = Math.max(1, ...analysis.curve.map((point) => point.permanents + point.nonPermanents))
   const manaColours = (['W', 'U', 'B', 'R', 'G'] as const)
   const pickedTags = new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))
@@ -550,6 +570,15 @@ function App() {
           </div>
         </div>
       </section>
+      {showBasicLands && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && basicLandState !== 'loading') setShowBasicLands(false) }}>
+        <section className="export-modal basic-land-modal" role="dialog" aria-modal="true" aria-labelledby="basic-land-title">
+          <div className="export-heading"><div><p className="eyebrow">Complete mana base</p><h2 id="basic-land-title">Add basic lands?</h2></div><button className="modal-close" disabled={basicLandState === 'loading'} onClick={() => setShowBasicLands(false)} aria-label="Close basic land review">×</button></div>
+          <p>This fills {basicLands.reduce((sum, land) => sum + land.count, 0)} slots toward calculated {calculatedLandTarget}-land target. Existing cards stay unchanged.</p>
+          <ul className="basic-land-plan">{basicLands.map((land) => <li key={land.name}><span>{land.name}</span><b>{land.count}</b></li>)}</ul>
+          {basicLandState === 'error' && <p className="form-error" role="alert">Could not load basic lands. Try again.</p>}
+          <div className="export-actions"><button onClick={() => setShowBasicLands(false)} disabled={basicLandState === 'loading'}>Cancel</button><button className="primary" disabled={basicLandState === 'loading'} onClick={() => void addBasicLands(basicLands)}>{basicLandState === 'loading' ? 'Adding…' : 'Add lands'}</button></div>
+        </section>
+      </div>}
       {showExport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowExport(false) }}>
         <section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title">
           <div className="export-heading"><div><p className="eyebrow">Export deck</p><h2 id="export-title">Copy your deck list</h2></div><button className="modal-close" onClick={() => setShowExport(false)} aria-label="Close export">×</button></div>
@@ -609,6 +638,7 @@ function App() {
             <div className="curve-legend"><span><i className="permanent" /> Permanent</span><span><i className="non-permanent" /> Non-permanent</span><b>Avg {analysis.averageManaValue.toFixed(1)}</b></div>
             <div className="mana-balance"><h4>Colour balance</h4>{([['Pips', analysis.required], ['Sources', analysis.produced]] as const).map(([label, values]) => <div className="mana-balance-row" key={label}><span>{label}</span><div className="colour-bar">{manaColours.some((colour) => values[colour] > 0) ? manaColours.filter((colour) => values[colour] > 0).map((colour) => <span className={`colour-segment colour-${colour.toLowerCase()}`} style={{ flexGrow: values[colour] }} title={`${colourNames[colour]}: ${values[colour]} ${label.toLowerCase()}`} key={colour}><img src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`} alt="" /><b><span className="sr-only">{colourNames[colour]}: </span>{values[colour]}</b></span>) : <span className="colour-empty">None</span>}</div></div>)}</div>
             <div className="target-heading"><h4>Deck targets</h4><span>Suggested lands {analysis.landRange[0]}-{analysis.landRange[1]}</span></div>
+            {basicLands.length > 0 && <button className="basic-land-button" type="button" onClick={() => { setBasicLandState('idle'); setShowBasicLands(true) }}>Fill {basicLands.reduce((sum, land) => sum + land.count, 0)} slots with basics</button>}
             <div className="deck-targets">{targetKeys.map((key) => <label key={key}><span>{targetLabels[key]}</span><b>{analysis.counts[key]}</b><span>/</span><input type="number" min="0" max="99" value={deckTargets[key]} onChange={(event) => setDeckTargets((current) => ({ ...current, [key]: Math.max(0, Number(event.target.value)) }))} aria-label={`${targetLabels[key]} target`} /></label>)}</div>
             {cardTypes.some((type) => analysis.typeCounts[type] > 0) && <><h4>Card types</h4><div className="type-counts">{cardTypes.filter((type) => analysis.typeCounts[type] > 0).map((type) => <span key={type}>{type}<b>{analysis.typeCounts[type]}</b></span>)}</div></>}
             {guidance.length > 0 && <div className="deck-guidance" aria-live="polite">{guidance.map((item) => <p className={item.strong ? 'strong' : ''} key={item.key}>{item.text}</p>)}</div>}

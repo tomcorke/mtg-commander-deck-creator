@@ -220,6 +220,12 @@ aside { padding: 40px 30px; border-left: 1px solid #dad8e6; background: #e9eaf7;
 .target-heading span { color: #706d82; font-size: 10px; }
 .deck-targets label { display: grid; grid-template-columns: 1fr 24px 8px 42px; align-items: center; padding: 3px 0; font-size: 12px; }
 .deck-targets input { width: 42px; padding: 3px; border: 1px solid #bbb9cd; border-radius: 4px; background: transparent; color: inherit; text-align: center; }
+.basic-land-button { width: 100%; margin-top: 10px; border-color: #8c69ae; color: #694096; }
+.basic-land-modal { max-width: 480px; }
+.basic-land-modal > p { margin: 8px 0 18px; color: #625f76; }
+.basic-land-plan { margin: 0 0 20px; padding: 0; list-style: none; }
+.basic-land-plan li { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #d5d3e1; }
+.form-error { color: #9a392f !important; font-weight: 600; }
 .type-counts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 16px; }
 .type-counts span { display: flex; justify-content: space-between; font-size: 12px; }
 .type-counts b { color: inherit; font-size: inherit; }
@@ -277,6 +283,9 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .curve-legend, .dark .target-heading span { color: #aaa8c2; }
 .dark .colour-empty { background: #35334a; color: #aaa8c2; }
 .dark .deck-targets input { border-color: #4b4867; }
+.dark .basic-land-button { color: #d9b9f2; }
+.dark .basic-land-modal > p { color: #c4c1d5; }
+.dark .basic-land-plan li { border-color: #393650; }
 .dark .deck-guidance p { color: #d4bd8b; }
 .dark .deck-guidance p.strong { color: #ff9185; }
 .dark .synergy-info > button { border-color: #8d83df; background: #302a4b; color: #dedaff; }
