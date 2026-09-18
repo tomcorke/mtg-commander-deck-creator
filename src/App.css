@@ -137,10 +137,12 @@ main > .commander-header { z-index: 2; }
 .subtheme-prompt div { display: flex; gap: 8px; }
 .subtheme-prompt .quiet { border-color: transparent; }
 .card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin-top: 25px; }
-.card-offer { min-width: 0; padding: 10px; border: 2px solid transparent; border-radius: 10px; transition: opacity .2s, background .2s, border-color .2s; }
+.card-offer { position: relative; min-width: 0; padding: 10px; border: 2px solid transparent; border-radius: 10px; transition: opacity .2s, background .2s, border-color .2s; }
 .card-offer.synergy-pair { border-color: #9a72ba; }
-.pair-note { min-height: 42px; margin: -4px 0 10px; color: #625b75; font-size: 12px; line-height: 1.35; }
-.pair-note span { color: #7546a8; font-weight: 600; }
+.card-offer.synergy-1::after { position: absolute; z-index: 2; top: 26px; left: calc(100% + 2px); width: 24px; border-top: 2px solid #9a72ba; content: ''; }
+.offer-heading { height: 70px; overflow: hidden; }
+.pair-note { margin: -5px 0 8px; overflow: hidden; color: #625b75; font-size: 11px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.pair-note span { display: inline-grid; width: 18px; height: 18px; margin-right: 4px; place-items: center; border-radius: 50%; background: #7546a8; color: white; font-weight: 600; }
 .card-offer.add { border-color: #625bb0; background: #e8e6fa; }
 .card-offer.later { opacity: .42; }
 .card-offer.ignore { opacity: .25; filter: grayscale(1); }
@@ -251,6 +253,8 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
   .recommendations { padding: 30px 6vw; }
   .card-grid { grid-template-columns: 1fr; }
   .card-offer { display: grid; grid-template-columns: 130px 1fr; gap: 0 22px; align-items: start; }
+  .card-offer.synergy-1::after { display: none; }
+  .offer-heading { grid-column: 1 / -1; height: auto; min-height: 70px; }
   .suggestion-type { grid-column: 1 / -1; }
   aside { border-left: 0; border-top: 1px solid #dad8e6; }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores, type DeferredCard, type EdhrecThemeCount } from './recommendations'
+import { commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores, type DeferredCard, type EdhrecThemeCount } from './recommendations'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -450,7 +450,7 @@ function App() {
     const scores = updatePreferenceScores(batch, decisions, liked, preferenceScores)
     const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
     const rank = (card: Card) => card.tags.reduce((score, tag) => score + (scores[tag] ?? 0) + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
-    const nextQueue = batchRecommendations([...queue.slice(4), ...released.ready].sort((a, b) => rank(b) - rank(a)), includeCreature)
+    const nextQueue = limitThemeMatches(batchRecommendations([...queue.slice(4), ...released.ready].sort((a, b) => rank(b) - rank(a)), includeCreature), rankedSubThemes, (card) => card.reason === 'Land or mana', (card) => card.typeLine.includes('Creature'))
     setPreferenceScores(scores)
     setDeferredCards(released.waiting)
     setBatchNumber(nextBatchNumber)
@@ -508,9 +508,10 @@ function App() {
   const primaryTheme = colourThemes[commanderDetails?.colours[0] ?? 'C']
   const secondaryTheme = colourThemes[commanderDetails?.colours[1] ?? commanderDetails?.colours[0] ?? 'C']
   const inferredSubTheme = activeSubThemes.length < 2 ? sharedTheme(deck.slice(commanderNames(commander).length), [theme, ...activeSubThemes, ...dismissedSubThemes]) : ''
-  const visibleBatch = queue.slice(0, 4)
-  const synergyPair = findSynergyPair(visibleBatch.filter((card) => card.reason !== 'Land or mana'))
+  const rawBatch = queue.slice(0, 4)
+  const synergyPair = findSynergyPair(rawBatch.filter((card) => card.reason !== 'Land or mana'))
   const pairCards = synergyPair?.cards ?? []
+  const visibleBatch = pairCards.length ? [...pairCards, ...rawBatch.filter((card) => !pairCards.includes(card))] : rawBatch
   const inferredThemeOptions = [...new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))].filter((name) => supportedThemes.includes(name))
   const subThemeOptions = [...new Set([...commanderSubThemes, ...inferredThemeOptions])]
   const filteredSubThemes = subThemeOptions.filter((name) => name.toLowerCase().includes(subThemeSearch.toLowerCase()) && name !== theme && !activeSubThemes.includes(name))
@@ -586,9 +587,9 @@ function App() {
           {inferredSubTheme && <div className="subtheme-prompt"><span>Lean into <strong>{inferredSubTheme}</strong>?</span><div><button type="button" onClick={() => { setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2)); nextBatch(inferredSubTheme) }}>Yes, tune next picks</button><button className="quiet" type="button" onClick={() => setDismissedSubThemes((current) => [...current, inferredSubTheme])}>Not now</button></div></div>}
           {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => nextBatch()}>Next recommendations →</button></div>}
           {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid">
-            {visibleBatch.map((card) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? 'synergy-pair' : ''}`} key={card.name}>
-              <h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>
-              {pairCards.includes(card) && synergyPair && <p className="pair-note"><span aria-hidden="true">↔</span> Works with {pairCards.find((item) => item !== card)?.name}: {synergyPair.explanation}.</p>}
+            {visibleBatch.map((card) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} key={card.name}>
+              <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>
+              {pairCards.includes(card) && synergyPair && <p className="pair-note"><span aria-hidden="true">{pairCards.indexOf(card) + 1}</span> Synergy with {pairCards.find((item) => item !== card)?.name}<span className="sr-only">: {synergyPair.explanation}</span></p>}</div>
               <div className="actions">
                 <div><button className="primary" onClick={() => decide(card, 'add')}>Add</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
+import { commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
 
 test('all exposed themes can tag matching card text', () => {
   for (const theme of supportedThemes) {
@@ -18,6 +18,26 @@ test('synergy pair requires concrete complementary rules text', () => {
   ]
   assert.match(findSynergyPair(cards)?.explanation ?? '', /creates tokens/)
   assert.equal(findSynergyPair(cards.map((card) => ({ ...card, detail: 'Artifact creature.' }))), null)
+})
+
+test('active themes fill at most two slots without changing batch roles or losing cards', () => {
+  const cards = [
+    { name: 'Theme creature', tags: ['Tokens'], mana: false, creature: true },
+    { name: 'Theme spell', tags: ['Tokens'], mana: false, creature: false },
+    { name: 'Theme utility', tags: ['Tokens'], mana: false, creature: false },
+    { name: 'Theme mana', tags: ['Tokens'], mana: true, creature: false },
+    { name: 'Varied creature', tags: ['Artifacts'], mana: false, creature: true },
+    { name: 'Varied spell', tags: ['Artifacts'], mana: false, creature: false },
+    { name: 'Varied utility', tags: ['Artifacts'], mana: false, creature: false },
+    { name: 'Varied mana', tags: ['Artifacts'], mana: true, creature: false },
+  ]
+  const ordered = limitThemeMatches(cards, ['Tokens'], (card) => card.mana, (card) => card.creature)
+  const first = ordered.slice(0, 4)
+  assert.equal(first.filter((card) => card.tags.includes('Tokens')).length, 2)
+  assert.equal(first.filter((card) => card.mana).length, 1)
+  assert.equal(first.filter((card) => card.creature).length, 1)
+  assert.equal(new Set(ordered).size, cards.length)
+  assert.deepEqual(new Set(ordered), new Set(cards))
 })
 
 test('ignore suppresses more-like-this score', () => {

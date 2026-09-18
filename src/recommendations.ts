@@ -71,11 +71,25 @@ const synergyRules: { left: RegExp; right: RegExp; explanation: string }[] = [
   { left: /create[s]? .*Treasure|create[s]? .*artifact token/i, right: /whenever .*artifact|artifacts? you control/i, explanation: 'one creates artifacts while the other rewards artifacts entering or staying in play' },
 ]
 
-export function findSynergyPair(cards: TaggedCard[]) {
+export function findSynergyPair<T extends TaggedCard>(cards: T[]) {
   for (const rule of synergyRules) for (let left = 0; left < cards.length; left += 1) for (let right = 0; right < cards.length; right += 1) {
     if (left !== right && rule.left.test(cards[left].detail) && rule.right.test(cards[right].detail)) return { cards: [cards[left], cards[right]], explanation: rule.explanation }
   }
   return null
+}
+
+export function limitThemeMatches<T extends { tags: string[] }>(cards: T[], themes: string[], isMana: (card: T) => boolean, isCreature: (card: T) => boolean, perBatch = 2) {
+  const ordered = [...cards]
+  if (!themes.length) return ordered
+  const matchesTheme = (card: T) => card.tags.some((tag) => themes.includes(tag))
+  for (let start = 0; start < ordered.length; start += 4) {
+    const themed = ordered.slice(start, start + 4).map((card, offset) => ({ card, index: start + offset })).filter(({ card }) => matchesTheme(card))
+    for (const { card, index } of themed.slice(perBatch)) {
+      const replacement = ordered.findIndex((candidate, candidateIndex) => candidateIndex >= start + 4 && !matchesTheme(candidate) && isMana(candidate) === isMana(card) && isCreature(candidate) === isCreature(card))
+      if (replacement >= 0) [ordered[index], ordered[replacement]] = [ordered[replacement], ordered[index]]
+    }
+  }
+  return ordered
 }
 
 export function updatePreferenceScores(cards: { name: string; tags: string[] }[], decisions: Record<string, 'add' | 'later' | 'ignore'>, liked: string[], current: Record<string, number>) {
