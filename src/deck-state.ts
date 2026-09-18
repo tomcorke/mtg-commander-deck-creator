@@ -29,6 +29,7 @@ const deckCardSchema = z.object(cardBase)
 const decisionSchema = z.enum(['add', 'later', 'ignore'])
 
 export const persistedDeckStateSchema = z.object({
+  savedDeckId: z.string().default(''),
   commander: z.string().min(1),
   commanderDetails: z.object({
     images: z.array(z.string()),

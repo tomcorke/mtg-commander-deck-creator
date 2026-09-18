@@ -179,14 +179,14 @@ function App() {
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<number | null>(null)
   const [savedDecks, setSavedDecks] = useState(loadSavedDecks)
-  const [activeSavedDeckId, setActiveSavedDeckId] = useState('')
-  const [deckName, setDeckName] = useState('')
+  const [activeSavedDeckId, setActiveSavedDeckId] = useState(savedDeckState?.savedDeckId ?? '')
+  const [deckName, setDeckName] = useState(() => loadSavedDecks().find(({ id }) => id === savedDeckState?.savedDeckId)?.name ?? '')
   const [showSavedDecks, setShowSavedDecks] = useState(false)
 
   useEffect(() => {
     if (!commander || recommendationState !== 'idle' || !commanderDetails || !deck.length) return
-    saveDeckState({ commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets } satisfies PersistedDeckState)
-  }, [commander, commanderDetails, theme, queue, recommendationState, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets])
+    saveDeckState({ savedDeckId: activeSavedDeckId, commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets } satisfies PersistedDeckState)
+  }, [activeSavedDeckId, commander, commanderDetails, theme, queue, recommendationState, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets])
 
   useEffect(() => {
     void fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: basicNames.map((name) => ({ name })) }) })
@@ -597,7 +597,7 @@ function App() {
 
   function currentState(): PersistedDeckState | null {
     if (!commander || !commanderDetails || !deck.length) return null
-    return { commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets }
+    return { savedDeckId: activeSavedDeckId, commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets }
   }
 
   function openSavedDecks() {
@@ -610,7 +610,7 @@ function App() {
     const name = deckName.trim()
     if (!state || !name || duplicateDeckName(savedDecks, name, activeSavedDeckId)) return
     const id = activeSavedDeckId || crypto.randomUUID()
-    setSavedDecks(saveSavedDeck({ id, name, updatedAt: new Date().toISOString(), state }))
+    setSavedDecks(saveSavedDeck({ id, name, updatedAt: new Date().toISOString(), state: { ...state, savedDeckId: id } }))
     setActiveSavedDeckId(id)
   }
 
@@ -633,7 +633,7 @@ function App() {
     setDeck(state.deck)
     setPreferredPrintSet(state.preferredPrintSet)
     setDeckTargets(state.deckTargets)
-    setActiveSavedDeckId(saved.id)
+    setActiveSavedDeckId(state.savedDeckId || saved.id)
     setDeckName(saved.name)
     setShowSavedDecks(false)
   }

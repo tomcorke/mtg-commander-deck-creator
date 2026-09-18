@@ -12,6 +12,7 @@ function memoryStorage(initial: Record<string, string> = {}) {
 }
 
 const state: PersistedDeckState = {
+  savedDeckId: '',
   commander: 'Anikthea, Hand of Erebos',
   commanderDetails: { images: ['image'], art: ['art'], colours: ['W', 'B', 'G'], printings: [[{ image: 'image', set: 'cmm', collectorNumber: '349' }]], selections: [0] },
   theme: 'Enchantments',
@@ -53,12 +54,18 @@ test('saved decks can be created, renamed, updated, and deleted', () => {
   const updated = saveSavedDeck({ ...saved[0], name: 'Enchantress', state: { ...state, theme: 'Constellations' } }, storage)
   assert.equal(updated.length, 1)
   assert.equal(loadSavedDecks(storage)[0].state.theme, 'Constellations')
+  assert.equal(loadSavedDecks(storage)[0].id, 'deck-1')
   assert.deepEqual(deleteSavedDeck('deck-1', storage), [])
 })
 
 test('invalid saved deck collections are ignored', () => {
   assert.deepEqual(loadSavedDecks(memoryStorage({ [savedDecksKey]: 'not json' })), [])
   assert.deepEqual(loadSavedDecks(memoryStorage({ [savedDecksKey]: JSON.stringify({ version: deckStateVersion + 1, decks: [] }) })), [])
+})
+
+test('legacy autosave gets empty saved-deck id', () => {
+  const storage = memoryStorage({ [deckStateKey]: JSON.stringify({ version: deckStateVersion, state: Object.fromEntries(Object.entries(state).filter(([key]) => key !== 'savedDeckId')) }) })
+  assert.equal(loadDeckState(storage)?.savedDeckId, '')
 })
 
 test('invalid, old, and malformed deck state is ignored', () => {
