@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { analyseDeck, basicLandPlan, curveBucket, deckGuidance, deckSection, defaultDeckTargets, type AnalysisCard } from './deck-analysis.ts'
+import { analyseDeck, basicLandPlan, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, type AnalysisCard } from './deck-analysis.ts'
 
 const card = (overrides: Partial<AnalysisCard> = {}): AnalysisCard => ({ name: 'Card', layout: 'normal', typeLine: 'Creature', manaCost: '{2}{G}', manaValue: 3, detail: '', producedMana: [], faces: [], ...overrides })
 
@@ -30,6 +30,21 @@ test('classifies common removal without treating one sacrifice as a wipe', () =>
   ])
   assert.equal(analysis.counts.wipes, 0)
   assert.equal(analysis.counts.removal, 3)
+})
+
+test('recognises common ramp and board-wipe wording', () => {
+  const analysis = analyseDeck([
+    card({ detail: 'Create two Treasure tokens.' }),
+    card({ detail: 'Whenever a Forest enters, lands you control produce an additional {G}.' }),
+    card({ detail: 'Put a land card from your hand onto the battlefield tapped.' }),
+    card({ detail: 'Search your library for a Forest card, put that card onto the battlefield, then shuffle.' }),
+    card({ detail: 'Return all nonland permanents to their owners’ hands.' }),
+    card({ detail: 'Return each nonland permanent you don’t control to its owner’s hand.' }),
+    card({ detail: 'This spell deals 3 damage to each creature.' }),
+    card({ detail: 'All creatures get -4/-4 until end of turn.' }),
+  ])
+  assert.equal(analysis.counts.ramp, 4)
+  assert.equal(analysis.counts.wipes, 4)
 })
 
 test('modal spell-land counts as a land source and front spell in curve', () => {
@@ -67,6 +82,12 @@ test('splits basic lands by demand, falls back evenly, and respects open slots',
   assert.deepEqual(basicLandPlan(['W', 'G'], demand, 30, 35, 90), [{ name: 'Plains', colour: 'W', count: 1 }, { name: 'Forest', colour: 'G', count: 4 }])
   assert.deepEqual(basicLandPlan(['W', 'U'], { W: 0, U: 0, B: 0, R: 0, G: 0 }, 30, 35, 90), [{ name: 'Plains', colour: 'W', count: 3 }, { name: 'Island', colour: 'U', count: 2 }])
   assert.deepEqual(basicLandPlan([], demand, 30, 35, 98), [{ name: 'Wastes', colour: 'C', count: 2 }])
+})
+
+test('role boosts stay modest early and strengthen late', () => {
+  const counts = { ...defaultDeckTargets, ramp: 5, wipes: 0 }
+  assert.deepEqual(deckRoleBoosts(40, counts, defaultDeckTargets), { lands: 0, ramp: 3, draw: 0, removal: 0, wipes: 6 })
+  assert.deepEqual(deckRoleBoosts(90, counts, defaultDeckTargets), { lands: 0, ramp: 9, draw: 0, removal: 0, wipes: 18 })
 })
 
 test('guidance starts at 70 and strengthens aggregate impossible late gaps', () => {

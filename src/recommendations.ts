@@ -114,7 +114,7 @@ export const themeMatchers: [string, RegExp][] = [
   ['Topdeck', /top (?:card|\d+ cards) of (?:your|a|target player’s|target player's) library|look at the top/i],
 ]
 
-export const supportedThemes = themeMatchers.map(([name]) => name)
+export const supportedThemes = themeMatchers.map(([name]) => name).filter((name) => name !== 'Tribal')
 const supportedThemeNames = new Map(supportedThemes.map((theme) => [theme.toLowerCase(), theme]))
 
 const edhrecThemeAliases: Record<string, string> = {
@@ -178,6 +178,12 @@ export function unsupportedCommanderThemes(tagCounts: EdhrecThemeCount[]) {
   return tagCounts.filter((tag) => !edhrecThemeName(tag)).map(({ value }) => value)
 }
 
+export function sharedThemes(cards: { tags: string[] }[], excluded: string[] = []) {
+  const counts = new Map<string, number>()
+  for (const card of cards.slice(-12)) for (const tag of card.tags) if (supportedThemes.includes(tag) && !excluded.includes(tag)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  return [...counts].filter(([, count]) => count >= 3).sort((a, b) => b[1] - a[1]).map(([tag]) => tag)
+}
+
 export function tagsFor(source: string, typeLine: string) {
   const tags = themeMatchers.filter(([, matcher]) => matcher.test(source)).map(([tag]) => tag)
   for (const type of ['Creature', 'Artifact', 'Enchantment', 'Land']) if (typeLine.includes(type) && !tags.includes(`${type}s`)) tags.push(`${type}s`)
@@ -226,68 +232,9 @@ export function buildEdhrecRecommendations(entries: EdhrecEntry[], responseCards
   }), options.includeCreature)
 }
 
-export function batchRecommendations<T extends { name: string; reason: string; typeLine: string }>(cards: T[], includeCreature: boolean) {
-  const remaining = [...cards]
-  const ordered: T[] = []
-  while (remaining.length) {
-    const picks: T[] = []
-    const take = (test: (card: T) => boolean) => {
-      const withinNewCardLimit = (card: T) => card.reason !== 'Interesting new pick' || !picks.some((pick) => pick.reason === 'Interesting new pick')
-      const newReason = (card: T) => !picks.some((pick) => pick.reason === card.reason)
-      let index = remaining.findIndex((card) => !picks.includes(card) && test(card) && withinNewCardLimit(card) && newReason(card))
-      if (index < 0) index = remaining.findIndex((card) => !picks.includes(card) && test(card) && withinNewCardLimit(card))
-      if (index < 0) index = remaining.findIndex((card) => !picks.includes(card) && test(card))
-      if (index >= 0) picks.push(remaining[index])
-    }
-    if (includeCreature) take((card) => card.reason !== 'Land or mana' && card.typeLine.includes('Creature'))
-    while (picks.filter((card) => card.reason !== 'Land or mana').length < 3) {
-      const before = picks.length
-      take((card) => card.reason !== 'Land or mana')
-      if (picks.length === before) break
-    }
-    take((card) => card.reason === 'Land or mana')
-    while (picks.length < 4) {
-      const before = picks.length
-      take(() => true)
-      if (picks.length === before) break
-    }
-    ordered.push(...picks)
-    for (const pick of picks) remaining.splice(remaining.indexOf(pick), 1)
-  }
-  if (ordered.length !== cards.length || new Set(ordered.map((card) => card.name)).size !== cards.length) throw new Error('Recommendation queue lost or duplicated cards')
-  return ordered
-}
-
-export function limitThemeMatches<T extends { tags: string[] }>(cards: T[], themes: string[], isMana: (card: T) => boolean, isCreature: (card: T) => boolean, perBatch = 2) {
-  const ordered = [...cards]
-  if (!themes.length) return ordered
-  const matchesTheme = (card: T) => card.tags.some((tag) => themes.includes(tag))
-  for (let start = 0; start < ordered.length; start += 4) {
-    const themed = ordered.slice(start, start + 4).map((card, offset) => ({ card, index: start + offset })).filter(({ card }) => matchesTheme(card))
-    for (const { card, index } of themed.slice(perBatch)) {
-      const replacement = ordered.findIndex((candidate, candidateIndex) => candidateIndex >= start + 4 && !matchesTheme(candidate) && isMana(candidate) === isMana(card) && isCreature(candidate) === isCreature(card))
-      if (replacement >= 0) [ordered[index], ordered[replacement]] = [ordered[replacement], ordered[index]]
-    }
-  }
-  return ordered
-}
-
-export function promoteNeededRoles<T extends { reason: string; typeLine: string }>(cards: T[], neededRoles: string[], cardRoles: (card: T) => string[], includeCreature: boolean) {
-  const ordered = [...cards]
-  const limit = Math.min(2, neededRoles.length)
-  const covered = new Set(ordered.slice(0, 4).flatMap(cardRoles).filter((role) => neededRoles.includes(role)))
-  for (const role of neededRoles) {
-    if (covered.size >= limit || covered.has(role)) continue
-    const candidate = ordered.findIndex((card, index) => index >= 4 && cardRoles(card).includes(role))
-    if (candidate < 0) continue
-    const first = ordered.slice(0, 4)
-    const creatures = first.filter((card) => card.typeLine.includes('Creature')).length
-    const replacement = first.findLastIndex((card) => !cardRoles(card).some((item) => neededRoles.includes(item)) && card.reason !== 'Land or mana' && (!includeCreature || !card.typeLine.includes('Creature') || creatures > 1 || ordered[candidate].typeLine.includes('Creature')))
-    if (replacement < 0) continue
-    ;[ordered[replacement], ordered[candidate]] = [ordered[candidate], ordered[replacement]]
-    covered.add(role)
-  }
-  return ordered
+export function batchRecommendations<T extends { name: string }>(cards: T[], _includeCreature: boolean) {
+  if (new Set(cards.map((card) => card.name)).size !== cards.length) throw new Error('Recommendation queue duplicated cards')
+  return [...cards]
 }
 
 export function updatePreferenceScores(cards: { name: string; tags: string[] }[], decisions: Record<string, 'add' | 'later' | 'ignore'>, liked: string[], current: Record<string, number>) {
@@ -325,15 +272,19 @@ export function releaseNextDeferred<T>(deferred: DeferredCard<T>[], requestedBat
 
 export type RecommendationDecision = 'add' | 'later' | 'ignore'
 
-export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[] }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme = '', theme, includeCreature, neededRoles = [], cardRoles = () => [] }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean; neededRoles?: string[]; cardRoles?: (card: T) => string[] }) {
+export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[] }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme = '', theme, includeCreature, roleBoosts = {}, cardRoles = () => [] }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean; roleBoosts?: Record<string, number>; cardRoles?: (card: T) => string[] }) {
   const batch = queue.slice(0, 4)
   const pending = [...deferredCards, ...deferBatch(batch, decisions, batchNumber, (card) => card.name)]
   const released = releaseNextDeferred(pending, batchNumber + 1, queue.length > 4)
   const scores = updatePreferenceScores(batch, decisions, liked, preferenceScores)
   const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
-  const rank = (card: T) => card.tags.reduce((score, tag) => score + (scores[tag] ?? 0) + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
+  const candidates = [...queue.slice(4), ...released.ready]
+  const roleSupply = Object.fromEntries(Object.keys(roleBoosts).map((role) => [role, candidates.filter((card) => cardRoles(card).includes(role)).length]))
+  const rank = (card: T) => Math.min(12, card.tags.reduce((score, tag) => score + (scores[tag] ?? 0), 0))
+    + card.tags.reduce((score, tag) => score + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
+    + cardRoles(card).reduce((score, role) => score + (roleBoosts[role] ?? 0) * (1 + 4 / Math.max(1, roleSupply[role] ?? 1)) + ((roleBoosts[role] ?? 0) > 0 ? Math.min(12, batchNumber - 1) : 0), 0)
   return {
-    queue: promoteNeededRoles(limitThemeMatches(batchRecommendations([...queue.slice(4), ...released.ready].sort((a, b) => rank(b) - rank(a)), includeCreature), rankedSubThemes, (card) => card.reason === 'Land or mana', (card) => card.typeLine.includes('Creature')), neededRoles, cardRoles, includeCreature),
+    queue: batchRecommendations(candidates.sort((a, b) => rank(b) - rank(a)), includeCreature),
     deferredCards: released.waiting,
     batchNumber: released.batchNumber,
     preferenceScores: scores,

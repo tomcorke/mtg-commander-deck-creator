@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
-import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckSection, defaultDeckTargets, isBasicLandName, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
+import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
 import './App.css'
 
@@ -36,7 +36,6 @@ const themeCommanders: Record<string, string[]> = {
   'Landfall': ['The Gitrog Monster', 'Omnath, Locus of Creation', 'Aesi, Tyrant of Gyre Strait', 'Obuun, Mul Daya Ancestor', 'Lord Windgrace', 'Tatyova, Benthic Druid'],
   'Voltron': ['Light-Paws, Emperor\'s Voice', 'Uril, the Miststalker', 'Galea, Kindler of Hope', 'Rafiq of the Many', 'Slicer, Hired Muscle', 'Wilson, Refined Grizzly'],
   'Goad': ['Marisi, Breaker of the Coil', 'Kardur, Doomscourge', 'Baeloth Barrityl, Entertainer', 'Nelly Borca, Impulsive Accuser', 'Firkraag, Cunning Instigator', 'The Rani'],
-  'Tribal': ['The First Sliver', 'Wilhelt, the Rotcleaver', 'Hakbal of the Surging Soul', 'Pantlaza, Sun-Favored', 'Voja, Jaws of the Conclave', 'Edgar Markov'],
   'Big mana': ['Zhulodok, Void Gorger', 'Goreclaw, Terror of Qal Sisma', 'Kozilek, the Great Distortion', 'Klauth, Unrivaled Ancient', 'Imoti, Celebrant of Bounty', 'Selvala, Heart of the Wilds'],
   'Blink': ['Brago, King Eternal', 'Roon of the Hidden Realm', 'Abdel Adrian, Gorion\'s Ward', 'Preston, the Vanisher', 'Yorion, Sky Nomad', 'Aminatou, the Fateshifter'],
   'Political': ['Queen Marchesa', 'Breena, the Demagogue', 'Kenrith, the Returned King', 'The Council of Four', 'Pramikon, Sky Rampart', 'Xantcha, Sleeper Agent'],
@@ -104,12 +103,6 @@ function ArtLoading({ active }: { active: boolean }) {
 
 function PrintingButton({ count, index, loading, name, onClick }: { count: number; index: number; loading: boolean; name: string; onClick: () => void }) {
   return count > 1 ? <button type="button" disabled={loading} onClick={onClick} aria-label={`Show alternate printing of ${name}`}>↻ Art {index + 1}/{count}</button> : null
-}
-
-function sharedTheme(cards: { tags: string[] }[], excluded: string[] = []) {
-  const counts = new Map<string, number>()
-  for (const card of cards) for (const tag of card.tags) if (!excluded.includes(tag) && !['Creatures', 'Lands'].includes(tag)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
-  return [...counts].sort((a, b) => b[1] - a[1]).find(([, count]) => count >= 2)?.[0] ?? ''
 }
 
 function symbolName(symbol: string) {
@@ -728,8 +721,9 @@ function App() {
     }
     const batch = queue.slice(0, 4)
     const analysis = analyseDeck(deck)
-    const neededRoles = deck.length >= 70 ? targetKeys.filter((key) => key !== 'lands' && analysis.counts[key] < deckTargets[key]) : []
-    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature, neededRoles, cardRoles: (card) => targetKeys.filter((key) => key !== 'lands' && analyseDeck([card]).counts[key] > 0) })
+    const roleBoosts = deckRoleBoosts(deck.length, analysis.counts, deckTargets)
+    roleBoosts.lands = 0
+    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature, roleBoosts, cardRoles: rolesForCard })
     setPreferenceScores(next.preferenceScores)
     setDeferredCards(next.deferredCards)
     setBatchNumber(next.batchNumber)
@@ -787,7 +781,9 @@ function App() {
 
   const primaryTheme = colourThemes[commanderDetails?.colours[0] ?? 'C']
   const secondaryTheme = colourThemes[commanderDetails?.colours[1] ?? commanderDetails?.colours[0] ?? 'C']
-  const inferredSubTheme = activeSubThemes.length < 2 ? sharedTheme(deck.slice(commanderNames(commander).length), [theme, ...activeSubThemes, ...dismissedSubThemes]) : ''
+  const deckCards = deck.slice(commanderNames(commander).length)
+  const dismissedThemeCounts = new Map(dismissedSubThemes.map((item) => { const split = item.lastIndexOf(':'); return split > 0 ? [item.slice(0, split), Number(item.slice(split + 1))] : [item, Infinity] }))
+  const inferredSubThemes = activeSubThemes.length < 2 ? sharedThemes(deckCards, [theme, ...activeSubThemes]).filter((name) => deckCards.filter((card) => card.tags.includes(name)).length > (dismissedThemeCounts.get(name) ?? -1)).slice(0, 1) : []
   const rawBatch = queue.slice(0, 4)
   const synergyPair = findSynergyPair(rawBatch.filter((card) => card.reason !== 'Land or mana'))
   const pairCards = synergyPair?.cards ?? []
@@ -812,11 +808,13 @@ function App() {
     const subTheme = card.tags.find((tag) => activeSubThemes.includes(tag))
     if (subTheme) return `${subTheme} sub-theme`
     if (theme && card.tags.includes(theme)) return `${theme} theme`
+    const missingRole = rolesForCard(card).find((role) => role !== 'lands' && analysis.counts[role] < deckTargets[role])
+    if (missingRole) return targetLabels[missingRole]
     const preference = card.tags.filter((tag) => pickedTags.has(tag) && (preferenceScores[tag] ?? 0) > 0).sort((a, b) => (preferenceScores[b] ?? 0) - (preferenceScores[a] ?? 0))[0]
     return preference ? `Matches your ${preference} picks` : card.reason
   }
   const neededRoles = new Set(targetKeys.filter((key) => analysis.counts[key] < deckTargets[key]))
-  const scoredBatch = visibleBatch.map((card) => ({ card, score: recommendationScore(card, { theme, activeSubThemes, pickedTags, preferenceScores, neededRoles, cardRoles: targetKeys.filter((key) => analyseDeck([card]).counts[key] > 0) }) }))
+  const scoredBatch = visibleBatch.map((card) => ({ card, score: recommendationScore(card, { theme, activeSubThemes, pickedTags, preferenceScores, neededRoles, cardRoles: rolesForCard(card) }) }))
   const recommendedCard = scoredBatch.reduce((best, item) => item.score > best.score ? item : best, { card: null as Card | null, score: recommendedScoreThreshold - 1 })
 
   return (
@@ -906,7 +904,7 @@ function App() {
             <div className="subthemes" aria-label="Deck themes">
               {theme && <button type="button" onClick={() => setTheme('')} title="Remove declared theme">{theme} <span>×</span></button>}
               {activeSubThemes.map((name) => <button type="button" onClick={() => setActiveSubThemes((current) => current.filter((item) => item !== name))} title={`Remove ${name} sub-theme`} key={name}>{name} <span>×</span></button>)}
-              {inferredSubTheme && <span className="suggested-subtheme"><span>{inferredSubTheme}?</span><button type="button" onClick={() => setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2))} aria-label={`Accept ${inferredSubTheme} sub-theme`}>✓</button><button type="button" onClick={() => setDismissedSubThemes((current) => [...current, inferredSubTheme])} aria-label={`Dismiss ${inferredSubTheme} sub-theme`}>×</button></span>}
+              {inferredSubThemes.map((inferredSubTheme) => <span className="suggested-subtheme" key={inferredSubTheme}><span>{inferredSubTheme}?</span><button type="button" onClick={() => setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2))} aria-label={`Accept ${inferredSubTheme} sub-theme`}>✓</button><button type="button" onClick={() => setDismissedSubThemes((current) => [...current.filter((item) => !item.startsWith(`${inferredSubTheme}:`) && item !== inferredSubTheme), `${inferredSubTheme}:${deckCards.filter((card) => card.tags.includes(inferredSubTheme)).length}`])} aria-label={`Dismiss ${inferredSubTheme} sub-theme`}>×</button></span>)}
               {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
             </div>
             <div className="toolbar-actions">
@@ -918,8 +916,8 @@ function App() {
             <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => { setActiveSubThemes((current) => [...current, name].slice(0, 2)); setShowSubThemePicker(false); setSubThemeSearch('') }}>{name}</button>)}</div>
           </div>}
           {deck.length >= 100 ? <div className="completion"><p className="eyebrow">Deck complete</p><h2>Review your 100-card deck</h2><p>Recommendations are paused. Review your deck analysis, then export when ready.</p><button className="primary" type="button" onClick={() => setShowExport(true)}>Review and export deck</button></div> : recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow">
-            {scoredBatch.map(({ card, score }) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} key={card.name}>
-              <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>{recommendedCard.card === card && <span className="recommended-badge">Recommended</span>}<span className="recommendation-score" aria-label={`Match score ${score} out of 100`}>{score}</span></div>
+            {scoredBatch.map(({ card }) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} key={card.name}>
+              <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>{recommendedCard.card === card && <span className="recommended-badge">Recommended</span>}</div>
               <div className="actions">
                 <div><button className="primary" disabled={deck.length >= 100 && decisions[card.name] !== 'add'} onClick={() => decide(card, 'add')}>Add</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -10,10 +10,20 @@ test('ordinary tapped lands do not create false Landfall preferences', () => {
 test('all exposed themes can tag matching card text', () => {
   for (const theme of supportedThemes) {
     const source = ({
-      Tokens: 'create one Soldier token', '+1/+1 counters': 'put a +1/+1 counter', Enchantments: 'enchantment', Graveyard: 'graveyard', Dragons: 'Dragon', Spellslinger: 'instant or sorcery', Artifacts: 'artifact', Lifegain: 'gain 2 life', Sacrifice: 'sacrifice a creature', Equipment: 'Equipment', 'Group hug': 'each player draws', Landfall: 'landfall', Voltron: 'equipped creature', Goad: 'goad', Tribal: 'choose a creature type', 'Big mana': 'mana value 7', Blink: 'exile it then return', Political: 'vote', Vampires: 'Vampire', Angels: 'Angel', Demons: 'Demon', Faeries: 'Faerie', Vehicles: 'Vehicle', Indestructible: 'indestructible', Mill: 'mill three cards', Zombies: 'Zombie', Elves: 'Elf', Goblins: 'Goblin', Dinosaurs: 'Dinosaur', Merfolk: 'Merfolk', Knights: 'Knight', Spirits: 'Spirit', Slivers: 'Sliver', Mutants: 'Mutant', Turtles: 'Turtle', Defenders: 'Defender', 'Toughness matters': 'assign combat damage equal to its toughness', 'Power matters': 'power is equal to its mana value', 'Power 7+': 'creature with power 7 or greater', Counters: 'proliferate', Combat: 'additional combat phase', 'Resource tokens': 'create a Treasure token', Recursion: 'return target card from your graveyard', Protection: 'other creatures have hexproof', Flying: 'flying', Energy: 'get {E}', Sagas: 'Saga', 'Exile matters': 'play that card from exile', 'Spell copying': 'copy target instant spell', Cascade: 'cascade', Discover: 'discover 4', Explore: 'it explores', Ninjas: 'Ninja', Eldrazi: 'Eldrazi', Humans: 'Human', Soldiers: 'Soldier', Phyrexians: 'Phyrexian', Planeswalkers: 'Planeswalker', Poison: 'toxic 2', Wheels: 'each player discards their hand, then draws seven cards', Clones: 'enters as a copy', Amass: 'amass Orcs 2', Populate: 'populate', Anthems: 'creatures you control get +1/+1', Topdeck: 'look at the top card of your library',
+      Tokens: 'create one Soldier token', '+1/+1 counters': 'put a +1/+1 counter', Enchantments: 'enchantment', Graveyard: 'graveyard', Dragons: 'Dragon', Spellslinger: 'instant or sorcery', Artifacts: 'artifact', Lifegain: 'gain 2 life', Sacrifice: 'sacrifice a creature', Equipment: 'Equipment', 'Group hug': 'each player draws', Landfall: 'landfall', Voltron: 'equipped creature', Goad: 'goad', 'Big mana': 'mana value 7', Blink: 'exile it then return', Political: 'vote', Vampires: 'Vampire', Angels: 'Angel', Demons: 'Demon', Faeries: 'Faerie', Vehicles: 'Vehicle', Indestructible: 'indestructible', Mill: 'mill three cards', Zombies: 'Zombie', Elves: 'Elf', Goblins: 'Goblin', Dinosaurs: 'Dinosaur', Merfolk: 'Merfolk', Knights: 'Knight', Spirits: 'Spirit', Slivers: 'Sliver', Mutants: 'Mutant', Turtles: 'Turtle', Defenders: 'Defender', 'Toughness matters': 'assign combat damage equal to its toughness', 'Power matters': 'power is equal to its mana value', 'Power 7+': 'creature with power 7 or greater', Counters: 'proliferate', Combat: 'additional combat phase', 'Resource tokens': 'create a Treasure token', Recursion: 'return target card from your graveyard', Protection: 'other creatures have hexproof', Flying: 'flying', Energy: 'get {E}', Sagas: 'Saga', 'Exile matters': 'play that card from exile', 'Spell copying': 'copy target instant spell', Cascade: 'cascade', Discover: 'discover 4', Explore: 'it explores', Ninjas: 'Ninja', Eldrazi: 'Eldrazi', Humans: 'Human', Soldiers: 'Soldier', Phyrexians: 'Phyrexian', Planeswalkers: 'Planeswalker', Poison: 'toxic 2', Wheels: 'each player discards their hand, then draws seven cards', Clones: 'enters as a copy', Amass: 'amass Orcs 2', Populate: 'populate', Anthems: 'creatures you control get +1/+1', Topdeck: 'look at the top card of your library',
     } as Record<string, string>)[theme]
     assert.ok(tagsFor(source, '').includes(theme), theme)
   }
+})
+
+test('inferred themes expire unless recent picks keep supporting them', () => {
+  const cards = [
+    { tags: ['Tokens'] }, { tags: ['Tokens'] }, { tags: ['Tokens'] },
+    ...Array.from({ length: 12 }, () => ({ tags: ['Artifacts'] })),
+  ]
+  assert.deepEqual(sharedThemes(cards), ['Artifacts'])
+  assert.deepEqual(sharedThemes([...cards, { tags: ['Tokens'] }, { tags: ['Tokens'] }, { tags: ['Tokens'] }]), ['Artifacts', 'Tokens'])
+  assert.deepEqual(sharedThemes(cards, ['Artifacts']), [])
 })
 
 test('synergy pair requires concrete complementary rules text', () => {
@@ -74,49 +84,9 @@ test('recommendation score rewards evidence and leaves weak picks below badge th
   assert.ok(recommendationScore({ reason: 'Interesting new pick', tags: [] }, { ...context, cardRoles: [] }) < recommendedScoreThreshold)
 })
 
-test('batches reserve mana and prefer distinct recommendation reasons', () => {
-  const cards = [
-    ...['Synergy 1', 'Synergy 2', 'Synergy 3', 'Synergy 4'].map((name) => ({ name, reason: 'Commander synergy', typeLine: 'Creature' })),
-    { name: 'Interaction', reason: 'Interaction', typeLine: 'Instant' },
-    { name: 'Utility', reason: 'Utility artifact', typeLine: 'Artifact' },
-    { name: 'Mana', reason: 'Land or mana', typeLine: 'Land' },
-  ]
-  const first = batchRecommendations(cards, true).slice(0, 4)
-  assert.equal(first.filter((card) => card.reason === 'Land or mana').length, 1)
-  assert.equal(new Set(first.map((card) => card.reason)).size, 4)
-})
-
-test('new cards are limited to one per batch when established picks exist', () => {
-  const cards = [
-    ...['New 1', 'New 2', 'New 3', 'New 4'].map((name) => ({ name, reason: 'Interesting new pick', typeLine: 'Creature' })),
-    { name: 'Synergy', reason: 'Commander synergy', typeLine: 'Creature' },
-    { name: 'Interaction', reason: 'Interaction', typeLine: 'Instant' },
-    { name: 'Mana', reason: 'Land or mana', typeLine: 'Land' },
-  ]
-  const ordered = batchRecommendations(cards, true)
-  assert.equal(ordered.slice(0, 4).filter((card) => card.reason === 'Interesting new pick').length, 1)
-  assert.equal(ordered.slice(0, 4).filter((card) => card.reason === 'Land or mana').length, 1)
-  assert.equal(new Set(ordered).size, cards.length)
-})
-
-test('active themes fill at most two slots without changing batch roles or losing cards', () => {
-  const cards = [
-    { name: 'Theme creature', tags: ['Tokens'], mana: false, creature: true },
-    { name: 'Theme spell', tags: ['Tokens'], mana: false, creature: false },
-    { name: 'Theme utility', tags: ['Tokens'], mana: false, creature: false },
-    { name: 'Theme mana', tags: ['Tokens'], mana: true, creature: false },
-    { name: 'Varied creature', tags: ['Artifacts'], mana: false, creature: true },
-    { name: 'Varied spell', tags: ['Artifacts'], mana: false, creature: false },
-    { name: 'Varied utility', tags: ['Artifacts'], mana: false, creature: false },
-    { name: 'Varied mana', tags: ['Artifacts'], mana: true, creature: false },
-  ]
-  const ordered = limitThemeMatches(cards, ['Tokens'], (card) => card.mana, (card) => card.creature)
-  const first = ordered.slice(0, 4)
-  assert.equal(first.filter((card) => card.tags.includes('Tokens')).length, 2)
-  assert.equal(first.filter((card) => card.mana).length, 1)
-  assert.equal(first.filter((card) => card.creature).length, 1)
-  assert.equal(new Set(ordered).size, cards.length)
-  assert.deepEqual(new Set(ordered), new Set(cards))
+test('batching preserves ranked order without fixed card quotas', () => {
+  const cards = ['Theme 1', 'Theme 2', 'Theme 3', 'Theme 4', 'Mana'].map((name) => ({ name }))
+  assert.deepEqual(batchRecommendations(cards, true), cards)
 })
 
 test('ignore suppresses more-like-this score', () => {
@@ -154,20 +124,27 @@ test('broad mechanic matchers avoid common false positives', () => {
   assert.equal(tagsFor('This creature has power 3.', 'Creature').includes('Power 7+'), false)
 })
 
-test('late deck batches include missing roles without taking over the batch', () => {
-  const card = (name: string, tags: string[] = []) => ({ name, tags, typeLine: 'Instant', reason: 'Interaction' })
+test('scarce missing roles beat abundant roles and accumulated preferences', () => {
+  const card = (name: string, tags: string[]) => ({ name, tags, typeLine: 'Instant', reason: 'Interaction' })
+  const queue = [card('Old 1', []), card('Old 2', []), card('Old 3', []), card('Old 4', []), card('Ramp 1', ['ramp', 'Popular']), card('Ramp 2', ['ramp']), card('Ramp 3', ['ramp']), card('Wipe', ['wipes'])]
+  const result = advanceRecommendationQueue({
+    queue, deferredCards: [], batchNumber: 8, decisions: {}, liked: [], preferenceScores: { Popular: 50 }, activeSubThemes: [], theme: '', includeCreature: false,
+    roleBoosts: { ramp: 6, wipes: 6 }, cardRoles: (item) => item.tags,
+  })
+  assert.equal(result.queue[0].name, 'Wipe')
+})
+
+test('role deficits boost ranking without fixed batch quotas', () => {
+  const card = (name: string, tags: string[] = [], reason = 'Interaction') => ({ name, tags, typeLine: 'Instant', reason })
   const queue = [
     ...['Current 1', 'Current 2', 'Current 3', 'Current 4'].map((name) => card(name)),
-    ...['Generic 1', 'Generic 2', 'Generic 3', 'Generic 4'].map((name) => card(name)),
-    card('Ramp', ['ramp']), card('Draw', ['draw']), card('Removal', ['removal']), card('Wipe', ['wipes']),
+    card('Themed', ['Tokens']), card('Generic 1'), card('Generic 2'), card('Generic 3'), card('Ramp', ['ramp']), card('Wipe', ['wipes']),
   ]
   const result = advanceRecommendationQueue({
-    queue, deferredCards: [], batchNumber: 1, decisions: Object.fromEntries(queue.slice(0, 4).map(({ name }) => [name, 'add' as const])), liked: [], preferenceScores: {}, activeSubThemes: [], theme: '', includeCreature: false,
-    neededRoles: ['ramp', 'draw', 'removal', 'wipes'], cardRoles: (item) => item.tags,
+    queue, deferredCards: [], batchNumber: 1, decisions: Object.fromEntries(queue.slice(0, 4).map(({ name }) => [name, 'add' as const])), liked: [], preferenceScores: {}, activeSubThemes: [], theme: 'Tokens', includeCreature: false,
+    roleBoosts: { ramp: 8, wipes: 18 }, cardRoles: (item) => item.tags,
   })
-  const roleCards = result.queue.slice(0, 4).filter((item) => item.tags.length)
-  assert.equal(roleCards.length, 2)
-  assert.equal(new Set(roleCards.flatMap((item) => item.tags)).size, 2)
+  assert.deepEqual(result.queue.slice(0, 3).map(({ name }) => name), ['Wipe', 'Ramp', 'Themed'])
 })
 
 test('recommendation reload starts a fresh cooldown cycle', () => {

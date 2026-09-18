@@ -15,10 +15,14 @@ const isLand = (card: AnalysisCard) => card.typeLine.includes('Land') || card.fa
 const curveType = (card: AnalysisCard) => card.layout === 'modal_dfc' ? card.faces.find((face) => !face.typeLine.includes('Land'))?.typeLine : card.faces[0]?.typeLine ?? card.typeLine
 export const curveBucket = (card: AnalysisCard) => curveType(card) === undefined || (isLand(card) && card.layout !== 'modal_dfc') ? null : Math.min(Math.floor(card.manaValue), 7)
 const isPermanent = (card: AnalysisCard) => !/\b(?:Instant|Sorcery)\b/.test(curveType(card) ?? '')
-const isWipe = (text: string) => /(?:destroy|exile) all|all (?:creatures|artifacts|enchantments|permanents)|each (?:creature|artifact|enchantment|player) (?:sacrifices|exiles) (?:all|any number)/i.test(text)
+const isWipe = (text: string) => /(?:destroy|exile|return) (?:all|each) (?:nonland )?(?:creature|artifact|enchantment|permanent)|all (?:creatures|artifacts|enchantments|permanents)|each (?:creature|artifact|enchantment|player) (?:sacrifices|exiles) (?:all|any number)|deals? \d+ damage to each creature|all creatures get -[x\d]+\/-[x\d]+/i.test(text)
 const isRemoval = (text: string) => !isWipe(text) && /(?:destroy|exile|return) target|target .* gets -(?:\d+|x)\/(?:-\d+|-x)|(?:deals?.* to|fights?) target|counter target/i.test(text)
-const isRamp = (card: AnalysisCard) => !isLand(card) && (card.producedMana.length > 0 || /search your library for (?:a|up to \w+) (?:basic )?land|add \{/i.test(card.detail))
+const isRamp = (card: AnalysisCard) => !isLand(card) && (card.producedMana.length > 0 || /search your library for .*(?:\bland|Plains|Island|Swamp|Mountain|Forest) card|put .*\bland card.* onto the battlefield|add \{|create (?:a|one|two|\d+|x) treasure|lands? you control produce[s]? .*additional/i.test(card.detail))
 const isDraw = (text: string) => /draw (?:(?:a|one|two|three|\d+|that many|x) cards?|cards? equal to)/i.test(text)
+
+export function rolesForCard(card: AnalysisCard) {
+  return [isLand(card) && 'lands', isRamp(card) && 'ramp', isDraw(card.detail) && 'draw', isRemoval(card.detail) && 'removal', isWipe(card.detail) && 'wipes'].filter(Boolean) as TargetKey[]
+}
 const manaCosts = (card: AnalysisCard) => card.faces.length ? card.faces.filter((face) => !face.typeLine.includes('Land')).map((face) => face.manaCost) : [card.manaCost]
 
 export function analyseDeck(cards: AnalysisCard[]) {
@@ -30,13 +34,7 @@ export function analyseDeck(cards: AnalysisCard[]) {
   }))
   const required = Object.fromEntries(colours.map((colour) => [colour, cards.reduce((count, card) => count + manaCosts(card).flatMap((cost) => [...cost.matchAll(/\{([^}]+)\}/g)]).filter(([, symbol]) => symbol.split('/').includes(colour)).length, 0)])) as Record<typeof colours[number], number>
   const produced = Object.fromEntries(colours.map((colour) => [colour, cards.filter((card) => card.producedMana.includes(colour)).length])) as Record<typeof colours[number], number>
-  const counts: DeckTargets = {
-    lands: cards.filter(isLand).length,
-    ramp: cards.filter(isRamp).length,
-    draw: cards.filter((card) => isDraw(card.detail)).length,
-    removal: cards.filter((card) => isRemoval(card.detail)).length,
-    wipes: cards.filter((card) => isWipe(card.detail)).length,
-  }
+  const counts = Object.fromEntries(targetKeys.map((key) => [key, cards.filter((card) => rolesForCard(card).includes(key)).length])) as DeckTargets
   const typeCounts = Object.fromEntries(cardTypes.map((type) => [type, cards.filter((card) => [card.typeLine, ...card.faces.map((face) => face.typeLine)].some((line) => new RegExp(`\\b${type}\\b`).test(line))).length])) as Record<typeof cardTypes[number], number>
   const averageManaValue = spells.length ? spells.reduce((sum, card) => sum + card.manaValue, 0) / spells.length : 0
   const landCentre = Math.max(32, Math.min(40, Math.round(35 + (averageManaValue - 3) * 2 - (counts.ramp - 10) / 3)))
@@ -65,6 +63,11 @@ export function basicLandPlan(identity: string[], demand: Record<ManaColour, num
   const order = legalColours.map((_, index) => index).sort((a, b) => (weights[b] * count - base[b]) - (weights[a] * count - base[a]))
   for (const index of order) if (remainder-- > 0) base[index]++
   return legalColours.flatMap((colour, index) => base[index] ? [{ name: basicLandNames[colour], colour, count: base[index] }] : [])
+}
+
+export function deckRoleBoosts(cardCount: number, counts: DeckTargets, targets: DeckTargets) {
+  const urgency = cardCount >= 85 ? 3 : cardCount >= 70 ? 2 : 1
+  return Object.fromEntries(targetKeys.map((key) => [key, targets[key] ? Math.min(18, Math.ceil(Math.max(0, targets[key] - counts[key]) / targets[key] * 6 * urgency)) : 0])) as DeckTargets
 }
 
 export function deckGuidance(cardCount: number, counts: DeckTargets, targets: DeckTargets) {
