@@ -69,6 +69,19 @@ const selectableThemes = Object.keys(themeCommanders).filter((name) => supported
 const randomItems = <T,>(items: T[], count: number) => [...items].sort(() => Math.random() - 0.5).slice(0, count)
 const randomThree = (items: string[]) => randomItems(items, 3)
 
+function useStoredOption<T>(key: string, fallback: () => T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stored = localStorage.getItem(`option:${key}`)
+      return stored === null ? fallback() : JSON.parse(stored) as T
+    } catch {
+      return fallback()
+    }
+  })
+  useEffect(() => localStorage.setItem(`option:${key}`, JSON.stringify(value)), [key, value])
+  return [value, setValue] as const
+}
+
 function sharedTheme(cards: { tags: string[] }[], excluded: string[] = []) {
   const counts = new Map<string, number>()
   for (const card of cards) for (const tag of card.tags) if (!excluded.includes(tag) && !['Creatures', 'Lands'].includes(tag)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
@@ -107,11 +120,11 @@ function App() {
   const [queue, setQueue] = useState<Card[]>([])
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [limitedRecommendations, setLimitedRecommendations] = useState(false)
-  const [includeCreature, setIncludeCreature] = useState(true)
-  const [powerTarget, setPowerTarget] = useState<PowerTarget>('upgraded')
-  const [excludeGameChangers, setExcludeGameChangers] = useState(true)
-  const [excludeTutors, setExcludeTutors] = useState(true)
-  const [excludeExtraTurns, setExcludeExtraTurns] = useState(true)
+  const [includeCreature, setIncludeCreature] = useStoredOption('includeCreature', () => true)
+  const [powerTarget, setPowerTarget] = useStoredOption<PowerTarget>('powerTarget', () => 'precon')
+  const [excludeGameChangers, setExcludeGameChangers] = useStoredOption('excludeGameChangers', () => true)
+  const [excludeTutors, setExcludeTutors] = useStoredOption('excludeTutors', () => true)
+  const [excludeExtraTurns, setExcludeExtraTurns] = useStoredOption('excludeExtraTurns', () => true)
   const [decisions, setDecisions] = useState<Record<string, 'add' | 'later' | 'ignore'>>({})
   const [liked, setLiked] = useState<string[]>([])
   const [activeSubThemes, setActiveSubThemes] = useState<string[]>([])
@@ -123,19 +136,15 @@ function App() {
   const [deferredCards, setDeferredCards] = useState<DeferredCard<Card>[]>([])
   const [batchNumber, setBatchNumber] = useState(1)
   const [batchAnnouncement, setBatchAnnouncement] = useState('')
-  const [synergyConnector, setSynergyConnector] = useState<SynergyConnector>('glow')
+  const [synergyConnector, setSynergyConnector] = useStoredOption<SynergyConnector>('synergyConnector', () => 'glow')
   const [deck, setDeck] = useState<DeckCard[]>([])
   const [showExport, setShowExport] = useState(false)
-  const [exportFormat, setExportFormat] = useState<ExportFormat>('moxfield')
+  const [exportFormat, setExportFormat] = useStoredOption<ExportFormat>('exportFormat', () => 'moxfield')
   const [copied, setCopied] = useState(false)
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') !== 'light')
-  const [commanderStyling, setCommanderStyling] = useState(true)
+  const [darkMode, setDarkMode] = useStoredOption('darkMode', () => localStorage.getItem('theme') !== 'light')
+  const [commanderStyling, setCommanderStyling] = useStoredOption('commanderStyling', () => true)
   const [preferredPrintSet, setPreferredPrintSet] = useState('')
   const [loadingArt, setLoadingArt] = useState('')
-
-  useEffect(() => {
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light')
-  }, [darkMode])
 
   useEffect(() => {
     if (search.trim().length < 2) return
@@ -428,7 +437,7 @@ function App() {
 
   if (!commander) return (
     <main className={darkMode ? 'dark' : ''}>
-      <header><a className="brand" href="/">Commander's Table</a><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button></header>
+      <header><a className="brand" href="/">Commander's Table</a><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button></div></header>
       <section className="start">
         <p className="eyebrow">Build from scratch</p>
         <h1>What do you want to play?</h1>
@@ -494,7 +503,7 @@ function App() {
       <header>
         <button className="brand reset" onClick={() => { setCommander(''); setCommanderDetails(null); setDeck([]); setQueue([]); setDecisions({}) }}>Commander's Table</button>
         <div className="progress"><span />{deck.length} / 100 cards</div>
-        <div className="header-actions"><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
+        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
       <section className="intro commander-header">
         {commanderDetails && <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
@@ -513,9 +522,8 @@ function App() {
         <div className="recommendation-setup">
           <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>Add to your deck</h2></div><span>{queue.length} suggestions left</span></div>
           <div className="recommendation-options">
-            <label>Power target <select value={powerTarget} onChange={(event) => choosePowerTarget(event.target.value as PowerTarget)}><option value="precon">Precon / Core (Bracket 2)</option><option value="upgraded">Upgraded (Bracket 3)</option><option value="high">High power / Optimized (Bracket 4)</option></select></label>
+            <label>Power target <select value={powerTarget} onChange={(event) => choosePowerTarget(event.target.value as PowerTarget)}><option value="precon">Core (Bracket 2)</option><option value="upgraded">Upgraded (Bracket 3)</option><option value="high">High power / Optimized (Bracket 4)</option></select></label>
             <label><input type="checkbox" checked={includeCreature} onChange={(event) => setIncludeCreature(event.target.checked)} /> Include a creature when possible</label>
-            <label><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label>
             <fieldset><legend>Exclude from recommendations</legend>
               <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => setExcludeGameChangers(event.target.checked)} /> Exclude Game Changers</label>
               <label><input type="checkbox" checked={excludeTutors} onChange={(event) => setExcludeTutors(event.target.checked)} /> Exclude tutors</label>

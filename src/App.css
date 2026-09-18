@@ -21,7 +21,9 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .progress { display: flex; gap: 10px; align-items: center; color: #68667c; font-size: 13px; }
 .progress span { width: 90px; height: 5px; border-radius: 9px; background: linear-gradient(90deg, #7650ae 3%, #dedcea 3%); }
 .export, .actions button, .empty button { border: 1px solid #bbb9cd; border-radius: 7px; padding: 10px 16px; background: transparent; color: #34324a; }
-.header-actions { display: flex; gap: 10px; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.theme-option { display: flex; gap: 7px; align-items: center; color: #68667c; font-size: 12px; cursor: pointer; }
+.theme-option input { accent-color: #36327f; }
 .theme-toggle { padding: 9px 12px; border: 1px solid #bbb9cd; border-radius: 7px; background: transparent; color: #514e66; }
 .export { border-color: #36327f; color: #36327f; }
 .modal-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; padding: 24px; place-items: center; background: #201c3c99; }
@@ -220,7 +222,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark header, .dark .intro, .dark .start-panel, .dark aside, .dark .recommendation-setup { border-color: #36344f; }
 .dark aside { background: #17162a; }
 .dark h1, .dark h2, .dark h3, .dark .brand { color: #d9d8ff; }
-.dark .lead, .dark .start-panel > p, .dark .section-title > span, .dark .recommendation-options, .dark .card-copy > p, .dark dt, .dark .identity, .dark .progress { color: #aaa8c2; }
+.dark .lead, .dark .start-panel > p, .dark .section-title > span, .dark .recommendation-options, .dark .card-copy > p, .dark dt, .dark .identity, .dark .progress, .dark .theme-option { color: #aaa8c2; }
 .dark .change, .dark .reroll, .dark .export-actions a { color: #b786f2; }
 .dark .change:hover, .dark .reroll:hover, .dark .export-actions a:hover { color: #d1b0ff; }
 .dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select, .dark .connector-picker select { border-color: #4b4867; color: #ccc9df; }
