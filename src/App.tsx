@@ -82,14 +82,11 @@ function useStoredOption<T>(key: string, fallback: () => T) {
 }
 
 async function preloadArt(sources: (string | undefined)[]) {
-  await Promise.all([
-    new Promise((resolve) => setTimeout(resolve, 180)),
-    ...sources.filter(Boolean).map((source) => new Promise<void>((resolve) => {
-      const image = new Image()
-      image.onload = image.onerror = () => resolve()
-      image.src = source!
-    })),
-  ])
+  await Promise.all(sources.filter(Boolean).map((source) => new Promise<void>((resolve) => {
+    const image = new Image()
+    image.onload = image.onerror = () => resolve()
+    image.src = source!
+  })))
 }
 
 function sharedTheme(cards: { tags: string[] }[], excluded: string[] = []) {
@@ -371,8 +368,11 @@ function App() {
     if (!commanderDetails || commanderDetails.printings[commanderIndex].length < 2 || loadingArt) return
     const selection = (commanderDetails.selections[commanderIndex] + 1) % commanderDetails.printings[commanderIndex].length
     const selected = commanderDetails.printings[commanderIndex][selection]
-    setLoadingArt(commanderNames(commander)[commanderIndex])
+    const loadingName = commanderNames(commander)[commanderIndex]
+    setLoadingArt(`pending:${loadingName}`)
+    const loadingTimer = setTimeout(() => setLoadingArt(loadingName), 180)
     await preloadArt([selected.image, selected.art])
+    clearTimeout(loadingTimer)
     setPreferredPrintSet(selected.set)
     setCommanderDetails((current) => current && ({ ...current, images: current.images.map((image, index) => index === commanderIndex ? selected.image : image), art: current.art.map((image, index) => index === commanderIndex ? selected.art ?? image : image), selections: current.selections.map((value, index) => index === commanderIndex ? selection : value) }))
     setDeck((current) => current.map((card, index) => index === commanderIndex ? { ...card, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing: selection } : card))
@@ -389,8 +389,10 @@ function App() {
     if (!card.printings || card.printings.length < 2 || loadingArt) return
     const index = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[index]
-    setLoadingArt(card.name)
+    setLoadingArt(`pending:${card.name}`)
+    const loadingTimer = setTimeout(() => setLoadingArt(card.name), 180)
     await preloadArt([selected.image])
+    clearTimeout(loadingTimer)
     setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printingManuallySelected: true } : item))
     if (decisions[card.name] === 'add') setDeck((current) => current.map((item) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber, image: selected.image, printing: index, printingManuallySelected: true } : item))
     setLoadingArt('')
@@ -405,8 +407,10 @@ function App() {
     if (!card.printings || card.printings.length < 2 || loadingArt) return
     const printing = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[printing]
-    setLoadingArt(card.name)
+    setLoadingArt(`pending:${card.name}`)
+    const loadingTimer = setTimeout(() => setLoadingArt(card.name), 180)
     await preloadArt([selected.image])
+    clearTimeout(loadingTimer)
     setDeck((current) => current.map((item, index) => index === cardIndex ? { ...item, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing, printingManuallySelected: true } : item))
     setLoadingArt('')
   }
