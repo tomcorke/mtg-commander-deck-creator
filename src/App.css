@@ -244,8 +244,8 @@ li.curve-dimmed { opacity: .22; }
 .deck-group > h3 span { font: inherit; }
 .deck-group ol > li { align-items: center; }
 .deck-add, .deck-remove { display: grid; width: 22px; height: 22px; padding: 0; place-items: center; border: 1px solid #bbb9cd; border-radius: 50%; background: transparent; color: #706d82; line-height: 1; }
-.deck-remove-wrap { position: relative; }
-.deck-remove { opacity: 0; }
+.deck-remove-wrap { position: absolute; z-index: 2; right: 0; top: 50%; transform: translateY(-50%); }
+.deck-remove { background: #e9eaf7; opacity: 0; }
 .deck-group ol > li:hover .deck-remove, .deck-group ol > li:focus-within .deck-remove, .deck-remove.confirm { opacity: 1; }
 .deck-remove.confirm { border-color: #a94840; background: #a94840; color: white; }
 .remove-confirm { position: absolute; z-index: 30; right: 0; bottom: calc(100% + 8px); width: 150px; padding: 7px 9px; border-radius: 5px; background: #201c3c; color: white; font-size: 10px; line-height: 1.3; box-shadow: 0 5px 14px #08071255; }
@@ -305,6 +305,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .basic-land-button { background: var(--commander-accent, #5851a6); color: white; }
 .dark .basic-land-wait, .dark .deck-group > h3 { color: #aaa8c2; }
 .dark .deck-add, .dark .deck-remove { border-color: #4b4867; color: #ccc9df; }
+.dark .deck-remove { background: #17162a; }
 .dark .basic-land-modal > p { color: #c4c1d5; }
 .dark .basic-land-plan li { border-color: #393650; }
 .dark .deck-guidance p { color: #d4bd8b; }
