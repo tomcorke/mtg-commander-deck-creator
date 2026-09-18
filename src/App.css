@@ -74,8 +74,11 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .card-search-filter { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: #625f76; font-size: 13px; cursor: pointer; }
 .card-search-filter input { accent-color: var(--commander-accent, #36327f); }
 .card-search-status { margin: 18px 0 0; color: #706d82; }
-.card-search-results { max-height: 360px; margin-top: 12px; overflow: auto; border-top: 1px solid #dad8e6; }
-.card-search-results button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 2px; border: 0; border-bottom: 1px solid #dad8e6; background: transparent; color: inherit; text-align: left; }
+.card-search-results { max-height: 360px; margin-top: 12px; overflow-x: visible; overflow-y: auto; border-top: 1px solid #dad8e6; }
+.card-search-results button { position: relative; display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 2px; border: 0; border-bottom: 1px solid #dad8e6; background: transparent; color: inherit; text-align: left; }
+.search-card-popover { position: fixed; z-index: 40; right: calc(50% + 356px); top: 50%; visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(-50%) scale(.96); transition: opacity .15s, transform .15s, visibility 0s .15s; }
+.search-card-popover img { display: block; width: min(360px, calc(100vw - 48px)); max-height: calc(100vh - 48px); border-radius: 4.75%; object-fit: contain; box-shadow: 0 16px 42px #080712d9, 0 0 0 1px #ffffff26; }
+.card-search-results button:hover .search-card-popover, .card-search-results button:focus-visible .search-card-popover { visibility: visible; opacity: 1; transform: translateY(-50%) scale(1); transition-delay: 0s; }
 .card-search-results button > span:first-child { display: grid; gap: 3px; }
 .card-search-results b { color: inherit; font-size: 14px; text-transform: none; }
 .card-search-results small { color: #706d82; }
@@ -430,7 +433,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
   .card-offer { grid-template-columns: 1fr; }
   .manual-card-preview { grid-template-columns: 1fr; }
   .manual-card-image { max-width: 220px; margin: auto; }
-  .manual-card-zoom { display: none; }
+  .manual-card-zoom, .search-card-popover { display: none; }
   .suggestion-type { grid-column: auto; }
   .offered-image { max-width: 250px; margin: auto; }
 }
