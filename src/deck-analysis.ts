@@ -5,6 +5,7 @@ export type AnalysisCard = { name: string; layout: string; typeLine: string; man
 
 export const defaultDeckTargets: DeckTargets = { lands: 35, ramp: 10, draw: 10, removal: 8, wipes: 3 }
 export const targetLabels: Record<TargetKey, string> = { lands: 'Lands', ramp: 'Ramp', draw: 'Card draw', removal: 'Targeted removal', wipes: 'Board wipes' }
+export const cardTypes = ['Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Planeswalker', 'Battle'] as const
 const colours = ['W', 'U', 'B', 'R', 'G'] as const
 
 const isLand = (card: AnalysisCard) => card.typeLine.includes('Land') || card.faces.some((face) => face.typeLine.includes('Land'))
@@ -33,9 +34,10 @@ export function analyseDeck(cards: AnalysisCard[]) {
     removal: cards.filter((card) => isRemoval(card.detail)).length,
     wipes: cards.filter((card) => isWipe(card.detail)).length,
   }
+  const typeCounts = Object.fromEntries(cardTypes.map((type) => [type, cards.filter((card) => [card.typeLine, ...card.faces.map((face) => face.typeLine)].some((line) => new RegExp(`\\b${type}\\b`).test(line))).length])) as Record<typeof cardTypes[number], number>
   const averageManaValue = spells.length ? spells.reduce((sum, card) => sum + card.manaValue, 0) / spells.length : 0
   const landCentre = Math.max(32, Math.min(40, Math.round(35 + (averageManaValue - 3) * 2 - (counts.ramp - 10) / 3)))
-  return { curve, required, produced, counts, averageManaValue, landRange: [Math.max(30, landCentre - 1), Math.min(42, landCentre + 1)] as [number, number] }
+  return { curve, required, produced, counts, typeCounts, averageManaValue, landRange: [Math.max(30, landCentre - 1), Math.min(42, landCentre + 1)] as [number, number] }
 }
 
 export function deckGuidance(cardCount: number, counts: DeckTargets, targets: DeckTargets) {

@@ -17,6 +17,7 @@ test('analyses curve, coloured requirements, production, roles, and land range',
   assert.equal(analysis.required.G, 5)
   assert.deepEqual(analysis.produced, { W: 1, U: 0, B: 0, R: 0, G: 1 })
   assert.deepEqual(analysis.counts, { lands: 1, ramp: 1, draw: 1, removal: 1, wipes: 1 })
+  assert.deepEqual(analysis.typeCounts, { Creature: 2, Artifact: 0, Enchantment: 0, Instant: 1, Sorcery: 2, Planeswalker: 0, Battle: 0 })
   assert.equal(analysis.landRange.length, 2)
 })
 

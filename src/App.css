@@ -220,6 +220,9 @@ aside { padding: 40px 30px; border-left: 1px solid #dad8e6; background: #e9eaf7;
 .target-heading span { color: #706d82; font-size: 10px; }
 .deck-targets label { display: grid; grid-template-columns: 1fr 24px 8px 42px; align-items: center; padding: 3px 0; font-size: 12px; }
 .deck-targets input { width: 42px; padding: 3px; border: 1px solid #bbb9cd; border-radius: 4px; background: transparent; color: inherit; text-align: center; }
+.type-counts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 16px; }
+.type-counts span { display: flex; justify-content: space-between; font-size: 12px; }
+.type-counts b { color: inherit; font-size: inherit; }
 .deck-guidance { margin-top: 12px; padding: 8px 10px; border-left: 3px solid #b5985c; background: #ffffff55; }
 .deck-guidance p { margin: 2px 0; color: #6f6045; font-size: 11px; }
 .deck-guidance p.strong { color: #9a392f; font-weight: 600; }
