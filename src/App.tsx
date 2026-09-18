@@ -1,9 +1,10 @@
 import { useEffect, useState, type CSSProperties } from 'react'
+import { commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores, type DeferredCard, type EdhrecThemeCount } from './recommendations'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
-type Card = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; printings?: Printing[]; printing?: number }
-type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string }
+type Card = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; tags: string[]; printings?: Printing[]; printing?: number }
+type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string; tags: string[] }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 type PowerTarget = 'precon' | 'upgraded' | 'high'
@@ -29,8 +30,9 @@ const recommendationReasons: Record<string, string> = {
 
 const cardText = (card: ScryfallCard) => card.oracle_text ?? card.card_faces?.map((face) => face.oracle_text).filter(Boolean).join('\n') ?? card.type_line
 const isManaCard = (card: ScryfallCard) => card.type_line.includes('Land') || /add \{/i.test(cardText(card))
+const cardTags = (card: ScryfallCard, category = '') => tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
 const preconFastMana = new Set(['Chrome Mox', 'Grim Monolith', 'Jeweled Lotus', 'Lotus Petal', 'Mana Crypt', 'Mana Vault', 'Mox Diamond'])
-const toCard = (card: ScryfallCard, reason: string): Card => ({ name: card.name, typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', reason, detail: cardText(card), image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri })
+const toCard = (card: ScryfallCard, reason: string, category = ''): Card => ({ name: card.name, typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', reason, detail: cardText(card), image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri, tags: cardTags(card, category) })
 const edhrecSlug = (url: string | undefined, name: string) => url?.match(/\/commanders\/([^/?#]+)/)?.[1] ?? name.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const colourNames: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' }
@@ -85,8 +87,15 @@ const dualCommanders: Record<string, string[]> = {
 }
 const commanderNames = (name: string) => dualCommanders[name] ?? [name]
 const defaultCommanders = Object.values(themeCommanders).flat()
+const selectableThemes = Object.keys(themeCommanders).filter((name) => supportedThemes.includes(name))
 const randomItems = <T,>(items: T[], count: number) => [...items].sort(() => Math.random() - 0.5).slice(0, count)
 const randomThree = (items: string[]) => randomItems(items, 3)
+
+function sharedTheme(cards: { tags: string[] }[], excluded: string[] = []) {
+  const counts = new Map<string, number>()
+  for (const card of cards) for (const tag of card.tags) if (!excluded.includes(tag) && !['Creatures', 'Lands'].includes(tag)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  return [...counts].sort((a, b) => b[1] - a[1]).find(([, count]) => count >= 2)?.[0] ?? ''
+}
 
 function batchRecommendations(cards: Card[], includeCreature: boolean) {
   const remaining = [...cards]
@@ -138,7 +147,7 @@ function App() {
   const [commanderDetails, setCommanderDetails] = useState<CommanderDetails | null>(null)
   const [search, setSearch] = useState('')
   const [theme, setTheme] = useState('')
-  const [visibleThemes, setVisibleThemes] = useState(() => randomItems(Object.keys(themeCommanders), 6))
+  const [visibleThemes, setVisibleThemes] = useState(() => randomItems(selectableThemes, 6))
   const [colours, setColours] = useState<string[]>([])
   const [matches, setMatches] = useState<string[]>([])
   const [suggestions, setSuggestions] = useState(() => randomThree(defaultCommanders))
@@ -155,6 +164,15 @@ function App() {
   const [excludeExtraTurns, setExcludeExtraTurns] = useState(true)
   const [decisions, setDecisions] = useState<Record<string, 'add' | 'later' | 'ignore'>>({})
   const [liked, setLiked] = useState<string[]>([])
+  const [activeSubThemes, setActiveSubThemes] = useState<string[]>([])
+  const [dismissedSubThemes, setDismissedSubThemes] = useState<string[]>([])
+  const [showSubThemePicker, setShowSubThemePicker] = useState(false)
+  const [subThemeSearch, setSubThemeSearch] = useState('')
+  const [preferenceScores, setPreferenceScores] = useState<Record<string, number>>({})
+  const [commanderSubThemes, setCommanderSubThemes] = useState<string[]>([])
+  const [deferredCards, setDeferredCards] = useState<DeferredCard<Card>[]>([])
+  const [batchNumber, setBatchNumber] = useState(1)
+  const [batchAnnouncement, setBatchAnnouncement] = useState('')
   const [deck, setDeck] = useState<DeckCard[]>([])
   const [showExport, setShowExport] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('moxfield')
@@ -274,7 +292,8 @@ function App() {
   async function edhrecRecommendations(slug: string) {
     const response = await fetch(`https://json.edhrec.com/pages/commanders/${slug}.json`)
     if (!response.ok) throw new Error('EDHREC unavailable')
-    const result = await response.json() as { container?: { json_dict?: { cardlists?: { header: string; tag: string; cardviews: { name: string }[] }[] } } }
+    const result = await response.json() as { tag_counts?: EdhrecThemeCount[]; container?: { json_dict?: { cardlists?: { header: string; tag: string; cardviews: { name: string }[] }[] } } }
+    setCommanderSubThemes(commanderThemes(result.tag_counts ?? []))
     const lists = result.container?.json_dict?.cardlists ?? []
     const entries: EdhrecEntry[] = []
     const seen = new Set<string>()
@@ -298,7 +317,7 @@ function App() {
     })
     return batchRecommendations(allowed.map((entry) => {
       const card = cards.get(entry.name)!
-      return toCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''))
+      return toCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''), `${entry.tag} ${entry.header}`)
     }), includeCreature)
   }
 
@@ -322,7 +341,19 @@ function App() {
     const chosen = name.trim()
     if (!chosen) return
     setCommander(chosen)
-    if (!preserveDeck) setDeck([])
+    const cycle = freshRecommendationCycle()
+    setDeferredCards(cycle.deferredCards)
+    setBatchNumber(cycle.batchNumber)
+    setDecisions({})
+    setLiked([])
+    setBatchAnnouncement('')
+    setCommanderSubThemes([])
+    if (!preserveDeck) {
+      setDeck([])
+      setActiveSubThemes([])
+      setDismissedSubThemes([])
+      setPreferenceScores({})
+    }
     setCommanderDetails(null)
     setQueue([])
     setLimitedRecommendations(false)
@@ -332,7 +363,7 @@ function App() {
     try {
       const responses = await Promise.all(commanderNames(chosen).map((name) => fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)))
       if (responses.some((response) => !response.ok)) throw new Error('Commander unavailable')
-      type CommanderCard = { name: string; color_identity: string[]; mana_cost?: string; set: string; collector_number: string; prints_search_uri: string; related_uris?: { edhrec?: string }; image_uris?: { normal: string; art_crop?: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string; art_crop?: string } }[] }
+      type CommanderCard = ScryfallCard & { related_uris?: { edhrec?: string }; image_uris?: { normal: string; art_crop?: string }; card_faces?: { mana_cost?: string; oracle_text?: string; image_uris?: { normal: string; art_crop?: string } }[] }
       const commanders = await Promise.all(responses.map((response) => response.json() as Promise<CommanderCard>))
       const images = commanders.flatMap((card) => card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? [])
       const art = commanders.flatMap((card) => card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop ?? [])
@@ -349,7 +380,7 @@ function App() {
         return [primary, ...alternatives]
       }))
       if (images.length) setCommanderDetails({ images, art, colours: identityColours, printings: commanderPrintings, selections: commanders.map(() => 0) })
-      if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '' })))
+      if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', tags: cardTags(card) })))
 
       let offeredCards: Card[]
       try {
@@ -371,7 +402,8 @@ function App() {
   function decide(card: Card, action: 'add' | 'later' | 'ignore') {
     const previous = decisions[card.name]
     if (previous === 'add' && action !== 'add') setDeck((list) => list.filter((item) => item.name !== card.name))
-    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, manaCost: card.manaCost, set: card.set, collectorNumber: card.collectorNumber, image: card.image }])
+    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, manaCost: card.manaCost, set: card.set, collectorNumber: card.collectorNumber, image: card.image, tags: card.tags }])
+    if (action === 'ignore') setLiked((current) => current.filter((name) => name !== card.name))
     setDecisions((current) => ({ ...current, [card.name]: action }))
   }
 
@@ -410,12 +442,22 @@ function App() {
     setTimeout(() => setCopied(false), 1500)
   }
 
-  function nextBatch() {
+  function nextBatch(extraSubTheme = '') {
     const batch = queue.slice(0, 4)
-    const deferred = batch.filter((card) => decisions[card.name] !== 'add' && decisions[card.name] !== 'ignore')
-    const nextQueue = [...queue.slice(4), ...deferred]
+    const pending = [...deferredCards, ...deferBatch(batch, decisions, batchNumber, (card) => card.name)]
+    const released = releaseNextDeferred(pending, batchNumber + 1, queue.length > 4)
+    const nextBatchNumber = released.batchNumber
+    const scores = updatePreferenceScores(batch, decisions, liked, preferenceScores)
+    const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
+    const rank = (card: Card) => card.tags.reduce((score, tag) => score + (scores[tag] ?? 0) + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
+    const nextQueue = batchRecommendations([...queue.slice(4), ...released.ready].sort((a, b) => rank(b) - rank(a)), includeCreature)
+    setPreferenceScores(scores)
+    setDeferredCards(released.waiting)
+    setBatchNumber(nextBatchNumber)
     setQueue(nextQueue)
     setDecisions({})
+    setLiked((current) => current.filter((name) => !batch.some((card) => card.name === name)))
+    setBatchAnnouncement(nextQueue.length ? `Recommendation batch ${nextBatchNumber} loaded: ${nextQueue.slice(0, 4).map((card) => card.name).join(', ')}.` : 'No recommendations currently eligible. Deferred cards will return after their waiting period.')
     void loadPrintings(nextQueue.slice(0, 4), preferredPrintSet)
   }
 
@@ -435,9 +477,9 @@ function App() {
             <div className="themes">
               {visibleThemes.map((name) => <button className={theme === name ? 'selected' : ''} key={name} type="button" onClick={() => chooseTheme(name)}>{name}</button>)}
             </div>
-            {visibleThemes.length < Object.keys(themeCommanders).length && <div className="theme-actions">
-              <button className="reroll" type="button" onClick={() => setVisibleThemes((current) => [...current, ...randomItems(Object.keys(themeCommanders).filter((name) => !current.includes(name)), 6)])}>+ Show more themes</button>
-              <button className="reroll" type="button" onClick={() => { setTheme(''); setVisibleThemes(randomItems(Object.keys(themeCommanders), 6)) }}>↻ Show different themes</button>
+            {visibleThemes.length < selectableThemes.length && <div className="theme-actions">
+              <button className="reroll" type="button" onClick={() => setVisibleThemes((current) => [...current, ...randomItems(selectableThemes.filter((name) => !current.includes(name)), 6)])}>+ Show more themes</button>
+              <button className="reroll" type="button" onClick={() => { setTheme(''); setVisibleThemes(randomItems(selectableThemes, 6)) }}>↻ Show different themes</button>
             </div>}
             <h3 className="filter-heading">Or choose colours</h3>
             <div className="colour-picker">
@@ -465,6 +507,20 @@ function App() {
 
   const primaryTheme = colourThemes[commanderDetails?.colours[0] ?? 'C']
   const secondaryTheme = colourThemes[commanderDetails?.colours[1] ?? commanderDetails?.colours[0] ?? 'C']
+  const inferredSubTheme = activeSubThemes.length < 2 ? sharedTheme(deck.slice(commanderNames(commander).length), [theme, ...activeSubThemes, ...dismissedSubThemes]) : ''
+  const visibleBatch = queue.slice(0, 4)
+  const synergyPair = findSynergyPair(visibleBatch.filter((card) => card.reason !== 'Land or mana'))
+  const pairCards = synergyPair?.cards ?? []
+  const inferredThemeOptions = [...new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))].filter((name) => supportedThemes.includes(name))
+  const subThemeOptions = [...new Set([...commanderSubThemes, ...inferredThemeOptions])]
+  const filteredSubThemes = subThemeOptions.filter((name) => name.toLowerCase().includes(subThemeSearch.toLowerCase()) && name !== theme && !activeSubThemes.includes(name))
+  const cardReason = (card: Card) => {
+    const subTheme = card.tags.find((tag) => activeSubThemes.includes(tag))
+    if (subTheme) return `${subTheme} sub-theme`
+    if (theme && card.tags.includes(theme)) return `${theme} theme`
+    const preference = card.tags.filter((tag) => (preferenceScores[tag] ?? 0) > 0).sort((a, b) => (preferenceScores[b] ?? 0) - (preferenceScores[a] ?? 0))[0]
+    return preference ? `Matches your ${preference} picks` : card.reason
+  }
 
   return (
     <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`} style={{ '--commander-accent': primaryTheme[0], '--commander-highlight': secondaryTheme[1] } as CSSProperties}>
@@ -516,19 +572,31 @@ function App() {
       </div>}
       <div className="workspace">
         <section className="recommendations">
+          <p className="sr-only" aria-live="polite" aria-atomic="true">{batchAnnouncement}</p>
           {limitedRecommendations && recommendationState === 'idle' && <p className="limited-mode" role="status">Limited recommendations - EDHREC unavailable, using Scryfall popularity.</p>}
-          {queue.length > 0 && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={nextBatch}>Next recommendations →</button></div>}
+          <div className="subthemes" aria-label="Deck themes">
+            {theme && <button type="button" onClick={() => setTheme('')} title="Remove declared theme">{theme} <span>×</span></button>}
+            {activeSubThemes.map((name) => <button type="button" onClick={() => setActiveSubThemes((current) => current.filter((item) => item !== name))} title={`Remove ${name} sub-theme`} key={name}>{name} <span>×</span></button>)}
+            {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
+          </div>
+          {showSubThemePicker && <div className="subtheme-picker">
+            <input value={subThemeSearch} onChange={(event) => setSubThemeSearch(event.target.value)} placeholder="Search sub-themes…" aria-label="Search sub-themes" />
+            <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => { setActiveSubThemes((current) => [...current, name].slice(0, 2)); setShowSubThemePicker(false); setSubThemeSearch('') }}>{name}</button>)}</div>
+          </div>}
+          {inferredSubTheme && <div className="subtheme-prompt"><span>Lean into <strong>{inferredSubTheme}</strong>?</span><div><button type="button" onClick={() => { setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2)); nextBatch(inferredSubTheme) }}>Yes, tune next picks</button><button className="quiet" type="button" onClick={() => setDismissedSubThemes((current) => [...current, inferredSubTheme])}>Not now</button></div></div>}
+          {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => nextBatch()}>Next recommendations →</button></div>}
           {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid">
-            {queue.slice(0, 4).map((card) => <article className={`card-offer ${decisions[card.name] ?? ''}`} key={card.name}>
-              <h3 className="suggestion-type">{card.reason}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>
+            {visibleBatch.map((card) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? 'synergy-pair' : ''}`} key={card.name}>
+              <h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>
+              {pairCards.includes(card) && synergyPair && <p className="pair-note"><span aria-hidden="true">↔</span> Works with {pairCards.find((item) => item !== card)?.name}: {synergyPair.explanation}.</p>}
               <div className="actions">
                 <div><button className="primary" onClick={() => decide(card, 'add')}>Add</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
-                <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
+                <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
               <div className="offered-image"><img src={card.image} alt={`${card.name} card`} />{card.printings && card.printings.length > 1 && <button type="button" onClick={() => cyclePrinting(card)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</div>
               <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p></div>
             </article>)}
-          </div> : <div className="empty"><h3>No more suggestions</h3><p>Review your deck or choose another commander.</p></div>}
+          </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
         </section>
         <aside>
           <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
