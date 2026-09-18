@@ -145,6 +145,7 @@ function App() {
   const [commanderStyling, setCommanderStyling] = useStoredOption('commanderStyling', () => true)
   const [preferredPrintSet, setPreferredPrintSet] = useState('')
   const [loadingArt, setLoadingArt] = useState('')
+  const [recommendationOptionsChanged, setRecommendationOptionsChanged] = useState(false)
 
   useEffect(() => {
     if (search.trim().length < 2) return
@@ -229,6 +230,7 @@ function App() {
 
   function choosePowerTarget(target: PowerTarget) {
     setPowerTarget(target)
+    setRecommendationOptionsChanged(true)
     const exclude = target !== 'high'
     setExcludeGameChangers(exclude)
     setExcludeTutors(exclude)
@@ -341,8 +343,10 @@ function App() {
       setQueue(offeredCards)
       setRecommendationState('idle')
       await loadPrintings(offeredCards.slice(0, 4), preferredPrintSet)
+      return true
     } catch {
       setRecommendationState('error')
+      return false
     }
   }
 
@@ -422,7 +426,11 @@ function App() {
     setTimeout(() => setCopied(false), 1500)
   }
 
-  function nextBatch(extraSubTheme = '') {
+  async function nextBatch(extraSubTheme = '') {
+    if (recommendationOptionsChanged) {
+      if (await start(commander, true)) setRecommendationOptionsChanged(false)
+      return
+    }
     const batch = queue.slice(0, 4)
     const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature })
     setPreferenceScores(next.preferenceScores)
@@ -520,16 +528,16 @@ function App() {
           <button className="change" onClick={() => { setCommander(''); setCommanderDetails(null); setDeck([]); setQueue([]); setDecisions({}) }}>Change commander</button>
         </div>
         <div className="recommendation-setup">
-          <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>Add to your deck</h2></div><span>{queue.length} suggestions left</span></div>
+          <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>Add to your deck</h2></div><span>Batch {batchNumber}</span></div>
           <div className="recommendation-options">
             <label>Power target <select value={powerTarget} onChange={(event) => choosePowerTarget(event.target.value as PowerTarget)}><option value="precon">Core (Bracket 2)</option><option value="upgraded">Upgraded (Bracket 3)</option><option value="high">High power / Optimized (Bracket 4)</option></select></label>
-            <label><input type="checkbox" checked={includeCreature} onChange={(event) => setIncludeCreature(event.target.checked)} /> Include a creature when possible</label>
+            <label><input type="checkbox" checked={includeCreature} onChange={(event) => { setIncludeCreature(event.target.checked); setRecommendationOptionsChanged(true) }} /> Include a creature when possible</label>
             <fieldset><legend>Exclude from recommendations</legend>
-              <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => setExcludeGameChangers(event.target.checked)} /> Exclude Game Changers</label>
-              <label><input type="checkbox" checked={excludeTutors} onChange={(event) => setExcludeTutors(event.target.checked)} /> Exclude tutors</label>
-              <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => setExcludeExtraTurns(event.target.checked)} /> Exclude extra turns</label>
-              <button type="button" onClick={() => void start(commander, true)}>Apply</button>
+              <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => { setExcludeGameChangers(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude Game Changers</label>
+              <label><input type="checkbox" checked={excludeTutors} onChange={(event) => { setExcludeTutors(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude tutors</label>
+              <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => { setExcludeExtraTurns(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude extra turns</label>
             </fieldset>
+            {recommendationOptionsChanged && <span className="options-pending" role="status">Changes apply with next recommendations.</span>}
           </div>
         </div>
       </section>
@@ -557,14 +565,14 @@ function App() {
             </div>
             <div className="toolbar-actions">
               {synergyPair && <label className="connector-picker">Connector <select value={synergyConnector} onChange={(event) => setSynergyConnector(event.target.value as SynergyConnector)}><option value="bracket">Shared bracket</option><option value="bridge">Bridge label</option><option value="glow">Matched glow</option><option value="arrow">Directional arrow</option><option value="container">Shared container</option></select></label>}
-              {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => nextBatch()}>Next recommendations →</button></div>}
+              {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => void nextBatch()}>Next recommendations →</button></div>}
             </div>
           </div>
           {showSubThemePicker && <div className="subtheme-picker">
             <input value={subThemeSearch} onChange={(event) => setSubThemeSearch(event.target.value)} placeholder="Search sub-themes…" aria-label="Search sub-themes" />
             <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => { setActiveSubThemes((current) => [...current, name].slice(0, 2)); setShowSubThemePicker(false); setSubThemeSearch('') }}>{name}</button>)}</div>
           </div>}
-          {inferredSubTheme && <div className="subtheme-prompt"><span>Lean into <strong>{inferredSubTheme}</strong>?</span><div><button type="button" onClick={() => { setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2)); nextBatch(inferredSubTheme) }}>Yes, tune next picks</button><button className="quiet" type="button" onClick={() => setDismissedSubThemes((current) => [...current, inferredSubTheme])}>Not now</button></div></div>}
+          {inferredSubTheme && <div className="subtheme-prompt"><span>Lean into <strong>{inferredSubTheme}</strong>?</span><div><button type="button" onClick={() => { setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2)); void nextBatch(inferredSubTheme) }}>Yes, tune next picks</button><button className="quiet" type="button" onClick={() => setDismissedSubThemes((current) => [...current, inferredSubTheme])}>Not now</button></div></div>}
           {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className={`card-grid connector-${synergyConnector}`}>
             {visibleBatch.map((card) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} key={card.name}>
               <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>
