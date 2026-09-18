@@ -70,8 +70,9 @@ h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
 .start-panel .primary { border: 0; border-radius: 6px; padding: 0 18px; background: #36327f; color: white; }
 .suggestions { margin-top: 18px; border-top: 1px solid #dedcea; }
 .suggestions button { position: relative; display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid #dedcea; background: transparent; color: #302e47; text-align: left; }
-.suggestion-preview { position: fixed; z-index: 20; top: 50%; left: calc(50% + 290px); display: flex; gap: 10px; padding: 8px; border-radius: 12px; background: #f8f8ff; box-shadow: 0 18px 60px #201c3c66; opacity: 0; pointer-events: none; transform: translateY(-50%) scale(.96); transition: opacity .15s, transform .15s; }
-.suggestion-preview img { display: block; width: min(300px, 20vw); max-height: calc(100vh - 40px); border-radius: 4.75%; object-fit: contain; }
+.suggestion-preview { position: absolute; z-index: 20; top: 50%; left: calc(100% + 18px); display: flex; padding: 8px; border-radius: 12px; background: #f8f8ff; box-shadow: 0 18px 60px #201c3c66; opacity: 0; pointer-events: none; transform: translateY(-50%) scale(.96); transition: opacity .15s, transform .15s; }
+.suggestion-preview img { display: block; width: clamp(130px, calc(50vw - 590px), 300px); max-height: calc(100vh - 40px); border-radius: 4.75%; object-fit: contain; }
+.suggestion-preview.pair img + img { margin-left: -82%; transform: translate(12%, 5%) rotate(3deg); }
 .suggestions button:hover .suggestion-preview, .suggestions button:focus-visible .suggestion-preview { opacity: 1; transform: translateY(-50%) scale(1); }
 .commander-option { display: flex; min-width: 0; align-items: center; gap: 10px; }
 .commander-cost { position: relative; display: flex; flex: none; width: 78px; min-width: 78px; max-width: 78px; min-height: 18px; justify-content: flex-end; align-items: center; overflow: visible; white-space: nowrap; }
@@ -171,12 +172,10 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .modal-close { color: #c4c1d5; }
 
 @media (max-width: 1350px) {
-  .suggestion-preview { right: 16px; left: auto; }
-  .suggestion-preview img { width: min(260px, 19vw); }
+  .suggestion-preview { display: none; }
 }
 
 @media (max-width: 1050px) {
-  .suggestion-preview { display: none; }
   .commander-header { grid-template-columns: 88px 1fr; }
   .recommendation-setup { grid-column: 1 / -1; padding: 16px 0 0; border-left: 0; border-top: 1px solid #dedcea; }
 }
