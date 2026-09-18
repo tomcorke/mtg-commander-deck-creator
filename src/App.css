@@ -40,6 +40,16 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .export-actions a { color: #69409a; }
 .export-actions .primary { padding: 11px 16px; border: 0; border-radius: 6px; background: #36327f; color: white; }
 .card-search-modal { width: min(680px, 100%); }
+.saved-decks-modal { width: min(620px, 100%); }
+.save-deck-form { display: flex; gap: 8px; margin-top: 22px; }
+.save-deck-form input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #bbb9cd; border-radius: 6px; background: white; color: #28273b; font: inherit; }
+.save-deck-form .primary { padding: 0 18px; border: 0; border-radius: 6px; background: #36327f; color: white; }
+.saved-deck-list { margin-top: 20px; overflow: auto; }
+.saved-deck-list article { display: flex; align-items: center; gap: 12px; border-top: 1px solid #dad8e6; }
+.saved-deck-load { display: grid; flex: 1; gap: 3px; padding: 14px 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.saved-deck-load span, .saved-deck-load small, .saved-decks-empty { color: #706d82; }
+.saved-deck-delete { padding: 7px 9px; border: 0; background: transparent; color: #a13e4c; }
+.saved-decks-empty { margin: 24px 0 0; }
 .card-search-form { display: flex; gap: 8px; margin-top: 22px; }
 .card-search-form input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #bbb9cd; border-radius: 6px; background: white; color: #28273b; font: inherit; }
 .card-search-form .primary { padding: 0 18px; border: 0; border-radius: 6px; background: #36327f; color: white; }

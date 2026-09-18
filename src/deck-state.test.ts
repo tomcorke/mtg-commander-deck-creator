@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { clearDeckState, deckStateKey, deckStateVersion, loadDeckState, saveDeckState, type PersistedDeckState } from './deck-state.ts'
+import { clearDeckState, deckStateKey, deckStateVersion, deleteSavedDeck, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, savedDecksKey, type PersistedDeckState } from './deck-state.ts'
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial))
@@ -37,6 +37,21 @@ test('deck state round-trips and clears', () => {
   assert.deepEqual(loadDeckState(storage), state)
   clearDeckState(storage)
   assert.equal(loadDeckState(storage), null)
+})
+
+test('saved decks can be created, renamed, updated, and deleted', () => {
+  const storage = memoryStorage()
+  const saved = saveSavedDeck({ id: 'deck-1', name: 'Anikthea', updatedAt: '2026-09-18T18:00:00Z', state }, storage)
+  assert.equal(saved[0].name, 'Anikthea')
+  const updated = saveSavedDeck({ ...saved[0], name: 'Enchantress', state: { ...state, theme: 'Constellations' } }, storage)
+  assert.equal(updated.length, 1)
+  assert.equal(loadSavedDecks(storage)[0].state.theme, 'Constellations')
+  assert.deepEqual(deleteSavedDeck('deck-1', storage), [])
+})
+
+test('invalid saved deck collections are ignored', () => {
+  assert.deepEqual(loadSavedDecks(memoryStorage({ [savedDecksKey]: 'not json' })), [])
+  assert.deepEqual(loadSavedDecks(memoryStorage({ [savedDecksKey]: JSON.stringify({ version: deckStateVersion + 1, decks: [] }) })), [])
 })
 
 test('invalid, old, and malformed deck state is ignored', () => {

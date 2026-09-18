@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckSection, defaultDeckTargets, isBasicLandName, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
-import { clearDeckState, loadDeckState, saveDeckState, type PersistedDeckState } from './deck-state'
+import { clearDeckState, deleteSavedDeck, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, type PersistedDeckState, type SavedDeck } from './deck-state'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -178,6 +178,10 @@ function App() {
   const [deckTargets, setDeckTargets] = useState<DeckTargets>(savedDeckState?.deckTargets ?? defaultDeckTargets)
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<number | null>(null)
+  const [savedDecks, setSavedDecks] = useState(loadSavedDecks)
+  const [activeSavedDeckId, setActiveSavedDeckId] = useState('')
+  const [deckName, setDeckName] = useState('')
+  const [showSavedDecks, setShowSavedDecks] = useState(false)
 
   useEffect(() => {
     if (!commander || recommendationState !== 'idle' || !commanderDetails || !deck.length) return
@@ -591,8 +595,55 @@ function App() {
     })
   }
 
+  function currentState(): PersistedDeckState | null {
+    if (!commander || !commanderDetails || !deck.length) return null
+    return { commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets }
+  }
+
+  function storeDeck() {
+    const state = currentState()
+    const name = deckName.trim()
+    if (!state || !name) return
+    const id = activeSavedDeckId || crypto.randomUUID()
+    setSavedDecks(saveSavedDeck({ id, name, updatedAt: new Date().toISOString(), state }))
+    setActiveSavedDeckId(id)
+  }
+
+  function loadSavedDeck(saved: SavedDeck) {
+    const state = saved.state
+    setCommander(state.commander)
+    setCommanderDetails(state.commanderDetails)
+    setTheme(state.theme)
+    setQueue(state.queue)
+    setLimitedRecommendations(state.limitedRecommendations)
+    setDecisions(state.decisions)
+    setIgnoredCards(state.ignoredCards)
+    setLiked(state.liked)
+    setActiveSubThemes(state.activeSubThemes)
+    setDismissedSubThemes(state.dismissedSubThemes)
+    setPreferenceScores(state.preferenceScores)
+    setCommanderSubThemes(state.commanderSubThemes)
+    setDeferredCards(state.deferredCards)
+    setBatchNumber(state.batchNumber)
+    setDeck(state.deck)
+    setPreferredPrintSet(state.preferredPrintSet)
+    setDeckTargets(state.deckTargets)
+    setActiveSavedDeckId(saved.id)
+    setDeckName(saved.name)
+    setShowSavedDecks(false)
+  }
+
+  function removeSavedDeck(saved: SavedDeck) {
+    if (!window.confirm(`Delete “${saved.name}”?`)) return
+    setSavedDecks(deleteSavedDeck(saved.id))
+    if (activeSavedDeckId === saved.id) {
+      setActiveSavedDeckId('')
+      setDeckName('')
+    }
+  }
+
   function startOver() {
-    if (!window.confirm('Start over? This clears your current deck and recommendation history.')) return
+    if (!window.confirm('Start over? This clears your current deck and recommendation history. Saved decks remain available.')) return
     clearDeckState()
     setCommander('')
     setCommanderDetails(null)
@@ -610,7 +661,18 @@ function App() {
     setBatchNumber(1)
     setPreferredPrintSet('')
     setDeckTargets(defaultDeckTargets)
+    setActiveSavedDeckId('')
+    setDeckName('')
   }
+
+  const savedDecksModal = showSavedDecks && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowSavedDecks(false) }}>
+    <section className="export-modal saved-decks-modal" role="dialog" aria-modal="true" aria-labelledby="saved-decks-title">
+      <div className="export-heading"><div><p className="eyebrow">Local decks</p><h2 id="saved-decks-title">Saved decks</h2></div><button className="modal-close" onClick={() => setShowSavedDecks(false)} aria-label="Close saved decks">×</button></div>
+      {commander && <form className="save-deck-form" onSubmit={(event) => { event.preventDefault(); storeDeck() }}><input value={deckName} onChange={(event) => setDeckName(event.target.value)} placeholder={`${commander} deck`} aria-label="Deck name" /><button className="primary" disabled={!deckName.trim()}>{activeSavedDeckId ? 'Update deck' : 'Save deck'}</button></form>}
+      <div className="saved-deck-list">{savedDecks.map((saved) => <article key={saved.id}><button className="saved-deck-load" onClick={() => loadSavedDeck(saved)}><b>{saved.name}</b><span>{saved.state.commander} · {saved.state.deck.length}/100 cards</span><small>Updated {new Date(saved.updatedAt).toLocaleString()}</small></button><button className="saved-deck-delete" onClick={() => removeSavedDeck(saved)} aria-label={`Delete ${saved.name}`}>Delete</button></article>)}</div>
+      {!savedDecks.length && <p className="saved-decks-empty">No saved decks yet.</p>}
+    </section>
+  </div>
 
   async function nextBatch(extraSubTheme = '') {
     if (deck.length >= 100) return
@@ -632,7 +694,8 @@ function App() {
 
   if (!commander) return (
     <main className={darkMode ? 'dark' : ''}>
-      <header><a className="brand" href="/">Commander's Table</a><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button></div></header>
+      <header><a className="brand" href="/">Commander's Table</a><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowSavedDecks(true)}>Saved decks ({savedDecks.length})</button></div></header>
+      {savedDecksModal}
       <section className="start">
         <p className="eyebrow">Build from scratch</p>
         <h1>What do you want to play?</h1>
@@ -711,8 +774,9 @@ function App() {
       <header>
         <button className="brand reset" onClick={startOver}>Commander's Table</button>
         <div className="progress"><span style={{ background: `linear-gradient(90deg, var(--commander-accent, #7650ae) ${deck.length}%, #dedcea ${deck.length}%)` }} />{deck.length} / 100 cards</div>
-        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
+        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={() => setShowSavedDecks(true)}>Save / load</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
+      {savedDecksModal}
       <section className="intro commander-header">
         {commanderDetails ? <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
           {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} key={commanderNames(commander)[index]} />)}

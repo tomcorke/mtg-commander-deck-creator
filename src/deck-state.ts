@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const deckStateKey = 'commander-deck-state'
+export const savedDecksKey = 'commander-saved-decks'
 export const deckStateVersion = 1
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
@@ -54,6 +55,9 @@ export const persistedDeckStateSchema = z.object({
 })
 
 export type PersistedDeckState = z.infer<typeof persistedDeckStateSchema>
+export type SavedDeck = { id: string; name: string; updatedAt: string; state: PersistedDeckState }
+
+const savedDeckSchema = z.object({ id: z.string().min(1), name: z.string().min(1), updatedAt: z.string(), state: persistedDeckStateSchema })
 
 export function loadDeckState(storage: StorageLike = localStorage): PersistedDeckState | null {
   try {
@@ -77,5 +81,35 @@ export function clearDeckState(storage: StorageLike = localStorage) {
     storage.removeItem(deckStateKey)
   } catch {
     // React state still resets when storage is unavailable.
+  }
+}
+
+export function loadSavedDecks(storage: StorageLike = localStorage): SavedDeck[] {
+  try {
+    const parsed = z.object({ version: z.literal(deckStateVersion), decks: z.array(savedDeckSchema) }).safeParse(JSON.parse(storage.getItem(savedDecksKey) ?? 'null'))
+    return parsed.success ? parsed.data.decks : []
+  } catch {
+    return []
+  }
+}
+
+export function saveSavedDeck(deck: SavedDeck, storage: StorageLike = localStorage): SavedDeck[] {
+  const decks = loadSavedDecks(storage)
+  const next = [savedDeckSchema.parse(deck), ...decks.filter(({ id }) => id !== deck.id)]
+  try {
+    storage.setItem(savedDecksKey, JSON.stringify({ version: deckStateVersion, decks: next }))
+    return next
+  } catch {
+    return decks
+  }
+}
+
+export function deleteSavedDeck(id: string, storage: StorageLike = localStorage): SavedDeck[] {
+  const next = loadSavedDecks(storage).filter((deck) => deck.id !== id)
+  try {
+    storage.setItem(savedDecksKey, JSON.stringify({ version: deckStateVersion, decks: next }))
+    return next
+  } catch {
+    return loadSavedDecks(storage)
   }
 }
