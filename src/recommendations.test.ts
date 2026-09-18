@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -43,6 +43,11 @@ test('manual card validation enforces deck legality', () => {
   assert.equal(manualCardError({ name: 'Plains', type_line: 'Basic Land — Plains', color_identity: [] }, ['Plains'], ['W']), '')
 })
 
+test('card prices use compact US dollar labels', () => {
+  assert.equal(formatUsdPrice('1.20'), '$1.20')
+  assert.equal(formatUsdPrice(null), '')
+})
+
 test('printing preference preserves defaults and manual choices', () => {
   const original = { image: 'default', set: 'clb', collectorNumber: '284' }
   const printings = orderedPrintings(original, [{ image: 'alternate', set: 'sld', collectorNumber: '2500' }, original, { image: 'other', set: 'mkc', collectorNumber: '19' }])
@@ -69,9 +74,10 @@ test('production EDHREC builder applies safety filters and batches every card on
     { name: 'Tutor', type_line: 'Sorcery', oracle_text: 'Search your library for a card.', color_identity: ['B'], set: 'tst', collector_number: '2', prints_search_uri: '' },
     { name: 'Spell', type_line: 'Instant', oracle_text: '', color_identity: ['U'], set: 'tst', collector_number: '3', prints_search_uri: '' },
     { name: 'Rock', type_line: 'Artifact', oracle_text: '{T}: Add {G}.', color_identity: [], set: 'tst', collector_number: '4', prints_search_uri: '' },
+    { name: 'Future', type_line: 'Creature', oracle_text: '', color_identity: ['G'], set: 'tst', collector_number: '5', prints_search_uri: '', released_at: '2999-01-01' },
   ]
   const entries = cards.map((card) => ({ name: card.name, tag: card.name === 'Creature' ? 'highsynergycards' : 'topcards', header: 'Top Cards' }))
-  const result = buildEdhrecRecommendations(entries, cards, { includeCreature: true, excludeGameChangers: true, excludeTutors: true, excludeExtraTurns: true, powerTarget: 'precon' })
+  const result = buildEdhrecRecommendations(entries, cards, { includeCreature: true, excludeGameChangers: true, excludeTutors: true, excludeExtraTurns: true, excludeUnreleased: true, powerTarget: 'precon' })
   assert.deepEqual(result.map((card) => card.name), ['Creature', 'Spell', 'Rock'])
   assert.equal(result[0].reason, 'Commander synergy')
   assert.equal(result[2].reason, 'Land or mana')

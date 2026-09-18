@@ -4,10 +4,10 @@ export type EdhrecThemeCount = { count: number; slug: string; value: string }
 export type PrintingLike = { image: string; set: string; collectorNumber: string }
 export type PowerTarget = 'precon' | 'upgraded' | 'high'
 export type ScryfallCardFace = { type_line?: string; mana_cost?: string; oracle_text?: string; image_uris?: { normal: string } }
-export type ScryfallCard = { name: string; layout?: string; type_line: string; mana_cost?: string; cmc?: number; oracle_text?: string; produced_mana?: string[]; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; game_changer?: boolean; image_uris?: { normal: string }; card_faces?: ScryfallCardFace[] }
+export type ScryfallCard = { name: string; layout?: string; type_line: string; mana_cost?: string; cmc?: number; oracle_text?: string; produced_mana?: string[]; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; released_at?: string; game_changer?: boolean; prices?: { usd?: string | null }; image_uris?: { normal: string }; card_faces?: ScryfallCardFace[] }
 export type EdhrecEntry = { name: string; tag: string; header: string }
-export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; tags: string[] }
-export type RecommendationOptions = { includeCreature: boolean; excludeGameChangers: boolean; excludeTutors: boolean; excludeExtraTurns: boolean; powerTarget: PowerTarget }
+export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; price?: string; tags: string[] }
+export type RecommendationOptions = { includeCreature: boolean; excludeGameChangers: boolean; excludeTutors: boolean; excludeExtraTurns: boolean; excludeUnreleased: boolean; powerTarget: PowerTarget }
 export const recommendedScoreThreshold = 50
 
 export function recommendationScore(card: Pick<RecommendationCard, 'reason' | 'tags'>, { theme, activeSubThemes, pickedTags, preferenceScores, neededRoles, cardRoles }: { theme: string; activeSubThemes: string[]; pickedTags: Set<string>; preferenceScores: Record<string, number>; neededRoles: Set<string>; cardRoles: string[] }) {
@@ -31,6 +31,8 @@ export const recommendationReasons: Record<string, string> = {
 
 export const preconFastMana = new Set(['Chrome Mox', 'Grim Monolith', 'Jeweled Lotus', 'Lotus Petal', 'Mana Crypt', 'Mana Vault', 'Mox Diamond'])
 export const cardText = (card: ScryfallCard) => card.oracle_text ?? card.card_faces?.map((face) => face.oracle_text).filter(Boolean).join('\n') ?? card.type_line
+export const formatUsdPrice = (price: string | null | undefined) => price ? `$${price}` : ''
+export const isReleased = (card: Pick<ScryfallCard, 'released_at'>, today = new Date().toISOString().slice(0, 10)) => !card.released_at || card.released_at <= today
 export const isManaCard = (card: ScryfallCard) => card.type_line.includes('Land') || /add \{/i.test(cardText(card))
 
 export function orderedPrintings<T extends PrintingLike>(original: PrintingLike, printings: T[]) {
@@ -215,7 +217,7 @@ export function parseEdhrecEntries(lists: { header: string; tag: string; cardvie
 }
 
 export function toRecommendationCard(card: ScryfallCard, reason: string, category = ''): RecommendationCard {
-  return { name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], reason, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri, tags: tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line) }
+  return { name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], reason, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri, price: card.prices?.usd ?? undefined, tags: tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line) }
 }
 
 export function buildEdhrecRecommendations(entries: EdhrecEntry[], responseCards: ScryfallCard[], options: RecommendationOptions) {
@@ -223,7 +225,7 @@ export function buildEdhrecRecommendations(entries: EdhrecEntry[], responseCards
   const allowed = entries.filter((entry) => {
     const card = cards.get(entry.name)
     const text = card ? cardText(card) : ''
-    return card && !(options.excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) && !(options.excludeTutors && /search your library/i.test(text)) && !(options.excludeExtraTurns && /extra turn/i.test(text)) && !(options.powerTarget === 'precon' && preconFastMana.has(card.name))
+    return card && !(options.excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) && !(options.excludeTutors && /search your library/i.test(text)) && !(options.excludeExtraTurns && /extra turn/i.test(text)) && !(options.excludeUnreleased && !isReleased(card)) && !(options.powerTarget === 'precon' && preconFastMana.has(card.name))
   })
   return batchRecommendations(allowed.map((entry) => {
     const card = cards.get(entry.name)!

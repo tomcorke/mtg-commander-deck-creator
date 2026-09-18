@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
 import './App.css'
 
-type Printing = { image: string; art?: string; set: string; collectorNumber: string }
-type Card = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
+type Printing = { image: string; art?: string; set: string; collectorNumber: string; price?: string }
+type Card = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; price?: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
 type DeckCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
@@ -105,6 +105,10 @@ function PrintingButton({ count, index, loading, name, onClick }: { count: numbe
   return count > 1 ? <button type="button" disabled={loading} onClick={onClick} aria-label={`Show alternate printing of ${name}`}>↻ Art {index + 1}/{count}</button> : null
 }
 
+function PriceBadge({ price }: { price?: string }) {
+  return price ? <span className="card-price" title="Scryfall market price">{formatUsdPrice(price)}</span> : null
+}
+
 function symbolName(symbol: string) {
   const names: Record<string, string> = { W: 'white', U: 'blue', B: 'black', R: 'red', G: 'green', C: 'colourless', X: 'X mana', T: 'tap', Q: 'untap', P: 'Phyrexian' }
   if (/^\d+$/.test(symbol)) return `${symbol} generic mana`
@@ -146,6 +150,7 @@ function App() {
   const [excludeGameChangers, setExcludeGameChangers] = useStoredOption('excludeGameChangers', () => true)
   const [excludeTutors, setExcludeTutors] = useStoredOption('excludeTutors', () => true)
   const [excludeExtraTurns, setExcludeExtraTurns] = useStoredOption('excludeExtraTurns', () => true)
+  const [excludeUnreleased, setExcludeUnreleased] = useStoredOption('excludeUnreleased', () => true)
   const [decisions, setDecisions] = useState<Record<string, 'add' | 'later' | 'ignore'>>(savedDeckState?.decisions ?? {})
   const [ignoredCards, setIgnoredCards] = useState<string[]>(savedDeckState?.ignoredCards ?? [])
   const [liked, setLiked] = useState<string[]>(savedDeckState?.liked ?? [])
@@ -221,7 +226,7 @@ function App() {
       setCardSearchState('loading')
       try {
         const identity = commanderDetails?.colours.join('').toLowerCase() || 'c'
-        const query = `name:${cardSearch.trim()}${filterCardIdentity ? ` id<=${identity}` : ''}`
+        const query = `name:${cardSearch.trim()}${filterCardIdentity ? ` id<=${identity}` : ''}${excludeUnreleased ? ' date<=today' : ''}`
         const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards`, { signal: controller.signal })
         if (!response.ok && response.status !== 404) throw new Error('Scryfall unavailable')
         const result = response.ok ? await response.json() as { data: ScryfallCard[] } : { data: [] }
@@ -232,7 +237,7 @@ function App() {
       }
     }, 250)
     return () => { clearTimeout(timer); controller.abort() }
-  }, [cardSearch, showCardSearch, filterCardIdentity, commanderDetails?.colours])
+  }, [cardSearch, showCardSearch, filterCardIdentity, excludeUnreleased, commanderDetails?.colours])
 
   useEffect(() => {
     if (showCardSearch) cardSearchInput.current?.focus()
@@ -330,7 +335,7 @@ function App() {
 
   async function fallbackRecommendations(identityColours: string[]) {
     const identity = identityColours.join('').toLowerCase() || 'c'
-    const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn'].filter(Boolean).join(' ')
+    const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn', excludeUnreleased && 'date<=today'].filter(Boolean).join(' ')
     const baseQuery = `id<=${identity} legal:commander -is:commander ${bracketFilters}`
     const [mainResponse, manaResponse] = await Promise.all([
       fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} -t:land -o:"add {"`)}&order=edhrec`),
@@ -358,7 +363,7 @@ function App() {
       if (!cardsResponse.ok) throw new Error('Scryfall unavailable')
       responseCards.push(...(await cardsResponse.json() as { data: ScryfallCard[] }).data)
     }
-    return buildEdhrecRecommendations(entries, responseCards, { includeCreature, excludeGameChangers, excludeTutors, excludeExtraTurns, powerTarget })
+    return buildEdhrecRecommendations(entries, responseCards, { includeCreature, excludeGameChangers, excludeTutors, excludeExtraTurns, excludeUnreleased, powerTarget })
   }
 
   async function loadPrintings(cards: Card[], preferredSet = '') {
@@ -369,11 +374,11 @@ function App() {
       const result = await response.json() as { data: ScryfallCard[] }
       const printings = orderedPrintings(offered, result.data.flatMap((printing) => {
         const image = printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal
-        return image ? [{ image, set: printing.set, collectorNumber: printing.collector_number }] : []
+        return image ? [{ image, set: printing.set, collectorNumber: printing.collector_number, price: printing.prices?.usd ?? undefined }] : []
       }))
       const selectedIndex = preferredPrintingIndex(printings, preferredSet)
       const selected = printings[selectedIndex]
-      setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing: selectedIndex } : item))
+      setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, price: selected.price, printing: selectedIndex } : item))
     }
   }
 
@@ -494,7 +499,7 @@ function App() {
     const index = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[index]
     await changeArt(card.name, [selected.image], () => {
-      setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printingManuallySelected: true } : item))
+      setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, price: selected.price, printingManuallySelected: true } : item))
       if (decisions[card.name] === 'add') {
         const update = (item: DeckCard) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber, image: selected.image, printing: index, printingManuallySelected: true } : item
         setDeck((current) => current.map(update))
@@ -516,8 +521,10 @@ function App() {
   }
 
   function deckList(format: ExportFormat) {
+    const commanderCount = commanderNames(commander).length
     const section = (cards: DeckCard[]) => cards.map((card) => format === 'plain' ? `1 ${card.name}` : format === 'csv' ? `1,"${card.name.replaceAll('"', '""')}",${card.set.toUpperCase()},${card.collectorNumber}` : `1 ${card.name} (${card.set.toUpperCase()}) ${card.collectorNumber}`).join('\n')
-    if (format === 'csv') return ['Quantity,Name,Set,Collector Number,Board', ...deck.map((card) => `${section([card])},Mainboard`), ...sideboard.map((card) => `${section([card])},Sideboard`)].join('\n')
+    if (format === 'csv') return ['Quantity,Name,Set,Collector Number,Board', ...deck.map((card, index) => `${section([card])},${index < commanderCount ? 'Commander' : 'Mainboard'}`), ...sideboard.map((card) => `${section([card])},Sideboard`)].join('\n')
+    if (format === 'moxfield') return `${section(deck.slice(commanderCount))}${sideboard.length ? `\n\nSIDEBOARD:\n${section(sideboard)}` : ''}`
     return `${section(deck)}${sideboard.length ? `\n\nSIDEBOARD:\n${section(sideboard)}` : ''}`
   }
 
@@ -890,6 +897,7 @@ function App() {
               <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => { setExcludeGameChangers(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude Game Changers</label>
               <label><input type="checkbox" checked={excludeTutors} onChange={(event) => { setExcludeTutors(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude tutors</label>
               <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => { setExcludeExtraTurns(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude extra turns</label>
+              <label><input type="checkbox" checked={excludeUnreleased} onChange={(event) => { setExcludeUnreleased(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude unreleased cards</label>
             </fieldset>
             {recommendationOptionsChanged && <span className="options-pending" role="status">Changes apply with next recommendations.</span>}
           </div>
@@ -933,8 +941,9 @@ function App() {
             <button className={exportFormat === 'plain' ? 'selected' : ''} onClick={() => setExportFormat('plain')}>Plain text</button>
             <button className={exportFormat === 'csv' ? 'selected' : ''} onClick={() => setExportFormat('csv')}>CSV</button>
           </div>
+          {exportFormat === 'moxfield' && <p className="moxfield-instructions"><b>Commander must be selected manually in Moxfield.</b> Moxfield does not support importing a deck with its commander included. Choose Commander format, set {commanderNames(commander).length > 1 ? 'commanders' : 'commander'} to <b>{commanderNames(commander).join(' and ')}</b>, then paste this {deck.length - commanderNames(commander).length}-card mainboard list.</p>}
           <textarea readOnly value={deckList(exportFormat)} onFocus={(event) => event.currentTarget.select()} aria-label={`${exportFormat} deck list`} />
-          <div className="export-actions"><a href="https://www.moxfield.com/decks/new" target="_blank" rel="noreferrer">Open Moxfield importer ↗</a><button className="primary" onClick={() => void copyDeck()}>{copied ? 'Copied' : 'Copy to clipboard'}</button></div>
+          <div className="export-actions"><a href="https://www.moxfield.com/decks/personal" target="_blank" rel="noreferrer">Open Moxfield decks ↗</a><button className="primary" onClick={() => void copyDeck()}>{copied ? 'Copied' : 'Copy to clipboard'}</button></div>
         </section>
       </div>}
       <div className="workspace">
@@ -965,7 +974,7 @@ function App() {
                 <div><button className="primary" onClick={() => decide(card, 'add')}>{deck.length >= 100 && decisions[card.name] !== 'add' ? 'Sideboard' : 'Add'}</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
-              <div className="offered-image"><img src={card.image} alt={`${card.name} card`} />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
+              <div className="offered-image"><img src={card.image} alt={`${card.name} card`} /><PriceBadge price={card.price} />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
               <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p></div>
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}

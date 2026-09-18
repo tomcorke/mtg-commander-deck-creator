@@ -6,7 +6,7 @@ export const deckStateVersion = 1
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
-const printingSchema = z.object({ image: z.string(), art: z.string().optional(), set: z.string(), collectorNumber: z.string() })
+const printingSchema = z.object({ image: z.string(), art: z.string().optional(), set: z.string(), collectorNumber: z.string(), price: z.string().optional() })
 const cardBase = {
   name: z.string(),
   layout: z.string(),
@@ -19,6 +19,7 @@ const cardBase = {
   image: z.string(),
   set: z.string(),
   collectorNumber: z.string(),
+  price: z.string().optional(),
   tags: z.array(z.string()),
   printings: z.array(printingSchema).optional(),
   printing: z.number().int().nonnegative().optional(),
