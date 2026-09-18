@@ -157,7 +157,7 @@ function App() {
   const [basicLandState, setBasicLandState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [showCardSearch, setShowCardSearch] = useState(false)
   const [cardSearch, setCardSearch] = useState('')
-  const [cardSearchResults, setCardSearchResults] = useState<string[]>([])
+  const [cardSearchResults, setCardSearchResults] = useState<ScryfallCard[]>([])
   const [cardSearchState, setCardSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [filterCardIdentity, setFilterCardIdentity] = useState(true)
   const [selectedManualCard, setSelectedManualCard] = useState<ScryfallCard | null>(null)
@@ -199,7 +199,7 @@ function App() {
         const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards`, { signal: controller.signal })
         if (!response.ok && response.status !== 404) throw new Error('Scryfall unavailable')
         const result = response.ok ? await response.json() as { data: ScryfallCard[] } : { data: [] }
-        setCardSearchResults([...new Set(result.data.map((card) => card.name))].slice(0, 8))
+        setCardSearchResults(result.data.filter((card, index, cards) => cards.findIndex((item) => item.name === card.name) === index).slice(0, 8))
         setCardSearchState('idle')
       } catch (error) {
         if (!(error instanceof DOMException && error.name === 'AbortError')) setCardSearchState('error')
@@ -519,16 +519,8 @@ function App() {
     requestAnimationFrame(() => cardSearchButton.current?.focus())
   }
 
-  async function selectManualCard(name: string) {
-    setCardSearchState('loading')
-    try {
-      const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)
-      if (!response.ok) throw new Error('Card unavailable')
-      setSelectedManualCard(await response.json() as ScryfallCard)
-      setCardSearchState('idle')
-    } catch {
-      setCardSearchState('error')
-    }
+  function selectManualCard(card: ScryfallCard) {
+    setSelectedManualCard(card)
   }
 
   function addManualCard() {
@@ -715,7 +707,7 @@ function App() {
       {showCardSearch && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeCardSearch() }}>
         <section className="export-modal card-search-modal" ref={cardSearchDialog} role="dialog" aria-modal="true" aria-labelledby="card-search-title" onKeyDown={handleCardSearchKeys}>
           <div className="export-heading"><div><p className="eyebrow">Add any legal card</p><h2 id="card-search-title">Find a card</h2></div><button className="modal-close" onClick={closeCardSearch} aria-label="Close card search">×</button></div>
-          <form className="card-search-form" onSubmit={(event) => { event.preventDefault(); const name = cardSearchResults.find((item) => item.toLowerCase() === cardSearch.trim().toLowerCase()) ?? cardSearchResults[0]; if (name) void selectManualCard(name) }}>
+          <form className="card-search-form" onSubmit={(event) => { event.preventDefault(); const card = cardSearchResults.find((item) => item.name.toLowerCase() === cardSearch.trim().toLowerCase()) ?? cardSearchResults[0]; if (card) selectManualCard(card) }}>
             <input ref={cardSearchInput} value={cardSearch} onChange={(event) => { setCardSearch(event.target.value); setCardSearchResults([]); setCardSearchState('idle'); setSelectedManualCard(null) }} placeholder="Search card names…" aria-label="Card name" autoComplete="off" />
             <button className="primary" disabled={!cardSearchResults.length || cardSearchState === 'loading'}>Search</button>
           </form>
@@ -723,7 +715,7 @@ function App() {
           {cardSearchState === 'loading' && <p className="card-search-status" role="status">Searching…</p>}
           {cardSearchState === 'error' && <p className="form-error" role="alert">Scryfall unavailable. Try again.</p>}
           {cardSearch.length >= 2 && cardSearchState === 'idle' && !cardSearchResults.length && !selectedManualCard && <p className="card-search-status">No cards found.</p>}
-          {!selectedManualCard && cardSearchResults.length > 0 && <div className="card-search-results" aria-label="Card search results">{cardSearchResults.map((name) => <button type="button" key={name} onClick={() => void selectManualCard(name)}>{name}<span>→</span></button>)}</div>}
+          {!selectedManualCard && cardSearchResults.length > 0 && <div className="card-search-results" aria-label="Card search results">{cardSearchResults.map((card) => <button type="button" key={card.name} onClick={() => selectManualCard(card)}><span><b>{card.name}</b><small>{card.type_line}</small></span><span className="search-result-mana"><OracleText text={card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''} /></span></button>)}</div>}
           {selectedManualCard && <div className="manual-card-preview">
             {(selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal) && <img src={selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal} alt={`${selectedManualCard.name} card`} />}
             <div><p className="eyebrow">{selectedManualCard.set.toUpperCase()} · {selectedManualCard.collector_number}</p><h3>{selectedManualCard.name}</h3><p>{selectedManualCard.type_line}</p><p><OracleText text={cardText(selectedManualCard)} /></p>
