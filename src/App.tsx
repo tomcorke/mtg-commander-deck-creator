@@ -165,6 +165,8 @@ function App() {
   const [cardSearchState, setCardSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [filterCardIdentity, setFilterCardIdentity] = useState(true)
   const [selectedManualCard, setSelectedManualCard] = useState<ScryfallCard | null>(null)
+  const [manualPrintings, setManualPrintings] = useState<ScryfallCard[]>([])
+  const [manualPrinting, setManualPrinting] = useState(0)
   const cardSearchButton = useRef<HTMLButtonElement>(null)
   const cardSearchInput = useRef<HTMLInputElement>(null)
   const cardSearchDialog = useRef<HTMLElement>(null)
@@ -541,12 +543,37 @@ function App() {
     setCardSearch('')
     setCardSearchResults([])
     setSelectedManualCard(null)
+    setManualPrintings([])
+    setManualPrinting(0)
     setCardSearchState('idle')
     requestAnimationFrame(() => cardSearchButton.current?.focus())
   }
 
-  function selectManualCard(card: ScryfallCard) {
+  async function selectManualCard(card: ScryfallCard) {
     setSelectedManualCard(card)
+    setManualPrintings([card])
+    setManualPrinting(0)
+    if (!card.prints_search_uri) return
+    const response = await fetch(card.prints_search_uri)
+    if (!response.ok) return
+    const printings = (await response.json() as { data: ScryfallCard[] }).data.filter((printing) => printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal)
+    const selected = printings.findIndex((printing) => printing.set === card.set && printing.collector_number === card.collector_number)
+    setManualPrintings(printings)
+    setManualPrinting(Math.max(0, selected))
+  }
+
+  async function cycleManualPrinting() {
+    if (manualPrintings.length < 2 || loadingArt) return
+    const index = (manualPrinting + 1) % manualPrintings.length
+    const selected = manualPrintings[index]
+    const image = selected.image_uris?.normal ?? selected.card_faces?.[0]?.image_uris?.normal ?? ''
+    setLoadingArt(`pending:${selected.name}`)
+    const loadingTimer = setTimeout(() => setLoadingArt(selected.name), 50)
+    await preloadArt([image])
+    clearTimeout(loadingTimer)
+    setSelectedManualCard(selected)
+    setManualPrinting(index)
+    setLoadingArt('')
   }
 
   function addManualCard() {
@@ -836,7 +863,7 @@ function App() {
           {cardSearch.length >= 2 && cardSearchState === 'idle' && !cardSearchResults.length && !selectedManualCard && <p className="card-search-status">No cards found.</p>}
           {!selectedManualCard && cardSearchResults.length > 0 && <div className="card-search-results" aria-label="Card search results">{cardSearchResults.map((card) => <button type="button" key={card.name} onClick={() => selectManualCard(card)}><span><b>{card.name}</b><small>{card.type_line}</small></span><span className="search-result-mana"><OracleText text={card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''} /></span></button>)}</div>}
           {selectedManualCard && <div className="manual-card-preview">
-            {(selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal) && <figure className="manual-card-image" tabIndex={0}><img src={selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal} alt={`${selectedManualCard.name} card`} /><span className="manual-card-zoom"><img src={selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal} alt={`${selectedManualCard.name} enlarged card`} /></span></figure>}
+            {(selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal) && <figure className="manual-card-image" tabIndex={0}><img src={selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal} alt={`${selectedManualCard.name} card`} /><span className="manual-card-zoom"><img src={selectedManualCard.image_uris?.normal ?? selectedManualCard.card_faces?.[0]?.image_uris?.normal} alt={`${selectedManualCard.name} enlarged card`} /></span>{loadingArt === selectedManualCard.name && <span className="art-loading" role="status"><i />Loading art…</span>}{manualPrintings.length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cycleManualPrinting()} aria-label={`Show alternate printing of ${selectedManualCard.name}`}>↻ Art {manualPrinting + 1}/{manualPrintings.length}</button>}</figure>}
             <div><p className="eyebrow">{selectedManualCard.set.toUpperCase()} · {selectedManualCard.collector_number}</p><h3>{selectedManualCard.name}</h3><p>{selectedManualCard.type_line}</p><p><OracleText text={cardText(selectedManualCard)} /></p>
               {manualCardError(selectedManualCard, deck.map((card) => card.name), commanderDetails?.colours ?? [], deck.length) && <p className="form-error" role="alert">{manualCardError(selectedManualCard, deck.map((card) => card.name), commanderDetails?.colours ?? [], deck.length)}</p>}
               <div className="export-actions"><button type="button" onClick={() => setSelectedManualCard(null)}>Back</button><button className="primary" type="button" disabled={Boolean(manualCardError(selectedManualCard, deck.map((card) => card.name), commanderDetails?.colours ?? [], deck.length))} onClick={addManualCard}>Add to deck</button></div>
