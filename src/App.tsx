@@ -512,11 +512,11 @@ function App() {
         <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
       <section className="intro commander-header">
-        {commanderDetails && <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
+        {commanderDetails ? <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
           {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} key={commanderNames(commander)[index]} />)}
           {commanderDetails.printings.some((printings) => printings.length > 1) && <span className="printing-indicator" aria-hidden="true">↻ Art</span>}
           <span className="card-zoom">{commanderDetails.images.map((image, index) => <span className="commander-printing" key={commanderNames(commander)[index]}><img src={image} alt={`${commanderNames(commander)[index]} full card`} />{loadingArt === commanderNames(commander)[index] && <span className="art-loading" role="status"><i />Loading art…</span>}{commanderDetails.printings[index].length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cycleCommanderPrinting(index)} aria-label={`Show alternate printing of ${commanderNames(commander)[index]}`}>↻ Art {commanderDetails.selections[index] + 1}/{commanderDetails.printings[index].length}</button>}</span>)}</span>
-        </figure>}
+        </figure> : <span className="commander-card commander-placeholder" aria-hidden="true" />}
         <div className="commander-summary"><p className="eyebrow">Building around</p><h1>{commander}</h1>
           <div className="identity" aria-label={`Colour identity: ${commanderDetails?.colours.map((colour) => colourNames[colour]).join(', ') || 'loading'}`}>
             <span>Colour identity</span>

@@ -51,6 +51,7 @@ h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
 .commander-header { display: grid; grid-template-columns: 88px minmax(260px, .8fr) minmax(480px, 1.5fr); align-items: center; gap: 24px; }
 main > .commander-header { z-index: 2; }
 .commander-card { position: relative; z-index: 2; flex: 0 0 88px; width: 88px; margin: 0; anchor-name: --commander-card; }
+.commander-placeholder { aspect-ratio: 488 / 680; border-radius: 4.75%; background: linear-gradient(110deg, #dedcea 30%, #eeedf5 45%, #dedcea 60%); background-size: 200% 100%; animation: card-loading 1.4s linear infinite; }
 .commander-card > img { display: block; width: 100%; aspect-ratio: 488 / 680; border-radius: 4.75%; background: #dedcea; object-fit: cover; box-shadow: 0 8px 22px #08071280, 0 0 0 1px #ffffff26; }
 .commander-card.pair > img { width: 72px; }
 .commander-card.pair > img + img { position: absolute; top: 8px; left: 24px; }
@@ -228,7 +229,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .suggestions { overflow: visible; border: 1px solid #39374f; border-radius: 7px; }
 .dark .suggestions button { padding: 14px 16px; }
 .dark .suggestions button, .dark .start-panel input, .dark .export-modal textarea { color: #e5e3f0; background: #121121; }
-.dark .offered-image { background-image: linear-gradient(110deg, #29273d 30%, #3b3852 45%, #29273d 60%); }
+.dark .offered-image, .dark .commander-placeholder { background-image: linear-gradient(110deg, #29273d 30%, #3b3852 45%, #29273d 60%); }
 .dark .offered-image > img { outline: 2px solid #696681; outline-offset: 2px; box-shadow: 0 14px 35px #0009; }
 .dark .meter { background: #35334a; }
 .dark .meter span, .dark .progress span { background-color: #756dda; }
