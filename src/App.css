@@ -46,6 +46,7 @@ h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { font-family: 'Spectral', serif; color: #28245f; }
 h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
 .commander-header { display: grid; grid-template-columns: 88px minmax(260px, .8fr) minmax(480px, 1.5fr); align-items: center; gap: 24px; }
+main > .commander-header { z-index: 2; }
 .commander-card { position: relative; z-index: 2; flex: 0 0 88px; width: 88px; margin: 0; anchor-name: --commander-card; }
 .commander-card > img { display: block; width: 100%; height: auto; border-radius: 4.75%; box-shadow: 0 5px 18px #24203e30; }
 .commander-card.pair > img { width: 72px; }
