@@ -54,6 +54,18 @@ test('production EDHREC builder applies safety filters and batches every card on
   assert.equal(result[2].reason, 'Land or mana')
 })
 
+test('batches reserve mana and prefer distinct recommendation reasons', () => {
+  const cards = [
+    ...['Synergy 1', 'Synergy 2', 'Synergy 3', 'Synergy 4'].map((name) => ({ name, reason: 'Commander synergy', typeLine: 'Creature' })),
+    { name: 'Interaction', reason: 'Interaction', typeLine: 'Instant' },
+    { name: 'Utility', reason: 'Utility artifact', typeLine: 'Artifact' },
+    { name: 'Mana', reason: 'Land or mana', typeLine: 'Land' },
+  ]
+  const first = batchRecommendations(cards, true).slice(0, 4)
+  assert.equal(first.filter((card) => card.reason === 'Land or mana').length, 1)
+  assert.equal(new Set(first.map((card) => card.reason)).size, 4)
+})
+
 test('new cards are limited to one per batch when established picks exist', () => {
   const cards = [
     ...['New 1', 'New 2', 'New 3', 'New 4'].map((name) => ({ name, reason: 'Interesting new pick', typeLine: 'Creature' })),

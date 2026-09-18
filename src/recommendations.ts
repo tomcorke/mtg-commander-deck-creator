@@ -139,7 +139,9 @@ export function batchRecommendations<T extends { name: string; reason: string; t
     const picks: T[] = []
     const take = (test: (card: T) => boolean) => {
       const withinNewCardLimit = (card: T) => card.reason !== 'Interesting new pick' || !picks.some((pick) => pick.reason === 'Interesting new pick')
-      let index = remaining.findIndex((card) => !picks.includes(card) && test(card) && withinNewCardLimit(card))
+      const newReason = (card: T) => !picks.some((pick) => pick.reason === card.reason)
+      let index = remaining.findIndex((card) => !picks.includes(card) && test(card) && withinNewCardLimit(card) && newReason(card))
+      if (index < 0) index = remaining.findIndex((card) => !picks.includes(card) && test(card) && withinNewCardLimit(card))
       if (index < 0) index = remaining.findIndex((card) => !picks.includes(card) && test(card))
       if (index >= 0) picks.push(remaining[index])
     }
