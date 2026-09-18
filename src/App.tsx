@@ -161,6 +161,12 @@ function App() {
   const [pendingRemoval, setPendingRemoval] = useState<number | null>(null)
 
   useEffect(() => {
+    if (pendingRemoval === null) return
+    const timer = setTimeout(() => setPendingRemoval(null), 1500)
+    return () => clearTimeout(timer)
+  }, [pendingRemoval])
+
+  useEffect(() => {
     if (search.trim().length < 2) return
 
     const controller = new AbortController()
