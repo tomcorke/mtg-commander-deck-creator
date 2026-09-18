@@ -44,14 +44,14 @@
   <main id="preview"></main>
   <script>
     const colours = {
-      White: ['#9b772e', '#f3df9b'],
+      White: ['#9b772e', '#f3df9b', '#765615'],
       Blue: ['#286da8', '#8dc9ee'],
       Black: ['#67506f', '#bf9ac8'],
       Red: ['#a83b32', '#ee8b68'],
       Green: ['#32734c', '#8bc795'],
       Colourless: ['#666879', '#b8bac7'],
     }
-    const column = ([name, [accent, highlight]]) => `<section class="theme" style="--accent:${accent};--highlight:${highlight}">
+    const column = ([name, [accent, highlight, button = accent]]) => `<section class="theme" style="--accent:${accent};--highlight:${highlight};--button-bg:${button}">
       <h2>${name}</h2><small>${accent} / ${highlight}</small>
       <div class="sample"><h3>Actions</h3><button>Primary button</button> <button class="outline">Outline</button></div>
       <div class="sample"><h3>Tinted card</h3><div class="tint"><b>Selected card</b><p class="muted">Supporting text and metadata.</p></div></div>
