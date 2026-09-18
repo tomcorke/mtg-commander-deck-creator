@@ -6,6 +6,30 @@ type Card = { name: string; typeLine: string; manaCost: string; reason: string; 
 type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string }
 type CommanderDetails = { images: string[]; colours: string[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
+type ScryfallCard = { name: string; type_line: string; mana_cost?: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; game_changer?: boolean; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; oracle_text?: string; image_uris?: { normal: string } }[] }
+type EdhrecEntry = { name: string; tag: string; header: string }
+
+const recommendationReasons: Record<string, string> = {
+  highsynergycards: 'Commander synergy',
+  topcards: 'Commander favourite',
+  newcards: 'Interesting new pick',
+  creatures: 'Creature synergy',
+  instants: 'Interaction',
+  sorceries: 'Sorcery support',
+  utilityartifacts: 'Utility artifact',
+  utilityenchantments: 'Utility enchantment',
+  enchantments: 'Enchantment synergy',
+  artifacts: 'Artifact synergy',
+  planeswalkers: 'Planeswalker support',
+  lands: 'Land or mana',
+  utilitylands: 'Land or mana',
+  manafixing: 'Land or mana',
+}
+
+const cardText = (card: ScryfallCard) => card.oracle_text ?? card.card_faces?.map((face) => face.oracle_text).filter(Boolean).join('\n') ?? card.type_line
+const isManaCard = (card: ScryfallCard) => card.type_line.includes('Land') || /add \{/i.test(cardText(card))
+const toCard = (card: ScryfallCard, reason: string): Card => ({ name: card.name, typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', reason, detail: cardText(card), image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri })
+const edhrecSlug = (url: string | undefined, name: string) => url?.match(/\/commanders\/([^/?#]+)/)?.[1] ?? name.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const colourNames: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' }
 
@@ -90,6 +114,7 @@ function App() {
   const [commanderImages, setCommanderImages] = useState<Record<string, string[]>>({})
   const [queue, setQueue] = useState<Card[]>([])
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [limitedRecommendations, setLimitedRecommendations] = useState(false)
   const [includeCreature, setIncludeCreature] = useState(true)
   const [excludeGameChangers, setExcludeGameChangers] = useState(true)
   const [excludeTutors, setExcludeTutors] = useState(true)
@@ -187,6 +212,63 @@ function App() {
     setColours((selected) => selected.includes(colour) ? selected.filter((item) => item !== colour) : [...selected, colour])
   }
 
+  async function fallbackRecommendations(identityColours: string[]) {
+    const identity = identityColours.join('').toLowerCase() || 'c'
+    const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn'].filter(Boolean).join(' ')
+    const baseQuery = `id<=${identity} legal:commander -is:commander ${bracketFilters}`
+    const [mainResponse, manaResponse] = await Promise.all([
+      fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} -t:land -o:"add {"`)}&order=edhrec`),
+      fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} (t:land or o:"add {")`)}&order=edhrec`),
+    ])
+    if (!mainResponse.ok || !manaResponse.ok) throw new Error('Scryfall unavailable')
+    const main = (await mainResponse.json() as { data: ScryfallCard[] }).data.sort(() => Math.random() - 0.5)
+    const mana = (await manaResponse.json() as { data: ScryfallCard[] }).data.sort(() => Math.random() - 0.5)
+    return Array.from({ length: Math.min(Math.ceil(main.length / 3), mana.length) }, (_, index) => [...main.slice(index * 3, index * 3 + 3).map((card) => toCard(card, 'Popular inclusion')), toCard(mana[index], 'Land or mana')]).flat()
+  }
+
+  async function edhrecRecommendations(slug: string) {
+    const response = await fetch(`https://json.edhrec.com/pages/commanders/${slug}.json`)
+    if (!response.ok) throw new Error('EDHREC unavailable')
+    const result = await response.json() as { container?: { json_dict?: { cardlists?: { header: string; tag: string; cardviews: { name: string }[] }[] } } }
+    const lists = result.container?.json_dict?.cardlists ?? []
+    const entries: EdhrecEntry[] = []
+    const seen = new Set<string>()
+    for (const list of lists) for (const card of list.cardviews) if (!seen.has(card.name)) {
+      seen.add(card.name)
+      entries.push({ name: card.name, tag: list.tag.toLowerCase(), header: list.header })
+    }
+    if (!entries.length) throw new Error('No EDHREC cards')
+
+    const responseCards: ScryfallCard[] = []
+    for (let index = 0; index < entries.length; index += 75) {
+      const cardsResponse = await fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: entries.slice(index, index + 75).map(({ name }) => ({ name })) }) })
+      if (!cardsResponse.ok) throw new Error('Scryfall unavailable')
+      responseCards.push(...(await cardsResponse.json() as { data: ScryfallCard[] }).data)
+    }
+    const cards = new Map(responseCards.map((card) => [card.name, card]))
+    const allowed = entries.filter((entry) => {
+      const card = cards.get(entry.name)
+      const text = card ? cardText(card) : ''
+      return card && !(excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) && !(excludeTutors && /search your library/i.test(text)) && !(excludeExtraTurns && /extra turn/i.test(text))
+    })
+    const mana = allowed.filter((entry) => isManaCard(cards.get(entry.name)!))
+    const main = allowed.filter((entry) => !isManaCard(cards.get(entry.name)!))
+    const creatures = main.filter((entry) => cards.get(entry.name)!.type_line.includes('Creature'))
+    const others = main.filter((entry) => !cards.get(entry.name)!.type_line.includes('Creature'))
+    const used = new Set<string>()
+    const take = (pool: EdhrecEntry[], count: number) => pool.filter((entry) => !used.has(entry.name)).slice(0, count).map((entry) => { used.add(entry.name); return entry })
+    const batchCount = Math.min(Math.ceil(main.length / 3), mana.length)
+    return Array.from({ length: batchCount }, () => {
+      const picks = includeCreature ? [...take(creatures, 1), ...take(others, 2)] : take(main, 3)
+      if (picks.length < 3) picks.push(...take(main, 3 - picks.length))
+      picks.push(...take(mana, 1))
+      return picks.map((entry) => {
+        const card = cards.get(entry.name)!
+        return toCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''))
+      })
+    }).flat()
+  }
+
   async function start(name: string, preserveDeck = false) {
     const chosen = name.trim()
     if (!chosen) return
@@ -194,51 +276,31 @@ function App() {
     if (!preserveDeck) setDeck([])
     setCommanderDetails(null)
     setQueue([])
+    setLimitedRecommendations(false)
     setRecommendationState('loading')
 
-    const responses = await Promise.all(commanderNames(chosen).map((name) => fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)))
-    if (responses.some((response) => !response.ok)) { setRecommendationState('error'); return }
-    type CommanderCard = { name: string; color_identity: string[]; mana_cost?: string; set: string; collector_number: string; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
-    const commanders = await Promise.all(responses.map((response) => response.json() as Promise<CommanderCard>))
-    const images = commanders.flatMap((card) => card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? [])
-    const identityColours = [...new Set(commanders.flatMap((card) => card.color_identity))]
-    if (images.length) setCommanderDetails({ images, colours: identityColours })
-    if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '' })))
+    try {
+      const responses = await Promise.all(commanderNames(chosen).map((name) => fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)))
+      if (responses.some((response) => !response.ok)) throw new Error('Commander unavailable')
+      type CommanderCard = { name: string; color_identity: string[]; mana_cost?: string; set: string; collector_number: string; related_uris?: { edhrec?: string }; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
+      const commanders = await Promise.all(responses.map((response) => response.json() as Promise<CommanderCard>))
+      const images = commanders.flatMap((card) => card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? [])
+      const identityColours = [...new Set(commanders.flatMap((card) => card.color_identity))]
+      if (images.length) setCommanderDetails({ images, colours: identityColours })
+      if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '' })))
 
-    const identity = identityColours.join('').toLowerCase() || 'c'
-    const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn'].filter(Boolean).join(' ')
-    const baseQuery = `id<=${identity} legal:commander -is:commander ${bracketFilters}`
-    const mainResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} -t:land -o:"add {"`)}&order=edhrec`)
-    const manaResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`${baseQuery} (t:land or o:"add {")`)}&order=edhrec`)
-    if (!mainResponse.ok || !manaResponse.ok) { setRecommendationState('error'); return }
-    type ScryfallCard = { name: string; type_line: string; mana_cost?: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string } }[] }
-    const main = await mainResponse.json() as { data: ScryfallCard[] }
-    const mana = await manaResponse.json() as { data: ScryfallCard[] }
-    const mainCards = main.data.sort(() => Math.random() - 0.5)
-    const manaCards = mana.data.sort(() => Math.random() - 0.5)
-    const creatures = mainCards.filter((item) => item.type_line.includes('Creature'))
-    const others = mainCards.filter((item) => !item.type_line.includes('Creature'))
-    const batchCount = Math.min(Math.ceil(mainCards.length / 3), manaCards.length)
-    const picks = Array.from({ length: batchCount }, (_, index) => {
-      const creature = creatures[index]
-      const pool = includeCreature && creature ? others : mainCards
-      const mainPicks = includeCreature && creature ? [creature, ...pool.slice(index * 2, index * 2 + 2)] : pool.slice(index * 3, index * 3 + 3)
-      return [...mainPicks, manaCards[index]]
-    }).flat()
-    const offeredCards = picks.map((item, index) => ({
-      name: item.name,
-      typeLine: item.type_line,
-      manaCost: item.mana_cost ?? item.card_faces?.[0]?.mana_cost ?? '',
-      reason: index % 4 === 3 ? 'Land or mana' : item.color_identity.length === identityColours.length ? 'Strong colour fit' : item.color_identity.length === 0 ? 'Colourless utility' : 'Popular inclusion',
-      detail: item.oracle_text || item.type_line,
-      image: item.image_uris?.normal ?? item.card_faces?.[0]?.image_uris?.normal ?? '',
-      set: item.set,
-      collectorNumber: item.collector_number,
-      printsUri: item.prints_search_uri,
-    }))
-    setQueue(offeredCards)
-    setRecommendationState('idle')
-    for (const offered of offeredCards.slice(0, 4)) {
+      let offeredCards: Card[]
+      try {
+        if (commanders.length !== 1) throw new Error('Partner pair has no single EDHREC page')
+        offeredCards = await edhrecRecommendations(edhrecSlug(commanders[0].related_uris?.edhrec, commanders[0].name))
+        if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
+      } catch {
+        offeredCards = await fallbackRecommendations(identityColours)
+        setLimitedRecommendations(true)
+      }
+      setQueue(offeredCards)
+      setRecommendationState('idle')
+      for (const offered of offeredCards.slice(0, 4)) {
       await new Promise((resolve) => setTimeout(resolve, 150))
       const printResponse = await fetch(offered.printsUri)
       if (!printResponse.ok) continue
@@ -247,7 +309,10 @@ function App() {
         const image = printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal
         return image ? [{ image, set: printing.set, collectorNumber: printing.collector_number }] : []
       }).filter((printing, index, all) => all.findIndex((item) => item.image === printing.image) === index)
-      setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings } : item))
+        setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings } : item))
+      }
+    } catch {
+      setRecommendationState('error')
     }
   }
 
@@ -386,6 +451,7 @@ function App() {
       </div>}
       <div className="workspace">
         <section className="recommendations">
+          {limitedRecommendations && recommendationState === 'idle' && <p className="limited-mode" role="status">Limited recommendations - EDHREC unavailable, using Scryfall popularity.</p>}
           {queue.length > 0 && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={nextBatch}>Next recommendations →</button></div>}
           {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid">
             {queue.slice(0, 4).map((card) => <article className={`card-offer ${decisions[card.name] ?? ''}`} key={card.name}>

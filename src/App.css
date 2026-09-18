@@ -153,6 +153,7 @@ li:hover .deck-card-preview, li:focus-visible .deck-card-preview { opacity: 1; t
 li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: uppercase; }
 .empty { margin-top: 25px; padding: 60px; border: 1px dashed #bbb2a3; text-align: center; }
 .batch-controls { display: flex; justify-content: flex-end; margin-top: 20px; }
+.limited-mode { margin: 20px 0 0; color: #8a5b16; font-size: 13px; }
 .batch-controls .primary { padding: 12px 18px; border: 0; border-radius: 6px; background: #36327f; color: white; }
 
 .dark header, .dark .intro, .dark .start-panel, .dark .export-modal, .dark .suggestion-preview { background: #19182d; }
@@ -175,6 +176,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .meter { background: #35334a; }
 .dark .meter span, .dark .progress span { background-color: #756dda; }
 .dark .modal-close { color: #c4c1d5; }
+.dark .limited-mode { color: #e7b965; }
 
 @media (max-width: 1350px) {
   .suggestion-preview { display: none; }

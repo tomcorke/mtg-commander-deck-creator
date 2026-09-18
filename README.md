@@ -25,7 +25,7 @@ pnpm build
 
 - React, TypeScript, and Vite provide a client-only single-page app with fast local HMR.
 - Production output is static. The `publish` branch contains the built app at its root for GitHub Pages.
-- No backend is required. The browser currently reads card data, images, colour symbols, printings, and popularity ordering from Scryfall. Planned recommendation ranking uses public EDHREC commander JSON with Scryfall fallback; see [`docs/recommendation-design.md`](docs/recommendation-design.md).
+- No backend is required. Recommendations use public EDHREC commander data, with Scryfall supplying card details and fallback popularity ordering; see [`docs/recommendation-design.md`](docs/recommendation-design.md).
 - Deck creation starts empty. Users can choose a theme, combine colour identity filters, or search all commanders. Commander suggestions show aligned mana costs, including generic mana.
 - Recommendations arrive in manual batches of four: three non-land cards and one land or mana card.
 - Batches include a creature when possible. Users can disable this once their creature count is high enough.
