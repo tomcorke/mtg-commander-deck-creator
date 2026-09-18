@@ -61,7 +61,7 @@ export const themeMatchers: [string, RegExp][] = [
   ['Landfall', /landfall|whenever (?:a|one or more) lands? enters?|play an additional land/i],
   ['Voltron', /equipped creature|enchanted creature|commander you control/i],
   ['Goad', /goad/i],
-  ['Typal', /choose a creature type|creatures you control (?:get|have)/i],
+  ['Tribal', /choose a creature type|creatures you control (?:get|have)/i],
   ['Big mana', /mana value (?:[5-9]|[1-9]\d)|add (?:\{[^}]+\}){2,}/i],
   ['Blink', /exile .* return|exile .* then return/i],
   ['Political', /vote|opponent chooses|each opponent may/i],
@@ -80,25 +80,102 @@ export const themeMatchers: [string, RegExp][] = [
   ['Knights', /\bKnight\b/i],
   ['Spirits', /\bSpirit\b/i],
   ['Slivers', /\bSliver\b/i],
+  ['Mutants', /\bMutant\b/i],
+  ['Turtles', /\bTurtle\b/i],
+  ['Defenders', /\bDefender\b/i],
+  ['Toughness matters', /(?:equal to|greater than|less than|with) (?:its |their )?toughness|toughness rather than (?:its |their )?power|\btoughness matters\b/i],
+  ['Power matters', /power (?:is equal to|is greater than|rather than)|power matters/i],
+  ['Power 7+', /power (?:7|[89]|[1-9]\d)(?: or greater| or more)?|power is (?:7|[89]|[1-9]\d)/i],
+  ['Counters', /\bproliferate\b|(?:put|remove|double|with|has|have) (?:an? |one or more |any number of |\w+ )?(?!spell\b)counter|counters? on (?:it|them|a |target |each |you|permanent|creature|player)/i],
+  ['Combat', /combat damage|additional combat|at the beginning of combat|attacks? each combat|whenever .* attacks/i],
+  ['Resource tokens', /\b(?:Treasure|Food|Clue|Blood|Gold|Map) tokens?\b/i],
+  ['Recursion', /return .* from (?:your|a) graveyard|cast .* from your graveyard|play .* from your graveyard/i],
+  ['Protection', /\bhexproof\b|\bward(?: \{|—)|\bprotection from\b|\bindestructible\b/i],
+  ['Flying', /\bflying\b/i],
+  ['Energy', /(?:get|pay|lose) (?:an? |one or more |\d+ )?\{E\}|energy counters?/i],
+  ['Sagas', /\bSaga\b|lore counter/i],
+  ['Exile matters', /(?:cast|play)(?: cards?| that card)? from exile|whenever .* exil/i],
+  ['Spell copying', /copy target (?:instant|sorcery|spell)|copy that spell/i],
+  ['Cascade', /\bcascade\b/i],
+  ['Discover', /\bdiscover \d|\bdiscover X/i],
+  ['Explore', /\bexplores?\b/i],
+  ['Ninjas', /\bNinja\b|ninjutsu/i],
+  ['Eldrazi', /\bEldrazi\b/i],
+  ['Humans', /\bHuman\b/i],
+  ['Soldiers', /\bSoldier\b/i],
+  ['Phyrexians', /\bPhyrexian\b/i],
+  ['Planeswalkers', /\bPlaneswalker\b|loyalty counter/i],
+  ['Poison', /\binfect\b|poison counter|\btoxic \d/i],
+  ['Wheels', /each player (?:discards? (?:their|his or her) hand|shuffles? (?:their|his or her) hand).*draws? (?:seven|\d+) cards/i],
+  ['Clones', /enters (?:the battlefield )?as a copy|becomes? a copy of target/i],
+  ['Amass', /\bamass (?:Orcs |Zombies )?\d/i],
+  ['Populate', /\bpopulate\b/i],
+  ['Anthems', /creatures you control get \+[1-9X]\/\+[1-9X]/i],
+  ['Topdeck', /top (?:card|\d+ cards) of (?:your|a|target player’s|target player's) library|look at the top/i],
 ]
 
 export const supportedThemes = themeMatchers.map(([name]) => name)
+const supportedThemeNames = new Map(supportedThemes.map((theme) => [theme.toLowerCase(), theme]))
 
 const edhrecThemeAliases: Record<string, string> = {
   enchantress: 'Enchantments',
-  reanimator: 'Graveyard',
   'self-mill': 'Mill',
   'plus-1-plus-1-counters': '+1/+1 counters',
   aristocrats: 'Sacrifice',
   auras: 'Voltron',
+  defenders: 'Defenders',
+  'toughness-matters': 'Toughness matters',
+  'power-matters': 'Power matters',
+  power: 'Power matters',
+  'counters-matter': 'Counters',
+  'rad-counters': 'Counters',
+  proliferate: 'Counters',
+  'attack-triggers': 'Combat',
+  'extra-combats': 'Combat',
+  'forced-combat': 'Combat',
+  treasure: 'Resource tokens',
+  food: 'Resource tokens',
+  clues: 'Resource tokens',
+  blood: 'Resource tokens',
+  reanimator: 'Recursion',
+  recursion: 'Recursion',
+  mutants: 'Mutants',
+  turtles: 'Turtles',
+  flying: 'Flying',
+  energy: 'Energy',
+  sagas: 'Sagas',
+  exile: 'Exile matters',
+  'spell-copy': 'Spell copying',
+  cascade: 'Cascade',
+  discover: 'Discover',
+  explore: 'Explore',
+  ninjas: 'Ninjas',
+  ninjutsu: 'Ninjas',
+  eldrazi: 'Eldrazi',
+  humans: 'Humans',
+  soldiers: 'Soldiers',
+  phyrexians: 'Phyrexians',
+  planeswalkers: 'Planeswalkers',
+  infect: 'Poison',
+  wheels: 'Wheels',
+  clones: 'Clones',
+  amass: 'Amass',
+  populate: 'Populate',
+  anthems: 'Anthems',
+  topdeck: 'Topdeck',
+  'lands-matter': 'Landfall',
+}
+
+function edhrecThemeName({ slug, value }: EdhrecThemeCount) {
+  return edhrecThemeAliases[slug] ?? supportedThemeNames.get(value.toLowerCase())
 }
 
 export function commanderThemes(tagCounts: EdhrecThemeCount[]) {
-  const supported = new Map(supportedThemes.map((theme) => [theme.toLowerCase(), theme]))
-  return [...new Set(tagCounts.flatMap(({ slug, value }) => {
-    const theme = edhrecThemeAliases[slug] ?? supported.get(value.toLowerCase())
-    return theme ? [theme] : []
-  }))]
+  return [...new Set(tagCounts.flatMap((tag) => edhrecThemeName(tag) ?? []))]
+}
+
+export function unsupportedCommanderThemes(tagCounts: EdhrecThemeCount[]) {
+  return tagCounts.filter((tag) => !edhrecThemeName(tag)).map(({ value }) => value)
 }
 
 export function tagsFor(source: string, typeLine: string) {
@@ -195,6 +272,24 @@ export function limitThemeMatches<T extends { tags: string[] }>(cards: T[], them
   return ordered
 }
 
+export function promoteNeededRoles<T extends { reason: string; typeLine: string }>(cards: T[], neededRoles: string[], cardRoles: (card: T) => string[], includeCreature: boolean) {
+  const ordered = [...cards]
+  const limit = Math.min(2, neededRoles.length)
+  const covered = new Set(ordered.slice(0, 4).flatMap(cardRoles).filter((role) => neededRoles.includes(role)))
+  for (const role of neededRoles) {
+    if (covered.size >= limit || covered.has(role)) continue
+    const candidate = ordered.findIndex((card, index) => index >= 4 && cardRoles(card).includes(role))
+    if (candidate < 0) continue
+    const first = ordered.slice(0, 4)
+    const creatures = first.filter((card) => card.typeLine.includes('Creature')).length
+    const replacement = first.findLastIndex((card) => !cardRoles(card).some((item) => neededRoles.includes(item)) && card.reason !== 'Land or mana' && (!includeCreature || !card.typeLine.includes('Creature') || creatures > 1 || ordered[candidate].typeLine.includes('Creature')))
+    if (replacement < 0) continue
+    ;[ordered[replacement], ordered[candidate]] = [ordered[candidate], ordered[replacement]]
+    covered.add(role)
+  }
+  return ordered
+}
+
 export function updatePreferenceScores(cards: { name: string; tags: string[] }[], decisions: Record<string, 'add' | 'later' | 'ignore'>, liked: string[], current: Record<string, number>) {
   const scores = { ...current }
   for (const card of cards) {
@@ -230,7 +325,7 @@ export function releaseNextDeferred<T>(deferred: DeferredCard<T>[], requestedBat
 
 export type RecommendationDecision = 'add' | 'later' | 'ignore'
 
-export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[] }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme = '', theme, includeCreature }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean }) {
+export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[] }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme = '', theme, includeCreature, neededRoles = [], cardRoles = () => [] }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean; neededRoles?: string[]; cardRoles?: (card: T) => string[] }) {
   const batch = queue.slice(0, 4)
   const pending = [...deferredCards, ...deferBatch(batch, decisions, batchNumber, (card) => card.name)]
   const released = releaseNextDeferred(pending, batchNumber + 1, queue.length > 4)
@@ -238,7 +333,7 @@ export function advanceRecommendationQueue<T extends { name: string; reason: str
   const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
   const rank = (card: T) => card.tags.reduce((score, tag) => score + (scores[tag] ?? 0) + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
   return {
-    queue: limitThemeMatches(batchRecommendations([...queue.slice(4), ...released.ready].sort((a, b) => rank(b) - rank(a)), includeCreature), rankedSubThemes, (card) => card.reason === 'Land or mana', (card) => card.typeLine.includes('Creature')),
+    queue: promoteNeededRoles(limitThemeMatches(batchRecommendations([...queue.slice(4), ...released.ready].sort((a, b) => rank(b) - rank(a)), includeCreature), rankedSubThemes, (card) => card.reason === 'Land or mana', (card) => card.typeLine.includes('Creature')), neededRoles, cardRoles, includeCreature),
     deferredCards: released.waiting,
     batchNumber: released.batchNumber,
     preferenceScores: scores,

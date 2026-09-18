@@ -36,7 +36,7 @@ const themeCommanders: Record<string, string[]> = {
   'Landfall': ['The Gitrog Monster', 'Omnath, Locus of Creation', 'Aesi, Tyrant of Gyre Strait', 'Obuun, Mul Daya Ancestor', 'Lord Windgrace', 'Tatyova, Benthic Druid'],
   'Voltron': ['Light-Paws, Emperor\'s Voice', 'Uril, the Miststalker', 'Galea, Kindler of Hope', 'Rafiq of the Many', 'Slicer, Hired Muscle', 'Wilson, Refined Grizzly'],
   'Goad': ['Marisi, Breaker of the Coil', 'Kardur, Doomscourge', 'Baeloth Barrityl, Entertainer', 'Nelly Borca, Impulsive Accuser', 'Firkraag, Cunning Instigator', 'The Rani'],
-  'Typal': ['The First Sliver', 'Wilhelt, the Rotcleaver', 'Hakbal of the Surging Soul', 'Pantlaza, Sun-Favored', 'Voja, Jaws of the Conclave', 'Edgar Markov'],
+  'Tribal': ['The First Sliver', 'Wilhelt, the Rotcleaver', 'Hakbal of the Surging Soul', 'Pantlaza, Sun-Favored', 'Voja, Jaws of the Conclave', 'Edgar Markov'],
   'Big mana': ['Zhulodok, Void Gorger', 'Goreclaw, Terror of Qal Sisma', 'Kozilek, the Great Distortion', 'Klauth, Unrivaled Ancient', 'Imoti, Celebrant of Bounty', 'Selvala, Heart of the Wilds'],
   'Blink': ['Brago, King Eternal', 'Roon of the Hidden Realm', 'Abdel Adrian, Gorion\'s Ward', 'Preston, the Vanisher', 'Yorion, Sky Nomad', 'Aminatou, the Fateshifter'],
   'Political': ['Queen Marchesa', 'Breena, the Demagogue', 'Kenrith, the Returned King', 'The Council of Four', 'Pramikon, Sky Rampart', 'Xantcha, Sleeper Agent'],
@@ -727,7 +727,9 @@ function App() {
       return
     }
     const batch = queue.slice(0, 4)
-    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature })
+    const analysis = analyseDeck(deck)
+    const neededRoles = deck.length >= 70 ? targetKeys.filter((key) => key !== 'lands' && analysis.counts[key] < deckTargets[key]) : []
+    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature, neededRoles, cardRoles: (card) => targetKeys.filter((key) => key !== 'lands' && analyseDeck([card]).counts[key] > 0) })
     setPreferenceScores(next.preferenceScores)
     setDeferredCards(next.deferredCards)
     setBatchNumber(next.batchNumber)
