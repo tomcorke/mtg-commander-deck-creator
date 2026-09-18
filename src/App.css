@@ -199,6 +199,10 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark.commander-themed .change:hover, .dark.commander-themed .reroll:hover, .dark.commander-themed .export-actions a:hover { color: color-mix(in srgb, var(--commander-highlight) 72%, white); }
 .dark.commander-themed .actions .primary, .dark.commander-themed .batch-controls .primary, .dark.commander-themed .empty .primary, .dark.commander-themed .export-actions .primary { border-color: var(--commander-accent); background: var(--commander-accent); }
 .dark.commander-themed .actions .similar.selected { border-color: var(--commander-highlight); background: var(--commander-accent); }
+.dark.commander-themed .recommendation-options legend, .dark.commander-themed .recommendation-options button { color: var(--commander-highlight); }
+.dark.commander-themed .recommendation-options button { border-color: var(--commander-highlight); }
+.dark.commander-themed .recommendation-options button:hover { background: var(--commander-accent); color: white; }
+.dark.commander-themed .recommendation-options input { accent-color: var(--commander-accent); }
 .dark.commander-themed .card-offer.add { border-color: var(--commander-highlight); background: color-mix(in srgb, var(--commander-accent) 28%, #111419); }
 .dark.commander-themed .meter span, .dark.commander-themed .progress span { background: linear-gradient(90deg, var(--commander-accent), var(--commander-highlight)); }
 
