@@ -2,6 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
 
+test('ordinary tapped lands do not create false Landfall preferences', () => {
+  assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
+  assert.equal(tagsFor('Land\nWhenever a land enters the battlefield under your control, draw a card.', 'Land').includes('Landfall'), true)
+})
+
 test('all exposed themes can tag matching card text', () => {
   for (const theme of supportedThemes) {
     const source = ({

@@ -41,7 +41,7 @@ export const themeMatchers: [string, RegExp][] = [
   ['Sacrifice', /sacrifice|dies/i],
   ['Equipment', /equipment|equip /i],
   ['Group hug', /each player|all players/i],
-  ['Landfall', /landfall|land enters|play an additional land/i],
+  ['Landfall', /landfall|whenever (?:a|one or more) lands? enters?|play an additional land/i],
   ['Voltron', /equipped creature|enchanted creature|commander you control/i],
   ['Goad', /goad/i],
   ['Typal', /choose a creature type|creatures you control (?:get|have)/i],

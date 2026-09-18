@@ -505,11 +505,12 @@ function App() {
   const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
   const maxCurveCount = Math.max(1, ...analysis.curve.map((point) => point.permanents + point.nonPermanents))
   const manaColours = (['W', 'U', 'B', 'R', 'G'] as const)
+  const pickedTags = new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))
   const cardReason = (card: Card) => {
     const subTheme = card.tags.find((tag) => activeSubThemes.includes(tag))
     if (subTheme) return `${subTheme} sub-theme`
     if (theme && card.tags.includes(theme)) return `${theme} theme`
-    const preference = card.tags.filter((tag) => (preferenceScores[tag] ?? 0) > 0).sort((a, b) => (preferenceScores[b] ?? 0) - (preferenceScores[a] ?? 0))[0]
+    const preference = card.tags.filter((tag) => pickedTags.has(tag) && (preferenceScores[tag] ?? 0) > 0).sort((a, b) => (preferenceScores[b] ?? 0) - (preferenceScores[a] ?? 0))[0]
     return preference ? `Matches your ${preference} picks` : card.reason
   }
 
