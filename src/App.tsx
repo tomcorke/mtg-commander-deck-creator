@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
@@ -637,6 +637,13 @@ function App() {
     })
   }
 
+  function positionDeckPreview(event: MouseEvent<HTMLLIElement>) {
+    const row = event.currentTarget.getBoundingClientRect()
+    const showRight = event.clientX < window.innerWidth * .6
+    event.currentTarget.style.setProperty('--preview-left', showRight ? `${row.right + 12}px` : 'auto')
+    event.currentTarget.style.setProperty('--preview-right', showRight ? 'auto' : `${window.innerWidth - row.left + 12}px`)
+  }
+
   function removeDeckCard(index: number) {
     const removed = deck[index]
     setPendingRemoval(null)
@@ -830,8 +837,8 @@ function App() {
   const basicLands = representativeSpellCount >= 5 ? basicLandPlan(commanderDetails?.colours ?? [], analysis.required, analysis.counts.lands, calculatedLandTarget, deck.length) : []
   const indexedDeck = deck.map((card, index) => ({ card, index }))
   const commanders = indexedDeck.slice(0, commanderNames(commander).length)
-  const groupedDeck = deckSections.map((section) => ({ section, cards: indexedDeck.slice(commanderNames(commander).length).filter(({ card }) => deckSection(card.typeLine) === section && !isBasicLandName(card.name)) })).filter(({ cards }) => cards.length)
   const groupedBasics = [...new Set(indexedDeck.filter(({ card }) => isBasicLandName(card.name)).map(({ card }) => card.name))].map((name) => ({ name, cards: indexedDeck.filter(({ card }) => card.name === name) }))
+  const groupedDeck = deckSections.map((section) => ({ section, cards: indexedDeck.slice(commanderNames(commander).length).filter(({ card }) => deckSection(card.typeLine) === section && !isBasicLandName(card.name)) })).filter(({ section, cards }) => cards.length || (section === 'Lands' && groupedBasics.length))
   const legalBasicNames = commanderDetails?.colours.length ? commanderDetails.colours.map((colour) => basicLandNames[colour as keyof typeof basicLandNames]) : ['Wastes']
   const maxCurveCount = Math.max(1, ...analysis.curve.map((point) => point.permanents + point.nonPermanents))
   const displayedTypeCounts = [['Land', analysis.counts.lands], ...cardTypes.map((type) => [type, analysis.typeCounts[type]] as const), ['Other', deck.filter((card) => deckSection(card.typeLine) === 'Other').length]] as const
@@ -942,6 +949,7 @@ function App() {
               {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
             </div>
             <div className="toolbar-actions">
+              <button className="manual-card-button" type="button" onClick={() => setShowCardSearch(true)}>+ Add card by name</button>
               {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => void nextBatch()}>Next recommendations →</button></div>}
             </div>
           </div>
@@ -962,10 +970,7 @@ function App() {
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
         </section>
-        <aside>
-          <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
-          <button className="manual-card-button" ref={cardSearchButton} type="button" onClick={() => setShowCardSearch(true)}>+ Add card by name</button>
-          <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
+        <aside className="analysis-panel">
           <section className="deck-analysis" aria-labelledby="analysis-title">
             <h3 id="analysis-title">Deck analysis</h3>
             <p className="sr-only" aria-live="polite">{highlightedManaValue === null ? 'Mana-value filter cleared.' : `Showing mana value ${highlightedManaValue === 7 ? '7 or more' : highlightedManaValue} cards.`}</p>
@@ -984,14 +989,17 @@ function App() {
             {displayedTypeCounts.some(([, count]) => count > 0) && <><h4>Card type distribution</h4><div className="type-counts">{displayedTypeCounts.filter(([, count]) => count > 0).map(([type, count]) => <span key={type}><span className="bar-label"><span>{type}</span><span className="ratio-bar"><i style={{ width: `${count / maxTypeCount * 100}%` }} /></span><b>{count}</b></span></span>)}</div></>}
             {guidance.length > 0 && <div className="deck-guidance" aria-live="polite">{guidance.map((item) => <p className={item.strong ? 'strong' : ''} key={item.key}>{item.text}</p>)}</div>}
           </section>
-          <ol className="deck-list">{[{ section: 'Commander', cards: commanders, count: commanders.length }, ...groupedDeck.map((group) => ({ ...group, count: group.cards.length }))].map(({ section, cards, count }) => <li className="deck-group" key={section}><h3>{section}<span>{count}</span></h3><ol>{cards.map(({ card, index }) => {
+        </aside>
+        <section className="deck-board" aria-labelledby="deck-list-title">
+          <div className="deck-board-heading"><div><p className="eyebrow">Your deck</p><h2 id="deck-list-title">{deck.length} cards</h2></div><div><span>{deck.length}% complete</span><button className="manual-card-button" ref={cardSearchButton} type="button" onClick={() => setShowCardSearch(true)}>+ Add card by name</button></div></div>
+          <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
+          <ol className="deck-list">{[{ section: 'Commander', cards: commanders, count: commanders.length }, ...groupedDeck.map((group) => ({ ...group, count: group.cards.length + (group.section === 'Lands' ? groupedBasics.reduce((sum, basic) => sum + basic.cards.length, 0) : 0) }))].map(({ section, cards, count }) => <li className="deck-group" key={section}><h3>{section}<span>{count}</span></h3><ol>{cards.map(({ card, index }) => {
             const curveValue = curveBucket(card)
             const highlighted = highlightedManaValue === null || highlightedManaValue === curveValue
-            return <li className={highlighted ? '' : 'curve-dimmed'} key={`${card.name}-${index}`} tabIndex={0}>{highlightedManaValue !== null && highlighted && <span className="sr-only">Matches active mana-value filter. </span>}<span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana">{card.typeLine.includes('Land') && card.producedMana.length ? <ManaSymbols symbols={card.producedMana} /> : <OracleText text={card.manaCost} />}</span>{isBasicLandName(card.name) && <button className="deck-add" type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(card.name)} aria-label={`Add another ${card.name}`}>+</button>}{index >= commanderNames(commander).length && <span className="deck-remove-wrap"><button className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`} type="button" onClick={() => isBasicLandName(card.name) || pendingRemoval === index ? removeDeckCard(index) : setPendingRemoval(index)} aria-label={isBasicLandName(card.name) ? `Remove one ${card.name}` : pendingRemoval === index ? `Confirm removal of ${card.name}` : `Remove ${card.name}`}>{pendingRemoval === index ? '✓' : '×'}</button>{pendingRemoval === index && <span className="remove-confirm" role="tooltip">Click again to confirm removal</span>}</span>}</span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} /><ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cycleDeckPrinting(index)} /></span>}</li>
-          })}</ol></li>)}
-          <li className="deck-group basics-group"><h3>Basic lands<span>{groupedBasics.reduce((sum, group) => sum + group.cards.length, 0)}</span></h3><ol>{groupedBasics.map(({ name, cards }) => { const { card, index } = cards[0]; return <li key={name}><span className="deck-card-name">{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><ManaSymbols symbols={card.producedMana} /></span><b>{cards.length}</b><button className="deck-add" type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(card.name)} aria-label={`Add another ${card.name}`}>+</button><button className="deck-remove" type="button" onClick={() => removeDeckCard(index)} aria-label={`Remove one ${card.name}`}>×</button></span></li> })}{legalBasicNames.filter((name) => !groupedBasics.some((group) => group.name === name)).map((name) => <li className="basic-placeholder" key={name}><button type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(name)}><span>Add {name}</span><b>+</b></button></li>)}</ol></li>
-          {sideboard.length > 0 && <li className="deck-group sideboard-group"><h3>Sideboard<span>{sideboard.length}</span></h3><ol>{sideboard.map((card, index) => <li key={`${card.name}-${index}`} tabIndex={0}><span className="deck-card-name">{card.name}</span><span className="deck-card-meta"><button className="sideboard-move" type="button" disabled={deck.length >= 100} onClick={() => moveSideboardCard(index)}>Move to deck</button><button className="deck-remove" type="button" onClick={() => removeSideboardCard(index)} aria-label={`Remove ${card.name} from sideboard`}>×</button></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} /></span>}</li>)}</ol></li>}</ol>
-        </aside>
+            return <li className={highlighted ? '' : 'curve-dimmed'} key={`${card.name}-${index}`} tabIndex={0} onMouseEnter={positionDeckPreview}>{highlightedManaValue !== null && highlighted && <span className="sr-only">Matches active mana-value filter. </span>}<span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana">{card.typeLine.includes('Land') && card.producedMana.length ? <ManaSymbols symbols={card.producedMana} /> : <OracleText text={card.manaCost} />}</span>{index >= commanderNames(commander).length && <span className="deck-remove-wrap"><button className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`} type="button" onClick={() => pendingRemoval === index ? removeDeckCard(index) : setPendingRemoval(index)} aria-label={pendingRemoval === index ? `Confirm removal of ${card.name}` : `Remove ${card.name}`}>{pendingRemoval === index ? '✓' : '×'}</button>{pendingRemoval === index && <span className="remove-confirm" role="tooltip">Click again to confirm removal</span>}</span>}</span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} /><ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cycleDeckPrinting(index)} /></span>}</li>
+          })}{section === 'Lands' && <>{groupedBasics.map(({ name, cards: basics }) => { const { card, index } = basics[0]; return <li className="basic-land-row" key={name}><span className="deck-card-name"><b className="card-quantity">{basics.length}x</b> {card.name}</span><span className="deck-card-meta"><span className="deck-mana"><ManaSymbols symbols={card.producedMana} /></span><button className="deck-add" type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(card.name)} aria-label={`Add another ${card.name}`}>+</button><button className="deck-remove" type="button" onClick={() => removeDeckCard(index)} aria-label={`Remove one ${card.name}`}>×</button></span></li> })}{legalBasicNames.filter((name) => !groupedBasics.some((group) => group.name === name)).map((name) => <li className="basic-placeholder" key={name}><button type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(name)}><span>Add {name}</span><b>+</b></button></li>)}</>}</ol></li>)}
+          {sideboard.length > 0 && <li className="deck-group sideboard-group"><h3>Sideboard<span>{sideboard.length}</span></h3><ol>{sideboard.map((card, index) => <li key={`${card.name}-${index}`} tabIndex={0} onMouseEnter={positionDeckPreview}><span className="deck-card-name">{card.name}</span><span className="deck-card-meta"><button className="sideboard-move" type="button" disabled={deck.length >= 100} onClick={() => moveSideboardCard(index)}>Move to deck</button><button className="deck-remove" type="button" onClick={() => removeSideboardCard(index)} aria-label={`Remove ${card.name} from sideboard`}>×</button></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} /></span>}</li>)}</ol></li>}</ol>
+        </section>
       </div>
     </main>
   )
