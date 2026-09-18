@@ -18,6 +18,12 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .brand { color: #36327f; font: 600 21px 'Spectral', serif; text-decoration: none; }
 .reset { border: 0; padding: 0; background: transparent; }
 .fresh { color: #858295; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.deck-status { display: flex; align-items: center; gap: 18px; }
+.saved-status { display: grid; text-align: right; }
+.saved-status b { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.saved-status small { color: #68667c; font-size: 11px; }
+.delta-added { color: #27804b; font-weight: 600; }
+.delta-removed { color: #a13e4c; font-weight: 600; }
 .progress { display: flex; gap: 10px; align-items: center; color: #68667c; font-size: 13px; }
 .progress span { width: 90px; height: 5px; border-radius: 9px; background: linear-gradient(90deg, #7650ae 3%, #dedcea 3%); }
 .export, .actions button, .empty button { border: 1px solid #bbb9cd; border-radius: 7px; padding: 10px 16px; background: transparent; color: #34324a; }
@@ -387,6 +393,8 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 @media (max-width: 800px) {
   .start-grid { grid-template-columns: 1fr; }
   .progress { display: none; }
+  .saved-status { text-align: left; }
+  .saved-status small { display: none; }
   .workspace { grid-template-columns: 1fr; }
   .recommendations { padding: 30px 6vw; }
   .card-grid { grid-template-columns: 1fr; }

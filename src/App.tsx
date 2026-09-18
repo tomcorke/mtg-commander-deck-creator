@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckSection, defaultDeckTargets, isBasicLandName, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
-import { clearDeckState, deleteSavedDeck, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
+import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -671,6 +671,8 @@ function App() {
   }
 
   const deckNameDuplicate = duplicateDeckName(savedDecks, deckName, activeSavedDeckId)
+  const activeSavedDeck = savedDecks.find(({ id }) => id === activeSavedDeckId)
+  const activeDeckDelta = activeSavedDeck ? deckDelta(activeSavedDeck.state.deck, deck) : null
   const savedDecksModal = showSavedDecks && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowSavedDecks(false) }}>
     <section className="export-modal saved-decks-modal" role="dialog" aria-modal="true" aria-labelledby="saved-decks-title">
       <div className="export-heading"><div><p className="eyebrow">Local decks</p><h2 id="saved-decks-title">Saved decks</h2></div><button className="modal-close" onClick={() => setShowSavedDecks(false)} aria-label="Close saved decks">×</button></div>
@@ -779,7 +781,7 @@ function App() {
       {commanderStyling && commanderDetails?.art.length ? <div className="commander-backdrop" aria-hidden="true">{commanderDetails.art.map((image) => <span style={{ backgroundImage: `url(${image})` }} key={image} />)}</div> : null}
       <header>
         <button className="brand reset" onClick={startOver}>Commander's Table</button>
-        <div className="progress"><span style={{ background: `linear-gradient(90deg, var(--commander-accent, #7650ae) ${deck.length}%, #dedcea ${deck.length}%)` }} />{deck.length} / 100 cards</div>
+        <div className="deck-status">{activeSavedDeck && <div className="saved-status"><b>{activeSavedDeck.name}</b><small>Saved {new Date(activeSavedDeck.updatedAt).toLocaleString()} <span className="delta-added">+{activeDeckDelta?.added}</span> <span className="delta-removed">−{activeDeckDelta?.removed}</span></small></div>}<div className="progress"><span style={{ background: `linear-gradient(90deg, var(--commander-accent, #7650ae) ${deck.length}%, #dedcea ${deck.length}%)` }} />{deck.length} / 100 cards</div></div>
         <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={openSavedDecks}>Save / load</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
       {savedDecksModal}

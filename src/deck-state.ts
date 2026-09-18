@@ -61,6 +61,14 @@ export type SavedDeck = { id: string; name: string; updatedAt: string; state: Pe
 export const suggestedDeckName = (commander: string, theme: string, subThemes: string[]) => [commander, theme, ...subThemes].filter((name, index, names) => name && names.indexOf(name) === index).join(' - ')
 export const duplicateDeckName = (decks: SavedDeck[], name: string, currentId = '') => decks.some((deck) => deck.id !== currentId && deck.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase())
 
+export function deckDelta(saved: PersistedDeckState['deck'], current: PersistedDeckState['deck']) {
+  const counts = (cards: PersistedDeckState['deck']) => cards.reduce<Record<string, number>>((result, card) => ({ ...result, [card.name]: (result[card.name] ?? 0) + 1 }), {})
+  const before = counts(saved)
+  const after = counts(current)
+  const names = new Set([...Object.keys(before), ...Object.keys(after)])
+  return [...names].reduce((delta, name) => ({ added: delta.added + Math.max(0, (after[name] ?? 0) - (before[name] ?? 0)), removed: delta.removed + Math.max(0, (before[name] ?? 0) - (after[name] ?? 0)) }), { added: 0, removed: 0 })
+}
+
 const savedDeckSchema = z.object({ id: z.string().min(1), name: z.string().min(1), updatedAt: z.string(), state: persistedDeckStateSchema })
 
 export function loadDeckState(storage: StorageLike = localStorage): PersistedDeckState | null {
