@@ -7,7 +7,6 @@ type Card = { name: string; typeLine: string; manaCost: string; reason: string; 
 type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
-type SynergyConnector = 'bracket' | 'bridge' | 'glow' | 'arrow' | 'container'
 
 const cardTags = (card: ScryfallCard, category = '') => tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
 const toCard = (card: ScryfallCard, reason: string, category = ''): Card => toRecommendationCard(card, reason, category)
@@ -136,7 +135,6 @@ function App() {
   const [deferredCards, setDeferredCards] = useState<DeferredCard<Card>[]>([])
   const [batchNumber, setBatchNumber] = useState(1)
   const [batchAnnouncement, setBatchAnnouncement] = useState('')
-  const [synergyConnector, setSynergyConnector] = useStoredOption<SynergyConnector>('synergyConnector', () => 'glow')
   const [deck, setDeck] = useState<DeckCard[]>([])
   const [showExport, setShowExport] = useState(false)
   const [exportFormat, setExportFormat] = useStoredOption<ExportFormat>('exportFormat', () => 'moxfield')
@@ -564,7 +562,6 @@ function App() {
               {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
             </div>
             <div className="toolbar-actions">
-              {synergyPair && <label className="connector-picker">Connector <select value={synergyConnector} onChange={(event) => setSynergyConnector(event.target.value as SynergyConnector)}><option value="bracket">Shared bracket</option><option value="bridge">Bridge label</option><option value="glow">Matched glow</option><option value="arrow">Directional arrow</option><option value="container">Shared container</option></select></label>}
               {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => void nextBatch()}>Next recommendations →</button></div>}
             </div>
           </div>
@@ -573,7 +570,7 @@ function App() {
             <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => { setActiveSubThemes((current) => [...current, name].slice(0, 2)); setShowSubThemePicker(false); setSubThemeSearch('') }}>{name}</button>)}</div>
           </div>}
           {inferredSubTheme && <div className="subtheme-prompt"><span>Lean into <strong>{inferredSubTheme}</strong>?</span><div><button type="button" onClick={() => { setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2)); void nextBatch(inferredSubTheme) }}>Yes, tune next picks</button><button className="quiet" type="button" onClick={() => setDismissedSubThemes((current) => [...current, inferredSubTheme])}>Not now</button></div></div>}
-          {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className={`card-grid connector-${synergyConnector}`}>
+          {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow">
             {visibleBatch.map((card) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} key={card.name}>
               <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>
               {pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}</div>

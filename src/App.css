@@ -131,8 +131,6 @@ main > .commander-header { z-index: 2; }
 .options-pending { color: #8a5b16; font-weight: 600; }
 .recommendation-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 20px; }
 .toolbar-actions { display: flex; flex: none; align-items: center; gap: 12px; }
-.connector-picker { display: flex; align-items: center; gap: 7px; color: #68657c; font-size: 12px; }
-.connector-picker select { padding: 7px 9px; border: 1px solid #8d88bd; border-radius: 6px; background: transparent; color: inherit; }
 .subthemes { display: flex; flex-wrap: wrap; gap: 8px; }
 .subthemes button { padding: 7px 11px; border: 1px solid #8d88bd; border-radius: 18px; background: #e8e6fa; color: #48427f; }
 .subthemes button span { margin-left: 4px; }
@@ -147,16 +145,10 @@ main > .commander-header { z-index: 2; }
 .card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin-top: 25px; }
 .card-offer { position: relative; min-width: 0; padding: 10px; border: 2px solid transparent; border-radius: 10px; transition: opacity .2s, background .2s, border-color .2s; }
 .card-offer.synergy-pair { --synergy: #9a72ba; border-color: var(--synergy); }
-.connector-bracket .synergy-1::before { position: absolute; z-index: 2; top: -12px; left: 20px; width: calc(200% + 20px); height: 18px; border: 4px solid var(--synergy); border-bottom: 0; border-radius: 14px 14px 0 0; content: ''; pointer-events: none; }
-.connector-bridge .synergy-1::after { position: absolute; z-index: 2; top: 24px; left: calc(100% - 3px); width: 30px; padding: 3px 0; border: 2px solid var(--synergy); border-radius: 10px; background: #17162a; color: #dedaff; content: 'PAIR'; font-size: 7px; font-weight: 700; letter-spacing: .5px; text-align: center; pointer-events: none; }
 .connector-glow .synergy-pair { border: 0; padding: 12px; }
 .connector-glow .synergy-pair .offered-image { border-radius: 4.75%; box-shadow: 0 0 28px 8px color-mix(in srgb, var(--synergy) 70%, transparent); }
 .connector-glow .synergy-1 .offered-image::after { position: absolute; z-index: 0; top: 8%; right: -44px; bottom: 8%; width: 44px; background: color-mix(in srgb, var(--synergy) 32%, transparent); box-shadow: 0 0 24px 10px color-mix(in srgb, var(--synergy) 45%, transparent); content: ''; pointer-events: none; }
 .connector-glow .synergy-pair .offered-image > img { position: relative; z-index: 1; }
-.connector-arrow .synergy-1::after { position: absolute; z-index: 2; top: 25px; left: calc(100% - 2px); width: 31px; color: var(--synergy); content: '➜'; font-size: 28px; font-weight: 700; line-height: 1; text-align: center; text-shadow: 0 0 8px #17162a; pointer-events: none; }
-.connector-container .synergy-1 { border-right: 0; border-radius: 10px 0 0 10px; }
-.connector-container .synergy-2 { border-left: 0; border-radius: 0 10px 10px 0; }
-.connector-container .synergy-1::after { position: absolute; z-index: -1; inset: -2px -24px -2px 100%; border-block: 2px solid var(--synergy); background: color-mix(in srgb, var(--synergy) 10%, transparent); content: ''; }
 .offer-heading { height: 70px; overflow: visible; }
 .synergy-info { position: relative; display: block; width: fit-content; margin-top: -12px; }
 .synergy-info > button { padding: 4px 9px; border: 1px solid #9a72ba; border-radius: 14px; background: #eee8f7; color: #5d3878; font-size: 11px; font-weight: 600; }
@@ -226,7 +218,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .lead, .dark .start-panel > p, .dark .section-title > span, .dark .recommendation-options, .dark .card-copy > p, .dark dt, .dark .identity, .dark .progress, .dark .theme-option { color: #aaa8c2; }
 .dark .change, .dark .reroll, .dark .export-actions a { color: #b786f2; }
 .dark .change:hover, .dark .reroll:hover, .dark .export-actions a:hover { color: #d1b0ff; }
-.dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select, .dark .connector-picker select { border-color: #4b4867; color: #ccc9df; }
+.dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select { border-color: #4b4867; color: #ccc9df; }
 .dark .themes button:hover, .dark .themes button.selected, .dark .format-tabs button.selected, .dark .actions .primary, .dark .empty .primary, .dark .batch-controls .primary, .dark .export-actions .primary { border-color: #7169ca; background: #5851a6; color: white; }
 .dark .actions .primary:hover { background: #6d65bf; }
 .dark .action-help-wrap > button:not(.quiet):hover { background: #35334d; }
@@ -285,8 +277,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
   .card-grid { grid-template-columns: 1fr; }
   .card-offer { display: grid; grid-template-columns: 130px 1fr; gap: 0 22px; align-items: start; }
   .recommendation-toolbar { align-items: flex-start; }
-  .card-offer.synergy-1::before, .card-offer.synergy-1::after, .connector-glow .synergy-1 .offered-image::after { display: none; }
-  .connector-container .synergy-1, .connector-container .synergy-2 { border: 2px solid var(--synergy); border-radius: 10px; }
+  .connector-glow .synergy-1 .offered-image::after { display: none; }
   .offer-heading { grid-column: 1 / -1; height: auto; min-height: 70px; }
   .suggestion-type { grid-column: 1 / -1; }
   aside { border-left: 0; border-top: 1px solid #dad8e6; }
@@ -294,7 +285,6 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 @media (max-width: 520px) {
   .intro { padding: 32px 6vw 25px; }
   .recommendation-toolbar, .toolbar-actions { align-items: stretch; flex-direction: column; }
-  .connector-picker { justify-content: space-between; }
   .batch-controls button { width: 100%; }
   .card-offer { grid-template-columns: 1fr; }
   .suggestion-type { grid-column: auto; }
