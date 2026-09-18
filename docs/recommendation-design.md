@@ -89,11 +89,18 @@ Before 70 cards, show analysis without warnings. At 70 cards, show quiet gap gui
 ## Deck lifecycle
 
 - Persist commander or partner pair, deck, filters, targets, active sub-themes, ignored cards, and recommendation history in `localStorage`.
+- Parse stored data through Zod before use. Stored envelope includes a numeric version.
+- Keep schema changes forwards compatible where practical: add optional fields with defaults, preserve unknown future fields when migrating, and add explicit migrations before changing or removing existing fields. Never treat unvalidated storage as app state.
 - `Start over` requires confirmation.
 - Removing a selected card is neutral and differs from `Ignore`.
 - A partner deck remains 100 cards total, leaving 98 library slots.
-- At 100 cards, stop recommendations and make deck review the primary action. Removing a card resumes recommendations.
-- Existing deck import is deferred.
+- At 100 main-deck cards, stop recommendations and make deck review the primary action. Removing a card resumes recommendations.
+
+### Planned lifecycle stages
+
+- Stage 4.1: save, name, load, and delete multiple in-progress or complete decks.
+- Stage 4.1.5: allow cards beyond the 100-card main deck in a separate sideboard.
+- Stage 4.2: import deck lists, including Moxfield set and collector-number syntax, plus Moxfield and Archidekt URLs.
 
 ## Accessibility
 
@@ -107,5 +114,8 @@ Before 70 cards, show analysis without warnings. At 70 cards, show quiet gap gui
 2. Sub-theme detection, manual sub-themes, and synergy pairs
 3. Deck analysis, editable targets, and late-build warnings
 4. Persistence and deck-completion flow
+5. Stage 4.1: multiple saved decks
+6. Stage 4.1.5: sideboard support beyond 100 cards
+7. Stage 4.2: deck-list, Moxfield URL, and Archidekt URL import
 
 Validate and publish each stage before starting the next.

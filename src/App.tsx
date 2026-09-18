@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckSection, defaultDeckTargets, isBasicLandName, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
-import { clearDeckState, loadDeckState, saveDeckState } from './deck-state'
+import { clearDeckState, loadDeckState, saveDeckState, type PersistedDeckState } from './deck-state'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -9,35 +9,8 @@ type Card = { name: string; layout: string; typeLine: string; manaCost: string; 
 type DeckCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
-type PersistedDeckState = {
-  commander: string
-  commanderDetails: CommanderDetails | null
-  theme: string
-  queue: Card[]
-  limitedRecommendations: boolean
-  decisions: Record<string, 'add' | 'later' | 'ignore'>
-  ignoredCards: string[]
-  liked: string[]
-  activeSubThemes: string[]
-  dismissedSubThemes: string[]
-  preferenceScores: Record<string, number>
-  commanderSubThemes: string[]
-  deferredCards: DeferredCard<Card>[]
-  batchNumber: number
-  deck: DeckCard[]
-  preferredPrintSet: string
-  deckTargets: DeckTargets
-}
 
-const isPersistedDeckState = (state: unknown): state is PersistedDeckState => {
-  if (!state || typeof state !== 'object') return false
-  const saved = state as Partial<PersistedDeckState>
-  const arrays = [saved.queue, saved.deck, saved.ignoredCards, saved.liked, saved.activeSubThemes, saved.dismissedSubThemes, saved.commanderSubThemes, saved.deferredCards]
-  const records = [saved.decisions, saved.preferenceScores, saved.deckTargets]
-  return typeof saved.commander === 'string' && saved.commander.length > 0 && saved.commanderDetails !== null && typeof saved.commanderDetails === 'object' && arrays.every(Array.isArray) && saved.deck!.length > 0 && records.every((value) => value !== null && typeof value === 'object') && typeof saved.theme === 'string' && typeof saved.limitedRecommendations === 'boolean' && typeof saved.batchNumber === 'number' && typeof saved.preferredPrintSet === 'string'
-}
-
-const savedDeckState = loadDeckState<PersistedDeckState>(localStorage, isPersistedDeckState)
+const savedDeckState = loadDeckState()
 
 const cardTags = (card: ScryfallCard, category = '') => tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
 const toCard = (card: ScryfallCard, reason: string, category = ''): Card => toRecommendationCard(card, reason, category)
@@ -208,7 +181,7 @@ function App() {
 
   useEffect(() => {
     if (!commander || recommendationState !== 'idle' || !commanderDetails || !deck.length) return
-    saveDeckState<PersistedDeckState>({ commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets })
+    saveDeckState({ commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets } satisfies PersistedDeckState)
   }, [commander, commanderDetails, theme, queue, recommendationState, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets])
 
   useEffect(() => {
