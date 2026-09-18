@@ -178,6 +178,7 @@ function App() {
   const [deckTargets, setDeckTargets] = useState<DeckTargets>(savedDeckState?.deckTargets ?? defaultDeckTargets)
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<number | null>(null)
+  const [pendingSavedDeckRemoval, setPendingSavedDeckRemoval] = useState('')
   const [savedDecks, setSavedDecks] = useState(loadSavedDecks)
   const [activeSavedDeckId, setActiveSavedDeckId] = useState(savedDeckState?.savedDeckId ?? '')
   const [deckName, setDeckName] = useState(() => loadSavedDecks().find(({ id }) => id === savedDeckState?.savedDeckId)?.name ?? '')
@@ -200,6 +201,12 @@ function App() {
     const timer = setTimeout(() => setPendingRemoval(null), 1500)
     return () => clearTimeout(timer)
   }, [pendingRemoval])
+
+  useEffect(() => {
+    if (!pendingSavedDeckRemoval) return
+    const timer = setTimeout(() => setPendingSavedDeckRemoval(''), 1500)
+    return () => clearTimeout(timer)
+  }, [pendingSavedDeckRemoval])
 
   useEffect(() => {
     if (!showCardSearch || cardSearch.trim().length < 2) return
@@ -639,7 +646,7 @@ function App() {
   }
 
   function removeSavedDeck(saved: SavedDeck) {
-    if (!window.confirm(`Delete “${saved.name}”?`)) return
+    setPendingSavedDeckRemoval('')
     setSavedDecks(deleteSavedDeck(saved.id))
     if (activeSavedDeckId === saved.id) {
       setActiveSavedDeckId('')
@@ -677,7 +684,7 @@ function App() {
     <section className="export-modal saved-decks-modal" role="dialog" aria-modal="true" aria-labelledby="saved-decks-title">
       <div className="export-heading"><div><p className="eyebrow">Local decks</p><h2 id="saved-decks-title">Saved decks</h2></div><button className="modal-close" onClick={() => setShowSavedDecks(false)} aria-label="Close saved decks">×</button></div>
       {commander && <form className="save-deck-form" onSubmit={(event) => { event.preventDefault(); storeDeck() }}><label><span className="sr-only">Deck name</span><input value={deckName} onChange={(event) => setDeckName(event.target.value)} aria-label="Deck name" aria-invalid={deckNameDuplicate} aria-describedby={deckNameDuplicate ? 'deck-name-warning' : undefined} /><button type="button" className="clear-deck-name" onClick={() => setDeckName('')} aria-label="Clear deck name">×</button>{deckNameDuplicate && <small id="deck-name-warning" className="deck-name-warning">Name already used</small>}</label><button className="primary" disabled={!deckName.trim() || deckNameDuplicate}>{activeSavedDeckId ? 'Update deck' : 'Save deck'}</button></form>}
-      <div className="saved-deck-list">{savedDecks.map((saved) => <article key={saved.id}><div className="saved-deck-details"><b>{saved.name}</b><span>{saved.state.commander} · {saved.state.deck.length}/100 cards</span><small>Updated {new Date(saved.updatedAt).toLocaleString()}</small></div><button className="saved-deck-load" onClick={() => loadSavedDeck(saved)}>Load</button><button className="saved-deck-delete" onClick={() => removeSavedDeck(saved)} aria-label={`Delete ${saved.name}`}>Delete</button></article>)}</div>
+      <div className="saved-deck-list">{savedDecks.map((saved) => <article key={saved.id}><div className="saved-deck-details"><b>{saved.name}</b><span>{saved.state.commander} · {saved.state.deck.length}/100 cards</span><small>Updated {new Date(saved.updatedAt).toLocaleString()}</small></div><button className="saved-deck-load" onClick={() => loadSavedDeck(saved)}>Load</button><span className="saved-deck-delete-wrap"><button className={`saved-deck-delete ${pendingSavedDeckRemoval === saved.id ? 'confirm' : ''}`} onClick={() => pendingSavedDeckRemoval === saved.id ? removeSavedDeck(saved) : setPendingSavedDeckRemoval(saved.id)} aria-label={pendingSavedDeckRemoval === saved.id ? `Confirm deletion of ${saved.name}` : `Delete ${saved.name}`}>{pendingSavedDeckRemoval === saved.id ? 'Confirm' : 'Delete'}</button>{pendingSavedDeckRemoval === saved.id && <span className="saved-delete-confirm" role="tooltip">Click again to delete</span>}</span></article>)}</div>
       {!savedDecks.length && <p className="saved-decks-empty">No saved decks yet.</p>}
     </section>
   </div>

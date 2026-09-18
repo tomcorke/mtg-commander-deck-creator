@@ -61,7 +61,10 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .saved-deck-details span, .saved-deck-details small, .saved-decks-empty { color: #706d82; }
 .saved-deck-load { padding: 8px 14px; border: 1px solid #36327f; border-radius: 6px; background: #36327f; color: white; font-weight: 600; }
 .saved-deck-load:hover, .saved-deck-load:focus-visible { background: #514b9b; }
-.saved-deck-delete { padding: 8px 9px; border: 0; background: transparent; color: #a13e4c; }
+.saved-deck-delete-wrap { position: relative; }
+.saved-deck-delete { padding: 8px 9px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: #a13e4c; }
+.saved-deck-delete.confirm { border-color: #a94840; background: #a94840; color: white; }
+.saved-delete-confirm { position: absolute; z-index: 2; right: 0; bottom: calc(100% + 7px); width: max-content; padding: 5px 8px; border-radius: 5px; background: #201c3c; color: white; font-size: 11px; }
 .saved-decks-empty { margin: 24px 0 0; }
 .card-search-form { display: flex; gap: 8px; margin-top: 22px; }
 .card-search-form input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #bbb9cd; border-radius: 6px; background: white; color: #28273b; font: inherit; }
