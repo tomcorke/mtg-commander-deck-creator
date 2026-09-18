@@ -19,8 +19,7 @@ export function recommendationScore(card: Pick<RecommendationCard, 'reason' | 't
   return Math.min(100, reasonScore + themeScore + deckScore + preferenceScore + roleScore)
 }
 
-export function manualCardError(card: Pick<ScryfallCard, 'name' | 'type_line' | 'color_identity'>, deckNames: string[], commanderColours: string[], deckSize: number) {
-  if (deckSize >= 100) return 'Deck already has 100 cards.'
+export function manualCardError(card: Pick<ScryfallCard, 'name' | 'type_line' | 'color_identity'>, deckNames: string[], commanderColours: string[]) {
   if (card.color_identity.some((colour) => !commanderColours.includes(colour))) return 'Card is outside your commander’s colour identity.'
   if (!card.type_line.includes('Basic Land') && deckNames.includes(card.name)) return 'Card is already in your deck.'
   return ''

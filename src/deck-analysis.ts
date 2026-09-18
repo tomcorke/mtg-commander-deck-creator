@@ -75,10 +75,13 @@ export function deckGuidance(cardCount: number, counts: DeckTargets, targets: De
   const remaining = Math.max(0, 100 - cardCount)
   const gaps = Object.fromEntries(targetKeys.map((key) => [key, Math.max(0, targets[key] - counts[key])])) as DeckTargets
   const totalGap = targetKeys.reduce((sum, key) => sum + gaps[key], 0)
+  let slotsShown = false
   return targetKeys.flatMap((key) => {
     const gap = gaps[key]
     if (!gap) return []
     const strong = cardCount >= 85 && totalGap > Math.max(0, remaining - 2)
-    return [{ key, strong, text: `${targetLabels[key]}: ${gap} short of target${strong ? ` with ${remaining} slots left` : ''}.` }]
+    const slots = strong && !slotsShown ? ` with ${remaining} slots left` : ''
+    if (strong) slotsShown = true
+    return [{ key, strong, text: `${targetLabels[key]}: ${gap} short of target${slots}.` }]
   })
 }

@@ -28,6 +28,7 @@ const state: PersistedDeckState = {
   deferredCards: [],
   batchNumber: 1,
   deck: [{ name: 'Anikthea, Hand of Erebos', layout: 'normal', typeLine: 'Legendary Enchantment Creature', manaCost: '{2}{W}{B}{G}', manaValue: 5, detail: 'Menace', producedMana: [], faces: [], set: 'cmm', collectorNumber: '349', image: 'image', tags: ['Enchantments'] }],
+  sideboard: [],
   preferredPrintSet: 'cmm',
   deckTargets: { lands: 35, ramp: 10, draw: 10, removal: 8, wipes: 3 },
 }
@@ -69,9 +70,10 @@ test('invalid saved deck collections are ignored', () => {
   assert.deepEqual(loadSavedDecks(memoryStorage({ [savedDecksKey]: JSON.stringify({ version: deckStateVersion + 1, decks: [] }) })), [])
 })
 
-test('legacy autosave gets empty saved-deck id', () => {
-  const storage = memoryStorage({ [deckStateKey]: JSON.stringify({ version: deckStateVersion, state: Object.fromEntries(Object.entries(state).filter(([key]) => key !== 'savedDeckId')) }) })
+test('legacy autosave gets empty saved-deck id and sideboard', () => {
+  const storage = memoryStorage({ [deckStateKey]: JSON.stringify({ version: deckStateVersion, state: Object.fromEntries(Object.entries(state).filter(([key]) => !['savedDeckId', 'sideboard'].includes(key))) }) })
   assert.equal(loadDeckState(storage)?.savedDeckId, '')
+  assert.deepEqual(loadDeckState(storage)?.sideboard, [])
 })
 
 test('invalid, old, and malformed deck state is ignored', () => {

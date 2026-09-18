@@ -37,11 +37,10 @@ test('synergy pair requires concrete complementary rules text', () => {
 
 test('manual card validation enforces deck legality', () => {
   const card = { name: 'Swords to Plowshares', type_line: 'Instant', color_identity: ['W'] }
-  assert.equal(manualCardError(card, [], ['W'], 1), '')
-  assert.match(manualCardError(card, [], ['U'], 1), /colour identity/)
-  assert.match(manualCardError(card, [card.name], ['W'], 1), /already in/)
-  assert.match(manualCardError(card, [], ['W'], 100), /100 cards/)
-  assert.equal(manualCardError({ name: 'Plains', type_line: 'Basic Land — Plains', color_identity: [] }, ['Plains'], ['W'], 2), '')
+  assert.equal(manualCardError(card, [], ['W']), '')
+  assert.match(manualCardError(card, [], ['U']), /colour identity/)
+  assert.match(manualCardError(card, [card.name], ['W']), /already in/)
+  assert.equal(manualCardError({ name: 'Plains', type_line: 'Basic Land — Plains', color_identity: [] }, ['Plains'], ['W']), '')
 })
 
 test('printing preference preserves defaults and manual choices', () => {

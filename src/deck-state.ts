@@ -51,6 +51,7 @@ export const persistedDeckStateSchema = z.object({
   deferredCards: z.array(z.object({ card: cardSchema, eligibleBatch: z.number().int().positive() })),
   batchNumber: z.number().int().positive(),
   deck: z.array(deckCardSchema).min(1).max(100),
+  sideboard: z.array(deckCardSchema).default([]),
   preferredPrintSet: z.string(),
   deckTargets: z.object({ lands: z.number().nonnegative(), ramp: z.number().nonnegative(), draw: z.number().nonnegative(), removal: z.number().nonnegative(), wipes: z.number().nonnegative() }),
 })
