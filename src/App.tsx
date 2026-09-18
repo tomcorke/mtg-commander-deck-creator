@@ -904,7 +904,7 @@ function App() {
             <div className="subthemes" aria-label="Deck themes">
               {theme && <button type="button" onClick={() => setTheme('')} title="Remove declared theme">{theme} <span>×</span></button>}
               {activeSubThemes.map((name) => <button type="button" onClick={() => setActiveSubThemes((current) => current.filter((item) => item !== name))} title={`Remove ${name} sub-theme`} key={name}>{name} <span>×</span></button>)}
-              {inferredSubTheme && <span className="suggested-subtheme"><span>{inferredSubTheme}?</span><button type="button" onClick={() => { setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2)); void nextBatch(inferredSubTheme) }} aria-label={`Accept ${inferredSubTheme} sub-theme`}>✓</button><button type="button" onClick={() => setDismissedSubThemes((current) => [...current, inferredSubTheme])} aria-label={`Dismiss ${inferredSubTheme} sub-theme`}>×</button></span>}
+              {inferredSubTheme && <span className="suggested-subtheme"><span>{inferredSubTheme}?</span><button type="button" onClick={() => setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2))} aria-label={`Accept ${inferredSubTheme} sub-theme`}>✓</button><button type="button" onClick={() => setDismissedSubThemes((current) => [...current, inferredSubTheme])} aria-label={`Dismiss ${inferredSubTheme} sub-theme`}>×</button></span>}
               {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
             </div>
             <div className="toolbar-actions">
