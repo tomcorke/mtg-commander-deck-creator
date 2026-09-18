@@ -1,6 +1,19 @@
 export type TaggedCard = { name: string; typeLine: string; detail: string; tags: string[] }
 export type DeferredCard<T> = { card: T; eligibleBatch: number }
 export type EdhrecThemeCount = { count: number; slug: string; value: string }
+export type PrintingLike = { image: string; set: string; collectorNumber: string }
+
+export function orderedPrintings<T extends PrintingLike>(original: PrintingLike, printings: T[]) {
+  const unique = printings.filter((printing, index, all) => all.findIndex((item) => item.image === printing.image) === index)
+  const originalIndex = unique.findIndex((printing) => printing.image === original.image)
+  return originalIndex < 1 ? unique : [unique[originalIndex], ...unique.slice(0, originalIndex), ...unique.slice(originalIndex + 1)]
+}
+
+export function preferredPrintingIndex(printings: PrintingLike[], preferredSet: string, current = 0, manuallySelected = false) {
+  if (manuallySelected) return current
+  const preferred = preferredSet ? printings.findIndex((printing) => printing.set === preferredSet) : -1
+  return preferred >= 0 ? preferred : 0
+}
 
 export const themeMatchers: [string, RegExp][] = [
   ['Tokens', /create[s]? (?:one|two|three|a|an|x|that many|\d+) .* token|tokens? you control/i],

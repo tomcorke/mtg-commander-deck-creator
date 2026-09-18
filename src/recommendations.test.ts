@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { batchRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
+import { batchRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, orderedPrintings, preferredPrintingIndex, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
 
 test('all exposed themes can tag matching card text', () => {
   for (const theme of supportedThemes) {
@@ -18,6 +18,15 @@ test('synergy pair requires concrete complementary rules text', () => {
   ]
   assert.match(findSynergyPair(cards)?.explanation ?? '', /creates tokens/)
   assert.equal(findSynergyPair(cards.map((card) => ({ ...card, detail: 'Artifact creature.' }))), null)
+})
+
+test('printing preference preserves defaults and manual choices', () => {
+  const original = { image: 'default', set: 'clb', collectorNumber: '284' }
+  const printings = orderedPrintings(original, [{ image: 'alternate', set: 'sld', collectorNumber: '2500' }, original, { image: 'other', set: 'mkc', collectorNumber: '19' }])
+  assert.equal(printings[0].image, 'default')
+  assert.equal(preferredPrintingIndex(printings, 'sld'), 1)
+  assert.equal(preferredPrintingIndex(printings, 'missing'), 0)
+  assert.equal(preferredPrintingIndex(printings, 'clb', 1, true), 1)
 })
 
 test('new cards are limited to one per batch when established picks exist', () => {
