@@ -198,7 +198,10 @@ main > .commander-header { z-index: 2; }
 .connector-glow .synergy-pair .offered-image { border-radius: 4.75%; box-shadow: 0 0 28px 8px color-mix(in srgb, var(--synergy) 70%, transparent); }
 .connector-glow .synergy-1 .offered-image::after { position: absolute; z-index: 0; top: 8%; right: -44px; bottom: 8%; width: 44px; background: color-mix(in srgb, var(--synergy) 32%, transparent); box-shadow: 0 0 24px 10px color-mix(in srgb, var(--synergy) 45%, transparent); content: ''; pointer-events: none; }
 .connector-glow .synergy-pair .offered-image > img { position: relative; z-index: 1; }
-.offer-heading { min-height: 38px; overflow: visible; }
+.offer-heading { display: flex; min-height: 38px; align-items: flex-start; gap: 6px; overflow: visible; }
+.offer-heading .suggestion-type { flex: 1; }
+.recommended-badge { padding: 3px 6px; border-radius: 10px; background: var(--commander-accent, #5d568d); color: white; font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.recommendation-score { min-width: 22px; padding: 3px 5px; border: 1px solid #c1bfd2; border-radius: 10px; color: #68657c; font-size: 9px; font-weight: 700; text-align: center; }
 .synergy-info { position: absolute; z-index: 4; top: 13%; left: 8px; }
 .synergy-info > button { padding: 4px 9px; border: 1px solid #9a72ba; border-radius: 14px; background: #eee8f7dd; color: #5d3878; font-size: 11px; font-weight: 600; backdrop-filter: blur(4px); }
 .synergy-popover { position: absolute; z-index: 8; left: 0; top: calc(100% + 7px); display: grid; width: 250px; padding: 12px; border: 1px solid #9a72ba; border-radius: 8px; background: #f8f8ff; color: #3e3850; box-shadow: 0 12px 30px #201c3c55; font-size: 12px; line-height: 1.4; opacity: 0; pointer-events: none; transform: translateY(4px); transition: opacity .15s, transform .15s; }
@@ -335,6 +338,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .actions .primary:hover { background: #6d65bf; }
 .dark .action-help-wrap > button:not(.quiet):hover { background: #35334d; }
 .dark .card-offer.add { border-color: #7169ca; background: #282646; }
+.dark .recommendation-score { border-color: #4b4867; color: #c4c1d5; }
 .dark .suggestions, .dark .suggestions button, .dark li, .dark dl { border-color: #39374f; }
 .dark .suggestions { overflow: visible; border: 1px solid #39374f; border-radius: 7px; }
 .dark .suggestions button { padding: 14px 16px; }

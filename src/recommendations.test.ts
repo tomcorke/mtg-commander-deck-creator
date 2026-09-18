@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -66,6 +66,12 @@ test('production EDHREC builder applies safety filters and batches every card on
   assert.deepEqual(result.map((card) => card.name), ['Creature', 'Spell', 'Rock'])
   assert.equal(result[0].reason, 'Commander synergy')
   assert.equal(result[2].reason, 'Land or mana')
+})
+
+test('recommendation score rewards evidence and leaves weak picks below badge threshold', () => {
+  const context = { theme: 'Tokens', activeSubThemes: ['Artifacts'], pickedTags: new Set(['Tokens']), preferenceScores: { Tokens: 4 }, neededRoles: new Set(['draw']), cardRoles: ['draw'] }
+  assert.equal(recommendationScore({ reason: 'Commander synergy', tags: ['Tokens'] }, context), 74)
+  assert.ok(recommendationScore({ reason: 'Interesting new pick', tags: [] }, { ...context, cardRoles: [] }) < recommendedScoreThreshold)
 })
 
 test('batches reserve mana and prefer distinct recommendation reasons', () => {

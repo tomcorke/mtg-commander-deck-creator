@@ -8,6 +8,16 @@ export type ScryfallCard = { name: string; layout?: string; type_line: string; m
 export type EdhrecEntry = { name: string; tag: string; header: string }
 export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; tags: string[] }
 export type RecommendationOptions = { includeCreature: boolean; excludeGameChangers: boolean; excludeTutors: boolean; excludeExtraTurns: boolean; powerTarget: PowerTarget }
+export const recommendedScoreThreshold = 50
+
+export function recommendationScore(card: Pick<RecommendationCard, 'reason' | 'tags'>, { theme, activeSubThemes, pickedTags, preferenceScores, neededRoles, cardRoles }: { theme: string; activeSubThemes: string[]; pickedTags: Set<string>; preferenceScores: Record<string, number>; neededRoles: Set<string>; cardRoles: string[] }) {
+  const reasonScore = card.reason === 'Commander synergy' ? 35 : card.reason === 'Commander favourite' ? 25 : card.reason === 'Popular inclusion' || card.reason === 'Land or mana' ? 10 : 15
+  const themeScore = (theme && card.tags.includes(theme) ? 20 : 0) + Math.min(24, card.tags.filter((tag) => activeSubThemes.includes(tag)).length * 12)
+  const deckScore = Math.min(10, card.tags.filter((tag) => pickedTags.has(tag)).length * 5)
+  const preferenceScore = Math.min(20, card.tags.reduce((score, tag) => score + Math.max(0, preferenceScores[tag] ?? 0), 0))
+  const roleScore = Math.min(20, cardRoles.filter((role) => neededRoles.has(role)).length * 10)
+  return Math.min(100, reasonScore + themeScore + deckScore + preferenceScore + roleScore)
+}
 
 export function manualCardError(card: Pick<ScryfallCard, 'name' | 'type_line' | 'color_identity'>, deckNames: string[], commanderColours: string[], deckSize: number) {
   if (deckSize >= 100) return 'Deck already has 100 cards.'
