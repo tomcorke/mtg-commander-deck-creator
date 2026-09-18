@@ -3,7 +3,7 @@ import './App.css'
 
 type Printing = { image: string; set: string; collectorNumber: string }
 type Card = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; printings?: Printing[]; printing?: number }
-type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string }
+type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string }
 type CommanderDetails = { images: string[]; colours: string[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 
@@ -203,7 +203,7 @@ function App() {
     const images = commanders.flatMap((card) => card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? [])
     const identityColours = [...new Set(commanders.flatMap((card) => card.color_identity))]
     if (images.length) setCommanderDetails({ images, colours: identityColours })
-    if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number })))
+    if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '' })))
 
     const identity = identityColours.join('').toLowerCase() || 'c'
     const bracketFilters = [excludeGameChangers && '-is:gamechanger', excludeTutors && '-otag:tutor', excludeExtraTurns && '-otag:extra-turn'].filter(Boolean).join(' ')
@@ -254,7 +254,7 @@ function App() {
   function decide(card: Card, action: 'add' | 'later' | 'ignore') {
     const previous = decisions[card.name]
     if (previous === 'add' && action !== 'add') setDeck((list) => list.filter((item) => item.name !== card.name))
-    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, manaCost: card.manaCost, set: card.set, collectorNumber: card.collectorNumber }])
+    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, manaCost: card.manaCost, set: card.set, collectorNumber: card.collectorNumber, image: card.image }])
     setDecisions((current) => ({ ...current, [card.name]: action }))
   }
 
@@ -263,7 +263,7 @@ function App() {
     const index = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[index]
     setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber } : item))
-    if (decisions[card.name] === 'add') setDeck((current) => current.map((item) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber } : item))
+    if (decisions[card.name] === 'add') setDeck((current) => current.map((item) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber, image: selected.image } : item))
   }
 
   function deckList(format: ExportFormat) {
@@ -403,7 +403,7 @@ function App() {
           <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
           <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
           <dl><div><dt>Commander</dt><dd>{commanderNames(commander).length}</dd></div><div><dt>Creatures</dt><dd>{deck.slice(commanderNames(commander).length).filter((card) => card.typeLine.includes('Creature')).length}</dd></div><div><dt>Enchantments</dt><dd>{deck.filter((card) => card.typeLine.includes('Enchantment')).length}</dd></div><div><dt>Lands</dt><dd>{deck.filter((card) => card.typeLine.includes('Land')).length}</dd></div></dl>
-          <ol>{deck.map((card, index) => <li key={`${card.name}-${index}`}><span>{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index === 0 ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span></li>)}</ol>
+          <ol>{deck.map((card, index) => <li key={`${card.name}-${index}`} tabIndex={0}><span>{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index < commanderNames(commander).length ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span>{card.image && <img className="deck-card-preview" src={card.image} alt={`${card.name} card`} />}</li>)}</ol>
         </aside>
       </div>
     </main>
