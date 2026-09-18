@@ -217,13 +217,6 @@ function App() {
         <h1>What do you want to play?</h1>
         <p className="lead">Start with an idea, browse suggestions, or find any commander.</p>
 
-        <section className="font-demo" aria-labelledby="font-demo-title">
-          <div><p className="eyebrow">Typography preview</p><h2 id="font-demo-title">Choose a heading style</h2></div>
-          <div className="font-options">
-            {['Lora', 'Cormorant Garamond', 'Source Serif 4', 'Bitter', 'Alegreya', 'Spectral', 'Libre Baskerville', 'Merriweather'].map((font) => <div key={font}><span>{font}</span><strong style={{ fontFamily: `'${font}', serif` }}>Commander's Table</strong></div>)}
-          </div>
-        </section>
-
         <div className="start-grid">
           <article className="start-panel">
             <span className="step">01</span>
