@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
+import { parseDeckList, type ImportedDeck } from './deck-import'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string; price?: string }
@@ -194,6 +195,10 @@ function App() {
   const [activeSavedDeckId, setActiveSavedDeckId] = useState(savedDeckState?.savedDeckId ?? '')
   const [deckName, setDeckName] = useState(() => loadSavedDecks().find(({ id }) => id === savedDeckState?.savedDeckId)?.name ?? '')
   const [showSavedDecks, setShowSavedDecks] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [importSource, setImportSource] = useState('')
+  const [importState, setImportState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [importError, setImportError] = useState('')
 
   useEffect(() => {
     if (!commander || recommendationState !== 'idle' || !commanderDetails || !deck.length) return
@@ -724,6 +729,58 @@ function App() {
     }
   }
 
+  async function importDeck() {
+    setImportState('loading')
+    setImportError('')
+    try {
+      if (/^https?:\/\//i.test(importSource.trim())) throw new Error('URL import is unavailable in this client-only app. Paste the exported deck list instead.')
+      await applyImportedDeck(parseDeckList(importSource))
+      setShowImport(false)
+      setImportSource('')
+      setImportState('idle')
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Could not import deck.')
+      setImportState('error')
+    }
+  }
+
+  async function applyImportedDeck(imported: ImportedDeck) {
+    const commanderEntries = imported.cards.filter(({ board }) => board === 'commander')
+    if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
+    if (commanderEntries.reduce((sum, card) => sum + card.quantity, 0) > 2) throw new Error('Commander section must contain one commander or partner pair.')
+    const mainCount = imported.cards.filter(({ board }) => board !== 'sideboard').reduce((sum, card) => sum + card.quantity, 0)
+    if (mainCount > 100) throw new Error('Main deck exceeds 100 cards.')
+
+    const identifiers = imported.cards.map((card) => card.set && card.collectorNumber ? { set: card.set, collector_number: card.collectorNumber } : { name: card.name })
+    const fetched: ScryfallCard[] = []
+    for (let index = 0; index < identifiers.length; index += 75) {
+      const response = await fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: identifiers.slice(index, index + 75) }) })
+      if (!response.ok) throw new Error('Scryfall unavailable. Try again.')
+      const result = await response.json() as { data: ScryfallCard[]; not_found?: unknown[] }
+      fetched.push(...result.data)
+      if (result.not_found?.length) throw new Error(`${result.not_found.length} card${result.not_found.length === 1 ? '' : 's'} not found. Check names, sets, and collector numbers.`)
+    }
+
+    const expanded = imported.cards.flatMap((entry, index) => Array.from({ length: entry.quantity }, () => ({ entry, card: fetched[index] })))
+    const commanderCards = expanded.filter(({ entry }) => entry.board === 'commander')
+    if (commanderCards.some(({ card }) => !card.type_line.includes('Legendary') && !card.type_line.includes('Background'))) throw new Error('Commander section contains a card that cannot be a commander.')
+    const identity = [...new Set(commanderCards.flatMap(({ card }) => card.color_identity))]
+    const illegal = expanded.find(({ card }) => card.color_identity.some((colour) => !identity.includes(colour)))
+    if (illegal) throw new Error(`${illegal.card.name} is outside commander colour identity.`)
+
+    const name = commanderCards.map(({ card }) => card.name).join(' & ')
+    const loaded = await start(name)
+    if (!loaded) throw new Error('Could not load commander recommendations.')
+    const toImportedCard = ({ card }: (typeof expanded)[number]) => toDeckCard(card)
+    const importedMain = expanded.filter(({ entry }) => entry.board !== 'sideboard').sort((a, b) => Number(b.entry.board === 'commander') - Number(a.entry.board === 'commander')).map(toImportedCard)
+    const importedSideboard = expanded.filter(({ entry }) => entry.board === 'sideboard').map(toImportedCard)
+    setDeck(importedMain)
+    setSideboard(importedSideboard)
+    setQueue((current) => current.filter((card) => !expanded.some(({ card: importedCard }) => importedCard.name === card.name)))
+    setDeckName(imported.name ?? '')
+    setActiveSavedDeckId('')
+  }
+
   function startOver() {
     if (!window.confirm('Start over? This clears your current deck and recommendation history. Saved decks remain available.')) return
     clearDeckState()
@@ -747,6 +804,17 @@ function App() {
     setActiveSavedDeckId('')
     setDeckName('')
   }
+
+  const importModal = showImport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && importState !== 'loading') setShowImport(false) }}>
+    <section className="export-modal import-modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
+      <div className="export-heading"><div><p className="eyebrow">Bring an existing deck</p><h2 id="import-title">Import deck</h2></div><button className="modal-close" disabled={importState === 'loading'} onClick={() => setShowImport(false)} aria-label="Close import">×</button></div>
+      <p className="import-help">Paste an exported deck list. Put commander cards below a <b>COMMANDER:</b> heading. Set and collector number syntax is preserved.</p>
+      <p className="import-note">Moxfield and Archidekt URLs are not supported because this is a client-only app and those sites block browser access. Export the deck as text, then paste it here.</p>
+      <textarea value={importSource} onChange={(event) => { setImportSource(event.target.value); setImportState('idle'); setImportError('') }} placeholder={'COMMANDER:\n1 Commander Name (SET) 123\n\nMAINBOARD:\n1 Card Name (SET) 456'} aria-label="Exported deck list" />
+      {importError && <p className="form-error" role="alert">{importError}</p>}
+      <div className="export-actions"><button onClick={() => setShowImport(false)} disabled={importState === 'loading'}>Cancel</button><button className="primary" disabled={!importSource.trim() || importState === 'loading'} onClick={() => void importDeck()}>{importState === 'loading' ? 'Importing…' : 'Import deck'}</button></div>
+    </section>
+  </div>
 
   const deckNameDuplicate = duplicateDeckName(savedDecks, deckName, activeSavedDeckId)
   const activeSavedDeck = savedDecks.find(({ id }) => id === activeSavedDeckId)
@@ -782,8 +850,9 @@ function App() {
 
   if (!commander) return (
     <main className={darkMode ? 'dark' : ''}>
-      <header><a className="brand" href="/">Commander's Table</a><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={openSavedDecks}>Saved decks ({savedDecks.length})</button></div></header>
+      <header><a className="brand" href="/">Commander's Table</a><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowImport(true)}>Import deck</button><button className="export" type="button" onClick={openSavedDecks}>Saved decks ({savedDecks.length})</button></div></header>
       {savedDecksModal}
+      {importModal}
       <section className="start">
         <p className="eyebrow">Build from scratch</p>
         <h1>What do you want to play?</h1>
@@ -871,9 +940,10 @@ function App() {
       <header>
         <button className="brand reset" onClick={startOver}>Commander's Table</button>
         <div className="deck-status">{activeSavedDeck && <div className="saved-status"><b>{activeSavedDeck.name}</b><small>Saved {new Date(activeSavedDeck.updatedAt).toLocaleString()} <span className="delta-added">+{activeDeckDelta?.added}</span> <span className="delta-removed">−{activeDeckDelta?.removed}</span></small></div>}<div className="progress"><span style={{ background: `linear-gradient(90deg, var(--commander-accent, #7650ae) ${deck.length}%, #dedcea ${deck.length}%)` }} />{deck.length} / 100 cards</div></div>
-        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={openSavedDecks}>Save / load</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
+        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={() => setShowImport(true)}>Import</button><button className="export" type="button" onClick={openSavedDecks}>Save / load</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
       {savedDecksModal}
+      {importModal}
       <section className="intro commander-header">
         {commanderDetails ? <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
           {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} key={commanderNames(commander)[index]} />)}

@@ -47,6 +47,10 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .export-actions a { color: #69409a; }
 .export-actions .primary { padding: 11px 16px; border: 0; border-radius: 6px; background: #36327f; color: white; }
 .card-search-modal { width: min(680px, 100%); }
+.import-modal { width: min(680px, 100%); }
+.import-modal textarea { min-height: 260px; margin-top: 14px; }
+.import-help { margin: 18px 0 0; color: #625f76; font-size: 13px; line-height: 1.45; }
+.import-note { margin: 8px 0 0; padding: 9px 11px; border-left: 3px solid #b5985c; background: #f2ead9; color: #625742; font-size: 12px; line-height: 1.45; }
 .saved-decks-modal { width: min(620px, 100%); }
 .save-deck-form { display: flex; align-items: start; gap: 8px; margin-top: 22px; }
 .save-deck-form label { position: relative; display: grid; min-width: 0; flex: 1; }
@@ -389,7 +393,8 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .suggestions button { padding: 14px 16px; }
 .dark .suggestions button, .dark .start-panel input, .dark .export-modal textarea, .dark .card-search-form input { color: #e5e3f0; background: #121121; }
 .dark .card-search-results, .dark .card-search-results button { border-color: #39374f; }
-.dark .manual-card-preview p, .dark .card-search-status, .dark .card-search-filter, .dark .card-search-results small, .dark .moxfield-instructions { color: #aaa8c2; }
+.dark .manual-card-preview p, .dark .card-search-status, .dark .card-search-filter, .dark .card-search-results small, .dark .moxfield-instructions, .dark .import-help { color: #aaa8c2; }
+.dark .import-note { background: #ffffff0d; color: #d4bd8b; }
 .dark .manual-card-button { border-color: #615b96; color: #d4d0ed; }
 .dark .start-over, .dark .completion p:not(.eyebrow) { color: #aaa8c2; }
 .dark .completion { background: color-mix(in srgb, var(--commander-accent, #36327f) 18%, #19182d); }
