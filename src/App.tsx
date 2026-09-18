@@ -311,10 +311,10 @@ function App() {
             <div className="themes">
               {visibleThemes.map((name) => <button className={theme === name ? 'selected' : ''} key={name} type="button" onClick={() => chooseTheme(name)}>{name}</button>)}
             </div>
-            <div className="theme-actions">
-              {visibleThemes.length < Object.keys(themeCommanders).length && <button className="reroll" type="button" onClick={() => setVisibleThemes((current) => [...current, ...randomItems(Object.keys(themeCommanders).filter((name) => !current.includes(name)), 6)])}>+ Show more themes</button>}
+            {visibleThemes.length < Object.keys(themeCommanders).length && <div className="theme-actions">
+              <button className="reroll" type="button" onClick={() => setVisibleThemes((current) => [...current, ...randomItems(Object.keys(themeCommanders).filter((name) => !current.includes(name)), 6)])}>+ Show more themes</button>
               <button className="reroll" type="button" onClick={() => { setTheme(''); setVisibleThemes(randomItems(Object.keys(themeCommanders), 6)) }}>↻ Show different themes</button>
-            </div>
+            </div>}
             <h3 className="filter-heading">Or choose colours</h3>
             <div className="colour-picker">
               {Object.entries(colourNames).map(([symbol, name]) => <button className={colours.includes(symbol) ? 'selected' : ''} key={symbol} onClick={() => toggleColour(symbol)} aria-label={name}><img src={`https://svgs.scryfall.io/card-symbols/${symbol}.svg`} alt="" /></button>)}
