@@ -13,7 +13,7 @@ main.dark { color-scheme: dark; background: #111123; color: #d8d8ea; }
 .commander-backdrop span { flex: 1; background-position: center 22%; background-size: cover; }
 .commander-backdrop::after { position: absolute; inset: 0; content: ''; background: linear-gradient(180deg, #f2f3fbe6 0, #f2f3fbf2 38%, #f2f3fb 78%); }
 .dark .commander-backdrop::after { background: linear-gradient(180deg, #111123cc 0, #111123ee 38%, #111123 78%); }
-main > :not(.commander-backdrop) { position: relative; z-index: 1; }
+main > :not(.commander-backdrop, .modal-backdrop) { position: relative; z-index: 1; }
 header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dad8e6; background: #f8f8ff; }
 .brand { color: #36327f; font: 600 21px 'Spectral', serif; text-decoration: none; }
 .reset { border: 0; padding: 0; background: transparent; }
@@ -179,7 +179,7 @@ main > .commander-header { z-index: 2; }
 .art-loading { position: absolute; z-index: 2; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 4.75%; background: #17162acc; color: white; font-size: 12px; font-weight: 600; }
 .art-loading i { width: 18px; height: 18px; border: 2px solid #ffffff66; border-top-color: white; border-radius: 50%; animation: art-spin .7s linear infinite; }
 @keyframes art-spin { to { transform: rotate(1turn); } }
-button:disabled { cursor: wait; }
+button:disabled { cursor: not-allowed; opacity: .45; }
 .suggestion-type { min-height: 0; margin: 0 0 6px; color: #7546a8; font: 600 13px 'DM Sans', sans-serif; letter-spacing: 1.2px; text-transform: uppercase; }
 .card-copy h3 { margin: 18px 0 10px; font-size: 21px; }
 .card-copy > p { min-height: 48px; color: #69667d; font-size: 13px; line-height: 1.5; white-space: pre-line; }
