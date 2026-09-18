@@ -88,8 +88,8 @@ h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
 .commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(4) { z-index: 4; }
 .commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(5) { z-index: 5; }
 .commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:nth-child(6) { z-index: 6; }
-.commander-cost:has(.mana-symbol:nth-child(5)):hover .mana-symbol { flex: 0 0 18px; margin-left: 1px; }
-.commander-cost:has(.mana-symbol:nth-child(5)):hover .mana-symbol:first-child { margin-left: 0; }
+.suggestions button:is(:hover, :focus-visible) .commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol { flex: 0 0 18px; margin-left: 1px; }
+.suggestions button:is(:hover, :focus-visible) .commander-cost:has(.mana-symbol:nth-child(5)) .mana-symbol:first-child { margin-left: 0; }
 .commander-cost .mana-symbol { transition: margin .15s; }
 .cost-placeholder { width: 70px; height: 14px; border-radius: 9px; background: linear-gradient(90deg, #39374f 25%, #514e70 50%, #39374f 75%); background-size: 200% 100%; animation: cost-loading 1.2s infinite; }
 @keyframes cost-loading { to { background-position: -200% 0; } }
