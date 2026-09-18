@@ -1,10 +1,10 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import './App.css'
 
-type Printing = { image: string; set: string; collectorNumber: string }
+type Printing = { image: string; art?: string; set: string; collectorNumber: string }
 type Card = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; printings?: Printing[]; printing?: number }
 type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string }
-type CommanderDetails = { images: string[]; art: string[]; colours: string[] }
+type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 type ScryfallCard = { name: string; type_line: string; mana_cost?: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; game_changer?: boolean; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; oracle_text?: string; image_uris?: { normal: string } }[] }
 type EdhrecEntry = { name: string; tag: string; header: string }
@@ -130,6 +130,7 @@ function App() {
   const [copied, setCopied] = useState(false)
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') !== 'light')
   const [commanderStyling, setCommanderStyling] = useState(true)
+  const [preferredPrintSet, setPreferredPrintSet] = useState('')
 
   useEffect(() => {
     localStorage.setItem('theme', darkMode ? 'dark' : 'light')
@@ -273,6 +274,22 @@ function App() {
     }).flat()
   }
 
+  async function loadPrintings(cards: Card[], preferredSet = '') {
+    for (const offered of cards) {
+      await new Promise((resolve) => setTimeout(resolve, 150))
+      const response = await fetch(offered.printsUri)
+      if (!response.ok) continue
+      const result = await response.json() as { data: ScryfallCard[] }
+      const printings = result.data.flatMap((printing) => {
+        const image = printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal
+        return image ? [{ image, set: printing.set, collectorNumber: printing.collector_number }] : []
+      }).filter((printing, index, all) => all.findIndex((item) => item.image === printing.image) === index)
+      const selectedIndex = preferredSet ? printings.findIndex((printing) => printing.set === preferredSet) : -1
+      const selected = printings[selectedIndex]
+      setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings, ...(selected ? { image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing: selectedIndex } : {}) } : item))
+    }
+  }
+
   async function start(name: string, preserveDeck = false) {
     const chosen = name.trim()
     if (!chosen) return
@@ -281,17 +298,29 @@ function App() {
     setCommanderDetails(null)
     setQueue([])
     setLimitedRecommendations(false)
+    if (!preserveDeck) setPreferredPrintSet('')
     setRecommendationState('loading')
 
     try {
       const responses = await Promise.all(commanderNames(chosen).map((name) => fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)))
       if (responses.some((response) => !response.ok)) throw new Error('Commander unavailable')
-      type CommanderCard = { name: string; color_identity: string[]; mana_cost?: string; set: string; collector_number: string; related_uris?: { edhrec?: string }; image_uris?: { normal: string; art_crop?: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string; art_crop?: string } }[] }
+      type CommanderCard = { name: string; color_identity: string[]; mana_cost?: string; set: string; collector_number: string; prints_search_uri: string; related_uris?: { edhrec?: string }; image_uris?: { normal: string; art_crop?: string }; card_faces?: { mana_cost?: string; image_uris?: { normal: string; art_crop?: string } }[] }
       const commanders = await Promise.all(responses.map((response) => response.json() as Promise<CommanderCard>))
       const images = commanders.flatMap((card) => card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? [])
       const art = commanders.flatMap((card) => card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop ?? [])
       const identityColours = [...new Set(commanders.flatMap((card) => card.color_identity))]
-      if (images.length) setCommanderDetails({ images, art, colours: identityColours })
+      const commanderPrintings = await Promise.all(commanders.map(async (card) => {
+        const primary = { image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', art: card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop, set: card.set, collectorNumber: card.collector_number }
+        const response = await fetch(card.prints_search_uri)
+        if (!response.ok) return [primary]
+        const result = await response.json() as { data: CommanderCard[] }
+        const alternatives = result.data.flatMap((printing) => {
+          const image = printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal
+          return image && image !== primary.image ? [{ image, art: printing.image_uris?.art_crop ?? printing.card_faces?.[0]?.image_uris?.art_crop, set: printing.set, collectorNumber: printing.collector_number }] : []
+        }).filter((printing, index, all) => all.findIndex((item) => item.image === printing.image) === index)
+        return [primary, ...alternatives]
+      }))
+      if (images.length) setCommanderDetails({ images, art, colours: identityColours, printings: commanderPrintings, selections: commanders.map(() => 0) })
       if (!preserveDeck) setDeck(commanders.map((card) => ({ name: card.name, typeLine: 'Legendary Creature', manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '' })))
 
       let offeredCards: Card[]
@@ -305,17 +334,7 @@ function App() {
       }
       setQueue(offeredCards)
       setRecommendationState('idle')
-      for (const offered of offeredCards.slice(0, 4)) {
-      await new Promise((resolve) => setTimeout(resolve, 150))
-      const printResponse = await fetch(offered.printsUri)
-      if (!printResponse.ok) continue
-      const printResult = await printResponse.json() as { data: ScryfallCard[] }
-      const printings = printResult.data.flatMap((printing) => {
-        const image = printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal
-        return image ? [{ image, set: printing.set, collectorNumber: printing.collector_number }] : []
-      }).filter((printing, index, all) => all.findIndex((item) => item.image === printing.image) === index)
-        setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings } : item))
-      }
+      await loadPrintings(offeredCards.slice(0, 4), preferredPrintSet)
     } catch {
       setRecommendationState('error')
     }
@@ -326,6 +345,21 @@ function App() {
     if (previous === 'add' && action !== 'add') setDeck((list) => list.filter((item) => item.name !== card.name))
     if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, typeLine: card.typeLine, manaCost: card.manaCost, set: card.set, collectorNumber: card.collectorNumber, image: card.image }])
     setDecisions((current) => ({ ...current, [card.name]: action }))
+  }
+
+  function cycleCommanderPrinting(commanderIndex: number) {
+    if (!commanderDetails || commanderDetails.printings[commanderIndex].length < 2) return
+    const selection = (commanderDetails.selections[commanderIndex] + 1) % commanderDetails.printings[commanderIndex].length
+    const selected = commanderDetails.printings[commanderIndex][selection]
+    setPreferredPrintSet(selected.set)
+    setCommanderDetails((current) => current && ({ ...current, images: current.images.map((image, index) => index === commanderIndex ? selected.image : image), art: current.art.map((image, index) => index === commanderIndex ? selected.art ?? image : image), selections: current.selections.map((value, index) => index === commanderIndex ? selection : value) }))
+    setDeck((current) => current.map((card, index) => index === commanderIndex ? { ...card, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber } : card))
+    setQueue((current) => current.map((card) => {
+      const matching = card.printings?.findIndex((printing) => printing.set === selected.set) ?? -1
+      if (matching < 0 || !card.printings) return card
+      const printing = card.printings[matching]
+      return { ...card, image: printing.image, set: printing.set, collectorNumber: printing.collectorNumber, printing: matching }
+    }))
   }
 
   function cyclePrinting(card: Card) {
@@ -361,8 +395,10 @@ function App() {
       const pool = includeCreature && creature ? others.slice(index * 2, index * 2 + 2) : main.slice(index * 3, index * 3 + 3)
       return [...(includeCreature && creature ? [creature, ...pool] : pool), manaCard]
     })
-    setQueue([...batches, ...deferred])
+    const nextQueue = [...batches, ...deferred]
+    setQueue(nextQueue)
     setDecisions({})
+    void loadPrintings(nextQueue.slice(0, 4), preferredPrintSet)
   }
 
   if (!commander) return (
@@ -423,7 +459,7 @@ function App() {
       <section className="intro commander-header">
         {commanderDetails && <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
           {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} key={image} />)}
-          <span className="card-zoom">{commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} full card`} key={image} />)}</span>
+          <span className="card-zoom">{commanderDetails.images.map((image, index) => <span className="commander-printing" key={image}><img src={image} alt={`${commanderNames(commander)[index]} full card`} />{commanderDetails.printings[index].length > 1 && <button type="button" onClick={() => cycleCommanderPrinting(index)} aria-label={`Show alternate printing of ${commanderNames(commander)[index]}`}>↻ Art {commanderDetails.selections[index] + 1}/{commanderDetails.printings[index].length}</button>}</span>)}</span>
         </figure>}
         <div className="commander-summary"><p className="eyebrow">Building around</p><h1>{commander}</h1>
           <div className="identity" aria-label={`Colour identity: ${commanderDetails?.colours.map((colour) => colourNames[colour]).join(', ') || 'loading'}`}>
@@ -438,10 +474,10 @@ function App() {
           <div className="recommendation-options">
             <label><input type="checkbox" checked={includeCreature} onChange={(event) => setIncludeCreature(event.target.checked)} /> Include a creature when possible</label>
             <label><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label>
-            <fieldset><legend>Bracket safety</legend>
-              <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => setExcludeGameChangers(event.target.checked)} /> Game Changers</label>
-              <label><input type="checkbox" checked={excludeTutors} onChange={(event) => setExcludeTutors(event.target.checked)} /> Tutors</label>
-              <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => setExcludeExtraTurns(event.target.checked)} /> Extra turns</label>
+            <fieldset><legend>Exclude from recommendations</legend>
+              <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => setExcludeGameChangers(event.target.checked)} /> Exclude Game Changers</label>
+              <label><input type="checkbox" checked={excludeTutors} onChange={(event) => setExcludeTutors(event.target.checked)} /> Exclude tutors</label>
+              <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => setExcludeExtraTurns(event.target.checked)} /> Exclude extra turns</label>
               <button type="button" onClick={() => void start(commander, true)}>Apply</button>
             </fieldset>
           </div>
