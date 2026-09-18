@@ -370,7 +370,7 @@ function App() {
     const selected = commanderDetails.printings[commanderIndex][selection]
     const loadingName = commanderNames(commander)[commanderIndex]
     setLoadingArt(`pending:${loadingName}`)
-    const loadingTimer = setTimeout(() => setLoadingArt(loadingName), 180)
+    const loadingTimer = setTimeout(() => setLoadingArt(loadingName), 50)
     await preloadArt([selected.image, selected.art])
     clearTimeout(loadingTimer)
     setPreferredPrintSet(selected.set)
@@ -390,7 +390,7 @@ function App() {
     const index = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[index]
     setLoadingArt(`pending:${card.name}`)
-    const loadingTimer = setTimeout(() => setLoadingArt(card.name), 180)
+    const loadingTimer = setTimeout(() => setLoadingArt(card.name), 50)
     await preloadArt([selected.image])
     clearTimeout(loadingTimer)
     setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printingManuallySelected: true } : item))
@@ -408,7 +408,7 @@ function App() {
     const printing = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[printing]
     setLoadingArt(`pending:${card.name}`)
-    const loadingTimer = setTimeout(() => setLoadingArt(card.name), 180)
+    const loadingTimer = setTimeout(() => setLoadingArt(card.name), 50)
     await preloadArt([selected.image])
     clearTimeout(loadingTimer)
     setDeck((current) => current.map((item, index) => index === cardIndex ? { ...item, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing, printingManuallySelected: true } : item))
