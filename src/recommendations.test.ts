@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
+import { batchRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
 
 test('all exposed themes can tag matching card text', () => {
   for (const theme of supportedThemes) {
@@ -18,6 +18,19 @@ test('synergy pair requires concrete complementary rules text', () => {
   ]
   assert.match(findSynergyPair(cards)?.explanation ?? '', /creates tokens/)
   assert.equal(findSynergyPair(cards.map((card) => ({ ...card, detail: 'Artifact creature.' }))), null)
+})
+
+test('new cards are limited to one per batch when established picks exist', () => {
+  const cards = [
+    ...['New 1', 'New 2', 'New 3', 'New 4'].map((name) => ({ name, reason: 'Interesting new pick', typeLine: 'Creature' })),
+    { name: 'Synergy', reason: 'Commander synergy', typeLine: 'Creature' },
+    { name: 'Interaction', reason: 'Interaction', typeLine: 'Instant' },
+    { name: 'Mana', reason: 'Land or mana', typeLine: 'Land' },
+  ]
+  const ordered = batchRecommendations(cards, true)
+  assert.equal(ordered.slice(0, 4).filter((card) => card.reason === 'Interesting new pick').length, 1)
+  assert.equal(ordered.slice(0, 4).filter((card) => card.reason === 'Land or mana').length, 1)
+  assert.equal(new Set(ordered).size, cards.length)
 })
 
 test('active themes fill at most two slots without changing batch roles or losing cards', () => {

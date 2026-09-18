@@ -78,6 +78,36 @@ export function findSynergyPair<T extends TaggedCard>(cards: T[]) {
   return null
 }
 
+export function batchRecommendations<T extends { name: string; reason: string; typeLine: string }>(cards: T[], includeCreature: boolean) {
+  const remaining = [...cards]
+  const ordered: T[] = []
+  while (remaining.length) {
+    const picks: T[] = []
+    const take = (test: (card: T) => boolean) => {
+      const withinNewCardLimit = (card: T) => card.reason !== 'Interesting new pick' || !picks.some((pick) => pick.reason === 'Interesting new pick')
+      let index = remaining.findIndex((card) => !picks.includes(card) && test(card) && withinNewCardLimit(card))
+      if (index < 0) index = remaining.findIndex((card) => !picks.includes(card) && test(card))
+      if (index >= 0) picks.push(remaining[index])
+    }
+    if (includeCreature) take((card) => card.reason !== 'Land or mana' && card.typeLine.includes('Creature'))
+    while (picks.filter((card) => card.reason !== 'Land or mana').length < 3) {
+      const before = picks.length
+      take((card) => card.reason !== 'Land or mana')
+      if (picks.length === before) break
+    }
+    take((card) => card.reason === 'Land or mana')
+    while (picks.length < 4) {
+      const before = picks.length
+      take(() => true)
+      if (picks.length === before) break
+    }
+    ordered.push(...picks)
+    for (const pick of picks) remaining.splice(remaining.indexOf(pick), 1)
+  }
+  if (ordered.length !== cards.length || new Set(ordered.map((card) => card.name)).size !== cards.length) throw new Error('Recommendation queue lost or duplicated cards')
+  return ordered
+}
+
 export function limitThemeMatches<T extends { tags: string[] }>(cards: T[], themes: string[], isMana: (card: T) => boolean, isCreature: (card: T) => boolean, perBatch = 2) {
   const ordered = [...cards]
   if (!themes.length) return ordered

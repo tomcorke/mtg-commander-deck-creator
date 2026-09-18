@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores, type DeferredCard, type EdhrecThemeCount } from './recommendations'
+import { batchRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores, type DeferredCard, type EdhrecThemeCount } from './recommendations'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -95,34 +95,6 @@ function sharedTheme(cards: { tags: string[] }[], excluded: string[] = []) {
   const counts = new Map<string, number>()
   for (const card of cards) for (const tag of card.tags) if (!excluded.includes(tag) && !['Creatures', 'Lands'].includes(tag)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
   return [...counts].sort((a, b) => b[1] - a[1]).find(([, count]) => count >= 2)?.[0] ?? ''
-}
-
-function batchRecommendations(cards: Card[], includeCreature: boolean) {
-  const remaining = [...cards]
-  const ordered: Card[] = []
-  while (remaining.length) {
-    const picks: Card[] = []
-    const take = (test: (card: Card) => boolean) => {
-      const index = remaining.findIndex((card) => !picks.includes(card) && test(card))
-      if (index >= 0) picks.push(remaining[index])
-    }
-    if (includeCreature) take((card) => card.reason !== 'Land or mana' && card.typeLine.includes('Creature'))
-    while (picks.filter((card) => card.reason !== 'Land or mana').length < 3) {
-      const before = picks.length
-      take((card) => card.reason !== 'Land or mana')
-      if (picks.length === before) break
-    }
-    take((card) => card.reason === 'Land or mana')
-    while (picks.length < 4) {
-      const next = remaining.find((card) => !picks.includes(card))
-      if (!next) break
-      picks.push(next)
-    }
-    ordered.push(...picks)
-    for (const pick of picks) remaining.splice(remaining.indexOf(pick), 1)
-  }
-  if (ordered.length !== cards.length || new Set(ordered.map((card) => card.name)).size !== cards.length) throw new Error('Recommendation queue lost or duplicated cards')
-  return ordered
 }
 
 function symbolName(symbol: string) {
