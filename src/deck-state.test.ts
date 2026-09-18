@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { clearDeckState, deckStateKey, deckStateVersion, deleteSavedDeck, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, savedDecksKey, type PersistedDeckState } from './deck-state.ts'
+import { clearDeckState, deckStateKey, deckStateVersion, deleteSavedDeck, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, savedDecksKey, suggestedDeckName, type PersistedDeckState } from './deck-state.ts'
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial))
@@ -37,6 +37,13 @@ test('deck state round-trips and clears', () => {
   assert.deepEqual(loadDeckState(storage), state)
   clearDeckState(storage)
   assert.equal(loadDeckState(storage), null)
+})
+
+test('suggests names and detects duplicates except current deck id', () => {
+  assert.equal(suggestedDeckName('Anikthea', 'Enchantments', ['Tokens', 'Graveyard']), 'Anikthea - Enchantments - Tokens - Graveyard')
+  const decks = [{ id: 'deck-1', name: 'Anikthea', updatedAt: '', state }]
+  assert.equal(duplicateDeckName(decks, ' anikthea '), true)
+  assert.equal(duplicateDeckName(decks, 'Anikthea', 'deck-1'), false)
 })
 
 test('saved decks can be created, renamed, updated, and deleted', () => {

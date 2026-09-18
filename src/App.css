@@ -41,9 +41,13 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .export-actions .primary { padding: 11px 16px; border: 0; border-radius: 6px; background: #36327f; color: white; }
 .card-search-modal { width: min(680px, 100%); }
 .saved-decks-modal { width: min(620px, 100%); }
-.save-deck-form { display: flex; gap: 8px; margin-top: 22px; }
-.save-deck-form input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #bbb9cd; border-radius: 6px; background: white; color: #28273b; font: inherit; }
-.save-deck-form .primary { padding: 0 18px; border: 0; border-radius: 6px; background: #36327f; color: white; }
+.save-deck-form { display: flex; align-items: start; gap: 8px; margin-top: 22px; }
+.save-deck-form label { position: relative; display: grid; min-width: 0; flex: 1; }
+.save-deck-form input { min-width: 0; width: 100%; padding: 12px 38px 12px 12px; border: 1px solid #bbb9cd; border-radius: 6px; background: white; color: #28273b; font: inherit; }
+.save-deck-form input[aria-invalid="true"] { border-color: #a13e4c; }
+.save-deck-form .primary { min-height: 44px; padding: 0 18px; border: 0; border-radius: 6px; background: #36327f; color: white; }
+.clear-deck-name { position: absolute; top: 5px; right: 5px; width: 34px; height: 34px; border: 0; background: transparent; color: #706d82; font-size: 20px; }
+.deck-name-warning { margin-top: 5px; color: #a13e4c; font-size: 12px; }
 .saved-deck-list { margin-top: 20px; overflow: auto; }
 .saved-deck-list article { display: flex; align-items: center; gap: 12px; border-top: 1px solid #dad8e6; }
 .saved-deck-load { display: grid; flex: 1; gap: 3px; padding: 14px 0; border: 0; background: transparent; color: inherit; text-align: left; }

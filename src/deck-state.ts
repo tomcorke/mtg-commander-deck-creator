@@ -57,6 +57,9 @@ export const persistedDeckStateSchema = z.object({
 export type PersistedDeckState = z.infer<typeof persistedDeckStateSchema>
 export type SavedDeck = { id: string; name: string; updatedAt: string; state: PersistedDeckState }
 
+export const suggestedDeckName = (commander: string, theme: string, subThemes: string[]) => [commander, theme, ...subThemes].filter((name, index, names) => name && names.indexOf(name) === index).join(' - ')
+export const duplicateDeckName = (decks: SavedDeck[], name: string, currentId = '') => decks.some((deck) => deck.id !== currentId && deck.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase())
+
 const savedDeckSchema = z.object({ id: z.string().min(1), name: z.string().min(1), updatedAt: z.string(), state: persistedDeckStateSchema })
 
 export function loadDeckState(storage: StorageLike = localStorage): PersistedDeckState | null {
