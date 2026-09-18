@@ -142,7 +142,7 @@ main > .commander-header { z-index: 2; }
 .card-offer.synergy-pair { border-color: #9a72ba; }
 .card-offer.synergy-1::after { position: absolute; z-index: 2; top: 31px; left: calc(100% - 3px); width: 30px; height: 12px; border: 3px solid #9a72ba; border-width: 3px 0; background: #17162a; content: ''; }
 .offer-heading { height: 70px; overflow: visible; }
-.synergy-info { position: relative; width: fit-content; margin-top: -6px; }
+.synergy-info { position: relative; width: fit-content; margin-top: -12px; }
 .synergy-info summary { padding: 4px 9px; border: 1px solid #9a72ba; border-radius: 14px; background: #eee8f7; color: #5d3878; font-size: 11px; font-weight: 600; list-style: none; cursor: pointer; }
 .synergy-info summary::-webkit-details-marker { display: none; }
 .synergy-popover { position: absolute; z-index: 8; top: calc(100% + 7px); left: 0; width: 250px; padding: 12px; border: 1px solid #9a72ba; border-radius: 8px; background: #f8f8ff; color: #3e3850; box-shadow: 0 12px 30px #201c3c55; font-size: 12px; line-height: 1.4; }
