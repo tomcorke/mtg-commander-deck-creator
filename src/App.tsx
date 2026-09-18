@@ -131,6 +131,7 @@ function App() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') !== 'light')
   const [commanderStyling, setCommanderStyling] = useState(true)
   const [preferredPrintSet, setPreferredPrintSet] = useState('')
+  const [loadingArt, setLoadingArt] = useState('')
 
   useEffect(() => {
     localStorage.setItem('theme', darkMode ? 'dark' : 'light')
@@ -345,9 +346,10 @@ function App() {
   }
 
   async function cycleCommanderPrinting(commanderIndex: number) {
-    if (!commanderDetails || commanderDetails.printings[commanderIndex].length < 2) return
+    if (!commanderDetails || commanderDetails.printings[commanderIndex].length < 2 || loadingArt) return
     const selection = (commanderDetails.selections[commanderIndex] + 1) % commanderDetails.printings[commanderIndex].length
     const selected = commanderDetails.printings[commanderIndex][selection]
+    setLoadingArt(commanderNames(commander)[commanderIndex])
     await Promise.all([selected.image, selected.art].filter(Boolean).map((source) => new Promise<void>((resolve) => {
       const image = new Image()
       image.onload = image.onerror = () => resolve()
@@ -362,14 +364,22 @@ function App() {
       const printing = card.printings[matching]
       return { ...card, image: printing.image, set: printing.set, collectorNumber: printing.collectorNumber, printing: matching }
     }))
+    setLoadingArt('')
   }
 
-  function cyclePrinting(card: Card) {
-    if (!card.printings || card.printings.length < 2) return
+  async function cyclePrinting(card: Card) {
+    if (!card.printings || card.printings.length < 2 || loadingArt) return
     const index = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[index]
+    setLoadingArt(card.name)
+    await new Promise<void>((resolve) => {
+      const image = new Image()
+      image.onload = image.onerror = () => resolve()
+      image.src = selected.image
+    })
     setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printingManuallySelected: true } : item))
     if (decisions[card.name] === 'add') setDeck((current) => current.map((item) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber, image: selected.image, printing: index, printingManuallySelected: true } : item))
+    setLoadingArt('')
   }
 
   async function cycleDeckPrinting(cardIndex: number) {
@@ -378,15 +388,17 @@ function App() {
       return
     }
     const card = deck[cardIndex]
-    if (!card.printings || card.printings.length < 2) return
+    if (!card.printings || card.printings.length < 2 || loadingArt) return
     const printing = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[printing]
+    setLoadingArt(card.name)
     await new Promise<void>((resolve) => {
       const image = new Image()
       image.onload = image.onerror = () => resolve()
       image.src = selected.image
     })
     setDeck((current) => current.map((item, index) => index === cardIndex ? { ...item, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing, printingManuallySelected: true } : item))
+    setLoadingArt('')
   }
 
   function deckList(format: ExportFormat) {
@@ -488,7 +500,7 @@ function App() {
         {commanderDetails && <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
           {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} key={commanderNames(commander)[index]} />)}
           {commanderDetails.printings.some((printings) => printings.length > 1) && <span className="printing-indicator" aria-hidden="true">↻ Art</span>}
-          <span className="card-zoom">{commanderDetails.images.map((image, index) => <span className="commander-printing" key={commanderNames(commander)[index]}><img src={image} alt={`${commanderNames(commander)[index]} full card`} />{commanderDetails.printings[index].length > 1 && <button type="button" onClick={() => cycleCommanderPrinting(index)} aria-label={`Show alternate printing of ${commanderNames(commander)[index]}`}>↻ Art {commanderDetails.selections[index] + 1}/{commanderDetails.printings[index].length}</button>}</span>)}</span>
+          <span className="card-zoom">{commanderDetails.images.map((image, index) => <span className="commander-printing" key={commanderNames(commander)[index]}><img src={image} alt={`${commanderNames(commander)[index]} full card`} />{loadingArt === commanderNames(commander)[index] && <span className="art-loading" role="status"><i />Loading art…</span>}{commanderDetails.printings[index].length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cycleCommanderPrinting(index)} aria-label={`Show alternate printing of ${commanderNames(commander)[index]}`}>↻ Art {commanderDetails.selections[index] + 1}/{commanderDetails.printings[index].length}</button>}</span>)}</span>
         </figure>}
         <div className="commander-summary"><p className="eyebrow">Building around</p><h1>{commander}</h1>
           <div className="identity" aria-label={`Colour identity: ${commanderDetails?.colours.map((colour) => colourNames[colour]).join(', ') || 'loading'}`}>
@@ -553,7 +565,7 @@ function App() {
                 <div><button className="primary" onClick={() => decide(card, 'add')}>Add</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
-              <div className="offered-image"><img src={card.image} alt={`${card.name} card`} />{card.printings && card.printings.length > 1 && <button type="button" onClick={() => cyclePrinting(card)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</div>
+              <div className="offered-image"><img src={card.image} alt={`${card.name} card`} />{loadingArt === card.name && <span className="art-loading" role="status"><i />Loading art…</span>}{card.printings && card.printings.length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cyclePrinting(card)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</div>
               <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p></div>
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
@@ -562,7 +574,7 @@ function App() {
           <div className="deck-heading"><div><p className="eyebrow">Your deck</p><h2>{deck.length} cards</h2></div><span>{deck.length}%</span></div>
           <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
           <dl><div><dt>Commander</dt><dd>{commanderNames(commander).length}</dd></div><div><dt>Creatures</dt><dd>{deck.slice(commanderNames(commander).length).filter((card) => card.typeLine.includes('Creature')).length}</dd></div><div><dt>Enchantments</dt><dd>{deck.filter((card) => card.typeLine.includes('Enchantment')).length}</dd></div><div><dt>Lands</dt><dd>{deck.filter((card) => card.typeLine.includes('Land')).length}</dd></div></dl>
-          <ol>{deck.map((card, index) => <li key={`${card.name}-${index}`} tabIndex={0}><span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index < commanderNames(commander).length ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} />{card.printings && card.printings.length > 1 && <button type="button" onClick={() => void cycleDeckPrinting(index)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</span>}</li>)}</ol>
+          <ol>{deck.map((card, index) => <li key={`${card.name}-${index}`} tabIndex={0}><span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index < commanderNames(commander).length ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} />{loadingArt === card.name && <span className="art-loading" role="status"><i />Loading art…</span>}{card.printings && card.printings.length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cycleDeckPrinting(index)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</span>}</li>)}</ol>
         </aside>
       </div>
     </main>
