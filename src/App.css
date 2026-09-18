@@ -125,7 +125,8 @@ main > .commander-header { z-index: 2; }
 .recommendation-options fieldset { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0; padding: 9px 12px; border: 1px solid #d2d0df; border-radius: 7px; }
 .recommendation-options legend { padding: 0 5px; color: #69409a; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; }
 .recommendation-options button { padding: 5px 9px; border: 1px solid #36327f; border-radius: 5px; background: transparent; color: #36327f; font-size: 12px; }
-.subthemes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.recommendation-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 20px; }
+.subthemes { display: flex; flex-wrap: wrap; gap: 8px; }
 .subthemes button { padding: 7px 11px; border: 1px solid #8d88bd; border-radius: 18px; background: #e8e6fa; color: #48427f; }
 .subthemes button span { margin-left: 4px; }
 .subthemes .add-subtheme { border-style: dashed; background: transparent; }
@@ -139,10 +140,13 @@ main > .commander-header { z-index: 2; }
 .card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin-top: 25px; }
 .card-offer { position: relative; min-width: 0; padding: 10px; border: 2px solid transparent; border-radius: 10px; transition: opacity .2s, background .2s, border-color .2s; }
 .card-offer.synergy-pair { border-color: #9a72ba; }
-.card-offer.synergy-1::after { position: absolute; z-index: 2; top: 26px; left: calc(100% + 2px); width: 24px; border-top: 2px solid #9a72ba; content: ''; }
-.offer-heading { height: 70px; overflow: hidden; }
-.pair-note { margin: -5px 0 8px; overflow: hidden; color: #625b75; font-size: 11px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.pair-note span { display: inline-grid; width: 18px; height: 18px; margin-right: 4px; place-items: center; border-radius: 50%; background: #7546a8; color: white; font-weight: 600; }
+.card-offer.synergy-1::after { position: absolute; z-index: 2; top: 31px; left: calc(100% - 3px); width: 30px; height: 12px; border: 3px solid #9a72ba; border-width: 3px 0; background: #17162a; content: ''; }
+.offer-heading { height: 70px; overflow: visible; }
+.synergy-info { position: relative; width: fit-content; margin-top: -6px; }
+.synergy-info summary { padding: 4px 9px; border: 1px solid #9a72ba; border-radius: 14px; background: #eee8f7; color: #5d3878; font-size: 11px; font-weight: 600; list-style: none; cursor: pointer; }
+.synergy-info summary::-webkit-details-marker { display: none; }
+.synergy-popover { position: absolute; z-index: 8; top: calc(100% + 7px); left: 0; width: 250px; padding: 12px; border: 1px solid #9a72ba; border-radius: 8px; background: #f8f8ff; color: #3e3850; box-shadow: 0 12px 30px #201c3c55; font-size: 12px; line-height: 1.4; }
+.synergy-popover p { margin: 5px 0 0; }
 .card-offer.add { border-color: #625bb0; background: #e8e6fa; }
 .card-offer.later { opacity: .42; }
 .card-offer.ignore { opacity: .25; filter: grayscale(1); }
@@ -186,7 +190,7 @@ li:hover .deck-card-preview, li:focus-visible .deck-card-preview { opacity: 1; t
 .deck-mana .mana-symbol { width: 16px; height: 16px; margin: 0 1px; }
 li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: uppercase; }
 .empty { margin-top: 25px; padding: 60px; border: 1px dashed #bbb2a3; text-align: center; }
-.batch-controls { display: flex; justify-content: flex-end; margin-top: 20px; }
+.batch-controls { display: flex; flex: none; justify-content: flex-end; }
 .limited-mode { margin: 20px 0 0; color: #8a5b16; font-size: 13px; }
 .batch-controls .primary { padding: 12px 18px; border: 0; border-radius: 6px; background: #36327f; color: white; }
 
@@ -217,8 +221,10 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .subtheme-picker { border-color: #39374f; background: #19182d; }
 .dark .subtheme-picker input { border-color: #4b4867; background: #121121; color: #e5e3f0; }
 .dark .subtheme-prompt { border-color: #8d83df; background: #24223e; }
-.dark .pair-note { color: #bcb8d0; }
+.dark .synergy-info summary { border-color: #8d83df; background: #302a4b; color: #dedaff; }
+.dark .synergy-popover { border-color: #8d83df; background: #24203a; color: #dedaff; }
 .dark .card-offer.synergy-pair { border-color: #8d83df; }
+.dark .card-offer.synergy-1::after { border-color: #8d83df; }
 
 .dark.commander-themed { background: color-mix(in srgb, var(--commander-accent) 18%, #0d1014); }
 .dark.commander-themed .commander-backdrop::after { background: linear-gradient(180deg, color-mix(in srgb, var(--commander-accent) 18%, #0d1014cc) 0, color-mix(in srgb, var(--commander-accent) 12%, #0d1014f2) 38%, color-mix(in srgb, var(--commander-accent) 18%, #0d1014) 78%); }
@@ -253,6 +259,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
   .recommendations { padding: 30px 6vw; }
   .card-grid { grid-template-columns: 1fr; }
   .card-offer { display: grid; grid-template-columns: 130px 1fr; gap: 0 22px; align-items: start; }
+  .recommendation-toolbar { align-items: flex-start; }
   .card-offer.synergy-1::after { display: none; }
   .offer-heading { grid-column: 1 / -1; height: auto; min-height: 70px; }
   .suggestion-type { grid-column: 1 / -1; }
@@ -260,6 +267,8 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 }
 @media (max-width: 520px) {
   .intro { padding: 32px 6vw 25px; }
+  .recommendation-toolbar { align-items: stretch; flex-direction: column; }
+  .batch-controls button { width: 100%; }
   .card-offer { grid-template-columns: 1fr; }
   .suggestion-type { grid-column: auto; }
   .offered-image { max-width: 250px; margin: auto; }
