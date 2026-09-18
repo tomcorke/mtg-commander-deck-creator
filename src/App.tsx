@@ -81,6 +81,17 @@ function useStoredOption<T>(key: string, fallback: () => T) {
   return [value, setValue] as const
 }
 
+async function preloadArt(sources: (string | undefined)[]) {
+  await Promise.all([
+    new Promise((resolve) => setTimeout(resolve, 180)),
+    ...sources.filter(Boolean).map((source) => new Promise<void>((resolve) => {
+      const image = new Image()
+      image.onload = image.onerror = () => resolve()
+      image.src = source!
+    })),
+  ])
+}
+
 function sharedTheme(cards: { tags: string[] }[], excluded: string[] = []) {
   const counts = new Map<string, number>()
   for (const card of cards) for (const tag of card.tags) if (!excluded.includes(tag) && !['Creatures', 'Lands'].includes(tag)) counts.set(tag, (counts.get(tag) ?? 0) + 1)
@@ -361,11 +372,7 @@ function App() {
     const selection = (commanderDetails.selections[commanderIndex] + 1) % commanderDetails.printings[commanderIndex].length
     const selected = commanderDetails.printings[commanderIndex][selection]
     setLoadingArt(commanderNames(commander)[commanderIndex])
-    await Promise.all([selected.image, selected.art].filter(Boolean).map((source) => new Promise<void>((resolve) => {
-      const image = new Image()
-      image.onload = image.onerror = () => resolve()
-      image.src = source!
-    })))
+    await preloadArt([selected.image, selected.art])
     setPreferredPrintSet(selected.set)
     setCommanderDetails((current) => current && ({ ...current, images: current.images.map((image, index) => index === commanderIndex ? selected.image : image), art: current.art.map((image, index) => index === commanderIndex ? selected.art ?? image : image), selections: current.selections.map((value, index) => index === commanderIndex ? selection : value) }))
     setDeck((current) => current.map((card, index) => index === commanderIndex ? { ...card, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing: selection } : card))
@@ -383,11 +390,7 @@ function App() {
     const index = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[index]
     setLoadingArt(card.name)
-    await new Promise<void>((resolve) => {
-      const image = new Image()
-      image.onload = image.onerror = () => resolve()
-      image.src = selected.image
-    })
+    await preloadArt([selected.image])
     setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printingManuallySelected: true } : item))
     if (decisions[card.name] === 'add') setDeck((current) => current.map((item) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber, image: selected.image, printing: index, printingManuallySelected: true } : item))
     setLoadingArt('')
@@ -403,11 +406,7 @@ function App() {
     const printing = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[printing]
     setLoadingArt(card.name)
-    await new Promise<void>((resolve) => {
-      const image = new Image()
-      image.onload = image.onerror = () => resolve()
-      image.src = selected.image
-    })
+    await preloadArt([selected.image])
     setDeck((current) => current.map((item, index) => index === cardIndex ? { ...item, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing, printingManuallySelected: true } : item))
     setLoadingArt('')
   }
