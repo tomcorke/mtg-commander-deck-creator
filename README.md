@@ -47,7 +47,7 @@ The script fetches current Archidekt, EDHREC, and Scryfall data, then imports th
 - Export opens an in-app modal with Moxfield, plain-text, and CSV formats plus clipboard copy. Moxfield has no documented public URL for a prefilled import, so the app links to its deck importer.
 - Commander previews use native CSS Anchor Positioning so the full card stays attached to its thumbnail and flips when space is limited.
 - Dark mode is the default, with a user-controlled light mode. Headings use Spectral and body copy uses DM Sans.
-- Current state is in memory. Persisting deck state in `localStorage` is planned in [`docs/recommendation-design.md`](docs/recommendation-design.md).
+- Deck state and recommendation history persist in `localStorage`; `Start over` clears them after confirmation.
 
 ## Publishing
 

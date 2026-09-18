@@ -26,6 +26,7 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .theme-option input { accent-color: #36327f; }
 .theme-toggle { padding: 9px 12px; border: 1px solid #bbb9cd; border-radius: 7px; background: transparent; color: #514e66; }
 .export { border-color: #36327f; color: #36327f; }
+.start-over { padding: 9px 6px; border: 0; background: transparent; color: #68667c; }
 .modal-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; padding: 24px; place-items: center; background: #0009; }
 .export-modal { display: flex; flex-direction: column; width: min(800px, 100%); max-height: calc(100vh - 48px); padding: 28px; border-radius: 12px; background: #f8f8ff; box-shadow: 0 28px 90px #000, 0 0 0 1px #ffffff26; }
 .export-heading { display: flex; justify-content: space-between; align-items: start; }
@@ -285,6 +286,10 @@ li.curve-dimmed { opacity: .22; }
 .deck-mana .mana-symbol { width: 16px; height: 16px; margin: 0 1px; }
 li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: uppercase; }
 .empty { margin-top: 25px; padding: 60px; border: 1px dashed #bbb2a3; text-align: center; }
+.completion { margin-top: 25px; padding: clamp(36px, 7vw, 80px); border: 1px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, #dad8e6); border-radius: 10px; background: color-mix(in srgb, var(--commander-highlight, #b8bac7) 15%, #f8f8ff); text-align: center; }
+.completion h2 { margin-bottom: 8px; font-size: clamp(28px, 4vw, 44px); }
+.completion p:not(.eyebrow) { color: #68657c; }
+.completion .primary { padding: 12px 18px; border: 0; border-radius: 6px; background: var(--commander-accent, #36327f); color: white; }
 .batch-controls { display: flex; flex: none; justify-content: flex-end; }
 .limited-mode { margin: 20px 0 0; color: #8a5b16; font-size: 13px; }
 .batch-controls .primary { padding: 12px 18px; border: 0; border-radius: 6px; background: #36327f; color: white; }
@@ -308,6 +313,8 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .card-search-results, .dark .card-search-results button { border-color: #39374f; }
 .dark .manual-card-preview p, .dark .card-search-status, .dark .card-search-filter, .dark .card-search-results small { color: #aaa8c2; }
 .dark .manual-card-button { border-color: #615b96; color: #d4d0ed; }
+.dark .start-over, .dark .completion p:not(.eyebrow) { color: #aaa8c2; }
+.dark .completion { background: color-mix(in srgb, var(--commander-accent, #36327f) 18%, #19182d); }
 .dark .offered-image, .dark .commander-placeholder { background-image: linear-gradient(110deg, #29273d 30%, #3b3852 45%, #29273d 60%); }
 .dark .offered-image > img { outline: 2px solid #696681; outline-offset: 2px; box-shadow: 0 14px 35px #0009; }
 .dark .meter { background: #35334a; }

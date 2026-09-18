@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckSection, defaultDeckTargets, isBasicLandName, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
+import { clearDeckState, loadDeckState, saveDeckState } from './deck-state'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -8,6 +9,35 @@ type Card = { name: string; layout: string; typeLine: string; manaCost: string; 
 type DeckCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
+type PersistedDeckState = {
+  commander: string
+  commanderDetails: CommanderDetails | null
+  theme: string
+  queue: Card[]
+  limitedRecommendations: boolean
+  decisions: Record<string, 'add' | 'later' | 'ignore'>
+  ignoredCards: string[]
+  liked: string[]
+  activeSubThemes: string[]
+  dismissedSubThemes: string[]
+  preferenceScores: Record<string, number>
+  commanderSubThemes: string[]
+  deferredCards: DeferredCard<Card>[]
+  batchNumber: number
+  deck: DeckCard[]
+  preferredPrintSet: string
+  deckTargets: DeckTargets
+}
+
+const isPersistedDeckState = (state: unknown): state is PersistedDeckState => {
+  if (!state || typeof state !== 'object') return false
+  const saved = state as Partial<PersistedDeckState>
+  const arrays = [saved.queue, saved.deck, saved.ignoredCards, saved.liked, saved.activeSubThemes, saved.dismissedSubThemes, saved.commanderSubThemes, saved.deferredCards]
+  const records = [saved.decisions, saved.preferenceScores, saved.deckTargets]
+  return typeof saved.commander === 'string' && saved.commander.length > 0 && saved.commanderDetails !== null && typeof saved.commanderDetails === 'object' && arrays.every(Array.isArray) && saved.deck!.length > 0 && records.every((value) => value !== null && typeof value === 'object') && typeof saved.theme === 'string' && typeof saved.limitedRecommendations === 'boolean' && typeof saved.batchNumber === 'number' && typeof saved.preferredPrintSet === 'string'
+}
+
+const savedDeckState = loadDeckState<PersistedDeckState>(localStorage, isPersistedDeckState)
 
 const cardTags = (card: ScryfallCard, category = '') => tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
 const toCard = (card: ScryfallCard, reason: string, category = ''): Card => toRecommendationCard(card, reason, category)
@@ -121,10 +151,10 @@ function OracleText({ text }: { text: string }) {
 
 
 function App() {
-  const [commander, setCommander] = useState('')
-  const [commanderDetails, setCommanderDetails] = useState<CommanderDetails | null>(null)
+  const [commander, setCommander] = useState(savedDeckState?.commander ?? '')
+  const [commanderDetails, setCommanderDetails] = useState<CommanderDetails | null>(savedDeckState?.commanderDetails ?? null)
   const [search, setSearch] = useState('')
-  const [theme, setTheme] = useState('')
+  const [theme, setTheme] = useState(savedDeckState?.theme ?? '')
   const [visibleThemes, setVisibleThemes] = useState(() => randomItems(selectableThemes, 6))
   const [colours, setColours] = useState<string[]>([])
   const [matches, setMatches] = useState<string[]>([])
@@ -132,26 +162,27 @@ function App() {
   const [suggestionPool, setSuggestionPool] = useState(defaultCommanders)
   const [commanderCosts, setCommanderCosts] = useState<Record<string, string>>({})
   const [commanderImages, setCommanderImages] = useState<Record<string, string[]>>({})
-  const [queue, setQueue] = useState<Card[]>([])
+  const [queue, setQueue] = useState<Card[]>(savedDeckState?.queue ?? [])
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [limitedRecommendations, setLimitedRecommendations] = useState(false)
+  const [limitedRecommendations, setLimitedRecommendations] = useState(savedDeckState?.limitedRecommendations ?? false)
   const [includeCreature, setIncludeCreature] = useStoredOption('includeCreature', () => true)
   const [powerTarget, setPowerTarget] = useStoredOption<PowerTarget>('powerTarget', () => 'precon')
   const [excludeGameChangers, setExcludeGameChangers] = useStoredOption('excludeGameChangers', () => true)
   const [excludeTutors, setExcludeTutors] = useStoredOption('excludeTutors', () => true)
   const [excludeExtraTurns, setExcludeExtraTurns] = useStoredOption('excludeExtraTurns', () => true)
-  const [decisions, setDecisions] = useState<Record<string, 'add' | 'later' | 'ignore'>>({})
-  const [liked, setLiked] = useState<string[]>([])
-  const [activeSubThemes, setActiveSubThemes] = useState<string[]>([])
-  const [dismissedSubThemes, setDismissedSubThemes] = useState<string[]>([])
+  const [decisions, setDecisions] = useState<Record<string, 'add' | 'later' | 'ignore'>>(savedDeckState?.decisions ?? {})
+  const [ignoredCards, setIgnoredCards] = useState<string[]>(savedDeckState?.ignoredCards ?? [])
+  const [liked, setLiked] = useState<string[]>(savedDeckState?.liked ?? [])
+  const [activeSubThemes, setActiveSubThemes] = useState<string[]>(savedDeckState?.activeSubThemes ?? [])
+  const [dismissedSubThemes, setDismissedSubThemes] = useState<string[]>(savedDeckState?.dismissedSubThemes ?? [])
   const [showSubThemePicker, setShowSubThemePicker] = useState(false)
   const [subThemeSearch, setSubThemeSearch] = useState('')
-  const [preferenceScores, setPreferenceScores] = useState<Record<string, number>>({})
-  const [commanderSubThemes, setCommanderSubThemes] = useState<string[]>([])
-  const [deferredCards, setDeferredCards] = useState<DeferredCard<Card>[]>([])
-  const [batchNumber, setBatchNumber] = useState(1)
+  const [preferenceScores, setPreferenceScores] = useState<Record<string, number>>(savedDeckState?.preferenceScores ?? {})
+  const [commanderSubThemes, setCommanderSubThemes] = useState<string[]>(savedDeckState?.commanderSubThemes ?? [])
+  const [deferredCards, setDeferredCards] = useState<DeferredCard<Card>[]>(savedDeckState?.deferredCards ?? [])
+  const [batchNumber, setBatchNumber] = useState(savedDeckState?.batchNumber ?? 1)
   const [batchAnnouncement, setBatchAnnouncement] = useState('')
-  const [deck, setDeck] = useState<DeckCard[]>([])
+  const [deck, setDeck] = useState<DeckCard[]>(savedDeckState?.deck ?? [])
   const [showExport, setShowExport] = useState(false)
   const [showBasicLands, setShowBasicLands] = useState(false)
   const [basicLandState, setBasicLandState] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -168,12 +199,17 @@ function App() {
   const [copied, setCopied] = useState(false)
   const [darkMode, setDarkMode] = useStoredOption('darkMode', () => localStorage.getItem('theme') !== 'light')
   const [commanderStyling, setCommanderStyling] = useStoredOption('commanderStyling', () => true)
-  const [preferredPrintSet, setPreferredPrintSet] = useState('')
+  const [preferredPrintSet, setPreferredPrintSet] = useState(savedDeckState?.preferredPrintSet ?? '')
   const [loadingArt, setLoadingArt] = useState('')
   const [recommendationOptionsChanged, setRecommendationOptionsChanged] = useState(false)
-  const [deckTargets, setDeckTargets] = useState<DeckTargets>(defaultDeckTargets)
+  const [deckTargets, setDeckTargets] = useState<DeckTargets>(savedDeckState?.deckTargets ?? defaultDeckTargets)
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!commander || recommendationState !== 'idle' || !commanderDetails || !deck.length) return
+    saveDeckState<PersistedDeckState>({ commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets })
+  }, [commander, commanderDetails, theme, queue, recommendationState, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, preferredPrintSet, deckTargets])
 
   useEffect(() => {
     void fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: basicNames.map((name) => ({ name })) }) })
@@ -364,6 +400,7 @@ function App() {
     setCommanderSubThemes([])
     if (!preserveDeck) {
       setDeck([])
+      setIgnoredCards([])
       setActiveSubThemes([])
       setDismissedSubThemes([])
       setPreferenceScores({})
@@ -405,6 +442,7 @@ function App() {
         offeredCards = await fallbackRecommendations(identityColours)
         setLimitedRecommendations(true)
       }
+      if (preserveDeck) offeredCards = offeredCards.filter((card) => !ignoredCards.includes(card.name) && !deck.some((deckCard) => deckCard.name === card.name))
       setQueue(offeredCards)
       setRecommendationState('idle')
       await loadPrintings(offeredCards.slice(0, 4), preferredPrintSet)
@@ -418,8 +456,12 @@ function App() {
   function decide(card: Card, action: 'add' | 'later' | 'ignore') {
     const previous = decisions[card.name]
     if (previous === 'add' && action !== 'add') setDeck((list) => list.filter((item) => item.name !== card.name))
-    if (previous !== 'add' && action === 'add') setDeck((list) => [...list, { name: card.name, layout: card.layout, typeLine: card.typeLine, manaCost: card.manaCost, manaValue: card.manaValue, detail: card.detail, producedMana: card.producedMana, faces: card.faces, set: card.set, collectorNumber: card.collectorNumber, image: card.image, tags: card.tags, printings: card.printings, printing: card.printing ?? 0, printingManuallySelected: card.printingManuallySelected }])
-    if (action === 'ignore') setLiked((current) => current.filter((name) => name !== card.name))
+    if (previous !== 'add' && action === 'add' && deck.length >= 100) return
+    if (previous !== 'add' && action === 'add') setDeck((list) => list.length < 100 && (card.typeLine.includes('Basic Land') || !list.some((item) => item.name === card.name)) ? [...list, { name: card.name, layout: card.layout, typeLine: card.typeLine, manaCost: card.manaCost, manaValue: card.manaValue, detail: card.detail, producedMana: card.producedMana, faces: card.faces, set: card.set, collectorNumber: card.collectorNumber, image: card.image, tags: card.tags, printings: card.printings, printing: card.printing ?? 0, printingManuallySelected: card.printingManuallySelected }] : list)
+    if (action === 'ignore') {
+      setLiked((current) => current.filter((name) => name !== card.name))
+      setIgnoredCards((current) => current.includes(card.name) ? current : [...current, card.name])
+    } else setIgnoredCards((current) => current.filter((name) => name !== card.name))
     setDecisions((current) => ({ ...current, [card.name]: action }))
   }
 
@@ -502,7 +544,7 @@ function App() {
     setBasicLandState('loading')
     try {
       const cards = await Promise.all(plan.map(async ({ name, count }) => ({ card: await fetchBasic(name), count })))
-      setDeck((current) => [...current, ...cards.flatMap(({ card, count }) => Array.from({ length: count }, () => ({ ...card })))])
+      setDeck((current) => [...current, ...cards.flatMap(({ card, count }) => Array.from({ length: count }, () => ({ ...card })))].slice(0, 100))
       setBasicLandState('idle')
       setShowBasicLands(false)
     } catch {
@@ -576,7 +618,29 @@ function App() {
     })
   }
 
+  function startOver() {
+    if (!window.confirm('Start over? This clears your current deck and recommendation history.')) return
+    clearDeckState()
+    setCommander('')
+    setCommanderDetails(null)
+    setTheme('')
+    setDeck([])
+    setQueue([])
+    setDecisions({})
+    setIgnoredCards([])
+    setLiked([])
+    setActiveSubThemes([])
+    setDismissedSubThemes([])
+    setPreferenceScores({})
+    setCommanderSubThemes([])
+    setDeferredCards([])
+    setBatchNumber(1)
+    setPreferredPrintSet('')
+    setDeckTargets(defaultDeckTargets)
+  }
+
   async function nextBatch(extraSubTheme = '') {
+    if (deck.length >= 100) return
     if (recommendationOptionsChanged) {
       if (await start(commander, true)) setRecommendationOptionsChanged(false)
       return
@@ -672,9 +736,9 @@ function App() {
     <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`} style={{ '--commander-accent': primaryTheme[0], '--commander-highlight': secondaryTheme[1] } as CSSProperties}>
       {commanderStyling && commanderDetails?.art.length ? <div className="commander-backdrop" aria-hidden="true">{commanderDetails.art.map((image) => <span style={{ backgroundImage: `url(${image})` }} key={image} />)}</div> : null}
       <header>
-        <button className="brand reset" onClick={() => { setCommander(''); setCommanderDetails(null); setDeck([]); setQueue([]); setDecisions({}) }}>Commander's Table</button>
-        <div className="progress"><span />{deck.length} / 100 cards</div>
-        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
+        <button className="brand reset" onClick={startOver}>Commander's Table</button>
+        <div className="progress"><span style={{ background: `linear-gradient(90deg, var(--commander-accent, #7650ae) ${deck.length}%, #dedcea ${deck.length}%)` }} />{deck.length} / 100 cards</div>
+        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
       <section className="intro commander-header">
         {commanderDetails ? <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
@@ -688,7 +752,7 @@ function App() {
             {commanderDetails?.colours.length === 0 && <img className="colour" src="https://svgs.scryfall.io/card-symbols/C.svg" alt="Colourless" />}
             {commanderDetails?.colours.map((colour) => <img className="colour" src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`} alt={colourNames[colour]} key={colour} />)}
           </div>
-          <button className="change" onClick={() => { setCommander(''); setCommanderDetails(null); setDeck([]); setQueue([]); setDecisions({}) }}>Change commander</button>
+          <button className="change" onClick={startOver}>Change commander</button>
         </div>
         <div className="recommendation-setup">
           <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>Add to your deck</h2></div><span>Batch {batchNumber}</span></div>
@@ -758,18 +822,18 @@ function App() {
               {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
             </div>
             <div className="toolbar-actions">
-              {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => void nextBatch()}>Next recommendations →</button></div>}
+              {deck.length < 100 && (queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => void nextBatch()}>Next recommendations →</button></div>}
             </div>
           </div>
           {showSubThemePicker && <div className="subtheme-picker">
             <input value={subThemeSearch} onChange={(event) => setSubThemeSearch(event.target.value)} placeholder="Search sub-themes…" aria-label="Search sub-themes" />
             <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => { setActiveSubThemes((current) => [...current, name].slice(0, 2)); setShowSubThemePicker(false); setSubThemeSearch('') }}>{name}</button>)}</div>
           </div>}
-          {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow">
+          {deck.length >= 100 ? <div className="completion"><p className="eyebrow">Deck complete</p><h2>Review your 100-card deck</h2><p>Recommendations are paused. Review your deck analysis, then export when ready.</p><button className="primary" type="button" onClick={() => setShowExport(true)}>Review and export deck</button></div> : recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow">
             {visibleBatch.map((card) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} key={card.name}>
               <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3></div>
               <div className="actions">
-                <div><button className="primary" onClick={() => decide(card, 'add')}>Add</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
+                <div><button className="primary" disabled={deck.length >= 100 && decisions[card.name] !== 'add'} onClick={() => decide(card, 'add')}>Add</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
               <div className="offered-image"><img src={card.image} alt={`${card.name} card`} />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}{loadingArt === card.name && <span className="art-loading" role="status"><i />Loading art…</span>}{card.printings && card.printings.length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cyclePrinting(card)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</div>
