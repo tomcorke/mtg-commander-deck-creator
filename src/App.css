@@ -196,11 +196,11 @@ aside { padding: 40px 30px; border-left: 1px solid #dad8e6; background: #e9eaf7;
 .deck-analysis h3 { margin-bottom: 14px; font-size: 18px; }
 .deck-analysis h4 { margin: 16px 0 8px; color: inherit; font: 600 12px 'DM Sans', sans-serif; text-transform: uppercase; letter-spacing: .7px; }
 .curve-scroll { overflow-x: auto; }
-.mana-curve { display: grid; grid-template-columns: repeat(8, 32px); gap: 5px; min-width: 291px; height: 112px; }
-.mana-curve button { display: grid; grid-template-rows: 1fr auto; gap: 5px; padding: 4px 2px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: inherit; }
+.mana-curve { display: grid; grid-template-columns: repeat(8, minmax(24px, 1fr)); gap: 2px; height: 94px; }
+.mana-curve button { display: grid; min-width: 0; grid-template-rows: 1fr auto; gap: 3px; padding: 2px 0; border: 1px solid transparent; border-radius: 5px; background: transparent; color: inherit; }
 .mana-curve button.selected { border-color: var(--commander-accent, #7546a8); background: #ffffff55; }
-.curve-bars { display: flex; height: 78px; align-items: end; justify-content: center; gap: 2px; }
-.curve-bars i { width: 9px; min-height: 0; border-radius: 2px 2px 0 0; }
+.curve-bars { display: flex; height: 64px; align-items: end; justify-content: center; gap: 1px; }
+.curve-bars i { width: 7px; min-height: 0; border-radius: 2px 2px 0 0; }
 .permanent { background: var(--commander-accent, #7546a8); }
 .non-permanent { background: var(--commander-highlight, #c19ae8); }
 .mana-curve b { font-size: 10px; }
@@ -208,8 +208,12 @@ aside { padding: 40px 30px; border-left: 1px solid #dad8e6; background: #e9eaf7;
 .curve-legend span { display: flex; gap: 4px; align-items: center; }
 .curve-legend i { width: 8px; height: 8px; border-radius: 2px; }
 .curve-legend b { margin-left: auto; }
-.mana-balance > div { display: grid; grid-template-columns: 22px 1fr auto; gap: 7px; align-items: center; padding: 3px 0; font-size: 12px; }
-.mana-balance img { width: 18px; height: 18px; }
+.mana-balance-row { display: grid; grid-template-columns: 48px 1fr; gap: 7px; align-items: center; margin-top: 5px; color: #706d82; font-size: 10px; }
+.colour-bar { display: flex; height: 24px; overflow: hidden; border-radius: 5px; }
+.colour-segment { display: flex; min-width: 28px; align-items: center; justify-content: center; gap: 3px; color: #19182d; }
+.colour-segment img { width: 15px; height: 15px; }
+.colour-segment b { font-size: 10px; }
+.colour-w { background: #f3df9b; } .colour-u { background: #8dc9ee; } .colour-b { background: #bf9ac8; } .colour-r { background: #ee8b68; } .colour-g { background: #8bc795; }
 .target-heading { display: flex; justify-content: space-between; align-items: baseline; }
 .target-heading span { color: #706d82; font-size: 10px; }
 .deck-targets label { display: grid; grid-template-columns: 1fr 24px 8px 42px; align-items: center; padding: 3px 0; font-size: 12px; }

@@ -504,6 +504,7 @@ function App() {
   const analysis = analyseDeck(deck)
   const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
   const maxCurveCount = Math.max(1, ...analysis.curve.map((point) => point.permanents + point.nonPermanents))
+  const manaColours = (['W', 'U', 'B', 'R', 'G'] as const)
   const cardReason = (card: Card) => {
     const subTheme = card.tags.find((tag) => activeSubThemes.includes(tag))
     if (subTheme) return `${subTheme} sub-theme`
@@ -606,7 +607,7 @@ function App() {
               </div>
             </div>
             <div className="curve-legend"><span><i className="permanent" /> Permanent</span><span><i className="non-permanent" /> Non-permanent</span><b>Avg {analysis.averageManaValue.toFixed(1)}</b></div>
-            <div className="mana-balance"><h4>Colour balance</h4>{(['W', 'U', 'B', 'R', 'G'] as const).map((colour) => <div key={colour}><img src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`} alt={colourNames[colour]} /><span>{analysis.required[colour]} pips</span><b>{analysis.produced[colour]} sources</b></div>)}</div>
+            <div className="mana-balance"><h4>Colour balance</h4>{([['Pips', analysis.required], ['Sources', analysis.produced]] as const).map(([label, values]) => <div className="mana-balance-row" key={label}><span>{label}</span><div className="colour-bar">{manaColours.filter((colour) => values[colour] > 0).map((colour) => <span className={`colour-segment colour-${colour.toLowerCase()}`} style={{ flexGrow: values[colour] }} title={`${colourNames[colour]}: ${values[colour]} ${label.toLowerCase()}`} key={colour}><img src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`} alt="" /><b><span className="sr-only">{colourNames[colour]}: </span>{values[colour]}</b></span>)}</div></div>)}</div>
             <div className="target-heading"><h4>Deck targets</h4><span>Suggested lands {analysis.landRange[0]}-{analysis.landRange[1]}</span></div>
             <div className="deck-targets">{targetKeys.map((key) => <label key={key}><span>{targetLabels[key]}</span><b>{analysis.counts[key]}</b><span>/</span><input type="number" min="0" max="99" value={deckTargets[key]} onChange={(event) => setDeckTargets((current) => ({ ...current, [key]: Math.max(0, Number(event.target.value)) }))} aria-label={`${targetLabels[key]} target`} /></label>)}</div>
             {guidance.length > 0 && <div className="deck-guidance" aria-live="polite">{guidance.map((item) => <p className={item.strong ? 'strong' : ''} key={item.key}>{item.text}</p>)}</div>}
