@@ -189,6 +189,18 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .modal-close { color: #c4c1d5; }
 .dark .limited-mode { color: #e7b965; }
 
+.dark.commander-themed { background: color-mix(in srgb, var(--commander-accent) 18%, #0d1014); }
+.dark.commander-themed .commander-backdrop::after { background: linear-gradient(180deg, color-mix(in srgb, var(--commander-accent) 18%, #0d1014cc) 0, color-mix(in srgb, var(--commander-accent) 12%, #0d1014f2) 38%, color-mix(in srgb, var(--commander-accent) 18%, #0d1014) 78%); }
+.dark.commander-themed header, .dark.commander-themed .intro, .dark.commander-themed .export-modal { background: color-mix(in srgb, var(--commander-accent) 18%, #111419); }
+.dark.commander-themed aside { background: color-mix(in srgb, var(--commander-accent) 12%, #101318); }
+.dark.commander-themed header, .dark.commander-themed .intro, .dark.commander-themed aside, .dark.commander-themed .recommendation-setup, .dark.commander-themed .suggestions, .dark.commander-themed .suggestions button, .dark.commander-themed li, .dark.commander-themed dl, .dark.commander-themed .recommendation-options fieldset { border-color: color-mix(in srgb, var(--commander-highlight) 28%, #252931); }
+.dark.commander-themed .eyebrow, .dark.commander-themed .change, .dark.commander-themed .reroll, .dark.commander-themed .export-actions a, .dark.commander-themed .section-title > span, .dark.commander-themed .deck-heading span, .dark.commander-themed .suggestion-type { color: var(--commander-highlight); }
+.dark.commander-themed .change:hover, .dark.commander-themed .reroll:hover, .dark.commander-themed .export-actions a:hover { color: color-mix(in srgb, var(--commander-highlight) 72%, white); }
+.dark.commander-themed .actions .primary, .dark.commander-themed .batch-controls .primary, .dark.commander-themed .empty .primary, .dark.commander-themed .export-actions .primary { border-color: var(--commander-accent); background: var(--commander-accent); }
+.dark.commander-themed .actions .similar.selected { border-color: var(--commander-highlight); background: var(--commander-accent); }
+.dark.commander-themed .card-offer.add { border-color: var(--commander-highlight); background: color-mix(in srgb, var(--commander-accent) 28%, #111419); }
+.dark.commander-themed .meter span, .dark.commander-themed .progress span { background: linear-gradient(90deg, var(--commander-accent), var(--commander-highlight)); }
+
 @media (max-width: 1350px) {
   .suggestion-preview { display: none; }
 }
