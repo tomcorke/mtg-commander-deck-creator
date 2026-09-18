@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test src/recommendations.test.ts",
+    "audit:recommendations": "node --experimental-strip-types scripts/recommendation-audit.ts",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {

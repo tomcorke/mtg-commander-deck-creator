@@ -2,6 +2,19 @@ export type TaggedCard = { name: string; typeLine: string; detail: string; tags:
 export type DeferredCard<T> = { card: T; eligibleBatch: number }
 export type EdhrecThemeCount = { count: number; slug: string; value: string }
 export type PrintingLike = { image: string; set: string; collectorNumber: string }
+export type PowerTarget = 'precon' | 'upgraded' | 'high'
+export type ScryfallCard = { name: string; type_line: string; mana_cost?: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; game_changer?: boolean; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; oracle_text?: string; image_uris?: { normal: string } }[] }
+export type EdhrecEntry = { name: string; tag: string; header: string }
+export type RecommendationCard = { name: string; typeLine: string; manaCost: string; reason: string; detail: string; image: string; set: string; collectorNumber: string; printsUri: string; tags: string[] }
+export type RecommendationOptions = { includeCreature: boolean; excludeGameChangers: boolean; excludeTutors: boolean; excludeExtraTurns: boolean; powerTarget: PowerTarget }
+
+export const recommendationReasons: Record<string, string> = {
+  highsynergycards: 'Commander synergy', topcards: 'Commander favourite', newcards: 'Interesting new pick', creatures: 'Creature synergy', instants: 'Interaction', sorceries: 'Sorcery support', utilityartifacts: 'Utility artifact', utilityenchantments: 'Utility enchantment', enchantments: 'Enchantment synergy', artifacts: 'Artifact synergy', planeswalkers: 'Planeswalker support', lands: 'Land or mana', utilitylands: 'Land or mana', manafixing: 'Land or mana',
+}
+
+export const preconFastMana = new Set(['Chrome Mox', 'Grim Monolith', 'Jeweled Lotus', 'Lotus Petal', 'Mana Crypt', 'Mana Vault', 'Mox Diamond'])
+export const cardText = (card: ScryfallCard) => card.oracle_text ?? card.card_faces?.map((face) => face.oracle_text).filter(Boolean).join('\n') ?? card.type_line
+export const isManaCard = (card: ScryfallCard) => card.type_line.includes('Land') || /add \{/i.test(cardText(card))
 
 export function orderedPrintings<T extends PrintingLike>(original: PrintingLike, printings: T[]) {
   const unique = printings.filter((printing, index, all) => all.findIndex((item) => item.image === printing.image) === index)
@@ -91,6 +104,33 @@ export function findSynergyPair<T extends TaggedCard>(cards: T[]) {
   return null
 }
 
+export function parseEdhrecEntries(lists: { header: string; tag: string; cardviews: { name: string }[] }[]) {
+  const entries: EdhrecEntry[] = []
+  const seen = new Set<string>()
+  for (const list of lists) for (const card of list.cardviews) if (!seen.has(card.name)) {
+    seen.add(card.name)
+    entries.push({ name: card.name, tag: list.tag.toLowerCase(), header: list.header })
+  }
+  return entries
+}
+
+export function toRecommendationCard(card: ScryfallCard, reason: string, category = ''): RecommendationCard {
+  return { name: card.name, typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', reason, detail: cardText(card), image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri, tags: tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line) }
+}
+
+export function buildEdhrecRecommendations(entries: EdhrecEntry[], responseCards: ScryfallCard[], options: RecommendationOptions) {
+  const cards = new Map(responseCards.map((card) => [card.name, card]))
+  const allowed = entries.filter((entry) => {
+    const card = cards.get(entry.name)
+    const text = card ? cardText(card) : ''
+    return card && !(options.excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) && !(options.excludeTutors && /search your library/i.test(text)) && !(options.excludeExtraTurns && /extra turn/i.test(text)) && !(options.powerTarget === 'precon' && preconFastMana.has(card.name))
+  })
+  return batchRecommendations(allowed.map((entry) => {
+    const card = cards.get(entry.name)!
+    return toRecommendationCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''), `${entry.tag} ${entry.header}`)
+  }), options.includeCreature)
+}
+
 export function batchRecommendations<T extends { name: string; reason: string; typeLine: string }>(cards: T[], includeCreature: boolean) {
   const remaining = [...cards]
   const ordered: T[] = []
@@ -166,6 +206,23 @@ export function releaseNextDeferred<T>(deferred: DeferredCard<T>[], requestedBat
     ? Math.max(requestedBatch, Math.min(...deferred.map((item) => item.eligibleBatch)))
     : requestedBatch
   return { batchNumber, ...releaseDeferred(deferred, batchNumber) }
+}
+
+export type RecommendationDecision = 'add' | 'later' | 'ignore'
+
+export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[] }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme = '', theme, includeCreature }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean }) {
+  const batch = queue.slice(0, 4)
+  const pending = [...deferredCards, ...deferBatch(batch, decisions, batchNumber, (card) => card.name)]
+  const released = releaseNextDeferred(pending, batchNumber + 1, queue.length > 4)
+  const scores = updatePreferenceScores(batch, decisions, liked, preferenceScores)
+  const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
+  const rank = (card: T) => card.tags.reduce((score, tag) => score + (scores[tag] ?? 0) + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
+  return {
+    queue: limitThemeMatches(batchRecommendations([...queue.slice(4), ...released.ready].sort((a, b) => rank(b) - rank(a)), includeCreature), rankedSubThemes, (card) => card.reason === 'Land or mana', (card) => card.typeLine.includes('Creature')),
+    deferredCards: released.waiting,
+    batchNumber: released.batchNumber,
+    preferenceScores: scores,
+  }
 }
 
 export function freshRecommendationCycle() {

@@ -16,10 +16,21 @@ Vite prints the local URL and reloads the page after source changes.
 ## Checks
 
 ```bash
+pnpm test
 pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+## Recommendation audit
+
+Run all three headless policies against four reference precons:
+
+```bash
+pnpm audit:recommendations -- --output recommendation-audit.md
+```
+
+The script fetches current Archidekt, EDHREC, and Scryfall data, then imports the same recommendation builder and queue transition functions used by the app. It does not automate or duplicate the UI implementation.
 
 ## Design decisions
 

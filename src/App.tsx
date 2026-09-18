@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { batchRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, orderedPrintings, preferredPrintingIndex, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores, type DeferredCard, type EdhrecThemeCount } from './recommendations'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -7,33 +7,10 @@ type Card = { name: string; typeLine: string; manaCost: string; reason: string; 
 type DeckCard = { name: string; typeLine: string; manaCost: string; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
-type PowerTarget = 'precon' | 'upgraded' | 'high'
 type SynergyConnector = 'bracket' | 'bridge' | 'glow' | 'arrow' | 'container'
-type ScryfallCard = { name: string; type_line: string; mana_cost?: string; oracle_text?: string; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; game_changer?: boolean; image_uris?: { normal: string }; card_faces?: { mana_cost?: string; oracle_text?: string; image_uris?: { normal: string } }[] }
-type EdhrecEntry = { name: string; tag: string; header: string }
 
-const recommendationReasons: Record<string, string> = {
-  highsynergycards: 'Commander synergy',
-  topcards: 'Commander favourite',
-  newcards: 'Interesting new pick',
-  creatures: 'Creature synergy',
-  instants: 'Interaction',
-  sorceries: 'Sorcery support',
-  utilityartifacts: 'Utility artifact',
-  utilityenchantments: 'Utility enchantment',
-  enchantments: 'Enchantment synergy',
-  artifacts: 'Artifact synergy',
-  planeswalkers: 'Planeswalker support',
-  lands: 'Land or mana',
-  utilitylands: 'Land or mana',
-  manafixing: 'Land or mana',
-}
-
-const cardText = (card: ScryfallCard) => card.oracle_text ?? card.card_faces?.map((face) => face.oracle_text).filter(Boolean).join('\n') ?? card.type_line
-const isManaCard = (card: ScryfallCard) => card.type_line.includes('Land') || /add \{/i.test(cardText(card))
 const cardTags = (card: ScryfallCard, category = '') => tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
-const preconFastMana = new Set(['Chrome Mox', 'Grim Monolith', 'Jeweled Lotus', 'Lotus Petal', 'Mana Crypt', 'Mana Vault', 'Mox Diamond'])
-const toCard = (card: ScryfallCard, reason: string, category = ''): Card => ({ name: card.name, typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', reason, detail: cardText(card), image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri, tags: cardTags(card, category) })
+const toCard = (card: ScryfallCard, reason: string, category = ''): Card => toRecommendationCard(card, reason, category)
 const edhrecSlug = (url: string | undefined, name: string) => url?.match(/\/commanders\/([^/?#]+)/)?.[1] ?? name.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const colourNames: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' }
@@ -269,12 +246,7 @@ function App() {
     const result = await response.json() as { tag_counts?: EdhrecThemeCount[]; container?: { json_dict?: { cardlists?: { header: string; tag: string; cardviews: { name: string }[] }[] } } }
     setCommanderSubThemes(commanderThemes(result.tag_counts ?? []))
     const lists = result.container?.json_dict?.cardlists ?? []
-    const entries: EdhrecEntry[] = []
-    const seen = new Set<string>()
-    for (const list of lists) for (const card of list.cardviews) if (!seen.has(card.name)) {
-      seen.add(card.name)
-      entries.push({ name: card.name, tag: list.tag.toLowerCase(), header: list.header })
-    }
+    const entries = parseEdhrecEntries(lists)
     if (!entries.length) throw new Error('No EDHREC cards')
 
     const responseCards: ScryfallCard[] = []
@@ -283,16 +255,7 @@ function App() {
       if (!cardsResponse.ok) throw new Error('Scryfall unavailable')
       responseCards.push(...(await cardsResponse.json() as { data: ScryfallCard[] }).data)
     }
-    const cards = new Map(responseCards.map((card) => [card.name, card]))
-    const allowed = entries.filter((entry) => {
-      const card = cards.get(entry.name)
-      const text = card ? cardText(card) : ''
-      return card && !(excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) && !(excludeTutors && /search your library/i.test(text)) && !(excludeExtraTurns && /extra turn/i.test(text)) && !(powerTarget === 'precon' && preconFastMana.has(card.name))
-    })
-    return batchRecommendations(allowed.map((entry) => {
-      const card = cards.get(entry.name)!
-      return toCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''), `${entry.tag} ${entry.header}`)
-    }), includeCreature)
+    return buildEdhrecRecommendations(entries, responseCards, { includeCreature, excludeGameChangers, excludeTutors, excludeExtraTurns, powerTarget })
   }
 
   async function loadPrintings(cards: Card[], preferredSet = '') {
@@ -440,21 +403,15 @@ function App() {
 
   function nextBatch(extraSubTheme = '') {
     const batch = queue.slice(0, 4)
-    const pending = [...deferredCards, ...deferBatch(batch, decisions, batchNumber, (card) => card.name)]
-    const released = releaseNextDeferred(pending, batchNumber + 1, queue.length > 4)
-    const nextBatchNumber = released.batchNumber
-    const scores = updatePreferenceScores(batch, decisions, liked, preferenceScores)
-    const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
-    const rank = (card: Card) => card.tags.reduce((score, tag) => score + (scores[tag] ?? 0) + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
-    const nextQueue = limitThemeMatches(batchRecommendations([...queue.slice(4), ...released.ready].sort((a, b) => rank(b) - rank(a)), includeCreature), rankedSubThemes, (card) => card.reason === 'Land or mana', (card) => card.typeLine.includes('Creature'))
-    setPreferenceScores(scores)
-    setDeferredCards(released.waiting)
-    setBatchNumber(nextBatchNumber)
-    setQueue(nextQueue)
+    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature })
+    setPreferenceScores(next.preferenceScores)
+    setDeferredCards(next.deferredCards)
+    setBatchNumber(next.batchNumber)
+    setQueue(next.queue)
     setDecisions({})
     setLiked((current) => current.filter((name) => !batch.some((card) => card.name === name)))
-    setBatchAnnouncement(nextQueue.length ? `Recommendation batch ${nextBatchNumber} loaded: ${nextQueue.slice(0, 4).map((card) => card.name).join(', ')}.` : 'No recommendations currently eligible. Deferred cards will return after their waiting period.')
-    void loadPrintings(nextQueue.slice(0, 4), preferredPrintSet)
+    setBatchAnnouncement(next.queue.length ? `Recommendation batch ${next.batchNumber} loaded: ${next.queue.slice(0, 4).map((card) => card.name).join(', ')}.` : 'No recommendations currently eligible. Deferred cards will return after their waiting period.')
+    void loadPrintings(next.queue.slice(0, 4), preferredPrintSet)
   }
 
   if (!commander) return (

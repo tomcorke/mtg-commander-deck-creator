@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { batchRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, orderedPrintings, preferredPrintingIndex, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, freshRecommendationCycle, limitThemeMatches, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, releaseDeferred, releaseNextDeferred, supportedThemes, tagsFor, updatePreferenceScores } from './recommendations.ts'
 
 test('all exposed themes can tag matching card text', () => {
   for (const theme of supportedThemes) {
@@ -27,6 +27,31 @@ test('printing preference preserves defaults and manual choices', () => {
   assert.equal(preferredPrintingIndex(printings, 'sld'), 1)
   assert.equal(preferredPrintingIndex(printings, 'missing'), 0)
   assert.equal(preferredPrintingIndex(printings, 'clb', 1, true), 1)
+})
+
+test('EDHREC parser keeps first category for each unique card', () => {
+  assert.deepEqual(parseEdhrecEntries([
+    { header: 'High Synergy Cards', tag: 'highsynergycards', cardviews: [{ name: 'Shared' }, { name: 'First' }] },
+    { header: 'Top Cards', tag: 'topcards', cardviews: [{ name: 'Shared' }, { name: 'Second' }] },
+  ]), [
+    { name: 'Shared', tag: 'highsynergycards', header: 'High Synergy Cards' },
+    { name: 'First', tag: 'highsynergycards', header: 'High Synergy Cards' },
+    { name: 'Second', tag: 'topcards', header: 'Top Cards' },
+  ])
+})
+
+test('production EDHREC builder applies safety filters and batches every card once', () => {
+  const cards = [
+    { name: 'Creature', type_line: 'Creature', oracle_text: '', color_identity: ['G'], set: 'tst', collector_number: '1', prints_search_uri: '' },
+    { name: 'Tutor', type_line: 'Sorcery', oracle_text: 'Search your library for a card.', color_identity: ['B'], set: 'tst', collector_number: '2', prints_search_uri: '' },
+    { name: 'Spell', type_line: 'Instant', oracle_text: '', color_identity: ['U'], set: 'tst', collector_number: '3', prints_search_uri: '' },
+    { name: 'Rock', type_line: 'Artifact', oracle_text: '{T}: Add {G}.', color_identity: [], set: 'tst', collector_number: '4', prints_search_uri: '' },
+  ]
+  const entries = cards.map((card) => ({ name: card.name, tag: card.name === 'Creature' ? 'highsynergycards' : 'topcards', header: 'Top Cards' }))
+  const result = buildEdhrecRecommendations(entries, cards, { includeCreature: true, excludeGameChangers: true, excludeTutors: true, excludeExtraTurns: true, powerTarget: 'precon' })
+  assert.deepEqual(result.map((card) => card.name), ['Creature', 'Spell', 'Rock'])
+  assert.equal(result[0].reason, 'Commander synergy')
+  assert.equal(result[2].reason, 'Land or mana')
 })
 
 test('new cards are limited to one per batch when established picks exist', () => {
@@ -88,4 +113,16 @@ test('commander theme choices use supported EDHREC associations in source order'
 
 test('recommendation reload starts a fresh cooldown cycle', () => {
   assert.deepEqual(freshRecommendationCycle(), { deferredCards: [], batchNumber: 1 })
+})
+
+test('queue transition uses production ranking and cooldown rules', () => {
+  const card = (name: string, tags: string[] = [], typeLine = 'Instant', reason = 'Interaction') => ({ name, tags, typeLine, reason })
+  const result = advanceRecommendationQueue({
+    queue: [card('Added', ['Tokens']), card('Liked', ['Tokens']), card('Later'), card('Undecided'), card('Next', ['Tokens']), card('Mana', [], 'Land', 'Land or mana')],
+    deferredCards: [], batchNumber: 1, decisions: { Added: 'add', Later: 'later' }, liked: ['Liked'], preferenceScores: {}, activeSubThemes: [], theme: '', includeCreature: false,
+  })
+  assert.equal(result.batchNumber, 2)
+  assert.deepEqual(result.queue.map(({ name }) => name), ['Next', 'Mana'])
+  assert.deepEqual(result.deferredCards.map(({ card, eligibleBatch }) => [card.name, eligibleBatch]), [['Liked', 4], ['Later', 5], ['Undecided', 4]])
+  assert.equal(result.preferenceScores.Tokens, 6)
 })
