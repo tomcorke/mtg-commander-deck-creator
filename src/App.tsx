@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, freshRecommendationCycle, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
-import { analyseDeck, basicLandPlan, cardTypes, curveBucket, deckGuidance, defaultDeckTargets, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
+import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckSection, defaultDeckTargets, isBasicLandName, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string }
@@ -64,6 +64,7 @@ const dualCommanders: Record<string, string[]> = {
   'Kodama & Sakashima': ['Kodama of the East Tree', 'Sakashima of a Thousand Faces'],
 }
 const commanderNames = (name: string) => dualCommanders[name] ?? [name]
+const deckSections = ['Creatures', 'Enchantments', 'Artifacts', 'Sorceries', 'Instants', 'Other', 'Lands']
 const defaultCommanders = Object.values(themeCommanders).flat()
 const selectableThemes = Object.keys(themeCommanders).filter((name) => supportedThemes.includes(name))
 const randomItems = <T,>(items: T[], count: number) => [...items].sort(() => Math.random() - 0.5).slice(0, count)
@@ -432,20 +433,46 @@ function App() {
     setTimeout(() => setCopied(false), 1500)
   }
 
+  const toDeckCard = (card: ScryfallCard): DeckCard => ({ name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', tags: cardTags(card), printing: 0 })
+
+  async function fetchBasic(name: string) {
+    const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)
+    if (!response.ok) throw new Error('Basic land unavailable')
+    return toDeckCard(await response.json() as ScryfallCard)
+  }
+
   async function addBasicLands(plan: { name: string; count: number }[]) {
     setBasicLandState('loading')
     try {
-      const cards = await Promise.all(plan.map(async ({ name, count }) => {
-        const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`)
-        if (!response.ok) throw new Error('Basic land unavailable')
-        return { card: await response.json() as ScryfallCard, count }
-      }))
-      setDeck((current) => [...current, ...cards.flatMap(({ card, count }) => Array.from({ length: count }, () => ({ name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', tags: cardTags(card), printing: 0 })))])
+      const cards = await Promise.all(plan.map(async ({ name, count }) => ({ card: await fetchBasic(name), count })))
+      setDeck((current) => [...current, ...cards.flatMap(({ card, count }) => Array.from({ length: count }, () => ({ ...card })))])
       setBasicLandState('idle')
       setShowBasicLands(false)
     } catch {
       setBasicLandState('error')
     }
+  }
+
+  async function addOneBasic(name: string) {
+    if (deck.length >= 100) return
+    try {
+      const existing = deck.find((card) => card.name === name)
+      const added = existing ? { ...existing } : await fetchBasic(name)
+      setDeck((current) => current.length < 100 ? [...current, added] : current)
+    } catch {
+      setBasicLandState('error')
+    }
+  }
+
+  function removeDeckCard(index: number) {
+    const removed = deck[index]
+    setDeck((current) => current.filter((_, cardIndex) => cardIndex !== index))
+    setDecisions((current) => {
+      if (current[removed.name] !== 'add') return current
+      const next = { ...current }
+      delete next[removed.name]
+      return next
+    })
   }
 
   async function nextBatch(extraSubTheme = '') {
@@ -521,8 +548,14 @@ function App() {
   const filteredSubThemes = subThemeOptions.filter((name) => name.toLowerCase().includes(subThemeSearch.toLowerCase()) && name !== theme && !activeSubThemes.includes(name))
   const analysis = analyseDeck(deck)
   const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
-  const calculatedLandTarget = Math.round((analysis.landRange[0] + analysis.landRange[1]) / 2)
-  const basicLands = basicLandPlan(commanderDetails?.colours ?? [], analysis.required, analysis.counts.lands, calculatedLandTarget, deck.length)
+  const calculatedLandTarget = deckTargets.lands
+  const representativeSpellCount = deck.slice(commanderNames(commander).length).filter((card) => !card.typeLine.includes('Land')).length
+  const basicLands = representativeSpellCount >= 5 ? basicLandPlan(commanderDetails?.colours ?? [], analysis.required, analysis.counts.lands, calculatedLandTarget, deck.length) : []
+  const indexedDeck = deck.map((card, index) => ({ card, index }))
+  const commanders = indexedDeck.slice(0, commanderNames(commander).length)
+  const groupedDeck = deckSections.map((section) => ({ section, cards: indexedDeck.slice(commanderNames(commander).length).filter(({ card }) => deckSection(card.typeLine) === section && !isBasicLandName(card.name)) })).filter(({ cards }) => cards.length)
+  const groupedBasics = [...new Set(indexedDeck.filter(({ card }) => isBasicLandName(card.name)).map(({ card }) => card.name))].map((name) => ({ name, cards: indexedDeck.filter(({ card }) => card.name === name) }))
+  const legalBasicNames = commanderDetails?.colours.length ? commanderDetails.colours.map((colour) => basicLandNames[colour as keyof typeof basicLandNames]) : ['Wastes']
   const maxCurveCount = Math.max(1, ...analysis.curve.map((point) => point.permanents + point.nonPermanents))
   const manaColours = (['W', 'U', 'B', 'R', 'G'] as const)
   const pickedTags = new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))
@@ -573,7 +606,7 @@ function App() {
       {showBasicLands && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && basicLandState !== 'loading') setShowBasicLands(false) }}>
         <section className="export-modal basic-land-modal" role="dialog" aria-modal="true" aria-labelledby="basic-land-title">
           <div className="export-heading"><div><p className="eyebrow">Complete mana base</p><h2 id="basic-land-title">Add basic lands?</h2></div><button className="modal-close" disabled={basicLandState === 'loading'} onClick={() => setShowBasicLands(false)} aria-label="Close basic land review">×</button></div>
-          <p>This fills {basicLands.reduce((sum, land) => sum + land.count, 0)} slots toward calculated {calculatedLandTarget}-land target. Existing cards stay unchanged.</p>
+          <p>This fills {basicLands.reduce((sum, land) => sum + land.count, 0)} slots toward your {calculatedLandTarget}-land target. Existing cards stay unchanged.</p>
           <ul className="basic-land-plan">{basicLands.map((land) => <li key={land.name}><span>{land.name}</span><b>{land.count}</b></li>)}</ul>
           {basicLandState === 'error' && <p className="form-error" role="alert">Could not load basic lands. Try again.</p>}
           <div className="export-actions"><button onClick={() => setShowBasicLands(false)} disabled={basicLandState === 'loading'}>Cancel</button><button className="primary" disabled={basicLandState === 'loading'} onClick={() => void addBasicLands(basicLands)}>{basicLandState === 'loading' ? 'Adding…' : 'Add lands'}</button></div>
@@ -638,16 +671,17 @@ function App() {
             <div className="curve-legend"><span><i className="permanent" /> Permanent</span><span><i className="non-permanent" /> Non-permanent</span><b>Avg {analysis.averageManaValue.toFixed(1)}</b></div>
             <div className="mana-balance"><h4>Colour balance</h4>{([['Pips', analysis.required], ['Sources', analysis.produced]] as const).map(([label, values]) => <div className="mana-balance-row" key={label}><span>{label}</span><div className="colour-bar">{manaColours.some((colour) => values[colour] > 0) ? manaColours.filter((colour) => values[colour] > 0).map((colour) => <span className={`colour-segment colour-${colour.toLowerCase()}`} style={{ flexGrow: values[colour] }} title={`${colourNames[colour]}: ${values[colour]} ${label.toLowerCase()}`} key={colour}><img src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`} alt="" /><b><span className="sr-only">{colourNames[colour]}: </span>{values[colour]}</b></span>) : <span className="colour-empty">None</span>}</div></div>)}</div>
             <div className="target-heading"><h4>Deck targets</h4><span>Suggested lands {analysis.landRange[0]}-{analysis.landRange[1]}</span></div>
-            {basicLands.length > 0 && <button className="basic-land-button" type="button" onClick={() => { setBasicLandState('idle'); setShowBasicLands(true) }}>Fill {basicLands.reduce((sum, land) => sum + land.count, 0)} slots with basics</button>}
+            {representativeSpellCount < 5 && analysis.counts.lands < calculatedLandTarget ? <p className="basic-land-wait">Add {5 - representativeSpellCount} more non-land {5 - representativeSpellCount === 1 ? 'card' : 'cards'} to calculate basic land colours.</p> : basicLands.length > 0 && <button className="basic-land-button" type="button" onClick={() => { setBasicLandState('idle'); setShowBasicLands(true) }}><span>Fill to land target</span><b>+{basicLands.reduce((sum, land) => sum + land.count, 0)} basics</b></button>}
             <div className="deck-targets">{targetKeys.map((key) => <label key={key}><span>{targetLabels[key]}</span><b>{analysis.counts[key]}</b><span>/</span><input type="number" min="0" max="99" value={deckTargets[key]} onChange={(event) => setDeckTargets((current) => ({ ...current, [key]: Math.max(0, Number(event.target.value)) }))} aria-label={`${targetLabels[key]} target`} /></label>)}</div>
             {cardTypes.some((type) => analysis.typeCounts[type] > 0) && <><h4>Card types</h4><div className="type-counts">{cardTypes.filter((type) => analysis.typeCounts[type] > 0).map((type) => <span key={type}>{type}<b>{analysis.typeCounts[type]}</b></span>)}</div></>}
             {guidance.length > 0 && <div className="deck-guidance" aria-live="polite">{guidance.map((item) => <p className={item.strong ? 'strong' : ''} key={item.key}>{item.text}</p>)}</div>}
           </section>
-          <ol>{deck.map((card, index) => {
+          <ol className="deck-list">{[{ section: 'Commander', cards: commanders, count: commanders.length }, ...groupedDeck.map((group) => ({ ...group, count: group.cards.length })), ...groupedBasics.map(({ name, cards }) => ({ section: name, cards: cards.slice(0, 1), count: cards.length }))].map(({ section, cards, count }) => <li className="deck-group" key={section}><h3>{section}<span>{count}</span></h3><ol>{cards.map(({ card, index }) => {
             const curveValue = curveBucket(card)
             const highlighted = highlightedManaValue === null || highlightedManaValue === curveValue
-            return <li className={highlighted ? '' : 'curve-dimmed'} key={`${card.name}-${index}`} tabIndex={0}>{highlightedManaValue !== null && highlighted && <span className="sr-only">Matches active mana-value filter. </span>}<span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span><b>{index < commanderNames(commander).length ? 'Commander' : card.typeLine.split(' — ')[0]}</b></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} />{loadingArt === card.name && <span className="art-loading" role="status"><i />Loading art…</span>}{card.printings && card.printings.length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cycleDeckPrinting(index)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</span>}</li>
-          })}</ol>
+            return <li className={highlighted ? '' : 'curve-dimmed'} key={`${card.name}-${index}`} tabIndex={0}>{highlightedManaValue !== null && highlighted && <span className="sr-only">Matches active mana-value filter. </span>}<span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana"><OracleText text={card.manaCost} /></span>{isBasicLandName(card.name) && <button className="deck-add" type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(card.name)} aria-label={`Add another ${card.name}`}>+</button>}{index >= commanderNames(commander).length && <button className="deck-remove" type="button" onDoubleClick={() => removeDeckCard(index)} aria-label={`Double click to remove ${card.name}`} title="Double click to remove">×</button>}</span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} />{loadingArt === card.name && <span className="art-loading" role="status"><i />Loading art…</span>}{card.printings && card.printings.length > 1 && <button type="button" disabled={Boolean(loadingArt)} onClick={() => void cycleDeckPrinting(index)} aria-label={`Show alternate printing of ${card.name}`}>↻ Art {(card.printing ?? 0) + 1}/{card.printings.length}</button>}</span>}</li>
+          })}</ol></li>)}
+          {legalBasicNames.filter((name) => !groupedBasics.some((group) => group.name === name)).map((name) => <li className="deck-group basic-placeholder" key={name}><h3>{name}<span>0</span></h3><button type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(name)}><span>Add {name}</span><b>+</b></button></li>)}</ol>
         </aside>
       </div>
     </main>

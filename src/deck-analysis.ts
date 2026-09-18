@@ -8,7 +8,8 @@ export const targetLabels: Record<TargetKey, string> = { lands: 'Lands', ramp: '
 export const cardTypes = ['Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Planeswalker', 'Battle'] as const
 const colours = ['W', 'U', 'B', 'R', 'G'] as const
 export type ManaColour = typeof colours[number]
-const basicLandNames: Record<ManaColour, string> = { W: 'Plains', U: 'Island', B: 'Swamp', R: 'Mountain', G: 'Forest' }
+export const basicLandNames: Record<ManaColour, string> = { W: 'Plains', U: 'Island', B: 'Swamp', R: 'Mountain', G: 'Forest' }
+export const isBasicLandName = (name: string) => name === 'Wastes' || Object.values(basicLandNames).includes(name)
 
 const isLand = (card: AnalysisCard) => card.typeLine.includes('Land') || card.faces.some((face) => face.typeLine.includes('Land'))
 const curveType = (card: AnalysisCard) => card.layout === 'modal_dfc' ? card.faces.find((face) => !face.typeLine.includes('Land'))?.typeLine : card.faces[0]?.typeLine ?? card.typeLine
@@ -40,6 +41,16 @@ export function analyseDeck(cards: AnalysisCard[]) {
   const averageManaValue = spells.length ? spells.reduce((sum, card) => sum + card.manaValue, 0) / spells.length : 0
   const landCentre = Math.max(32, Math.min(40, Math.round(35 + (averageManaValue - 3) * 2 - (counts.ramp - 10) / 3)))
   return { curve, required, produced, counts, typeCounts, averageManaValue, landRange: [Math.max(30, landCentre - 1), Math.min(42, landCentre + 1)] as [number, number] }
+}
+
+export function deckSection(typeLine: string) {
+  if (typeLine.includes('Creature')) return 'Creatures'
+  if (typeLine.includes('Enchantment')) return 'Enchantments'
+  if (typeLine.includes('Artifact')) return 'Artifacts'
+  if (typeLine.includes('Sorcery')) return 'Sorceries'
+  if (typeLine.includes('Instant')) return 'Instants'
+  if (typeLine.includes('Land')) return 'Lands'
+  return 'Other'
 }
 
 export function basicLandPlan(identity: string[], demand: Record<ManaColour, number>, currentLands: number, targetLands: number, cardCount: number) {

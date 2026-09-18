@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { analyseDeck, basicLandPlan, curveBucket, deckGuidance, defaultDeckTargets, type AnalysisCard } from './deck-analysis.ts'
+import { analyseDeck, basicLandPlan, curveBucket, deckGuidance, deckSection, defaultDeckTargets, type AnalysisCard } from './deck-analysis.ts'
 
 const card = (overrides: Partial<AnalysisCard> = {}): AnalysisCard => ({ name: 'Card', layout: 'normal', typeLine: 'Creature', manaCost: '{2}{G}', manaValue: 3, detail: '', producedMana: [], faces: [], ...overrides })
 
@@ -55,6 +55,10 @@ test('uses front face for adventure curve and excludes all-land modal cards', ()
   const analysis = analyseDeck([adventure, pathway])
   assert.deepEqual(analysis.curve[3], { manaValue: 3, permanents: 1, nonPermanents: 0 })
   assert.equal(curveBucket(pathway), null)
+})
+
+test('groups deck cards by requested type order', () => {
+  assert.deepEqual(['Creature', 'Enchantment', 'Artifact', 'Sorcery', 'Instant', 'Planeswalker', 'Land'].map(deckSection), ['Creatures', 'Enchantments', 'Artifacts', 'Sorceries', 'Instants', 'Other', 'Lands'])
 })
 
 test('splits basic lands by demand, falls back evenly, and respects open slots', () => {

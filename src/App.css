@@ -220,7 +220,11 @@ aside { padding: 40px 30px; border-left: 1px solid #dad8e6; background: #e9eaf7;
 .target-heading span { color: #706d82; font-size: 10px; }
 .deck-targets label { display: grid; grid-template-columns: 1fr 24px 8px 42px; align-items: center; padding: 3px 0; font-size: 12px; }
 .deck-targets input { width: 42px; padding: 3px; border: 1px solid #bbb9cd; border-radius: 4px; background: transparent; color: inherit; text-align: center; }
-.basic-land-button { width: 100%; margin-top: 10px; border-color: #8c69ae; color: #694096; }
+.basic-land-button { display: flex; width: 100%; align-items: center; justify-content: space-between; margin: 8px 0 4px; padding: 10px 12px; border: 0; border-radius: 6px; background: var(--commander-accent, #7546a8); color: white; text-align: left; }
+.basic-land-button:hover { filter: brightness(1.12); }
+.basic-land-button span { font-weight: 600; }
+.basic-land-button b { color: inherit; font-size: 10px; letter-spacing: .5px; text-transform: uppercase; }
+.basic-land-wait { margin: 7px 0; color: #706d82; font-size: 10px; line-height: 1.35; }
 .basic-land-modal { max-width: 480px; }
 .basic-land-modal > p { margin: 8px 0 18px; color: #625f76; }
 .basic-land-plan { margin: 0 0 20px; padding: 0; list-style: none; }
@@ -235,13 +239,23 @@ aside { padding: 40px 30px; border-left: 1px solid #dad8e6; background: #e9eaf7;
 ol { list-style: none; margin: 0; padding: 0; }
 li { position: relative; display: flex; justify-content: space-between; gap: 10px; padding: 11px 0; border-bottom: 1px solid #dad8e6; font-size: 13px; transition: opacity .15s; }
 li.curve-dimmed { opacity: .22; }
+.deck-list > .deck-group { display: block; padding: 0; border: 0; }
+.deck-group > h3 { display: flex; justify-content: space-between; margin: 20px 0 3px; color: #706d82; font: 600 10px 'DM Sans', sans-serif; letter-spacing: .7px; text-transform: uppercase; }
+.deck-group > h3 span { font: inherit; }
+.deck-group ol > li { align-items: center; }
+.deck-add, .deck-remove { display: grid; width: 22px; height: 22px; padding: 0; place-items: center; border: 1px solid #bbb9cd; border-radius: 50%; background: transparent; color: #706d82; line-height: 1; }
+.deck-remove { opacity: 0; }
+.deck-group ol > li:hover .deck-remove, .deck-group ol > li:focus-within .deck-remove { opacity: 1; }
+.basic-placeholder { opacity: .45; }
+.basic-placeholder > button { display: flex; width: 100%; justify-content: space-between; padding: 10px 0; border: 0; border-bottom: 1px dashed #aaa8b8; background: transparent; color: inherit; }
+.basic-placeholder > button b { font-size: 18px; }
 .deck-card-name { position: relative; }
 .alternate-printing { position: absolute; top: 50%; left: -12px; width: 6px; height: 6px; border-radius: 50%; background: var(--commander-highlight, #9a72ba); box-shadow: 0 0 6px var(--commander-highlight, #9a72ba); transform: translateY(-50%); }
 .deck-card-popover { position: fixed; z-index: 20; right: 370px; top: 50%; opacity: 0; pointer-events: none; transform: translateY(-50%) scale(.96); transition: opacity .15s, transform .15s; }
 .deck-card-preview { display: block; width: min(320px, 25vw); max-height: calc(100vh - 40px); border-radius: 4.75%; box-shadow: 0 16px 42px #080712d9, 0 0 0 1px #ffffff26; }
 .deck-card-popover::after { position: absolute; inset: -12px -70px -32px 100%; content: ''; }
 .deck-card-popover button { position: absolute; z-index: 3; right: 10px; bottom: -18px; padding: 7px 10px; border: 1px solid #ffffff99; border-radius: 6px; background: #201c3c; color: white; box-shadow: 0 5px 14px #08071299; }
-li:hover .deck-card-popover, li:focus-within .deck-card-popover { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
+.deck-group ol > li:hover .deck-card-popover, .deck-group ol > li:focus-within .deck-card-popover { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
 .deck-card-meta { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
 .deck-mana { display: flex; min-width: 54px; justify-content: flex-end; white-space: nowrap; }
 .deck-mana .mana-symbol { width: 16px; height: 16px; margin: 0 1px; }
@@ -283,7 +297,9 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark .curve-legend, .dark .target-heading span { color: #aaa8c2; }
 .dark .colour-empty { background: #35334a; color: #aaa8c2; }
 .dark .deck-targets input { border-color: #4b4867; }
-.dark .basic-land-button { color: #d9b9f2; }
+.dark .basic-land-button { background: var(--commander-accent, #5851a6); color: white; }
+.dark .basic-land-wait, .dark .deck-group > h3 { color: #aaa8c2; }
+.dark .deck-add, .dark .deck-remove { border-color: #4b4867; color: #ccc9df; }
 .dark .basic-land-modal > p { color: #c4c1d5; }
 .dark .basic-land-plan li { border-color: #393650; }
 .dark .deck-guidance p { color: #d4bd8b; }
