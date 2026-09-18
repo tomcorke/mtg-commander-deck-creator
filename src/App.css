@@ -74,7 +74,7 @@ h1 { margin-bottom: 8px; font-size: clamp(32px, 4vw, 52px); }
 .suggestion-preview img { display: block; width: clamp(130px, calc(50vw - 590px), 300px); max-height: calc(100vh - 40px); border-radius: 4.75%; object-fit: contain; }
 .suggestion-preview.pair { padding: 0; background: transparent; box-shadow: none; }
 .suggestion-preview.pair img:first-child { transform: rotate(-3deg); }
-.suggestion-preview.pair img + img { z-index: 1; margin-left: -82%; transform: translate(34%, 5%) rotate(3deg); }
+.suggestion-preview.pair img + img { z-index: 1; margin-left: -65%; transform: translate(78%, 5%) rotate(3deg); }
 .suggestions button:hover .suggestion-preview, .suggestions button:focus-visible .suggestion-preview { opacity: 1; transform: translateY(-50%) scale(1); }
 .commander-option { display: flex; min-width: 0; align-items: center; gap: 10px; }
 .commander-cost { position: relative; display: flex; flex: none; width: 78px; min-width: 78px; max-width: 78px; min-height: 18px; justify-content: flex-end; align-items: center; overflow: visible; white-space: nowrap; }
