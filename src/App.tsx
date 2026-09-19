@@ -459,7 +459,16 @@ function App() {
 
   function decide(card: Card, action: 'add' | 'later' | 'ignore') {
     const previous = decisions[card.name]
-    if (previous === 'add' && action !== 'add') {
+    if (previous === action) {
+      if (action === 'add') {
+        setDeck((list) => list.filter((item) => item.name !== card.name))
+        setSideboard((list) => list.filter((item) => item.name !== card.name))
+      }
+      if (action === 'ignore') setIgnoredCards((current) => current.filter((name) => name !== card.name))
+      setDecisions((current) => { const next = { ...current }; delete next[card.name]; return next })
+      return
+    }
+    if (previous === 'add') {
       setDeck((list) => list.filter((item) => item.name !== card.name))
       setSideboard((list) => list.filter((item) => item.name !== card.name))
     }
@@ -843,6 +852,27 @@ function App() {
     </section>
   </div>
 
+  function fanCards(event: MouseEvent<HTMLDivElement>) {
+    const cards = event.currentTarget.querySelectorAll<HTMLElement>('.card-offer')
+    cards.forEach((card) => {
+      const { left, width } = card.getBoundingClientRect()
+      const proximity = Math.max(0, 1 - Math.abs(event.clientX - (left + width / 2)) / Math.max(width * 1.5, 1))
+      const image = card.querySelector('.offered-image')?.getBoundingClientRect()
+      card.style.setProperty('--pointer-proximity', proximity.toFixed(3))
+      card.style.cursor = image && event.clientX >= image.left && event.clientX <= image.right && event.clientY >= image.top && event.clientY <= image.bottom ? 'pointer' : ''
+    })
+  }
+
+  function resetFan(event: MouseEvent<HTMLDivElement>) {
+    event.currentTarget.querySelectorAll<HTMLElement>('.card-offer').forEach((card) => { card.style.removeProperty('--pointer-proximity'); card.style.cursor = '' })
+  }
+
+  function clickCardImage(event: MouseEvent<HTMLElement>, card: Card) {
+    if ((event.target as HTMLElement).closest('button')) return
+    const image = event.currentTarget.querySelector('.offered-image')?.getBoundingClientRect()
+    if (image && event.clientX >= image.left && event.clientX <= image.right && event.clientY >= image.top && event.clientY <= image.bottom) decide(card, 'add')
+  }
+
   async function nextBatch(extraSubTheme = '') {
     if (recommendationOptionsChanged) {
       if (await start(commander, true)) setRecommendationOptionsChanged(false)
@@ -1059,11 +1089,12 @@ function App() {
             <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => chooseSubTheme(name)}>{name}</button>)}</div>
           </div>}
           {deck.length >= 100 && <div className="completion sideboard-completion"><p className="eyebrow">Main deck complete</p><h2>Build your sideboard</h2><p>Further picks go to sideboard. Move cards into main deck after removing a card.</p><button className="primary" type="button" onClick={() => setShowExport(true)}>Review and export deck</button></div>}
-          {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow">
-            {scoredBatch.map(({ card }) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} key={card.name}>
-              <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}{decisions[card.name] === 'add' ? sideboard.some((item) => item.name === card.name) ? ' · Added to sideboard' : ' · Added to deck' : decisions[card.name] === 'later' ? ' · Later' : decisions[card.name] === 'ignore' ? ' · Ignored' : ''}</h3>{recommendedCard.card === card && <span className="recommended-badge">Recommended</span>}</div>
+          {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow juicy-fan" onMouseMove={fanCards} onMouseLeave={resetFan}>
+            {scoredBatch.map(({ card }, index) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} style={{ '--fan-position': index - (scoredBatch.length - 1) / 2, '--fan-drop': `${Math.abs(index - (scoredBatch.length - 1) / 2) * 7}px` } as CSSProperties} onClick={(event) => clickCardImage(event, card)} key={card.name}>
+              {decisions[card.name] && <span className="decision-badge">{decisions[card.name] === 'add' ? sideboard.some((item) => item.name === card.name) ? 'Added to sideboard' : 'Added to deck' : decisions[card.name] === 'later' ? 'Later' : 'Ignored'}</span>}
+              <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}</h3>{recommendedCard.card === card && <span className="recommended-badge">Recommended</span>}</div>
               <div className={`actions ${deck.length >= 100 ? 'sideboard-actions' : ''}`}>
-                <div><button className="primary" onClick={() => decide(card, 'add')}>{deck.length >= 100 && decisions[card.name] !== 'add' ? 'Sideboard' : 'Add'}</button><span className="action-help-wrap"><button onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
+                <div><button className="primary" aria-pressed={decisions[card.name] === 'add'} onClick={() => decide(card, 'add')}>{deck.length >= 100 && decisions[card.name] !== 'add' ? 'Sideboard' : 'Add'}</button><span className="action-help-wrap"><button aria-pressed={decisions[card.name] === 'later'} onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" aria-pressed={decisions[card.name] === 'ignore'} onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
               <div className="offered-image"><img src={card.image} alt={`${card.name} card`} /><PriceBadge price={card.price} />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
