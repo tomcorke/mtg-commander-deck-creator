@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
 import { fetchScryfallCollection, matchImportedCard, missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
@@ -920,7 +920,7 @@ function App() {
   const visibleBatch = pairCards.length ? [...pairCards, ...rawBatch.filter((card) => !pairCards.includes(card))] : rawBatch
   const inferredThemeOptions = [...new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))].filter((name) => supportedThemes.includes(name))
   const subThemeOptions = [...new Set([...commanderSubThemes, ...inferredThemeOptions, ...supportedThemes])]
-  const filteredSubThemes = subThemeOptions.filter((name) => name.toLowerCase().includes(subThemeSearch.toLowerCase()) && name !== theme && !activeSubThemes.includes(name))
+  const filteredSubThemes = subThemeOptions.filter((name) => themeMatchesSearch(name, subThemeSearch) && name !== theme && !activeSubThemes.includes(name))
   const analysis = analyseDeck(deck)
   const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
   const calculatedLandTarget = deckTargets.lands

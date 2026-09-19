@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -124,6 +124,14 @@ test('undecided and later cards observe full cooldown near queue exhaustion', ()
   assert.deepEqual(releaseDeferred(deferred, 5).ready.map((card) => card.name), ['Undecided', 'Later'])
   assert.deepEqual(releaseNextDeferred(deferred, 2, false).ready.map((card) => card.name), ['Undecided'])
   assert.equal(releaseNextDeferred(deferred, 2, false).batchNumber, 4)
+})
+
+test('theme search matches names and readable aliases', () => {
+  assert.equal(themeMatchesSearch('ETB', 'enter'), true)
+  assert.equal(themeMatchesSearch('ETB', 'enter the battlefield'), true)
+  assert.equal(themeMatchesSearch('Recursion', 'reanimator'), true)
+  assert.equal(themeMatchesSearch('Landfall', 'lands matter'), true)
+  assert.equal(themeMatchesSearch('ETB', 'death'), false)
 })
 
 test('commander theme choices use supported EDHREC associations in source order', () => {

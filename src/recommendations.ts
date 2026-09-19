@@ -175,6 +175,13 @@ const edhrecThemeAliases: Record<string, string> = {
   'lands-matter': 'Landfall',
 }
 
+export function themeMatchesSearch(theme: string, search: string) {
+  const query = search.trim().toLowerCase()
+  if (!query) return true
+  const aliases = Object.entries(edhrecThemeAliases).filter(([, name]) => name === theme).map(([alias]) => alias.replaceAll('-', ' '))
+  return [theme, ...aliases].some((name) => name.toLowerCase().includes(query))
+}
+
 function edhrecThemeName({ slug, value }: EdhrecThemeCount) {
   return edhrecThemeAliases[slug] ?? supportedThemeNames.get(value.toLowerCase())
 }
