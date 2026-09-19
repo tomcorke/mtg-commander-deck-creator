@@ -1,6 +1,28 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { missingCardNames, parseDeckList } from './deck-import.ts'
+import { fetchScryfallCollection, matchImportedCard, missingCardNames, parseDeckList } from './deck-import.ts'
+
+test('retries transient Scryfall collection failures', async () => {
+  let attempts = 0
+  const fetcher = async () => new Response('', { status: ++attempts < 3 ? 503 : 200 })
+  const response = await fetchScryfallCollection([{ name: 'Tireless Provisioner' }], fetcher as typeof fetch, async () => undefined)
+  assert.equal(response.status, 200)
+  assert.equal(attempts, 3)
+})
+
+test('does not retry invalid Scryfall collection requests', async () => {
+  let attempts = 0
+  const response = await fetchScryfallCollection([{ name: 'Missing' }], (async () => { attempts++; return new Response('', { status: 400 }) }) as typeof fetch)
+  assert.equal(response.status, 400)
+  assert.equal(attempts, 1)
+})
+
+test('falls back from missing printing to matching card name', () => {
+  const entry = { name: 'Tireless Provisioner', quantity: 1, set: 'bad', collectorNumber: '999', board: 'mainboard' as const }
+  const fallback = { name: 'Tireless Provisioner', set: 'mh2', collector_number: '180' }
+  assert.equal(matchImportedCard(entry, [fallback]), fallback)
+  assert.equal(matchImportedCard({ ...entry, name: 'Missing' }, [fallback]), undefined)
+})
 
 test('reports missing name and printing identifiers as card names', () => {
   const cards = parseDeckList('1 Sol Ring\n1 Forest (M3C) 317').cards

@@ -7,6 +7,23 @@ export function missingCardNames(missing: MissingIdentifier[], cards: ImportedCa
   return missing.map((identifier) => identifier.name ?? cards.find((card) => card.set === identifier.set && card.collectorNumber === identifier.collector_number)?.name ?? `${identifier.set?.toUpperCase() ?? 'Unknown set'} ${identifier.collector_number ?? ''}`.trim())
 }
 
+export function matchImportedCard<T extends { name: string; set: string; collector_number: string }>(entry: ImportedCard, cards: T[]) {
+  return cards.find((card) => entry.set && entry.collectorNumber && card.set === entry.set && card.collector_number === entry.collectorNumber) ?? cards.find((card) => card.name.toLowerCase() === entry.name.toLowerCase())
+}
+
+export async function fetchScryfallCollection(identifiers: MissingIdentifier[], fetcher: typeof fetch = fetch, pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetcher('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers }) })
+      if (response.ok || (response.status !== 429 && response.status < 500)) return response
+    } catch (error) {
+      if (attempt === 2) throw error
+    }
+    if (attempt < 2) await pause(500 * 2 ** attempt)
+  }
+  throw new Error('Scryfall unavailable')
+}
+
 const sectionBoard = (line: string): ImportBoard | null => {
   const section = line.trim().replace(/:$/, '').toLowerCase()
   if (section === 'commander' || section === 'commanders') return 'commander'

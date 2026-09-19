@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
-import { missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
+import { fetchScryfallCollection, matchImportedCard, missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string; price?: string }
@@ -756,18 +756,27 @@ function App() {
 
     const identifiers = imported.cards.map((card) => card.set && card.collectorNumber ? { set: card.set, collector_number: card.collectorNumber } : { name: card.name })
     const fetched: ScryfallCard[] = []
+    const unresolved: typeof imported.cards = []
     for (let index = 0; index < identifiers.length; index += 75) {
-      const response = await fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: identifiers.slice(index, index + 75) }) })
+      const entries = imported.cards.slice(index, index + 75)
+      const response = await fetchScryfallCollection(identifiers.slice(index, index + 75))
       if (!response.ok) throw new Error('Scryfall unavailable. Try again.')
       const result = await response.json() as { data: ScryfallCard[]; not_found?: { name?: string; set?: string; collector_number?: string }[] }
       fetched.push(...result.data)
-      if (result.not_found?.length) {
-        const names = missingCardNames(result.not_found, imported.cards.slice(index, index + 75))
-        throw new Error(`Not found: ${names.join(', ')}. Check spelling, set, and collector number.`)
-      }
+      unresolved.push(...entries.filter((entry) => !matchImportedCard(entry, result.data)))
     }
+    if (unresolved.length) {
+      const response = await fetchScryfallCollection(unresolved.map(({ name }) => ({ name })))
+      if (!response.ok) throw new Error('Scryfall unavailable. Try again.')
+      const result = await response.json() as { data: ScryfallCard[]; not_found?: { name?: string; set?: string; collector_number?: string }[] }
+      fetched.push(...result.data)
+      if (result.not_found?.length) throw new Error(`Not found: ${missingCardNames(result.not_found, unresolved).join(', ')}. Check spelling, set, and collector number.`)
+    }
+    const resolved = imported.cards.map((entry) => matchImportedCard(entry, fetched))
+    const stillMissing = imported.cards.filter((_, index) => !resolved[index])
+    if (stillMissing.length) throw new Error(`Not found: ${stillMissing.map(({ name }) => name).join(', ')}. Check spelling, set, and collector number.`)
 
-    const expanded = imported.cards.flatMap((entry, index) => Array.from({ length: entry.quantity }, () => ({ entry, card: fetched[index] })))
+    const expanded = imported.cards.flatMap((entry, index) => Array.from({ length: entry.quantity }, () => ({ entry, card: resolved[index]! })))
     const commanderCards = expanded.filter(({ entry }) => entry.board === 'commander')
     if (commanderCards.some(({ card }) => !card.type_line.includes('Legendary') && !card.type_line.includes('Background'))) throw new Error('Commander section contains a card that cannot be a commander.')
     const identity = [...new Set(commanderCards.flatMap(({ card }) => card.color_identity))]

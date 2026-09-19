@@ -97,9 +97,18 @@ test('recommendation score rewards evidence and leaves weak picks below badge th
   assert.ok(recommendationScore({ reason: 'Interesting new pick', tags: [] }, { ...context, cardRoles: [] }) < recommendedScoreThreshold)
 })
 
-test('batching preserves ranked order without fixed card quotas', () => {
-  const cards = ['Theme 1', 'Theme 2', 'Theme 3', 'Theme 4', 'Mana'].map((name) => ({ name }))
-  assert.deepEqual(batchRecommendations(cards, true), cards)
+test('batching preserves rank while limiting new cards to one per batch', () => {
+  const cards = [
+    { name: 'New 1', reason: 'Interesting new pick' },
+    { name: 'New 2', reason: 'Interesting new pick' },
+    { name: 'Theme 1', reason: 'Commander synergy' },
+    { name: 'Theme 2', reason: 'Commander synergy' },
+    { name: 'Theme 3', reason: 'Commander synergy' },
+    { name: 'New 3', reason: 'Interesting new pick' },
+    { name: 'Theme 4', reason: 'Commander synergy' },
+    { name: 'Theme 5', reason: 'Commander synergy' },
+  ]
+  assert.deepEqual(batchRecommendations(cards, true).map(({ name }) => name), ['New 1', 'Theme 1', 'Theme 2', 'Theme 3', 'New 2', 'Theme 4', 'Theme 5', 'New 3'])
 })
 
 test('ignore suppresses more-like-this score', () => {

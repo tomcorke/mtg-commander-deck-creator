@@ -241,9 +241,24 @@ export function buildEdhrecRecommendations(entries: EdhrecEntry[], responseCards
   }), options.includeCreature)
 }
 
-export function batchRecommendations<T extends { name: string }>(cards: T[], _includeCreature: boolean) {
+export function batchRecommendations<T extends { name: string; reason?: string }>(cards: T[], _includeCreature: boolean) {
   if (new Set(cards.map((card) => card.name)).size !== cards.length) throw new Error('Recommendation queue duplicated cards')
-  return [...cards]
+  const pending = [...cards]
+  const result: T[] = []
+  while (pending.length) {
+    const batch: T[] = []
+    let newCardUsed = false
+    for (let index = 0; index < pending.length && batch.length < 4;) {
+      const card = pending[index]
+      const isNew = card.reason === 'Interesting new pick'
+      if (isNew && newCardUsed) { index++; continue }
+      batch.push(...pending.splice(index, 1))
+      if (isNew) newCardUsed = true
+    }
+    if (!batch.length) batch.push(...pending.splice(0, 4))
+    result.push(...batch)
+  }
+  return result
 }
 
 export function updatePreferenceScores(cards: { name: string; tags: string[] }[], decisions: Record<string, 'add' | 'later' | 'ignore'>, liked: string[], current: Record<string, number>) {
