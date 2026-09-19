@@ -21,8 +21,9 @@ test('analyses curve, coloured requirements, production, roles, and land range',
   assert.equal(analysis.landRange.length, 2)
 })
 
-test('classifies common removal without treating one sacrifice as a wipe', () => {
+test('classifies common removal without treating one sacrifice or mass untap as a wipe', () => {
   const analysis = analyseDeck([
+    card({ name: 'Village Bell-Ringer', detail: 'When this creature enters, untap all creatures you control.' }),
     card({ detail: 'Each player sacrifices a creature.' }),
     card({ detail: 'This creature fights target creature you don’t control.' }),
     card({ detail: 'It deals 3 damage to target creature.' }),
