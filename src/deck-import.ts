@@ -1,6 +1,11 @@
 export type ImportBoard = 'commander' | 'mainboard' | 'sideboard'
 export type ImportedCard = { name: string; quantity: number; set?: string; collectorNumber?: string; board: ImportBoard }
 export type ImportedDeck = { name?: string; cards: ImportedCard[] }
+type MissingIdentifier = { name?: string; set?: string; collector_number?: string }
+
+export function missingCardNames(missing: MissingIdentifier[], cards: ImportedCard[]) {
+  return missing.map((identifier) => identifier.name ?? cards.find((card) => card.set === identifier.set && card.collectorNumber === identifier.collector_number)?.name ?? `${identifier.set?.toUpperCase() ?? 'Unknown set'} ${identifier.collector_number ?? ''}`.trim())
+}
 
 const sectionBoard = (line: string): ImportBoard | null => {
   const section = line.trim().replace(/:$/, '').toLowerCase()

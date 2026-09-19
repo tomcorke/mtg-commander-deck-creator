@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, ty
 import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
-import { parseDeckList, type ImportedDeck } from './deck-import'
+import { missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
 import './App.css'
 
 type Printing = { image: string; art?: string; set: string; collectorNumber: string; price?: string }
@@ -759,9 +759,12 @@ function App() {
     for (let index = 0; index < identifiers.length; index += 75) {
       const response = await fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: identifiers.slice(index, index + 75) }) })
       if (!response.ok) throw new Error('Scryfall unavailable. Try again.')
-      const result = await response.json() as { data: ScryfallCard[]; not_found?: unknown[] }
+      const result = await response.json() as { data: ScryfallCard[]; not_found?: { name?: string; set?: string; collector_number?: string }[] }
       fetched.push(...result.data)
-      if (result.not_found?.length) throw new Error(`${result.not_found.length} card${result.not_found.length === 1 ? '' : 's'} not found. Check names, sets, and collector numbers.`)
+      if (result.not_found?.length) {
+        const names = missingCardNames(result.not_found, imported.cards.slice(index, index + 75))
+        throw new Error(`Not found: ${names.join(', ')}. Check spelling, set, and collector number.`)
+      }
     }
 
     const expanded = imported.cards.flatMap((entry, index) => Array.from({ length: entry.quantity }, () => ({ entry, card: fetched[index] })))
