@@ -907,7 +907,7 @@ function App() {
   const pairCards = synergyPair?.cards ?? []
   const visibleBatch = pairCards.length ? [...pairCards, ...rawBatch.filter((card) => !pairCards.includes(card))] : rawBatch
   const inferredThemeOptions = [...new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))].filter((name) => supportedThemes.includes(name))
-  const subThemeOptions = [...new Set([...commanderSubThemes, ...inferredThemeOptions])]
+  const subThemeOptions = [...new Set([...commanderSubThemes, ...inferredThemeOptions, ...supportedThemes])]
   const filteredSubThemes = subThemeOptions.filter((name) => name.toLowerCase().includes(subThemeSearch.toLowerCase()) && name !== theme && !activeSubThemes.includes(name))
   const analysis = analyseDeck(deck)
   const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
