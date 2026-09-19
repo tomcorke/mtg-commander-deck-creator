@@ -97,18 +97,18 @@ test('recommendation score rewards evidence and leaves weak picks below badge th
   assert.ok(recommendationScore({ reason: 'Interesting new pick', tags: [] }, { ...context, cardRoles: [] }) < recommendedScoreThreshold)
 })
 
-test('batching preserves rank while limiting new cards to one per batch', () => {
+test('batches vary reasons with a creature, mana card, and at most one new card', () => {
   const cards = [
-    { name: 'New 1', reason: 'Interesting new pick' },
-    { name: 'New 2', reason: 'Interesting new pick' },
-    { name: 'Theme 1', reason: 'Commander synergy' },
-    { name: 'Theme 2', reason: 'Commander synergy' },
-    { name: 'Theme 3', reason: 'Commander synergy' },
-    { name: 'New 3', reason: 'Interesting new pick' },
-    { name: 'Theme 4', reason: 'Commander synergy' },
-    { name: 'Theme 5', reason: 'Commander synergy' },
+    { name: 'Aura 1', reason: 'Enchantment synergy', typeLine: 'Enchantment — Aura' },
+    { name: 'Aura 2', reason: 'Enchantment synergy', typeLine: 'Enchantment — Aura' },
+    { name: 'New 1', reason: 'Interesting new pick', typeLine: 'Enchantment — Aura' },
+    { name: 'New 2', reason: 'Interesting new pick', typeLine: 'Enchantment — Aura' },
+    { name: 'Creature', reason: 'Creature synergy', typeLine: 'Creature' },
+    { name: 'Land', reason: 'Land or mana', typeLine: 'Land' },
+    { name: 'Artifact', reason: 'Utility artifact', typeLine: 'Artifact' },
+    { name: 'Aura 3', reason: 'Enchantment synergy', typeLine: 'Enchantment — Aura' },
   ]
-  assert.deepEqual(batchRecommendations(cards, true).map(({ name }) => name), ['New 1', 'Theme 1', 'Theme 2', 'Theme 3', 'New 2', 'Theme 4', 'Theme 5', 'New 3'])
+  assert.deepEqual(batchRecommendations(cards, true).slice(0, 4).map(({ name }) => name), ['Creature', 'Aura 1', 'New 1', 'Land'])
 })
 
 test('ignore suppresses more-like-this score', () => {

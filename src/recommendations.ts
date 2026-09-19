@@ -241,24 +241,35 @@ export function buildEdhrecRecommendations(entries: EdhrecEntry[], responseCards
   }), options.includeCreature)
 }
 
-export function batchRecommendations<T extends { name: string; reason?: string }>(cards: T[], _includeCreature: boolean) {
-  if (new Set(cards.map((card) => card.name)).size !== cards.length) throw new Error('Recommendation queue duplicated cards')
-  const pending = [...cards]
-  const result: T[] = []
-  while (pending.length) {
-    const batch: T[] = []
-    let newCardUsed = false
-    for (let index = 0; index < pending.length && batch.length < 4;) {
-      const card = pending[index]
-      const isNew = card.reason === 'Interesting new pick'
-      if (isNew && newCardUsed) { index++; continue }
-      batch.push(...pending.splice(index, 1))
-      if (isNew) newCardUsed = true
+export function batchRecommendations<T extends { name: string; reason: string; typeLine: string }>(cards: T[], includeCreature: boolean) {
+  const remaining = [...cards]
+  const ordered: T[] = []
+  while (remaining.length) {
+    const picks: T[] = []
+    const take = (test: (card: T) => boolean) => {
+      const allowedNewCard = (card: T) => card.reason !== 'Interesting new pick' || !picks.some((pick) => pick.reason === 'Interesting new pick')
+      const newReason = (card: T) => !picks.some((pick) => pick.reason === card.reason)
+      let index = remaining.findIndex((card) => test(card) && allowedNewCard(card) && newReason(card))
+      if (index < 0) index = remaining.findIndex((card) => test(card) && allowedNewCard(card))
+      if (index < 0) index = remaining.findIndex(test)
+      if (index >= 0) picks.push(...remaining.splice(index, 1))
     }
-    if (!batch.length) batch.push(...pending.splice(0, 4))
-    result.push(...batch)
+    if (includeCreature) take((card) => card.reason !== 'Land or mana' && card.typeLine.includes('Creature'))
+    while (picks.filter((card) => card.reason !== 'Land or mana').length < 3) {
+      const count = picks.length
+      take((card) => card.reason !== 'Land or mana')
+      if (picks.length === count) break
+    }
+    take((card) => card.reason === 'Land or mana')
+    while (picks.length < 4) {
+      const count = picks.length
+      take(() => true)
+      if (picks.length === count) break
+    }
+    ordered.push(...picks)
   }
-  return result
+  if (ordered.length !== cards.length || new Set(ordered.map((card) => card.name)).size !== cards.length) throw new Error('Recommendation queue lost or duplicated cards')
+  return ordered
 }
 
 export function updatePreferenceScores(cards: { name: string; tags: string[] }[], decisions: Record<string, 'add' | 'later' | 'ignore'>, liked: string[], current: Record<string, number>) {
