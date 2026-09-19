@@ -279,6 +279,19 @@ export function batchRecommendations<T extends { name: string; reason: string; t
   return ordered
 }
 
+export function balanceThemeCoverage<T extends { tags: string[]; reason: string }>(cards: T[], themes: string[]) {
+  if (themes.length < 2) return cards
+  const ordered = [...cards]
+  for (let start = 0; start < ordered.length; start += 4) for (const theme of themes) {
+    if (ordered.slice(start, start + 4).some((card) => card.tags.includes(theme))) continue
+    const batch = ordered.slice(start, start + 4)
+    const replacement = ordered.findIndex((card, index) => index >= start + 4 && card.tags.includes(theme) && card.reason !== 'Land or mana' && (card.reason !== 'Interesting new pick' || !batch.some((item) => item.reason === 'Interesting new pick')))
+    const displaced = batch.findLastIndex((card) => card.reason !== 'Land or mana' && !card.tags.includes(theme) && !themes.some((other) => other !== theme && card.tags.includes(other) && batch.filter((item) => item.tags.includes(other)).length === 1))
+    if (replacement >= 0 && displaced >= 0) [ordered[start + displaced], ordered[replacement]] = [ordered[replacement], ordered[start + displaced]]
+  }
+  return ordered
+}
+
 export function updatePreferenceScores(cards: { name: string; tags: string[] }[], decisions: Record<string, 'add' | 'later' | 'ignore'>, liked: string[], current: Record<string, number>) {
   const scores = { ...current }
   for (const card of cards) {
@@ -326,7 +339,7 @@ export function advanceRecommendationQueue<T extends { name: string; reason: str
     + card.tags.reduce((score, tag) => score + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
     + cardRoles(card).reduce((score, role) => score + (roleBoosts[role] ?? 0) * (1 + 4 / Math.max(1, roleSupply[role] ?? 1)) + ((roleBoosts[role] ?? 0) > 0 ? Math.min(12, batchNumber - 1) : 0), 0)
   return {
-    queue: batchRecommendations(candidates.sort((a, b) => rank(b) - rank(a)), includeCreature),
+    queue: balanceThemeCoverage(batchRecommendations(candidates.sort((a, b) => rank(b) - rank(a)), includeCreature), rankedSubThemes),
     deferredCards: released.waiting,
     batchNumber: released.batchNumber,
     preferenceScores: scores,

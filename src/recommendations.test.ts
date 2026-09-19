@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -109,6 +109,14 @@ test('batches vary reasons with a creature, mana card, and at most one new card'
     { name: 'Aura 3', reason: 'Enchantment synergy', typeLine: 'Enchantment — Aura' },
   ]
   assert.deepEqual(batchRecommendations(cards, true).slice(0, 4).map(({ name }) => name), ['Creature', 'Aura 1', 'New 1', 'Land'])
+})
+
+test('each selected sub-theme appears when matching candidates exist', () => {
+  const card = (name: string, tags: string[], reason = 'Creature synergy') => ({ name, tags, reason })
+  const cards = [card('ETB 1', ['ETB']), card('ETB 2', ['ETB']), card('ETB 3', ['ETB']), card('Land', [], 'Land or mana'), card('Death 1', ['Death triggers']), card('Death 2', ['Death triggers'])]
+  const balanced = balanceThemeCoverage(cards, ['ETB', 'Death triggers'])
+  assert.deepEqual(balanced.slice(0, 4).map(({ name }) => name), ['ETB 1', 'ETB 2', 'Death 1', 'Land'])
+  assert.equal(balanceThemeCoverage([card('ETB', ['ETB']), card('New', [], 'Interesting new pick'), card('Other', []), card('Land', [], 'Land or mana'), card('New death', ['Death triggers'], 'Interesting new pick')], ['ETB', 'Death triggers']).slice(0, 4).filter(({ reason }) => reason === 'Interesting new pick').length, 1)
 })
 
 test('ignore suppresses more-like-this score', () => {

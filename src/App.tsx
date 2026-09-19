@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
-import { advanceRecommendationQueue, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
+import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
 import { fetchScryfallCollection, matchImportedCard, missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
@@ -865,7 +865,7 @@ function App() {
 
   if (!commander) return (
     <main className={darkMode ? 'dark' : ''}>
-      <header><a className="brand" href="/">Commander's Table</a><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowImport(true)}>Import deck</button><button className="export" type="button" onClick={openSavedDecks}>Saved decks ({savedDecks.length})</button></div></header>
+      <header><a className="brand" href="/">Commander Deck Creator <small>v{__APP_VERSION__}</small></a><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowImport(true)}>Import deck</button><button className="export" type="button" onClick={openSavedDecks}>Saved decks ({savedDecks.length})</button></div></header>
       {savedDecksModal}
       {importModal}
       <section className="start">
@@ -914,6 +914,13 @@ function App() {
   const deckCards = deck.slice(commanderNames(commander).length)
   const dismissedThemeCounts = new Map(dismissedSubThemes.map((item) => { const split = item.lastIndexOf(':'); return split > 0 ? [item.slice(0, split), Number(item.slice(split + 1))] : [item, Infinity] }))
   const inferredSubThemes = activeSubThemes.length < 2 ? sharedThemes(deckCards, [theme, ...activeSubThemes]).filter((name) => deckCards.filter((card) => card.tags.includes(name)).length > (dismissedThemeCounts.get(name) ?? -1)).slice(0, 1) : []
+  const chooseSubTheme = (name: string) => {
+    const themes = [...activeSubThemes, name].slice(0, 2)
+    setActiveSubThemes(themes)
+    setQueue((current) => balanceThemeCoverage(current, themes))
+    setShowSubThemePicker(false)
+    setSubThemeSearch('')
+  }
   const rawBatch = queue.slice(0, 4)
   const synergyPair = findSynergyPair(rawBatch.filter((card) => card.reason !== 'Land or mana'))
   const pairCards = synergyPair?.cards ?? []
@@ -937,8 +944,8 @@ function App() {
   const manaColours = (['W', 'U', 'B', 'R', 'G'] as const)
   const pickedTags = new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))
   const cardReason = (card: Card) => {
-    const subTheme = card.tags.find((tag) => activeSubThemes.includes(tag))
-    if (subTheme) return `${subTheme} sub-theme`
+    const subThemes = activeSubThemes.filter((tag) => card.tags.includes(tag))
+    if (subThemes.length) return `${subThemes.join(' + ')} sub-theme`
     if (theme && card.tags.includes(theme)) return `${theme} theme`
     const missingRole = rolesForCard(card).find((role) => role !== 'lands' && analysis.counts[role] < deckTargets[role])
     if (missingRole) return targetLabels[missingRole]
@@ -953,7 +960,7 @@ function App() {
     <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`} style={{ '--commander-accent': primaryTheme[0], '--commander-highlight': secondaryTheme[1] } as CSSProperties}>
       {commanderStyling && commanderDetails?.art.length ? <div className="commander-backdrop" aria-hidden="true">{commanderDetails.art.map((image) => <span style={{ backgroundImage: `url(${image})` }} key={image} />)}</div> : null}
       <header>
-        <button className="brand reset" onClick={startOver}>Commander's Table</button>
+        <button className="brand reset" onClick={startOver}>Commander Deck Creator <small>v{__APP_VERSION__}</small></button>
         <div className="deck-status">{activeSavedDeck && <div className="saved-status"><b>{activeSavedDeck.name}</b><small>Saved {new Date(activeSavedDeck.updatedAt).toLocaleString()} <span className="delta-added">+{activeDeckDelta?.added}</span> <span className="delta-removed">−{activeDeckDelta?.removed}</span></small></div>}<div className="progress"><span style={{ background: `linear-gradient(90deg, var(--commander-accent, #7650ae) ${deck.length}%, #dedcea ${deck.length}%)` }} />{deck.length} / 100 cards</div></div>
         <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={() => setShowImport(true)}>Import</button><button className="export" type="button" onClick={openSavedDecks}>Save / load</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
       </header>
@@ -1039,7 +1046,7 @@ function App() {
             <div className="subthemes" aria-label="Deck themes">
               {theme && <button type="button" onClick={() => setTheme('')} title="Remove declared theme">{theme} <span>×</span></button>}
               {activeSubThemes.map((name) => <button type="button" onClick={() => setActiveSubThemes((current) => current.filter((item) => item !== name))} title={`Remove ${name} sub-theme`} key={name}>{name} <span>×</span></button>)}
-              {inferredSubThemes.map((inferredSubTheme) => <span className="suggested-subtheme" key={inferredSubTheme}><span>{inferredSubTheme}?</span><button type="button" onClick={() => setActiveSubThemes((current) => [...current, inferredSubTheme].slice(0, 2))} aria-label={`Accept ${inferredSubTheme} sub-theme`}>✓</button><button type="button" onClick={() => setDismissedSubThemes((current) => [...current.filter((item) => !item.startsWith(`${inferredSubTheme}:`) && item !== inferredSubTheme), `${inferredSubTheme}:${deckCards.filter((card) => card.tags.includes(inferredSubTheme)).length}`])} aria-label={`Dismiss ${inferredSubTheme} sub-theme`}>×</button></span>)}
+              {inferredSubThemes.map((inferredSubTheme) => <span className="suggested-subtheme" key={inferredSubTheme}><span>{inferredSubTheme}?</span><button type="button" onClick={() => chooseSubTheme(inferredSubTheme)} aria-label={`Accept ${inferredSubTheme} sub-theme`}>✓</button><button type="button" onClick={() => setDismissedSubThemes((current) => [...current.filter((item) => !item.startsWith(`${inferredSubTheme}:`) && item !== inferredSubTheme), `${inferredSubTheme}:${deckCards.filter((card) => card.tags.includes(inferredSubTheme)).length}`])} aria-label={`Dismiss ${inferredSubTheme} sub-theme`}>×</button></span>)}
               {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
             </div>
             <div className="toolbar-actions">
@@ -1049,7 +1056,7 @@ function App() {
           </div>
           {showSubThemePicker && <div className="subtheme-picker">
             <input value={subThemeSearch} onChange={(event) => setSubThemeSearch(event.target.value)} placeholder="Search sub-themes…" aria-label="Search sub-themes" />
-            <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => { setActiveSubThemes((current) => [...current, name].slice(0, 2)); setShowSubThemePicker(false); setSubThemeSearch('') }}>{name}</button>)}</div>
+            <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => chooseSubTheme(name)}>{name}</button>)}</div>
           </div>}
           {deck.length >= 100 && <div className="completion sideboard-completion"><p className="eyebrow">Main deck complete</p><h2>Build your sideboard</h2><p>Further picks go to sideboard. Move cards into main deck after removing a card.</p><button className="primary" type="button" onClick={() => setShowExport(true)}>Review and export deck</button></div>}
           {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow">

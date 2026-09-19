@@ -16,6 +16,7 @@ main.dark { color-scheme: dark; background: #111123; color: #d8d8ea; }
 main > :not(.commander-backdrop, .modal-backdrop) { position: relative; z-index: 1; }
 header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dad8e6; background: #f8f8ff; }
 .brand { color: #36327f; font: 600 21px 'Spectral', serif; text-decoration: none; }
+.brand small { font: 500 11px Inter, sans-serif; opacity: .65; white-space: nowrap; }
 .reset { border: 0; padding: 0; background: transparent; }
 .fresh { color: #858295; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
 .deck-status { display: flex; align-items: center; gap: 18px; }
