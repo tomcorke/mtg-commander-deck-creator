@@ -165,10 +165,11 @@ function moveFoil(event: PointerEvent<HTMLElement>) {
   card.style.setProperty('--foil-y', `${y * 100}%`)
   card.style.setProperty('--foil-rotate-x', `${(0.5 - y) * 16}deg`)
   card.style.setProperty('--foil-rotate-y', `${(x - 0.5) * 16}deg`)
+  card.style.setProperty('--foil-shift', `${(x + y - 1) * 100}deg`)
 }
 
 function resetFoil(event: PointerEvent<HTMLElement>) {
-  event.currentTarget.removeAttribute('style')
+  for (const property of ['--foil-x', '--foil-y', '--foil-rotate-x', '--foil-rotate-y', '--foil-shift']) event.currentTarget.style.removeProperty(property)
 }
 
 function App() {
