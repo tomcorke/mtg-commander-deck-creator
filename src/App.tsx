@@ -12,8 +12,34 @@ type DeckCard = { name: string; layout: string; typeLine: string; manaCost: stri
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type CommanderCard = ScryfallCard & { related_uris?: { edhrec?: string }; image_uris?: { normal: string; art_crop?: string }; card_faces?: { mana_cost?: string; oracle_text?: string; image_uris?: { normal: string; art_crop?: string } }[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
+type AppView = 'start' | 'builder'
+type AppModal = 'saved' | 'import' | 'search' | 'basics' | 'export'
+type AppHistoryState = { app: 'commander-deck-creator'; view: AppView; modal: AppModal | null; entry: boolean }
+const appHistoryKey = 'commander-deck-creator'
+const appModals: AppModal[] = ['saved', 'import', 'search', 'basics', 'export']
+
+function routeHash(view: AppView, modal: AppModal | null) {
+  return `#${view === 'builder' ? 'build' : 'start'}${modal ? `/${modal}` : ''}`
+}
+
+function readAppRoute(): AppHistoryState | null {
+  const state = window.history.state as Partial<AppHistoryState> | null
+  const hash = window.location.hash.slice(1).split('/')
+  const view = hash[0] === 'build' ? 'builder' : hash[0] === 'start' ? 'start' : null
+  const modal = appModals.includes(hash[1] as AppModal) ? hash[1] as AppModal : null
+  if (view) return { app: appHistoryKey, view, modal, entry: state?.app === appHistoryKey && state.view === view && (state.modal ?? null) === modal && state.entry === true }
+  return state?.app === appHistoryKey && (state.view === 'start' || state.view === 'builder') ? { app: appHistoryKey, view: state.view, modal: state.modal ?? null, entry: state.entry === true } : null
+}
+
+function writeAppRoute(route: AppHistoryState, replace = false) {
+  const url = new URL(window.location.href)
+  url.hash = routeHash(route.view, route.modal)
+  window.history[replace ? 'replaceState' : 'pushState'](route, '', url.href)
+}
 
 const savedDeckState = loadDeckState()
+const initialAppRoute = typeof window === 'undefined' ? null : readAppRoute()
+const usableInitialRoute = initialAppRoute?.view === 'builder' && !savedDeckState?.commander ? null : initialAppRoute
 
 const cardTags = (card: ScryfallCard, category = '') => tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
 const toCard = (card: ScryfallCard, reason: string, category = ''): Card => toRecommendationCard(card, reason, category)
@@ -210,10 +236,12 @@ function App() {
   const [batchAnnouncement, setBatchAnnouncement] = useState('')
   const [deck, setDeck] = useState<DeckCard[]>(savedDeckState?.deck ?? [])
   const [sideboard, setSideboard] = useState<DeckCard[]>(savedDeckState?.sideboard ?? [])
-  const [showExport, setShowExport] = useState(false)
-  const [showBasicLands, setShowBasicLands] = useState(false)
+  const [showBuilder, setShowBuilder] = useState(() => (usableInitialRoute?.view ?? (savedDeckState?.commander ? 'builder' : 'start')) === 'builder')
+  const [activeModal, setActiveModal] = useState<AppModal | null>(() => usableInitialRoute?.modal ?? null)
   const [basicLandState, setBasicLandState] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [showCardSearch, setShowCardSearch] = useState(false)
+  const showExport = activeModal === 'export'
+  const showBasicLands = activeModal === 'basics'
+  const showCardSearch = activeModal === 'search'
   const [cardSearch, setCardSearch] = useState('')
   const [cardSearchResults, setCardSearchResults] = useState<ScryfallCard[]>([])
   const [cardSearchState, setCardSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -240,8 +268,8 @@ function App() {
   const [savedDecks, setSavedDecks] = useState(loadSavedDecks)
   const [activeSavedDeckId, setActiveSavedDeckId] = useState(savedDeckState?.savedDeckId ?? '')
   const [deckName, setDeckName] = useState(() => loadSavedDecks().find(({ id }) => id === savedDeckState?.savedDeckId)?.name ?? '')
-  const [showSavedDecks, setShowSavedDecks] = useState(false)
-  const [showImport, setShowImport] = useState(false)
+  const showSavedDecks = activeModal === 'saved'
+  const showImport = activeModal === 'import'
   const [importSource, setImportSource] = useState('')
   const [importState, setImportState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [importError, setImportError] = useState('')
@@ -249,6 +277,46 @@ function App() {
   const currentDeckState = useMemo<PersistedDeckState | null>(() => commander && commanderDetails && deck.length ? { savedDeckId: activeSavedDeckId, commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, sideboard, preferredPrintSet, deckTargets } : null, [activeSavedDeckId, commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, sideboard, preferredPrintSet, deckTargets])
   const savedDeckChanged = Boolean(activeSavedDeck && currentDeckState && deckStateChanged(activeSavedDeck.state, currentDeckState))
   const activeDeckDelta = activeSavedDeck ? deckDelta([...activeSavedDeck.state.deck, ...activeSavedDeck.state.sideboard], [...deck, ...sideboard]) : null
+  const historyReady = useRef(false)
+
+  function navigateView(view: AppView, modal: AppModal | null = null, replace = false) {
+    const current = readAppRoute()
+    const route = { app: appHistoryKey, view, modal, entry: Boolean(modal && !replace) } satisfies AppHistoryState
+    setShowBuilder(view === 'builder')
+    setActiveModal(modal)
+    if (!historyReady.current || (current?.view === view && current.modal === modal)) return
+    writeAppRoute(route, replace)
+  }
+
+  function openModal(modal: AppModal) {
+    navigateView(showBuilder ? 'builder' : 'start', modal)
+  }
+
+  function closeModal(replace = false) {
+    const current = readAppRoute()
+    if (!replace && current?.modal && current.entry) {
+      window.history.back()
+      return
+    }
+    navigateView(current?.view ?? (showBuilder ? 'builder' : 'start'), null, true)
+  }
+
+  useEffect(() => {
+    const route = usableInitialRoute ?? { app: appHistoryKey, view: savedDeckState?.commander ? 'builder' : 'start', modal: null, entry: false } satisfies AppHistoryState
+    writeAppRoute(route, true)
+    historyReady.current = true
+    const applyRoute = () => {
+      const next = readAppRoute() ?? { app: appHistoryKey, view: 'start', modal: null, entry: false } satisfies AppHistoryState
+      setShowBuilder(next.view === 'builder')
+      setActiveModal(next.modal)
+    }
+    window.addEventListener('popstate', applyRoute)
+    window.addEventListener('hashchange', applyRoute)
+    return () => {
+      window.removeEventListener('popstate', applyRoute)
+      window.removeEventListener('hashchange', applyRoute)
+    }
+  }, [])
 
   useEffect(() => {
     if (recommendationState !== 'idle' || !currentDeckState) return
@@ -256,8 +324,8 @@ function App() {
   }, [currentDeckState, recommendationState])
 
   useEffect(() => {
-    document.title = commander ? deckPageTitle(deck.length, activeSavedDeck?.name ?? commander, savedDeckChanged) : 'Commander Deck Creator'
-  }, [activeSavedDeck?.name, commander, deck.length, savedDeckChanged])
+    document.title = showBuilder && commander ? deckPageTitle(deck.length, activeSavedDeck?.name ?? commander, savedDeckChanged) : 'Commander Deck Creator'
+  }, [activeSavedDeck?.name, commander, deck.length, savedDeckChanged, showBuilder])
 
   useEffect(() => {
     if (!commanderDetails || commanderDetails.printings.every((printings) => printings.every((printing) => printing.finish))) return
@@ -465,6 +533,7 @@ function App() {
   async function start(name: string, preserveDeck = false) {
     const chosen = name.trim()
     if (!chosen) return
+    navigateView('builder', null, activeModal !== null)
     setCommander(chosen)
     const cycle = freshRecommendationCycle()
     setDeferredCards(cycle.deferredCards)
@@ -639,14 +708,14 @@ function App() {
       const cards = await Promise.all(plan.map(async ({ name, count }) => ({ card: await fetchBasic(name), count })))
       setDeck((current) => [...current, ...cards.flatMap(({ card, count }) => Array.from({ length: count }, () => ({ ...card })))].slice(0, 100))
       setBasicLandState('idle')
-      setShowBasicLands(false)
+      closeModal()
     } catch {
       setBasicLandState('error')
     }
   }
 
   function closeCardSearch() {
-    setShowCardSearch(false)
+    closeModal()
     setCardSearch('')
     setCardSearchResults([])
     setSelectedManualCard(null)
@@ -764,7 +833,7 @@ function App() {
 
   function openSavedDecks() {
     if (commander && !activeSavedDeckId && !deckName) setDeckName(suggestedDeckName(commander, theme, activeSubThemes))
-    setShowSavedDecks(true)
+    openModal('saved')
   }
 
   function storeDeck() {
@@ -798,7 +867,7 @@ function App() {
     setDeckTargets(state.deckTargets)
     setActiveSavedDeckId(state.savedDeckId || saved.id)
     setDeckName(saved.name)
-    setShowSavedDecks(false)
+    navigateView('builder', null, true)
   }
 
   function removeSavedDeck(saved: SavedDeck) {
@@ -816,7 +885,7 @@ function App() {
     try {
       if (/^https?:\/\//i.test(importSource.trim())) throw new Error('URL import is unavailable in this client-only app. Paste the exported deck list instead.')
       await applyImportedDeck(parseDeckList(importSource))
-      setShowImport(false)
+      closeModal(true)
       setImportSource('')
       setImportState('idle')
     } catch (error) {
@@ -896,23 +965,24 @@ function App() {
     setDeckTargets(defaultDeckTargets)
     setActiveSavedDeckId('')
     setDeckName('')
+    navigateView('start', null, true)
   }
 
-  const importModal = showImport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && importState !== 'loading') setShowImport(false) }}>
+  const importModal = showImport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && importState !== 'loading') closeModal() }}>
     <section className="export-modal import-modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
-      <div className="export-heading"><div><p className="eyebrow">Bring an existing deck</p><h2 id="import-title">Import deck</h2></div><button className="modal-close" disabled={importState === 'loading'} onClick={() => setShowImport(false)} aria-label="Close import">×</button></div>
+      <div className="export-heading"><div><p className="eyebrow">Bring an existing deck</p><h2 id="import-title">Import deck</h2></div><button className="modal-close" disabled={importState === 'loading'} onClick={() => closeModal()} aria-label="Close import">×</button></div>
       <p className="import-help">Paste an exported deck list. Put commander cards below a <b>COMMANDER:</b> heading. Set and collector number syntax is preserved.</p>
       <p className="import-note">Moxfield and Archidekt URLs are not supported because this is a client-only app and those sites block browser access. Export the deck as text, then paste it here.</p>
       <textarea value={importSource} onChange={(event) => { setImportSource(event.target.value); setImportState('idle'); setImportError('') }} placeholder={'COMMANDER:\n1 Commander Name (SET) 123\n\nMAINBOARD:\n1 Card Name (SET) 456'} aria-label="Exported deck list" />
       {importError && <p className="form-error" role="alert">{importError}</p>}
-      <div className="export-actions"><button onClick={() => setShowImport(false)} disabled={importState === 'loading'}>Cancel</button><button className="primary" disabled={!importSource.trim() || importState === 'loading'} onClick={() => void importDeck()}>{importState === 'loading' ? 'Importing…' : 'Import deck'}</button></div>
+      <div className="export-actions"><button onClick={() => closeModal()} disabled={importState === 'loading'}>Cancel</button><button className="primary" disabled={!importSource.trim() || importState === 'loading'} onClick={() => void importDeck()}>{importState === 'loading' ? 'Importing…' : 'Import deck'}</button></div>
     </section>
   </div>
 
   const deckNameDuplicate = duplicateDeckName(savedDecks, deckName, activeSavedDeckId)
-  const savedDecksModal = showSavedDecks && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowSavedDecks(false) }}>
+  const savedDecksModal = showSavedDecks && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal() }}>
     <section className="export-modal saved-decks-modal" role="dialog" aria-modal="true" aria-labelledby="saved-decks-title">
-      <div className="export-heading"><div><p className="eyebrow">Local decks</p><h2 id="saved-decks-title">Saved decks</h2></div><button className="modal-close" onClick={() => setShowSavedDecks(false)} aria-label="Close saved decks">×</button></div>
+      <div className="export-heading"><div><p className="eyebrow">Local decks</p><h2 id="saved-decks-title">Saved decks</h2></div><button className="modal-close" onClick={() => closeModal()} aria-label="Close saved decks">×</button></div>
       {commander && <><form className="save-deck-form" onSubmit={(event) => { event.preventDefault(); storeDeck() }}><label><span className="sr-only">Deck name</span><input value={deckName} onChange={(event) => setDeckName(event.target.value)} aria-label="Deck name" aria-invalid={deckNameDuplicate} aria-describedby={deckNameDuplicate ? 'deck-name-warning' : undefined} /><button type="button" className="clear-deck-name" onClick={() => setDeckName('')} aria-label="Clear deck name">×</button>{deckNameDuplicate && <small id="deck-name-warning" className="deck-name-warning">Name already used</small>}</label><button className="primary" disabled={!deckName.trim() || deckNameDuplicate}>{activeSavedDeck ? 'Overwrite save' : 'Save deck'}</button></form>{activeSavedDeck && <p className="overwrite-notice">This will overwrite <b>{activeSavedDeck.name}</b> with <span className="delta-added">+{activeDeckDelta?.added} added</span> and <span className="delta-removed">−{activeDeckDelta?.removed} removed</span>.</p>}</>}
       <div className="saved-deck-list">{savedDecks.map((saved) => <article key={saved.id}><div className="saved-deck-details"><b>{saved.name}</b><span>{saved.state.commander} · {saved.state.deck.length}/100 cards</span><small>Updated {new Date(saved.updatedAt).toLocaleString()}</small></div><button className="saved-deck-load" onClick={() => loadSavedDeck(saved)}>Load</button><span className="saved-deck-delete-wrap"><button className={`saved-deck-delete ${pendingSavedDeckRemoval === saved.id ? 'confirm' : ''}`} onClick={() => pendingSavedDeckRemoval === saved.id ? removeSavedDeck(saved) : setPendingSavedDeckRemoval(saved.id)} aria-label={pendingSavedDeckRemoval === saved.id ? `Confirm deletion of ${saved.name}` : `Delete ${saved.name}`}>{pendingSavedDeckRemoval === saved.id ? 'Confirm' : 'Delete'}</button>{pendingSavedDeckRemoval === saved.id && <span className="saved-delete-confirm" role="tooltip">Click again to delete</span>}</span></article>)}</div>
       {!savedDecks.length && <p className="saved-decks-empty">No saved decks yet.</p>}
@@ -960,9 +1030,9 @@ function App() {
     void loadPrintings(next.queue.slice(0, 8), preferredPrintSet)
   }
 
-  if (!commander) return (
+  if (!showBuilder) return (
     <main className={darkMode ? 'dark' : ''}>
-      <header><a className="brand" href="/">Commander Deck Creator <small>v{__APP_VERSION__}</small></a><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><label className="theme-option" title="Enable card movement and foil or etched finish effects"><input type="checkbox" checked={cardEffects} onChange={(event) => setCardEffects(event.target.checked)} /> Motion and finishes</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => setShowImport(true)}>Import deck</button><button className="export" type="button" onClick={openSavedDecks}>Saved decks ({savedDecks.length})</button></div></header>
+      <header><button className="brand reset" type="button" onClick={() => navigateView('start')}>Commander Deck Creator <small>v{__APP_VERSION__}</small></button><div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><label className="theme-option" title="Enable card movement and foil or etched finish effects"><input type="checkbox" checked={cardEffects} onChange={(event) => setCardEffects(event.target.checked)} /> Motion and finishes</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="export" type="button" onClick={() => openModal('import')}>Import deck</button><button className="export" type="button" onClick={openSavedDecks}>Saved decks ({savedDecks.length})</button></div></header>
       {savedDecksModal}
       {importModal}
       <section className="start">
@@ -1059,7 +1129,7 @@ function App() {
       <header>
         <button className="brand reset" onClick={startOver}>Commander Deck Creator <small>v{__APP_VERSION__}</small></button>
         <div className="deck-status">{activeSavedDeck && <div className="saved-status"><b>{activeSavedDeck.name}</b><small>Saved {new Date(activeSavedDeck.updatedAt).toLocaleString()} <span className="delta-added">+{activeDeckDelta?.added}</span> <span className="delta-removed">−{activeDeckDelta?.removed}</span></small></div>}<div className="progress"><span style={{ background: `linear-gradient(90deg, var(--commander-accent, #7650ae) ${deck.length}%, #dedcea ${deck.length}%)` }} />{deck.length} / 100 cards</div></div>
-        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><label className="theme-option" title="Enable card movement and foil or etched finish effects"><input type="checkbox" checked={cardEffects} onChange={(event) => setCardEffects(event.target.checked)} /> Motion and finishes</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={() => setShowImport(true)}>Import</button><button className="export" type="button" onClick={openSavedDecks}>Save / load</button><button className="export" type="button" onClick={() => setShowExport(true)}>Export deck</button></div>
+        <div className="header-actions"><label className="theme-option"><input type="checkbox" checked={commanderStyling} onChange={(event) => setCommanderStyling(event.target.checked)} /> Commander art and colours</label><label className="theme-option" title="Enable card movement and foil or etched finish effects"><input type="checkbox" checked={cardEffects} onChange={(event) => setCardEffects(event.target.checked)} /> Motion and finishes</label><button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>{darkMode ? '◐ Dark' : '☀ Light'}</button><button className="start-over" type="button" onClick={startOver}>Start over</button><button className="export" type="button" onClick={() => openModal('import')}>Import</button><button className="export" type="button" onClick={openSavedDecks}>Save / load</button><button className="export" type="button" onClick={() => openModal('export')}>Export deck</button></div>
       </header>
       {savedDecksModal}
       {importModal}
@@ -1113,18 +1183,18 @@ function App() {
           </div>}
         </section>
       </div>}
-      {showBasicLands && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && basicLandState !== 'loading') setShowBasicLands(false) }}>
+      {showBasicLands && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && basicLandState !== 'loading') closeModal() }}>
         <section className="export-modal basic-land-modal" role="dialog" aria-modal="true" aria-labelledby="basic-land-title">
-          <div className="export-heading"><div><p className="eyebrow">Complete mana base</p><h2 id="basic-land-title">Add basic lands?</h2></div><button className="modal-close" disabled={basicLandState === 'loading'} onClick={() => setShowBasicLands(false)} aria-label="Close basic land review">×</button></div>
+          <div className="export-heading"><div><p className="eyebrow">Complete mana base</p><h2 id="basic-land-title">Add basic lands?</h2></div><button className="modal-close" disabled={basicLandState === 'loading'} onClick={() => closeModal()} aria-label="Close basic land review">×</button></div>
           <p>This fills {basicLands.reduce((sum, land) => sum + land.count, 0)} slots toward your {calculatedLandTarget}-land target. Existing cards stay unchanged.</p>
           <ul className="basic-land-plan">{basicLands.map((land) => <li key={land.name}><span>{land.name}</span><b>{land.count}</b></li>)}</ul>
           {basicLandState === 'error' && <p className="form-error" role="alert">Could not load basic lands. Try again.</p>}
-          <div className="export-actions"><button onClick={() => setShowBasicLands(false)} disabled={basicLandState === 'loading'}>Cancel</button><button className="primary" disabled={basicLandState === 'loading'} onClick={() => void addBasicLands(basicLands)}>{basicLandState === 'loading' ? 'Adding…' : 'Add lands'}</button></div>
+          <div className="export-actions"><button onClick={() => closeModal()} disabled={basicLandState === 'loading'}>Cancel</button><button className="primary" disabled={basicLandState === 'loading'} onClick={() => void addBasicLands(basicLands)}>{basicLandState === 'loading' ? 'Adding…' : 'Add lands'}</button></div>
         </section>
       </div>}
-      {showExport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowExport(false) }}>
+      {showExport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal() }}>
         <section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title">
-          <div className="export-heading"><div><p className="eyebrow">Export deck</p><h2 id="export-title">Copy your deck list</h2></div><button className="modal-close" onClick={() => setShowExport(false)} aria-label="Close export">×</button></div>
+          <div className="export-heading"><div><p className="eyebrow">Export deck</p><h2 id="export-title">Copy your deck list</h2></div><button className="modal-close" onClick={() => closeModal()} aria-label="Close export">×</button></div>
           <div className="format-tabs" role="group" aria-label="Deck list format">
             <button className={exportFormat === 'moxfield' ? 'selected' : ''} onClick={() => setExportFormat('moxfield')}>Moxfield</button>
             <button className={exportFormat === 'plain' ? 'selected' : ''} onClick={() => setExportFormat('plain')}>Plain text</button>
@@ -1147,7 +1217,7 @@ function App() {
               {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
             </div>
             <div className="toolbar-actions">
-              <button className="manual-card-button" type="button" onClick={() => setShowCardSearch(true)}>+ Add card by name</button>
+              <button className="manual-card-button" type="button" onClick={() => openModal('search')}>+ Add card by name</button>
               {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && <div className="batch-controls"><button className="primary" onClick={() => void nextBatch()}>Next recommendations →</button></div>}
             </div>
           </div>
@@ -1155,7 +1225,7 @@ function App() {
             <input value={subThemeSearch} onChange={(event) => setSubThemeSearch(event.target.value)} placeholder="Search sub-themes…" aria-label="Search sub-themes" />
             <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => chooseSubTheme(name)}>{name}</button>)}</div>
           </div>}
-          {deck.length >= 100 && <div className="completion sideboard-completion"><p className="eyebrow">Main deck complete</p><h2>Build your sideboard</h2><p>Further picks go to sideboard. Move cards into main deck after removing a card.</p><button className="primary" type="button" onClick={() => setShowExport(true)}>Review and export deck</button></div>}
+          {deck.length >= 100 && <div className="completion sideboard-completion"><p className="eyebrow">Main deck complete</p><h2>Build your sideboard</h2><p>Further picks go to sideboard. Move cards into main deck after removing a card.</p><button className="primary" type="button" onClick={() => openModal('export')}>Review and export deck</button></div>}
           {recommendationState === 'loading' ? <div className="recommendation-loading" role="status" aria-live="polite"><span className="loading-orb" aria-hidden="true" /><div><p className="eyebrow">Building your first batch</p><h3>{recommendationLoadingStep === 'commander' ? 'Checking commander details…' : 'Finding cards that work together…'}</h3><ol><li className={recommendationLoadingStep === 'commander' ? 'active' : 'done'}>Commander</li><li className={recommendationLoadingStep === 'recommendations' ? 'active' : ''}>Recommendations</li></ol></div></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className={`card-grid connector-glow juicy-fan ${cardEffects ? '' : 'static-fan'}`} onMouseMove={cardEffects ? fanCards : undefined} onMouseLeave={cardEffects ? resetFan : undefined}>
             {scoredBatch.map(({ card }, index) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} style={{ '--fan-position': index - (scoredBatch.length - 1) / 2, '--fan-drop': `${Math.abs(index - (scoredBatch.length - 1) / 2) * 7}px` } as CSSProperties} onClick={(event) => clickCardImage(event, card)} key={card.name}>
               {decisions[card.name] && <span className="decision-badge">{decisions[card.name] === 'add' ? sideboard.some((item) => item.name === card.name) ? 'Added to sideboard' : 'Added to deck' : decisions[card.name] === 'later' ? 'Later' : 'Ignored'}</span>}
@@ -1183,14 +1253,14 @@ function App() {
             <div className="curve-legend"><span><i className="permanent" /> Permanent</span><span><i className="non-permanent" /> Non-permanent</span><b>Avg {analysis.averageManaValue.toFixed(1)}</b></div>
             <div className="mana-balance"><h4>Colour balance</h4>{([['Pips', analysis.required], ['Sources', analysis.produced]] as const).map(([label, values]) => <div className="mana-balance-row" key={label}><span>{label}</span><div className="colour-bar">{manaColours.some((colour) => values[colour] > 0) ? manaColours.filter((colour) => values[colour] > 0).map((colour) => <span className={`colour-segment colour-${colour.toLowerCase()}`} style={{ flexGrow: values[colour] }} title={`${colourNames[colour]}: ${values[colour]} ${label.toLowerCase()}`} key={colour}><img src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`} alt="" /><b><span className="sr-only">{colourNames[colour]}: </span>{values[colour]}</b></span>) : <span className="colour-empty">None</span>}</div></div>)}</div>
             <div className="target-heading"><h4>Deck targets</h4><span>Suggested lands {analysis.landRange[0]}-{analysis.landRange[1]}</span></div>
-            {representativeSpellCount < 5 && analysis.counts.lands < calculatedLandTarget ? <p className="basic-land-wait">Add {5 - representativeSpellCount} more non-land {5 - representativeSpellCount === 1 ? 'card' : 'cards'} to calculate basic land colours.</p> : basicLands.length > 0 && <button className="basic-land-button" type="button" onClick={() => { setBasicLandState('idle'); setShowBasicLands(true) }}><span>Fill to land target</span><b>+{basicLands.reduce((sum, land) => sum + land.count, 0)} basics</b></button>}
+            {representativeSpellCount < 5 && analysis.counts.lands < calculatedLandTarget ? <p className="basic-land-wait">Add {5 - representativeSpellCount} more non-land {5 - representativeSpellCount === 1 ? 'card' : 'cards'} to calculate basic land colours.</p> : basicLands.length > 0 && <button className="basic-land-button" type="button" onClick={() => { setBasicLandState('idle'); openModal('basics') }}><span>Fill to land target</span><b>+{basicLands.reduce((sum, land) => sum + land.count, 0)} basics</b></button>}
             <div className="deck-targets">{targetKeys.map((key) => <label key={key}><span className="bar-label"><span>{targetLabels[key]}</span><span className="ratio-bar"><i style={{ width: `${Math.min(100, analysis.counts[key] / Math.max(1, deckTargets[key]) * 100)}%` }} /></span><b>{analysis.counts[key]} / <input type="number" min="0" max="99" value={deckTargets[key]} onChange={(event) => setDeckTargets((current) => ({ ...current, [key]: Math.max(0, Number(event.target.value)) }))} aria-label={`${targetLabels[key]} target`} /></b></span></label>)}</div>
             {displayedTypeCounts.some(([, count]) => count > 0) && <><h4>Card type distribution</h4><div className="type-counts">{displayedTypeCounts.filter(([, count]) => count > 0).map(([type, count]) => <span key={type}><span className="bar-label"><span>{type}</span><span className="ratio-bar"><i style={{ width: `${count / maxTypeCount * 100}%` }} /></span><b>{count}</b></span></span>)}</div></>}
             {guidance.length > 0 && <div className="deck-guidance" aria-live="polite">{guidance.map((item) => <p className={item.strong ? 'strong' : ''} key={item.key}>{item.text}</p>)}</div>}
           </section>
         </aside>
         <section className="deck-board" aria-labelledby="deck-list-title">
-          <div className="deck-board-heading"><div><p className="eyebrow">Your deck</p><h2 id="deck-list-title">{deck.length} cards</h2></div><div><span>{deck.length}% complete</span><button className="manual-card-button" ref={cardSearchButton} type="button" onClick={() => setShowCardSearch(true)}>+ Add card by name</button></div></div>
+          <div className="deck-board-heading"><div><p className="eyebrow">Your deck</p><h2 id="deck-list-title">{deck.length} cards</h2></div><div><span>{deck.length}% complete</span><button className="manual-card-button" ref={cardSearchButton} type="button" onClick={() => openModal('search')}>+ Add card by name</button></div></div>
           <div className="meter"><span style={{ width: `${deck.length}%` }} /></div>
           <ol className="deck-list">{[{ section: 'Commander', cards: commanders, count: commanders.length }, ...groupedDeck.map((group) => ({ ...group, count: group.cards.length + (group.section === 'Lands' ? groupedBasics.reduce((sum, basic) => sum + basic.cards.length, 0) : 0) }))].map(({ section, cards, count }) => <li className="deck-group" key={section}><h3>{section}<span>{count}</span></h3><ol>{cards.map(({ card, index }) => {
             const curveValue = curveBucket(card)
