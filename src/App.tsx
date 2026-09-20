@@ -132,9 +132,10 @@ const commanderPrintingOptions = (cards: CommanderCard[]) => cards.flatMap((prin
 }).filter((printing, index, all) => all.findIndex((item) => item.image === printing.image && item.finish === printing.finish) === index)
 
 function FinishedCardImage({ image, alt, finish, effectsEnabled, className = '' }: { image: string; alt: string; finish?: CardFinish; effectsEnabled: boolean; className?: string }) {
+  const [loadedImage, setLoadedImage] = useState('')
   const foilHue = [...image].reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0) % 360
   const finishClass = effectsEnabled ? finish === 'foil' ? 'holo-card' : finish === 'etched' ? 'etched-card' : '' : ''
-  return <span className={`finished-card ${effectsEnabled ? 'tilting-card' : ''} ${finishClass}`} style={effectsEnabled ? { '--foil-hue': `${foilHue}deg` } as CSSProperties : undefined} onPointerMove={effectsEnabled ? moveFoil : undefined} onPointerLeave={effectsEnabled ? resetFoil : undefined} onPointerCancel={effectsEnabled ? resetFoil : undefined}><img className={className} src={image} alt={alt} />{effectsEnabled && finish && finish !== 'nonfoil' && <img className={`finish-edges ${finish}-edges ${className}`} src={image} alt="" aria-hidden="true" />}</span>
+  return <span className={`finished-card ${loadedImage === image ? 'image-ready' : ''} ${effectsEnabled ? 'tilting-card' : ''} ${finishClass}`} style={effectsEnabled ? { '--foil-hue': `${foilHue}deg` } as CSSProperties : undefined} onPointerMove={effectsEnabled ? moveFoil : undefined} onPointerLeave={effectsEnabled ? resetFoil : undefined} onPointerCancel={effectsEnabled ? resetFoil : undefined}><img className={className} src={image} alt={alt} onLoad={() => setLoadedImage(image)} onError={() => setLoadedImage(image)} />{effectsEnabled && finish && finish !== 'nonfoil' && <img className={`finish-edges ${finish}-edges ${className}`} src={image} alt="" aria-hidden="true" />}</span>
 }
 
 function symbolName(symbol: string) {
