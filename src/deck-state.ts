@@ -24,6 +24,7 @@ const cardBase = {
   printings: z.array(printingSchema).optional(),
   printing: z.number().int().nonnegative().optional(),
   printingManuallySelected: z.boolean().optional(),
+  finish: z.enum(['nonfoil', 'foil', 'etched']).optional(),
 }
 const cardSchema = z.object({ ...cardBase, reason: z.string(), printsUri: z.string() })
 const deckCardSchema = z.object(cardBase)

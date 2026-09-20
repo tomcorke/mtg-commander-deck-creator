@@ -1,12 +1,13 @@
 export type TaggedCard = { name: string; typeLine: string; detail: string; tags: string[] }
 export type DeferredCard<T> = { card: T; eligibleBatch: number }
 export type EdhrecThemeCount = { count: number; slug: string; value: string }
-export type PrintingLike = { image: string; set: string; collectorNumber: string }
+export type CardFinish = 'nonfoil' | 'foil' | 'etched'
+export type PrintingLike = { image: string; set: string; collectorNumber: string; finish?: CardFinish }
 export type PowerTarget = 'precon' | 'upgraded' | 'high'
 export type ScryfallCardFace = { type_line?: string; mana_cost?: string; oracle_text?: string; image_uris?: { normal: string } }
-export type ScryfallCard = { name: string; layout?: string; type_line: string; mana_cost?: string; cmc?: number; oracle_text?: string; produced_mana?: string[]; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; released_at?: string; game_changer?: boolean; prices?: { usd?: string | null }; image_uris?: { normal: string }; card_faces?: ScryfallCardFace[] }
+export type ScryfallCard = { name: string; layout?: string; type_line: string; mana_cost?: string; cmc?: number; oracle_text?: string; produced_mana?: string[]; color_identity: string[]; set: string; collector_number: string; prints_search_uri: string; finishes?: CardFinish[]; released_at?: string; game_changer?: boolean; prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null }; image_uris?: { normal: string }; card_faces?: ScryfallCardFace[] }
 export type EdhrecEntry = { name: string; tag: string; header: string }
-export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; price?: string; tags: string[] }
+export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; price?: string; finish?: CardFinish; tags: string[] }
 export type RecommendationOptions = { includeCreature: boolean; excludeGameChangers: boolean; excludeTutors: boolean; excludeExtraTurns: boolean; excludeUnreleased: boolean; powerTarget: PowerTarget }
 export const recommendedScoreThreshold = 50
 
@@ -36,7 +37,7 @@ export const isReleased = (card: Pick<ScryfallCard, 'released_at'>, today = new 
 export const isManaCard = (card: ScryfallCard) => card.type_line.includes('Land') || /add \{/i.test(cardText(card))
 
 export function orderedPrintings<T extends PrintingLike>(original: PrintingLike, printings: T[]) {
-  const unique = printings.filter((printing, index, all) => all.findIndex((item) => item.image === printing.image) === index)
+  const unique = printings.filter((printing, index, all) => all.findIndex((item) => item.image === printing.image && item.finish === printing.finish) === index)
   const originalIndex = unique.findIndex((printing) => printing.image === original.image)
   return originalIndex < 1 ? unique : [unique[originalIndex], ...unique.slice(0, originalIndex), ...unique.slice(originalIndex + 1)]
 }
@@ -232,7 +233,7 @@ export function parseEdhrecEntries(lists: { header: string; tag: string; cardvie
 }
 
 export function toRecommendationCard(card: ScryfallCard, reason: string, category = ''): RecommendationCard {
-  return { name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], reason, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri, price: card.prices?.usd ?? undefined, tags: tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line) }
+  return { name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], reason, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', set: card.set, collectorNumber: card.collector_number, printsUri: card.prints_search_uri, price: card.prices?.usd ?? undefined, finish: card.finishes?.includes('nonfoil') ? 'nonfoil' : card.finishes?.[0], tags: tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line) }
 }
 
 export function buildEdhrecRecommendations(entries: EdhrecEntry[], responseCards: ScryfallCard[], options: RecommendationOptions) {

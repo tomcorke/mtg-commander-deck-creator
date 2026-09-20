@@ -5,9 +5,10 @@ import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeck
 import { fetchScryfallCollection, matchImportedCard, missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
 import './App.css'
 
-type Printing = { image: string; art?: string; set: string; collectorNumber: string; price?: string }
-type Card = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; price?: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
-type DeckCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
+type CardFinish = 'nonfoil' | 'foil' | 'etched'
+type Printing = { image: string; art?: string; set: string; collectorNumber: string; price?: string; finish?: CardFinish }
+type Card = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; reason: string; image: string; set: string; collectorNumber: string; printsUri: string; price?: string; finish?: CardFinish; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean }
+type DeckCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; set: string; collectorNumber: string; image: string; tags: string[]; printings?: Printing[]; printing?: number; printingManuallySelected?: boolean; finish?: CardFinish }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 
@@ -77,6 +78,16 @@ const randomItems = <T,>(items: T[], count: number) => [...items].sort(() => Mat
 const randomThree = (items: string[]) => randomItems(items, 3)
 const basicNames = [...Object.values(basicLandNames), 'Wastes']
 const basicCardCache = new Map<string, ScryfallCard>()
+
+function usePendingConfirmation<T>(empty: T) {
+  const [pending, setPending] = useState(empty)
+  useEffect(() => {
+    if (pending === empty) return
+    const timer = setTimeout(() => setPending(empty), 3000)
+    return () => clearTimeout(timer)
+  }, [empty, pending])
+  return [pending, setPending] as const
+}
 
 function useStoredOption<T>(key: string, fallback: () => T) {
   const [value, setValue] = useState<T>(() => {
@@ -206,8 +217,8 @@ function App() {
   const [recommendationOptionsChanged, setRecommendationOptionsChanged] = useState(false)
   const [deckTargets, setDeckTargets] = useState<DeckTargets>(savedDeckState?.deckTargets ?? defaultDeckTargets)
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
-  const [pendingRemoval, setPendingRemoval] = useState<number | null>(null)
-  const [pendingSavedDeckRemoval, setPendingSavedDeckRemoval] = useState('')
+  const [pendingRemoval, setPendingRemoval] = usePendingConfirmation<number | null>(null)
+  const [pendingSavedDeckRemoval, setPendingSavedDeckRemoval] = usePendingConfirmation('')
   const [savedDecks, setSavedDecks] = useState(loadSavedDecks)
   const [activeSavedDeckId, setActiveSavedDeckId] = useState(savedDeckState?.savedDeckId ?? '')
   const [deckName, setDeckName] = useState(() => loadSavedDecks().find(({ id }) => id === savedDeckState?.savedDeckId)?.name ?? '')
@@ -228,18 +239,6 @@ function App() {
       .then(({ data }) => data.forEach((card) => basicCardCache.set(card.name, card)))
       .catch(() => undefined)
   }, [])
-
-  useEffect(() => {
-    if (pendingRemoval === null) return
-    const timer = setTimeout(() => setPendingRemoval(null), 3000)
-    return () => clearTimeout(timer)
-  }, [pendingRemoval])
-
-  useEffect(() => {
-    if (!pendingSavedDeckRemoval) return
-    const timer = setTimeout(() => setPendingSavedDeckRemoval(''), 3000)
-    return () => clearTimeout(timer)
-  }, [pendingSavedDeckRemoval])
 
   useEffect(() => {
     if (!showCardSearch || cardSearch.trim().length < 2) return
@@ -389,18 +388,29 @@ function App() {
   }
 
   async function loadPrintings(cards: Card[], preferredSet = '') {
-    for (const offered of cards) {
-      await new Promise((resolve) => setTimeout(resolve, 150))
+    const analysis = analyseDeck(deck)
+    const pickedTags = new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))
+    const neededRoles = new Set(targetKeys.filter((key) => analysis.counts[key] < deckTargets[key]))
+    const score = (card: Card) => recommendationScore(card, { theme, activeSubThemes, pickedTags, preferenceScores, neededRoles, cardRoles: rolesForCard(card) })
+    const specialCards = new Set([0, 4].flatMap((start) => {
+      const recommended = cards.slice(start, start + 4).reduce<Card | null>((best, card) => !best || score(card) > score(best) ? card : best, null)
+      return recommended && score(recommended) >= recommendedScoreThreshold && Math.random() < .5 ? [recommended] : []
+    }))
+    for (const offered of cards.slice(0, 8)) {
+      if (offered.printings?.length) continue
+      await new Promise((resolve) => setTimeout(resolve, 100))
       const response = await fetch(offered.printsUri)
       if (!response.ok) continue
       const result = await response.json() as { data: ScryfallCard[] }
       const printings = orderedPrintings(offered, result.data.flatMap((printing) => {
         const image = printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal
-        return image ? [{ image, set: printing.set, collectorNumber: printing.collector_number, price: printing.prices?.usd ?? undefined }] : []
+        return image ? (printing.finishes ?? ['nonfoil']).map((finish) => ({ image, set: printing.set, collectorNumber: printing.collector_number, price: (finish === 'etched' ? printing.prices?.usd_etched : finish === 'foil' ? printing.prices?.usd_foil : printing.prices?.usd) ?? undefined, finish })) : []
       }))
-      const selectedIndex = preferredPrintingIndex(printings, preferredSet)
+      const specialOptions = printings.map((printing, index) => printing.finish === 'foil' || printing.finish === 'etched' ? index : -1).filter((index) => index >= 0)
+      const special = specialCards.has(offered) && specialOptions.length ? specialOptions[Math.floor(Math.random() * specialOptions.length)] : -1
+      const selectedIndex = special >= 0 ? special : preferredPrintingIndex(printings, preferredSet)
       const selected = printings[selectedIndex]
-      setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, price: selected.price, printing: selectedIndex } : item))
+      setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, price: selected.price, finish: selected.finish, printing: selectedIndex } : item))
     }
   }
 
@@ -462,8 +472,8 @@ function App() {
       }
       if (preserveDeck) offeredCards = offeredCards.filter((card) => !ignoredCards.includes(card.name) && ![...deck, ...sideboard].some((deckCard) => deckCard.name === card.name))
       setQueue(offeredCards)
+      await loadPrintings(offeredCards.slice(0, 8), preferredPrintSet)
       setRecommendationState('idle')
-      await loadPrintings(offeredCards.slice(0, 4), preferredPrintSet)
       return true
     } catch {
       setRecommendationState('error')
@@ -487,7 +497,7 @@ function App() {
       setSideboard((list) => list.filter((item) => item.name !== card.name))
     }
     if (previous !== 'add' && action === 'add') {
-      const added = { name: card.name, layout: card.layout, typeLine: card.typeLine, manaCost: card.manaCost, manaValue: card.manaValue, detail: card.detail, producedMana: card.producedMana, faces: card.faces, set: card.set, collectorNumber: card.collectorNumber, image: card.image, tags: card.tags, printings: card.printings, printing: card.printing ?? 0, printingManuallySelected: card.printingManuallySelected }
+      const added = { name: card.name, layout: card.layout, typeLine: card.typeLine, manaCost: card.manaCost, manaValue: card.manaValue, detail: card.detail, producedMana: card.producedMana, faces: card.faces, set: card.set, collectorNumber: card.collectorNumber, image: card.image, tags: card.tags, printings: card.printings, printing: card.printing ?? 0, printingManuallySelected: card.printingManuallySelected, finish: card.finish }
       if (deck.length < 100) setDeck((list) => card.typeLine.includes('Basic Land') || !list.some((item) => item.name === card.name) ? [...list, added] : list)
       else setSideboard((list) => card.typeLine.includes('Basic Land') || !list.some((item) => item.name === card.name) ? [...list, added] : list)
     }
@@ -520,7 +530,7 @@ function App() {
         if (!card.printings?.length) return card
         const matching = preferredPrintingIndex(card.printings, selected.set, card.printing, card.printingManuallySelected)
         const printing = card.printings[matching]
-        return { ...card, image: printing.image, set: printing.set, collectorNumber: printing.collectorNumber, printing: matching }
+        return { ...card, image: printing.image, set: printing.set, collectorNumber: printing.collectorNumber, printing: matching, finish: printing.finish }
       }))
     })
   }
@@ -530,9 +540,9 @@ function App() {
     const index = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[index]
     await changeArt(card.name, [selected.image], () => {
-      setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, price: selected.price, printingManuallySelected: true } : item))
+      setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, price: selected.price, printingManuallySelected: true, finish: selected.finish } : item))
       if (decisions[card.name] === 'add') {
-        const update = (item: DeckCard) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber, image: selected.image, printing: index, printingManuallySelected: true } : item
+        const update = (item: DeckCard) => item.name === card.name ? { ...item, set: selected.set, collectorNumber: selected.collectorNumber, image: selected.image, printing: index, printingManuallySelected: true, finish: selected.finish } : item
         setDeck((current) => current.map(update))
         setSideboard((current) => current.map(update))
       }
@@ -548,13 +558,13 @@ function App() {
     if (!card.printings || card.printings.length < 2 || loadingArt) return
     const printing = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[printing]
-    await changeArt(card.name, [selected.image], () => setDeck((current) => current.map((item, index) => index === cardIndex ? { ...item, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing, printingManuallySelected: true } : item)))
+    await changeArt(card.name, [selected.image], () => setDeck((current) => current.map((item, index) => index === cardIndex ? { ...item, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, printing, printingManuallySelected: true, finish: selected.finish } : item)))
   }
 
   function deckList(format: ExportFormat) {
     const commanderCount = commanderNames(commander).length
-    const section = (cards: DeckCard[]) => cards.map((card) => format === 'plain' ? `1 ${card.name}` : format === 'csv' ? `1,"${card.name.replaceAll('"', '""')}",${card.set.toUpperCase()},${card.collectorNumber}` : `1 ${card.name} (${card.set.toUpperCase()}) ${card.collectorNumber}`).join('\n')
-    if (format === 'csv') return ['Quantity,Name,Set,Collector Number,Board', ...deck.map((card, index) => `${section([card])},${index < commanderCount ? 'Commander' : 'Mainboard'}`), ...sideboard.map((card) => `${section([card])},Sideboard`)].join('\n')
+    const section = (cards: DeckCard[]) => cards.map((card) => { const finish = card.finish === 'foil' ? ' *F*' : card.finish === 'etched' ? ' *E*' : ''; return format === 'plain' ? `1 ${card.name}${finish}` : format === 'csv' ? `1,"${card.name.replaceAll('"', '""')}",${card.set.toUpperCase()},${card.collectorNumber},${card.finish ?? ''}` : `1 ${card.name} (${card.set.toUpperCase()}) ${card.collectorNumber}${finish}` }).join('\n')
+    if (format === 'csv') return ['Quantity,Name,Set,Collector Number,Foil,Board', ...deck.map((card, index) => `${section([card])},${index < commanderCount ? 'Commander' : 'Mainboard'}`), ...sideboard.map((card) => `${section([card])},Sideboard`)].join('\n')
     if (format === 'moxfield') return `${section(deck.slice(commanderCount))}${sideboard.length ? `\n\nSIDEBOARD:\n${section(sideboard)}` : ''}`
     return `${section(deck)}${sideboard.length ? `\n\nSIDEBOARD:\n${section(sideboard)}` : ''}`
   }
@@ -625,7 +635,7 @@ function App() {
 
   function addManualCard() {
     if (!selectedManualCard || manualCardError(selectedManualCard, [...deck, ...sideboard].map((card) => card.name), commanderDetails?.colours ?? [])) return
-    const added = toDeckCard(selectedManualCard)
+    const added = { ...toDeckCard(selectedManualCard), finish: selectedManualCard.finishes?.includes('nonfoil') ? 'nonfoil' as const : selectedManualCard.finishes?.[0] }
     if (deck.length < 100) setDeck((current) => [...current, added])
     else setSideboard((current) => [...current, added])
     closeCardSearch()
@@ -897,6 +907,7 @@ function App() {
     const roleBoosts = deckRoleBoosts(deck.length, analysis.counts, deckTargets)
     roleBoosts.lands = 0
     const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature, roleBoosts, cardRoles: rolesForCard })
+    setRecommendationState('loading')
     setPreferenceScores(next.preferenceScores)
     setDeferredCards(next.deferredCards)
     setBatchNumber(next.batchNumber)
@@ -904,7 +915,8 @@ function App() {
     setDecisions({})
     setLiked((current) => current.filter((name) => !batch.some((card) => card.name === name)))
     setBatchAnnouncement(next.queue.length ? `Recommendation batch ${next.batchNumber} loaded: ${next.queue.slice(0, 4).map((card) => card.name).join(', ')}.` : 'No recommendations currently eligible. Deferred cards will return after their waiting period.')
-    void loadPrintings(next.queue.slice(0, 4), preferredPrintSet)
+    await loadPrintings(next.queue.slice(0, 8), preferredPrintSet)
+    setRecommendationState('idle')
   }
 
   if (!commander) return (
@@ -1002,6 +1014,7 @@ function App() {
 
   return (
     <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`} style={{ '--commander-accent': primaryTheme[0], '--commander-highlight': secondaryTheme[1] } as CSSProperties}>
+      <svg className="filter-definitions" aria-hidden="true"><filter id="etched-edges" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB"><feColorMatrix type="saturate" values="0" result="grey" /><feConvolveMatrix in="grey" order="3" kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1" preserveAlpha="true" result="edges" /><feColorMatrix in="edges" values="0 0 0 0 1 0 0 0 0 .88 0 0 0 0 .55 1 1 1 0 -.12" /></filter></svg>
       {commanderStyling && commanderDetails?.art.length ? <div className="commander-backdrop" aria-hidden="true">{commanderDetails.art.map((image) => <span style={{ backgroundImage: `url(${image})` }} key={image} />)}</div> : null}
       <header>
         <button className="brand reset" onClick={startOver}>Commander Deck Creator <small>v{__APP_VERSION__}</small></button>
@@ -1111,7 +1124,7 @@ function App() {
                 <div><button className="primary" aria-pressed={decisions[card.name] === 'add'} onClick={() => decide(card, 'add')}>{deck.length >= 100 && decisions[card.name] !== 'add' ? 'Sideboard' : 'Add'}</button><span className="action-help-wrap"><button aria-pressed={decisions[card.name] === 'later'} onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" aria-pressed={decisions[card.name] === 'ignore'} onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
-              <div className="offered-image"><span className={`card-face tilting-card ${recommendedCard.card === card ? 'holo-card' : ''}`} onPointerMove={moveFoil} onPointerLeave={resetFoil} onPointerCancel={resetFoil}><img src={card.image} alt={`${card.name} card`} /></span><PriceBadge price={card.price} />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
+              <div className="offered-image"><span className={`card-face tilting-card ${card.finish === 'foil' ? 'holo-card' : card.finish === 'etched' ? 'etched-card' : ''}`} onPointerMove={moveFoil} onPointerLeave={resetFoil} onPointerCancel={resetFoil}><img src={card.image} alt={`${card.name} card`} />{card.finish === 'etched' && <img className="etched-edges" src={card.image} alt="" aria-hidden="true" />}</span><PriceBadge price={card.price} />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
               <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p></div>
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
@@ -1142,9 +1155,9 @@ function App() {
           <ol className="deck-list">{[{ section: 'Commander', cards: commanders, count: commanders.length }, ...groupedDeck.map((group) => ({ ...group, count: group.cards.length + (group.section === 'Lands' ? groupedBasics.reduce((sum, basic) => sum + basic.cards.length, 0) : 0) }))].map(({ section, cards, count }) => <li className="deck-group" key={section}><h3>{section}<span>{count}</span></h3><ol>{cards.map(({ card, index }) => {
             const curveValue = curveBucket(card)
             const highlighted = highlightedManaValue === null || highlightedManaValue === curveValue
-            return <li className={highlighted ? '' : 'curve-dimmed'} key={`${card.name}-${index}`} tabIndex={0} onMouseEnter={positionDeckPreview}>{highlightedManaValue !== null && highlighted && <span className="sr-only">Matches active mana-value filter. </span>}<span className="deck-card-name">{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}</span><span className="deck-card-meta"><span className="deck-mana">{card.typeLine.includes('Land') && card.producedMana.length ? <ManaSymbols symbols={card.producedMana} /> : <OracleText text={card.manaCost} />}</span>{index >= commanderNames(commander).length && <span className="deck-remove-wrap"><button className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`} type="button" onClick={() => pendingRemoval === index ? removeDeckCard(index) : setPendingRemoval(index)} aria-label={pendingRemoval === index ? `Confirm removal of ${card.name}` : `Remove ${card.name}`}>{pendingRemoval === index ? '✓' : '×'}</button>{pendingRemoval === index && <span className="remove-confirm" role="tooltip">Click again to confirm removal</span>}</span>}</span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} /><ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cycleDeckPrinting(index)} /></span>}</li>
+            return <li className={highlighted ? '' : 'curve-dimmed'} key={`${card.name}-${index}`} tabIndex={0} onMouseEnter={positionDeckPreview}>{highlightedManaValue !== null && highlighted && <span className="sr-only">Matches active mana-value filter. </span>}<span className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}>{(card.printing ?? 0) > 0 && <span className="alternate-printing" title="Alternate printing selected" aria-label="Alternate printing selected" />}{card.name}{card.finish && card.finish !== 'nonfoil' && <small className="finish-label">{card.finish}</small>}</span><span className="deck-card-meta"><span className="deck-mana">{card.typeLine.includes('Land') && card.producedMana.length ? <ManaSymbols symbols={card.producedMana} /> : <OracleText text={card.manaCost} />}</span>{index >= commanderNames(commander).length && <span className="deck-remove-wrap"><button className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`} type="button" onClick={() => pendingRemoval === index ? removeDeckCard(index) : setPendingRemoval(index)} aria-label={pendingRemoval === index ? `Confirm removal of ${card.name}` : `Remove ${card.name}`}>{pendingRemoval === index ? '✓' : '×'}</button>{pendingRemoval === index && <span className="remove-confirm" role="tooltip">Click again to confirm removal</span>}</span>}</span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} /><ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cycleDeckPrinting(index)} /></span>}</li>
           })}{section === 'Lands' && <>{groupedBasics.map(({ name, cards: basics }) => { const { card, index } = basics[0]; return <li className="basic-land-row" key={name}><span className="deck-card-name"><b className="card-quantity">{basics.length}x</b> {card.name}</span><span className="deck-card-meta"><span className="deck-mana"><ManaSymbols symbols={card.producedMana} /></span><button className="deck-add" type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(card.name)} aria-label={`Add another ${card.name}`}>+</button><button className="deck-remove" type="button" onClick={() => removeDeckCard(index)} aria-label={`Remove one ${card.name}`}>×</button></span></li> })}{legalBasicNames.filter((name) => !groupedBasics.some((group) => group.name === name)).map((name) => <li className="basic-placeholder" key={name}><button type="button" disabled={deck.length >= 100} onClick={() => void addOneBasic(name)}><span>Add {name}</span><b>+</b></button></li>)}</>}</ol></li>)}
-          {sideboard.length > 0 && <li className="deck-group sideboard-group"><h3>Sideboard<span>{sideboard.length}</span></h3><ol>{sideboard.map((card, index) => <li key={`${card.name}-${index}`} tabIndex={0} onMouseEnter={positionDeckPreview}><span className="deck-card-name">{card.name}</span><span className="deck-card-meta"><button className="sideboard-move" type="button" disabled={deck.length >= 100} onClick={() => moveSideboardCard(index)}>Move to deck</button><button className="deck-remove" type="button" onClick={() => removeSideboardCard(index)} aria-label={`Remove ${card.name} from sideboard`}>×</button></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} /></span>}</li>)}</ol></li>}</ol>
+          {sideboard.length > 0 && <li className="deck-group sideboard-group"><h3>Sideboard<span>{sideboard.length}</span></h3><ol>{sideboard.map((card, index) => <li key={`${card.name}-${index}`} tabIndex={0} onMouseEnter={positionDeckPreview}><span className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}>{card.name}{card.finish && card.finish !== 'nonfoil' && <small className="finish-label">{card.finish}</small>}</span><span className="deck-card-meta"><button className="sideboard-move" type="button" disabled={deck.length >= 100} onClick={() => moveSideboardCard(index)}>Move to deck</button><button className="deck-remove" type="button" onClick={() => removeSideboardCard(index)} aria-label={`Remove ${card.name} from sideboard`}>×</button></span>{card.image && <span className="deck-card-popover"><img className="deck-card-preview" src={card.image} alt={`${card.name} card`} /></span>}</li>)}</ol></li>}</ol>
         </section>
       </div>
     </main>

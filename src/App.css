@@ -187,7 +187,7 @@ main > .commander-header { z-index: 2; }
 .deck-board-heading h2 { margin: 0; font-size: 25px; }
 .deck-board .manual-card-button { width: auto; margin: 0; padding-inline: 14px; font-family: 'DM Sans', sans-serif; }
 .deck-board .meter { margin: 16px 0 24px; }
-.deck-board .deck-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0 28px; align-items: start; }
+.deck-board .deck-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 28px; max-width: 1940px; align-items: start; }
 .deck-board .deck-group { break-inside: avoid; }
 .deck-board .deck-group > h3 { padding-bottom: 7px; border-bottom: 2px solid color-mix(in srgb, var(--commander-accent, #7546a8) 55%, #dad8e6); }
 .deck-board .sideboard-group { margin-top: 0; padding-top: 0 !important; border-top: 0 !important; }
@@ -267,6 +267,16 @@ main > .commander-header { z-index: 2; }
 .holo-card:hover { box-shadow: 0 20px 38px #08071299; transition-duration: .05s; }
 .holo-card:hover::before { opacity: .78; }
 .holo-card:hover::after { opacity: .7; }
+.filter-definitions { position: absolute; width: 0; height: 0; }
+.etched-card { isolation: isolate; }
+.etched-edges { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; object-fit: cover; clip-path: inset(8% 7% 45%); filter: url('#etched-edges'); mask-image: radial-gradient(circle at var(--foil-x) var(--foil-y), #000 0 18%, #0008 35%, transparent 58%); mix-blend-mode: screen; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.etched-card::before, .etched-card::after { position: absolute; z-index: 3; inset: 0; border-radius: inherit; content: ''; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.etched-card::before { background: linear-gradient(125deg, #392f2818 8%, #e8d6aa66 34%, #76665038 48%, #f4e4bb70 62%, #44382e20 88%); background-position: calc(var(--foil-x) / 3) calc(var(--foil-y) / 3); background-size: 170% 170%; mix-blend-mode: soft-light; }
+.etched-card::after { background: radial-gradient(ellipse at var(--foil-x) var(--foil-y), #fff0c538 0, #b49b7224 24%, transparent 58%); mix-blend-mode: screen; }
+.etched-card:hover { box-shadow: 0 20px 38px #08071299, 0 0 0 1px #d8c69b66; transition-duration: .05s; }
+.etched-card:hover .etched-edges { opacity: 1; }
+.etched-card:hover::before { opacity: .88; }
+.etched-card:hover::after { opacity: .45; }
 @keyframes card-loading { to { background-position-x: -200%; } }
 .offered-image > button, .card-price { position: absolute; z-index: 3; bottom: -12px; padding: 6px 9px; border: 1px solid #ffffff99; border-radius: 6px; background: #201c3c; color: white; font-size: 11px; box-shadow: 0 3px 9px #201c3c55; }
 .offered-image > button { right: 8px; }
@@ -385,6 +395,9 @@ li.curve-dimmed { opacity: .22; }
 .basic-placeholder > button { display: flex; width: 100%; justify-content: space-between; padding: 0; border: 0; background: transparent; color: inherit; }
 .basic-placeholder > button b { font-size: 18px; }
 .deck-card-name { position: relative; }
+.foil-card-name { background: linear-gradient(90deg, #ff4f9a, #ffd84f, #42e8a8, #50bfff, #b16cff, #ff4f9a); background-size: 220% 100%; background-clip: text; color: transparent; font-weight: 600; }
+.etched-card-name { color: #b39b68; font-weight: 600; }
+.finish-label { margin-left: 6px; color: inherit; font-size: 8px; letter-spacing: .4px; text-transform: uppercase; }
 .deck-card-name .card-quantity { color: inherit; font-size: inherit; font-weight: 600; text-transform: none; }
 .alternate-printing { position: absolute; top: 50%; left: -12px; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle at 20% 20%, #ffeb5b 0 24%, transparent 50%), radial-gradient(circle at 80% 75%, #4eeaff 0 28%, transparent 55%), #e94cff; background-size: 170% 170%, 190% 190%, 100% 100%; box-shadow: 0 0 7px #b967ff; transform: translateY(-50%); animation: alternate-art 4.7s ease-in-out infinite alternate; }
 @keyframes alternate-art {
