@@ -6,7 +6,8 @@ export const deckStateVersion = 1
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
-const printingSchema = z.object({ image: z.string(), art: z.string().optional(), set: z.string(), collectorNumber: z.string(), price: z.string().optional() })
+const finishSchema = z.enum(['nonfoil', 'foil', 'etched'])
+const printingSchema = z.object({ image: z.string(), art: z.string().optional(), set: z.string(), collectorNumber: z.string(), price: z.string().optional(), finish: finishSchema.optional() })
 const cardBase = {
   name: z.string(),
   layout: z.string(),
@@ -24,7 +25,7 @@ const cardBase = {
   printings: z.array(printingSchema).optional(),
   printing: z.number().int().nonnegative().optional(),
   printingManuallySelected: z.boolean().optional(),
-  finish: z.enum(['nonfoil', 'foil', 'etched']).optional(),
+  finish: finishSchema.optional(),
 }
 const cardSchema = z.object({ ...cardBase, reason: z.string(), printsUri: z.string() })
 const deckCardSchema = z.object(cardBase)

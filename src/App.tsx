@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
@@ -222,6 +222,7 @@ function App() {
   const cardSearchButton = useRef<HTMLButtonElement>(null)
   const cardSearchInput = useRef<HTMLInputElement>(null)
   const cardSearchDialog = useRef<HTMLElement>(null)
+  const repairedPrintingBatches = useRef(new Set<string>())
   const [exportFormat, setExportFormat] = useStoredOption<ExportFormat>('exportFormat', () => 'moxfield')
   const [copied, setCopied] = useState(false)
   const [darkMode, setDarkMode] = useStoredOption('darkMode', () => localStorage.getItem('theme') !== 'light')
@@ -414,7 +415,7 @@ function App() {
     return buildEdhrecRecommendations(entries, responseCards, { includeCreature, excludeGameChangers, excludeTutors, excludeExtraTurns, excludeUnreleased, powerTarget })
   }
 
-  async function loadPrintings(cards: Card[], preferredSet = '') {
+  const loadPrintings = useCallback(async (cards: Card[], preferredSet = '') => {
     const analysis = analyseDeck(deck)
     const pickedTags = new Set(deck.slice(commanderNames(commander).length).flatMap((card) => card.tags))
     const neededRoles = new Set(targetKeys.filter((key) => analysis.counts[key] < deckTargets[key]))
@@ -424,7 +425,7 @@ function App() {
       return recommended && score(recommended) >= recommendedScoreThreshold && Math.random() < .5 ? [recommended] : []
     }))
     for (const offered of cards.slice(0, 8)) {
-      if (offered.printings?.length) continue
+      if (offered.printings?.length && offered.printings.every((printing) => printing.finish)) continue
       await new Promise((resolve) => setTimeout(resolve, 100))
       const response = await fetch(offered.printsUri)
       if (!response.ok) continue
@@ -439,7 +440,16 @@ function App() {
       const selected = printings[selectedIndex]
       setQueue((current) => current.map((item) => item.name === offered.name ? { ...item, printings, image: selected.image, set: selected.set, collectorNumber: selected.collectorNumber, price: selected.price, finish: selected.finish, printing: selectedIndex } : item))
     }
-  }
+  }, [activeSubThemes, commander, deck, deckTargets, preferenceScores, theme])
+
+  useEffect(() => {
+    const cards = queue.slice(0, 8)
+    if (!cards.some((card) => card.printings?.some((printing) => !printing.finish))) return
+    const repairKey = `${activeSavedDeckId}:${batchNumber}:${commander}:${cards.map((card) => card.name).join('|')}`
+    if (repairedPrintingBatches.current.has(repairKey)) return
+    repairedPrintingBatches.current.add(repairKey)
+    void loadPrintings(cards, preferredPrintSet)
+  }, [activeSavedDeckId, batchNumber, commander, loadPrintings, preferredPrintSet, queue])
 
   async function start(name: string, preserveDeck = false) {
     const chosen = name.trim()

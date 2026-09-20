@@ -41,6 +41,21 @@ test('deck state round-trips and clears', () => {
   assert.equal(loadDeckState(storage), null)
 })
 
+test('preserves finishes for cards and their printing choices', () => {
+  const storage = memoryStorage()
+  const foilPrinting = { image: 'foil-image', set: 'cmm', collectorNumber: '349', price: '1.23', finish: 'foil' as const }
+  const foilState: PersistedDeckState = {
+    ...state,
+    commanderDetails: { ...state.commanderDetails, printings: [[foilPrinting]] },
+    deck: [{ ...state.deck[0], image: foilPrinting.image, printings: [foilPrinting], finish: 'foil' }],
+  }
+  saveDeckState(foilState, storage)
+  const loaded = loadDeckState(storage)
+  assert.equal(loaded?.commanderDetails.printings[0][0].finish, 'foil')
+  assert.equal(loaded?.deck[0].printings?.[0].finish, 'foil')
+  assert.equal(loaded?.deck[0].finish, 'foil')
+})
+
 test('suggests names and detects duplicates except current deck id', () => {
   assert.equal(suggestedDeckName('Anikthea', 'Enchantments', ['Tokens', 'Graveyard']), 'Anikthea - Enchantments - Tokens - Graveyard')
   const decks = [{ id: 'deck-1', name: 'Anikthea', updatedAt: '', state }]
