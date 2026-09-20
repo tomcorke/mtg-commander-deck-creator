@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
@@ -133,6 +133,20 @@ function OracleText({ text }: { text: string }) {
   })}</>
 }
 
+function moveFoil(event: PointerEvent<HTMLElement>) {
+  const card = event.currentTarget
+  const bounds = card.getBoundingClientRect()
+  const x = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width))
+  const y = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height))
+  card.style.setProperty('--foil-x', `${x * 100}%`)
+  card.style.setProperty('--foil-y', `${y * 100}%`)
+  card.style.setProperty('--foil-rotate-x', `${(0.5 - y) * 16}deg`)
+  card.style.setProperty('--foil-rotate-y', `${(x - 0.5) * 16}deg`)
+}
+
+function resetFoil(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.removeAttribute('style')
+}
 
 function App() {
   const [commander, setCommander] = useState(savedDeckState?.commander ?? '')
@@ -1097,7 +1111,7 @@ function App() {
                 <div><button className="primary" aria-pressed={decisions[card.name] === 'add'} onClick={() => decide(card, 'add')}>{deck.length >= 100 && decisions[card.name] !== 'add' ? 'Sideboard' : 'Add'}</button><span className="action-help-wrap"><button aria-pressed={decisions[card.name] === 'later'} onClick={() => decide(card, 'later')} aria-describedby={`later-${card.name}`}>Later</button><span className="action-help" id={`later-${card.name}`} role="tooltip">Skip for now. This card may return in a later batch.</span></span><span className="action-help-wrap"><button className="quiet" aria-pressed={decisions[card.name] === 'ignore'} onClick={() => decide(card, 'ignore')} aria-describedby={`ignore-${card.name}`}>Ignore</button><span className="action-help" id={`ignore-${card.name}`} role="tooltip">Remove this card from all future recommendations.</span></span></div>
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
-              <div className="offered-image"><img src={card.image} alt={`${card.name} card`} /><PriceBadge price={card.price} />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
+              <div className="offered-image"><span className={`card-face tilting-card ${recommendedCard.card === card ? 'holo-card' : ''}`} onPointerMove={moveFoil} onPointerLeave={resetFoil} onPointerCancel={resetFoil}><img src={card.image} alt={`${card.name} card`} /></span><PriceBadge price={card.price} />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
               <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p></div>
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
