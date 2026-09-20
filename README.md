@@ -51,4 +51,35 @@ The script fetches current Archidekt, EDHREC, and Scryfall data, then imports th
 
 ## Publishing
 
-Run `pnpm build` from `feature/initial-app`, then replace the root contents of `publish` with `dist/` and push that branch. Configure GitHub Pages to deploy from the `publish` branch root.
+The `publish` branch is the GitHub Pages artifact branch. Build from `main`; do not edit the published files by hand. The Vite build reads the fetched `origin/publish` ref to derive the app version, so fetch that branch before building. The `CNAME` and `.nojekyll` files must remain at the publish root.
+
+From a clean `main` worktree, run:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git fetch origin publish
+
+pnpm install --frozen-lockfile
+pnpm test
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+Then replace the contents of a temporary worktree with `dist/` and push the result to `publish`:
+
+```bash
+publish_worktree=../mtg-commander-deck-creator-publish
+git worktree add --detach "$publish_worktree" origin/publish
+git -C "$publish_worktree" rm -r --ignore-unmatch .
+git -C "$publish_worktree" clean -fdx
+cp -R dist/. "$publish_worktree"/
+git -C "$publish_worktree" checkout HEAD -- CNAME .nojekyll
+git -C "$publish_worktree" add -A
+git -C "$publish_worktree" commit -m "Publish $(git rev-parse --short HEAD)"
+git -C "$publish_worktree" push origin HEAD:publish
+git worktree remove "$publish_worktree"
+```
+
+The cleanup commands are safe only in this dedicated temporary worktree. If the push fails, leave the worktree in place while investigating and remove it only after the publish succeeds. Configure GitHub Pages once to deploy from the `publish` branch root; the preserved `CNAME` points the site at `commander-creator.corke.dev`.
