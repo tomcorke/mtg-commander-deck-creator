@@ -265,8 +265,8 @@ main > .commander-header { z-index: 2; }
 .tilting-card { --foil-x: 50%; --foil-y: 50%; --foil-rotate-x: 0deg; --foil-rotate-y: 0deg; transform: perspective(800px) rotateX(var(--foil-rotate-x)) rotateY(var(--foil-rotate-y)); transform-style: preserve-3d; transition: transform .22s ease-out, box-shadow .22s ease-out; will-change: transform; }
 .holo-card { isolation: isolate; }
 .holo-card::before, .holo-card::after { position: absolute; z-index: 2; inset: 0; border-radius: inherit; content: ''; pointer-events: none; opacity: 0; transition: opacity .2s; }
-.holo-card::before { background: linear-gradient(115deg, #ff4c912e, #ffd9522e 18%, #4ce3ad2e 36%, #4ebcff2e 54%, #ae65ff2e 72%, #ff4c912e 90%), radial-gradient(ellipse 105% 38% at calc(var(--foil-x) * 1.5 - 25%) calc(var(--foil-y) * 1.5 - 25%), #ff5e9c99 0, #ffd85e80 20%, #5ce8bd78 40%, #58c4ff80 60%, #b36cff8c 80%, transparent 100%); background-size: 100% 100%; filter: hue-rotate(var(--foil-hue, 0deg)); mix-blend-mode: screen; }
-.holo-card::after { background: radial-gradient(ellipse 110% 16% at calc(var(--foil-x) * 1.5 - 25%) calc(var(--foil-y) * 1.5 - 25%), transparent 0 30%, #fff7dd80 48%, #fff4cf35 60%, transparent 78%); mix-blend-mode: soft-light; }
+.holo-card::before { background: linear-gradient(118deg, #ff4c9140 0%, #ffd95258 17%, #4ce3ad50 35%, #4ebcff58 53%, #ae65ff58 71%, #ff4c9140 88%, #ffd95258 100%); background-position: calc(var(--foil-x) * 1.2 - 10%) calc(var(--foil-y) * 1.2 - 10%); background-size: 180% 180%; filter: hue-rotate(var(--foil-hue, 0deg)); mix-blend-mode: screen; }
+.holo-card::after { background: linear-gradient(108deg, transparent 16%, #fff7dd18 35%, #fff7dd5c 48%, #fff4cf24 62%, transparent 82%); background-position: calc(var(--foil-x) * 1.2 - 10%) calc(var(--foil-y) * 1.2 - 10%); background-size: 180% 180%; mix-blend-mode: soft-light; }
 .holo-card:hover { box-shadow: 0 20px 38px #08071299; transition-duration: .05s; }
 .holo-card:hover::before { opacity: .56; }
 .holo-card:hover::after { opacity: .32; }
