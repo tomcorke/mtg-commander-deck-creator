@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
-import { clearDeckState, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
+import { clearDeckState, deleteSavedDeck, deckDelta, deckPageTitle, deckStateChanged, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
 import { fetchScryfallCollection, matchImportedCard, missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
 import './App.css'
 
@@ -245,11 +245,19 @@ function App() {
   const [importSource, setImportSource] = useState('')
   const [importState, setImportState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [importError, setImportError] = useState('')
+  const activeSavedDeck = savedDecks.find(({ id }) => id === activeSavedDeckId)
+  const currentDeckState = useMemo<PersistedDeckState | null>(() => commander && commanderDetails && deck.length ? { savedDeckId: activeSavedDeckId, commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, sideboard, preferredPrintSet, deckTargets } : null, [activeSavedDeckId, commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, sideboard, preferredPrintSet, deckTargets])
+  const savedDeckChanged = Boolean(activeSavedDeck && currentDeckState && deckStateChanged(activeSavedDeck.state, currentDeckState))
+  const activeDeckDelta = activeSavedDeck ? deckDelta([...activeSavedDeck.state.deck, ...activeSavedDeck.state.sideboard], [...deck, ...sideboard]) : null
 
   useEffect(() => {
-    if (!commander || recommendationState !== 'idle' || !commanderDetails || !deck.length) return
-    saveDeckState({ savedDeckId: activeSavedDeckId, commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, sideboard, preferredPrintSet, deckTargets } satisfies PersistedDeckState)
-  }, [activeSavedDeckId, commander, commanderDetails, theme, queue, recommendationState, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, sideboard, preferredPrintSet, deckTargets])
+    if (recommendationState !== 'idle' || !currentDeckState) return
+    saveDeckState(currentDeckState)
+  }, [currentDeckState, recommendationState])
+
+  useEffect(() => {
+    document.title = commander ? deckPageTitle(deck.length, activeSavedDeck?.name ?? commander, savedDeckChanged) : 'Commander Deck Creator'
+  }, [activeSavedDeck?.name, commander, deck.length, savedDeckChanged])
 
   useEffect(() => {
     if (!commanderDetails || commanderDetails.printings.every((printings) => printings.every((printing) => printing.finish))) return
@@ -751,8 +759,7 @@ function App() {
   }
 
   function currentState(): PersistedDeckState | null {
-    if (!commander || !commanderDetails || !deck.length) return null
-    return { savedDeckId: activeSavedDeckId, commander, commanderDetails, theme, queue, limitedRecommendations, decisions, ignoredCards, liked, activeSubThemes, dismissedSubThemes, preferenceScores, commanderSubThemes, deferredCards, batchNumber, deck, sideboard, preferredPrintSet, deckTargets }
+    return currentDeckState
   }
 
   function openSavedDecks() {
@@ -903,8 +910,6 @@ function App() {
   </div>
 
   const deckNameDuplicate = duplicateDeckName(savedDecks, deckName, activeSavedDeckId)
-  const activeSavedDeck = savedDecks.find(({ id }) => id === activeSavedDeckId)
-  const activeDeckDelta = activeSavedDeck ? deckDelta([...activeSavedDeck.state.deck, ...activeSavedDeck.state.sideboard], [...deck, ...sideboard]) : null
   const savedDecksModal = showSavedDecks && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowSavedDecks(false) }}>
     <section className="export-modal saved-decks-modal" role="dialog" aria-modal="true" aria-labelledby="saved-decks-title">
       <div className="export-heading"><div><p className="eyebrow">Local decks</p><h2 id="saved-decks-title">Saved decks</h2></div><button className="modal-close" onClick={() => setShowSavedDecks(false)} aria-label="Close saved decks">×</button></div>

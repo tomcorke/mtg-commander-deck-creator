@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { clearDeckState, deckStateKey, deckStateVersion, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, savedDecksKey, suggestedDeckName, type PersistedDeckState } from './deck-state.ts'
+import { clearDeckState, deckPageTitle, deckStateChanged, deckStateKey, deckStateVersion, deleteSavedDeck, deckDelta, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, savedDecksKey, suggestedDeckName, type PersistedDeckState } from './deck-state.ts'
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial))
@@ -67,6 +67,13 @@ test('counts cards added and removed since save', () => {
   const commander = state.deck[0]
   const forest = { ...commander, name: 'Forest' }
   assert.deepEqual(deckDelta([commander, forest, forest], [commander, forest, { ...commander, name: 'Sol Ring' }]), { added: 1, removed: 1 })
+})
+
+test('formats deck page titles and detects unsaved changes', () => {
+  assert.equal(deckPageTitle(67, state.commander), '67/100 Anikthea, Hand of Erebos - Commander Deck Creator')
+  assert.equal(deckPageTitle(67, 'Enchantress', true), '*67/100 Enchantress - Commander Deck Creator')
+  assert.equal(deckStateChanged(state, { ...state, savedDeckId: 'deck-1' }), false)
+  assert.equal(deckStateChanged(state, { ...state, theme: 'Constellations' }), true)
 })
 
 test('saved decks can be created, renamed, updated, and deleted', () => {

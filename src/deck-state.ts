@@ -62,6 +62,13 @@ export const persistedDeckStateSchema = z.object({
 export type PersistedDeckState = z.infer<typeof persistedDeckStateSchema>
 export type SavedDeck = { id: string; name: string; updatedAt: string; state: PersistedDeckState }
 
+export const deckPageTitle = (cardCount: number, name: string, modified = false) => `${modified ? '*' : ''}${cardCount}/100 ${name} - Commander Deck Creator`
+
+export function deckStateChanged(saved: PersistedDeckState, current: PersistedDeckState) {
+  const withoutSavedDeckId = ({ savedDeckId: _savedDeckId, ...state }: PersistedDeckState) => state
+  return JSON.stringify(withoutSavedDeckId(saved)) !== JSON.stringify(withoutSavedDeckId(current))
+}
+
 export const suggestedDeckName = (commander: string, theme: string, subThemes: string[]) => [commander, theme, ...subThemes].filter((name, index, names) => name && names.indexOf(name) === index).join(' - ')
 export const duplicateDeckName = (decks: SavedDeck[], name: string, currentId = '') => decks.some((deck) => deck.id !== currentId && deck.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase())
 
