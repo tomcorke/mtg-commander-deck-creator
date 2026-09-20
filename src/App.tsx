@@ -186,6 +186,7 @@ function App() {
   const [commanderImages, setCommanderImages] = useState<Record<string, string[]>>({})
   const [queue, setQueue] = useState<Card[]>(savedDeckState?.queue ?? [])
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [recommendationLoadingStep, setRecommendationLoadingStep] = useState<'commander' | 'recommendations'>('commander')
   const [limitedRecommendations, setLimitedRecommendations] = useState(savedDeckState?.limitedRecommendations ?? false)
   const [includeCreature, setIncludeCreature] = useStoredOption('includeCreature', () => true)
   const [powerTarget, setPowerTarget] = useStoredOption<PowerTarget>('powerTarget', () => 'precon')
@@ -463,6 +464,7 @@ function App() {
     setQueue([])
     setLimitedRecommendations(false)
     if (!preserveDeck) setPreferredPrintSet('')
+    setRecommendationLoadingStep('commander')
     setRecommendationState('loading')
 
     try {
@@ -483,6 +485,7 @@ function App() {
       if (images.length) setCommanderDetails({ images, art, colours: identityColours, printings: commanderPrintings, selections: commanders.map(() => 0) })
       if (!preserveDeck) setDeck(commanders.map((card, index) => ({ name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], set: card.set, collectorNumber: card.collector_number, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', tags: cardTags(card), printings: commanderPrintings[index], printing: 0, finish: commanderPrintings[index][0].finish })))
 
+      setRecommendationLoadingStep('recommendations')
       let offeredCards: Card[]
       try {
         if (commanders.length !== 1) throw new Error('Partner pair has no single EDHREC page')
@@ -494,8 +497,8 @@ function App() {
       }
       if (preserveDeck) offeredCards = offeredCards.filter((card) => !ignoredCards.includes(card.name) && ![...deck, ...sideboard].some((deckCard) => deckCard.name === card.name))
       setQueue(offeredCards)
-      await loadPrintings(offeredCards.slice(0, 8), preferredPrintSet)
       setRecommendationState('idle')
+      void loadPrintings(offeredCards.slice(0, 8), preferredPrintSet)
       return true
     } catch {
       setRecommendationState('error')
@@ -929,7 +932,6 @@ function App() {
     const roleBoosts = deckRoleBoosts(deck.length, analysis.counts, deckTargets)
     roleBoosts.lands = 0
     const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature, roleBoosts, cardRoles: rolesForCard })
-    setRecommendationState('loading')
     setPreferenceScores(next.preferenceScores)
     setDeferredCards(next.deferredCards)
     setBatchNumber(next.batchNumber)
@@ -937,8 +939,7 @@ function App() {
     setDecisions({})
     setLiked((current) => current.filter((name) => !batch.some((card) => card.name === name)))
     setBatchAnnouncement(next.queue.length ? `Recommendation batch ${next.batchNumber} loaded: ${next.queue.slice(0, 4).map((card) => card.name).join(', ')}.` : 'No recommendations currently eligible. Deferred cards will return after their waiting period.')
-    await loadPrintings(next.queue.slice(0, 8), preferredPrintSet)
-    setRecommendationState('idle')
+    void loadPrintings(next.queue.slice(0, 8), preferredPrintSet)
   }
 
   if (!commander) return (
@@ -1138,7 +1139,7 @@ function App() {
             <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => chooseSubTheme(name)}>{name}</button>)}</div>
           </div>}
           {deck.length >= 100 && <div className="completion sideboard-completion"><p className="eyebrow">Main deck complete</p><h2>Build your sideboard</h2><p>Further picks go to sideboard. Move cards into main deck after removing a card.</p><button className="primary" type="button" onClick={() => setShowExport(true)}>Review and export deck</button></div>}
-          {recommendationState === 'loading' ? <div className="empty"><h3>Loading suggestions…</h3></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow juicy-fan" onMouseMove={fanCards} onMouseLeave={resetFan}>
+          {recommendationState === 'loading' ? <div className="recommendation-loading" role="status" aria-live="polite"><span className="loading-orb" aria-hidden="true" /><div><p className="eyebrow">Building your first batch</p><h3>{recommendationLoadingStep === 'commander' ? 'Checking commander details…' : 'Finding cards that work together…'}</h3><ol><li className={recommendationLoadingStep === 'commander' ? 'active' : 'done'}>Commander</li><li className={recommendationLoadingStep === 'recommendations' ? 'active' : ''}>Recommendations</li></ol></div></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>Scryfall is busy. Try this commander again shortly.</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className="card-grid connector-glow juicy-fan" onMouseMove={fanCards} onMouseLeave={resetFan}>
             {scoredBatch.map(({ card }, index) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} style={{ '--fan-position': index - (scoredBatch.length - 1) / 2, '--fan-drop': `${Math.abs(index - (scoredBatch.length - 1) / 2) * 7}px` } as CSSProperties} onClick={(event) => clickCardImage(event, card)} key={card.name}>
               {decisions[card.name] && <span className="decision-badge">{decisions[card.name] === 'add' ? sideboard.some((item) => item.name === card.name) ? 'Added to sideboard' : 'Added to deck' : decisions[card.name] === 'later' ? 'Later' : 'Ignored'}</span>}
               <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}</h3>{recommendedCard.card === card && <span className="recommended-badge">Recommended</span>}</div>

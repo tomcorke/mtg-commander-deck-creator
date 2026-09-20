@@ -423,6 +423,20 @@ li.curve-dimmed { opacity: .22; }
 .deck-mana .mana-symbol { width: 16px; height: 16px; margin: 0 1px; }
 li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: uppercase; }
 .empty { margin-top: 25px; padding: 60px; border: 1px dashed #bbb2a3; text-align: center; }
+.recommendation-loading { display: flex; min-height: 320px; align-items: center; justify-content: center; gap: 24px; margin-top: 25px; padding: 48px; border: 1px dashed #bbb2a3; text-align: left; }
+.recommendation-loading h3 { min-width: 290px; margin: 5px 0 18px; }
+.loading-orb { width: 52px; height: 52px; flex: 0 0 auto; border: 3px solid #dedcea; border-top-color: var(--commander-accent, #69409a); border-radius: 50%; animation: art-spin .9s linear infinite; }
+.recommendation-loading ol { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; color: #817e91; font-size: 12px; }
+.recommendation-loading li { display: flex; align-items: center; gap: 8px; }
+.recommendation-loading li:not(:last-child)::after { color: #aaa8b8; content: '→'; }
+.recommendation-loading li.active { color: var(--commander-accent, #69409a); font-weight: 700; }
+.recommendation-loading li.done { color: #477459; }
+.recommendation-loading li.done::before { content: '✓ '; }
+.dark .recommendation-loading { border-color: #4b4867; }
+.dark .loading-orb { border-color: #3d3a57; border-top-color: var(--commander-highlight, #aaa8c2); }
+.dark .recommendation-loading li.active { color: var(--commander-highlight, #aaa8c2); }
+.dark .recommendation-loading li.done { color: #82ba98; }
+@media (max-width: 600px) { .recommendation-loading { min-height: 260px; align-items: flex-start; padding: 36px 24px; } .recommendation-loading h3 { min-width: 0; } .recommendation-loading ol { flex-direction: column; } .recommendation-loading li:not(:last-child)::after { content: ''; } }
 .completion { margin-top: 25px; padding: clamp(36px, 7vw, 80px); border: 1px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, #dad8e6); border-radius: 10px; background: color-mix(in srgb, var(--commander-highlight, #b8bac7) 15%, #f8f8ff); text-align: center; }
 .completion h2 { margin-bottom: 8px; font-size: clamp(28px, 4vw, 44px); }
 .sideboard-completion { padding-block: 28px; }
