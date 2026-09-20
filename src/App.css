@@ -265,11 +265,11 @@ main > .commander-header { z-index: 2; }
 .tilting-card { --foil-x: 50%; --foil-y: 50%; --foil-rotate-x: 0deg; --foil-rotate-y: 0deg; transform: perspective(800px) rotateX(var(--foil-rotate-x)) rotateY(var(--foil-rotate-y)); transform-style: preserve-3d; transition: transform .22s ease-out, box-shadow .22s ease-out; will-change: transform; }
 .holo-card { isolation: isolate; }
 .holo-card::before, .holo-card::after { position: absolute; z-index: 2; inset: 0; border-radius: inherit; content: ''; pointer-events: none; opacity: 0; transition: opacity .2s; }
-.holo-card::before { background: linear-gradient(118deg, #ff4c9140 0%, #ffd95258 17%, #4ce3ad50 35%, #4ebcff58 53%, #ae65ff58 71%, #ff4c9140 88%, #ffd95258 100%); background-position: calc(var(--foil-x) * 1.2 - 10%) calc(var(--foil-y) * 1.2 - 10%); background-size: 180% 180%; filter: hue-rotate(var(--foil-hue, 0deg)); mix-blend-mode: screen; }
-.holo-card::after { background: linear-gradient(108deg, transparent 16%, #fff7dd18 35%, #fff7dd5c 48%, #fff4cf24 62%, transparent 82%); background-position: calc(var(--foil-x) * 1.2 - 10%) calc(var(--foil-y) * 1.2 - 10%); background-size: 180% 180%; mix-blend-mode: soft-light; }
+.holo-card::before { background: radial-gradient(ellipse 42% 30% at calc(var(--foil-x) * 1.25 - 12%) calc(var(--foil-y) * 1.2 - 8%), #ff4c91a0 0, #ff4c9150 38%, transparent 76%), radial-gradient(ellipse 36% 42% at calc(var(--foil-x) * 1.25 + 28%) calc(var(--foil-y) * 1.2 + 2%), #ffd95298 0, #ffd95248 36%, transparent 74%), radial-gradient(ellipse 44% 32% at calc(var(--foil-x) * 1.25 + 8%) calc(var(--foil-y) * 1.2 + 38%), #4ce3ad90 0, #4ce3ad40 40%, transparent 78%), radial-gradient(ellipse 38% 45% at calc(var(--foil-x) * 1.25 + 48%) calc(var(--foil-y) * 1.2 + 48%), #4ebcff98 0, #4ebcff44 38%, transparent 76%), radial-gradient(ellipse 45% 30% at calc(var(--foil-x) * 1.25 - 28%) calc(var(--foil-y) * 1.2 + 58%), #ae65ffa0 0, #ae65ff48 36%, transparent 76%); background-repeat: no-repeat; filter: hue-rotate(var(--foil-hue, 0deg)); mix-blend-mode: color-dodge; }
+.holo-card::after { background: linear-gradient(108deg, transparent 30%, #fff7dd18 42%, #fff7dd70 49%, #fff4cf18 56%, transparent 68%); background-position: calc(var(--foil-x) * 1.2 - 10%) calc(var(--foil-y) * 1.2 - 10%); background-size: 190% 190%; mix-blend-mode: soft-light; }
 .holo-card:hover { box-shadow: 0 20px 38px #08071299; transition-duration: .05s; }
-.holo-card:hover::before { opacity: .56; }
-.holo-card:hover::after { opacity: .32; }
+.holo-card:hover::before { opacity: .62; }
+.holo-card:hover::after { opacity: .24; }
 .filter-definitions { position: absolute; width: 0; height: 0; }
 .etched-card { isolation: isolate; }
 .etched-edges { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; object-fit: cover; clip-path: inset(8% 7% 45%); filter: url('#etched-edges'); mask-image: radial-gradient(circle at var(--foil-x) var(--foil-y), #000 0 18%, #0008 35%, transparent 58%); mix-blend-mode: screen; opacity: 0; pointer-events: none; transition: opacity .2s; }
