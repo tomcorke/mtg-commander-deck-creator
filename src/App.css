@@ -224,6 +224,7 @@ main > .commander-header { z-index: 2; }
 @media (prefers-reduced-motion: no-preference) and (min-width: 801px) {
   .juicy-fan { perspective: 1200px; padding: 42px 8px 18px; }
   .juicy-fan .card-offer { z-index: calc(10 + var(--pointer-proximity, 0) * 10); }
+  .juicy-fan.static-fan .card-offer { --pointer-proximity: 0 !important; }
   .juicy-fan .offered-image {
     user-select: none;
     -webkit-user-drag: none;
