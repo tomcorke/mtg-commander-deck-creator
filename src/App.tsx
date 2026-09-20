@@ -133,7 +133,7 @@ const commanderPrintingOptions = (cards: CommanderCard[]) => cards.flatMap((prin
 
 function FinishedCardImage({ image, alt, finish, className = '' }: { image: string; alt: string; finish?: CardFinish; className?: string }) {
   const foilHue = [...image].reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0) % 360
-  return <span className={`finished-card tilting-card ${finish === 'foil' ? 'holo-card' : finish === 'etched' ? 'etched-card' : ''}`} style={{ '--foil-hue': `${foilHue}deg` } as CSSProperties} onPointerMove={moveFoil} onPointerLeave={resetFoil} onPointerCancel={resetFoil}><img className={className} src={image} alt={alt} />{finish === 'etched' && <img className={`etched-edges ${className}`} src={image} alt="" aria-hidden="true" />}</span>
+  return <span className={`finished-card tilting-card ${finish === 'foil' ? 'holo-card' : finish === 'etched' ? 'etched-card' : ''}`} style={{ '--foil-hue': `${foilHue}deg` } as CSSProperties} onPointerMove={moveFoil} onPointerLeave={resetFoil} onPointerCancel={resetFoil}><img className={className} src={image} alt={alt} />{finish && finish !== 'nonfoil' && <img className={`finish-edges ${finish}-edges ${className}`} src={image} alt="" aria-hidden="true" />}</span>
 }
 
 function symbolName(symbol: string) {
