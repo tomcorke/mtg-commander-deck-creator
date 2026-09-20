@@ -51,25 +51,30 @@ The script fetches current Archidekt, EDHREC, and Scryfall data, then imports th
 
 ## Publishing
 
-The `publish` branch is the GitHub Pages artifact branch. Build from `main`; do not edit the published files by hand. The Vite build reads the fetched `origin/publish` ref to derive the app version, so fetch that branch before building. The `CNAME` and `.nojekyll` files must remain at the publish root.
+The `publish` branch is the GitHub Pages artifact branch. Publish only from a checked-out `main` branch, and never publish staged, unstaged, or untracked changes. Do not edit the published files by hand. The Vite build reads the fetched `origin/publish` ref to derive the app version, so fetch that branch before building. The `CNAME` and `.nojekyll` files must remain at the publish root.
 
-From a clean `main` worktree, run:
+Run the whole release in the same shell. These checks deliberately stop the release unless `main` is checked out and the source worktree is clean:
 
 ```bash
 git switch main
 git pull --ff-only origin main
 git fetch origin publish
+test "$(git branch --show-current)" = main
+test -z "$(git status --porcelain)"
+main_commit=$(git rev-parse HEAD)
+main_short=$(git rev-parse --short HEAD)
 
 pnpm install --frozen-lockfile
 pnpm test
 pnpm lint
 pnpm typecheck
 pnpm build
-```
 
-Then replace the contents of a temporary worktree with `dist/` and push the result to `publish`:
+# Recheck after installing and building so no source change can enter the release.
+test "$(git branch --show-current)" = main
+test "$(git rev-parse HEAD)" = "$main_commit"
+test -z "$(git status --porcelain)"
 
-```bash
 publish_worktree=../mtg-commander-deck-creator-publish
 git worktree add --detach "$publish_worktree" origin/publish
 git -C "$publish_worktree" rm -r --ignore-unmatch .
@@ -77,9 +82,9 @@ git -C "$publish_worktree" clean -fdx
 cp -R dist/. "$publish_worktree"/
 git -C "$publish_worktree" checkout HEAD -- CNAME .nojekyll
 git -C "$publish_worktree" add -A
-git -C "$publish_worktree" commit -m "Publish $(git rev-parse --short HEAD)"
+git -C "$publish_worktree" commit -m "Publish main@$main_short" -m "Source-main-commit: $main_commit"
 git -C "$publish_worktree" push origin HEAD:publish
 git worktree remove "$publish_worktree"
 ```
 
-The cleanup commands are safe only in this dedicated temporary worktree. If the push fails, leave the worktree in place while investigating and remove it only after the publish succeeds. Configure GitHub Pages once to deploy from the `publish` branch root; the preserved `CNAME` points the site at `commander-creator.corke.dev`.
+The cleanup commands are safe only in this dedicated temporary worktree. The publish commit subject and body identify the exact `main` commit used to produce the artifact. If the push fails, leave the worktree in place while investigating and remove it only after the publish succeeds. Configure GitHub Pages once to deploy from the `publish` branch root; the preserved `CNAME` points the site at `commander-creator.corke.dev`.
