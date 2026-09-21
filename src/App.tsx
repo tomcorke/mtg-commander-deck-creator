@@ -174,6 +174,10 @@ const cardPrintingsUri = (card: Pick<Card, 'name'>) => `https://scryfall.com/sea
 
 type CardSource = { label: string; uri: string }
 
+function ModalCloseButton({ label, onClick, disabled = false, autoFocus = false }: { label: string; onClick: () => void; disabled?: boolean; autoFocus?: boolean }) {
+  return <button type="button" className="modal-close" autoFocus={autoFocus} disabled={disabled} onClick={onClick} aria-label={label}>×</button>
+}
+
 function CardDetails({ card, source, onToggleSet, collectionSelected = false }: { card: Pick<Card, 'name' | 'set' | 'setName' | 'collectorNumber' | 'scryfallUri' | 'price' | 'priceUri' | 'finish'>; source: CardSource; onToggleSet?: () => void; collectionSelected?: boolean }) {
   const scryfallUri = cardScryfallUri(card)
   const priceUri = card.priceUri ?? scryfallUri
@@ -1319,7 +1323,7 @@ function App() {
 
   const importModal = showImport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && importState !== 'loading') closeModal() }}>
     <section className="export-modal import-modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
-      <div className="export-heading"><div><p className="eyebrow">Bring an existing deck</p><h2 id="import-title">Import deck</h2></div><button className="modal-close" disabled={importState === 'loading'} onClick={() => closeModal()} aria-label="Close import">×</button></div>
+      <div className="export-heading"><div><p className="eyebrow">Bring an existing deck</p><h2 id="import-title">Import deck</h2></div><ModalCloseButton disabled={importState === 'loading'} onClick={() => closeModal()} label="Close import" /></div>
       <p className="import-help">Paste an exported deck list. Put commander cards below a <b>COMMANDER:</b> heading. Set and collector number syntax is preserved.</p>
       <p className="import-note">Moxfield and Archidekt URLs are not supported because this is a client-only app and those sites block browser access. Export the deck as text, then paste it here.</p>
       <textarea value={importSource} onChange={(event) => { setImportSource(event.target.value); setImportState('idle'); setImportError('') }} placeholder={'COMMANDER:\n1 Commander Name (SET) 123\n\nMAINBOARD:\n1 Card Name (SET) 456'} aria-label="Exported deck list" />
@@ -1331,7 +1335,7 @@ function App() {
   const deckNameDuplicate = duplicateDeckName(savedDecks, deckName, activeSavedDeckId)
   const savedDecksModal = showSavedDecks && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal() }}>
     <section className="export-modal saved-decks-modal" role="dialog" aria-modal="true" aria-labelledby="saved-decks-title">
-      <div className="export-heading"><div><p className="eyebrow">Local decks</p><h2 id="saved-decks-title">Saved decks</h2></div><button className="modal-close" onClick={() => closeModal()} aria-label="Close saved decks">×</button></div>
+      <div className="export-heading"><div><p className="eyebrow">Local decks</p><h2 id="saved-decks-title">Saved decks</h2></div><ModalCloseButton onClick={() => closeModal()} label="Close saved decks" /></div>
       {commander && <><form className="save-deck-form" onSubmit={(event) => { event.preventDefault(); storeDeck() }}><label><span className="sr-only">Deck name</span><input value={deckName} onChange={(event) => setDeckName(event.target.value)} aria-label="Deck name" aria-invalid={deckNameDuplicate} aria-describedby={deckNameDuplicate ? 'deck-name-warning' : undefined} /><button type="button" className="clear-deck-name" onClick={() => setDeckName('')} aria-label="Clear deck name">×</button>{deckNameDuplicate && <small id="deck-name-warning" className="deck-name-warning">Name already used</small>}</label><button className="primary" disabled={!deckName.trim() || deckNameDuplicate}>{activeSavedDeck ? 'Overwrite save' : 'Save deck'}</button></form>{activeSavedDeck && <p className="overwrite-notice">This will overwrite <b>{activeSavedDeck.name}</b> with <span className="delta-added">+{activeDeckDelta?.added} added</span> and <span className="delta-removed">−{activeDeckDelta?.removed} removed</span>.</p>}</>}
       <div className="saved-deck-list">{savedDecks.map((saved) => <article key={saved.id}><div className="saved-deck-details"><b>{saved.name}</b><span>{saved.state.commander} · {saved.state.deck.length}/100 cards</span><small>Updated {new Date(saved.updatedAt).toLocaleString()}</small></div><button className="saved-deck-load" onClick={() => loadSavedDeck(saved)}>Load</button><span className="saved-deck-delete-wrap"><button className={`saved-deck-delete ${pendingSavedDeckRemoval === saved.id ? 'confirm' : ''}`} onClick={() => pendingSavedDeckRemoval === saved.id ? removeSavedDeck(saved) : setPendingSavedDeckRemoval(saved.id)} aria-label={pendingSavedDeckRemoval === saved.id ? `Confirm deletion of ${saved.name}` : `Delete ${saved.name}`}>{pendingSavedDeckRemoval === saved.id ? 'Confirm' : 'Delete'}</button>{pendingSavedDeckRemoval === saved.id && <span className="saved-delete-confirm" role="tooltip">Click again to delete</span>}</span></article>)}</div>
       {!savedDecks.length && <p className="saved-decks-empty">No saved decks yet.</p>}
@@ -1340,7 +1344,7 @@ function App() {
 
   const deckCardModal = showDeckCard && selectedDeckCard && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDeckCard() }}>
     <section className="export-modal deck-card-modal" role="dialog" aria-modal="true" aria-labelledby="deck-card-title" onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); closeDeckCard() } }}>
-      <div className="export-heading"><p className="eyebrow">{selectedCollectionCard ? 'Collection card' : 'Deck card'}</p><button className="modal-close" autoFocus onClick={closeDeckCard} aria-label={`Close ${selectedDeckCard.name} details`}>×</button></div>
+      <div className="export-heading"><p className="eyebrow">{selectedCollectionCard ? 'Collection card' : 'Deck card'}</p><ModalCloseButton autoFocus onClick={closeDeckCard} label={`Close ${selectedDeckCard.name} details`} /></div>
       <div className="deck-card-modal-content">
         <figure className="deck-card-modal-art"><FinishedCardImage image={selectedDeckCard.image} alt={`${selectedDeckCard.name} card`} finish={selectedDeckCard.finish} effectsEnabled={cardEffects} className="deck-card-modal-image" /><ArtLoading active={loadingArt === selectedDeckCard.name} /><PrintingButton count={selectedDeckCard.printings?.length ?? 0} index={selectedDeckCard.printing ?? 0} loading={Boolean(loadingArt)} name={selectedDeckCard.name} onClick={() => void cycleSelectedDeckCardPrinting()} /></figure>
         <div className="deck-card-modal-copy"><div className="deck-card-modal-title"><h2 id="deck-card-title">{selectedDeckCard.name}</h2><span className="deck-card-modal-mana"><OracleText text={selectedDeckCard.manaCost} /></span></div><p className="card-type-line">{cardTypeLine(selectedDeckCard)}</p><p className="deck-card-description"><OracleText text={selectedDeckCard.detail} /></p><CardDetails card={selectedDeckCard} source={{ label: 'Scryfall', uri: cardScryfallUri(selectedDeckCard) }} onToggleSet={() => toggleCollectionSet(selectedDeckCard.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(selectedDeckCard.set)} /></div>
@@ -1602,7 +1606,7 @@ function App() {
       </section>
       {showCollectionBrowser && <div className="modal-backdrop collection-browser-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowCollectionBrowser(false) }}>
         <section className="collection-browser collection-browser-modal" role="dialog" aria-modal="true" aria-labelledby="collection-browser-title" tabIndex={-1} onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); setShowCollectionBrowser(false) } }}>
-          <div className="collection-browser-heading"><div><p className="eyebrow">Discovery</p><h2 id="collection-browser-title">Browse selected collection</h2><p>{collectionPoolSize ?? collectionBrowserCards.length} legal unique cards, shown in random order.</p></div><button type="button" autoFocus onClick={() => setShowCollectionBrowser(false)}>Close</button></div>
+          <div className="collection-browser-heading"><div><p className="eyebrow">Discovery</p><h2 id="collection-browser-title">Browse selected collection</h2><p>{collectionPoolSize ?? collectionBrowserCards.length} legal unique cards, shown in random order.</p></div><ModalCloseButton autoFocus onClick={() => setShowCollectionBrowser(false)} label="Close collection browser" /></div>
           <div className="collection-browser-filters"><label>Card type <select value={collectionBrowserType} onChange={(event) => setCollectionBrowserType(event.target.value)}><option value="all">All types</option><option value="creature">Creatures</option><option value="artifact">Artifacts</option><option value="enchantment">Enchantments</option><option value="instant">Instants</option><option value="sorcery">Sorceries</option><option value="land">Lands</option></select></label><label>Mana value <input type="number" min="0" max="16" value={collectionBrowserMana} onChange={(event) => setCollectionBrowserMana(event.target.value)} placeholder="Any" /></label></div>
           {collectionBrowserState === 'loading' && <p role="status">Loading legal collection cards…</p>}
           {collectionBrowserState === 'error' && <p className="form-error" role="alert">{collectionBrowserError}</p>}
@@ -1613,7 +1617,7 @@ function App() {
       {deckCardModal}
       {showCardSearch && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeCardSearch() }}>
         <section className="export-modal card-search-modal" ref={cardSearchDialog} role="dialog" aria-modal="true" aria-labelledby="card-search-title" onKeyDown={handleCardSearchKeys}>
-          <div className="export-heading"><div><p className="eyebrow">Add any legal card</p><h2 id="card-search-title">Find a card</h2></div><button className="modal-close" onClick={closeCardSearch} aria-label="Close card search">×</button></div>
+          <div className="export-heading"><div><p className="eyebrow">Add any legal card</p><h2 id="card-search-title">Find a card</h2></div><ModalCloseButton onClick={closeCardSearch} label="Close card search" /></div>
           <form className="card-search-form" onSubmit={(event) => { event.preventDefault(); const card = cardSearchResults.find((item) => item.name.toLowerCase() === cardSearch.trim().toLowerCase()) ?? cardSearchResults[0]; if (card) selectManualCard(card) }}>
             <input ref={cardSearchInput} value={cardSearch} onChange={(event) => { setCardSearch(event.target.value); setCardSearchResults([]); setCardSearchState('idle'); setSelectedManualCard(null) }} placeholder="Search card names…" aria-label="Card name" autoComplete="off" />
             <button className="primary" disabled={!cardSearchResults.length || cardSearchState === 'loading'}>Search</button>
@@ -1634,7 +1638,7 @@ function App() {
       </div>}
       {showBasicLands && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && basicLandState !== 'loading') closeModal() }}>
         <section className="export-modal basic-land-modal" role="dialog" aria-modal="true" aria-labelledby="basic-land-title">
-          <div className="export-heading"><div><p className="eyebrow">Complete mana base</p><h2 id="basic-land-title">Add basic lands?</h2></div><button className="modal-close" disabled={basicLandState === 'loading'} onClick={() => closeModal()} aria-label="Close basic land review">×</button></div>
+          <div className="export-heading"><div><p className="eyebrow">Complete mana base</p><h2 id="basic-land-title">Add basic lands?</h2></div><ModalCloseButton disabled={basicLandState === 'loading'} onClick={() => closeModal()} label="Close basic land review" /></div>
           <p>This fills {basicLands.reduce((sum, land) => sum + land.count, 0)} slots toward your {calculatedLandTarget}-land target. Existing cards stay unchanged.</p>
           <ul className="basic-land-plan">{basicLands.map((land) => <li key={land.name}><span>{land.name}</span><b>{land.count}</b></li>)}</ul>
           {basicLandState === 'error' && <p className="form-error" role="alert">Could not load basic lands. Try again.</p>}
@@ -1643,7 +1647,7 @@ function App() {
       </div>}
       {showExport && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal() }}>
         <section className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title">
-          <div className="export-heading"><div><p className="eyebrow">Export deck</p><h2 id="export-title">Copy your deck list</h2></div><button className="modal-close" onClick={() => closeModal()} aria-label="Close export">×</button></div>
+          <div className="export-heading"><div><p className="eyebrow">Export deck</p><h2 id="export-title">Copy your deck list</h2></div><ModalCloseButton onClick={() => closeModal()} label="Close export" /></div>
           <div className="format-tabs" role="group" aria-label="Deck list format">
             <button className={exportFormat === 'moxfield' ? 'selected' : ''} onClick={() => setExportFormat('moxfield')}>Moxfield</button>
             <button className={exportFormat === 'plain' ? 'selected' : ''} onClick={() => setExportFormat('plain')}>Plain text</button>

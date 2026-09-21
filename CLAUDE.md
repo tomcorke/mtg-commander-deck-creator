@@ -20,3 +20,7 @@ Issues and specs live in GitHub Issues; use the `gh` CLI. See `docs/agents/issue
 ### Domain docs
 
 This is a single-context repo. See `docs/agents/domain.md`.
+
+### UI consistency
+
+Before changing buttons, dialogs, forms, or CSS, read `docs/agents/ui.md`. Reuse the shared components and classes there; new UI must pass its review gate.
