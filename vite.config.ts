@@ -10,4 +10,11 @@ export default defineConfig({
   base: '/',
   define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [react()],
+  server: {
+    watch: {
+      // Windows file notifications can occasionally be dropped by editors or synced folders.
+      usePolling: true,
+      interval: 100,
+    },
+  },
 })
