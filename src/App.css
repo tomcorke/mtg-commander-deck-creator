@@ -236,11 +236,20 @@ main > .commander-header { z-index: 2; }
 .recommendation-options button { padding: 5px 9px; border: 1px solid #36327f; border-radius: 5px; background: transparent; color: #36327f; font-size: 12px; }
 .collection-picker { flex-basis: 100%; }
 .collection-picker-help { flex-basis: 100%; margin: 0; color: #69667d; font-size: 12px; }
-.collection-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.collection-set-search { display: grid !important; flex: 1 1 260px; align-items: start !important; gap: 4px !important; }
+.collection-set-search span, .collection-selection > span { color: #69667d; font-size: 11px; }
+.collection-set-search input { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: #fff; color: #28273b; }
+.collection-selection, .collection-set-results { display: grid; flex-basis: 100%; gap: 6px; }
+.collection-chips, .collection-set-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px; }
+.collection-chips button, .collection-set-results button { min-width: 0; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .collection-chips button { background: #e8e6fa; }
+.collection-set-results { max-height: 190px; overflow-y: auto; padding: 2px; }
+.collection-set-results button { border-color: #8d88bd; }
+.collection-set-results small { opacity: .7; }
 .collection-picker > small { flex-basis: 100%; }
 .collection-picker .form-error { font-size: 12px; }
 .collection-browser { margin: 18px 0; padding: 18px; border: 1px solid #d2d0df; border-radius: 10px; background: #f8f8ff; }
+.collection-browser-modal { width: min(1100px, 100%); max-height: calc(100vh - 48px); margin: 0; overflow-x: hidden; overflow-y: auto; box-shadow: 0 28px 90px #000, 0 0 0 1px #ffffff26; }
 .collection-browser-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
 .collection-browser-heading h2 { margin: 0; font-size: 22px; }
 .collection-browser-heading p:not(.eyebrow) { margin: 5px 0 0; color: #69667d; font-size: 13px; }
@@ -256,6 +265,7 @@ main > .commander-header { z-index: 2; }
 .collection-browser-grid p, .collection-browser-grid span { margin: 0 0 7px; color: #69667d; font-size: 11px; }
 .collection-browser-grid button { margin-top: auto; padding: 6px 8px; border: 1px solid #36327f; border-radius: 5px; background: transparent; color: #36327f; font-size: 12px; }
 .collection-browser-grid .collection-card-open { display: flex; width: 100%; min-height: 205px; flex-direction: column; align-items: stretch; margin: 0 0 8px; padding: 0; border: 0; color: inherit; text-align: left; }
+.collection-browser-grid .collection-card-open > div { min-height: 72px; text-align: center; }
 .collection-browser-grid .collection-card-open small { margin-top: auto; color: #69409a; font-size: 11px; text-align: right; }
 .health-lane { display: flex; justify-content: space-between; gap: 18px; margin-top: 20px; padding: 14px; border: 1px dashed #bbb9cd; border-radius: 9px; background: #faf9ff; }
 .health-lane h3 { margin: 0; font-size: 17px; }
@@ -554,8 +564,9 @@ li b { color: #8b879a; font-size: 12px; font-weight: 500; text-transform: upperc
 .dark .score-factors dt, .dark .score-breakdown .score-note { color: #aaa8c2; }
 .dark .change, .dark .reroll, .dark .export-actions a { color: #b786f2; }
 .dark .change:hover, .dark .reroll:hover, .dark .export-actions a:hover { color: #d1b0ff; }
-.dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select { border-color: #4b4867; color: #ccc9df; }
-.dark .recommendation-options select, .dark .collection-browser-filters select { background: #121121; color-scheme: dark; }
+.dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select, .dark .collection-set-search input { border-color: #4b4867; color: #ccc9df; }
+.dark .recommendation-options select, .dark .collection-browser-filters select, .dark .collection-set-search input { background: #121121; color-scheme: dark; }
+.dark .collection-set-search span, .dark .collection-selection > span { color: #aaa8c2; }
 .dark .recommendation-options select option, .dark .collection-browser-filters select option { background: #121121; color: #e5e3f0; }
 .dark .collection-chips button { background: #292644; }
 .dark .collection-browser, .dark .health-lane { border-color: #39374f; background: #19182d; }

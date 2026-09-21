@@ -12,6 +12,7 @@ type DeckCard = { name: string; layout: string; typeLine: string; manaCost: stri
 type DeckCardLocation = { board: 'deck' | 'sideboard'; index: number }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type CommanderCard = ScryfallCard & { related_uris?: { edhrec?: string }; image_uris?: { normal: string; art_crop?: string }; card_faces?: { mana_cost?: string; oracle_text?: string; power?: string; toughness?: string; image_uris?: { normal: string; art_crop?: string } }[] }
+type ScryfallSet = { code: string; name: string; set_type?: string; released_at?: string; card_count?: number }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 type AppView = 'start' | 'builder'
 type AppModal = 'saved' | 'import' | 'search' | 'basics' | 'export' | 'card'
@@ -293,6 +294,8 @@ function App() {
   const [collectionGroups, setCollectionGroups] = useState<string[]>(savedDeckState?.collectionGroups ?? [])
   const [collectionMode, setCollectionMode] = useState<CollectionMode>(savedDeckState?.collectionMode ?? 'none')
   const [prioritizeDeckHealth, setPrioritizeDeckHealth] = useState(savedDeckState?.prioritizeDeckHealth ?? true)
+  const [setOptions, setSetOptions] = useState<ScryfallSet[]>([])
+  const [collectionSearch, setCollectionSearch] = useState('')
   const [collectionPoolSize, setCollectionPoolSize] = useState<number | null>(null)
   const [collectionState, setCollectionState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [collectionError, setCollectionError] = useState('')
@@ -453,6 +456,13 @@ function App() {
     void fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: basicNames.map((name) => ({ name })) }) })
       .then((response) => response.ok ? response.json() as Promise<{ data: ScryfallCard[] }> : Promise.reject())
       .then(({ data }) => data.forEach((card) => basicCardCache.set(card.name, card)))
+      .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    void fetch('https://api.scryfall.com/sets')
+      .then((response) => response.ok ? response.json() as Promise<{ data: ScryfallSet[] }> : Promise.reject())
+      .then(({ data }) => setSetOptions(data.filter((set) => set.set_type !== 'token' && set.set_type !== 'memorabilia').sort((left, right) => (right.released_at ?? '').localeCompare(left.released_at ?? ''))))
       .catch(() => undefined)
   }, [])
 
@@ -715,7 +725,9 @@ function App() {
       setCollectionSets([])
       setCollectionGroups([])
       setCollectionMode('none')
+      setCollectionSearch('')
       setCollectionPoolSize(null)
+      setShowCollectionBrowser(false)
       setPrioritizeDeckHealth(recommendationStyle !== 'story')
     }
     setCommanderDetails(null)
@@ -1478,7 +1490,13 @@ function App() {
     const value = mana ? Number(mana) : NaN
     return type && (!mana || (Number.isFinite(value) && (value >= 7 ? (card.cmc ?? 0) >= 7 : (card.cmc ?? 0) === value)))
   }).slice(0, 60)
+  const filteredSetOptions = setOptions.filter((set) => {
+    const query = collectionSearch.trim().toLowerCase()
+    return query.length >= 2 && `${set.name} ${set.code}`.toLowerCase().includes(query) && !collectionSets.includes(set.code)
+  })
   const collectionSetLabel = (code: string) => {
+    const set = setOptions.find((item) => item.code === code)
+    if (set) return `${set.name} (${code.toUpperCase()})`
     const card = [...queue, ...deck, ...sideboard, ...collectionBrowserCards].find((item) => item.set === code)
     const name = card && ('set_name' in card ? card.set_name : (card as DeckCard).setName)
     return name && name.toLowerCase() !== code ? `${name} (${code.toUpperCase()})` : code.toUpperCase()
@@ -1562,8 +1580,10 @@ function App() {
             <label><input type="checkbox" checked={prioritizeDeckHealth} onChange={(event) => { setPrioritizeDeckHealth(event.target.checked); setRecommendationOptionsChanged(true) }} /> Prioritize deck health</label>
             <label><input type="checkbox" checked={includeCreature} onChange={(event) => { setIncludeCreature(event.target.checked); setRecommendationOptionsChanged(true) }} /> Include a creature when possible</label>
             <fieldset className="collection-picker"><legend>Collection affinity</legend>
-              <p className="collection-picker-help">Choose a set from any card's printing details. This keeps the list exhaustive without guessing which sets you own.</p>
-              {collectionSets.length > 0 && <div className="collection-chips">{collectionSets.map((code) => <button type="button" key={code} onClick={() => toggleCollectionSet(code)}>{collectionSetLabel(code)} ×</button>)}</div>}
+              <p className="collection-picker-help">Choose a set here or use the set button in any card's printing details.</p>
+              <label className="collection-set-search"><span>Search all sets</span><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search by set name or code…" aria-label="Search all sets" /></label>
+              {collectionSets.length > 0 && <div className="collection-selection"><span>Selected sets</span><div className="collection-chips">{collectionSets.map((code) => <button type="button" key={code} onClick={() => toggleCollectionSet(code)}>{collectionSetLabel(code)} ×</button>)}</div></div>}
+              {filteredSetOptions.length > 0 && <div className="collection-set-results" aria-label="Set search results">{filteredSetOptions.map((set) => <button type="button" key={set.code} onClick={() => toggleCollectionSet(set.code)}>{set.name} <small>{set.code.toUpperCase()}</small></button>)}</div>}
               <label>Match <select value={collectionMode} onChange={(event) => chooseCollectionMode(event.target.value as CollectionMode)}><option value="none">No collection preference</option><option value="prefer">Prefer selected collection</option><option value="only">Only selected collection</option></select></label>
               <button type="button" disabled={!collectionSets.length || collectionBrowserState === 'loading'} onClick={() => void browseCollection()}>{collectionBrowserState === 'loading' ? 'Loading collection…' : 'Browse collection'}</button>
               {collectionState === 'loading' && <small role="status">Checking legal collection…</small>}
@@ -1580,14 +1600,16 @@ function App() {
           </div>
         </div>
       </section>
-      {showCollectionBrowser && <section className="collection-browser" aria-labelledby="collection-browser-title">
-        <div className="collection-browser-heading"><div><p className="eyebrow">Discovery</p><h2 id="collection-browser-title">Browse selected collection</h2><p>{collectionPoolSize ?? collectionBrowserCards.length} legal unique cards, shown in random order.</p></div><button type="button" onClick={() => setShowCollectionBrowser(false)}>Close</button></div>
-        <div className="collection-browser-filters"><label>Card type <select value={collectionBrowserType} onChange={(event) => setCollectionBrowserType(event.target.value)}><option value="all">All types</option><option value="creature">Creatures</option><option value="artifact">Artifacts</option><option value="enchantment">Enchantments</option><option value="instant">Instants</option><option value="sorcery">Sorceries</option><option value="land">Lands</option></select></label><label>Mana value <input type="number" min="0" max="16" value={collectionBrowserMana} onChange={(event) => setCollectionBrowserMana(event.target.value)} placeholder="Any" /></label></div>
-        {collectionBrowserState === 'loading' && <p role="status">Loading legal collection cards…</p>}
-        {collectionBrowserState === 'error' && <p className="form-error" role="alert">{collectionBrowserError}</p>}
-        {collectionBrowserState === 'idle' && <div className="collection-browser-grid">{filteredCollectionCards.map((card) => <article key={`${card.name}-${card.set}-${card.collector_number}`}><button type="button" className="collection-card-open" onClick={() => openCollectionCard(card)}><div>{scryfallImage(card) && <img src={scryfallImage(card)} alt="" />}</div><h3>{card.name}</h3><p>{card.type_line}</p><span>{card.cmc ?? 0} mana · {card.set.toUpperCase()}</span><small>View details</small></button><button type="button" disabled={Boolean(manualCardError(card, [...deck, ...sideboard].map((item) => item.name), commanderDetails?.colours ?? []))} onClick={() => addCollectionCard(card)}>Add to deck</button></article>)}</div>}
-        {collectionBrowserState === 'idle' && !filteredCollectionCards.length && <p>No cards match those filters.</p>}
-      </section>}
+      {showCollectionBrowser && <div className="modal-backdrop collection-browser-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowCollectionBrowser(false) }}>
+        <section className="collection-browser collection-browser-modal" role="dialog" aria-modal="true" aria-labelledby="collection-browser-title" tabIndex={-1} onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); setShowCollectionBrowser(false) } }}>
+          <div className="collection-browser-heading"><div><p className="eyebrow">Discovery</p><h2 id="collection-browser-title">Browse selected collection</h2><p>{collectionPoolSize ?? collectionBrowserCards.length} legal unique cards, shown in random order.</p></div><button type="button" autoFocus onClick={() => setShowCollectionBrowser(false)}>Close</button></div>
+          <div className="collection-browser-filters"><label>Card type <select value={collectionBrowserType} onChange={(event) => setCollectionBrowserType(event.target.value)}><option value="all">All types</option><option value="creature">Creatures</option><option value="artifact">Artifacts</option><option value="enchantment">Enchantments</option><option value="instant">Instants</option><option value="sorcery">Sorceries</option><option value="land">Lands</option></select></label><label>Mana value <input type="number" min="0" max="16" value={collectionBrowserMana} onChange={(event) => setCollectionBrowserMana(event.target.value)} placeholder="Any" /></label></div>
+          {collectionBrowserState === 'loading' && <p role="status">Loading legal collection cards…</p>}
+          {collectionBrowserState === 'error' && <p className="form-error" role="alert">{collectionBrowserError}</p>}
+          {collectionBrowserState === 'idle' && <div className="collection-browser-grid">{filteredCollectionCards.map((card) => <article key={`${card.name}-${card.set}-${card.collector_number}`}><button type="button" className="collection-card-open" onClick={() => openCollectionCard(card)}><div>{scryfallImage(card) && <img src={scryfallImage(card)} alt="" />}</div><h3>{card.name}</h3><p>{card.type_line}</p><span>{card.cmc ?? 0} mana · {card.set.toUpperCase()}</span><small>View details</small></button><button type="button" disabled={Boolean(manualCardError(card, [...deck, ...sideboard].map((item) => item.name), commanderDetails?.colours ?? []))} onClick={() => addCollectionCard(card)}>Add to deck</button></article>)}</div>}
+          {collectionBrowserState === 'idle' && !filteredCollectionCards.length && <p>No cards match those filters.</p>}
+        </section>
+      </div>}
       {showCardSearch && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeCardSearch() }}>
         <section className="export-modal card-search-modal" ref={cardSearchDialog} role="dialog" aria-modal="true" aria-labelledby="card-search-title" onKeyDown={handleCardSearchKeys}>
           <div className="export-heading"><div><p className="eyebrow">Add any legal card</p><h2 id="card-search-title">Find a card</h2></div><button className="modal-close" onClick={closeCardSearch} aria-label="Close card search">×</button></div>
