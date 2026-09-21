@@ -7,20 +7,26 @@ export const deckStateVersion = 1
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 const finishSchema = z.enum(['nonfoil', 'foil', 'etched'])
-const printingSchema = z.object({ image: z.string(), art: z.string().optional(), set: z.string(), collectorNumber: z.string(), price: z.string().optional(), finish: finishSchema.optional() })
+const printingSchema = z.object({ image: z.string(), art: z.string().optional(), set: z.string(), setName: z.string().optional(), collectorNumber: z.string(), scryfallUri: z.string().optional(), price: z.string().optional(), priceUri: z.string().optional(), finish: finishSchema.optional() })
 const cardBase = {
   name: z.string(),
   layout: z.string(),
   typeLine: z.string(),
   manaCost: z.string(),
   manaValue: z.number(),
+  power: z.string().optional(),
+  toughness: z.string().optional(),
   detail: z.string(),
   producedMana: z.array(z.string()),
   faces: z.array(z.object({ typeLine: z.string(), manaCost: z.string() })),
   image: z.string(),
   set: z.string(),
+  setName: z.string().optional(),
   collectorNumber: z.string(),
+  scryfallUri: z.string().optional(),
+  printsUri: z.string().optional(),
   price: z.string().optional(),
+  priceUri: z.string().optional(),
   tags: z.array(z.string()),
   printings: z.array(printingSchema).optional(),
   printing: z.number().int().nonnegative().optional(),

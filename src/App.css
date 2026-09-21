@@ -36,6 +36,29 @@ header { height: 72px; padding: 0 5vw; display: flex; align-items: center; justi
 .start-over { padding: 9px 6px; border: 0; background: transparent; color: #68667c; }
 .modal-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; padding: 24px; place-items: center; background: #0009; }
 .export-modal { display: flex; flex-direction: column; width: min(800px, 100%); max-height: calc(100vh - 48px); padding: 28px; border-radius: 12px; background: #f8f8ff; box-shadow: 0 28px 90px #000, 0 0 0 1px #ffffff26; }
+.deck-card-modal { width: min(980px, 100%); overflow: visible; }
+.deck-card-modal-content { display: grid; grid-template-columns: minmax(220px, 360px) minmax(0, 1fr); gap: 28px; min-height: 0; margin: 20px -8px 0; padding: 0 8px 20px; overflow: visible; }
+.deck-card-modal-art { position: relative; width: min(360px, 100%); margin: 0; align-self: start; overflow: visible; }
+.deck-card-modal-art .finished-card { display: block; width: 100%; }
+.deck-card-modal-image { display: block; width: 100%; height: auto; border-radius: 4.75%; box-shadow: 0 14px 35px #24203e55; }
+.deck-card-modal-art .finish-edges { position: absolute; }
+.deck-card-modal-art > button { position: absolute; z-index: 3; right: 10px; bottom: -12px; padding: 7px 10px; border: 1px solid #ffffff99; border-radius: 6px; background: #201c3c; color: white; box-shadow: 0 5px 14px #08071299; }
+.deck-card-modal-copy { min-width: 0; align-self: center; }
+.deck-card-modal-title { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.deck-card-modal-copy h2 { min-width: 0; margin: 0; font-size: clamp(26px, 4vw, 38px); }
+.deck-card-modal-mana { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; white-space: nowrap; }
+.deck-card-modal-mana > span { display: contents; }
+.deck-card-modal-mana .mana-symbol { width: 1.3em; height: 1.3em; margin: 0; }
+.deck-card-modal-actions { display: flex; justify-content: flex-end; margin-top: 0; }
+.deck-card-modal-remove { padding: 9px 13px; border: 1px solid #b7a0a0; border-radius: 6px; background: transparent; color: #9a413d; font-size: 12px; }
+.deck-card-modal-remove:hover, .deck-card-modal-remove:focus-visible { border-color: #a94840; background: #f4e4e3; }
+.deck-card-modal-remove.confirm { border-color: #a94840; background: #a94840; color: white; }
+.card-type-line { margin-bottom: 14px; color: #706d82; font-size: 13px; }
+.deck-card-description { color: #625f76; font-size: 15px; line-height: 1.6; white-space: pre-line; }
+.oracle-line { display: block; }
+.oracle-line + .oracle-line { margin-top: .42em; }
+.deck-card-modal .card-details { font-size: 12px; line-height: 1.45; }
+.deck-card-modal .card-details a { font-size: 12px; }
 .export-heading { display: flex; justify-content: space-between; align-items: start; }
 .export-heading h2 { margin: 0; font-size: 28px; }
 .modal-close { padding: 0; border: 0; background: transparent; color: #625f76; font-size: 30px; line-height: 1; }
@@ -287,9 +310,7 @@ main > .commander-header { z-index: 2; }
 .etched-card:hover::before { opacity: .88; }
 .etched-card:hover::after { opacity: .45; }
 @keyframes card-loading { to { background-position-x: -200%; } }
-.offered-image > button, .card-price { position: absolute; z-index: 3; bottom: -12px; padding: 6px 9px; border: 1px solid #ffffff99; border-radius: 6px; background: #201c3c; color: white; font-size: 11px; box-shadow: 0 3px 9px #201c3c55; }
-.offered-image > button { right: 8px; }
-.card-price { left: 8px; }
+.offered-image > button { position: absolute; z-index: 3; right: 8px; bottom: -12px; padding: 6px 9px; border: 1px solid #ffffff99; border-radius: 6px; background: #201c3c; color: white; font-size: 11px; box-shadow: 0 3px 9px #201c3c55; }
 .art-loading { position: absolute; z-index: 2; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 4.75%; background: #17162acc; color: white; font-size: 12px; font-weight: 600; }
 .art-loading i { width: 18px; height: 18px; border: 2px solid #ffffff66; border-top-color: white; border-radius: 50%; animation: art-spin .7s linear infinite; }
 @keyframes art-spin { to { transform: rotate(1turn); } }
@@ -297,6 +318,13 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .suggestion-type { min-height: 0; margin: 0 0 6px; color: #7546a8; font: 600 13px 'DM Sans', sans-serif; letter-spacing: 1.2px; text-transform: uppercase; }
 .card-copy h3 { position: relative; z-index: 2; margin: 18px 0 10px; font-size: 21px; text-shadow: 0 1px 2px var(--card-title-shadow, #f8f8ff), 0 0 8px var(--card-title-shadow, #f8f8ff); }
 .card-copy > p { min-height: 48px; color: #69667d; font-size: 13px; line-height: 1.5; white-space: pre-line; }
+.card-details { display: grid; gap: 5px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #dedcea; color: #706d82; font-size: 11px; line-height: 1.35; }
+.card-details > div { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
+.card-details dt { flex: 0 0 52px; color: #514e66; font-weight: 600; }
+.card-details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.card-details dd strong { color: #514e66; font-weight: 600; }
+.card-details a { color: #69409a; text-decoration: underline; text-underline-offset: 2px; }
+.card-details a:hover { color: #36327f; }
 .mana-symbol { display: inline-block; width: 1.15em; height: 1.15em; margin: 0 .08em; vertical-align: -.2em; }
 .actions { position: relative; display: flex; gap: 9px; align-items: center; justify-content: space-between; margin: 0 0 10px; }
 .actions:hover, .actions:focus-within { z-index: 3; }
@@ -403,7 +431,8 @@ li.curve-dimmed { opacity: .22; }
 .basic-placeholder { opacity: .45; }
 .basic-placeholder > button { display: flex; width: 100%; justify-content: space-between; padding: 0; border: 0; background: transparent; color: inherit; }
 .basic-placeholder > button b { font-size: 18px; }
-.deck-card-name { position: relative; }
+.deck-card-name { position: relative; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+.deck-card-name:hover, .deck-card-name:focus-visible { color: var(--commander-accent, #36327f); text-decoration: underline; text-underline-offset: 3px; }
 .foil-card-name { background: linear-gradient(90deg, #ff4f9a, #ffd84f, #42e8a8, #50bfff, #b16cff, #ff4f9a); background-size: 220% 100%; background-clip: text; color: transparent; font-weight: 600; }
 .etched-card-name { color: #b39b68; font-weight: 600; }
 .finish-label { margin-left: 6px; color: inherit; font-size: 8px; letter-spacing: .4px; text-transform: uppercase; }
@@ -417,12 +446,12 @@ li.curve-dimmed { opacity: .22; }
   100% { background-position: 12% 80%, 70% 100%, 0 0; filter: hue-rotate(347deg); }
 }
 @media (prefers-reduced-motion: reduce) { .alternate-printing { animation: none; background: linear-gradient(135deg, #f66, #6cf, #c6f); } }
-.deck-card-popover { position: fixed; z-index: 20; right: var(--preview-right, 24px); left: var(--preview-left, auto); top: 50%; opacity: 0; pointer-events: none; transform: translateY(-50%) scale(.96); transition: opacity .15s, transform .15s; }
+.deck-card-popover { position: fixed; z-index: 20; right: var(--preview-right, 24px); left: var(--preview-left, auto); top: var(--preview-top, 16px); opacity: 0; pointer-events: none; transform: scale(.96); transition: opacity .15s, transform .15s; }
 .deck-card-preview { display: block; width: min(320px, 25vw); max-height: calc(100vh - 40px); border-radius: 4.75%; box-shadow: 0 16px 42px #080712d9, 0 0 0 1px #ffffff26; }
 .deck-card-popover .finish-edges { position: absolute; }
 .deck-card-popover::after { position: absolute; z-index: -1; inset: 0 -12px; content: ''; }
 .deck-card-popover button { position: absolute; z-index: 3; right: 10px; bottom: -18px; padding: 7px 10px; border: 1px solid #ffffff99; border-radius: 6px; background: #201c3c; color: white; box-shadow: 0 5px 14px #08071299; }
-.deck-group ol > li:hover .deck-card-popover, .deck-group ol > li:focus-within .deck-card-popover { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
+.deck-group ol > li:hover .deck-card-popover, .deck-group ol > li:focus-within .deck-card-popover { opacity: 1; pointer-events: auto; transform: scale(1); }
 .deck-card-meta { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
 .deck-mana { display: flex; min-width: 54px; justify-content: flex-end; white-space: nowrap; }
 .deck-mana .mana-symbol { width: 16px; height: 16px; margin: 0 1px; }
@@ -458,6 +487,14 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
 .dark aside, .dark .deck-board { background: #17162a; }
 .dark h1, .dark h2, .dark h3, .dark .brand { color: #d9d8ff; }
 .dark .lead, .dark .start-panel > p, .dark .section-title > span, .dark .recommendation-options, .dark .card-copy > p, .dark dt, .dark .identity, .dark .progress, .dark .theme-option { color: #aaa8c2; }
+.dark .card-type-line, .dark .deck-card-description { color: #aaa8c2; }
+.dark .deck-card-modal-image { box-shadow: 0 14px 35px #0009; }
+.dark .deck-card-modal-remove { border-color: #9a6868; color: #f0aaa4; }
+.dark .deck-card-modal-remove:hover, .dark .deck-card-modal-remove:focus-visible { background: #3b252c; }
+.dark .card-details { border-color: #39374f; color: #aaa8c2; }
+.dark .card-details dt, .dark .card-details dd strong { color: #ccc9df; }
+.dark .card-details a { color: #b786f2; }
+.dark .card-details a:hover { color: #d1b0ff; }
 .dark .change, .dark .reroll, .dark .export-actions a { color: #b786f2; }
 .dark .change:hover, .dark .reroll:hover, .dark .export-actions a:hover { color: #d1b0ff; }
 .dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select { border-color: #4b4867; color: #ccc9df; }
@@ -551,6 +588,7 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
   .deck-board { padding-inline: 6vw; }
 }
 @media (max-width: 620px) {
+  .deck-card-modal-content { grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 18px; }
   .deck-board-heading { align-items: stretch; flex-direction: column; }
   .deck-board-heading > div:last-child { align-items: stretch; flex-direction: column; gap: 8px; }
   .deck-board .manual-card-button { width: 100%; }
@@ -562,6 +600,9 @@ li b { color: #8b879a; font-size: 10px; font-weight: 500; text-transform: upperc
   .batch-controls button { width: 100%; }
   .card-offer { grid-template-columns: 1fr; }
   .manual-card-preview { grid-template-columns: 1fr; }
+  .deck-card-modal-content { grid-template-columns: 1fr; }
+  .deck-card-modal-art { max-width: 220px; margin: auto; }
+  .deck-card-modal-copy { align-self: start; }
   .manual-card-image { max-width: 220px; margin: auto; }
   .manual-card-zoom, .search-card-popover { display: none; }
   .suggestion-type { grid-column: auto; }
