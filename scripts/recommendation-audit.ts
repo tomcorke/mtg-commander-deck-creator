@@ -85,7 +85,7 @@ function simulate(initialQueue: RecommendationCard[], source: SourceDeck, policy
       if (ignored.has(card.name)) ignoredReoffers += 1
       seen.add(card.name)
       for (const role of rolesForCard(card)) if (role !== 'lands' && firstRoleOffer[role] === null) firstRoleOffer[role] = batchNumber
-      scoreTotal += recommendationScore(card, { theme: '', activeSubThemes: [], pickedTags: new Set(accepted.flatMap(({ tags }) => tags)), preferenceScores, neededRoles: new Set(Object.entries(roleBoosts).filter(([, boost]) => boost > 0).map(([role]) => role)), cardRoles: rolesForCard(card) })
+      scoreTotal += recommendationScore(card, { theme: '', activeSubThemes: [], pickedTags: new Set(accepted.flatMap(({ tags }) => tags)), preferenceScores, neededRoles: new Set(Object.entries(roleBoosts).filter(([, boost]) => boost > 0).map(([role]) => role)), cardRoles: rolesForCard(card), recommendationStyle: 'balanced', roleBoosts, roleSupply: Object.fromEntries(Object.keys(roleBoosts).map((role) => [role, queue.filter((candidate) => rolesForCard(candidate).includes(role)).length])), batchNumber })
       const type = cardType(card)
       const shouldAdd = policy === 'accept-all' || policy === 'balanced' && counts[type] < targets[type] || policy === 'precon-match' && sourceNames.has(card.name) && counts[type] < targets[type]
       decisions[card.name] = shouldAdd ? 'add' : 'ignore'
@@ -95,7 +95,7 @@ function simulate(initialQueue: RecommendationCard[], source: SourceDeck, policy
     if (batchPicks === 0) noPickBatches += 1
     if (batchPicks === 1 || batchPicks === 2) oneOrTwoPickBatches += 1
     if (accepted.length === 99) break
-    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked: [], preferenceScores, activeSubThemes: [], theme: '', includeCreature: true, roleBoosts, cardRoles: rolesForCard })
+    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked: [], preferenceScores, activeSubThemes: [], theme: '', includeCreature: true, roleBoosts, cardRoles: rolesForCard, recommendationStyle: 'balanced' })
     queue = next.queue
     deferredCards = next.deferredCards
     batchNumber = next.batchNumber

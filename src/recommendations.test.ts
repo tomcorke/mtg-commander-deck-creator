@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, commanderThemes, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, recommendationScore, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, commanderThemes, curatedCollections, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -93,8 +93,63 @@ test('production EDHREC builder applies safety filters and batches every card on
 
 test('recommendation score rewards evidence and leaves weak picks below badge threshold', () => {
   const context = { theme: 'Tokens', activeSubThemes: ['Artifacts'], pickedTags: new Set(['Tokens']), preferenceScores: { Tokens: 4 }, neededRoles: new Set(['draw']), cardRoles: ['draw'] }
-  assert.equal(recommendationScore({ reason: 'Commander synergy', tags: ['Tokens'] }, context), 74)
+  assert.equal(recommendationScore({ reason: 'Commander synergy', tags: ['Tokens'] }, context), 49)
   assert.ok(recommendationScore({ reason: 'Interesting new pick', tags: [] }, { ...context, cardRoles: [] }) < recommendedScoreThreshold)
+})
+
+test('score breakdown exposes every contribution used by total score', () => {
+  const context = { theme: 'Tokens', activeSubThemes: ['Artifacts'], pickedTags: new Set(['Tokens']), preferenceScores: { Tokens: 4 }, neededRoles: new Set(['draw']), cardRoles: ['draw'] }
+  assert.deepEqual(recommendationScoreBreakdown({ reason: 'Commander synergy', tags: ['Tokens'] }, context), { total: 49, evidence: 20, theme: 10, subThemes: 0, collection: 0, deckFit: 5, preferences: 4, deckNeeds: 10, popularityPenalty: 0 })
+  assert.equal(recommendationScore({ reason: 'Commander synergy', tags: ['Tokens'] }, context), 49)
+})
+
+test('score factors sum to a normalized total', () => {
+  const context = { theme: 'Tokens', activeSubThemes: ['Artifacts', 'Elves'], pickedTags: new Set(['Tokens', 'Artifacts']), preferenceScores: { Tokens: 20, Artifacts: 20 }, neededRoles: new Set(['draw', 'ramp']), cardRoles: ['draw', 'ramp'] }
+  const breakdown = recommendationScoreBreakdown({ reason: 'Commander synergy', tags: ['Tokens', 'Artifacts', 'Elves'] }, context)
+  assert.deepEqual(breakdown, { total: 78, evidence: 20, theme: 10, subThemes: 8, collection: 0, deckFit: 10, preferences: 10, deckNeeds: 20, popularityPenalty: 0 })
+})
+
+test('recommendation styles and collection affinity change visible factors', () => {
+  const popular = { reason: 'Popular inclusion', tags: [] }
+  const collection = { reason: 'Interesting new pick', tags: [], collectionMatch: true, set: 'ltr' }
+  const context = { theme: 'Tokens', activeSubThemes: [], pickedTags: new Set<string>(), preferenceScores: {}, neededRoles: new Set<string>(), cardRoles: [] }
+  const story = recommendationScoreBreakdown(popular, { ...context, recommendationStyle: 'story', collectionSets: ['ltr'] })
+  const optimized = recommendationScoreBreakdown(popular, { ...context, recommendationStyle: 'optimized', collectionSets: [] })
+  assert.equal(story.popularityPenalty, -15)
+  assert.equal(recommendationScoreBreakdown(collection, { ...context, recommendationStyle: 'story', collectionSets: ['ltr'], collectionMode: 'prefer' }).collection, 12)
+  assert.ok(story.total < optimized.total)
+})
+
+test('collection preferences learn without banning unrelated cards', () => {
+  const card = { name: 'Middle-earth card', tags: ['Tokens'], collectionMatch: true }
+  const scores = updatePreferenceScores([card], { [card.name]: 'add' }, [card.name], {})
+  assert.equal(scores.Collection, 6)
+  assert.ok(recommendationScoreBreakdown({ reason: 'Interesting new pick', tags: [], collectionMatch: true }, { theme: '', activeSubThemes: [], pickedTags: new Set(), preferenceScores: scores, neededRoles: new Set(), cardRoles: [], collectionSets: ['ltr'], collectionMode: 'prefer' }).preferences > 0)
+})
+
+test('curated collections expand to maintained set groups', () => {
+  assert.deepEqual(curatedCollections.find((collection) => collection.id === 'middle-earth')?.setCodes, ['ltr', 'ltc'])
+})
+
+test('ranker and displayed score use the same style signal', () => {
+  const cards = [
+    { name: 'Popular', reason: 'Popular inclusion', typeLine: 'Instant', tags: [] },
+    { name: 'Tokens', reason: 'Interesting new pick', typeLine: 'Instant', tags: ['Tokens'] },
+  ]
+  const context = { theme: 'Tokens', activeSubThemes: [], pickedTags: new Set<string>(), preferenceScores: {}, neededRoles: new Set<string>(), cardRoles: [], recommendationStyle: 'story' as const }
+  const ranked = rankRecommendationCards(cards, context, false, () => [])
+  assert.equal(ranked[0].name, 'Tokens')
+  assert.ok(recommendationScore(ranked[0], { ...context, cardRoles: [] }) > recommendationScore(ranked[1], { ...context, cardRoles: [] }))
+})
+
+test('only collection ranking excludes outside cards and prefer ranks matches first', () => {
+  const cards = [
+    { name: 'Outside', reason: 'Interesting new pick', typeLine: 'Instant', tags: [] },
+    { name: 'Inside', reason: 'Interesting new pick', typeLine: 'Instant', tags: [], set: 'ltr', collectionMatch: true },
+  ]
+  const context = { theme: '', activeSubThemes: [], pickedTags: new Set<string>(), preferenceScores: {}, neededRoles: new Set<string>(), cardRoles: [], recommendationStyle: 'balanced' as const, collectionSets: ['ltr'] }
+  assert.deepEqual(rankRecommendationCards(cards, { ...context, collectionMode: 'only' }, false, () => []).map((card) => card.name), ['Inside'])
+  assert.equal(rankRecommendationCards(cards, { ...context, collectionMode: 'prefer' }, false, () => [])[0].name, 'Inside')
 })
 
 test('batches vary reasons with a creature, mana card, and at most one new card', () => {

@@ -16,6 +16,11 @@ const state: PersistedDeckState = {
   commander: 'Anikthea, Hand of Erebos',
   commanderDetails: { images: ['image'], art: ['art'], colours: ['W', 'B', 'G'], printings: [[{ image: 'image', set: 'cmm', collectorNumber: '349' }]], selections: [0] },
   theme: 'Enchantments',
+  recommendationStyle: 'balanced',
+  collectionSets: [],
+  collectionGroups: [],
+  collectionMode: 'none',
+  prioritizeDeckHealth: true,
   queue: [],
   limitedRecommendations: false,
   decisions: {},
@@ -93,9 +98,13 @@ test('invalid saved deck collections are ignored', () => {
 })
 
 test('legacy autosave gets empty saved-deck id and sideboard', () => {
-  const storage = memoryStorage({ [deckStateKey]: JSON.stringify({ version: deckStateVersion, state: Object.fromEntries(Object.entries(state).filter(([key]) => !['savedDeckId', 'sideboard'].includes(key))) }) })
+  const storage = memoryStorage({ [deckStateKey]: JSON.stringify({ version: deckStateVersion, state: Object.fromEntries(Object.entries(state).filter(([key]) => !['savedDeckId', 'sideboard', 'recommendationStyle', 'collectionSets', 'collectionGroups', 'collectionMode', 'prioritizeDeckHealth'].includes(key))) }) })
   assert.equal(loadDeckState(storage)?.savedDeckId, '')
   assert.deepEqual(loadDeckState(storage)?.sideboard, [])
+  assert.equal(loadDeckState(storage)?.recommendationStyle, 'balanced')
+  assert.deepEqual(loadDeckState(storage)?.collectionSets, [])
+  assert.deepEqual(loadDeckState(storage)?.collectionGroups, [])
+  assert.equal(loadDeckState(storage)?.collectionMode, 'none')
 })
 
 test('invalid, old, and malformed deck state is ignored', () => {

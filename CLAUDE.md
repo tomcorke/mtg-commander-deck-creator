@@ -10,3 +10,13 @@ For each release:
 6. Push `publish` and verify `https://commander-creator.corke.dev/` serves the new asset hash.
 
 Batch only tightly related edits. Skip publish for docs-only changes.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues; use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+This is a single-context repo. See `docs/agents/domain.md`.

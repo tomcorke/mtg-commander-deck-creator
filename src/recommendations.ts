@@ -4,20 +4,47 @@ export type EdhrecThemeCount = { count: number; slug: string; value: string }
 export type CardFinish = 'nonfoil' | 'foil' | 'etched'
 export type PrintingLike = { image: string; set: string; collectorNumber: string; finish?: CardFinish }
 export type PowerTarget = 'precon' | 'upgraded' | 'high'
+export type RecommendationStyle = 'story' | 'balanced' | 'optimized'
+export type CollectionMode = 'none' | 'prefer' | 'only'
+export type RecommendationSource = 'edhrec' | 'scryfall'
+export type CuratedCollection = { id: string; name: string; setCodes: string[] }
+export const curatedCollections: CuratedCollection[] = [
+  { id: 'middle-earth', name: 'Middle-earth', setCodes: ['ltr', 'ltc'] },
+  { id: 'marvel', name: 'Marvel', setCodes: ['spm'] },
+]
 export type ScryfallCardFace = { type_line?: string; mana_cost?: string; oracle_text?: string; power?: string; toughness?: string; image_uris?: { normal: string } }
 export type ScryfallCard = { name: string; layout?: string; type_line: string; mana_cost?: string; cmc?: number; oracle_text?: string; power?: string; toughness?: string; produced_mana?: string[]; color_identity: string[]; set: string; set_name?: string; collector_number: string; scryfall_uri?: string; prints_search_uri: string; purchase_uris?: { tcgplayer?: string; cardmarket?: string; cardhoarder?: string }; finishes?: CardFinish[]; released_at?: string; game_changer?: boolean; prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null }; image_uris?: { normal: string }; card_faces?: ScryfallCardFace[] }
 export type EdhrecEntry = { name: string; tag: string; header: string }
-export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; power?: string; toughness?: string; reason: string; image: string; set: string; setName?: string; collectorNumber: string; scryfallUri?: string; printsUri: string; price?: string; priceUri?: string; finish?: CardFinish; tags: string[] }
+export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; power?: string; toughness?: string; reason: string; source?: RecommendationSource; image: string; set: string; setName?: string; collectorNumber: string; scryfallUri?: string; printsUri: string; price?: string; priceUri?: string; finish?: CardFinish; tags: string[]; collectionMatch?: boolean }
 export type RecommendationOptions = { includeCreature: boolean; excludeGameChangers: boolean; excludeTutors: boolean; excludeExtraTurns: boolean; excludeUnreleased: boolean; powerTarget: PowerTarget }
-export const recommendedScoreThreshold = 50
+export const recommendedScoreThreshold = 45
+export const recommendationScoreFactorMaximums = { evidence: 20, theme: 10, subThemes: 8, collection: 12, deckFit: 10, preferences: 10, deckNeeds: 30, popularityPenalty: 15 } as const
+export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> & Partial<Pick<RecommendationCard, 'set' | 'collectionMatch'>>
+export type RecommendationScoreContext = { theme: string; activeSubThemes: string[]; pickedTags: Set<string>; preferenceScores: Record<string, number>; neededRoles: Set<string>; cardRoles: string[]; recommendationStyle?: RecommendationStyle; collectionSets?: string[]; collectionMode?: CollectionMode; roleBoosts?: Record<string, number>; roleSupply?: Record<string, number>; batchNumber?: number }
+export type RecommendationScoreBreakdown = { total: number; evidence: number; theme: number; subThemes: number; collection: number; deckFit: number; preferences: number; deckNeeds: number; popularityPenalty: number }
 
-export function recommendationScore(card: Pick<RecommendationCard, 'reason' | 'tags'>, { theme, activeSubThemes, pickedTags, preferenceScores, neededRoles, cardRoles }: { theme: string; activeSubThemes: string[]; pickedTags: Set<string>; preferenceScores: Record<string, number>; neededRoles: Set<string>; cardRoles: string[] }) {
-  const reasonScore = card.reason === 'Commander synergy' ? 35 : card.reason === 'Commander favourite' ? 25 : card.reason === 'Popular inclusion' || card.reason === 'Land or mana' ? 10 : 15
-  const themeScore = (theme && card.tags.includes(theme) ? 20 : 0) + Math.min(24, card.tags.filter((tag) => activeSubThemes.includes(tag)).length * 12)
-  const deckScore = Math.min(10, card.tags.filter((tag) => pickedTags.has(tag)).length * 5)
-  const preferenceScore = Math.min(20, card.tags.reduce((score, tag) => score + Math.max(0, preferenceScores[tag] ?? 0), 0))
-  const roleScore = Math.min(20, cardRoles.filter((role) => neededRoles.has(role)).length * 10)
-  return Math.min(100, reasonScore + themeScore + deckScore + preferenceScore + roleScore)
+export function recommendationScoreBreakdown(card: RecommendationScoreCard, { theme: declaredTheme, activeSubThemes, pickedTags, preferenceScores, neededRoles, cardRoles, recommendationStyle = 'balanced', collectionSets = [], collectionMode = 'none', roleBoosts = {}, roleSupply = {}, batchNumber = 1 }: RecommendationScoreContext): RecommendationScoreBreakdown {
+  const evidenceBase = card.reason === 'Commander synergy' ? 20 : card.reason === 'Commander favourite' ? 15 : card.reason === 'Popular inclusion' || card.reason === 'Land or mana' ? 8 : 12
+  const evidence = recommendationStyle === 'story' ? Math.round(evidenceBase * .65) : recommendationStyle === 'optimized' ? Math.min(recommendationScoreFactorMaximums.evidence, Math.round(evidenceBase * 1.1)) : evidenceBase
+  const theme = declaredTheme && card.tags.includes(declaredTheme) ? recommendationScoreFactorMaximums.theme : 0
+  const subThemes = Math.min(recommendationScoreFactorMaximums.subThemes, card.tags.filter((tag) => activeSubThemes.includes(tag)).length * 4)
+  const isCollectionMatch = collectionMode !== 'none' && Boolean(card.collectionMatch || (card.set && collectionSets.includes(card.set)))
+  const collection = isCollectionMatch ? collectionMode === 'only' || recommendationStyle === 'story' ? recommendationScoreFactorMaximums.collection : recommendationStyle === 'balanced' ? 8 : 6 : 0
+  const deckFit = Math.min(recommendationScoreFactorMaximums.deckFit, card.tags.filter((tag) => pickedTags.has(tag)).length * 5)
+  const preferenceBase = card.tags.reduce((score, tag) => score + (preferenceScores[tag] ?? 0), 0) + (isCollectionMatch ? preferenceScores.Collection ?? 0 : 0)
+  const preferences = Math.max(-recommendationScoreFactorMaximums.preferences, Math.min(recommendationScoreFactorMaximums.preferences, preferenceBase * (recommendationStyle === 'story' ? 1.2 : 1)))
+  const roleUrgency = cardRoles.reduce((score, role) => score + (roleBoosts[role] ?? 0) * (1 + 4 / Math.max(1, roleSupply[role] ?? 1)) + ((roleBoosts[role] ?? 0) > 0 ? Math.min(12, batchNumber - 1) : 0), 0)
+  const roleAware = Object.values(roleBoosts).some((boost) => boost > 0)
+  const roleCeiling = roleAware ? Math.max(1, ...Object.entries(roleBoosts).filter(([, boost]) => boost > 0).map(([role, boost]) => boost * (1 + 4 / Math.max(1, roleSupply[role] ?? 1)) + Math.min(12, batchNumber - 1))) : 1
+  const deckNeedsBase = roleAware ? recommendationScoreFactorMaximums.deckNeeds * Math.min(1, roleUrgency / roleCeiling) ** 1.23 : cardRoles.filter((role) => neededRoles.has(role)).length * 10
+  const deckNeeds = Math.min(recommendationScoreFactorMaximums.deckNeeds, Math.floor(deckNeedsBase * (roleAware && recommendationStyle === 'story' ? .35 : roleAware && recommendationStyle === 'optimized' ? 1.25 : 1)))
+  const popularityPenalty = recommendationStyle === 'story' && (card.reason === 'Commander favourite' || card.reason === 'Popular inclusion') ? -recommendationScoreFactorMaximums.popularityPenalty : 0
+  const total = Math.max(0, evidence + theme + subThemes + collection + deckFit + preferences + deckNeeds + popularityPenalty)
+  return { total, evidence, theme, subThemes, collection, deckFit, preferences, deckNeeds, popularityPenalty }
+}
+
+export function recommendationScore(card: RecommendationScoreCard, context: RecommendationScoreContext) {
+  return recommendationScoreBreakdown(card, context).total
 }
 
 export function manualCardError(card: Pick<ScryfallCard, 'name' | 'type_line' | 'color_identity'>, deckNames: string[], commanderColours: string[]) {
@@ -245,7 +272,7 @@ export function buildEdhrecRecommendations(entries: EdhrecEntry[], responseCards
   })
   return batchRecommendations(allowed.map((entry) => {
     const card = cards.get(entry.name)!
-    return toRecommendationCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''), `${entry.tag} ${entry.header}`)
+    return { ...toRecommendationCard(card, isManaCard(card) ? 'Land or mana' : recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''), `${entry.tag} ${entry.header}`), source: 'edhrec' as const }
   }), options.includeCreature)
 }
 
@@ -280,6 +307,30 @@ export function batchRecommendations<T extends { name: string; reason: string; t
   return ordered
 }
 
+function keepStoryIdentity<T extends { tags: string[]; set?: string; collectionMatch?: boolean }>(cards: T[], context: RecommendationScoreContext) {
+  const isIdentity = (card: T) => Boolean(card.collectionMatch || (card.set && context.collectionSets?.includes(card.set)) || [context.theme, ...context.activeSubThemes].filter(Boolean).some((theme) => card.tags.includes(theme)))
+  const ordered = [...cards]
+  for (let start = 0; start < ordered.length; start += 4) {
+    const batch = ordered.slice(start, start + 4)
+    if (ordered.slice(start).filter(isIdentity).length < Math.min(3, batch.length)) continue
+    while (batch.filter((card) => !isIdentity(card)).length > 1) {
+      const replacement = ordered.findIndex((card, index) => index >= start + 4 && isIdentity(card))
+      const displaced = batch.findLastIndex((card) => !isIdentity(card))
+      if (replacement < 0 || displaced < 0) break
+      ;[ordered[start + displaced], ordered[replacement]] = [ordered[replacement], ordered[start + displaced]]
+      batch[displaced] = ordered[start + displaced]
+    }
+  }
+  return ordered
+}
+
+export function rankRecommendationCards<T extends { name: string; reason: string; typeLine: string; tags: string[]; set?: string; collectionMatch?: boolean }>(cards: T[], context: RecommendationScoreContext, includeCreature: boolean, cardRoles: (card: T) => string[] = () => []) {
+  const eligible = context.collectionMode === 'only' && context.collectionSets?.length ? cards.filter((card) => card.collectionMatch || (card.set && context.collectionSets?.includes(card.set))) : cards
+  const ranked = [...eligible].sort((left, right) => recommendationScore(right, { ...context, cardRoles: cardRoles(right) }) - recommendationScore(left, { ...context, cardRoles: cardRoles(left) }))
+  const varied = balanceThemeCoverage(batchRecommendations(ranked, includeCreature), [context.theme, ...context.activeSubThemes].filter(Boolean))
+  return context.recommendationStyle === 'story' ? keepStoryIdentity(varied, context) : varied
+}
+
 export function balanceThemeCoverage<T extends { tags: string[]; reason: string }>(cards: T[], themes: string[]) {
   if (themes.length < 2) return cards
   const ordered = [...cards]
@@ -293,13 +344,14 @@ export function balanceThemeCoverage<T extends { tags: string[]; reason: string 
   return ordered
 }
 
-export function updatePreferenceScores(cards: { name: string; tags: string[] }[], decisions: Record<string, 'add' | 'later' | 'ignore'>, liked: string[], current: Record<string, number>) {
+export function updatePreferenceScores(cards: { name: string; tags: string[]; collectionMatch?: boolean }[], decisions: Record<string, 'add' | 'later' | 'ignore'>, liked: string[], current: Record<string, number>) {
   const scores = { ...current }
   for (const card of cards) {
     const decision = decisions[card.name]
     const change = decision === 'add' ? 2 : decision === 'ignore' ? -1 : 0
     const likeBoost = decision !== 'ignore' && liked.includes(card.name) ? 4 : 0
     for (const tag of card.tags) scores[tag] = (scores[tag] ?? 0) + change + likeBoost
+    if (card.collectionMatch) scores.Collection = (scores.Collection ?? 0) + change + likeBoost
   }
   return scores
 }
@@ -328,7 +380,7 @@ export function releaseNextDeferred<T>(deferred: DeferredCard<T>[], requestedBat
 
 export type RecommendationDecision = 'add' | 'later' | 'ignore'
 
-export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[] }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme = '', theme, includeCreature, roleBoosts = {}, cardRoles = () => [] }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean; roleBoosts?: Record<string, number>; cardRoles?: (card: T) => string[] }) {
+export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[]; set?: string; collectionMatch?: boolean }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme = '', theme, includeCreature, roleBoosts = {}, cardRoles = () => [], recommendationStyle = 'balanced', collectionSets = [], collectionMode = 'none' }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean; roleBoosts?: Record<string, number>; cardRoles?: (card: T) => string[]; recommendationStyle?: RecommendationStyle; collectionSets?: string[]; collectionMode?: CollectionMode }) {
   const batch = queue.slice(0, 4)
   const pending = [...deferredCards, ...deferBatch(batch, decisions, batchNumber, (card) => card.name)]
   const released = releaseNextDeferred(pending, batchNumber + 1, queue.length > 4)
@@ -336,11 +388,9 @@ export function advanceRecommendationQueue<T extends { name: string; reason: str
   const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
   const candidates = [...queue.slice(4), ...released.ready]
   const roleSupply = Object.fromEntries(Object.keys(roleBoosts).map((role) => [role, candidates.filter((card) => cardRoles(card).includes(role)).length]))
-  const rank = (card: T) => Math.min(12, card.tags.reduce((score, tag) => score + (scores[tag] ?? 0), 0))
-    + card.tags.reduce((score, tag) => score + (rankedSubThemes.includes(tag) ? 8 : 0) + (tag === theme ? 10 : 0), 0)
-    + cardRoles(card).reduce((score, role) => score + (roleBoosts[role] ?? 0) * (1 + 4 / Math.max(1, roleSupply[role] ?? 1)) + ((roleBoosts[role] ?? 0) > 0 ? Math.min(12, batchNumber - 1) : 0), 0)
+  const context: RecommendationScoreContext = { theme, activeSubThemes: rankedSubThemes, pickedTags: new Set(Object.entries(scores).filter(([, score]) => score > 0).map(([tag]) => tag)), preferenceScores: scores, neededRoles: new Set(Object.keys(roleBoosts).filter((role) => (roleBoosts[role] ?? 0) > 0)), cardRoles: [], recommendationStyle, collectionSets, collectionMode, roleBoosts, roleSupply, batchNumber }
   return {
-    queue: balanceThemeCoverage(batchRecommendations(candidates.sort((a, b) => rank(b) - rank(a)), includeCreature), rankedSubThemes),
+    queue: rankRecommendationCards(candidates, context, includeCreature, cardRoles),
     deferredCards: released.waiting,
     batchNumber: released.batchNumber,
     preferenceScores: scores,
