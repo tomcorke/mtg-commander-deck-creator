@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
-import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, curatedCollections, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendationScoreFactorMaximums, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type CollectionMode, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type RecommendationScoreBreakdown, type RecommendationSource, type RecommendationStyle, type ScryfallCard } from './recommendations'
+import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendationScoreFactorMaximums, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type CollectionMode, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type RecommendationScoreBreakdown, type RecommendationSource, type RecommendationStyle, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, deckPageTitle, deckStateChanged, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
 import { fetchScryfallCollection, matchImportedCard, missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
@@ -12,7 +12,6 @@ type DeckCard = { name: string; layout: string; typeLine: string; manaCost: stri
 type DeckCardLocation = { board: 'deck' | 'sideboard'; index: number }
 type CommanderDetails = { images: string[]; art: string[]; colours: string[]; printings: Printing[][]; selections: number[] }
 type CommanderCard = ScryfallCard & { related_uris?: { edhrec?: string }; image_uris?: { normal: string; art_crop?: string }; card_faces?: { mana_cost?: string; oracle_text?: string; power?: string; toughness?: string; image_uris?: { normal: string; art_crop?: string } }[] }
-type ScryfallSet = { code: string; name: string; set_type?: string; released_at?: string; card_count?: number }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 type AppView = 'start' | 'builder'
 type AppModal = 'saved' | 'import' | 'search' | 'basics' | 'export' | 'card'
@@ -174,12 +173,12 @@ const cardPrintingsUri = (card: Pick<Card, 'name'>) => `https://scryfall.com/sea
 
 type CardSource = { label: string; uri: string }
 
-function CardDetails({ card, source }: { card: Pick<Card, 'name' | 'set' | 'setName' | 'collectorNumber' | 'scryfallUri' | 'price' | 'priceUri' | 'finish'>; source: CardSource }) {
+function CardDetails({ card, source, onToggleSet, collectionSelected = false }: { card: Pick<Card, 'name' | 'set' | 'setName' | 'collectorNumber' | 'scryfallUri' | 'price' | 'priceUri' | 'finish'>; source: CardSource; onToggleSet?: () => void; collectionSelected?: boolean }) {
   const scryfallUri = cardScryfallUri(card)
   const priceUri = card.priceUri ?? scryfallUri
   const printingName = card.setName && card.setName.toLowerCase() !== card.set.toLowerCase() ? card.setName : undefined
   return <dl className="card-details">
-    <div><dt>Printing</dt><dd><strong>{printingName ?? card.set.toUpperCase()}</strong> <span>{printingName ? `(${card.set.toUpperCase()}) · ` : '· '}#{card.collectorNumber}{card.finish && card.finish !== 'nonfoil' ? ` · ${card.finish}` : ''}</span></dd></div>
+    <div><dt>Printing</dt><dd><strong>{printingName ?? card.set.toUpperCase()}</strong> <span>{printingName ? `(${card.set.toUpperCase()}) · ` : '· '}#{card.collectorNumber}{card.finish && card.finish !== 'nonfoil' ? ` · ${card.finish}` : ''}</span>{onToggleSet && <button type="button" className="set-affinity-button" onClick={onToggleSet} aria-pressed={collectionSelected}>{collectionSelected ? 'Remove set' : 'Use set'}</button>}</dd></div>
     <div><dt>Source</dt><dd><a href={source.uri} target="_blank" rel="noreferrer">{source.label} ↗</a></dd></div>
     {card.price && <div><dt>Price</dt><dd><a href={priceUri} target="_blank" rel="noreferrer">{formatUsdPrice(card.price)} <span>{card.priceUri ? 'TCGplayer' : 'Scryfall'} ↗</span></a></dd></div>}
     <div><dt>Links</dt><dd><a href={scryfallUri} target="_blank" rel="noreferrer">Scryfall ↗</a> <span aria-hidden="true">·</span> <a href={cardPrintingsUri(card)} target="_blank" rel="noreferrer">All printings ↗</a></dd></div>
@@ -294,8 +293,6 @@ function App() {
   const [collectionGroups, setCollectionGroups] = useState<string[]>(savedDeckState?.collectionGroups ?? [])
   const [collectionMode, setCollectionMode] = useState<CollectionMode>(savedDeckState?.collectionMode ?? 'none')
   const [prioritizeDeckHealth, setPrioritizeDeckHealth] = useState(savedDeckState?.prioritizeDeckHealth ?? true)
-  const [setOptions, setSetOptions] = useState<ScryfallSet[]>([])
-  const [collectionSearch, setCollectionSearch] = useState('')
   const [collectionPoolSize, setCollectionPoolSize] = useState<number | null>(null)
   const [collectionState, setCollectionState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [collectionError, setCollectionError] = useState('')
@@ -337,6 +334,7 @@ function App() {
   const [deck, setDeck] = useState<DeckCard[]>(savedDeckState?.deck ?? [])
   const [sideboard, setSideboard] = useState<DeckCard[]>(savedDeckState?.sideboard ?? [])
   const [selectedDeckCardLocation, setSelectedDeckCardLocation] = useState<DeckCardLocation | null>(null)
+  const [selectedCollectionCard, setSelectedCollectionCard] = useState<DeckCard | null>(null)
   const [pendingCardRemoval, setPendingCardRemoval] = usePendingConfirmation<DeckCardLocation | null>(null)
   const [showBuilder, setShowBuilder] = useState(() => (usableInitialRoute?.view ?? (savedDeckState?.commander ? 'builder' : 'start')) === 'builder')
   const [activeModal, setActiveModal] = useState<AppModal | null>(() => usableInitialRoute?.modal ?? null)
@@ -344,7 +342,7 @@ function App() {
   const showExport = activeModal === 'export'
   const showBasicLands = activeModal === 'basics'
   const showCardSearch = activeModal === 'search'
-  const selectedDeckCard = useMemo(() => selectedDeckCardLocation ? (selectedDeckCardLocation.board === 'deck' ? deck : sideboard)[selectedDeckCardLocation.index] ?? null : null, [deck, selectedDeckCardLocation, sideboard])
+  const selectedDeckCard = useMemo(() => selectedDeckCardLocation ? (selectedDeckCardLocation.board === 'deck' ? deck : sideboard)[selectedDeckCardLocation.index] ?? null : selectedCollectionCard, [deck, selectedCollectionCard, selectedDeckCardLocation, sideboard])
   const showDeckCard = activeModal === 'card' && selectedDeckCard !== null
   const selectedDeckCardIsCommander = selectedDeckCardLocation?.board === 'deck' && selectedDeckCardLocation.index < commanderNames(commander).length
   const [cardSearch, setCardSearch] = useState('')
@@ -455,13 +453,6 @@ function App() {
     void fetch('https://api.scryfall.com/cards/collection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifiers: basicNames.map((name) => ({ name })) }) })
       .then((response) => response.ok ? response.json() as Promise<{ data: ScryfallCard[] }> : Promise.reject())
       .then(({ data }) => data.forEach((card) => basicCardCache.set(card.name, card)))
-      .catch(() => undefined)
-  }, [])
-
-  useEffect(() => {
-    void fetch('https://api.scryfall.com/sets')
-      .then((response) => response.ok ? response.json() as Promise<{ data: ScryfallSet[] }> : Promise.reject())
-      .then(({ data }) => setSetOptions(data.filter((set) => set.set_type !== 'token' && set.set_type !== 'memorabilia').sort((left, right) => (right.released_at ?? '').localeCompare(left.released_at ?? ''))))
       .catch(() => undefined)
   }, [])
 
@@ -934,6 +925,12 @@ function App() {
 
   const toDeckCard = (card: ScryfallCard): DeckCard => ({ name: card.name, layout: card.layout ?? 'normal', typeLine: card.type_line, manaCost: card.mana_cost ?? '', manaValue: card.cmc ?? 0, detail: cardText(card), producedMana: card.produced_mana ?? [], faces: card.card_faces?.map((face) => ({ typeLine: face.type_line ?? '', manaCost: face.mana_cost ?? '' })) ?? [], power: card.power ?? card.card_faces?.[0]?.power, toughness: card.toughness ?? card.card_faces?.[0]?.toughness, set: card.set, setName: card.set_name, collectorNumber: card.collector_number, scryfallUri: card.scryfall_uri, printsUri: card.prints_search_uri, image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '', price: card.prices?.usd ?? undefined, priceUri: card.purchase_uris?.tcgplayer, tags: cardTags(card), printing: 0 })
 
+  function openCollectionCard(card: ScryfallCard) {
+    setSelectedDeckCardLocation(null)
+    setSelectedCollectionCard(toDeckCard(card))
+    openModal('card')
+  }
+
   async function fetchBasic(name: string) {
     const cached = basicCardCache.get(name)
     if (cached) return toDeckCard(cached)
@@ -1105,6 +1102,7 @@ function App() {
   }
 
   function openDeckCard(card: DeckCard, location: DeckCardLocation) {
+    setSelectedCollectionCard(null)
     setSelectedDeckCardLocation(location)
     openModal('card')
     if (!card.setName || !card.scryfallUri || !card.printings || card.printings.length < 2 || (cardCanHavePowerToughness(card) && (!card.power || !card.toughness))) void hydrateDeckCardDetails(card)
@@ -1118,6 +1116,7 @@ function App() {
   function closeDeckCard() {
     setPendingCardRemoval(null)
     setSelectedDeckCardLocation(null)
+    setSelectedCollectionCard(null)
     closeModal()
   }
 
@@ -1329,12 +1328,12 @@ function App() {
 
   const deckCardModal = showDeckCard && selectedDeckCard && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDeckCard() }}>
     <section className="export-modal deck-card-modal" role="dialog" aria-modal="true" aria-labelledby="deck-card-title" onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); closeDeckCard() } }}>
-      <div className="export-heading"><p className="eyebrow">Deck card</p><button className="modal-close" autoFocus onClick={closeDeckCard} aria-label={`Close ${selectedDeckCard.name} details`}>×</button></div>
+      <div className="export-heading"><p className="eyebrow">{selectedCollectionCard ? 'Collection card' : 'Deck card'}</p><button className="modal-close" autoFocus onClick={closeDeckCard} aria-label={`Close ${selectedDeckCard.name} details`}>×</button></div>
       <div className="deck-card-modal-content">
         <figure className="deck-card-modal-art"><FinishedCardImage image={selectedDeckCard.image} alt={`${selectedDeckCard.name} card`} finish={selectedDeckCard.finish} effectsEnabled={cardEffects} className="deck-card-modal-image" /><ArtLoading active={loadingArt === selectedDeckCard.name} /><PrintingButton count={selectedDeckCard.printings?.length ?? 0} index={selectedDeckCard.printing ?? 0} loading={Boolean(loadingArt)} name={selectedDeckCard.name} onClick={() => void cycleSelectedDeckCardPrinting()} /></figure>
-        <div className="deck-card-modal-copy"><div className="deck-card-modal-title"><h2 id="deck-card-title">{selectedDeckCard.name}</h2><span className="deck-card-modal-mana"><OracleText text={selectedDeckCard.manaCost} /></span></div><p className="card-type-line">{cardTypeLine(selectedDeckCard)}</p><p className="deck-card-description"><OracleText text={selectedDeckCard.detail} /></p><CardDetails card={selectedDeckCard} source={{ label: 'Scryfall', uri: cardScryfallUri(selectedDeckCard) }} /></div>
+        <div className="deck-card-modal-copy"><div className="deck-card-modal-title"><h2 id="deck-card-title">{selectedDeckCard.name}</h2><span className="deck-card-modal-mana"><OracleText text={selectedDeckCard.manaCost} /></span></div><p className="card-type-line">{cardTypeLine(selectedDeckCard)}</p><p className="deck-card-description"><OracleText text={selectedDeckCard.detail} /></p><CardDetails card={selectedDeckCard} source={{ label: 'Scryfall', uri: cardScryfallUri(selectedDeckCard) }} onToggleSet={() => toggleCollectionSet(selectedDeckCard.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(selectedDeckCard.set)} /></div>
       </div>
-      {!selectedDeckCardIsCommander && <div className="deck-card-modal-actions"><button type="button" className={`deck-card-modal-remove ${pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'confirm' : ''}`} onClick={removeSelectedDeckCard}>{pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'Confirm removal' : `Remove from ${selectedDeckCardLocation?.board === 'sideboard' ? 'sideboard' : 'deck'}`}</button></div>}
+      {!selectedDeckCardIsCommander && selectedCollectionCard === null && <div className="deck-card-modal-actions"><button type="button" className={`deck-card-modal-remove ${pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'confirm' : ''}`} onClick={removeSelectedDeckCard}>{pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'Confirm removal' : `Remove from ${selectedDeckCardLocation?.board === 'sideboard' ? 'sideboard' : 'deck'}`}</button></div>}
     </section>
   </div>
 
@@ -1451,18 +1450,9 @@ function App() {
     setCollectionPoolSize(null)
     setRecommendationOptionsChanged(true)
   }
-  const toggleCollectionSet = (code: string) => {
+  function toggleCollectionSet(code: string) {
     setCollectionSets((current) => current.includes(code) ? current.filter((item) => item !== code) : [...current, code])
-    if (collectionMode === 'none') setCollectionMode('prefer')
-    setCollectionPoolSize(null)
-    setRecommendationOptionsChanged(true)
-  }
-  const toggleCollectionGroup = (id: string) => {
-    const group = curatedCollections.find((item) => item.id === id)
-    if (!group) return
-    const codes = group.setCodes.filter((code) => !setOptions.length || setOptions.some((set) => set.code === code))
-    setCollectionGroups((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
-    setCollectionSets((current) => collectionGroups.includes(id) ? current.filter((code) => !codes.includes(code)) : [...current, ...codes.filter((code) => !current.includes(code))])
+    setCollectionGroups([])
     if (collectionMode === 'none') setCollectionMode('prefer')
     setCollectionPoolSize(null)
     setRecommendationOptionsChanged(true)
@@ -1488,10 +1478,11 @@ function App() {
     const value = mana ? Number(mana) : NaN
     return type && (!mana || (Number.isFinite(value) && (value >= 7 ? (card.cmc ?? 0) >= 7 : (card.cmc ?? 0) === value)))
   }).slice(0, 60)
-  const filteredSetOptions = setOptions.filter((set) => {
-    const query = collectionSearch.trim().toLowerCase()
-    return !query || `${set.name} ${set.code}`.toLowerCase().includes(query)
-  }).filter((set) => !collectionSets.includes(set.code)).slice(0, 8)
+  const collectionSetLabel = (code: string) => {
+    const card = [...queue, ...deck, ...sideboard, ...collectionBrowserCards].find((item) => item.set === code)
+    const name = card && ('set_name' in card ? card.set_name : (card as DeckCard).setName)
+    return name && name.toLowerCase() !== code ? `${name} (${code.toUpperCase()})` : code.toUpperCase()
+  }
   const rawBatch = queue.slice(0, 4)
   const synergyPair = findSynergyPair(rawBatch.filter((card) => card.reason !== 'Land or mana'))
   const pairCards = synergyPair?.cards ?? []
@@ -1571,10 +1562,8 @@ function App() {
             <label><input type="checkbox" checked={prioritizeDeckHealth} onChange={(event) => { setPrioritizeDeckHealth(event.target.checked); setRecommendationOptionsChanged(true) }} /> Prioritize deck health</label>
             <label><input type="checkbox" checked={includeCreature} onChange={(event) => { setIncludeCreature(event.target.checked); setRecommendationOptionsChanged(true) }} /> Include a creature when possible</label>
             <fieldset className="collection-picker"><legend>Collection affinity</legend>
-              <label><span className="sr-only">Search sets</span><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search sets…" aria-label="Search sets" /></label>
-              <div className="collection-groups" aria-label="Curated collections">{curatedCollections.map((group) => <button type="button" aria-pressed={collectionGroups.includes(group.id)} className={collectionGroups.includes(group.id) ? 'selected' : ''} key={group.id} onClick={() => toggleCollectionGroup(group.id)}>{group.name}</button>)}</div>
-              {collectionSets.length > 0 && <div className="collection-chips">{collectionSets.map((code) => <button type="button" key={code} onClick={() => toggleCollectionSet(code)}>{setOptions.find((set) => set.code === code)?.name ?? code.toUpperCase()} ×</button>)}</div>}
-              {filteredSetOptions.length > 0 && <div className="collection-set-results">{filteredSetOptions.map((set) => <button type="button" key={set.code} onClick={() => toggleCollectionSet(set.code)}>{set.name} <small>{set.code.toUpperCase()}</small></button>)}</div>}
+              <p className="collection-picker-help">Choose a set from any card's printing details. This keeps the list exhaustive without guessing which sets you own.</p>
+              {collectionSets.length > 0 && <div className="collection-chips">{collectionSets.map((code) => <button type="button" key={code} onClick={() => toggleCollectionSet(code)}>{collectionSetLabel(code)} ×</button>)}</div>}
               <label>Match <select value={collectionMode} onChange={(event) => chooseCollectionMode(event.target.value as CollectionMode)}><option value="none">No collection preference</option><option value="prefer">Prefer selected collection</option><option value="only">Only selected collection</option></select></label>
               <button type="button" disabled={!collectionSets.length || collectionBrowserState === 'loading'} onClick={() => void browseCollection()}>{collectionBrowserState === 'loading' ? 'Loading collection…' : 'Browse collection'}</button>
               {collectionState === 'loading' && <small role="status">Checking legal collection…</small>}
@@ -1596,7 +1585,7 @@ function App() {
         <div className="collection-browser-filters"><label>Card type <select value={collectionBrowserType} onChange={(event) => setCollectionBrowserType(event.target.value)}><option value="all">All types</option><option value="creature">Creatures</option><option value="artifact">Artifacts</option><option value="enchantment">Enchantments</option><option value="instant">Instants</option><option value="sorcery">Sorceries</option><option value="land">Lands</option></select></label><label>Mana value <input type="number" min="0" max="16" value={collectionBrowserMana} onChange={(event) => setCollectionBrowserMana(event.target.value)} placeholder="Any" /></label></div>
         {collectionBrowserState === 'loading' && <p role="status">Loading legal collection cards…</p>}
         {collectionBrowserState === 'error' && <p className="form-error" role="alert">{collectionBrowserError}</p>}
-        {collectionBrowserState === 'idle' && <div className="collection-browser-grid">{filteredCollectionCards.map((card) => <article key={`${card.name}-${card.set}-${card.collector_number}`}><div>{scryfallImage(card) && <img src={scryfallImage(card)} alt="" />}</div><h3>{card.name}</h3><p>{card.type_line}</p><span>{card.cmc ?? 0} mana · {card.set.toUpperCase()}</span><button type="button" disabled={Boolean(manualCardError(card, [...deck, ...sideboard].map((item) => item.name), commanderDetails?.colours ?? []))} onClick={() => addCollectionCard(card)}>Add to deck</button></article>)}</div>}
+        {collectionBrowserState === 'idle' && <div className="collection-browser-grid">{filteredCollectionCards.map((card) => <article key={`${card.name}-${card.set}-${card.collector_number}`}><button type="button" className="collection-card-open" onClick={() => openCollectionCard(card)}><div>{scryfallImage(card) && <img src={scryfallImage(card)} alt="" />}</div><h3>{card.name}</h3><p>{card.type_line}</p><span>{card.cmc ?? 0} mana · {card.set.toUpperCase()}</span><small>View details</small></button><button type="button" disabled={Boolean(manualCardError(card, [...deck, ...sideboard].map((item) => item.name), commanderDetails?.colours ?? []))} onClick={() => addCollectionCard(card)}>Add to deck</button></article>)}</div>}
         {collectionBrowserState === 'idle' && !filteredCollectionCards.length && <p>No cards match those filters.</p>}
       </section>}
       {showCardSearch && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeCardSearch() }}>
@@ -1672,7 +1661,7 @@ function App() {
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
               <div className="offered-image"><FinishedCardImage image={card.image} alt={`${card.name} card`} finish={card.finish} effectsEnabled={cardEffects} hasSynergyGlow={pairCards.includes(card)} className="card-face-image" />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
-              <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p><CardDetails card={card} source={limitedRecommendations || card.source === 'scryfall' || card.collectionMatch ? { label: 'Scryfall', uri: cardScryfallUri(card) } : { label: 'EDHREC', uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}` }} /><ScoreBreakdown score={score} /></div>
+              <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p><CardDetails card={card} source={limitedRecommendations || card.source === 'scryfall' || card.collectionMatch ? { label: 'Scryfall', uri: cardScryfallUri(card) } : { label: 'EDHREC', uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}` }} onToggleSet={() => toggleCollectionSet(card.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(card.set)} /><ScoreBreakdown score={score} /></div>
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
           {healthSuggestions.length > 0 && <section className="health-lane" aria-labelledby="health-lane-title"><div><p className="eyebrow">Optional guidance</p><h3 id="health-lane-title">Deck health suggestions</h3><p>Story mode keeps these separate from your theme picks.</p></div><div>{healthSuggestions.map((card) => { const role = rolesForCard(card).find((item) => missingHealthRoles.includes(item)); return <article key={card.name}><span>{role ? targetLabels[role as keyof typeof targetLabels] : 'Deck support'}</span><b>{card.name}</b><button type="button" onClick={() => addRecommendationCard(card)}>Add</button></article> })}</div></section>}

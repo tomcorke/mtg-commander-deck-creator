@@ -229,18 +229,15 @@ main > .commander-header { z-index: 2; }
 .recommendation-options { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-top: 18px; color: #68657c; font-size: 13px; }
 .recommendation-options label { display: flex; gap: 7px; align-items: center; cursor: pointer; }
 .recommendation-options input[type='checkbox'] { width: 17px; height: 17px; accent-color: #36327f; }
-.recommendation-options select { padding: 5px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: transparent; color: inherit; }
+.recommendation-options select { padding: 5px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: #fff; color: #28273b; color-scheme: light; }
+.recommendation-options select option, .collection-browser-filters select option { background: #fff; color: #28273b; }
 .recommendation-options fieldset { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 0; padding: 9px 12px; border: 1px solid #d2d0df; border-radius: 7px; }
 .recommendation-options legend { padding: 0 5px; color: #69409a; font-size: 12px; text-transform: uppercase; letter-spacing: .7px; }
 .recommendation-options button { padding: 5px 9px; border: 1px solid #36327f; border-radius: 5px; background: transparent; color: #36327f; font-size: 12px; }
 .collection-picker { flex-basis: 100%; }
-.collection-picker > label:first-of-type { flex: 1 1 180px; }
-.collection-picker > label:first-of-type input { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: transparent; color: inherit; }
-.collection-chips, .collection-set-results { display: flex; flex-wrap: wrap; gap: 6px; }
-.collection-set-results { flex-basis: 100%; }
-.collection-set-results button { border-color: #8d88bd; }
-.collection-set-results small { opacity: .7; }
-.collection-chips button, .collection-groups button.selected { background: #e8e6fa; }
+.collection-picker-help { flex-basis: 100%; margin: 0; color: #69667d; font-size: 12px; }
+.collection-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.collection-chips button { background: #e8e6fa; }
 .collection-picker > small { flex-basis: 100%; }
 .collection-picker .form-error { font-size: 12px; }
 .collection-browser { margin: 18px 0; padding: 18px; border: 1px solid #d2d0df; border-radius: 10px; background: #f8f8ff; }
@@ -249,7 +246,7 @@ main > .commander-header { z-index: 2; }
 .collection-browser-heading p:not(.eyebrow) { margin: 5px 0 0; color: #69667d; font-size: 13px; }
 .collection-browser-filters { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 14px 0; }
 .collection-browser-filters label { display: flex; align-items: center; gap: 7px; color: #69667d; font-size: 13px; }
-.collection-browser-filters select, .collection-browser-filters input { width: auto; padding: 6px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: white; color: #28273b; }
+.collection-browser-filters select, .collection-browser-filters input { width: auto; padding: 6px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: white; color: #28273b; color-scheme: light; }
 .collection-browser-filters input { width: 76px; }
 .collection-browser-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 12px; }
 .collection-browser-grid article { display: flex; min-width: 0; flex-direction: column; padding: 9px; border: 1px solid #dedcea; border-radius: 8px; background: white; }
@@ -258,6 +255,8 @@ main > .commander-header { z-index: 2; }
 .collection-browser-grid h3 { margin: 8px 0 3px; font-size: 13px; }
 .collection-browser-grid p, .collection-browser-grid span { margin: 0 0 7px; color: #69667d; font-size: 11px; }
 .collection-browser-grid button { margin-top: auto; padding: 6px 8px; border: 1px solid #36327f; border-radius: 5px; background: transparent; color: #36327f; font-size: 12px; }
+.collection-browser-grid .collection-card-open { display: flex; width: 100%; min-height: 205px; flex-direction: column; align-items: stretch; margin: 0 0 8px; padding: 0; border: 0; color: inherit; text-align: left; }
+.collection-browser-grid .collection-card-open small { margin-top: auto; color: #69409a; font-size: 11px; text-align: right; }
 .health-lane { display: flex; justify-content: space-between; gap: 18px; margin-top: 20px; padding: 14px; border: 1px dashed #bbb9cd; border-radius: 9px; background: #faf9ff; }
 .health-lane h3 { margin: 0; font-size: 17px; }
 .health-lane p:not(.eyebrow) { margin: 4px 0 0; color: #69667d; font-size: 12px; }
@@ -361,8 +360,9 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .card-details { display: grid; gap: 5px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #dedcea; color: #706d82; font-size: 12px; line-height: 1.35; }
 .card-details > div { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
 .card-details dt { flex: 0 0 52px; color: #514e66; font-weight: 600; }
-.card-details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.card-details dd { display: flex; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 4px; margin: 0; overflow-wrap: anywhere; }
 .card-details dd strong { color: #514e66; font-weight: 600; }
+.set-affinity-button { padding: 2px 5px; border: 1px solid #8d88bd; border-radius: 4px; background: transparent; color: #69409a; font-size: 11px; }
 .card-details a { color: #69409a; text-decoration: underline; text-underline-offset: 2px; }
 .card-details a:hover { color: #36327f; }
 .score-breakdown { margin-top: 14px; padding-top: 12px; border-top: 1px solid #dedcea; }
@@ -554,12 +554,16 @@ li b { color: #8b879a; font-size: 12px; font-weight: 500; text-transform: upperc
 .dark .score-factors dt, .dark .score-breakdown .score-note { color: #aaa8c2; }
 .dark .change, .dark .reroll, .dark .export-actions a { color: #b786f2; }
 .dark .change:hover, .dark .reroll:hover, .dark .export-actions a:hover { color: #d1b0ff; }
-.dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select, .dark .collection-picker > label:first-of-type input { border-color: #4b4867; color: #ccc9df; }
-.dark .collection-chips button, .dark .collection-groups button.selected { background: #292644; }
+.dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select { border-color: #4b4867; color: #ccc9df; }
+.dark .recommendation-options select, .dark .collection-browser-filters select { background: #121121; color-scheme: dark; }
+.dark .recommendation-options select option, .dark .collection-browser-filters select option { background: #121121; color: #e5e3f0; }
+.dark .collection-chips button { background: #292644; }
 .dark .collection-browser, .dark .health-lane { border-color: #39374f; background: #19182d; }
-.dark .collection-browser-heading p:not(.eyebrow), .dark .collection-browser-filters label, .dark .collection-browser-grid p, .dark .collection-browser-grid span, .dark .health-lane p:not(.eyebrow) { color: #aaa8c2; }
+.dark .collection-browser-heading p:not(.eyebrow), .dark .collection-browser-filters label, .dark .collection-browser-grid p, .dark .collection-browser-grid span, .dark .collection-picker-help, .dark .health-lane p:not(.eyebrow) { color: #aaa8c2; }
 .dark .collection-browser-filters select, .dark .collection-browser-filters input, .dark .collection-browser-grid article, .dark .health-lane article { border-color: #4b4867; background: #121121; color: #e5e3f0; }
 .dark .collection-browser-grid button, .dark .health-lane article button { border-color: #615b96; color: #d4d0ed; }
+.dark .collection-browser-grid .collection-card-open { border-color: transparent; }
+.dark .collection-browser-grid .collection-card-open small, .dark .set-affinity-button { color: #c6b8ff; }
 .dark .themes button:hover, .dark .themes button.selected, .dark .format-tabs button.selected, .dark .actions .primary, .dark .empty .primary, .dark .batch-controls .primary, .dark .export-actions .primary { border-color: #7169ca; background: #5851a6; color: white; }
 .dark .actions .primary:hover { background: #6d65bf; }
 .dark .action-help-wrap > button:not(.quiet):hover { background: #35334d; }
