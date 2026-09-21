@@ -284,6 +284,7 @@ function App() {
   const showCardSearch = activeModal === 'search'
   const selectedDeckCard = useMemo(() => selectedDeckCardLocation ? (selectedDeckCardLocation.board === 'deck' ? deck : sideboard)[selectedDeckCardLocation.index] ?? null : null, [deck, selectedDeckCardLocation, sideboard])
   const showDeckCard = activeModal === 'card' && selectedDeckCard !== null
+  const selectedDeckCardIsCommander = selectedDeckCardLocation?.board === 'deck' && selectedDeckCardLocation.index < commanderNames(commander).length
   const [cardSearch, setCardSearch] = useState('')
   const [cardSearchResults, setCardSearchResults] = useState<ScryfallCard[]>([])
   const [cardSearchState, setCardSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -931,6 +932,11 @@ function App() {
     if (!card.setName || !card.scryfallUri || !card.printings || card.printings.length < 2 || (cardCanHavePowerToughness(card) && (!card.power || !card.toughness))) void hydrateDeckCardDetails(card)
   }
 
+  function openCommanderCard(index: number) {
+    const card = deck[index]
+    if (card) openDeckCard(card, { board: 'deck', index })
+  }
+
   function closeDeckCard() {
     setPendingCardRemoval(null)
     setSelectedDeckCardLocation(null)
@@ -1139,7 +1145,7 @@ function App() {
         <figure className="deck-card-modal-art"><FinishedCardImage image={selectedDeckCard.image} alt={`${selectedDeckCard.name} card`} finish={selectedDeckCard.finish} effectsEnabled={cardEffects} className="deck-card-modal-image" /><ArtLoading active={loadingArt === selectedDeckCard.name} /><PrintingButton count={selectedDeckCard.printings?.length ?? 0} index={selectedDeckCard.printing ?? 0} loading={Boolean(loadingArt)} name={selectedDeckCard.name} onClick={() => void cycleSelectedDeckCardPrinting()} /></figure>
         <div className="deck-card-modal-copy"><div className="deck-card-modal-title"><h2 id="deck-card-title">{selectedDeckCard.name}</h2><span className="deck-card-modal-mana"><OracleText text={selectedDeckCard.manaCost} /></span></div><p className="card-type-line">{cardTypeLine(selectedDeckCard)}</p><p className="deck-card-description"><OracleText text={selectedDeckCard.detail} /></p><CardDetails card={selectedDeckCard} source={{ label: 'Scryfall', uri: cardScryfallUri(selectedDeckCard) }} /></div>
       </div>
-      <div className="deck-card-modal-actions"><button type="button" className={`deck-card-modal-remove ${pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'confirm' : ''}`} onClick={removeSelectedDeckCard}>{pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'Confirm removal' : `Remove from ${selectedDeckCardLocation?.board === 'sideboard' ? 'sideboard' : 'deck'}`}</button></div>
+      {!selectedDeckCardIsCommander && <div className="deck-card-modal-actions"><button type="button" className={`deck-card-modal-remove ${pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'confirm' : ''}`} onClick={removeSelectedDeckCard}>{pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'Confirm removal' : `Remove from ${selectedDeckCardLocation?.board === 'sideboard' ? 'sideboard' : 'deck'}`}</button></div>}
     </section>
   </div>
 
@@ -1294,11 +1300,11 @@ function App() {
       {deckCardModal}
       <section className="intro commander-header">
         {commanderDetails ? <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
-          {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} key={commanderNames(commander)[index]} />)}
+          {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} onClick={() => openCommanderCard(index)} key={commanderNames(commander)[index]} />)}
           {commanderDetails.printings.some((printings) => printings.length > 1) && <span className="printing-indicator" aria-hidden="true">↻ Art</span>}
           <span className="card-zoom">{commanderDetails.images.map((image, index) => <span className="commander-printing" key={commanderNames(commander)[index]}><FinishedCardImage image={image} alt={`${commanderNames(commander)[index]} full card`} finish={commanderDetails.printings[index][commanderDetails.selections[index]]?.finish} effectsEnabled={cardEffects} /><ArtLoading active={loadingArt === commanderNames(commander)[index]} /><PrintingButton count={commanderDetails.printings[index].length} index={commanderDetails.selections[index]} loading={Boolean(loadingArt)} name={commanderNames(commander)[index]} onClick={() => void cycleCommanderPrinting(index)} /></span>)}</span>
         </figure> : <span className="commander-card commander-placeholder" aria-hidden="true" />}
-        <div className="commander-summary"><p className="eyebrow">Building around</p><h1>{commander}</h1>
+        <div className="commander-summary"><p className="eyebrow">Building around</p><h1><button type="button" className="commander-name" onClick={() => openCommanderCard(0)}>{commander}</button></h1>
           <div className="identity" aria-label={`Colour identity: ${commanderDetails?.colours.map((colour) => colourNames[colour]).join(', ') || 'loading'}`}>
             <span>Colour identity</span>
             {commanderDetails?.colours.length === 0 && <img className="colour" src="https://svgs.scryfall.io/card-symbols/C.svg" alt="Colourless" />}
