@@ -1557,7 +1557,6 @@ function App() {
       </header>
       {savedDecksModal}
       {importModal}
-      {deckCardModal}
       <section className="intro commander-header">
         {commanderDetails ? <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
           {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} onClick={() => openCommanderCard(index)} key={commanderNames(commander)[index]} />)}
@@ -1610,6 +1609,7 @@ function App() {
           {collectionBrowserState === 'idle' && !filteredCollectionCards.length && <p>No cards match those filters.</p>}
         </section>
       </div>}
+      {deckCardModal}
       {showCardSearch && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeCardSearch() }}>
         <section className="export-modal card-search-modal" ref={cardSearchDialog} role="dialog" aria-modal="true" aria-labelledby="card-search-title" onKeyDown={handleCardSearchKeys}>
           <div className="export-heading"><div><p className="eyebrow">Add any legal card</p><h2 id="card-search-title">Find a card</h2></div><button className="modal-close" onClick={closeCardSearch} aria-label="Close card search">×</button></div>
