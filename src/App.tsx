@@ -319,6 +319,7 @@ function App() {
   const [queue, setQueue] = useState<Card[]>(savedDeckState?.queue ?? [])
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [recommendationLoadingStep, setRecommendationLoadingStep] = useState<'commander' | 'recommendations'>('commander')
+  const [recommendationLoadingTitle, setRecommendationLoadingTitle] = useState('Building your first batch')
   const [limitedRecommendations, setLimitedRecommendations] = useState(savedDeckState?.limitedRecommendations ?? false)
   const [includeCreature, setIncludeCreature] = useStoredOption('includeCreature', () => true)
   const [powerTarget, setPowerTarget] = useStoredOption<PowerTarget>('powerTarget', () => 'precon')
@@ -742,6 +743,7 @@ function App() {
     setCollectionError('')
     if (!preserveDeck) setPreferredPrintSet('')
     setRecommendationLoadingStep('commander')
+    setRecommendationLoadingTitle(preserveDeck ? 'Updating recommendations' : 'Building your first batch')
     setRecommendationState('loading')
 
     try {
@@ -1699,7 +1701,7 @@ function App() {
             <div>{filteredSubThemes.slice(0, 8).map((name) => <button type="button" key={name} onClick={() => chooseSubTheme(name)}>{name}</button>)}</div>
           </div>}
           {deck.length >= 100 && <div className="completion sideboard-completion"><p className="eyebrow">Main deck complete</p><h2>Build your sideboard</h2><p>Further picks go to sideboard. Move cards into main deck after removing a card.</p><button className="primary" type="button" onClick={() => openModal('export')}>Review and export deck</button></div>}
-          {recommendationState === 'loading' ? <div className="recommendation-loading" role="status" aria-live="polite"><span className="loading-orb" aria-hidden="true" /><div><p className="eyebrow">Building your first batch</p><h3>{recommendationLoadingStep === 'commander' ? 'Checking commander details…' : 'Finding cards that work together…'}</h3><ol><li className={recommendationLoadingStep === 'commander' ? 'active' : 'done'}>Commander</li><li className={recommendationLoadingStep === 'recommendations' ? 'active' : ''}>Recommendations</li></ol></div></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>{collectionError || 'Scryfall is busy. Try this commander again shortly.'}</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className={`card-grid connector-glow juicy-fan ${cardEffects ? '' : 'static-fan'}`} onMouseMove={cardEffects ? fanCards : undefined} onMouseLeave={cardEffects ? resetFan : undefined}>
+          {recommendationState === 'loading' ? <div className="recommendation-loading" role="status" aria-live="polite"><span className="loading-orb" aria-hidden="true" /><div><p className="eyebrow">{recommendationLoadingTitle}</p><h3>{recommendationLoadingStep === 'commander' ? 'Checking commander details…' : 'Finding cards that work together…'}</h3><ol><li className={recommendationLoadingStep === 'commander' ? 'active' : 'done'}>Commander</li><li className={recommendationLoadingStep === 'recommendations' ? 'active' : ''}>Recommendations</li></ol></div></div> : recommendationState === 'error' ? <div className="empty"><h3>Suggestions unavailable</h3><p>{collectionError || 'Scryfall is busy. Try this commander again shortly.'}</p><button className="primary" onClick={() => void start(commander)}>Retry</button></div> : queue.length ? <div className={`card-grid connector-glow juicy-fan ${cardEffects ? '' : 'static-fan'}`} onMouseMove={cardEffects ? fanCards : undefined} onMouseLeave={cardEffects ? resetFan : undefined}>
             {scoredBatch.map(({ card, score }, index) => <article className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`} style={{ '--fan-position': index - (scoredBatch.length - 1) / 2, '--fan-drop': `${Math.abs(index - (scoredBatch.length - 1) / 2) * 7}px` } as CSSProperties} onClick={(event) => clickCardImage(event, card)} key={card.name}>
               {decisions[card.name] && <span className="decision-badge">{decisions[card.name] === 'add' ? sideboard.some((item) => item.name === card.name) ? 'Added to sideboard' : 'Added to deck' : decisions[card.name] === 'later' ? 'Later' : 'Ignored'}</span>}
               <div className="offer-heading"><h3 className="suggestion-type">{cardReason(card)}</h3>{recommendedCard.card === card && <span className="recommended-badge">Recommended</span>}</div>
