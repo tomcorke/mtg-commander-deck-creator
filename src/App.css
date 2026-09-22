@@ -245,8 +245,10 @@ main > .commander-header { z-index: 2; }
 .collection-set-controls { display: grid; flex-basis: 100%; grid-template-columns: minmax(220px, .8fr) minmax(280px, 1.2fr); gap: 10px 16px; align-items: start; }
 .collection-set-controls:not(.has-selection) .collection-set-search { grid-column: 1 / -1; }
 .collection-set-search { display: grid !important; min-width: 0; align-items: start !important; gap: 4px !important; }
-.collection-set-search span, .collection-selection > span { color: #69667d; font-size: 11px; }
-.collection-set-search input { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: #fff; color: #28273b; }
+.collection-set-search > span:first-child, .collection-selection > span { color: #69667d; font-size: 11px; }
+.collection-set-input { position: relative; display: block; min-width: 0; }
+.collection-set-search input { width: 100%; min-width: 0; padding: 6px 40px 6px 8px; border: 1px solid #bbb9cd; border-radius: 5px; background: #fff; color: #28273b; }
+.collection-set-input .clear-deck-name { top: 0; right: 0; height: 100%; }
 .collection-selection, .collection-set-results { display: grid; gap: 6px; }
 .collection-chips, .collection-set-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 6px; }
 .collection-chips button, .collection-set-results button { min-width: 0; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
@@ -579,7 +581,7 @@ li b { color: #8b879a; font-size: 12px; font-weight: 500; text-transform: upperc
 .dark .change:hover, .dark .reroll:hover, .dark .export-actions a:hover { color: #d1b0ff; }
 .dark .themes button, .dark .format-tabs button, .dark .actions button, .dark .theme-toggle, .dark .export, .dark .recommendation-options fieldset, .dark .recommendation-options select, .dark .collection-set-search input { border-color: #4b4867; color: #ccc9df; }
 .dark .recommendation-options select, .dark .collection-browser-filters select, .dark .collection-set-search input { background: #121121; color-scheme: dark; }
-.dark .collection-set-search span, .dark .collection-selection > span { color: #aaa8c2; }
+.dark .collection-set-search > span:first-child, .dark .collection-selection > span { color: #aaa8c2; }
 .dark .recommendation-options select option, .dark .collection-browser-filters select option { background: #121121; color: #e5e3f0; }
 .dark .collection-chips button { background: #292644; }
 .dark .collection-browser, .dark .health-lane { border-color: #39374f; background: #19182d; }
