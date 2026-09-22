@@ -1,3 +1,7 @@
+import type { ScryfallIdentifier } from './adapters/scryfall.ts'
+
+export { fetchScryfallCollection } from './adapters/scryfall.ts'
+
 export type ImportBoard = 'commander' | 'mainboard' | 'sideboard'
 export type ImportedCard = {
   name: string
@@ -7,7 +11,7 @@ export type ImportedCard = {
   board: ImportBoard
 }
 export type ImportedDeck = { name?: string; cards: ImportedCard[] }
-type MissingIdentifier = { name?: string; set?: string; collector_number?: string }
+type MissingIdentifier = ScryfallIdentifier
 
 export function missingCardNames(missing: MissingIdentifier[], cards: ImportedCard[]) {
   return missing.map(
@@ -33,27 +37,6 @@ export function matchImportedCard<
         card.collector_number === entry.collectorNumber,
     ) ?? cards.find((card) => card.name.toLowerCase() === entry.name.toLowerCase())
   )
-}
-
-export async function fetchScryfallCollection(
-  identifiers: MissingIdentifier[],
-  fetcher: typeof fetch = fetch,
-  pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)),
-) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await fetcher('https://api.scryfall.com/cards/collection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifiers }),
-      })
-      if (response.ok || (response.status !== 429 && response.status < 500)) return response
-    } catch (error) {
-      if (attempt === 2) throw error
-    }
-    if (attempt < 2) await pause(500 * 2 ** attempt)
-  }
-  throw new Error('Scryfall unavailable')
 }
 
 const sectionBoard = (line: string): ImportBoard | null => {

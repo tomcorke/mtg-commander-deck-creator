@@ -115,7 +115,49 @@ function sourceType(card: SourceCard) {
   )
 }
 
-function simulate(initialQueue: RecommendationCard[], source: SourceDeck, policy: Policy): Result {
+type Simulation = {
+  policy: Policy
+  sourceNames: Set<string>
+  targets: Record<string, number>
+  queue: RecommendationCard[]
+  deferredCards: { card: RecommendationCard; eligibleBatch: number }[]
+  batchNumber: number
+  preferenceScores: Record<string, number>
+  accepted: RecommendationCard[]
+  seen: Set<string>
+  ignored: Set<string>
+  offers: number
+  repeats: number
+  rejected: number
+  ignoredReoffers: number
+  oneOrTwoPickBatches: number
+  noPickBatches: number
+  scoreTotal: number
+  phaseOffers: Record<'early' | 'mid' | 'late', number>
+  roleSupply: Record<string, number>
+  firstRoleOffer: Record<string, number | null>
+}
+
+function simulationCounts(state: Simulation) {
+  return Object.fromEntries(
+    ['Land', 'Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Other'].map((type) => [
+      type,
+      state.accepted.filter((card) => cardType(card) === type).length,
+    ]),
+  ) as Record<string, number>
+}
+
+function simulationRoleSupply(queue: RecommendationCard[], roles: string[]) {
+  return Object.fromEntries(
+    roles.map((role) => [
+      role,
+      queue.filter((card) => rolesForCard(card).includes(role as keyof typeof defaultDeckTargets))
+        .length,
+    ]),
+  )
+}
+
+function createSimulation(initialQueue: RecommendationCard[], source: SourceDeck, policy: Policy) {
   const sourceNames = new Set(source.cards.map(({ card }) => card.oracleCard.name))
   const targets = Object.fromEntries(
     ['Land', 'Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Other'].map((type) => [
@@ -124,143 +166,163 @@ function simulate(initialQueue: RecommendationCard[], source: SourceDeck, policy
         .filter((card) => sourceType(card) === type && !card.categories.includes('Commander'))
         .reduce((sum, card) => sum + card.quantity, 0),
     ]),
-  )
-  let queue = initialQueue
-  let deferredCards: { card: RecommendationCard; eligibleBatch: number }[] = []
-  let batchNumber = 1
-  let preferenceScores: Record<string, number> = {}
-  const accepted: RecommendationCard[] = []
-  const seen = new Set<string>()
-  let offers = 0
-  let repeats = 0
-  let rejected = 0
-  const ignored = new Set<string>()
-  const roleSupply = Object.fromEntries(
-    ['ramp', 'draw', 'removal', 'wipes'].map((role) => [
-      role,
-      initialQueue.filter((card) =>
-        rolesForCard(card).includes(role as keyof typeof defaultDeckTargets),
-      ).length,
-    ]),
-  )
-  const firstRoleOffer = Object.fromEntries(
-    ['ramp', 'draw', 'removal', 'wipes'].map((role) => [role, null]),
-  ) as Record<string, number | null>
-  const phaseOffers = { early: 0, mid: 0, late: 0 }
-  let ignoredReoffers = 0
-  let oneOrTwoPickBatches = 0
-  let noPickBatches = 0
-  let scoreTotal = 0
+  ) as Record<string, number>
+  const roles = ['ramp', 'draw', 'removal', 'wipes']
+  return {
+    policy,
+    sourceNames,
+    targets,
+    queue: initialQueue,
+    deferredCards: [],
+    batchNumber: 1,
+    preferenceScores: {},
+    accepted: [],
+    seen: new Set<string>(),
+    ignored: new Set<string>(),
+    offers: 0,
+    repeats: 0,
+    rejected: 0,
+    ignoredReoffers: 0,
+    oneOrTwoPickBatches: 0,
+    noPickBatches: 0,
+    scoreTotal: 0,
+    phaseOffers: { early: 0, mid: 0, late: 0 },
+    roleSupply: simulationRoleSupply(initialQueue, roles),
+    firstRoleOffer: Object.fromEntries(roles.map((role) => [role, null])) as Record<
+      string,
+      number | null
+    >,
+  } satisfies Simulation
+}
 
-  while ((queue.length || deferredCards.length) && accepted.length < 99 && batchNumber < 500) {
-    const batch = queue.slice(0, 4)
-    const counts = Object.fromEntries(
-      ['Land', 'Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Other'].map((type) => [
-        type,
-        accepted.filter((card) => cardType(card) === type).length,
-      ]),
-    )
-    const decisions: Record<string, RecommendationDecision> = {}
-    let batchPicks = 0
-    const analysis = analyseDeck(accepted)
-    const roleBoosts = deckRoleBoosts(accepted.length + 1, analysis.counts, defaultDeckTargets)
-    roleBoosts.lands = 0
-    for (const card of batch) {
-      offers += 1
-      phaseOffers[
-        accepted.length + 1 >= 85 ? 'late' : accepted.length + 1 >= 70 ? 'mid' : 'early'
-      ] += 1
-      if (seen.has(card.name)) repeats += 1
-      if (ignored.has(card.name)) ignoredReoffers += 1
-      seen.add(card.name)
-      for (const role of rolesForCard(card))
-        if (role !== 'lands' && firstRoleOffer[role] === null) firstRoleOffer[role] = batchNumber
-      scoreTotal += recommendationScore(card, {
-        theme: '',
-        activeSubThemes: [],
-        pickedTags: new Set(accepted.flatMap(({ tags }) => tags)),
-        preferenceScores,
-        neededRoles: new Set(
-          Object.entries(roleBoosts)
-            .filter(([, boost]) => boost > 0)
-            .map(([role]) => role),
-        ),
-        cardRoles: rolesForCard(card),
-        recommendationStyle: 'balanced',
-        roleBoosts,
-        roleSupply: Object.fromEntries(
-          Object.keys(roleBoosts).map((role) => [
-            role,
-            queue.filter((candidate) => rolesForCard(candidate).includes(role)).length,
-          ]),
-        ),
-        batchNumber,
-      })
-      const type = cardType(card)
-      const shouldAdd =
-        policy === 'accept-all' ||
-        (policy === 'balanced' && counts[type] < targets[type]) ||
-        (policy === 'precon-match' && sourceNames.has(card.name) && counts[type] < targets[type])
-      decisions[card.name] = shouldAdd ? 'add' : 'ignore'
-      if (shouldAdd) {
-        accepted.push(card)
-        counts[type] += 1
-        batchPicks += 1
-      } else {
-        rejected += 1
-        ignored.add(card.name)
-      }
-      if (accepted.length === 99) break
-    }
-    if (batchPicks === 0) noPickBatches += 1
-    if (batchPicks === 1 || batchPicks === 2) oneOrTwoPickBatches += 1
-    if (accepted.length === 99) break
-    const next = advanceRecommendationQueue({
-      queue,
-      deferredCards,
-      batchNumber,
-      decisions,
-      liked: [],
-      preferenceScores,
-      activeSubThemes: [],
-      theme: '',
-      includeCreature: true,
-      roleBoosts,
-      cardRoles: rolesForCard,
-      recommendationStyle: 'balanced',
-    })
-    queue = next.queue
-    deferredCards = next.deferredCards
-    batchNumber = next.batchNumber
-    preferenceScores = next.preferenceScores
+function scoreSimulationCard(
+  card: RecommendationCard,
+  state: Simulation,
+  roleBoosts: Record<string, number>,
+) {
+  return recommendationScore(card, {
+    theme: '',
+    activeSubThemes: [],
+    pickedTags: new Set(state.accepted.flatMap(({ tags }) => tags)),
+    preferenceScores: state.preferenceScores,
+    neededRoles: new Set(
+      Object.entries(roleBoosts)
+        .filter(([, boost]) => boost > 0)
+        .map(([role]) => role),
+    ),
+    cardRoles: rolesForCard(card),
+    recommendationStyle: 'balanced',
+    roleBoosts,
+    roleSupply: simulationRoleSupply(state.queue, Object.keys(roleBoosts)),
+    batchNumber: state.batchNumber,
+  })
+}
+
+function processSimulationCard(
+  card: RecommendationCard,
+  state: Simulation,
+  counts: Record<string, number>,
+  roleBoosts: Record<string, number>,
+  decisions: Record<string, RecommendationDecision>,
+) {
+  state.offers += 1
+  const phase =
+    state.accepted.length + 1 >= 85 ? 'late' : state.accepted.length + 1 >= 70 ? 'mid' : 'early'
+  state.phaseOffers[phase] += 1
+  if (state.seen.has(card.name)) state.repeats += 1
+  if (state.ignored.has(card.name)) state.ignoredReoffers += 1
+  state.seen.add(card.name)
+  for (const role of rolesForCard(card))
+    if (role !== 'lands' && state.firstRoleOffer[role] === null)
+      state.firstRoleOffer[role] = state.batchNumber
+  state.scoreTotal += scoreSimulationCard(card, state, roleBoosts)
+  const type = cardType(card)
+  const shouldAdd =
+    state.policy === 'accept-all' ||
+    (state.policy === 'balanced' && counts[type] < state.targets[type]) ||
+    (state.policy === 'precon-match' &&
+      state.sourceNames.has(card.name) &&
+      counts[type] < state.targets[type])
+  decisions[card.name] = shouldAdd ? 'add' : 'ignore'
+  if (shouldAdd) {
+    state.accepted.push(card)
+    counts[type] += 1
+    return true
   }
+  state.rejected += 1
+  state.ignored.add(card.name)
+  return false
+}
 
-  const overlap = accepted.filter((card) => sourceNames.has(card.name)).length + 1
+function simulateBatch(state: Simulation) {
+  const batch = state.queue.slice(0, 4)
+  const counts = simulationCounts(state)
+  const analysis = analyseDeck(state.accepted)
+  const roleBoosts = deckRoleBoosts(state.accepted.length + 1, analysis.counts, defaultDeckTargets)
+  roleBoosts.lands = 0
+  const decisions: Record<string, RecommendationDecision> = {}
+  let batchPicks = 0
+  for (const card of batch) {
+    if (processSimulationCard(card, state, counts, roleBoosts, decisions)) batchPicks += 1
+    if (state.accepted.length === 99) break
+  }
+  if (batchPicks === 0) state.noPickBatches += 1
+  if (batchPicks === 1 || batchPicks === 2) state.oneOrTwoPickBatches += 1
+  if (state.accepted.length === 99) return
+  const next = advanceRecommendationQueue({
+    queue: state.queue,
+    deferredCards: state.deferredCards,
+    batchNumber: state.batchNumber,
+    decisions,
+    liked: [],
+    preferenceScores: state.preferenceScores,
+    activeSubThemes: [],
+    theme: '',
+    includeCreature: true,
+    roleBoosts,
+    cardRoles: rolesForCard,
+    recommendationStyle: 'balanced',
+  })
+  state.queue = next.queue
+  state.deferredCards = next.deferredCards
+  state.batchNumber = next.batchNumber
+  state.preferenceScores = next.preferenceScores
+}
+
+function simulate(initialQueue: RecommendationCard[], source: SourceDeck, policy: Policy): Result {
+  const state = createSimulation(initialQueue, source, policy)
+  while (
+    (state.queue.length || state.deferredCards.length) &&
+    state.accepted.length < 99 &&
+    state.batchNumber < 500
+  )
+    simulateBatch(state)
+  const overlap = state.accepted.filter((card) => state.sourceNames.has(card.name)).length + 1
   const types = Object.fromEntries(
-    [...new Set(accepted.map(cardType))].map((type) => [
+    [...new Set(state.accepted.map(cardType))].map((type) => [
       type,
-      accepted.filter((card) => cardType(card) === type).length,
+      state.accepted.filter((card) => cardType(card) === type).length,
     ]),
   )
   return {
     policy,
-    complete: accepted.length === 99,
-    deckSize: accepted.length + 1,
-    batches: batchNumber,
-    offers,
-    accepted: accepted.length,
-    rejected,
-    repeats,
-    ignoredReoffers,
+    complete: state.accepted.length === 99,
+    deckSize: state.accepted.length + 1,
+    batches: state.batchNumber,
+    offers: state.offers,
+    accepted: state.accepted.length,
+    rejected: state.rejected,
+    repeats: state.repeats,
+    ignoredReoffers: state.ignoredReoffers,
     overlap,
-    manualCardsNeeded: 99 - accepted.length,
-    usefulPickRate: offers ? accepted.length / offers : 0,
-    oneOrTwoPickBatches,
-    noPickBatches,
-    averageScore: offers ? scoreTotal / offers : 0,
-    phaseOffers,
-    roleSupply,
-    firstRoleOffer,
+    manualCardsNeeded: 99 - state.accepted.length,
+    usefulPickRate: state.offers ? state.accepted.length / state.offers : 0,
+    oneOrTwoPickBatches: state.oneOrTwoPickBatches,
+    noPickBatches: state.noPickBatches,
+    averageScore: state.offers ? state.scoreTotal / state.offers : 0,
+    phaseOffers: state.phaseOffers,
+    roleSupply: state.roleSupply,
+    firstRoleOffer: state.firstRoleOffer,
     types,
   }
 }

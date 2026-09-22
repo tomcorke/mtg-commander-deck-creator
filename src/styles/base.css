@@ -1,0 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Alegreya:wght@600&family=Bitter:wght@600&family=Cormorant+Garamond:wght@600&family=DM+Sans:wght@400;500;600&family=Libre+Baskerville:wght@700&family=Lora:wght@600&family=Merriweather:wght@700&family=Source+Serif+4:wght@600&family=Space+Grotesk:wght@500;600&family=Spectral:wght@600&display=swap');
+
+:root {
+  color: #25243a;
+  background: #f2f3fb;
+  font-family: 'DM Sans', sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+button,
+a {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+main {
+  position: relative;
+  min-height: 100vh;
+  background: #f2f3fb;
+  color: #25243a;
+}
+main.dark {
+  color-scheme: dark;
+  background: #111123;
+  color: #d8d8ea;
+}
+.commander-themed {
+  --commander-accent: #36327f;
+  --commander-highlight: #b8bac7;
+}
+.commander-backdrop {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+}
+.commander-backdrop span {
+  flex: 1;
+  background-position: center 22%;
+  background-size: cover;
+}
+.commander-backdrop::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(180deg, #f2f3fbe6 0, #f2f3fbf2 38%, #f2f3fb 78%);
+}
+.dark .commander-backdrop::after {
+  background: linear-gradient(180deg, #111123cc 0, #111123ee 38%, #111123 78%);
+}
+main > :not(.commander-backdrop, .modal-backdrop) {
+  position: relative;
+  z-index: 1;
+}
+header {
+  height: 72px;
+  min-width: 0;
+  padding: 0 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #dad8e6;
+  background: #f8f8ff;
+}
+.brand {
+  flex: 0 0 auto;
+  max-width: 100%;
+  color: #36327f;
+  font:
+    600 21px 'Spectral',
+    serif;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.brand small {
+  font:
+    500 12px Inter,
+    sans-serif;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+.reset {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.fresh {
+  color: #858295;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.deck-status {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.saved-status {
+  display: grid;
+  text-align: right;
+}
+.saved-status b {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.saved-status small {
+  color: #68667c;
+  font-size: 12px;
+}
+.delta-added {
+  color: #27804b;
+  font-weight: 600;
+}
+.delta-removed {
+  color: #a13e4c;
+  font-weight: 600;
+}
+.progress {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #68667c;
+  font-size: 13px;
+}
+.progress span {
+  width: 90px;
+  height: 5px;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #7650ae 3%, #dedcea 3%);
+}
+.export,
+.actions button,
+.empty button {
+  border: 1px solid #bbb9cd;
+  border-radius: 7px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #34324a;
+}
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.theme-option {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #68667c;
+  font-size: 12px;
+  cursor: pointer;
+}
+.theme-option input {
+  accent-color: #36327f;
+}
+.theme-toggle {
+  padding: 9px 12px;
+  border: 1px solid #bbb9cd;
+  border-radius: 7px;
+  background: transparent;
+  color: #514e66;
+}
+.export {
+  border-color: #36327f;
+  color: #36327f;
+}
+.start-over {
+  padding: 9px 6px;
+  border: 0;
+  background: transparent;
+  color: #68667c;
+}

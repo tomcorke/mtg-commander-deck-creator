@@ -10,7 +10,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"*.{json,md,ts}\" \"docs/**/*.md\"",
     "lint": "pnpm format:check && oxlint && eslint src scripts --max-warnings=0",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test src",
+    "test": "node --experimental-strip-types --test",
     "audit:recommendations": "node --experimental-strip-types scripts/recommendation-audit.ts",
     "typecheck": "tsc -b --noEmit"
   },
