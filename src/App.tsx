@@ -833,6 +833,7 @@ function App() {
     const added = toDeckCard(card)
     if (deck.length < 100) setDeck((current) => [...current, added])
     else setSideboard((current) => [...current, added])
+    setQueue((current) => current.filter((item) => item.name !== added.name))
     setBatchAnnouncement(`${card.name} added from collection browsing.`)
   }
 
@@ -1013,6 +1014,7 @@ function App() {
     const added = { ...toDeckCard(selectedManualCard), finish: selectedManualCard.finishes?.includes('nonfoil') ? 'nonfoil' as const : selectedManualCard.finishes?.[0] }
     if (deck.length < 100) setDeck((current) => [...current, added])
     else setSideboard((current) => [...current, added])
+    setQueue((current) => current.filter((item) => item.name !== added.name))
     closeCardSearch()
   }
 
@@ -1388,7 +1390,8 @@ function App() {
     const analysis = analyseDeck(deck)
     const roleBoosts: Record<string, number> = prioritizeDeckHealth ? deckRoleBoosts(deck.length, analysis.counts, deckTargets) : {}
     roleBoosts.lands = 0
-    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme, theme, includeCreature, roleBoosts, cardRoles: rolesForCard, recommendationStyle, collectionSets, collectionMode })
+    const pickedTags = new Set([...deck.slice(commanderNames(commander).length).flatMap((card) => card.tags), ...Object.entries(preferenceScores).filter(([, score]) => score > 0).map(([tag]) => tag)])
+    const next = advanceRecommendationQueue({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, pickedTags, activeSubThemes, extraSubTheme, theme, includeCreature, roleBoosts, cardRoles: rolesForCard, recommendationStyle, collectionSets, collectionMode })
     setPreferenceScores(next.preferenceScores)
     setDeferredCards(next.deferredCards)
     setBatchNumber(next.batchNumber)
@@ -1687,8 +1690,8 @@ function App() {
           {limitedRecommendations && recommendationState === 'idle' && <p className="limited-mode" role="status">{collectionMode === 'only' ? 'Collection-only recommendations use legal Scryfall cards.' : 'Limited recommendations - EDHREC unavailable, using Scryfall popularity.'}</p>}
           <div className="recommendation-toolbar">
             <div className="subthemes" aria-label="Deck themes">
-              {theme && <button type="button" onClick={() => setTheme('')} title="Remove declared theme">{theme} <span>×</span></button>}
-              {activeSubThemes.map((name) => <button type="button" onClick={() => setActiveSubThemes((current) => current.filter((item) => item !== name))} title={`Remove ${name} sub-theme`} key={name}>{name} <span>×</span></button>)}
+              {theme && <button type="button" onClick={() => { setTheme(''); setRecommendationOptionsChanged(true) }} title="Remove declared theme">{theme} <span>×</span></button>}
+              {activeSubThemes.map((name) => <button type="button" onClick={() => { setActiveSubThemes((current) => current.filter((item) => item !== name)); setRecommendationOptionsChanged(true) }} title={`Remove ${name} sub-theme`} key={name}>{name} <span>×</span></button>)}
               {inferredSubThemes.map((inferredSubTheme) => <span className="suggested-subtheme" key={inferredSubTheme}><span>{inferredSubTheme}?</span><button type="button" onClick={() => chooseSubTheme(inferredSubTheme)} aria-label={`Accept ${inferredSubTheme} sub-theme`}>✓</button><button type="button" onClick={() => setDismissedSubThemes((current) => [...current.filter((item) => !item.startsWith(`${inferredSubTheme}:`) && item !== inferredSubTheme), `${inferredSubTheme}:${deckCards.filter((card) => card.tags.includes(inferredSubTheme)).length}`])} aria-label={`Dismiss ${inferredSubTheme} sub-theme`}>×</button></span>)}
               {activeSubThemes.length < 2 && <button className="add-subtheme" type="button" onClick={() => setShowSubThemePicker((current) => !current)}>+ Choose sub-theme</button>}
             </div>

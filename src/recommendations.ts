@@ -385,7 +385,7 @@ export function releaseNextDeferred<T>(deferred: DeferredCard<T>[], requestedBat
 
 export type RecommendationDecision = 'add' | 'later' | 'ignore'
 
-export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[]; set?: string; collectionMatch?: boolean }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, activeSubThemes, extraSubTheme = '', theme, includeCreature, roleBoosts = {}, cardRoles = () => [], recommendationStyle = 'balanced', collectionSets = [], collectionMode = 'none' }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean; roleBoosts?: Record<string, number>; cardRoles?: (card: T) => string[]; recommendationStyle?: RecommendationStyle; collectionSets?: string[]; collectionMode?: CollectionMode }) {
+export function advanceRecommendationQueue<T extends { name: string; reason: string; typeLine: string; tags: string[]; set?: string; collectionMatch?: boolean }>({ queue, deferredCards, batchNumber, decisions, liked, preferenceScores, pickedTags = new Set(), activeSubThemes, extraSubTheme = '', theme, includeCreature, roleBoosts = {}, cardRoles = () => [], recommendationStyle = 'balanced', collectionSets = [], collectionMode = 'none' }: { queue: T[]; deferredCards: DeferredCard<T>[]; batchNumber: number; decisions: Record<string, RecommendationDecision>; liked: string[]; preferenceScores: Record<string, number>; pickedTags?: Set<string>; activeSubThemes: string[]; extraSubTheme?: string; theme: string; includeCreature: boolean; roleBoosts?: Record<string, number>; cardRoles?: (card: T) => string[]; recommendationStyle?: RecommendationStyle; collectionSets?: string[]; collectionMode?: CollectionMode }) {
   const batch = queue.slice(0, 4)
   const pending = [...deferredCards, ...deferBatch(batch, decisions, batchNumber, (card) => card.name)]
   const released = releaseNextDeferred(pending, batchNumber + 1, queue.length > 4)
@@ -393,7 +393,7 @@ export function advanceRecommendationQueue<T extends { name: string; reason: str
   const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
   const candidates = [...queue.slice(4), ...released.ready]
   const roleSupply = Object.fromEntries(Object.keys(roleBoosts).map((role) => [role, candidates.filter((card) => cardRoles(card).includes(role)).length]))
-  const context: RecommendationScoreContext = { theme, activeSubThemes: rankedSubThemes, pickedTags: new Set(Object.entries(scores).filter(([, score]) => score > 0).map(([tag]) => tag)), preferenceScores: scores, neededRoles: new Set(Object.keys(roleBoosts).filter((role) => (roleBoosts[role] ?? 0) > 0)), cardRoles: [], recommendationStyle, collectionSets, collectionMode, roleBoosts, roleSupply, batchNumber }
+  const context: RecommendationScoreContext = { theme, activeSubThemes: rankedSubThemes, pickedTags: new Set([...pickedTags, ...Object.entries(scores).filter(([, score]) => score > 0).map(([tag]) => tag)]), preferenceScores: scores, neededRoles: new Set(Object.keys(roleBoosts).filter((role) => (roleBoosts[role] ?? 0) > 0)), cardRoles: [], recommendationStyle, collectionSets, collectionMode, roleBoosts, roleSupply, batchNumber }
   return {
     queue: rankRecommendationCards(candidates, context, includeCreature, cardRoles),
     deferredCards: released.waiting,

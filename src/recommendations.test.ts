@@ -248,6 +248,15 @@ test('recommendation reload starts a fresh cooldown cycle', () => {
   assert.deepEqual(freshRecommendationCycle(), { deferredCards: [], batchNumber: 1 })
 })
 
+test('deck tags influence ranking after external card additions', () => {
+  const card = (name: string, tags: string[] = []) => ({ name, tags, typeLine: 'Instant', reason: 'Interaction' })
+  const result = advanceRecommendationQueue({
+    queue: [card('Current 1'), card('Current 2'), card('Current 3'), card('Current 4'), card('Generic'), card('Themed', ['+1/+1 counters'])],
+    deferredCards: [], batchNumber: 1, decisions: {}, liked: [], preferenceScores: {}, activeSubThemes: [], theme: '', includeCreature: false, pickedTags: new Set(['+1/+1 counters']),
+  })
+  assert.equal(result.queue[0].name, 'Themed')
+})
+
 test('queue transition uses production ranking and cooldown rules', () => {
   const card = (name: string, tags: string[] = [], typeLine = 'Instant', reason = 'Interaction') => ({ name, tags, typeLine, reason })
   const result = advanceRecommendationQueue({
