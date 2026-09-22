@@ -46,6 +46,8 @@ const usableInitialRoute = initialAppRoute?.view === 'builder' && !savedDeckStat
 const cardTags = (card: ScryfallCard, category = '') => tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
 const toCard = (card: ScryfallCard, reason: string, category = ''): Card => ({ ...toRecommendationCard(card, reason, category), source: 'scryfall' })
 const edhrecSlug = (url: string | undefined, name: string) => url?.match(/\/commanders\/([^/?#]+)/)?.[1] ?? name.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+// ponytail: cap client retry wait at 60s; add provider rate-limit state if longer backoff becomes necessary
+const edhrecRetryDelay = (attempt: number) => Math.min(60, 5 * 2 ** attempt)
 
 const colourNames: Record<string, string> = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' }
 const colourThemes: Record<string, [string, string]> = {
@@ -323,6 +325,8 @@ function App() {
   const [recommendationLoadingStep, setRecommendationLoadingStep] = useState<'commander' | 'recommendations'>('commander')
   const [recommendationLoadingTitle, setRecommendationLoadingTitle] = useState('Building your first batch')
   const [limitedRecommendations, setLimitedRecommendations] = useState(savedDeckState?.limitedRecommendations ?? false)
+  const [edhrecRetryAttempt, setEdhrecRetryAttempt] = useState(0)
+  const [edhrecRetryRemaining, setEdhrecRetryRemaining] = useState(0)
   const [includeCreature, setIncludeCreature] = useStoredOption('includeCreature', () => true)
   const [powerTarget, setPowerTarget] = useStoredOption<PowerTarget>('powerTarget', () => 'precon')
   const [excludeGameChangers, setExcludeGameChangers] = useStoredOption('excludeGameChangers', () => true)
@@ -367,6 +371,7 @@ function App() {
   const cardSearchInput = useRef<HTMLInputElement>(null)
   const cardSearchDialog = useRef<HTMLElement>(null)
   const repairedPrintingBatches = useRef(new Set<string>())
+  const edhrecRetryInFlight = useRef(false)
   const [exportFormat, setExportFormat] = useStoredOption<ExportFormat>('exportFormat', () => 'moxfield')
   const [copied, setCopied] = useState(false)
   const [darkMode, setDarkMode] = useStoredOption('darkMode', () => localStorage.getItem('theme') !== 'light')
@@ -436,6 +441,12 @@ function App() {
     if (recommendationState !== 'idle' || !currentDeckState) return
     saveDeckState(currentDeckState)
   }, [currentDeckState, recommendationState])
+
+  useEffect(() => {
+    if (edhrecRetryRemaining <= 0) return
+    const timer = window.setTimeout(() => setEdhrecRetryRemaining((remaining) => Math.max(0, remaining - 1)), 1000)
+    return () => window.clearTimeout(timer)
+  }, [edhrecRetryRemaining])
 
   useEffect(() => {
     document.title = showBuilder && commander ? deckPageTitle(deck.length, activeSavedDeck?.name ?? commander, savedDeckChanged) : 'Commander Deck Creator'
@@ -709,6 +720,18 @@ function App() {
     void loadPrintings(cards, collectionSets[0] || preferredPrintSet)
   }, [activeSavedDeckId, batchNumber, collectionSets, commander, loadPrintings, preferredPrintSet, queue])
 
+  async function retryEdhrec() {
+    if (edhrecRetryInFlight.current || edhrecRetryRemaining > 0 || recommendationState !== 'idle') return
+    edhrecRetryInFlight.current = true
+    setEdhrecRetryAttempt((attempt) => attempt + 1)
+    setEdhrecRetryRemaining(edhrecRetryDelay(edhrecRetryAttempt))
+    try {
+      await start(commander, true)
+    } finally {
+      edhrecRetryInFlight.current = false
+    }
+  }
+
   async function start(name: string, preserveDeck = false) {
     const chosen = name.trim()
     if (!chosen) return
@@ -724,6 +747,8 @@ function App() {
     setBatchAnnouncement('')
     setCommanderSubThemes([])
     if (!preserveDeck) {
+      setEdhrecRetryAttempt(0)
+      setEdhrecRetryRemaining(0)
       setDeck([])
       setSideboard([])
       setIgnoredCards([])
@@ -770,12 +795,14 @@ function App() {
       setRecommendationLoadingStep('recommendations')
       if (activeCollectionMode === 'only' && !activeCollectionSets.length) throw new Error('Select at least one collection for Only collection mode.')
       if (activeCollectionMode === 'only') setLimitedRecommendations(true)
+      let edhrecLoaded = false
       let offeredCards: Card[] = []
       if (activeCollectionMode !== 'only') {
         try {
           if (commanders.length !== 1) throw new Error('Partner pair has no single EDHREC page')
           offeredCards = await edhrecRecommendations(edhrecSlug(commanders[0].related_uris?.edhrec, commanders[0].name))
           if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
+          edhrecLoaded = true
         } catch {
           offeredCards = await fallbackRecommendations(identityColours)
           setLimitedRecommendations(true)
@@ -809,6 +836,10 @@ function App() {
       const rankingRoles = new Set(prioritizeDeckHealth ? targetKeys.filter((key) => rankingAnalysis.counts[key] < deckTargets[key]) : [])
       const rankingContext = { theme, activeSubThemes, pickedTags: new Set([...rankingDeck.flatMap((card) => card.tags), ...Object.entries(preferenceScores).filter(([, score]) => score > 0).map(([tag]) => tag)]), preferenceScores, neededRoles: rankingRoles, cardRoles: [], recommendationStyle, collectionSets: activeCollectionSets, collectionMode: activeCollectionMode, roleBoosts: rankingRoleBoosts, roleSupply: Object.fromEntries(targetKeys.map((role) => [role, offeredCards.filter((card) => rolesForCard(card).includes(role)).length])), batchNumber: 1 }
       offeredCards = rankRecommendationCards(offeredCards, rankingContext, includeCreature, rolesForCard)
+      if (edhrecLoaded) {
+        setEdhrecRetryAttempt(0)
+        setEdhrecRetryRemaining(0)
+      }
       setQueue(offeredCards)
       setRecommendationState('idle')
       void loadPrintings(offeredCards.slice(0, 8), activeCollectionSets[0] || (preserveDeck ? preferredPrintSet : ''), activeCollectionSets, activeCollectionMode)
@@ -1687,7 +1718,7 @@ function App() {
       <div className="workspace">
         <section className="recommendations">
           <p className="sr-only" aria-live="polite" aria-atomic="true">{batchAnnouncement}</p>
-          {limitedRecommendations && recommendationState === 'idle' && <p className="limited-mode" role="status">{collectionMode === 'only' ? 'Collection-only recommendations use legal Scryfall cards.' : 'Limited recommendations - EDHREC unavailable, using Scryfall popularity.'}</p>}
+          {limitedRecommendations && recommendationState === 'idle' && <div className="limited-mode"><span role="status">{collectionMode === 'only' ? 'Collection-only recommendations use legal Scryfall cards.' : 'Limited recommendations - EDHREC unavailable, using Scryfall popularity.'}</span>{collectionMode !== 'only' && <button type="button" className="export" disabled={edhrecRetryRemaining > 0} onClick={() => void retryEdhrec()}>{edhrecRetryRemaining > 0 ? `Retry EDHREC recommendations in ${edhrecRetryRemaining}s` : 'Retry EDHREC recommendations'}</button>}</div>}
           <div className="recommendation-toolbar">
             <div className="subthemes" aria-label="Deck themes">
               {theme && <button type="button" onClick={() => { setTheme(''); setRecommendationOptionsChanged(true) }} title="Remove declared theme">{theme} <span>×</span></button>}
