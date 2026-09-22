@@ -202,30 +202,31 @@ const recommendationScoreFactors = [
 ] as const
 
 type RecommendationScoreFactor = typeof recommendationScoreFactors[number]['key']
+type RecommendationRadarFactor = typeof recommendationScoreFactors[number]
 
-function radarPoint(index: number, value: number, max: number, radius = 38) {
-  const angle = -Math.PI / 2 + index * Math.PI * 2 / recommendationScoreFactors.length
+function radarPoint(index: number, value: number, max: number, factorCount: number = recommendationScoreFactors.length, radius = 38) {
+  const angle = -Math.PI / 2 + index * Math.PI * 2 / factorCount
   const distance = radius * Math.min(1, Math.max(0, value / max))
   return { x: 50 + Math.cos(angle) * distance, y: 50 + Math.sin(angle) * distance }
 }
 
-function radarPoints(score: RecommendationScoreBreakdown, scale = 1) {
-  return recommendationScoreFactors.map(({ key, max }, index) => {
-    const point = radarPoint(index, score[key] * scale, max)
+function radarPoints(score: RecommendationScoreBreakdown, factors: readonly RecommendationRadarFactor[] = recommendationScoreFactors, scale = 1) {
+  return factors.map(({ key, max }, index) => {
+    const point = radarPoint(index, score[key] * scale, max, factors.length)
     return `${point.x},${point.y}`
   }).join(' ')
 }
 
-function ScoreBreakdown({ score, showPopularityPenalty }: { score: RecommendationScoreBreakdown; showPopularityPenalty: boolean }) {
-  const visibleFactors = showPopularityPenalty ? recommendationScoreFactors : recommendationScoreFactors.filter(({ key }) => key !== 'popularityPenalty')
+function ScoreBreakdown({ score, showPopularityPenalty, showCollection, showTheme, showSubThemes }: { score: RecommendationScoreBreakdown; showPopularityPenalty: boolean; showCollection: boolean; showTheme: boolean; showSubThemes: boolean }) {
+  const visibleFactors = recommendationScoreFactors.filter(({ key }) => (showPopularityPenalty || key !== 'popularityPenalty') && (showCollection || key !== 'collection') && (showTheme || key !== 'theme') && (showSubThemes || key !== 'subThemes'))
   return <section className="score-breakdown" aria-label={`Score breakdown: ${score.total} out of 100`}>
     <div className="score-breakdown-heading"><h4>Score breakdown</h4><strong>{score.total}/100</strong></div>
     <div className="score-breakdown-content">
       <svg className="score-radar" viewBox="0 0 100 100" role="img" aria-label={`Radar chart showing score breakdown for ${score.total} out of 100`}>
         <title>Score breakdown: {score.total} out of 100</title>
-        {[.25, .5, .75, 1].map((scale) => <polygon className="score-radar-grid" points={radarPoints({ total: 0, ...recommendationScoreFactorMaximums }, scale)} key={scale} />)}
-        {recommendationScoreFactors.map(({ key, max }, index) => { const point = radarPoint(index, max, max); return <line className="score-radar-axis" x1="50" y1="50" x2={point.x} y2={point.y} key={key} /> })}
-        <polygon className="score-radar-area" points={radarPoints(score)} />
+        {[.25, .5, .75, 1].map((scale) => <polygon className="score-radar-grid" points={radarPoints({ total: 0, ...recommendationScoreFactorMaximums }, visibleFactors, scale)} key={scale} />)}
+        {visibleFactors.map(({ key, max }, index) => { const point = radarPoint(index, max, max, visibleFactors.length); return <line className="score-radar-axis" x1="50" y1="50" x2={point.x} y2={point.y} key={key} /> })}
+        <polygon className="score-radar-area" points={radarPoints(score, visibleFactors)} />
       </svg>
       <dl className="score-factors">
         {visibleFactors.map(({ key, label, max, description }) => <div className="score-factor-row" tabIndex={0} aria-describedby={`score-factor-${key}`} key={key}><dt>{label}</dt><dd>{score[key as RecommendationScoreFactor]} / {max}</dd><span className="score-factor-tooltip" id={`score-factor-${key}`} role="tooltip">{description}</span></div>)}
@@ -1711,7 +1712,7 @@ function App() {
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
               <div className="offered-image"><FinishedCardImage image={card.image} alt={`${card.name} card`} finish={card.finish} effectsEnabled={cardEffects} hasSynergyGlow={pairCards.includes(card)} className="card-face-image" />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
-              <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p><CardDetails card={card} source={limitedRecommendations || card.source === 'scryfall' || card.collectionMatch ? { label: 'Scryfall', uri: cardScryfallUri(card) } : { label: 'EDHREC', uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}` }} onToggleSet={() => toggleCollectionSet(card.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(card.set)} /><ScoreBreakdown score={score} showPopularityPenalty={recommendationStyle === 'story'} /></div>
+              <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p><CardDetails card={card} source={limitedRecommendations || card.source === 'scryfall' || card.collectionMatch ? { label: 'Scryfall', uri: cardScryfallUri(card) } : { label: 'EDHREC', uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}` }} onToggleSet={() => toggleCollectionSet(card.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(card.set)} /><ScoreBreakdown score={score} showPopularityPenalty={recommendationStyle === 'story'} showCollection={collectionMode !== 'none' && collectionSets.length > 0} showTheme={Boolean(theme)} showSubThemes={activeSubThemes.length > 0} /></div>
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
           {healthSuggestions.length > 0 && <section className="health-lane" aria-labelledby="health-lane-title"><div><p className="eyebrow">Optional guidance</p><h3 id="health-lane-title">Deck health suggestions</h3><p>Story mode keeps these separate from your theme picks.</p></div><div>{healthSuggestions.map((card) => { const role = rolesForCard(card).find((item) => missingHealthRoles.includes(item)); return <article key={card.name}><span>{role ? targetLabels[role as keyof typeof targetLabels] : 'Deck support'}</span><b>{card.name}</b><button type="button" onClick={() => addRecommendationCard(card)}>Add</button></article> })}</div></section>}
