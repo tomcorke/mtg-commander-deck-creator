@@ -45,6 +45,7 @@ const usableInitialRoute = initialAppRoute?.view === 'builder' && !savedDeckStat
 
 const cardTags = (card: ScryfallCard, category = '') => tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
 const toCard = (card: ScryfallCard, reason: string, category = ''): Card => ({ ...toRecommendationCard(card, reason, category), source: 'scryfall' })
+const toDeckCardFromRecommendation = (card: Card): DeckCard => ({ name: card.name, layout: card.layout, typeLine: card.typeLine, manaCost: card.manaCost, manaValue: card.manaValue, detail: card.detail, producedMana: card.producedMana, faces: card.faces, power: card.power, toughness: card.toughness, set: card.set, setName: card.setName, collectorNumber: card.collectorNumber, scryfallUri: card.scryfallUri, printsUri: card.printsUri, image: card.image, price: card.price, priceUri: card.priceUri, tags: card.tags, printings: card.printings, printing: card.printing ?? 0, printingManuallySelected: card.printingManuallySelected, finish: card.finish })
 const edhrecSlug = (url: string | undefined, name: string) => url?.match(/\/commanders\/([^/?#]+)/)?.[1] ?? name.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 // ponytail: cap client retry wait at 60s; add provider rate-limit state if longer backoff becomes necessary
 const edhrecRetryDelay = (attempt: number) => Math.min(60, 5 * 2 ** attempt)
@@ -349,6 +350,7 @@ function App() {
   const [sideboard, setSideboard] = useState<DeckCard[]>(savedDeckState?.sideboard ?? [])
   const [selectedDeckCardLocation, setSelectedDeckCardLocation] = useState<DeckCardLocation | null>(null)
   const [selectedCollectionCard, setSelectedCollectionCard] = useState<DeckCard | null>(null)
+  const [selectedGuidanceCard, setSelectedGuidanceCard] = useState<Card | null>(null)
   const [pendingCardRemoval, setPendingCardRemoval] = usePendingConfirmation<DeckCardLocation | null>(null)
   const [showBuilder, setShowBuilder] = useState(() => (usableInitialRoute?.view ?? (savedDeckState?.commander ? 'builder' : 'start')) === 'builder')
   const [activeModal, setActiveModal] = useState<AppModal | null>(() => usableInitialRoute?.modal ?? null)
@@ -357,7 +359,7 @@ function App() {
   const showBasicLands = activeModal === 'basics'
   const showCardSearch = activeModal === 'search'
   const showRecommendationSettings = activeModal === 'recommendation-settings'
-  const selectedDeckCard = useMemo(() => selectedDeckCardLocation ? (selectedDeckCardLocation.board === 'deck' ? deck : sideboard)[selectedDeckCardLocation.index] ?? null : selectedCollectionCard, [deck, selectedCollectionCard, selectedDeckCardLocation, sideboard])
+  const selectedDeckCard = useMemo(() => selectedDeckCardLocation ? (selectedDeckCardLocation.board === 'deck' ? deck : sideboard)[selectedDeckCardLocation.index] ?? null : selectedCollectionCard ?? (selectedGuidanceCard ? toDeckCardFromRecommendation(selectedGuidanceCard) : null), [deck, selectedCollectionCard, selectedDeckCardLocation, selectedGuidanceCard, sideboard])
   const showDeckCard = activeModal === 'card' && selectedDeckCard !== null
   const selectedDeckCardIsCommander = selectedDeckCardLocation?.board === 'deck' && selectedDeckCardLocation.index < commanderNames(commander).length
   const [cardSearch, setCardSearch] = useState('')
@@ -852,7 +854,7 @@ function App() {
   }
 
   function addRecommendationCard(card: Card) {
-    const added: DeckCard = { name: card.name, layout: card.layout, typeLine: card.typeLine, manaCost: card.manaCost, manaValue: card.manaValue, detail: card.detail, producedMana: card.producedMana, faces: card.faces, power: card.power, toughness: card.toughness, set: card.set, setName: card.setName, collectorNumber: card.collectorNumber, scryfallUri: card.scryfallUri, printsUri: card.printsUri, image: card.image, price: card.price, priceUri: card.priceUri, tags: card.tags, printings: card.printings, printing: card.printing ?? 0, printingManuallySelected: card.printingManuallySelected, finish: card.finish }
+    const added = toDeckCardFromRecommendation(card)
     if (deck.length < 100) setDeck((list) => list.some((item) => item.name === card.name) ? list : [...list, added])
     else setSideboard((list) => list.some((item) => item.name === card.name) ? list : [...list, added])
     setQueue((current) => current.filter((item) => item.name !== card.name))
@@ -927,7 +929,9 @@ function App() {
     const index = ((card.printing ?? 0) + 1) % card.printings.length
     const selected = card.printings[index]
     await changeArt(card.name, [selected.image], () => {
-      setQueue((current) => current.map((item) => item.name === card.name ? { ...item, printing: index, image: selected.image, set: selected.set, setName: selected.setName, collectorNumber: selected.collectorNumber, scryfallUri: selected.scryfallUri, price: selected.price, priceUri: selected.priceUri, printingManuallySelected: true, finish: selected.finish } : item))
+      const update = { printing: index, image: selected.image, set: selected.set, setName: selected.setName, collectorNumber: selected.collectorNumber, scryfallUri: selected.scryfallUri, price: selected.price, priceUri: selected.priceUri, printingManuallySelected: true, finish: selected.finish } as const
+      setQueue((current) => current.map((item) => item.name === card.name ? { ...item, ...update } : item))
+      setSelectedGuidanceCard((current) => current?.name === card.name ? { ...current, ...update } : current)
       if (decisions[card.name] === 'add') {
         const update = (item: DeckCard) => item.name === card.name ? { ...item, set: selected.set, setName: selected.setName, collectorNumber: selected.collectorNumber, scryfallUri: selected.scryfallUri, image: selected.image, price: selected.price, priceUri: selected.priceUri, printing: index, printingManuallySelected: true, finish: selected.finish } : item
         setDeck((current) => current.map(update))
@@ -957,6 +961,10 @@ function App() {
   }
 
   async function cycleSelectedDeckCardPrinting() {
+    if (selectedGuidanceCard) {
+      await cyclePrinting(selectedGuidanceCard)
+      return
+    }
     if (!selectedDeckCardLocation) return
     if (selectedDeckCardLocation.board === 'deck') await cycleDeckPrinting(selectedDeckCardLocation.index)
     else await cycleSideboardPrinting(selectedDeckCardLocation.index)
@@ -981,6 +989,14 @@ function App() {
   function openCollectionCard(card: ScryfallCard) {
     setSelectedDeckCardLocation(null)
     setSelectedCollectionCard(toDeckCard(card))
+    setSelectedGuidanceCard(null)
+    openModal('card')
+  }
+
+  function openGuidanceCard(card: Card) {
+    setSelectedDeckCardLocation(null)
+    setSelectedCollectionCard(null)
+    setSelectedGuidanceCard(card)
     openModal('card')
   }
 
@@ -1157,6 +1173,7 @@ function App() {
 
   function openDeckCard(card: DeckCard, location: DeckCardLocation) {
     setSelectedCollectionCard(null)
+    setSelectedGuidanceCard(null)
     setSelectedDeckCardLocation(location)
     openModal('card')
     if (!card.setName || !card.scryfallUri || !card.printings || card.printings.length < 2 || (cardCanHavePowerToughness(card) && (!card.power || !card.toughness))) void hydrateDeckCardDetails(card)
@@ -1167,10 +1184,17 @@ function App() {
     if (card) openDeckCard(card, { board: 'deck', index })
   }
 
+  function addSelectedGuidanceCard() {
+    if (!selectedGuidanceCard) return
+    addRecommendationCard(selectedGuidanceCard)
+    closeDeckCard()
+  }
+
   function closeDeckCard() {
     setPendingCardRemoval(null)
     setSelectedDeckCardLocation(null)
     setSelectedCollectionCard(null)
+    setSelectedGuidanceCard(null)
     closeModal()
   }
 
@@ -1382,12 +1406,13 @@ function App() {
 
   const deckCardModal = showDeckCard && selectedDeckCard && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDeckCard() }}>
     <section className="export-modal deck-card-modal" role="dialog" aria-modal="true" aria-labelledby="deck-card-title" onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); closeDeckCard() } }}>
-      <div className="export-heading"><p className="eyebrow">{selectedCollectionCard ? 'Collection card' : 'Deck card'}</p><ModalCloseButton autoFocus onClick={closeDeckCard} label={`Close ${selectedDeckCard.name} details`} /></div>
+      <div className="export-heading"><p className="eyebrow">{selectedGuidanceCard ? 'Deck health suggestion' : selectedCollectionCard ? 'Collection card' : 'Deck card'}</p><ModalCloseButton autoFocus onClick={closeDeckCard} label={`Close ${selectedDeckCard.name} details`} /></div>
       <div className="deck-card-modal-content">
         <figure className="deck-card-modal-art"><FinishedCardImage image={selectedDeckCard.image} alt={`${selectedDeckCard.name} card`} finish={selectedDeckCard.finish} effectsEnabled={cardEffects} className="deck-card-modal-image" /><ArtLoading active={loadingArt === selectedDeckCard.name} /><PrintingButton count={selectedDeckCard.printings?.length ?? 0} index={selectedDeckCard.printing ?? 0} loading={Boolean(loadingArt)} name={selectedDeckCard.name} onClick={() => void cycleSelectedDeckCardPrinting()} /></figure>
         <div className="deck-card-modal-copy"><div className="deck-card-modal-title"><h2 id="deck-card-title">{selectedDeckCard.name}</h2><span className="deck-card-modal-mana"><OracleText text={selectedDeckCard.manaCost} /></span></div><p className="card-type-line">{cardTypeLine(selectedDeckCard)}</p><p className="deck-card-description"><OracleText text={selectedDeckCard.detail} /></p><CardDetails card={selectedDeckCard} source={{ label: 'Scryfall', uri: cardScryfallUri(selectedDeckCard) }} onToggleSet={() => toggleCollectionSet(selectedDeckCard.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(selectedDeckCard.set)} /></div>
       </div>
-      {!selectedDeckCardIsCommander && selectedCollectionCard === null && <div className="deck-card-modal-actions"><button type="button" className={`deck-card-modal-remove ${pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'confirm' : ''}`} onClick={removeSelectedDeckCard}>{pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'Confirm removal' : `Remove from ${selectedDeckCardLocation?.board === 'sideboard' ? 'sideboard' : 'deck'}`}</button></div>}
+      {selectedGuidanceCard && <div className="export-actions deck-card-modal-actions"><button type="button" className="primary" onClick={addSelectedGuidanceCard}>{deck.length >= 100 ? 'Add to sideboard' : 'Add to deck'}</button></div>}
+      {!selectedGuidanceCard && !selectedDeckCardIsCommander && selectedCollectionCard === null && <div className="deck-card-modal-actions"><button type="button" className={`deck-card-modal-remove ${pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'confirm' : ''}`} onClick={removeSelectedDeckCard}>{pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'Confirm removal' : `Remove from ${selectedDeckCardLocation?.board === 'sideboard' ? 'sideboard' : 'deck'}`}</button></div>}
     </section>
   </div>
 
@@ -1748,7 +1773,7 @@ function App() {
               <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p><CardDetails card={card} source={limitedRecommendations || card.source === 'scryfall' || card.collectionMatch ? { label: 'Scryfall', uri: cardScryfallUri(card) } : { label: 'EDHREC', uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}` }} onToggleSet={() => toggleCollectionSet(card.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(card.set)} /><ScoreBreakdown score={score} showPopularityPenalty={recommendationStyle === 'story'} showCollection={collectionMode !== 'none' && collectionSets.length > 0} showTheme={Boolean(theme)} showSubThemes={activeSubThemes.length > 0} /></div>
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
-          {healthSuggestions.length > 0 && <section className="health-lane" aria-labelledby="health-lane-title"><div><p className="eyebrow">Optional guidance</p><h3 id="health-lane-title">Deck health suggestions</h3><p>Story mode keeps these separate from your theme picks.</p></div><div>{healthSuggestions.map((card) => { const role = rolesForCard(card).find((item) => missingHealthRoles.includes(item)); return <article key={card.name}><span>{role ? targetLabels[role as keyof typeof targetLabels] : 'Deck support'}</span><b>{card.name}</b><button type="button" onClick={() => addRecommendationCard(card)}>Add</button></article> })}</div></section>}
+          {healthSuggestions.length > 0 && <section className="health-lane" aria-labelledby="health-lane-title"><div><p className="eyebrow">Optional guidance</p><h3 id="health-lane-title">Deck health suggestions</h3><p>Story mode keeps these separate from your theme picks.</p></div><div className="health-suggestion-list">{healthSuggestions.map((card) => { const role = rolesForCard(card).find((item) => missingHealthRoles.includes(item)); return <article key={card.name}><button type="button" className="health-card-open" onClick={() => openGuidanceCard(card)} aria-label={`View ${card.name} details`}><span className="health-card-thumbnail"><FinishedCardImage image={card.image} alt="" finish={card.finish} effectsEnabled={cardEffects} className="health-card-thumbnail-image" /></span><span className="health-card-copy"><span className="health-card-reason">{role ? targetLabels[role as keyof typeof targetLabels] : 'Deck support'}</span><b>{card.name}</b></span><span className="health-card-zoom" aria-hidden="true"><FinishedCardImage image={card.image} alt="" finish={card.finish} effectsEnabled={cardEffects} className="health-card-full-image" /></span></button><button type="button" className="health-card-add" onClick={() => addRecommendationCard(card)}>Add</button></article> })}</div></section>}
         </section>
         <aside className="analysis-panel">
           <section className="deck-analysis" aria-labelledby="analysis-title">
