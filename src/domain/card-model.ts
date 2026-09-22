@@ -165,11 +165,21 @@ export const cardScryfallUri = (card: Pick<DeckCard, 'scryfallUri' | 'set' | 'co
 export const cardPrintingsUri = (card: Pick<Card, 'name'>) =>
   `https://scryfall.com/search?q=${encodeURIComponent(`!"${card.name}"`)}&unique=prints`
 
-export const edhrecSlug = (url: string | undefined, name: string) =>
-  url?.match(/\/commanders\/([^/?#]+)/)?.[1] ??
-  name
+export function edhrecSlug(url: string | undefined, name: string) {
+  let source = name.split(' // ', 1)[0]
+  if (url) {
+    try {
+      const parsed = new URL(url)
+      source =
+        parsed.pathname.match(/\/commanders\/([^/?#]+)/)?.[1] ??
+        parsed.searchParams.get('cc') ??
+        source
+    } catch {}
+  }
+  return source
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[’']/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
+}

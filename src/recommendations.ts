@@ -1,3 +1,4 @@
+export { edhrecSlug } from './domain/card-model.ts'
 export * from './domain/recommendation-types.ts'
 export * from './domain/recommendation-scoring.ts'
 export * from './domain/recommendation-themes.ts'

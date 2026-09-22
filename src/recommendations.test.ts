@@ -8,6 +8,7 @@ import {
   commanderThemes,
   curatedCollections,
   deferBatch,
+  edhrecSlug,
   findSynergyPair,
   formatUsdPrice,
   freshRecommendationCycle,
@@ -203,6 +204,15 @@ test('printing preference preserves defaults and manual choices', () => {
   assert.equal(preferredPrintingIndex(printings, 'sld'), 1)
   assert.equal(preferredPrintingIndex(printings, 'missing'), 0)
   assert.equal(preferredPrintingIndex(printings, 'clb', 1, true), 1)
+})
+
+test('EDHREC slug uses canonical front face for double-faced commanders', () => {
+  const name = "Katilda, Dawnhart Martyr // Katilda's Rising Dawn"
+  assert.equal(
+    edhrecSlug('https://edhrec.com/route/?cc=Katilda%2C+Dawnhart+Martyr', name),
+    'katilda-dawnhart-martyr',
+  )
+  assert.equal(edhrecSlug(undefined, name), 'katilda-dawnhart-martyr')
 })
 
 test('EDHREC parser keeps first category for each unique card', () => {
