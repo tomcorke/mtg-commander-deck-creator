@@ -283,14 +283,25 @@ main > .commander-header { z-index: 2; }
 .collection-browser-grid .collection-card-open { display: flex; width: 100%; min-height: 205px; flex-direction: column; align-items: stretch; margin: 0 0 8px; padding: 0; border: 0; color: inherit; text-align: left; }
 .collection-browser-grid .collection-card-open > div { min-height: 72px; text-align: center; }
 .collection-browser-grid .collection-card-open small { margin-top: auto; color: #69409a; font-size: 11px; text-align: right; }
-.health-lane { display: flex; justify-content: space-between; gap: 18px; margin-top: 20px; padding: 14px; border: 1px dashed #bbb9cd; border-radius: 9px; background: #faf9ff; }
+.health-lane { position: relative; display: flex; justify-content: space-between; gap: 18px; margin-top: 20px; padding: 14px; border: 1px dashed #bbb9cd; border-radius: 9px; background: #faf9ff; }
 .health-lane h3 { margin: 0; font-size: 17px; }
 .health-lane p:not(.eyebrow) { margin: 4px 0 0; color: #69667d; font-size: 12px; }
-.health-lane > div:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
-.health-lane article { display: grid; grid-template-columns: auto 1fr auto; gap: 5px 8px; align-items: center; min-width: 170px; padding: 8px; border: 1px solid #dedcea; border-radius: 6px; background: white; }
-.health-lane article span { grid-column: 1 / -1; color: #69409a; font-size: 10px; text-transform: uppercase; }
-.health-lane article b { font-size: 12px; }
-.health-lane article button { padding: 4px 7px; border: 1px solid #36327f; border-radius: 4px; background: transparent; color: #36327f; font-size: 11px; }
+.health-suggestion-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.health-lane article { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; min-width: 190px; padding: 8px; border: 1px solid #dedcea; border-radius: 6px; background: white; }
+.health-card-open { position: relative; display: grid; min-width: 0; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; align-items: center; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.health-lane article:has(.health-card-open:hover, .health-card-open:focus-visible) { z-index: 20; }
+.health-card-thumbnail { display: block; width: 44px; aspect-ratio: 488 / 680; overflow: hidden; border-radius: 4.75%; }
+.health-card-thumbnail .finished-card { display: block; width: 100%; height: 100%; }
+.health-card-thumbnail-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+.health-card-copy { display: grid; min-width: 0; gap: 5px; align-content: center; }
+.health-card-reason { color: #69409a; font-size: 10px; text-transform: uppercase; }
+.health-lane article b { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.health-card-add { padding: 4px 7px; border: 1px solid #36327f; border-radius: 4px; background: transparent; color: #36327f; font-size: 11px; }
+.health-card-zoom { position: absolute; z-index: 30; right: 0; bottom: calc(100% + 10px); width: min(320px, calc(100vw - 32px)); visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(4px) scale(.96); transform-origin: bottom right; transition: opacity .15s, transform .15s, visibility 0s .15s; }
+.health-card-zoom .finished-card { display: block; width: 100%; }
+.health-card-full-image { display: block; width: 100%; height: auto; border-radius: 4.75%; box-shadow: 0 16px 42px #080712d9, 0 0 0 1px #ffffff26; }
+.health-card-zoom .finish-edges { position: absolute; }
+.health-card-open:hover .health-card-zoom, .health-card-open:focus-visible .health-card-zoom { visibility: visible; opacity: 1; transform: translateY(0) scale(1); transition-delay: 0s; }
 .options-pending { color: #8a5b16; font-weight: 600; }
 .recommendation-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 20px; }
 .toolbar-actions { display: flex; flex: none; align-items: center; gap: 12px; }
@@ -593,7 +604,8 @@ li b { color: #8b879a; font-size: 12px; font-weight: 500; text-transform: upperc
 .dark .collection-browser, .dark .health-lane { border-color: #39374f; background: #19182d; }
 .dark .collection-browser-heading p:not(.eyebrow), .dark .collection-browser-filters label, .dark .collection-browser-grid p, .dark .collection-browser-grid span, .dark .collection-picker-help, .dark .health-lane p:not(.eyebrow) { color: #aaa8c2; }
 .dark .collection-browser-filters select, .dark .collection-browser-filters input, .dark .collection-browser-grid article, .dark .health-lane article { border-color: #4b4867; background: #121121; color: #e5e3f0; }
-.dark .collection-browser-grid button, .dark .health-lane article button { border-color: #615b96; color: #d4d0ed; }
+.dark .collection-browser-grid button, .dark .health-card-add { border-color: #615b96; color: #d4d0ed; }
+.dark .health-card-reason { color: #d4d0ed; }
 .dark .collection-browser-grid .collection-card-open { border-color: transparent; }
 .dark .collection-browser-grid .collection-card-open small, .dark .set-affinity-button { color: #c6b8ff; }
 .dark .themes button:hover, .dark .themes button.selected, .dark .format-tabs button.selected, .dark .actions .primary, .dark .empty .primary, .dark .batch-controls .primary, .dark .export-actions .primary { border-color: #7169ca; background: #5851a6; color: white; }
@@ -686,6 +698,7 @@ li b { color: #8b879a; font-size: 12px; font-weight: 500; text-transform: upperc
   .card-offer { display: grid; grid-template-columns: 130px 1fr; gap: 0 22px; align-items: start; }
   .recommendation-toolbar { align-items: flex-start; }
   .health-lane { flex-direction: column; }
+  .health-card-zoom { top: calc(100% + 10px); right: auto; bottom: auto; left: 0; transform-origin: top left; }
   .connector-glow .synergy-pair .offered-image > .finished-card > .synergy-connector { display: none; }
   .offer-heading { grid-column: 1 / -1; min-height: 38px; }
   .suggestion-type { grid-column: 1 / -1; }
