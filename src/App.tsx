@@ -296,7 +296,7 @@ function App() {
   const [recommendationStyle, setRecommendationStyle] = useStoredOption<RecommendationStyle>('recommendationStyle', () => savedDeckState?.recommendationStyle ?? 'balanced')
   const [collectionSets, setCollectionSets] = useState<string[]>(savedDeckState?.collectionSets ?? [])
   const [collectionGroups, setCollectionGroups] = useState<string[]>(savedDeckState?.collectionGroups ?? [])
-  const [collectionMode, setCollectionMode] = useState<CollectionMode>(savedDeckState?.collectionMode ?? 'none')
+  const [collectionMode, setCollectionMode] = useState<CollectionMode>(savedDeckState?.collectionSets?.length ? savedDeckState?.collectionMode ?? 'none' : 'none')
   const [prioritizeDeckHealth, setPrioritizeDeckHealth] = useState(savedDeckState?.prioritizeDeckHealth ?? true)
   const [setOptions, setSetOptions] = useState<ScryfallSet[]>([])
   const [collectionSearch, setCollectionSearch] = useState('')
@@ -1468,9 +1468,11 @@ function App() {
     setRecommendationOptionsChanged(true)
   }
   function toggleCollectionSet(code: string) {
+    const removingLastSet = collectionSets.length === 1 && collectionSets.includes(code)
     setCollectionSets((current) => current.includes(code) ? current.filter((item) => item !== code) : [...current, code])
     setCollectionGroups([])
-    if (collectionMode === 'none') setCollectionMode('prefer')
+    if (removingLastSet) setCollectionMode('none')
+    else if (collectionMode === 'none') setCollectionMode('prefer')
     setCollectionPoolSize(null)
     setRecommendationOptionsChanged(true)
   }
@@ -1554,7 +1556,7 @@ function App() {
   const recommendationStyleLabel = recommendationStyle === 'story' ? 'Story' : recommendationStyle === 'optimized' ? 'Optimized' : 'Balanced'
   const powerTargetLabel = powerTarget === 'precon' ? 'Core' : powerTarget === 'upgraded' ? 'Upgraded' : 'High power'
   const excludedRecommendations = [excludeGameChangers && 'Game Changers', excludeTutors && 'tutors', excludeExtraTurns && 'extra turns', excludeUnreleased && 'unreleased'].filter(Boolean) as string[]
-  const collectionSummary = collectionMode === 'none' ? 'Collection off' : collectionSets.length ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} ${collectionSets.length} set${collectionSets.length === 1 ? '' : 's'}` : 'Collection needs a set'
+  const collectionSummary = collectionSets.length && collectionMode !== 'none' ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} ${collectionSets.length} set${collectionSets.length === 1 ? '' : 's'}` : 'Collection off'
   const recommendationSettingsSummary = [recommendationStyleLabel, powerTargetLabel, prioritizeDeckHealth ? 'Health prioritized' : 'Health optional', includeCreature ? 'Creatures included' : 'Creatures optional', collectionSummary, excludedRecommendations.length ? `${excludedRecommendations.length} exclusions` : 'No exclusions'].join(' · ')
   const recommendationSettingsModal = showRecommendationSettings && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal() }}>
     <section className="export-modal recommendation-settings-modal" role="dialog" aria-modal="true" aria-labelledby="recommendation-settings-title" onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); closeModal() } }}>
@@ -1570,7 +1572,7 @@ function App() {
             {collectionSets.length > 0 && <div className="collection-selection"><span>Selected sets</span><div className="collection-chips">{collectionSets.map((code) => <button type="button" key={code} onClick={() => toggleCollectionSet(code)}>{collectionSetLabel(code)} ×</button>)}</div></div>}
           </div>
           {filteredSetOptions.length > 0 && <div className="collection-set-results" aria-label="Set search results">{filteredSetOptions.map((set) => <button type="button" key={set.code} onClick={() => toggleCollectionSet(set.code)}>{set.name} <small>{set.code.toUpperCase()}</small></button>)}</div>}
-          <label>Match <select value={collectionMode} onChange={(event) => chooseCollectionMode(event.target.value as CollectionMode)}><option value="none">No collection preference</option><option value="prefer">Prefer selected collection</option><option value="only">Only selected collection</option></select></label>
+          <label>Match <select value={collectionMode} disabled={!collectionSets.length} onChange={(event) => chooseCollectionMode(event.target.value as CollectionMode)}><option value="none">No collection preference</option><option value="prefer">Prefer selected collection</option><option value="only">Only selected collection</option></select></label>
           <button type="button" disabled={!collectionSets.length || collectionBrowserState === 'loading'} onClick={() => { closeModal(); void browseCollection() }}>{collectionBrowserState === 'loading' ? 'Loading collection…' : 'Browse collection'}</button>
           {collectionState === 'loading' && <small role="status">Checking legal collection…</small>}
           {collectionError && <small className="form-error" role="alert">{collectionError}</small>}
