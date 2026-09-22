@@ -128,6 +128,47 @@
 .recommendation-settings-form {
   margin-top: 22px;
 }
+.recommendation-settings-form > .recommendation-setting {
+  flex-basis: 100%;
+}
+.recommendation-setting,
+.recommendation-setting-toggle,
+.collection-mode-setting {
+  position: relative;
+  display: grid;
+  align-items: center;
+  gap: 7px;
+}
+.recommendation-setting,
+.collection-mode-setting {
+  grid-template-columns: auto auto 20px 1fr;
+}
+.recommendation-setting-toggle {
+  grid-template-columns: auto 20px 1fr;
+}
+.recommendation-setting > label,
+.collection-mode-setting > label,
+.recommendation-setting-toggle > label {
+  grid-column: 1;
+  grid-row: 1;
+}
+.recommendation-setting > select,
+.collection-mode-setting > select {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+}
+.recommendation-options legend {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 20px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.recommendation-options legend > span:not(.setting-help-wrap) {
+  grid-column: 1;
+  grid-row: 1;
+}
 .recommendation-settings-actions {
   flex-wrap: wrap;
 }
@@ -171,6 +212,9 @@
   border: 1px solid #d2d0df;
   border-radius: 7px;
 }
+.recommendation-options fieldset:not(.collection-picker) > .recommendation-setting-toggle {
+  flex-basis: 100%;
+}
 .recommendation-options legend {
   padding: 0 5px;
   color: #69409a;
@@ -185,6 +229,69 @@
   background: transparent;
   color: #36327f;
   font-size: 12px;
+}
+.recommendation-options .setting-help-button {
+  display: grid;
+  grid-column: 1;
+  grid-row: 1;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #36327f;
+  border-radius: 5px;
+  background: transparent;
+  color: #36327f;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+.recommendation-options .setting-help-button:hover,
+.recommendation-options .setting-help-button:focus-visible {
+  border-color: #36327f;
+  background: transparent;
+  color: #36327f;
+}
+.recommendation-options .setting-help-button:focus-visible {
+  outline: 2px solid #8d88bd;
+  outline-offset: 2px;
+}
+.setting-help-wrap {
+  position: relative;
+  display: inline-grid;
+  width: 20px;
+  min-width: 20px;
+  grid-column: 3;
+  grid-row: 1;
+}
+.recommendation-setting-toggle .setting-help-wrap,
+.recommendation-options legend .setting-help-wrap {
+  grid-column: 2;
+}
+.setting-help-popover {
+  position: absolute;
+  z-index: 10;
+  top: 50%;
+  left: calc(100% + 8px);
+  display: block;
+  width: min(280px, calc(100vw - 48px));
+  padding: 9px 11px;
+  border: 1px solid #9a72ba;
+  border-radius: 7px;
+  background: #201c3c;
+  color: white;
+  box-shadow: 0 12px 30px #201c3c55;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transform: translateY(-50%);
+}
+.setting-help-wrap:hover .setting-help-popover,
+.setting-help-button:focus-visible + .setting-help-popover {
+  opacity: 1;
+  visibility: visible;
 }
 .collection-picker {
   flex-basis: 100%;
@@ -292,9 +399,12 @@
   display: flex;
   min-width: 0;
   grid-area: actions;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 10px;
+}
+.collection-mode-setting {
+  min-width: 0;
 }
 .collection-affinity-actions label {
   min-width: 0;

@@ -6,6 +6,30 @@ import type { CollectionMode, RecommendationStyle } from '../../recommendations.
 type PowerTarget = 'precon' | 'upgraded' | 'high'
 type SetOption = { code: string; name: string }
 
+type SettingHelpProps = {
+  id: string
+  label: string
+  description: string
+}
+
+function SettingHelp({ id, label, description }: SettingHelpProps) {
+  return (
+    <span className="setting-help-wrap">
+      <button
+        type="button"
+        className="setting-help-button"
+        aria-label={`Explain ${label}`}
+        aria-describedby={id}
+      >
+        ?
+      </button>
+      <span className="setting-help-popover" id={id} role="tooltip">
+        {description}
+      </span>
+    </span>
+  )
+}
+
 type RecommendationSettingsModalProps = {
   show: boolean
   recommendationStyle: RecommendationStyle
@@ -115,9 +139,10 @@ export function RecommendationSettingsModal({
           />
         </div>
         <div className="recommendation-options recommendation-settings-form">
-          <label>
-            Recommendation style{' '}
+          <div className="recommendation-setting">
+            <label htmlFor="recommendation-style">Recommendation style</label>
             <select
+              id="recommendation-style"
               value={recommendationStyle}
               onChange={(event) =>
                 chooseRecommendationStyle(event.target.value as RecommendationStyle)
@@ -127,10 +152,16 @@ export function RecommendationSettingsModal({
               <option value="balanced">Balanced</option>
               <option value="optimized">Optimized</option>
             </select>
-          </label>
-          <label>
-            Power target{' '}
+            <SettingHelp
+              id="recommendation-style-help"
+              label="Recommendation style"
+              description="Controls how cards are ranked. Story favors your theme, Balanced mixes theme and deck needs, and Optimized favors cards that fill deck needs."
+            />
+          </div>
+          <div className="recommendation-setting">
+            <label htmlFor="power-target">Power target</label>
             <select
+              id="power-target"
               value={powerTarget}
               onChange={(event) => choosePowerTarget(event.target.value as PowerTarget)}
             >
@@ -138,31 +169,59 @@ export function RecommendationSettingsModal({
               <option value="upgraded">Upgraded (Bracket 3)</option>
               <option value="high">High power / Optimized (Bracket 4)</option>
             </select>
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={prioritizeDeckHealth}
-              onChange={(event) => {
-                setPrioritizeDeckHealth(event.target.checked)
-                setRecommendationOptionsChanged(true)
-              }}
-            />{' '}
-            Prioritize deck health
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={includeCreature}
-              onChange={(event) => {
-                setIncludeCreature(event.target.checked)
-                setRecommendationOptionsChanged(true)
-              }}
-            />{' '}
-            Include a creature when possible
-          </label>
+            <SettingHelp
+              id="power-target-help"
+              label="Power target"
+              description="Sets the target power band. Core filters out fast-mana cards that are uncommon in precon-style decks. Higher targets allow them."
+            />
+          </div>
+          <div className="recommendation-setting">
+            <label htmlFor="prioritize-deck-health">
+              <input
+                id="prioritize-deck-health"
+                type="checkbox"
+                checked={prioritizeDeckHealth}
+                onChange={(event) => {
+                  setPrioritizeDeckHealth(event.target.checked)
+                  setRecommendationOptionsChanged(true)
+                }}
+              />{' '}
+              Prioritize deck health
+            </label>
+            <SettingHelp
+              id="deck-health-help"
+              label="Prioritize deck health"
+              description="Boosts cards that fill missing deck roles such as lands, ramp, card draw, removal, and board wipes."
+            />
+          </div>
+          <div className="recommendation-setting">
+            <label htmlFor="include-creature">
+              <input
+                id="include-creature"
+                type="checkbox"
+                checked={includeCreature}
+                onChange={(event) => {
+                  setIncludeCreature(event.target.checked)
+                  setRecommendationOptionsChanged(true)
+                }}
+              />{' '}
+              Include a creature when possible
+            </label>
+            <SettingHelp
+              id="include-creature-help"
+              label="Include a creature when possible"
+              description="Keeps a creature in each recommendation batch when one is available. Turn it off for a deck that does not need creatures."
+            />
+          </div>
           <fieldset className="collection-picker">
-            <legend>Collection affinity</legend>
+            <legend>
+              <span>Collection affinity</span>
+              <SettingHelp
+                id="collection-affinity-help"
+                label="Collection affinity"
+                description="Choose sets to prefer or limit recommendations to. Select sets below, then choose how strongly to match them."
+              />
+            </legend>
             <p className="collection-picker-help">
               Choose a set here or use the set button in any card's printing details.
             </p>
@@ -215,9 +274,10 @@ export function RecommendationSettingsModal({
                 </div>
               )}
               <div className="collection-affinity-actions">
-                <label>
-                  Match{' '}
+                <div className="collection-mode-setting">
+                  <label htmlFor="collection-mode">Match</label>
                   <select
+                    id="collection-mode"
                     value={collectionMode}
                     disabled={!collectionSets.length}
                     onChange={(event) => chooseCollectionMode(event.target.value as CollectionMode)}
@@ -226,7 +286,12 @@ export function RecommendationSettingsModal({
                     <option value="prefer">Prefer selected collection</option>
                     <option value="only">Only selected collection</option>
                   </select>
-                </label>
+                  <SettingHelp
+                    id="collection-mode-help"
+                    label="Collection matching"
+                    description="Prefer puts cards from selected sets first. Only removes cards from other sets."
+                  />
+                </div>
                 <button
                   type="button"
                   disabled={!collectionSets.length || collectionBrowserState === 'loading'}
@@ -255,50 +320,82 @@ export function RecommendationSettingsModal({
           </fieldset>
           <fieldset>
             <legend>Exclude from recommendations</legend>
-            <label>
-              <input
-                type="checkbox"
-                checked={excludeGameChangers}
-                onChange={(event) => {
-                  setExcludeGameChangers(event.target.checked)
-                  setRecommendationOptionsChanged(true)
-                }}
-              />{' '}
-              Exclude Game Changers
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={excludeTutors}
-                onChange={(event) => {
-                  setExcludeTutors(event.target.checked)
-                  setRecommendationOptionsChanged(true)
-                }}
-              />{' '}
-              Exclude tutors
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={excludeExtraTurns}
-                onChange={(event) => {
-                  setExcludeExtraTurns(event.target.checked)
-                  setRecommendationOptionsChanged(true)
-                }}
-              />{' '}
-              Exclude extra turns
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={excludeUnreleased}
-                onChange={(event) => {
-                  setExcludeUnreleased(event.target.checked)
-                  setRecommendationOptionsChanged(true)
-                }}
-              />{' '}
-              Exclude unreleased cards
-            </label>
+            <div className="recommendation-setting-toggle">
+              <label htmlFor="exclude-game-changers">
+                <input
+                  id="exclude-game-changers"
+                  type="checkbox"
+                  checked={excludeGameChangers}
+                  onChange={(event) => {
+                    setExcludeGameChangers(event.target.checked)
+                    setRecommendationOptionsChanged(true)
+                  }}
+                />{' '}
+                Exclude Game Changers
+              </label>
+              <SettingHelp
+                id="exclude-game-changers-help"
+                label="Exclude Game Changers"
+                description="Removes cards marked as Game Changers from recommendations."
+              />
+            </div>
+            <div className="recommendation-setting-toggle">
+              <label htmlFor="exclude-tutors">
+                <input
+                  id="exclude-tutors"
+                  type="checkbox"
+                  checked={excludeTutors}
+                  onChange={(event) => {
+                    setExcludeTutors(event.target.checked)
+                    setRecommendationOptionsChanged(true)
+                  }}
+                />{' '}
+                Exclude tutors
+              </label>
+              <SettingHelp
+                id="exclude-tutors-help"
+                label="Exclude tutors"
+                description="Removes cards that search your library for specific cards."
+              />
+            </div>
+            <div className="recommendation-setting-toggle">
+              <label htmlFor="exclude-extra-turns">
+                <input
+                  id="exclude-extra-turns"
+                  type="checkbox"
+                  checked={excludeExtraTurns}
+                  onChange={(event) => {
+                    setExcludeExtraTurns(event.target.checked)
+                    setRecommendationOptionsChanged(true)
+                  }}
+                />{' '}
+                Exclude extra turns
+              </label>
+              <SettingHelp
+                id="exclude-extra-turns-help"
+                label="Exclude extra turns"
+                description="Removes cards that grant extra turns."
+              />
+            </div>
+            <div className="recommendation-setting-toggle">
+              <label htmlFor="exclude-unreleased">
+                <input
+                  id="exclude-unreleased"
+                  type="checkbox"
+                  checked={excludeUnreleased}
+                  onChange={(event) => {
+                    setExcludeUnreleased(event.target.checked)
+                    setRecommendationOptionsChanged(true)
+                  }}
+                />{' '}
+                Exclude unreleased cards
+              </label>
+              <SettingHelp
+                id="exclude-unreleased-help"
+                label="Exclude unreleased cards"
+                description="Removes cards that are not released yet."
+              />
+            </div>
           </fieldset>
           {recommendationOptionsChanged && (
             <span className="options-pending" role="status">

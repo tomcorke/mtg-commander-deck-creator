@@ -111,6 +111,21 @@
 .dark .recommendation-settings-actions > span {
   color: #aaa8c2;
 }
+.dark .recommendation-options .setting-help-button {
+  border-color: #4b4867;
+  color: #ccc9df;
+}
+.dark .recommendation-options .setting-help-button:hover,
+.dark .recommendation-options .setting-help-button:focus-visible {
+  border-color: #7169ca;
+  background: transparent;
+  color: #d4d0ed;
+}
+.dark .setting-help-popover {
+  border-color: #8d83df;
+  background: #24203a;
+  color: #dedaff;
+}
 .dark .card-type-line,
 .dark .deck-card-description {
   color: #aaa8c2;
@@ -509,6 +524,11 @@
   background: var(--commander-accent);
   color: white;
 }
+.dark.commander-themed .recommendation-options .setting-help-button:hover,
+.dark.commander-themed .recommendation-options .setting-help-button:focus-visible {
+  background: transparent;
+  color: var(--commander-highlight);
+}
 .dark.commander-themed .recommendation-options input {
   accent-color: var(--commander-accent);
 }
@@ -631,6 +651,14 @@
   }
 }
 @media (max-width: 620px) {
+  .setting-help-popover {
+    top: auto;
+    right: 0;
+    left: auto;
+    bottom: calc(100% + 8px);
+    width: min(240px, calc(100vw - 48px));
+    transform: none;
+  }
   .collection-set-controls {
     grid-template: auto auto auto auto / 1fr;
     grid-template-areas: 'search' 'results' 'selection' 'actions';

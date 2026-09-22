@@ -23,6 +23,14 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 - Give dialogs `role="dialog"`, `aria-modal="true"`, and `aria-labelledby`; support Escape and backdrop dismissal when the dialog allows it.
 - Reuse the existing modal heading and close-button pattern so dialogs behave and look alike.
 
+## Popovers
+
+- Reuse the `.action-help-wrap` / `.action-help` pattern when possible.
+- Keep each trigger and popover in a real `position: relative` wrapper or its local positioned setting row. Position the popover with `position: absolute` so showing it never changes layout or pushes nearby content.
+- Show popovers on wrapper hover and trigger `:focus-visible`; use `role="tooltip"` and `aria-describedby` for keyboard and screen-reader users.
+- Match existing flat surfaces, borders, colors, and motion. Add no gradients or entrance animation unless the design explicitly calls for them.
+- Check placement against nearby labels in light, dark, and narrow layouts. Anchor the popover away from the setting text and keep it inside the modal viewport.
+
 ## Review gate
 
 Before handoff, inspect the rendered path in both light and dark modes and check that new buttons use a shared class. Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
