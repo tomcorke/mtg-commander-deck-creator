@@ -34,6 +34,20 @@ test('commander promotion keeps deck colours and explains conflicts', () => {
   assert.match(commanderPromotionWarning(info!), /Old Commander and Blue Spell/)
 })
 
+test('mana production does not add colours to a card identity', () => {
+  const producer = {
+    ...card('Mana Producer', [], 'Instant'),
+    colorIdentity: undefined,
+    producedMana: ['W', 'U', 'B', 'R', 'G'],
+    detail:
+      'Create a Treasure token. It has “{T}, Sacrifice this token: Add one mana of any color.”',
+  }
+  const info = commanderPromotionInfo(card('Veyran', ['U', 'R']), [producer])
+
+  assert.equal(info?.canPromote, true)
+  assert.deepEqual(info?.missingColours, [])
+})
+
 test('commander eligibility follows creature, Vehicle, Spacecraft, and explicit rules', () => {
   const deck = [card('Old Commander', ['W'])]
   assert.equal(

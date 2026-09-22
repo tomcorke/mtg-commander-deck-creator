@@ -18,7 +18,7 @@ const basicLandColours: Record<string, (typeof manaColours)[number]> = {
 
 type CommanderCandidate = Pick<
   DeckCard,
-  'name' | 'typeLine' | 'manaCost' | 'detail' | 'producedMana' | 'faces' | 'power' | 'toughness'
+  'name' | 'typeLine' | 'manaCost' | 'detail' | 'faces' | 'power' | 'toughness'
 > & { colorIdentity?: string[] }
 
 export type CommanderPromotionInfo = {
@@ -53,8 +53,6 @@ export function cardColourIdentity(card: CommanderCandidate) {
       ...card.faces.flatMap((face) => [face.typeLine, face.manaCost]),
     ].join('\n'),
   )
-  for (const colour of card.producedMana)
-    if (manaColours.includes(colour as (typeof manaColours)[number])) found.add(colour)
   for (const [basicLand, colour] of Object.entries(basicLandColours))
     if (card.typeLine.includes(basicLand)) found.add(colour)
   return [...found]
