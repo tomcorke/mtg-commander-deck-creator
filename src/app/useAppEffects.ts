@@ -72,9 +72,10 @@ function updatedCommanderDetails(current: any, printings: any[][]) {
   }
 }
 
-function updatedDeckPrintings(current: any[], printings: any[][]) {
-  return current.map((card, index) => {
-    if (index >= printings.length) return card
+function updatedDeckPrintings(current: any[], printings: any[][], names: string[]) {
+  return current.map((card) => {
+    const index = names.indexOf(card.name)
+    if (index < 0 || index >= printings.length) return card
     const options = printings[index]
     const matching = printingIndex(options, card.image, card.finish)
     const selectedIndex = matching >= 0 ? matching : printingIndex(options, card.image, 'nonfoil')
@@ -130,7 +131,9 @@ export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
     )
       .then((printings) => {
         setCommanderDetails((current: any) => updatedCommanderDetails(current, printings))
-        setDeck((current: any[]) => updatedDeckPrintings(current, printings))
+        setDeck((current: any[]) =>
+          updatedDeckPrintings(current, printings, commanderNames(commander)),
+        )
       })
       .catch(() => undefined)
   }, [commander, commanderDetails])

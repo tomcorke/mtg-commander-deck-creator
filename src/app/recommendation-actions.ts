@@ -386,6 +386,7 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
         name: card.name,
         layout: card.layout ?? 'normal',
         typeLine: card.type_line,
+        colorIdentity: card.color_identity,
         manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '',
         manaValue: card.cmc ?? 0,
         detail: cardText(card),

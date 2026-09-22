@@ -223,6 +223,19 @@
 .dark .health-card-reason {
   color: #d4d0ed;
 }
+.dark .commander-promotion-button {
+  border-color: #8d88db;
+  color: #d4d0ed;
+}
+.dark .commander-promotion-button:not(:disabled):hover,
+.dark .commander-promotion-button:not(:disabled):focus-visible {
+  border-color: #b786f2;
+  background: #34314f;
+  color: #f0ecff;
+}
+.dark .commander-warning {
+  color: #f0aaa4 !important;
+}
 .dark .collection-browser-grid .collection-card-open {
   border-color: transparent;
 }

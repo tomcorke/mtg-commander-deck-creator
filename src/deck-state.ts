@@ -22,6 +22,7 @@ const cardBase = {
   name: z.string(),
   layout: z.string(),
   typeLine: z.string(),
+  colorIdentity: z.array(z.string()).optional(),
   manaCost: z.string(),
   manaValue: z.number(),
   power: z.string().optional(),

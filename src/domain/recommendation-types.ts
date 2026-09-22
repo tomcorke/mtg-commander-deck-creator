@@ -19,6 +19,7 @@ export type RecommendationCard = {
   name: string
   layout: string
   typeLine: string
+  colorIdentity?: string[]
   manaCost: string
   manaValue: number
   detail: string

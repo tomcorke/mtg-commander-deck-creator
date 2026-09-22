@@ -1,8 +1,10 @@
 import type { CollectionMode } from '../../recommendations.ts'
+import type { CommanderPromotionInfo } from '../../domain/commander-promotion.ts'
 import { cardScryfallUri, cardTypeLine, type DeckCard } from '../../domain/card-model.ts'
 import { ArtLoading, FinishedCardImage, PrintingButton } from '../../shared/CardArt.tsx'
 import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { OracleText } from '../../shared/ManaSymbols.tsx'
+import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
 
 type DeckCardModalProps = {
   show: boolean
@@ -11,6 +13,8 @@ type DeckCardModalProps = {
   selectedGuidanceCard: boolean
   deckComplete: boolean
   selectedDeckCardIsCommander: boolean
+  commanderPromotion: CommanderPromotionInfo | null
+  promoteToCommander: () => void
   loadingArt: string
   cardEffects: boolean
   cycleSelectedDeckCardPrinting: () => void
@@ -31,6 +35,8 @@ export function DeckCardModal({
   selectedGuidanceCard,
   deckComplete,
   selectedDeckCardIsCommander,
+  commanderPromotion,
+  promoteToCommander,
   loadingArt,
   cardEffects,
   cycleSelectedDeckCardPrinting,
@@ -117,6 +123,9 @@ export function DeckCardModal({
             />
           </div>
         </div>
+        {commanderPromotion && (
+          <CommanderPromotion info={commanderPromotion} onPromote={promoteToCommander} />
+        )}
         {selectedGuidanceCard && (
           <div className="export-actions deck-card-modal-actions">
             <button type="button" className="primary" onClick={addSelectedGuidanceCard}>

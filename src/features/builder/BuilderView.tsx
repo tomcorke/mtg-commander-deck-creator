@@ -10,6 +10,7 @@ import {
   type ScryfallCard,
 } from '../../domain/card-model.ts'
 import { commanderNames, colourNames } from '../../domain/commander-catalog.ts'
+import { commanderPromotionInfo } from '../../domain/commander-promotion.ts'
 import { defaultFinish } from '../../domain/printing.ts'
 import {
   cardText,
@@ -34,6 +35,7 @@ import type { SavedDeck } from '../../deck-state.ts'
 import { ArtLoading, FinishedCardImage, PrintingButton } from '../../shared/CardArt.tsx'
 import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
+import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
 import { ScoreBreakdown } from '../score/ScoreBreakdown.tsx'
 
 type AnyFunction = (...args: any[]) => any
@@ -234,6 +236,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     openCommanderCard,
     openGuidanceCard,
     openDeckCard,
+    promoteToCommander,
     openModal,
     openSavedDecks,
     pendingRemoval,
@@ -1215,6 +1218,12 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       showSubThemes={activeSubThemes.length > 0}
                     />
                   </div>
+                  {commanderPromotionInfo(card, deck, commanderDetails?.colours ?? []) && (
+                    <CommanderPromotion
+                      info={commanderPromotionInfo(card, deck, commanderDetails?.colours ?? [])!}
+                      onPromote={() => void promoteToCommander(card)}
+                    />
+                  )}
                 </article>
               ))}
             </div>

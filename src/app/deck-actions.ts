@@ -14,7 +14,7 @@ import type {
   ExportFormat,
   ScryfallCard,
 } from '../domain/card-model.ts'
-import { scryfallImage, toDeckCard } from '../domain/card-model.ts'
+import { scryfallImage, toDeckCard, toDeckCardFromRecommendation } from '../domain/card-model.ts'
 import { manualCardError, orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
 import {
   clearDeckState,
@@ -31,6 +31,7 @@ import {
   parseDeckList,
   type ImportedDeck,
 } from '../deck-import.ts'
+import { commanderPromotionInfo, promoteDeckCard } from '../domain/commander-promotion.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
 function preloadArt(sources: (string | undefined)[]) {
   return Promise.all(
@@ -54,6 +55,7 @@ export function addRecommendationCard(deps: ActionDeps, card: Card) {
     name: card.name,
     layout: card.layout,
     typeLine: card.typeLine,
+    colorIdentity: card.colorIdentity,
     manaCost: card.manaCost,
     manaValue: card.manaValue,
     detail: card.detail,
@@ -138,6 +140,7 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
       name: card.name,
       layout: card.layout,
       typeLine: card.typeLine,
+      colorIdentity: card.colorIdentity,
       manaCost: card.manaCost,
       manaValue: card.manaValue,
       detail: card.detail,
@@ -179,6 +182,32 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
     )
   } else setIgnoredCards((current: any) => current.filter((name: any) => name !== card.name))
   setDecisions((current: any) => ({ ...current, [card.name]: action }))
+}
+
+export async function promoteToCommander(deps: ActionDeps, candidate: Card | DeckCard) {
+  const {
+    commander,
+    commanderDetails,
+    deck,
+    sideboard,
+    setBatchAnnouncement,
+    setDeck,
+    setQueue,
+    setSideboard,
+    start,
+  } = deps
+  if (commanderNames(commander).includes(candidate.name)) return
+  const promotion = commanderPromotionInfo(candidate, deck, commanderDetails?.colours ?? [])
+  if (!promotion?.canPromote) return
+  const existing = [...deck, ...sideboard].find((card: DeckCard) => card.name === candidate.name)
+  const promoted = existing ?? toDeckCardFromRecommendation(candidate as Card)
+  const next = promoteDeckCard(deck, sideboard, promoted)
+  const loaded = await start(candidate.name, true)
+  if (!loaded) return
+  setDeck(next.deck)
+  setSideboard(next.sideboard)
+  setQueue((current: Card[]) => current.filter((card) => card.name !== candidate.name))
+  setBatchAnnouncement(`${candidate.name} is now your commander.`)
 }
 
 export async function changeArt(
@@ -700,6 +729,7 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       scryfallUri: selected?.scryfallUri ?? fetched?.scryfall_uri ?? card.scryfallUri,
       power: fetched?.power ?? fetched?.card_faces?.[0]?.power ?? card.power,
       toughness: fetched?.toughness ?? fetched?.card_faces?.[0]?.toughness ?? card.toughness,
+      colorIdentity: fetched?.color_identity ?? card.colorIdentity,
       printsUri,
       price: selected?.price ?? fetched?.prices?.usd ?? card.price,
       priceUri: selected?.priceUri ?? fetched?.purchase_uris?.tcgplayer ?? card.priceUri,

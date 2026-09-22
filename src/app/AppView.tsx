@@ -1,4 +1,5 @@
 import { duplicateDeckName } from '../deck-state.ts'
+import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
 import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
@@ -63,6 +64,18 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
       selectedGuidanceCard={Boolean(state.selectedGuidanceCard)}
       deckComplete={state.deck.length >= 100}
       selectedDeckCardIsCommander={state.selectedDeckCardIsCommander}
+      commanderPromotion={
+        state.selectedDeckCard && !state.selectedDeckCardIsCommander
+          ? commanderPromotionInfo(
+              state.selectedDeckCard,
+              state.deck,
+              state.commanderDetails?.colours ?? [],
+            )
+          : null
+      }
+      promoteToCommander={() => {
+        if (state.selectedDeckCard) void actions.promoteToCommander(state.selectedDeckCard)
+      }}
       loadingArt={state.loadingArt}
       cardEffects={state.cardEffects}
       cycleSelectedDeckCardPrinting={() => void actions.cycleSelectedDeckCardPrinting()}
