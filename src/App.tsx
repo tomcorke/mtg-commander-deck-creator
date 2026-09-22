@@ -216,7 +216,8 @@ function radarPoints(score: RecommendationScoreBreakdown, scale = 1) {
   }).join(' ')
 }
 
-function ScoreBreakdown({ score }: { score: RecommendationScoreBreakdown }) {
+function ScoreBreakdown({ score, showPopularityPenalty }: { score: RecommendationScoreBreakdown; showPopularityPenalty: boolean }) {
+  const visibleFactors = showPopularityPenalty ? recommendationScoreFactors : recommendationScoreFactors.filter(({ key }) => key !== 'popularityPenalty')
   return <section className="score-breakdown" aria-label={`Score breakdown: ${score.total} out of 100`}>
     <div className="score-breakdown-heading"><h4>Score breakdown</h4><strong>{score.total}/100</strong></div>
     <div className="score-breakdown-content">
@@ -227,7 +228,7 @@ function ScoreBreakdown({ score }: { score: RecommendationScoreBreakdown }) {
         <polygon className="score-radar-area" points={radarPoints(score)} />
       </svg>
       <dl className="score-factors">
-        {recommendationScoreFactors.map(({ key, label, max, description }) => <div className="score-factor-row" tabIndex={0} aria-describedby={`score-factor-${key}`} key={key}><dt>{label}</dt><dd>{score[key as RecommendationScoreFactor]} / {max}</dd><span className="score-factor-tooltip" id={`score-factor-${key}`} role="tooltip">{description}</span></div>)}
+        {visibleFactors.map(({ key, label, max, description }) => <div className="score-factor-row" tabIndex={0} aria-describedby={`score-factor-${key}`} key={key}><dt>{label}</dt><dd>{score[key as RecommendationScoreFactor]} / {max}</dd><span className="score-factor-tooltip" id={`score-factor-${key}`} role="tooltip">{description}</span></div>)}
       </dl>
     </div>
     <p className="score-note">Factors are normalized to a 100-point total.</p>
@@ -1710,7 +1711,7 @@ function App() {
                 <span className="similar-wrap"><button className={`similar ${liked.includes(card.name) ? 'selected' : ''}`} type="button" disabled={decisions[card.name] === 'ignore'} aria-pressed={liked.includes(card.name)} onClick={() => setLiked((current) => current.includes(card.name) ? current.filter((name) => name !== card.name) : [...current, card.name])} aria-label={`Find more cards like ${card.name}`} aria-describedby={`similar-${card.name}`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></button><span className="similar-help" id={`similar-${card.name}`} role="tooltip">Prioritise similar cards in future recommendations.</span></span>
               </div>
               <div className="offered-image"><FinishedCardImage image={card.image} alt={`${card.name} card`} finish={card.finish} effectsEnabled={cardEffects} hasSynergyGlow={pairCards.includes(card)} className="card-face-image" />{pairCards.includes(card) && synergyPair && <span className="synergy-info"><button type="button" aria-describedby={`synergy-${card.name}`}>ⓘ Synergy</button><span className="synergy-popover" id={`synergy-${card.name}`} role="tooltip"><strong>{card.name} + {pairCards.find((item) => item !== card)?.name}</strong><span>{synergyPair.explanation}.</span></span></span>}<ArtLoading active={loadingArt === card.name} /><PrintingButton count={card.printings?.length ?? 0} index={card.printing ?? 0} loading={Boolean(loadingArt)} name={card.name} onClick={() => void cyclePrinting(card)} /></div>
-              <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p><CardDetails card={card} source={limitedRecommendations || card.source === 'scryfall' || card.collectionMatch ? { label: 'Scryfall', uri: cardScryfallUri(card) } : { label: 'EDHREC', uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}` }} onToggleSet={() => toggleCollectionSet(card.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(card.set)} /><ScoreBreakdown score={score} /></div>
+              <div className="card-copy"><h3>{card.name}</h3><p><OracleText text={card.detail} /></p><CardDetails card={card} source={limitedRecommendations || card.source === 'scryfall' || card.collectionMatch ? { label: 'Scryfall', uri: cardScryfallUri(card) } : { label: 'EDHREC', uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}` }} onToggleSet={() => toggleCollectionSet(card.set)} collectionSelected={collectionMode !== 'none' && collectionSets.includes(card.set)} /><ScoreBreakdown score={score} showPopularityPenalty={recommendationStyle === 'story'} /></div>
             </article>)}
           </div> : <div className="empty"><h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3><p>{deferredCards.length ? 'Advance recommendations to keep their waiting period, then bring them back.' : 'Review your deck or choose another commander.'}</p></div>}
           {healthSuggestions.length > 0 && <section className="health-lane" aria-labelledby="health-lane-title"><div><p className="eyebrow">Optional guidance</p><h3 id="health-lane-title">Deck health suggestions</h3><p>Story mode keeps these separate from your theme picks.</p></div><div>{healthSuggestions.map((card) => { const role = rolesForCard(card).find((item) => missingHealthRoles.includes(item)); return <article key={card.name}><span>{role ? targetLabels[role as keyof typeof targetLabels] : 'Deck support'}</span><b>{card.name}</b><button type="button" onClick={() => addRecommendationCard(card)}>Add</button></article> })}</div></section>}
