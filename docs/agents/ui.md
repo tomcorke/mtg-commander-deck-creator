@@ -19,6 +19,7 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 ## Dialogs
 
 - Use `.modal-backdrop` plus `.export-modal` or an existing modal variant. Do not insert a dialog into normal page flow.
+- Keep recommendation preferences in the `Recommendation settings` modal; the page should show only its button and a compact summary.
 - Give dialogs `role="dialog"`, `aria-modal="true"`, and `aria-labelledby`; support Escape and backdrop dismissal when the dialog allows it.
 - Reuse the existing modal heading and close-button pattern so dialogs behave and look alike.
 

@@ -15,10 +15,10 @@ type CommanderCard = ScryfallCard & { related_uris?: { edhrec?: string }; image_
 type ScryfallSet = { code: string; name: string; set_type?: string; released_at?: string; card_count?: number }
 type ExportFormat = 'moxfield' | 'plain' | 'csv'
 type AppView = 'start' | 'builder'
-type AppModal = 'saved' | 'import' | 'search' | 'basics' | 'export' | 'card'
+type AppModal = 'saved' | 'import' | 'search' | 'basics' | 'export' | 'card' | 'recommendation-settings'
 type AppHistoryState = { app: 'commander-deck-creator'; view: AppView; modal: AppModal | null; entry: boolean }
 const appHistoryKey = 'commander-deck-creator'
-const appModals: AppModal[] = ['saved', 'import', 'search', 'basics', 'export', 'card']
+const appModals: AppModal[] = ['saved', 'import', 'search', 'basics', 'export', 'card', 'recommendation-settings']
 
 function routeHash(view: AppView, modal: AppModal | null) {
   return `#${view === 'builder' ? 'build' : 'start'}${modal ? `/${modal}` : ''}`
@@ -349,6 +349,7 @@ function App() {
   const showExport = activeModal === 'export'
   const showBasicLands = activeModal === 'basics'
   const showCardSearch = activeModal === 'search'
+  const showRecommendationSettings = activeModal === 'recommendation-settings'
   const selectedDeckCard = useMemo(() => selectedDeckCardLocation ? (selectedDeckCardLocation.board === 'deck' ? deck : sideboard)[selectedDeckCardLocation.index] ?? null : selectedCollectionCard, [deck, selectedCollectionCard, selectedDeckCardLocation, sideboard])
   const showDeckCard = activeModal === 'card' && selectedDeckCard !== null
   const selectedDeckCardIsCommander = selectedDeckCardLocation?.board === 'deck' && selectedDeckCardLocation.index < commanderNames(commander).length
@@ -1550,6 +1551,42 @@ function App() {
   const recommendationRoleSupply = Object.fromEntries(targetKeys.map((role) => [role, queue.filter((card) => rolesForCard(card).includes(role)).length]))
   const scoredBatch = visibleBatch.map((card) => ({ card, score: recommendationScoreBreakdown(card, { theme, activeSubThemes, pickedTags, preferenceScores, neededRoles, cardRoles: rolesForCard(card), recommendationStyle, collectionSets, collectionMode, roleBoosts: recommendationRoleBoosts, roleSupply: recommendationRoleSupply, batchNumber }) }))
   const recommendedCard = scoredBatch.reduce((best, item) => item.score.total > best.score ? { card: item.card, score: item.score.total } : best, { card: null as Card | null, score: recommendedScoreThreshold - 1 })
+  const recommendationStyleLabel = recommendationStyle === 'story' ? 'Story' : recommendationStyle === 'optimized' ? 'Optimized' : 'Balanced'
+  const powerTargetLabel = powerTarget === 'precon' ? 'Core' : powerTarget === 'upgraded' ? 'Upgraded' : 'High power'
+  const excludedRecommendations = [excludeGameChangers && 'Game Changers', excludeTutors && 'tutors', excludeExtraTurns && 'extra turns', excludeUnreleased && 'unreleased'].filter(Boolean) as string[]
+  const collectionSummary = collectionMode === 'none' ? 'Collection off' : collectionSets.length ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} ${collectionSets.length} set${collectionSets.length === 1 ? '' : 's'}` : 'Collection needs a set'
+  const recommendationSettingsSummary = [recommendationStyleLabel, powerTargetLabel, prioritizeDeckHealth ? 'Health prioritized' : 'Health optional', includeCreature ? 'Creatures included' : 'Creatures optional', collectionSummary, excludedRecommendations.length ? `${excludedRecommendations.length} exclusions` : 'No exclusions'].join(' · ')
+  const recommendationSettingsModal = showRecommendationSettings && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal() }}>
+    <section className="export-modal recommendation-settings-modal" role="dialog" aria-modal="true" aria-labelledby="recommendation-settings-title" onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); closeModal() } }}>
+      <div className="export-heading"><div><p className="eyebrow">Recommendation preferences</p><h2 id="recommendation-settings-title">Recommendation settings</h2><p className="settings-help">Changes apply when you request the next recommendations.</p></div><ModalCloseButton autoFocus onClick={() => closeModal()} label="Close recommendation settings" /></div>
+      <div className="recommendation-options recommendation-settings-form">
+        <label>Recommendation style <select value={recommendationStyle} onChange={(event) => chooseRecommendationStyle(event.target.value as RecommendationStyle)}><option value="story">Story deck</option><option value="balanced">Balanced</option><option value="optimized">Optimized</option></select></label>
+        <label>Power target <select value={powerTarget} onChange={(event) => choosePowerTarget(event.target.value as PowerTarget)}><option value="precon">Core (Bracket 2)</option><option value="upgraded">Upgraded (Bracket 3)</option><option value="high">High power / Optimized (Bracket 4)</option></select></label>
+        <label><input type="checkbox" checked={prioritizeDeckHealth} onChange={(event) => { setPrioritizeDeckHealth(event.target.checked); setRecommendationOptionsChanged(true) }} /> Prioritize deck health</label>
+        <label><input type="checkbox" checked={includeCreature} onChange={(event) => { setIncludeCreature(event.target.checked); setRecommendationOptionsChanged(true) }} /> Include a creature when possible</label>
+        <fieldset className="collection-picker"><legend>Collection affinity</legend>
+          <p className="collection-picker-help">Choose a set here or use the set button in any card's printing details.</p>
+          <div className={`collection-set-controls ${collectionSets.length ? 'has-selection' : ''}`}><label className="collection-set-search"><span>Search all sets</span><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search by set name or code…" aria-label="Search all sets" /></label>
+            {collectionSets.length > 0 && <div className="collection-selection"><span>Selected sets</span><div className="collection-chips">{collectionSets.map((code) => <button type="button" key={code} onClick={() => toggleCollectionSet(code)}>{collectionSetLabel(code)} ×</button>)}</div></div>}
+          </div>
+          {filteredSetOptions.length > 0 && <div className="collection-set-results" aria-label="Set search results">{filteredSetOptions.map((set) => <button type="button" key={set.code} onClick={() => toggleCollectionSet(set.code)}>{set.name} <small>{set.code.toUpperCase()}</small></button>)}</div>}
+          <label>Match <select value={collectionMode} onChange={(event) => chooseCollectionMode(event.target.value as CollectionMode)}><option value="none">No collection preference</option><option value="prefer">Prefer selected collection</option><option value="only">Only selected collection</option></select></label>
+          <button type="button" disabled={!collectionSets.length || collectionBrowserState === 'loading'} onClick={() => { closeModal(); void browseCollection() }}>{collectionBrowserState === 'loading' ? 'Loading collection…' : 'Browse collection'}</button>
+          {collectionState === 'loading' && <small role="status">Checking legal collection…</small>}
+          {collectionError && <small className="form-error" role="alert">{collectionError}</small>}
+          {collectionSets.length > 0 && collectionPoolSize !== null && <small>{collectionPoolSize} legal unique cards found.</small>}
+        </fieldset>
+        <fieldset><legend>Exclude from recommendations</legend>
+          <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => { setExcludeGameChangers(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude Game Changers</label>
+          <label><input type="checkbox" checked={excludeTutors} onChange={(event) => { setExcludeTutors(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude tutors</label>
+          <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => { setExcludeExtraTurns(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude extra turns</label>
+          <label><input type="checkbox" checked={excludeUnreleased} onChange={(event) => { setExcludeUnreleased(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude unreleased cards</label>
+        </fieldset>
+        {recommendationOptionsChanged && <span className="options-pending" role="status">Changes apply with next recommendations.</span>}
+      </div>
+      <div className="export-actions recommendation-settings-actions"><span>{recommendationSettingsSummary}</span><button type="button" className="primary" onClick={() => closeModal()}>Done</button></div>
+    </section>
+  </div>
 
   return (
     <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`} style={{ '--commander-accent': primaryTheme[0], '--commander-highlight': secondaryTheme[1] } as CSSProperties}>
@@ -1561,6 +1598,7 @@ function App() {
       </header>
       {savedDecksModal}
       {importModal}
+      {recommendationSettingsModal}
       <section className="intro commander-header">
         {commanderDetails ? <figure className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`} tabIndex={0} aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}>
           {commanderDetails.images.map((image, index) => <img src={image} alt={`${commanderNames(commander)[index]} card`} onClick={() => openCommanderCard(index)} key={commanderNames(commander)[index]} />)}
@@ -1577,29 +1615,9 @@ function App() {
         </div>
         <div className="recommendation-setup">
           <div className="section-title"><div><p className="eyebrow">Next pick</p><h2>Add to your deck</h2></div><span>Batch {batchNumber}</span></div>
-          <div className="recommendation-options">
-            <label>Recommendation style <select value={recommendationStyle} onChange={(event) => chooseRecommendationStyle(event.target.value as RecommendationStyle)}><option value="story">Story deck</option><option value="balanced">Balanced</option><option value="optimized">Optimized</option></select></label>
-            <label>Power target <select value={powerTarget} onChange={(event) => choosePowerTarget(event.target.value as PowerTarget)}><option value="precon">Core (Bracket 2)</option><option value="upgraded">Upgraded (Bracket 3)</option><option value="high">High power / Optimized (Bracket 4)</option></select></label>
-            <label><input type="checkbox" checked={prioritizeDeckHealth} onChange={(event) => { setPrioritizeDeckHealth(event.target.checked); setRecommendationOptionsChanged(true) }} /> Prioritize deck health</label>
-            <label><input type="checkbox" checked={includeCreature} onChange={(event) => { setIncludeCreature(event.target.checked); setRecommendationOptionsChanged(true) }} /> Include a creature when possible</label>
-            <fieldset className="collection-picker"><legend>Collection affinity</legend>
-              <p className="collection-picker-help">Choose a set here or use the set button in any card's printing details.</p>
-              <div className={`collection-set-controls ${collectionSets.length ? 'has-selection' : ''}`}><label className="collection-set-search"><span>Search all sets</span><input value={collectionSearch} onChange={(event) => setCollectionSearch(event.target.value)} placeholder="Search by set name or code…" aria-label="Search all sets" /></label>
-                {collectionSets.length > 0 && <div className="collection-selection"><span>Selected sets</span><div className="collection-chips">{collectionSets.map((code) => <button type="button" key={code} onClick={() => toggleCollectionSet(code)}>{collectionSetLabel(code)} ×</button>)}</div></div>}
-              </div>
-              {filteredSetOptions.length > 0 && <div className="collection-set-results" aria-label="Set search results">{filteredSetOptions.map((set) => <button type="button" key={set.code} onClick={() => toggleCollectionSet(set.code)}>{set.name} <small>{set.code.toUpperCase()}</small></button>)}</div>}
-              <label>Match <select value={collectionMode} onChange={(event) => chooseCollectionMode(event.target.value as CollectionMode)}><option value="none">No collection preference</option><option value="prefer">Prefer selected collection</option><option value="only">Only selected collection</option></select></label>
-              <button type="button" disabled={!collectionSets.length || collectionBrowserState === 'loading'} onClick={() => void browseCollection()}>{collectionBrowserState === 'loading' ? 'Loading collection…' : 'Browse collection'}</button>
-              {collectionState === 'loading' && <small role="status">Checking legal collection…</small>}
-              {collectionError && <small className="form-error" role="alert">{collectionError}</small>}
-              {collectionSets.length > 0 && collectionPoolSize !== null && <small>{collectionPoolSize} legal unique cards found.</small>}
-            </fieldset>
-            <fieldset><legend>Exclude from recommendations</legend>
-              <label><input type="checkbox" checked={excludeGameChangers} onChange={(event) => { setExcludeGameChangers(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude Game Changers</label>
-              <label><input type="checkbox" checked={excludeTutors} onChange={(event) => { setExcludeTutors(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude tutors</label>
-              <label><input type="checkbox" checked={excludeExtraTurns} onChange={(event) => { setExcludeExtraTurns(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude extra turns</label>
-              <label><input type="checkbox" checked={excludeUnreleased} onChange={(event) => { setExcludeUnreleased(event.target.checked); setRecommendationOptionsChanged(true) }} /> Exclude unreleased cards</label>
-            </fieldset>
+          <div className="recommendation-settings-summary">
+            <button type="button" className="export" onClick={() => openModal('recommendation-settings')}>Recommendation settings</button>
+            <p title={recommendationSettingsSummary}>{recommendationSettingsSummary}</p>
             {recommendationOptionsChanged && <span className="options-pending" role="status">Changes apply with next recommendations.</span>}
           </div>
         </div>
