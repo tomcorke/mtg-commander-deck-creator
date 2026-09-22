@@ -9,7 +9,7 @@ import { randomItems, randomThree, themeCommanders } from '../domain/commander-c
 import type { Card } from '../domain/card-model.ts'
 import { basicLandNames } from '../deck-analysis.ts'
 import { fetchEdhrecCommander } from '../adapters/edhrec.ts'
-import { deckPageTitle } from '../deck-state.ts'
+import { deckPageTitle, saveDeckState } from '../deck-state.ts'
 import {
   fetchScryfallCard,
   fetchScryfallCardsByIdentifiers,
@@ -101,7 +101,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     setSetOptions: state.setSetOptions,
     recommendationState: state.recommendationState,
     currentDeckState: state.currentDeckState,
-    saveDeckState: state.saveDeckState,
+    saveDeckState,
     showBuilder: state.showBuilder,
     commander: state.commander,
     deck: state.deck,

@@ -288,7 +288,7 @@ export function useCommanderImagesEffect(deps: AppEffectsDeps) {
     }
     void load().catch(() => undefined)
     return () => controller.abort()
-  }, [suggestions, matches, search, commanderCosts, commanderImages])
+  }, [suggestions, matches, search])
 }
 
 export function usePrintingRepairEffect(deps: AppEffectsDeps) {
