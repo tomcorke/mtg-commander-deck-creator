@@ -86,22 +86,6 @@ type StateSetters = {
 
 export type ActionDeps = Record<string, any> & StateSetters
 
-export function choosePowerTarget(deps: ActionDeps, target: 'precon' | 'upgraded' | 'high') {
-  const {
-    setPowerTarget,
-    setRecommendationOptionsChanged,
-    setExcludeGameChangers,
-    setExcludeTutors,
-    setExcludeExtraTurns,
-  } = deps
-  setPowerTarget(target)
-  setRecommendationOptionsChanged(true)
-  const exclude = target !== 'high'
-  setExcludeGameChangers(exclude)
-  setExcludeTutors(exclude)
-  setExcludeExtraTurns(exclude)
-}
-
 export async function fallbackRecommendations(deps: ActionDeps, identityColours: string[]) {
   const {
     excludeGameChangers,

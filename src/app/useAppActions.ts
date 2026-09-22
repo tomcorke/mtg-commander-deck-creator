@@ -280,6 +280,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
   }
   const actions = createActionHandlers({
     ...state,
+    basicCardCache,
     openModal: (_deps: unknown, modal: AppModal) => routing.openModal(modal),
     closeModal: (replace = false) => routing.closeModal(replace),
     navigateView: (_deps: unknown, view: AppView, modal: AppModal | null = null, replace = false) =>
