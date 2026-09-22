@@ -673,48 +673,9 @@ li.curve-dimmed {
     100% 100%;
   box-shadow: 0 0 7px #b967ff;
   transform: translateY(-50%);
-  animation: alternate-art 4.7s ease-in-out infinite alternate;
-}
-@keyframes alternate-art {
-  0% {
-    background-position:
-      0 0,
-      100% 100%,
-      0 0;
-    filter: hue-rotate(0deg);
-  }
-  23% {
-    background-position:
-      85% 20%,
-      15% 75%,
-      0 0;
-    filter: hue-rotate(71deg);
-  }
-  61% {
-    background-position:
-      35% 100%,
-      90% 5%,
-      0 0;
-    filter: hue-rotate(193deg);
-  }
-  84% {
-    background-position:
-      100% 55%,
-      0 35%,
-      0 0;
-    filter: hue-rotate(281deg);
-  }
-  100% {
-    background-position:
-      12% 80%,
-      70% 100%,
-      0 0;
-    filter: hue-rotate(347deg);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .alternate-printing {
-    animation: none;
     background: linear-gradient(135deg, #f66, #6cf, #c6f);
   }
 }
