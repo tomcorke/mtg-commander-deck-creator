@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { analyseDeck, deckRoleBoosts, defaultDeckTargets, rolesForCard } from '../src/deck-analysis.ts'
-import { advanceRecommendationQueue, buildEdhrecRecommendations, parseEdhrecEntries, recommendationScore, type PowerTarget, type RecommendationCard, type RecommendationDecision, type ScryfallCard } from '../src/recommendations.ts'
+import { advanceRecommendationQueue, buildEdhrecRecommendations, edhrecSlug, parseEdhrecEntries, recommendationScore, type PowerTarget, type RecommendationCard, type RecommendationDecision, type ScryfallCard } from '../src/recommendations.ts'
 
 const fixtures = [
   ['23426916', 'Wakanda Forever'],
@@ -22,13 +22,8 @@ async function json<T>(url: string, init?: RequestInit) {
   return response.json() as Promise<T>
 }
 
-function slug(card: Commander) {
-  return card.related_uris?.edhrec?.match(/\/commanders\/([^/?#]+)/)?.[1]
-    ?? card.name.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-}
-
 async function productionRecommendations(commander: Commander, powerTarget: PowerTarget) {
-  const page = await json<{ container?: { json_dict?: { cardlists?: { header: string; tag: string; cardviews: { name: string }[] }[] } } }>(`https://json.edhrec.com/pages/commanders/${slug(commander)}.json`)
+  const page = await json<{ container?: { json_dict?: { cardlists?: { header: string; tag: string; cardviews: { name: string }[] }[] } } }>(`https://json.edhrec.com/pages/commanders/${edhrecSlug(commander.related_uris?.edhrec, commander.name)}.json`)
   const entries = parseEdhrecEntries(page.container?.json_dict?.cardlists ?? [])
   const cards: ScryfallCard[] = []
   for (let index = 0; index < entries.length; index += 75) {

@@ -17,6 +17,18 @@ export type ScryfallCard = { name: string; layout?: string; type_line: string; m
 export type EdhrecEntry = { name: string; tag: string; header: string }
 export type RecommendationCard = { name: string; layout: string; typeLine: string; manaCost: string; manaValue: number; detail: string; producedMana: string[]; faces: { typeLine: string; manaCost: string }[]; power?: string; toughness?: string; reason: string; source?: RecommendationSource; image: string; set: string; setName?: string; collectorNumber: string; scryfallUri?: string; printsUri: string; price?: string; priceUri?: string; finish?: CardFinish; tags: string[]; collectionMatch?: boolean }
 export type RecommendationOptions = { includeCreature: boolean; excludeGameChangers: boolean; excludeTutors: boolean; excludeExtraTurns: boolean; excludeUnreleased: boolean; powerTarget: PowerTarget }
+
+export function edhrecSlug(url: string | undefined, name: string) {
+  let source = name.split(' // ', 1)[0]
+  if (url) {
+    try {
+      const parsed = new URL(url)
+      source = parsed.pathname.match(/\/commanders\/([^/?#]+)/)?.[1] ?? parsed.searchParams.get('cc') ?? source
+    } catch {}
+  }
+  return source.toLowerCase().normalize('NFKD').replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
 export const recommendedScoreThreshold = 45
 export const recommendationScoreFactorMaximums = { evidence: 20, theme: 10, subThemes: 8, collection: 12, deckFit: 10, preferences: 10, deckNeeds: 30, popularityPenalty: 15 } as const
 export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> & Partial<Pick<RecommendationCard, 'set' | 'collectionMatch'>>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, commanderThemes, curatedCollections, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, selectSubTheme, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, commanderThemes, curatedCollections, deferBatch, edhrecSlug, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, selectSubTheme, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -63,6 +63,12 @@ test('printing preference preserves defaults and manual choices', () => {
   assert.equal(preferredPrintingIndex(printings, 'sld'), 1)
   assert.equal(preferredPrintingIndex(printings, 'missing'), 0)
   assert.equal(preferredPrintingIndex(printings, 'clb', 1, true), 1)
+})
+
+test('EDHREC slug uses canonical front face for double-faced commanders', () => {
+  const name = "Katilda, Dawnhart Martyr // Katilda's Rising Dawn"
+  assert.equal(edhrecSlug('https://edhrec.com/route/?cc=Katilda%2C+Dawnhart+Martyr', name), 'katilda-dawnhart-martyr')
+  assert.equal(edhrecSlug(undefined, name), 'katilda-dawnhart-martyr')
 })
 
 test('EDHREC parser keeps first category for each unique card', () => {
