@@ -111,6 +111,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     commanderDetails: state.commanderDetails,
     setCommanderDetails: state.setCommanderDetails,
     setDeck: state.setDeck,
+    showCardSearch: state.showCardSearch,
     cardSearch: state.cardSearch,
     filterCardIdentity: state.filterCardIdentity,
     excludeUnreleased: state.excludeUnreleased,
