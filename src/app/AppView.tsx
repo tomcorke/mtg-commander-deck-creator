@@ -36,7 +36,7 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
       commander={state.commander}
       deckName={state.deckName}
       setDeckName={state.setDeckName}
-      storeDeck={state.storeDeck}
+      storeDeck={actions.storeDeck}
       deckNameDuplicate={duplicateDeckName(
         state.savedDecks,
         state.deckName,
@@ -47,8 +47,8 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
       savedDecks={state.savedDecks}
       pendingSavedDeckRemoval={state.pendingSavedDeckRemoval}
       setPendingSavedDeckRemoval={state.setPendingSavedDeckRemoval}
-      loadSavedDeck={state.loadSavedDeck}
-      removeSavedDeck={state.removeSavedDeck}
+      loadSavedDeck={actions.loadSavedDeck}
+      removeSavedDeck={actions.removeSavedDeck}
       closeModal={() => actions.closeModal()}
     />
   )
@@ -65,12 +65,12 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
       selectedDeckCardIsCommander={state.selectedDeckCardIsCommander}
       loadingArt={state.loadingArt}
       cardEffects={state.cardEffects}
-      cycleSelectedDeckCardPrinting={() => void state.cycleSelectedDeckCardPrinting()}
+      cycleSelectedDeckCardPrinting={() => void actions.cycleSelectedDeckCardPrinting()}
       pendingCardRemoval={state.pendingCardRemoval}
       selectedDeckCardLocation={state.selectedDeckCardLocation}
-      removeSelectedDeckCard={state.removeSelectedDeckCard}
-      addSelectedGuidanceCard={state.addSelectedGuidanceCard}
-      closeDeckCard={state.closeDeckCard}
+      removeSelectedDeckCard={actions.removeSelectedDeckCard}
+      addSelectedGuidanceCard={actions.addSelectedGuidanceCard}
+      closeDeckCard={actions.closeDeckCard}
       toggleCollectionSet={actions.toggleCollectionSet}
       collectionMode={state.collectionMode}
       collectionSets={state.collectionSets}
