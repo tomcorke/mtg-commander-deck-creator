@@ -7,7 +7,17 @@ export const deckStateVersion = 1
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 const finishSchema = z.enum(['nonfoil', 'foil', 'etched'])
-const printingSchema = z.object({ image: z.string(), art: z.string().optional(), set: z.string(), setName: z.string().optional(), collectorNumber: z.string(), scryfallUri: z.string().optional(), price: z.string().optional(), priceUri: z.string().optional(), finish: finishSchema.optional() })
+const printingSchema = z.object({
+  image: z.string(),
+  art: z.string().optional(),
+  set: z.string(),
+  setName: z.string().optional(),
+  collectorNumber: z.string(),
+  scryfallUri: z.string().optional(),
+  price: z.string().optional(),
+  priceUri: z.string().optional(),
+  finish: finishSchema.optional(),
+})
 const cardBase = {
   name: z.string(),
   layout: z.string(),
@@ -64,40 +74,73 @@ export const persistedDeckStateSchema = z.object({
   dismissedSubThemes: z.array(z.string()),
   preferenceScores: z.record(z.string(), z.number()),
   commanderSubThemes: z.array(z.string()),
-  deferredCards: z.array(z.object({ card: cardSchema, eligibleBatch: z.number().int().positive() })),
+  deferredCards: z.array(
+    z.object({ card: cardSchema, eligibleBatch: z.number().int().positive() }),
+  ),
   batchNumber: z.number().int().positive(),
   deck: z.array(deckCardSchema).min(1).max(100),
   sideboard: z.array(deckCardSchema).default([]),
   preferredPrintSet: z.string(),
-  deckTargets: z.object({ lands: z.number().nonnegative(), ramp: z.number().nonnegative(), draw: z.number().nonnegative(), removal: z.number().nonnegative(), wipes: z.number().nonnegative() }),
+  deckTargets: z.object({
+    lands: z.number().nonnegative(),
+    ramp: z.number().nonnegative(),
+    draw: z.number().nonnegative(),
+    removal: z.number().nonnegative(),
+    wipes: z.number().nonnegative(),
+  }),
 })
 
 export type PersistedDeckState = z.infer<typeof persistedDeckStateSchema>
 export type SavedDeck = { id: string; name: string; updatedAt: string; state: PersistedDeckState }
 
-export const deckPageTitle = (cardCount: number, name: string, modified = false) => `${modified ? '*' : ''}${cardCount}/100 ${name} - Commander Deck Creator`
+export const deckPageTitle = (cardCount: number, name: string, modified = false) =>
+  `${modified ? '*' : ''}${cardCount}/100 ${name} - Commander Deck Creator`
 
 export function deckStateChanged(saved: PersistedDeckState, current: PersistedDeckState) {
   const withoutSavedDeckId = ({ savedDeckId: _savedDeckId, ...state }: PersistedDeckState) => state
   return JSON.stringify(withoutSavedDeckId(saved)) !== JSON.stringify(withoutSavedDeckId(current))
 }
 
-export const suggestedDeckName = (commander: string, theme: string, subThemes: string[]) => [commander, theme, ...subThemes].filter((name, index, names) => name && names.indexOf(name) === index).join(' - ')
-export const duplicateDeckName = (decks: SavedDeck[], name: string, currentId = '') => decks.some((deck) => deck.id !== currentId && deck.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase())
+export const suggestedDeckName = (commander: string, theme: string, subThemes: string[]) =>
+  [commander, theme, ...subThemes]
+    .filter((name, index, names) => name && names.indexOf(name) === index)
+    .join(' - ')
+export const duplicateDeckName = (decks: SavedDeck[], name: string, currentId = '') =>
+  decks.some(
+    (deck) =>
+      deck.id !== currentId && deck.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase(),
+  )
 
 export function deckDelta(saved: PersistedDeckState['deck'], current: PersistedDeckState['deck']) {
-  const counts = (cards: PersistedDeckState['deck']) => cards.reduce<Record<string, number>>((result, card) => ({ ...result, [card.name]: (result[card.name] ?? 0) + 1 }), {})
+  const counts = (cards: PersistedDeckState['deck']) =>
+    cards.reduce<Record<string, number>>(
+      (result, card) => ({ ...result, [card.name]: (result[card.name] ?? 0) + 1 }),
+      {},
+    )
   const before = counts(saved)
   const after = counts(current)
   const names = new Set([...Object.keys(before), ...Object.keys(after)])
-  return [...names].reduce((delta, name) => ({ added: delta.added + Math.max(0, (after[name] ?? 0) - (before[name] ?? 0)), removed: delta.removed + Math.max(0, (before[name] ?? 0) - (after[name] ?? 0)) }), { added: 0, removed: 0 })
+  return [...names].reduce(
+    (delta, name) => ({
+      added: delta.added + Math.max(0, (after[name] ?? 0) - (before[name] ?? 0)),
+      removed: delta.removed + Math.max(0, (before[name] ?? 0) - (after[name] ?? 0)),
+    }),
+    { added: 0, removed: 0 },
+  )
 }
 
-const savedDeckSchema = z.object({ id: z.string().min(1), name: z.string().min(1), updatedAt: z.string(), state: persistedDeckStateSchema })
+const savedDeckSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  updatedAt: z.string(),
+  state: persistedDeckStateSchema,
+})
 
 export function loadDeckState(storage: StorageLike = localStorage): PersistedDeckState | null {
   try {
-    const parsed = z.object({ version: z.literal(deckStateVersion), state: persistedDeckStateSchema }).safeParse(JSON.parse(storage.getItem(deckStateKey) ?? 'null'))
+    const parsed = z
+      .object({ version: z.literal(deckStateVersion), state: persistedDeckStateSchema })
+      .safeParse(JSON.parse(storage.getItem(deckStateKey) ?? 'null'))
     return parsed.success ? parsed.data.state : null
   } catch {
     return null
@@ -106,7 +149,10 @@ export function loadDeckState(storage: StorageLike = localStorage): PersistedDec
 
 export function saveDeckState(state: PersistedDeckState, storage: StorageLike = localStorage) {
   try {
-    storage.setItem(deckStateKey, JSON.stringify({ version: deckStateVersion, state: persistedDeckStateSchema.parse(state) }))
+    storage.setItem(
+      deckStateKey,
+      JSON.stringify({ version: deckStateVersion, state: persistedDeckStateSchema.parse(state) }),
+    )
   } catch {
     // Keep deck building usable when state or storage is invalid or unavailable.
   }
@@ -122,7 +168,9 @@ export function clearDeckState(storage: StorageLike = localStorage) {
 
 export function loadSavedDecks(storage: StorageLike = localStorage): SavedDeck[] {
   try {
-    const parsed = z.object({ version: z.literal(deckStateVersion), decks: z.array(savedDeckSchema) }).safeParse(JSON.parse(storage.getItem(savedDecksKey) ?? 'null'))
+    const parsed = z
+      .object({ version: z.literal(deckStateVersion), decks: z.array(savedDeckSchema) })
+      .safeParse(JSON.parse(storage.getItem(savedDecksKey) ?? 'null'))
     return parsed.success ? parsed.data.decks : []
   } catch {
     return []

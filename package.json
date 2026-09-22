@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"*.{json,md,ts}\" \"docs/**/*.md\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"*.{json,md,ts}\" \"docs/**/*.md\"",
+    "lint": "pnpm format:check && oxlint && eslint src scripts --max-warnings=0",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test src/*.test.ts",
+    "test": "node --experimental-strip-types --test src",
     "audit:recommendations": "node --experimental-strip-types scripts/recommendation-audit.ts",
     "typecheck": "tsc -b --noEmit"
   },
@@ -21,8 +23,12 @@
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@typescript-eslint/parser": "^8.70.1",
     "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-sonarjs": "^4.2.1",
     "oxlint": "^1.81.0",
+    "prettier": "^3.9.8",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }
