@@ -618,7 +618,6 @@
   background: #e8e6faaa;
   color: #48427f;
   font-size: 13px;
-  animation: suggestion-pulse 3s ease-in-out infinite;
 }
 .suggested-subtheme button {
   display: grid;
@@ -631,16 +630,7 @@
   background: transparent;
   line-height: 1;
 }
-@keyframes suggestion-pulse {
-  50% {
-    opacity: 0.68;
-    box-shadow: 0 0 0 3px #8d88bd22;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .suggested-subtheme {
-    animation: none;
-  }
   .tilting-card {
     transform: none;
     transition: none;
