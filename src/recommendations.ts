@@ -331,6 +331,11 @@ export function rankRecommendationCards<T extends { name: string; reason: string
   return context.recommendationStyle === 'story' ? keepStoryIdentity(varied, context) : varied
 }
 
+export function selectSubTheme(activeSubThemes: string[], name: string) {
+  const next = activeSubThemes.includes(name) ? activeSubThemes : [...activeSubThemes, name].slice(0, 2)
+  return { activeSubThemes: next, refreshRecommendations: next.length !== activeSubThemes.length }
+}
+
 export function balanceThemeCoverage<T extends { tags: string[]; reason: string }>(cards: T[], themes: string[]) {
   if (themes.length < 2) return cards
   const ordered = [...cards]

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
-import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendationScoreFactorMaximums, recommendedScoreThreshold, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type CollectionMode, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type RecommendationScoreBreakdown, type RecommendationSource, type RecommendationStyle, type ScryfallCard } from './recommendations'
+import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, cardText, commanderThemes, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preconFastMana, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendationScoreFactorMaximums, recommendedScoreThreshold, selectSubTheme, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, toRecommendationCard, type CollectionMode, type DeferredCard, type EdhrecThemeCount, type PowerTarget, type RecommendationScoreBreakdown, type RecommendationSource, type RecommendationStyle, type ScryfallCard } from './recommendations'
 import { analyseDeck, basicLandNames, basicLandPlan, cardTypes, curveBucket, deckGuidance, deckRoleBoosts, deckSection, defaultDeckTargets, isBasicLandName, rolesForCard, targetKeys, targetLabels, type DeckTargets } from './deck-analysis'
 import { clearDeckState, deleteSavedDeck, deckDelta, deckPageTitle, deckStateChanged, duplicateDeckName, loadDeckState, loadSavedDecks, saveDeckState, saveSavedDeck, suggestedDeckName, type PersistedDeckState, type SavedDeck } from './deck-state'
 import { fetchScryfallCollection, matchImportedCard, missingCardNames, parseDeckList, type ImportedDeck } from './deck-import'
@@ -1451,9 +1451,10 @@ function App() {
   const dismissedThemeCounts = new Map(dismissedSubThemes.map((item) => { const split = item.lastIndexOf(':'); return split > 0 ? [item.slice(0, split), Number(item.slice(split + 1))] : [item, Infinity] }))
   const inferredSubThemes = activeSubThemes.length < 2 ? sharedThemes(deckCards, [theme, ...activeSubThemes]).filter((name) => deckCards.filter((card) => card.tags.includes(name)).length > (dismissedThemeCounts.get(name) ?? -1)).slice(0, 1) : []
   const chooseSubTheme = (name: string) => {
-    const themes = [...activeSubThemes, name].slice(0, 2)
-    setActiveSubThemes(themes)
-    setQueue((current) => balanceThemeCoverage(current, themes))
+    const selection = selectSubTheme(activeSubThemes, name)
+    setActiveSubThemes(selection.activeSubThemes)
+    if (selection.refreshRecommendations) setRecommendationOptionsChanged(true)
+    setQueue((current) => balanceThemeCoverage(current, selection.activeSubThemes))
     setShowSubThemePicker(false)
     setSubThemeSearch('')
   }

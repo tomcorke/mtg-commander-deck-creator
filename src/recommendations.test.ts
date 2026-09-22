@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, commanderThemes, curatedCollections, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
+import { advanceRecommendationQueue, balanceThemeCoverage, batchRecommendations, buildEdhrecRecommendations, commanderThemes, curatedCollections, deferBatch, findSynergyPair, formatUsdPrice, freshRecommendationCycle, manualCardError, orderedPrintings, parseEdhrecEntries, preferredPrintingIndex, rankRecommendationCards, recommendationScore, recommendationScoreBreakdown, recommendedScoreThreshold, releaseDeferred, releaseNextDeferred, selectSubTheme, sharedThemes, supportedThemes, tagsFor, themeMatchesSearch, unsupportedCommanderThemes, updatePreferenceScores } from './recommendations.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(tagsFor('Land\nHideaway 4. This land enters tapped.', 'Land').includes('Landfall'), false)
@@ -164,6 +164,10 @@ test('batches vary reasons with a creature, mana card, and at most one new card'
     { name: 'Aura 3', reason: 'Enchantment synergy', typeLine: 'Enchantment — Aura' },
   ]
   assert.deepEqual(batchRecommendations(cards, true).slice(0, 4).map(({ name }) => name), ['Creature', 'Aura 1', 'New 1', 'Land'])
+})
+
+test('accepting a sub-theme requests fresh recommendations', () => {
+  assert.deepEqual(selectSubTheme(['Tokens'], '+1/+1 counters'), { activeSubThemes: ['Tokens', '+1/+1 counters'], refreshRecommendations: true })
 })
 
 test('each selected sub-theme appears when matching candidates exist', () => {
