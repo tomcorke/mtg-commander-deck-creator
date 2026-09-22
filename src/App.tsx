@@ -191,14 +191,14 @@ function CardDetails({ card, source, onToggleSet, collectionSelected = false }: 
 }
 
 const recommendationScoreFactors = [
-  { key: 'evidence', label: 'Evidence', max: recommendationScoreFactorMaximums.evidence },
-  { key: 'theme', label: 'Theme', max: recommendationScoreFactorMaximums.theme },
-  { key: 'subThemes', label: 'Sub-themes', max: recommendationScoreFactorMaximums.subThemes },
-  { key: 'collection', label: 'Collection', max: recommendationScoreFactorMaximums.collection },
-  { key: 'deckFit', label: 'Deck fit', max: recommendationScoreFactorMaximums.deckFit },
-  { key: 'preferences', label: 'Preferences', max: recommendationScoreFactorMaximums.preferences },
-  { key: 'deckNeeds', label: 'Deck needs', max: recommendationScoreFactorMaximums.deckNeeds },
-  { key: 'popularityPenalty', label: 'Popularity penalty', max: recommendationScoreFactorMaximums.popularityPenalty },
+  { key: 'evidence', label: 'Evidence', max: recommendationScoreFactorMaximums.evidence, description: 'Strength of the commander and source evidence supporting this card.' },
+  { key: 'theme', label: 'Theme', max: recommendationScoreFactorMaximums.theme, description: 'Whether the card directly matches your primary theme.' },
+  { key: 'subThemes', label: 'Sub-themes', max: recommendationScoreFactorMaximums.subThemes, description: 'Support for the sub-themes you selected or the app inferred from your deck.' },
+  { key: 'collection', label: 'Collection', max: recommendationScoreFactorMaximums.collection, description: 'Affinity with the set or sets you selected. Only mode filters; Prefer mode boosts matches.' },
+  { key: 'deckFit', label: 'Deck fit', max: recommendationScoreFactorMaximums.deckFit, description: 'How closely this card matches patterns and tags from cards already in your deck.' },
+  { key: 'preferences', label: 'Preferences', max: recommendationScoreFactorMaximums.preferences, description: 'Learned affinity from cards you liked, ignored, or selected from a collection.' },
+  { key: 'deckNeeds', label: 'Deck needs', max: recommendationScoreFactorMaximums.deckNeeds, description: 'Urgency of roles your deck is missing, such as ramp, draw, lands, or removal.' },
+  { key: 'popularityPenalty', label: 'Popularity penalty', max: recommendationScoreFactorMaximums.popularityPenalty, description: 'Story mode deduction for heavily played staples so more distinctive picks can surface.' },
 ] as const
 
 type RecommendationScoreFactor = typeof recommendationScoreFactors[number]['key']
@@ -227,7 +227,7 @@ function ScoreBreakdown({ score }: { score: RecommendationScoreBreakdown }) {
         <polygon className="score-radar-area" points={radarPoints(score)} />
       </svg>
       <dl className="score-factors">
-        {recommendationScoreFactors.map(({ key, label, max }) => <div key={key}><dt>{label}</dt><dd>{score[key as RecommendationScoreFactor]} / {max}</dd></div>)}
+        {recommendationScoreFactors.map(({ key, label, max, description }) => <div className="score-factor-row" tabIndex={0} aria-describedby={`score-factor-${key}`} key={key}><dt>{label}</dt><dd>{score[key as RecommendationScoreFactor]} / {max}</dd><span className="score-factor-tooltip" id={`score-factor-${key}`} role="tooltip">{description}</span></div>)}
       </dl>
     </div>
     <p className="score-note">Factors are normalized to a 100-point total.</p>

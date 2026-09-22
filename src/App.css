@@ -393,9 +393,13 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .score-radar-axis { stroke: #dedcea; stroke-width: .6; }
 .score-radar-area { fill: color-mix(in srgb, var(--commander-accent, #7546a8) 28%, transparent); stroke: var(--commander-accent, #7546a8); stroke-width: 1.5; }
 .score-factors { display: grid; gap: 4px; margin: 0; font-size: 11px; line-height: 1.2; }
-.score-factors > div { display: flex; justify-content: space-between; gap: 6px; }
+.score-factor-row { position: relative; display: flex; justify-content: space-between; gap: 6px; border-radius: 3px; }
+.score-factor-row:hover, .score-factor-row:focus { z-index: 4; background: #ffffff55; }
+.score-factor-row:focus-visible { outline: 2px solid #8d88bd; outline-offset: 2px; }
 .score-factors dt { color: #69667d; }
 .score-factors dd { margin: 0; color: #514e66; font-weight: 600; white-space: nowrap; }
+.score-factor-tooltip { position: absolute; z-index: 5; right: 0; bottom: calc(100% + 7px); width: min(250px, calc(100vw - 40px)); padding: 8px 10px; border-radius: 6px; background: #201c3c; color: white; font-size: 12px; line-height: 1.35; opacity: 0; pointer-events: none; transform: translateY(4px); visibility: hidden; transition: opacity .15s, transform .15s, visibility 0s .15s; }
+.score-factor-row:hover .score-factor-tooltip, .score-factor-row:focus .score-factor-tooltip { opacity: 1; transform: translateY(0); visibility: visible; transition-delay: 0s; }
 .score-breakdown .score-note { min-height: 0; margin: 8px 0 0; color: #8a8799; font-size: 10px; line-height: 1.3; }
 .mana-symbol { display: inline-block; width: 1.15em; height: 1.15em; margin: 0 .08em; vertical-align: -.2em; }
 .actions { position: relative; display: flex; gap: 9px; align-items: center; justify-content: space-between; margin: 0 0 10px; }
