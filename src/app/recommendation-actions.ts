@@ -408,11 +408,10 @@ async function coreRecommendations(
   const { setLimitedRecommendations, theme, activeSubThemes } = deps
   let offeredCards: Card[]
   try {
-    if (commanders.length !== 1) throw new Error('Partner pair has no single EDHREC page')
-    offeredCards = await edhrecRecommendations(
-      deps,
-      edhrecSlug(commanders[0].related_uris?.edhrec, commanders[0].name),
-    )
+    const slug = commanders
+      .map((commander) => edhrecSlug(commander.related_uris?.edhrec, commander.name))
+      .join('-')
+    offeredCards = await edhrecRecommendations(deps, slug)
     if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
   } catch {
     offeredCards = await fallbackRecommendations(deps, identityColours)
