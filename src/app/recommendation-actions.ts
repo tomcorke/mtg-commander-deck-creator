@@ -12,6 +12,7 @@ import {
 import {
   cardTags,
   edhrecSlug,
+  scryfallBackImage,
   toCard,
   type Card,
   type CommanderCard,
@@ -252,6 +253,7 @@ export async function loadCommanderCards(deps: ActionDeps, chosen: string) {
       const finish = defaultFinish(card.finishes)
       const primary = {
         image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '',
+        backImage: scryfallBackImage(card),
         art: card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop,
         set: card.set,
         setName: card.set_name,
@@ -388,6 +390,7 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
         scryfallUri: card.scryfall_uri,
         printsUri: card.prints_search_uri,
         image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '',
+        backImage: scryfallBackImage(card),
         price: card.prices?.usd ?? undefined,
         priceUri: card.purchase_uris?.tcgplayer,
         tags: cardTags(card),

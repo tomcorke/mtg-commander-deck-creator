@@ -7,6 +7,7 @@ export type CardFinish = 'nonfoil' | 'foil' | 'etched'
 
 export type Printing = {
   image: string
+  backImage?: string
   art?: string
   set: string
   setName?: string
@@ -94,6 +95,8 @@ export type ExportFormat = 'moxfield' | 'plain' | 'csv'
 export const scryfallImage = (card: ScryfallCard) =>
   card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? ''
 
+export const scryfallBackImage = (card: ScryfallCard) => card.card_faces?.[1]?.image_uris?.normal
+
 export const cardTags = (card: ScryfallCard, category = '') =>
   tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
 
@@ -120,6 +123,7 @@ export const toDeckCardFromRecommendation = (card: Card): DeckCard => ({
   scryfallUri: card.scryfallUri,
   printsUri: card.printsUri,
   image: card.image,
+  backImage: card.backImage,
   price: card.price,
   priceUri: card.priceUri,
   tags: card.tags,
@@ -151,6 +155,7 @@ export const toDeckCard = (card: ScryfallCard): DeckCard => ({
   scryfallUri: card.scryfall_uri,
   printsUri: card.prints_search_uri,
   image: scryfallImage(card),
+  backImage: scryfallBackImage(card),
   price: card.prices?.usd ?? undefined,
   priceUri: card.purchase_uris?.tcgplayer,
   tags: cardTags(card),

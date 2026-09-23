@@ -1,7 +1,7 @@
 import type { CollectionMode } from '../../recommendations.ts'
 import type { CommanderPromotionInfo } from '../../domain/commander-promotion.ts'
 import { cardScryfallUri, cardTypeLine, type DeckCard } from '../../domain/card-model.ts'
-import { ArtLoading, FinishedCardImage, PrintingButton } from '../../shared/CardArt.tsx'
+import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
 import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { OracleText } from '../../shared/ManaSymbols.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
@@ -88,19 +88,22 @@ export function DeckCardModal({
           <figure className="deck-card-modal-art">
             <FinishedCardImage
               image={selectedDeckCard.image}
+              backImage={selectedDeckCard.backImage}
               alt={`${selectedDeckCard.name} card`}
+              cardName={selectedDeckCard.name}
               finish={selectedDeckCard.finish}
               effectsEnabled={cardEffects}
               className="deck-card-modal-image"
+              showFlipButton
+              printing={{
+                count: selectedDeckCard.printings?.length ?? 0,
+                index: selectedDeckCard.printing ?? 0,
+                loading: Boolean(loadingArt),
+                name: selectedDeckCard.name,
+                onClick: () => void cycleSelectedDeckCardPrinting(),
+              }}
             />
             <ArtLoading active={loadingArt === selectedDeckCard.name} />
-            <PrintingButton
-              count={selectedDeckCard.printings?.length ?? 0}
-              index={selectedDeckCard.printing ?? 0}
-              loading={Boolean(loadingArt)}
-              name={selectedDeckCard.name}
-              onClick={() => void cycleSelectedDeckCardPrinting()}
-            />
           </figure>
           <div className="deck-card-modal-copy">
             <div className="deck-card-modal-title">

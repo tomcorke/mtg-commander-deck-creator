@@ -9,6 +9,7 @@ export const commanderPrintingOptions = (cards: ScryfallCard[]) =>
       return image
         ? (printing.finishes ?? ['nonfoil']).map((finish) => ({
             image,
+            backImage: printing.card_faces?.[1]?.image_uris?.normal,
             art: printing.image_uris?.art_crop ?? printing.card_faces?.[0]?.image_uris?.art_crop,
             set: printing.set,
             setName: printing.set_name,
@@ -38,6 +39,7 @@ export const cardPrintingOptions = (cards: ScryfallCard[]) =>
       return image
         ? (printing.finishes ?? ['nonfoil']).map((finish) => ({
             image,
+            backImage: printing.card_faces?.[1]?.image_uris?.normal,
             set: printing.set,
             setName: printing.set_name,
             collectorNumber: printing.collector_number,

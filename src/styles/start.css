@@ -135,7 +135,10 @@
   margin-top: 18px;
   border-top: 1px solid #dedcea;
 }
-.suggestions button {
+.suggestion-item {
+  position: relative;
+}
+.suggestion-select {
   position: relative;
   display: flex;
   justify-content: space-between;
@@ -154,6 +157,7 @@
   top: 50%;
   left: calc(100% + 18px);
   display: flex;
+  visibility: hidden;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-50%) scale(0.96);
@@ -161,9 +165,13 @@
     opacity 0.15s,
     transform 0.15s;
 }
-.suggestion-preview img {
+.suggestion-preview .finished-card {
   display: block;
   width: clamp(130px, calc(50vw - 590px), 300px);
+}
+.suggestion-preview img {
+  display: block;
+  width: 100%;
   max-height: calc(100vh - 40px);
   border-radius: 4.75%;
   object-fit: contain;
@@ -171,22 +179,27 @@
     0 16px 42px #080712d9,
     0 0 0 1px #ffffff26;
 }
+.suggestion-preview .finish-edges {
+  position: absolute;
+}
 .suggestion-preview.pair {
   padding: 0;
   background: transparent;
   box-shadow: none;
 }
-.suggestion-preview.pair img:first-child {
+.suggestion-preview.pair .finished-card:first-child {
   transform: rotate(-3deg);
 }
-.suggestion-preview.pair img + img {
+.suggestion-preview.pair .finished-card + .finished-card {
   z-index: 1;
   margin-left: -65%;
   transform: translate(78%, 5%) rotate(3deg);
 }
-.suggestions button:hover .suggestion-preview,
-.suggestions button:focus-visible .suggestion-preview {
+.suggestion-item:hover .suggestion-preview,
+.suggestion-item:focus-within .suggestion-preview {
+  visibility: visible;
   opacity: 1;
+  pointer-events: auto;
   transform: translateY(-50%) scale(1);
 }
 .commander-option {

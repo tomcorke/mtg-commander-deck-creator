@@ -283,7 +283,7 @@
   --offer-fill: #282646;
 }
 .dark .suggestions,
-.dark .suggestions button,
+.dark .suggestion-select,
 .dark li,
 .dark dl {
   border-color: #39374f;
@@ -293,10 +293,10 @@
   border: 1px solid #39374f;
   border-radius: 7px;
 }
-.dark .suggestions button {
+.dark .suggestion-select {
   padding: 14px 16px;
 }
-.dark .suggestions button,
+.dark .suggestion-select,
 .dark .start-panel input,
 .dark .export-modal textarea,
 .dark .card-search-form input {
@@ -482,7 +482,7 @@
 .dark.commander-themed .deck-board,
 .dark.commander-themed .recommendation-setup,
 .dark.commander-themed .suggestions,
-.dark.commander-themed .suggestions button,
+.dark.commander-themed .suggestion-select,
 .dark.commander-themed li,
 .dark.commander-themed dl,
 .dark.commander-themed .recommendation-options fieldset {

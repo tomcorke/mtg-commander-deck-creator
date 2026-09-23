@@ -85,6 +85,7 @@ function updatedDeckPrintings(current: any[], printings: any[][], names: string[
           ...card,
           printings: options,
           image: selected.image,
+          backImage: selected.backImage,
           set: selected.set,
           setName: selected.setName,
           collectorNumber: selected.collectorNumber,
@@ -113,30 +114,45 @@ function commanderCosts(cards: any[]) {
 }
 
 export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
-  const { commander, commanderDetails, setCommanderDetails, setDeck, fetchCard, fetchPrintings } =
-    deps
+  const {
+    commander,
+    commanderDetails,
+    deck,
+    setCommanderDetails,
+    setDeck,
+    fetchCard,
+    fetchPrintings,
+  } = deps
   useEffect(() => {
+    const names = commanderNames(commander)
+    const doubleFacedCommander = deck
+      .slice(0, names.length)
+      .some((card: any) => card.faces?.length > 1)
     if (
       !commanderDetails ||
       commanderDetails.printings.every((printings: any[]) =>
-        printings.every((printing) => printing.finish && printing.setName && printing.scryfallUri),
+        printings.every(
+          (printing) =>
+            printing.finish &&
+            printing.setName &&
+            printing.scryfallUri &&
+            (!doubleFacedCommander || printing.backImage),
+        ),
       )
     )
       return
     void Promise.all(
-      commanderNames(commander).map(async (name) => {
+      names.map(async (name) => {
         const card = await fetchCard(name)
         return commanderPrintingOptions(await fetchPrintings(card.prints_search_uri))
       }),
     )
       .then((printings) => {
         setCommanderDetails((current: any) => updatedCommanderDetails(current, printings))
-        setDeck((current: any[]) =>
-          updatedDeckPrintings(current, printings, commanderNames(commander)),
-        )
+        setDeck((current: any[]) => updatedDeckPrintings(current, printings, names))
       })
       .catch(() => undefined)
-  }, [commander, commanderDetails])
+  }, [commander, commanderDetails, deck])
 }
 
 export function useBasicCardCacheEffect(deps: AppEffectsDeps) {
@@ -269,7 +285,7 @@ export function useCommanderImagesEffect(deps: AppEffectsDeps) {
     const load = async () => {
       for (const name of missing) {
         const costs: string[] = []
-        const images: string[] = []
+        const images: { image: string; backImage?: string }[] = []
         for (const cardName of commanderNames(name)) {
           let card: any
           try {
@@ -279,14 +295,17 @@ export function useCommanderImagesEffect(deps: AppEffectsDeps) {
           }
           costs.push(card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '')
           const image = card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal
-          if (image) images.push(image)
+          if (image) images.push({ image, backImage: card.card_faces?.[1]?.image_uris?.normal })
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
         setCommanderCosts((current: Record<string, string>) => ({
           ...current,
           [name]: costs.join(' '),
         }))
-        setCommanderImages((current: Record<string, string[]>) => ({ ...current, [name]: images }))
+        setCommanderImages((current: Record<string, { image: string; backImage?: string }[]>) => ({
+          ...current,
+          [name]: images,
+        }))
       }
     }
     void load().catch(() => undefined)
@@ -312,8 +331,13 @@ export function usePrintingRepairEffect(deps: AppEffectsDeps) {
         (card: any) =>
           !card.setName ||
           !card.scryfallUri ||
+          (card.faces.length > 1 && !card.backImage) ||
           card.printings?.some(
-            (printing: any) => !printing.finish || !printing.setName || !printing.scryfallUri,
+            (printing: any) =>
+              !printing.finish ||
+              !printing.setName ||
+              !printing.scryfallUri ||
+              (card.faces.length > 1 && !printing.backImage),
           ),
       )
     )

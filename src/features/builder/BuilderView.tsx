@@ -3,6 +3,7 @@ import { type CSSProperties, type Dispatch, type SetStateAction } from 'react'
 import {
   cardScryfallUri,
   edhrecSlug,
+  scryfallBackImage,
   scryfallImage,
   type Card,
   type CommanderDetails,
@@ -32,7 +33,7 @@ import type {
   RecommendationScoreBreakdown,
 } from '../../domain/recommendation-types.ts'
 import type { SavedDeck } from '../../deck-state.ts'
-import { ArtLoading, FinishedCardImage, PrintingButton } from '../../shared/CardArt.tsx'
+import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
 import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
@@ -405,19 +406,24 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 <span className="commander-printing" key={commanderNames(commander)[index]}>
                   <FinishedCardImage
                     image={image}
+                    backImage={
+                      commanderDetails.printings[index][commanderDetails.selections[index]]
+                        ?.backImage
+                    }
                     alt={`${commanderNames(commander)[index]} full card`}
+                    cardName={commanderNames(commander)[index]}
                     finish={
                       commanderDetails.printings[index][commanderDetails.selections[index]]?.finish
                     }
                     effectsEnabled={cardEffects}
-                  />
-                  <ArtLoading active={loadingArt === commanderNames(commander)[index]} />
-                  <PrintingButton
-                    count={commanderDetails.printings[index].length}
-                    index={commanderDetails.selections[index]}
-                    loading={Boolean(loadingArt)}
-                    name={commanderNames(commander)[index]}
-                    onClick={() => void cycleCommanderPrinting(index)}
+                    showFlipButton
+                    printing={{
+                      count: commanderDetails.printings[index].length,
+                      index: commanderDetails.selections[index],
+                      loading: Boolean(loadingArt),
+                      name: commanderNames(commander)[index],
+                      onClick: () => void cycleCommanderPrinting(index),
+                    }}
                   />
                 </span>
               ))}
@@ -677,14 +683,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             {!selectedManualCard && cardSearchResults.length > 0 && (
               <div className="card-search-results" aria-label="Card search results">
                 {cardSearchResults.map((card) => (
-                  <button type="button" key={card.name} onClick={() => void selectManualCard(card)}>
-                    <span>
-                      <b>{card.name}</b>
-                      <small>{card.type_line}</small>
-                    </span>
-                    <span className="search-result-mana">
-                      <OracleText text={card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''} />
-                    </span>
+                  <div className="card-search-result" key={card.name}>
+                    <button type="button" onClick={() => void selectManualCard(card)}>
+                      <span>
+                        <b>{card.name}</b>
+                        <small>{card.type_line}</small>
+                      </span>
+                      <span className="search-result-mana">
+                        <OracleText
+                          text={card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''}
+                        />
+                      </span>
+                    </button>
                     {(card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal) && (
                       <span className="search-card-popover">
                         <FinishedCardImage
@@ -693,13 +703,16 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             card.card_faces?.[0]?.image_uris?.normal ??
                             ''
                           }
+                          backImage={scryfallBackImage(card)}
                           alt={`${card.name} card`}
+                          cardName={card.name}
                           finish={defaultFinish(card.finishes)}
                           effectsEnabled={cardEffects}
+                          showFlipButton
                         />
                       </span>
                     )}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -714,19 +727,22 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     <span className="manual-card-zoom">
                       <FinishedCardImage
                         image={scryfallImage(selectedManualCard)}
+                        backImage={scryfallBackImage(selectedManualCard)}
                         alt={`${selectedManualCard.name} enlarged card`}
+                        cardName={selectedManualCard.name}
                         finish={defaultFinish(selectedManualCard.finishes)}
                         effectsEnabled={cardEffects}
+                        showFlipButton
+                        printing={{
+                          count: manualPrintings.length,
+                          index: manualPrinting,
+                          loading: Boolean(loadingArt),
+                          name: selectedManualCard.name,
+                          onClick: () => void cycleManualPrinting(),
+                        }}
                       />
                     </span>
                     <ArtLoading active={loadingArt === selectedManualCard.name} />
-                    <PrintingButton
-                      count={manualPrintings.length}
-                      index={manualPrinting}
-                      loading={Boolean(loadingArt)}
-                      name={selectedManualCard.name}
-                      onClick={() => void cycleManualPrinting()}
-                    />
                   </figure>
                 )}
                 <div>
@@ -1158,11 +1174,21 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   <div className="offered-image">
                     <FinishedCardImage
                       image={card.image}
+                      backImage={card.backImage}
                       alt={`${card.name} card`}
+                      cardName={card.name}
                       finish={card.finish}
                       effectsEnabled={cardEffects}
                       hasSynergyGlow={pairCards.includes(card)}
                       className="card-face-image"
+                      showFlipButton
+                      printing={{
+                        count: card.printings?.length ?? 0,
+                        index: card.printing ?? 0,
+                        loading: Boolean(loadingArt),
+                        name: card.name,
+                        onClick: () => void cyclePrinting(card),
+                      }}
                     />
                     {pairCards.includes(card) && synergyPair && (
                       <span className="synergy-info">
@@ -1182,13 +1208,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       </span>
                     )}
                     <ArtLoading active={loadingArt === card.name} />
-                    <PrintingButton
-                      count={card.printings?.length ?? 0}
-                      index={card.printing ?? 0}
-                      loading={Boolean(loadingArt)}
-                      name={card.name}
-                      onClick={() => void cyclePrinting(card)}
-                    />
                   </div>
                   <div className="card-copy">
                     <h3>{card.name}</h3>
@@ -1272,16 +1291,19 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           </span>
                           <b>{card.name}</b>
                         </span>
-                        <span className="health-card-zoom" aria-hidden="true">
-                          <FinishedCardImage
-                            image={card.image}
-                            alt=""
-                            finish={card.finish}
-                            effectsEnabled={cardEffects}
-                            className="health-card-full-image"
-                          />
-                        </span>
                       </button>
+                      <span className="health-card-zoom">
+                        <FinishedCardImage
+                          image={card.image}
+                          backImage={card.backImage}
+                          alt={`${card.name} card`}
+                          cardName={card.name}
+                          finish={card.finish}
+                          effectsEnabled={cardEffects}
+                          className="health-card-full-image"
+                          showFlipButton
+                        />
+                      </span>
                       <button
                         type="button"
                         className="health-card-add"
@@ -1577,19 +1599,22 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                               <span className="deck-card-popover">
                                 <FinishedCardImage
                                   image={card.image}
+                                  backImage={card.backImage}
                                   alt={`${card.name} card`}
+                                  cardName={card.name}
                                   finish={card.finish}
                                   effectsEnabled={cardEffects}
                                   className="deck-card-preview"
+                                  showFlipButton
+                                  printing={{
+                                    count: card.printings?.length ?? 0,
+                                    index: card.printing ?? 0,
+                                    loading: Boolean(loadingArt),
+                                    name: card.name,
+                                    onClick: () => void cycleDeckPrinting(index),
+                                  }}
                                 />
                                 <ArtLoading active={loadingArt === card.name} />
-                                <PrintingButton
-                                  count={card.printings?.length ?? 0}
-                                  index={card.printing ?? 0}
-                                  loading={Boolean(loadingArt)}
-                                  name={card.name}
-                                  onClick={() => void cycleDeckPrinting(index)}
-                                />
                               </span>
                             )}
                           </li>
@@ -1701,10 +1726,13 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         <span className="deck-card-popover">
                           <FinishedCardImage
                             image={card.image}
+                            backImage={card.backImage}
                             alt={`${card.name} card`}
+                            cardName={card.name}
                             finish={card.finish}
                             effectsEnabled={cardEffects}
                             className="deck-card-preview"
+                            showFlipButton
                           />
                         </span>
                       )}

@@ -592,7 +592,13 @@
   color: inherit;
   text-align: left;
 }
-.health-lane article:has(.health-card-open:hover, .health-card-open:focus-visible) {
+.health-lane
+  article:has(
+    .health-card-open:hover,
+    .health-card-open:focus-visible,
+    .health-card-zoom:hover,
+    .health-card-zoom:focus-within
+  ) {
   z-index: 20;
 }
 .health-card-thumbnail {
@@ -670,10 +676,13 @@
 .health-card-zoom .finish-edges {
   position: absolute;
 }
-.health-card-open:hover .health-card-zoom,
-.health-card-open:focus-visible .health-card-zoom {
+.health-card-open:hover + .health-card-zoom,
+.health-card-open:focus-visible + .health-card-zoom,
+.health-card-zoom:hover,
+.health-card-zoom:focus-within {
   visibility: visible;
   opacity: 1;
+  pointer-events: auto;
   transform: translateY(0) scale(1);
   transition-delay: 0s;
 }

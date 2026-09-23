@@ -69,6 +69,7 @@ export function addRecommendationCard(deps: ActionDeps, card: Card) {
     scryfallUri: card.scryfallUri,
     printsUri: card.printsUri,
     image: card.image,
+    backImage: card.backImage,
     price: card.price,
     priceUri: card.priceUri,
     tags: card.tags,
@@ -154,6 +155,7 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
       scryfallUri: card.scryfallUri,
       printsUri: card.printsUri,
       image: card.image,
+      backImage: card.backImage,
       price: card.price,
       priceUri: card.priceUri,
       tags: card.tags,
@@ -265,6 +267,7 @@ export async function cycleCommanderPrinting(deps: ActionDeps, commanderIndex: n
           ? {
               ...card,
               image: selected.image,
+              backImage: selected.backImage,
               set: selected.set,
               setName: selected.setName,
               collectorNumber: selected.collectorNumber,
@@ -290,6 +293,7 @@ export async function cycleCommanderPrinting(deps: ActionDeps, commanderIndex: n
         return {
           ...card,
           image: printing.image,
+          backImage: printing.backImage,
           set: printing.set,
           setName: printing.setName,
           collectorNumber: printing.collectorNumber,
@@ -317,6 +321,7 @@ export async function cyclePrinting(deps: ActionDeps, card: Card) {
               ...item,
               printing: index,
               image: selected.image,
+              backImage: selected.backImage,
               set: selected.set,
               setName: selected.setName,
               collectorNumber: selected.collectorNumber,
@@ -335,6 +340,7 @@ export async function cyclePrinting(deps: ActionDeps, card: Card) {
             ...current,
             printing: index,
             image: selected.image,
+            backImage: selected.backImage,
             set: selected.set,
             setName: selected.setName,
             collectorNumber: selected.collectorNumber,
@@ -356,6 +362,7 @@ export async function cyclePrinting(deps: ActionDeps, card: Card) {
               collectorNumber: selected.collectorNumber,
               scryfallUri: selected.scryfallUri,
               image: selected.image,
+              backImage: selected.backImage,
               price: selected.price,
               priceUri: selected.priceUri,
               printing: index,
@@ -386,6 +393,7 @@ export async function cycleDeckPrinting(deps: ActionDeps, cardIndex: number) {
           ? {
               ...item,
               image: selected.image,
+              backImage: selected.backImage,
               set: selected.set,
               setName: selected.setName,
               collectorNumber: selected.collectorNumber,
@@ -415,6 +423,7 @@ export async function cycleSideboardPrinting(deps: ActionDeps, cardIndex: number
           ? {
               ...item,
               image: selected.image,
+              backImage: selected.backImage,
               set: selected.set,
               setName: selected.setName,
               collectorNumber: selected.collectorNumber,
@@ -669,7 +678,7 @@ export function positionDeckPreview(
   const edge = 16
   const gap = 12
   const previewWidth = Math.min(320, window.innerWidth * 0.25)
-  const previewHeight = Math.min(window.innerHeight - edge * 2, (previewWidth * 680) / 488 + 24)
+  const previewHeight = Math.min(window.innerHeight - edge * 2, (previewWidth * 680) / 488 + 48)
   const maxTop = Math.max(edge, window.innerHeight - previewHeight - edge)
   const top = Math.min(maxTop, Math.max(edge, bounds.top + (bounds.height - previewHeight) / 2))
   const rightPosition = bounds.right + gap
@@ -700,6 +709,7 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       !card.setName ||
       !card.scryfallUri ||
       !card.printsUri ||
+      (card.faces.length > 1 && !card.backImage) ||
       (cardCanHavePowerToughness(card) && (!card.power || !card.toughness))
     ) {
       const response = await fetchScryfallCollection([
@@ -711,7 +721,12 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
     }
     const printsUri = card.printsUri ?? fetched?.prints_search_uri
     let printings = card.printings
-    if ((!printings || printings.length < 2) && printsUri) {
+    if (
+      (!printings ||
+        printings.length < 2 ||
+        (card.faces.length > 1 && printings.some((printing) => !printing.backImage))) &&
+      printsUri
+    ) {
       const options = cardPrintingOptions(await fetchScryfallPrintings(printsUri))
       if (options.length) printings = orderedPrintings(card, options)
     }
@@ -733,6 +748,8 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       printsUri,
       price: selected?.price ?? fetched?.prices?.usd ?? card.price,
       priceUri: selected?.priceUri ?? fetched?.purchase_uris?.tcgplayer ?? card.priceUri,
+      backImage:
+        selected?.backImage ?? fetched?.card_faces?.[1]?.image_uris?.normal ?? card.backImage,
       printings,
       printing: selectedIndex >= 0 ? selectedIndex : card.printing,
       finish: selected?.finish ?? card.finish,
@@ -788,6 +805,8 @@ export function openDeckCard(deps: ActionDeps, card: DeckCard, location: DeckCar
     !card.scryfallUri ||
     !card.printings ||
     card.printings.length < 2 ||
+    (card.faces.length > 1 &&
+      (!card.backImage || card.printings?.some((printing) => !printing.backImage))) ||
     (cardCanHavePowerToughness(card) && (!card.power || !card.toughness))
   )
     void hydrateDeckCardDetails(deps, card)

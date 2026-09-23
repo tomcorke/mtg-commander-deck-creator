@@ -710,18 +710,6 @@ li.curve-dimmed {
   inset: 0 -12px;
   content: '';
 }
-.deck-card-popover button {
-  position: absolute;
-  z-index: 3;
-  right: 10px;
-  bottom: -18px;
-  padding: 7px 10px;
-  border: 1px solid #ffffff99;
-  border-radius: 6px;
-  background: #201c3c;
-  color: white;
-  box-shadow: 0 5px 14px #08071299;
-}
 .deck-group ol > li:hover .deck-card-popover,
 .deck-group ol > li:focus-within .deck-card-popover {
   opacity: 1;

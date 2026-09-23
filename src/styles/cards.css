@@ -200,6 +200,9 @@
   aspect-ratio: 488 / 680;
   border-radius: 4.75%;
 }
+.offered-image:has(.card-image-actions) {
+  margin-bottom: 28px;
+}
 .card-face,
 .offered-image > .finished-card {
   position: absolute;
@@ -231,6 +234,32 @@
   position: relative;
   display: block;
   border-radius: 4.75%;
+}
+.card-image-actions {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 8px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+.card-image-actions button {
+  flex: none;
+  padding: 6px 9px;
+  border: 1px solid #ffffff99;
+  border-radius: 6px;
+  background: #201c3c;
+  color: white;
+  font-size: 12px;
+  pointer-events: auto;
+  white-space: nowrap;
+  box-shadow: 0 3px 9px #201c3c55;
+}
+.card-image-actions button:focus-visible {
+  outline: 2px solid #aaa8c2;
+  outline-offset: 2px;
 }
 .tilting-card {
   --foil-x: 50%;
@@ -381,19 +410,6 @@
   to {
     background-position-x: -200%;
   }
-}
-.offered-image > button {
-  position: absolute;
-  z-index: 3;
-  right: 8px;
-  bottom: -12px;
-  padding: 6px 9px;
-  border: 1px solid #ffffff99;
-  border-radius: 6px;
-  background: #201c3c;
-  color: white;
-  font-size: 12px;
-  box-shadow: 0 3px 9px #201c3c55;
 }
 .art-loading {
   position: absolute;

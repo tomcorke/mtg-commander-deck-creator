@@ -1,4 +1,10 @@
-import { useState, type CSSProperties, type PointerEvent } from 'react'
+import {
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type PointerEvent,
+  type SetStateAction,
+} from 'react'
 
 import type { CardFinish } from '../domain/card-model'
 
@@ -38,32 +44,48 @@ export function PrintingButton({
 
 export function FinishedCardImage({
   image,
+  backImage,
   alt,
+  cardName,
   finish,
   effectsEnabled,
   hasSynergyGlow = false,
   className = '',
+  printing,
+  showFlipButton = false,
 }: {
   image: string
+  backImage?: string
   alt: string
+  cardName?: string
   finish?: CardFinish
   effectsEnabled: boolean
   hasSynergyGlow?: boolean
   className?: string
+  printing?: {
+    count: number
+    index: number
+    loading: boolean
+    name: string
+    onClick: () => void
+  }
+  showFlipButton?: boolean
 }) {
   const [loadedImage, setLoadedImage] = useState('')
+  const [flipped, setFlipped] = useState(false)
+  const displayedImage = flipped && backImage ? backImage : image
   const foilHue =
-    [...image].reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0) % 360
-  const finishClass = effectsEnabled
-    ? finish === 'foil'
-      ? 'holo-card'
-      : finish === 'etched'
-        ? 'etched-card'
-        : ''
-    : ''
+    [...displayedImage].reduce(
+      (hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0,
+      0,
+    ) % 360
+  const finishClass = cardFinishClass(finish, effectsEnabled)
+  const flipName = printing?.name ?? cardName ?? 'card'
+  const hasActions = Boolean(printing?.count && printing.count > 1) || (showFlipButton && backImage)
+
   return (
     <span
-      className={`finished-card ${loadedImage === image ? 'image-ready' : ''} ${effectsEnabled ? 'tilting-card' : ''} ${finishClass}`}
+      className={`finished-card ${loadedImage === displayedImage ? 'image-ready' : ''} ${effectsEnabled ? 'tilting-card' : ''} ${finishClass}`}
       style={effectsEnabled ? ({ '--foil-hue': `${foilHue}deg` } as CSSProperties) : undefined}
       onPointerMove={effectsEnabled ? moveFoil : undefined}
       onPointerLeave={effectsEnabled ? resetFoil : undefined}
@@ -71,19 +93,74 @@ export function FinishedCardImage({
     >
       <img
         className={className}
-        src={image}
-        alt={alt}
-        onLoad={() => setLoadedImage(image)}
-        onError={() => setLoadedImage(image)}
+        src={displayedImage}
+        alt={flipped ? `${alt} (back face)` : alt}
+        onLoad={() => setLoadedImage(displayedImage)}
+        onError={() => setLoadedImage(displayedImage)}
       />
       {hasSynergyGlow && <span className="synergy-connector" aria-hidden="true" />}
       {effectsEnabled && finish && finish !== 'nonfoil' && (
         <img
           className={`finish-edges ${finish}-edges ${className}`}
-          src={image}
+          src={displayedImage}
           alt=""
           aria-hidden="true"
         />
+      )}
+      {hasActions && (
+        <CardImageActions
+          flipped={flipped}
+          flipName={flipName}
+          printing={printing}
+          setFlipped={setFlipped}
+          showFlipButton={showFlipButton && Boolean(backImage)}
+        />
+      )}
+    </span>
+  )
+}
+
+function cardFinishClass(finish: CardFinish | undefined, effectsEnabled: boolean) {
+  if (!effectsEnabled) return ''
+  if (finish === 'foil') return 'holo-card'
+  return finish === 'etched' ? 'etched-card' : ''
+}
+
+function CardImageActions({
+  flipped,
+  flipName,
+  printing,
+  setFlipped,
+  showFlipButton,
+}: {
+  flipped: boolean
+  flipName: string
+  printing?: {
+    count: number
+    index: number
+    loading: boolean
+    name: string
+    onClick: () => void
+  }
+  setFlipped: Dispatch<SetStateAction<boolean>>
+  showFlipButton: boolean
+}) {
+  return (
+    <span className="card-image-actions">
+      {printing && <PrintingButton {...printing} />}
+      {showFlipButton && (
+        <button
+          type="button"
+          className="card-flip-button"
+          aria-label={`Show ${flipped ? 'front' : 'back'} of ${flipName}`}
+          aria-pressed={flipped}
+          onClick={(event) => {
+            event.stopPropagation()
+            setFlipped((current) => !current)
+          }}
+        >
+          ↔ Flip
+        </button>
       )}
     </span>
   )

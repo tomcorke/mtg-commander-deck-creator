@@ -22,7 +22,9 @@ export function useCommanderState(saved: PersistedDeckState | null) {
   const [suggestions, setSuggestions] = useState(() => randomThree(defaultCommanders))
   const [suggestionPool, setSuggestionPool] = useState(defaultCommanders)
   const [commanderCosts, setCommanderCosts] = useState<Record<string, string>>({})
-  const [commanderImages, setCommanderImages] = useState<Record<string, string[]>>({})
+  const [commanderImages, setCommanderImages] = useState<
+    Record<string, { image: string; backImage?: string }[]>
+  >({})
   const [commanderSubThemes, setCommanderSubThemes] = useState<string[]>(
     saved?.commanderSubThemes ?? [],
   )

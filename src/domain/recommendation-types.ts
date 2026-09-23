@@ -30,6 +30,7 @@ export type RecommendationCard = {
   reason: string
   source?: RecommendationSource
   image: string
+  backImage?: string
   set: string
   setName?: string
   collectorNumber: string

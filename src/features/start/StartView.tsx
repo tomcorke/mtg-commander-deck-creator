@@ -8,6 +8,7 @@ import {
   selectableThemes,
 } from '../../domain/commander-catalog.ts'
 import type { AppModal, AppView } from '../../app/routes.ts'
+import { FinishedCardImage } from '../../shared/CardArt.tsx'
 import { OracleText } from '../../shared/ManaSymbols.tsx'
 
 type StartViewProps = {
@@ -36,7 +37,7 @@ type StartViewProps = {
   matches: string[]
   suggestions: string[]
   commanderCosts: Record<string, string>
-  commanderImages: Record<string, string[]>
+  commanderImages: Record<string, { image: string; backImage?: string }[]>
   commanderNames: (name: string) => string[]
   suggestionPool: string[]
   setSuggestions: Dispatch<SetStateAction<string[]>>
@@ -206,30 +207,40 @@ export function StartView({
             </form>
             <div className="suggestions" aria-live="polite">
               {(search.trim().length >= 2 ? matches : suggestions).map((name) => (
-                <button key={name} onClick={() => start(name)}>
-                  <span className="commander-option">
-                    <span
-                      className={`commander-cost ${commanderCosts[name] === undefined ? 'loading' : 'loaded'}`}
-                    >
-                      {commanderCosts[name] === undefined ? (
-                        <span className="cost-placeholder" aria-label="Loading mana cost" />
-                      ) : (
-                        <OracleText text={commanderCosts[name]} />
-                      )}
+                <div className="suggestion-item" key={name}>
+                  <button type="button" className="suggestion-select" onClick={() => start(name)}>
+                    <span className="commander-option">
+                      <span
+                        className={`commander-cost ${commanderCosts[name] === undefined ? 'loading' : 'loaded'}`}
+                      >
+                        {commanderCosts[name] === undefined ? (
+                          <span className="cost-placeholder" aria-label="Loading mana cost" />
+                        ) : (
+                          <OracleText text={commanderCosts[name]} />
+                        )}
+                      </span>
+                      <span>{name}</span>
                     </span>
-                    <span>{name}</span>
-                  </span>
-                  <span>→</span>
+                    <span>→</span>
+                  </button>
                   {commanderImages[name]?.length > 0 && (
                     <span
                       className={`suggestion-preview ${commanderImages[name].length > 1 ? 'pair' : ''}`}
                     >
-                      {commanderImages[name].map((image, index) => (
-                        <img src={image} alt={`${commanderNames(name)[index]} card`} key={image} />
+                      {commanderImages[name].map(({ image, backImage }, index) => (
+                        <FinishedCardImage
+                          image={image}
+                          backImage={backImage}
+                          alt={`${commanderNames(name)[index]} card`}
+                          cardName={commanderNames(name)[index]}
+                          effectsEnabled={cardEffects}
+                          showFlipButton
+                          key={image}
+                        />
                       ))}
                     </span>
                   )}
-                </button>
+                </div>
               ))}
             </div>
             {search.trim().length < 2 && (

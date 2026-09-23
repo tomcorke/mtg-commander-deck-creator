@@ -60,18 +60,6 @@
 .deck-card-modal-art .finish-edges {
   position: absolute;
 }
-.deck-card-modal-art > button {
-  position: absolute;
-  z-index: 3;
-  right: 10px;
-  bottom: -12px;
-  padding: 7px 10px;
-  border: 1px solid #ffffff99;
-  border-radius: 6px;
-  background: #201c3c;
-  color: white;
-  box-shadow: 0 5px 14px #08071299;
-}
 .deck-card-modal-copy {
   min-width: 0;
   align-self: center;
@@ -425,7 +413,10 @@
   overflow-y: auto;
   border-top: 1px solid #dad8e6;
 }
-.card-search-results button {
+.card-search-result {
+  position: relative;
+}
+.card-search-result > button {
   position: relative;
   display: flex;
   width: 100%;
@@ -463,14 +454,16 @@
     0 16px 42px #080712d9,
     0 0 0 1px #ffffff26;
 }
-.card-search-results button:hover .search-card-popover,
-.card-search-results button:focus-visible .search-card-popover {
+.card-search-result:hover .search-card-popover,
+.card-search-result:focus-within .search-card-popover,
+.search-card-popover:hover {
   visibility: visible;
   opacity: 1;
+  pointer-events: auto;
   transform: translateY(-50%) scale(1);
   transition-delay: 0s;
 }
-.card-search-results button > span:first-child {
+.card-search-result > button > span:first-child {
   display: grid;
   gap: 3px;
 }
@@ -501,19 +494,6 @@
   display: block;
   width: 100%;
   border-radius: 4.75%;
-}
-.manual-card-image > button {
-  position: absolute;
-  z-index: 3;
-  right: 8px;
-  bottom: -12px;
-  padding: 6px 9px;
-  border: 1px solid #ffffff99;
-  border-radius: 6px;
-  background: #201c3c;
-  color: white;
-  font-size: 12px;
-  box-shadow: 0 3px 9px #201c3c55;
 }
 .manual-card-zoom {
   position: absolute;
@@ -723,19 +703,6 @@ main > .commander-header {
 }
 .commander-printing {
   position: relative;
-}
-.commander-printing button {
-  position: absolute;
-  z-index: 3;
-  right: 10px;
-  bottom: -18px;
-  padding: 7px 10px;
-  border: 1px solid #ffffff99;
-  border-radius: 6px;
-  background: #201c3c;
-  color: white;
-  pointer-events: auto;
-  box-shadow: 0 5px 14px #08071299;
 }
 .commander-card:hover .card-zoom,
 .commander-card:focus-visible .card-zoom {
