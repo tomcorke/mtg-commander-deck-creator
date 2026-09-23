@@ -125,18 +125,15 @@ export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
   } = deps
   useEffect(() => {
     const names = commanderNames(commander)
-    const doubleFacedCommander = deck
-      .slice(0, names.length)
-      .some((card: any) => card.faces?.length > 1)
     if (
       !commanderDetails ||
-      commanderDetails.printings.every((printings: any[]) =>
+      commanderDetails.printings.every((printings: any[], index: number) =>
         printings.every(
           (printing) =>
             printing.finish &&
             printing.setName &&
             printing.scryfallUri &&
-            (!doubleFacedCommander || printing.backImage),
+            (!(deck[index]?.faces?.length > 1) || printing.backImage),
         ),
       )
     )
