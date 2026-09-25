@@ -18,8 +18,7 @@
 
 Batch only tightly related edits. Skip publishing docs-only changes.
 
-## References
+## Project planning
 
-- Issues and specs live in GitHub Issues; use `gh`. See `docs/agents/issue-tracker.md`.
-- Read `TODO.md` when a task matches planned work; it records scope, context, ratings, and suggested order.
+- `TODO.md` is the source of truth for planned work. Read it before planning and update it when scope or priority changes.
 - This is a single-context repo. See `docs/agents/domain.md`.

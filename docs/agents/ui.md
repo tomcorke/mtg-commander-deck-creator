@@ -4,10 +4,10 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 
 ## Reuse first
 
-- Search `src/App.tsx` and `src/App.css` for an existing component or class before adding markup or a selector.
-- Reuse the existing component or class for the job: `.primary` for the main action, `.export` for header actions, `ModalCloseButton` for dialog dismissal, and `.actions button` for recommendation decisions.
+- Search `src/features/` and `src/shared/` for an existing component, and `src/styles/` for an existing class before adding markup or a selector.
+- Reuse the existing component or class for the job: `.primary` for the main action, `.export` for header actions, `ModalCloseButton` from `src/shared/CardDetails.tsx` for dialog dismissal, and `.actions button` for recommendation decisions.
 - Put shared behavior in the shared component or class. Add a one-off class only when the element has a genuinely different job.
-- Keep light and dark styles together in `src/App.css`; every new surface and control needs both states.
+- Keep styles in the owning `src/styles/` file; every new surface and control needs light and dark states.
 
 ## Buttons
 

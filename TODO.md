@@ -27,6 +27,7 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | 3     | B2  | Import-to-review flow                 | Medium     | Medium | Low           | Bounded follow-up once B1 exists.                                                     |
 | 4     | A2  | Initial user flow                     | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation. |
 | 5     | B3  | Deck Doctor                           | High       | High   | High          | Defer until review signals are trustworthy; swap quality needs validation.            |
+| 6     | B4  | Finish builder-view module ownership  | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                |
 
 ## [A1] Improve land and mana-support recommendations
 
@@ -120,3 +121,34 @@ Acceptance checks:
 - Each finding names the cards or deck evidence behind it and states uncertainty where tag or rules-text heuristics may be incomplete.
 - Swap suggestions explain both the proposed cut and addition, including the role or synergy change. Players confirm every change.
 - Test cards with isolated keywords, narrow themes, colour-intensive costs, and otherwise valid exceptions to avoid treating unusual cards as automatic mistakes.
+
+## [B4] Finish builder-view module ownership
+
+**Complexity:** High · **Value:** Medium · **Delivery risk:** Medium — The application root is modular, but the builder view still owns several independent dialogs and the feature-level style and lint boundaries are incomplete.
+
+Finish the remaining module-ownership work without splitting markup that has no useful seam.
+
+### Required behavior
+
+- Move the collection browser, card search, basic-land, and export dialogs into focused components with their related interaction state where practical. Keep `BuilderView` responsible for composing the builder workflow.
+- Move responsive and theme rules from `src/styles/responsive.css` into the owning feature styles; leave genuinely shared rules in shared styles.
+- Apply function-length, nested-callback, and cognitive-complexity checks to helpers and callbacks in feature TSX. Keep any exceptions narrow and documented rather than disabling checks for all feature views.
+
+### Existing implementation to build on
+
+- `src/features/builder/BuilderView.tsx` is about 1,770 lines and still renders the collection browser, card search, basic-land, and export dialogs.
+- `src/styles/responsive.css` combines viewport rules with theme rules for several features.
+- `eslint.config.js` disables function-length, nested-callback, and cognitive-complexity checks across `src/features/**/*.tsx`.
+- The application root, start and builder views, adapters, domain logic, focused modals, formatter, and base complexity checks are already in place.
+
+### Acceptance checks
+
+- Each independent builder dialog has a focused component and no longer carries unrelated view state.
+- Responsive and theme rules live with their owning styles; shared base rules remain shared.
+- Lint checks helper and callback functions in feature TSX, with no blanket feature-level exclusions.
+- Existing tests, lint, typecheck, production build, and the manual UI smoke check pass without behavior or accessibility regressions.
+
+## Migrated GitHub issues
+
+- **#1 — Make recommendations theme-first and collection-aware:** the scoring, queue, collection, persistence, and preference-learning behavior is implemented and tested; no remaining scope needs a TODO.
+- **#2 — Refactor app into cohesive modules and readable source formatting:** the main extraction and formatting work landed. The remaining view, style, and TSX-check gaps are tracked in B4.
