@@ -341,6 +341,7 @@ test('score breakdown exposes every contribution used by total score', () => {
       deckFit: 5,
       preferences: 4,
       deckNeeds: 10,
+      manaFitPenalty: 0,
       popularityPenalty: 0,
     },
   )
@@ -369,8 +370,176 @@ test('score factors sum to a normalized total', () => {
     deckFit: 10,
     preferences: 10,
     deckNeeds: 20,
+    manaFitPenalty: 0,
     popularityPenalty: 0,
   })
+})
+
+test('mana fit favors castable creatures over expensive color-intensive creatures', () => {
+  const context = {
+    theme: 'Tokens',
+    activeSubThemes: [],
+    pickedTags: new Set<string>(),
+    preferenceScores: {},
+    neededRoles: new Set<string>(),
+    cardRoles: [],
+    manaSupport: {
+      landCount: 10,
+      rampCount: 1,
+      landTarget: 35,
+      rampTarget: 10,
+      averageManaValue: 2,
+      producedMana: { W: 0, U: 0, B: 0, R: 0, G: 1 },
+    },
+  }
+  const expensive = {
+    reason: 'Commander synergy',
+    tags: ['Tokens'],
+    typeLine: 'Creature',
+    manaValue: 7,
+    manaCost: '{4}{G}{G}{U}',
+  }
+  const cheap = {
+    ...expensive,
+    manaValue: 2,
+    manaCost: '{1}{G}',
+  }
+  const strained = recommendationScoreBreakdown(expensive, context)
+  const affordable = recommendationScoreBreakdown(cheap, context)
+  const colorStrained = recommendationScoreBreakdown(expensive, {
+    ...context,
+    manaSupport: {
+      ...context.manaSupport,
+      landCount: 35,
+      rampCount: 10,
+    },
+  })
+  const supported = recommendationScoreBreakdown(expensive, {
+    ...context,
+    manaSupport: {
+      ...context.manaSupport,
+      landCount: 35,
+      rampCount: 10,
+      averageManaValue: 3,
+      producedMana: { W: 0, U: 15, B: 0, R: 0, G: 20 },
+    },
+  })
+  const hybrid = recommendationScoreBreakdown(
+    { ...expensive, manaValue: 2, manaCost: '{W/U}{W/U}' },
+    {
+      ...context,
+      manaSupport: { ...context.manaSupport, landCount: 35, rampCount: 10 },
+    },
+  )
+
+  assert.ok(strained.manaFitPenalty <= -5)
+  assert.ok(affordable.manaFitPenalty > strained.manaFitPenalty)
+  assert.ok(colorStrained.manaFitPenalty < 0)
+  assert.equal(supported.manaFitPenalty, 0)
+  assert.equal(hybrid.manaFitPenalty, 0)
+  assert.equal(
+    recommendationScoreBreakdown({ ...expensive, typeLine: 'Sorcery' }, context).manaFitPenalty,
+    0,
+  )
+  for (const recommendationStyle of ['story', 'balanced', 'optimized'] as const)
+    assert.equal(
+      recommendationScoreBreakdown(expensive, { ...context, recommendationStyle }).manaFitPenalty,
+      strained.manaFitPenalty,
+    )
+  assert.ok(strained.total > 0)
+})
+
+test('does not force a poorly supported creature over available support cards', () => {
+  const cards = [
+    {
+      name: 'Expensive Creature',
+      reason: 'Interesting new pick',
+      typeLine: 'Creature',
+      tags: ['Tokens', 'Aristocrats'],
+      manaValue: 9,
+      manaCost: '{5}{G}{G}{G}',
+    },
+    {
+      name: 'Cheap Creature',
+      reason: 'Commander synergy',
+      typeLine: 'Creature',
+      tags: ['Tokens'],
+      manaValue: 2,
+      manaCost: '{1}{G}',
+    },
+    {
+      name: 'Ramp',
+      reason: 'Utility artifact',
+      typeLine: 'Artifact',
+      tags: ['ramp'],
+      manaValue: 2,
+      manaCost: '{2}',
+    },
+    {
+      name: 'Draw',
+      reason: 'Interaction',
+      typeLine: 'Sorcery',
+      tags: ['draw'],
+      manaValue: 2,
+      manaCost: '{1}{G}',
+    },
+    {
+      name: 'Theme support',
+      reason: 'Commander synergy',
+      typeLine: 'Enchantment',
+      tags: ['Tokens'],
+      manaValue: 3,
+      manaCost: '{2}{G}',
+    },
+    {
+      name: 'Commander favourite',
+      reason: 'Commander favourite',
+      typeLine: 'Instant',
+      tags: [],
+      manaValue: 2,
+      manaCost: '{1}{G}',
+    },
+  ]
+  const currentBatch = Array.from({ length: 4 }, (_, index) => ({
+    name: `Current ${index}`,
+    reason: 'Interaction',
+    typeLine: 'Instant',
+    tags: [],
+  }))
+  const options = {
+    queue: [...currentBatch, ...cards],
+    deferredCards: [],
+    batchNumber: 1,
+    decisions: Object.fromEntries(currentBatch.map(({ name }) => [name, 'add' as const])),
+    liked: [],
+    preferenceScores: {},
+    activeSubThemes: ['Aristocrats'],
+    theme: 'Tokens',
+    includeCreature: true,
+    roleBoosts: { ramp: 6, draw: 6 },
+    cardRoles: (card: (typeof cards)[number]) =>
+      card.tags.filter((tag) => ['ramp', 'draw'].includes(tag)),
+    manaSupport: {
+      landCount: 5,
+      rampCount: 0,
+      landTarget: 35,
+      rampTarget: 10,
+      averageManaValue: 2,
+      producedMana: { W: 0, U: 0, B: 0, R: 0, G: 1 },
+    },
+  }
+
+  for (const recommendationStyle of ['story', 'balanced', 'optimized'] as const) {
+    const ranked = advanceRecommendationQueue({ ...options, recommendationStyle }).queue
+    assert.equal(
+      ranked.slice(0, 4).some((card) => card.name === 'Expensive Creature'),
+      false,
+      recommendationStyle,
+    )
+    assert.ok(ranked.slice(0, 4).some((card) => card.name === 'Cheap Creature'))
+    assert.ok(ranked.slice(0, 4).some((card) => card.name === 'Ramp'))
+    assert.ok(ranked.slice(0, 4).some((card) => card.name === 'Draw'))
+  }
 })
 
 test('recommendation styles and collection affinity change visible factors', () => {

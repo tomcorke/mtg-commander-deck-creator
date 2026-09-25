@@ -1,6 +1,7 @@
 import { analyseDeck, deckRoleBoosts, rolesForCard, targetKeys } from '../deck-analysis.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
 import {
+  manaSupportFromAnalysis,
   orderedPrintings,
   preferredPrintingIndex,
   recommendationScore,
@@ -36,7 +37,6 @@ function scoringContext(
   const roleBoosts: Record<string, number> = prioritizeDeckHealth
     ? deckRoleBoosts(deck.length, analysis.counts, deckTargets)
     : {}
-  roleBoosts.lands = 0
   const neededRoles = new Set(
     prioritizeDeckHealth ? targetKeys.filter((key) => analysis.counts[key] < deckTargets[key]) : [],
   )
@@ -60,6 +60,7 @@ function scoringContext(
       roleBoosts,
       roleSupply,
       batchNumber,
+      manaSupport: manaSupportFromAnalysis(analysis, deckTargets),
     })
   const specialCards = new Set(
     [0, 4].flatMap((start) => {

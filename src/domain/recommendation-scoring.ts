@@ -1,10 +1,29 @@
 import type { PrintingLike, ScryfallCard } from './card-model.ts'
 import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
 import type {
+  ManaSupport,
   RecommendationScoreBreakdown,
   RecommendationScoreCard,
   RecommendationScoreContext,
 } from './recommendation-types.ts'
+
+export function manaSupportFromAnalysis(
+  analysis: {
+    counts: { lands: number; ramp: number }
+    averageManaValue: number
+    produced: Record<string, number>
+  },
+  targets: { lands: number; ramp: number },
+): ManaSupport {
+  return {
+    landCount: analysis.counts.lands,
+    rampCount: analysis.counts.ramp,
+    landTarget: targets.lands,
+    rampTarget: targets.ramp,
+    averageManaValue: analysis.averageManaValue,
+    producedMana: analysis.produced,
+  }
+}
 
 function evidenceScore(
   card: RecommendationScoreCard,
@@ -57,6 +76,37 @@ function preferenceScore(
   )
 }
 
+// ponytail: source-count proxy; consider sampled draws if audits show poor castability rankings.
+function manaFitPenalty(card: RecommendationScoreCard, support?: ManaSupport) {
+  if (!support || !card.typeLine?.includes('Creature')) return 0
+  const totalSources = support.landCount + support.rampCount
+  const targetSources = Math.max(1, support.landTarget + support.rampTarget)
+  const sourceDeficit = Math.max(0, targetSources - totalSources) / targetSources
+  const affordableManaValue = Math.max(4, support.averageManaValue + 1)
+  const costPressure = Math.min(1, Math.max(0, ((card.manaValue ?? 0) - affordableManaValue) / 3))
+  const sourcePenalty =
+    sourceDeficit * costPressure * recommendationScoreFactorMaximums.manaFitPenalty
+  const pips = [...(card.manaCost ?? '').matchAll(/\{([^}]+)\}/g)]
+    .flatMap(([, symbol]) => (symbol.includes('/') ? [] : [symbol]))
+    .filter((symbol) => ['W', 'U', 'B', 'R', 'G'].includes(symbol))
+  const pipsByColour = new Map<string, number>()
+  for (const colour of pips) pipsByColour.set(colour, (pipsByColour.get(colour) ?? 0) + 1)
+  const missingPips = [...pipsByColour].reduce(
+    (missing, [colour, count]) =>
+      missing + Math.max(0, count - (support.producedMana[colour] ?? 0)),
+    0,
+  )
+  const colorPenalty =
+    totalSources > 0 && pips.length
+      ? (missingPips / pips.length) * recommendationScoreFactorMaximums.manaFitPenalty
+      : 0
+  const penalty = Math.min(
+    recommendationScoreFactorMaximums.manaFitPenalty,
+    Math.round(Math.max(sourcePenalty, colorPenalty)),
+  )
+  return penalty ? -penalty : 0
+}
+
 function deckNeedsScore(
   cardRoles: string[],
   neededRoles: Set<string>,
@@ -107,6 +157,7 @@ export function recommendationScoreBreakdown(
     roleBoosts = {},
     roleSupply = {},
     batchNumber = 1,
+    manaSupport,
   }: RecommendationScoreContext,
 ): RecommendationScoreBreakdown {
   const collection = collectionScore(card, recommendationStyle, collectionSets, collectionMode)
@@ -135,6 +186,7 @@ export function recommendationScoreBreakdown(
     batchNumber,
     recommendationStyle,
   )
+  const manaFit = manaFitPenalty(card, manaSupport)
   const popularityPenalty =
     recommendationStyle === 'story' &&
     (card.reason === 'Commander favourite' || card.reason === 'Popular inclusion')
@@ -149,6 +201,7 @@ export function recommendationScoreBreakdown(
       deckFit +
       preferences +
       deckNeeds +
+      manaFit +
       popularityPenalty,
   )
   return {
@@ -160,6 +213,7 @@ export function recommendationScoreBreakdown(
     deckFit,
     preferences,
     deckNeeds,
+    manaFitPenalty: manaFit,
     popularityPenalty,
   }
 }

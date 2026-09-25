@@ -1,4 +1,5 @@
-import { recommendationScore } from './recommendation-scoring.ts'
+import { recommendationScoreBreakdown } from './recommendation-scoring.ts'
+import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
 import type {
   CollectionMode,
   DeferredCard,
@@ -6,41 +7,56 @@ import type {
   RecommendationStyle,
 } from './recommendation-types.ts'
 
+function takeNextRecommendation<T extends { reason: string }>(
+  remaining: T[],
+  picks: T[],
+  test: (card: T) => boolean,
+) {
+  const allowedNewCard = (card: T) =>
+    card.reason !== 'Interesting new pick' || !picks.some((pick) => pick.reason === card.reason)
+  const newReason = (card: T) => !picks.some((pick) => pick.reason === card.reason)
+  let index = remaining.findIndex((card) => test(card) && allowedNewCard(card) && newReason(card))
+  if (index < 0) index = remaining.findIndex((card) => test(card) && allowedNewCard(card))
+  if (index < 0) index = remaining.findIndex(test)
+  if (index >= 0) picks.push(...remaining.splice(index, 1))
+}
+
+function nextRecommendationBatch<T extends { reason: string; typeLine: string }>(
+  remaining: T[],
+  includeCreature: boolean,
+  canUse: (card: T) => boolean,
+) {
+  const picks: T[] = []
+  const take = (test: (card: T) => boolean) => takeNextRecommendation(remaining, picks, test)
+  if (includeCreature)
+    take(
+      (card) =>
+        canUse(card) && card.reason !== 'Land or mana' && card.typeLine.includes('Creature'),
+    )
+  while (picks.filter((card) => card.reason !== 'Land or mana').length < 3) {
+    const count = picks.length
+    take((card) => canUse(card) && card.reason !== 'Land or mana')
+    if (picks.length === count) break
+  }
+  take((card) => card.reason === 'Land or mana')
+  while (picks.length < 4) {
+    const count = picks.length
+    take(canUse)
+    if (picks.length === count) take(() => true)
+    if (picks.length === count) break
+  }
+  return picks
+}
+
 export function batchRecommendations<T extends { name: string; reason: string; typeLine: string }>(
   cards: T[],
   includeCreature: boolean,
+  canUse: (card: T) => boolean = () => true,
 ) {
   const remaining = [...cards]
   const ordered: T[] = []
-  while (remaining.length) {
-    const picks: T[] = []
-    const take = (test: (card: T) => boolean) => {
-      const allowedNewCard = (card: T) =>
-        card.reason !== 'Interesting new pick' ||
-        !picks.some((pick) => pick.reason === 'Interesting new pick')
-      const newReason = (card: T) => !picks.some((pick) => pick.reason === card.reason)
-      let index = remaining.findIndex(
-        (card) => test(card) && allowedNewCard(card) && newReason(card),
-      )
-      if (index < 0) index = remaining.findIndex((card) => test(card) && allowedNewCard(card))
-      if (index < 0) index = remaining.findIndex(test)
-      if (index >= 0) picks.push(...remaining.splice(index, 1))
-    }
-    if (includeCreature)
-      take((card) => card.reason !== 'Land or mana' && card.typeLine.includes('Creature'))
-    while (picks.filter((card) => card.reason !== 'Land or mana').length < 3) {
-      const count = picks.length
-      take((card) => card.reason !== 'Land or mana')
-      if (picks.length === count) break
-    }
-    take((card) => card.reason === 'Land or mana')
-    while (picks.length < 4) {
-      const count = picks.length
-      take(() => true)
-      if (picks.length === count) break
-    }
-    ordered.push(...picks)
-  }
+  while (remaining.length)
+    ordered.push(...nextRecommendationBatch(remaining, includeCreature, canUse))
   if (
     ordered.length !== cards.length ||
     new Set(ordered.map((card) => card.name)).size !== cards.length
@@ -52,6 +68,7 @@ export function batchRecommendations<T extends { name: string; reason: string; t
 function keepStoryIdentity<T extends { tags: string[]; set?: string; collectionMatch?: boolean }>(
   cards: T[],
   context: RecommendationScoreContext,
+  canUse: (card: T) => boolean = () => true,
 ) {
   const isIdentity = (card: T) =>
     Boolean(
@@ -66,7 +83,9 @@ function keepStoryIdentity<T extends { tags: string[]; set?: string; collectionM
     const batch = ordered.slice(start, start + 4)
     if (ordered.slice(start).filter(isIdentity).length < Math.min(3, batch.length)) continue
     while (batch.filter((card) => !isIdentity(card)).length > 1) {
-      const replacement = ordered.findIndex((card, index) => index >= start + 4 && isIdentity(card))
+      const replacement = ordered.findIndex(
+        (card, index) => index >= start + 4 && canUse(card) && isIdentity(card),
+      )
       const displaced = batch.findLastIndex((card) => !isIdentity(card))
       if (replacement < 0 || displaced < 0) break
       ;[ordered[start + displaced], ordered[replacement]] = [
@@ -101,16 +120,27 @@ export function rankRecommendationCards<
             card.collectionMatch || (card.set && context.collectionSets?.includes(card.set)),
         )
       : cards
-  const ranked = [...eligible].sort(
-    (left, right) =>
-      recommendationScore(right, { ...context, cardRoles: cardRoles(right) }) -
-      recommendationScore(left, { ...context, cardRoles: cardRoles(left) }),
-  )
+  const scores = new Map<T, ReturnType<typeof recommendationScoreBreakdown>>()
+  const score = (card: T) => {
+    if (!scores.has(card))
+      scores.set(
+        card,
+        recommendationScoreBreakdown(card, { ...context, cardRoles: cardRoles(card) }),
+      )
+    return scores.get(card)!
+  }
+  const ranked = [...eligible].sort((left, right) => score(right).total - score(left).total)
+  const canUse = (card: T) =>
+    !card.typeLine.includes('Creature') ||
+    score(card).manaFitPenalty > -recommendationScoreFactorMaximums.manaFitPenalty / 2
   const varied = balanceThemeCoverage(
-    batchRecommendations(ranked, includeCreature),
+    batchRecommendations(ranked, includeCreature, canUse),
     [context.theme, ...context.activeSubThemes].filter(Boolean),
+    canUse,
   )
-  return context.recommendationStyle === 'story' ? keepStoryIdentity(varied, context) : varied
+  return context.recommendationStyle === 'story'
+    ? keepStoryIdentity(varied, context, canUse)
+    : varied
 }
 
 export function selectSubTheme(activeSubThemes: string[], name: string) {
@@ -123,6 +153,7 @@ export function selectSubTheme(activeSubThemes: string[], name: string) {
 export function balanceThemeCoverage<T extends { tags: string[]; reason: string }>(
   cards: T[],
   themes: string[],
+  canUse: (card: T) => boolean = () => true,
 ) {
   if (themes.length < 2) return cards
   const ordered = [...cards]
@@ -133,6 +164,7 @@ export function balanceThemeCoverage<T extends { tags: string[]; reason: string 
       const replacement = ordered.findIndex(
         (card, index) =>
           index >= start + 4 &&
+          canUse(card) &&
           card.tags.includes(theme) &&
           card.reason !== 'Land or mana' &&
           (card.reason !== 'Interesting new pick' ||
@@ -232,6 +264,7 @@ export function advanceRecommendationQueue<
   includeCreature,
   roleBoosts = {},
   cardRoles = () => [],
+  manaSupport,
   recommendationStyle = 'balanced',
   collectionSets = [],
   collectionMode = 'none',
@@ -249,6 +282,7 @@ export function advanceRecommendationQueue<
   includeCreature: boolean
   roleBoosts?: Record<string, number>
   cardRoles?: (card: T) => string[]
+  manaSupport?: RecommendationScoreContext['manaSupport']
   recommendationStyle?: RecommendationStyle
   collectionSets?: string[]
   collectionMode?: CollectionMode
@@ -286,6 +320,7 @@ export function advanceRecommendationQueue<
     roleBoosts,
     roleSupply,
     batchNumber,
+    manaSupport,
   }
   return {
     queue: rankRecommendationCards(candidates, context, includeCreature, cardRoles),

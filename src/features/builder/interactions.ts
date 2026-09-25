@@ -5,6 +5,7 @@ import type { Card } from '../../domain/card-model.ts'
 import { commanderNames } from '../../domain/commander-catalog.ts'
 import {
   advanceRecommendationQueue,
+  manaSupportFromAnalysis,
   type CollectionMode,
   type RecommendationStyle,
 } from '../../recommendations.ts'
@@ -103,7 +104,6 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
   const roleBoosts: Record<string, number> = prioritizeDeckHealth
     ? deckRoleBoosts(deck.length, analysis.counts, deckTargets)
     : {}
-  roleBoosts.lands = 0
   const pickedTags = new Set([
     ...deck.slice(commanderNames(commander).length).flatMap((card: Card) => card.tags),
     ...Object.entries(preferenceScores as Record<string, number>)
@@ -124,6 +124,7 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
     includeCreature,
     roleBoosts,
     cardRoles: (card: any) => rolesForCard(card),
+    manaSupport: manaSupportFromAnalysis(analysis, deckTargets),
     recommendationStyle: recommendationStyle as RecommendationStyle,
     collectionSets,
     collectionMode: collectionMode as CollectionMode,

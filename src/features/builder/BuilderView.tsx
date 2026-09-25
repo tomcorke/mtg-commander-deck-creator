@@ -254,7 +254,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     recommendedCard,
     removeDeckCard,
     removeSideboardCard,
-    representativeSpellCount,
     resetFan,
     retryEdhrec,
     savedDecksModal,
@@ -1412,26 +1411,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 Suggested lands {analysis.landRange[0]}-{analysis.landRange[1]}
               </span>
             </div>
-            {representativeSpellCount < 5 && analysis.counts.lands < calculatedLandTarget ? (
-              <p className="basic-land-wait">
-                Add {5 - representativeSpellCount} more non-land{' '}
-                {5 - representativeSpellCount === 1 ? 'card' : 'cards'} to calculate basic land
-                colours.
-              </p>
-            ) : (
-              basicLands.length > 0 && (
-                <button
-                  className="basic-land-button"
-                  type="button"
-                  onClick={() => {
-                    setBasicLandState('idle')
-                    openModal('basics')
-                  }}
-                >
-                  <span>Fill to land target</span>
-                  <b>+{basicLands.reduce((sum, land) => sum + land.count, 0)} basics</b>
-                </button>
-              )
+            {basicLands.length > 0 && (
+              <button
+                className="basic-land-button"
+                type="button"
+                onClick={() => {
+                  setBasicLandState('idle')
+                  openModal('basics')
+                }}
+              >
+                <span>Fill to land target</span>
+                <b>+{basicLands.reduce((sum, land) => sum + land.count, 0)} basics</b>
+              </button>
             )}
             <div className="deck-targets">
               {targetKeys.map((key) => (

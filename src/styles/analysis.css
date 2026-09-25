@@ -424,12 +424,6 @@
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
-.basic-land-wait {
-  margin: 7px 0;
-  color: #706d82;
-  font-size: 12px;
-  line-height: 1.35;
-}
 .basic-land-modal {
   max-width: 480px;
 }

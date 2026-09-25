@@ -183,22 +183,43 @@ test('splits basic lands by demand, falls back evenly, and respects open slots',
   assert.deepEqual(basicLandPlan([], demand, 30, 35, 98), [
     { name: 'Wastes', colour: 'C', count: 2 },
   ])
+  assert.deepEqual(basicLandPlan(['W'], demand, 35, 35, 90), [])
+  assert.deepEqual(basicLandPlan(['W'], demand, 36, 35, 90), [])
+  assert.deepEqual(basicLandPlan(['W'], demand, 30, 35, 100), [])
 })
 
 test('role boosts stay modest early and strengthen late', () => {
   const counts = { ...defaultDeckTargets, ramp: 5, wipes: 0 }
   assert.deepEqual(deckRoleBoosts(40, counts, defaultDeckTargets), {
     lands: 0,
-    ramp: 3,
+    ramp: 5,
     draw: 0,
     removal: 0,
     wipes: 6,
   })
   assert.deepEqual(deckRoleBoosts(90, counts, defaultDeckTargets), {
     lands: 0,
-    ramp: 9,
+    ramp: 14,
     draw: 0,
     removal: 0,
+    wipes: 18,
+  })
+})
+
+test('land and ramp gaps get stronger health boosts than other roles', () => {
+  const counts = { lands: 0, ramp: 0, draw: 0, removal: 0, wipes: 0 }
+  assert.deepEqual(deckRoleBoosts(40, counts, defaultDeckTargets), {
+    lands: 9,
+    ramp: 9,
+    draw: 6,
+    removal: 6,
+    wipes: 6,
+  })
+  assert.deepEqual(deckRoleBoosts(90, counts, defaultDeckTargets), {
+    lands: 24,
+    ramp: 24,
+    draw: 18,
+    removal: 18,
     wipes: 18,
   })
 })

@@ -5,6 +5,7 @@ import {
   batchRecommendations,
   buildEdhrecRecommendations,
   commanderThemes,
+  manaSupportFromAnalysis,
   parseEdhrecEntries,
   preconFastMana,
   type ScryfallCard,
@@ -520,7 +521,6 @@ function buildInitialRankingContext(
   const rankingRoleBoosts: Record<string, number> = prioritizeDeckHealth
     ? deckRoleBoosts(deck.length, rankingAnalysis.counts, deckTargets)
     : {}
-  rankingRoleBoosts.lands = 0
   const rankingRoles = new Set(
     prioritizeDeckHealth
       ? targetKeys.filter((key) => rankingAnalysis.counts[key] < deckTargets[key])
@@ -549,6 +549,7 @@ function buildInitialRankingContext(
       ]),
     ),
     batchNumber: 1,
+    manaSupport: manaSupportFromAnalysis(rankingAnalysis, deckTargets),
   }
 }
 

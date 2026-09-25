@@ -48,6 +48,13 @@ const recommendationScoreFactors = [
     description: 'Urgency of roles your deck is missing, such as ramp, draw, lands, or removal.',
   },
   {
+    key: 'manaFitPenalty',
+    label: 'Mana-fit penalty',
+    max: recommendationScoreFactorMaximums.manaFitPenalty,
+    description:
+      'Deducts up to 10 points when a creature’s mana value or colored pips exceed the deck’s current land, ramp, or color support. This is a heuristic, not a casting probability.',
+  },
+  {
     key: 'popularityPenalty',
     label: 'Popularity penalty',
     max: recommendationScoreFactorMaximums.popularityPenalty,
@@ -163,7 +170,9 @@ export function ScoreBreakdown({
           ))}
         </dl>
       </div>
-      <p className="score-note">Factors are normalized to a 100-point total.</p>
+      <p className="score-note">
+        Positive factors total 100 points. Mana-fit and popularity penalties reduce the total.
+      </p>
     </section>
   )
 }

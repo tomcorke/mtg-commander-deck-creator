@@ -10,6 +10,7 @@ import {
   advanceRecommendationQueue,
   buildEdhrecRecommendations,
   edhrecSlug,
+  manaSupportFromAnalysis,
   parseEdhrecEntries,
   recommendationScore,
   type PowerTarget,
@@ -190,6 +191,7 @@ function scoreSimulationCard(
   card: RecommendationCard,
   state: Simulation,
   roleBoosts: Record<string, number>,
+  analysis: ReturnType<typeof analyseDeck>,
 ) {
   return recommendationScore(card, {
     theme: '',
@@ -206,6 +208,7 @@ function scoreSimulationCard(
     roleBoosts,
     roleSupply: simulationRoleSupply(state.queue, Object.keys(roleBoosts)),
     batchNumber: state.batchNumber,
+    manaSupport: manaSupportFromAnalysis(analysis, defaultDeckTargets),
   })
 }
 
@@ -214,6 +217,7 @@ function processSimulationCard(
   state: Simulation,
   counts: Record<string, number>,
   roleBoosts: Record<string, number>,
+  analysis: ReturnType<typeof analyseDeck>,
   decisions: Record<string, RecommendationDecision>,
 ) {
   state.offers += 1
@@ -226,7 +230,7 @@ function processSimulationCard(
   for (const role of rolesForCard(card))
     if (role !== 'lands' && state.firstRoleOffer[role] === null)
       state.firstRoleOffer[role] = state.batchNumber
-  state.scoreTotal += scoreSimulationCard(card, state, roleBoosts)
+  state.scoreTotal += scoreSimulationCard(card, state, roleBoosts, analysis)
   const type = cardType(card)
   const shouldAdd =
     state.policy === 'accept-all' ||
@@ -250,11 +254,10 @@ function simulateBatch(state: Simulation) {
   const counts = simulationCounts(state)
   const analysis = analyseDeck(state.accepted)
   const roleBoosts = deckRoleBoosts(state.accepted.length + 1, analysis.counts, defaultDeckTargets)
-  roleBoosts.lands = 0
   const decisions: Record<string, RecommendationDecision> = {}
   let batchPicks = 0
   for (const card of batch) {
-    if (processSimulationCard(card, state, counts, roleBoosts, decisions)) batchPicks += 1
+    if (processSimulationCard(card, state, counts, roleBoosts, analysis, decisions)) batchPicks += 1
     if (state.accepted.length === 99) break
   }
   if (batchPicks === 0) state.noPickBatches += 1
@@ -273,6 +276,7 @@ function simulateBatch(state: Simulation) {
     roleBoosts,
     cardRoles: rolesForCard,
     recommendationStyle: 'balanced',
+    manaSupport: manaSupportFromAnalysis(analysis, defaultDeckTargets),
   })
   state.queue = next.queue
   state.deferredCards = next.deferredCards

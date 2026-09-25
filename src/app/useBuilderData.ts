@@ -15,6 +15,7 @@ import { colourThemes, commanderNames, deckColumnSections } from '../domain/comm
 import type { Card, DeckCard, ScryfallCard } from '../domain/card-model.ts'
 import {
   findSynergyPair,
+  manaSupportFromAnalysis,
   recommendationScoreBreakdown,
   recommendedScoreThreshold,
   sharedThemes,
@@ -134,6 +135,7 @@ function buildCollectionData(deps: BuilderDataDeps) {
 function buildDeckData(deps: BuilderDataDeps) {
   const { deck, commander, commanderDetails, deckTargets } = deps
   const analysis = analyseDeck(deck)
+  const manaSupport = manaSupportFromAnalysis(analysis, deckTargets)
   const missingHealthRoles = targetKeys.filter((key) => analysis.counts[key] < deckTargets[key])
   const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
   const healthSuggestions =
@@ -148,19 +150,13 @@ function buildDeckData(deps: BuilderDataDeps) {
           .slice(0, 3)
       : []
   const calculatedLandTarget = deckTargets.lands
-  const representativeSpellCount = deck
-    .slice(commanderNames(commander).length)
-    .filter((card: Card) => !card.typeLine.includes('Land')).length
-  const basicLands =
-    representativeSpellCount >= 5
-      ? basicLandPlan(
-          commanderDetails?.colours ?? [],
-          analysis.required,
-          analysis.counts.lands,
-          calculatedLandTarget,
-          deck.length,
-        )
-      : []
+  const basicLands = basicLandPlan(
+    commanderDetails?.colours ?? [],
+    analysis.required,
+    analysis.counts.lands,
+    calculatedLandTarget,
+    deck.length,
+  )
   const indexedDeck: { card: DeckCard; index: number }[] = deck.map(
     (card: DeckCard, index: number) => ({ card, index }),
   )
@@ -214,11 +210,11 @@ function buildDeckData(deps: BuilderDataDeps) {
   const maxTypeCount = Math.max(1, ...displayedTypeCounts.map(([, count]) => count))
   return {
     analysis,
+    manaSupport,
     missingHealthRoles,
     healthSuggestions,
     guidance,
     calculatedLandTarget,
-    representativeSpellCount,
     basicLands,
     groupedBasics,
     groupedDeckColumns,
@@ -281,7 +277,6 @@ function buildRecommendationData(
   const recommendationRoleBoosts: Record<string, number> = prioritizeDeckHealth
     ? deckRoleBoosts(deck.length, deckData.analysis.counts, deckTargets)
     : {}
-  recommendationRoleBoosts.lands = 0
   const neededRoles = new Set(
     prioritizeDeckHealth
       ? targetKeys.filter((key) => deckData.analysis.counts[key] < deckTargets[key])
@@ -308,6 +303,7 @@ function buildRecommendationData(
       roleBoosts: recommendationRoleBoosts,
       roleSupply: recommendationRoleSupply,
       batchNumber,
+      manaSupport: deckData.manaSupport,
     }),
   }))
   const recommendedCard = scoredBatch.reduce(

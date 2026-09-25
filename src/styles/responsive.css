@@ -405,7 +405,6 @@
   background: var(--commander-accent, #5851a6);
   color: white;
 }
-.dark .basic-land-wait,
 .dark .deck-group > h3 {
   color: #aaa8c2;
 }

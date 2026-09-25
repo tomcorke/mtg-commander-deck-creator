@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { defaultDeckTargets } from '../deck-analysis.ts'
 import { start } from './recommendation-actions.ts'
 
 const names = ["Kraum, Ludevic's Opus", 'Tymna the Weaver']
@@ -26,6 +27,7 @@ test('partner retry requests combined EDHREC recommendations', async () => {
     collectionMode: 'none',
     collectionSets: [],
     deck: [],
+    deckTargets: defaultDeckTargets,
     deferredCards: [],
     edhrecRetryInFlight: { current: false },
     excludeExtraTurns: false,

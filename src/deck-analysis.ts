@@ -188,15 +188,17 @@ export function basicLandPlan(
 export function deckRoleBoosts(cardCount: number, counts: DeckTargets, targets: DeckTargets) {
   const urgency = cardCount >= 85 ? 3 : cardCount >= 70 ? 2 : 1
   return Object.fromEntries(
-    targetKeys.map((key) => [
-      key,
-      targets[key]
-        ? Math.min(
-            18,
-            Math.ceil((Math.max(0, targets[key] - counts[key]) / targets[key]) * 6 * urgency),
+    targetKeys.map((key) => {
+      const manaRole = key === 'lands' || key === 'ramp'
+      const multiplier = manaRole ? 1.5 : 1
+      const limit = manaRole ? 24 : 18
+      const boost = targets[key]
+        ? Math.ceil(
+            (Math.max(0, targets[key] - counts[key]) / targets[key]) * 6 * urgency * multiplier,
           )
-        : 0,
-    ]),
+        : 0
+      return [key, Math.min(limit, boost)]
+    }),
   ) as DeckTargets
 }
 

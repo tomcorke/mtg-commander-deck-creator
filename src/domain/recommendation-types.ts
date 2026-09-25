@@ -59,10 +59,21 @@ export const recommendationScoreFactorMaximums = {
   deckFit: 10,
   preferences: 10,
   deckNeeds: 30,
+  manaFitPenalty: 10,
   popularityPenalty: 15,
 } as const
 export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> &
-  Partial<Pick<RecommendationCard, 'set' | 'collectionMatch'>>
+  Partial<
+    Pick<RecommendationCard, 'set' | 'collectionMatch' | 'typeLine' | 'manaCost' | 'manaValue'>
+  >
+export type ManaSupport = {
+  landCount: number
+  rampCount: number
+  landTarget: number
+  rampTarget: number
+  averageManaValue: number
+  producedMana: Record<string, number>
+}
 export type RecommendationScoreContext = {
   theme: string
   activeSubThemes: string[]
@@ -76,6 +87,7 @@ export type RecommendationScoreContext = {
   roleBoosts?: Record<string, number>
   roleSupply?: Record<string, number>
   batchNumber?: number
+  manaSupport?: ManaSupport
 }
 export type RecommendationScoreBreakdown = {
   total: number
@@ -86,5 +98,6 @@ export type RecommendationScoreBreakdown = {
   deckFit: number
   preferences: number
   deckNeeds: number
+  manaFitPenalty: number
   popularityPenalty: number
 }
