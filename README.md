@@ -49,6 +49,10 @@ The script fetches current Archidekt, EDHREC, and Scryfall data, then imports th
 - Dark mode is the default, with a user-controlled light mode. Headings use Spectral and body copy uses DM Sans.
 - Deck state and recommendation history persist in `localStorage`; `Start over` clears them after confirmation.
 
+## Planned work
+
+See [TODO.md](TODO.md) for planned tasks, supporting context, ratings, and suggested order.
+
 ## Publishing
 
 The `publish` branch is the GitHub Pages artifact branch. Publish only from a checked-out `main` branch, and never publish staged, unstaged, or untracked changes. Do not edit the published files by hand. The Vite build reads the fetched `origin/publish` ref to derive the app version, so fetch that branch before building. The `CNAME` and `.nojekyll` files must remain at the publish root.

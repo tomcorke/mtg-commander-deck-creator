@@ -21,4 +21,5 @@ Batch only tightly related edits. Skip publishing docs-only changes.
 ## References
 
 - Issues and specs live in GitHub Issues; use `gh`. See `docs/agents/issue-tracker.md`.
+- Read `TODO.md` when a task matches planned work; it records scope, context, ratings, and suggested order.
 - This is a single-context repo. See `docs/agents/domain.md`.
