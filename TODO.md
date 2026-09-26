@@ -6,6 +6,7 @@
 - Put ratings directly below each title using `**Complexity:** … · **Value:** … · **Delivery risk:** … — short rationale.`
 - Give each item a concise goal, required behavior, relevant current context, and testable acceptance checks. Use bullets for requirements and checks; include source paths when they clarify existing behavior.
 - Mark uncertain work as an investigation with a go/no-go condition. Do not present a speculative approach as a committed implementation.
+- Move completed goals to [COMPLETED.md](COMPLETED.md), retaining their IDs; keep only active goals here.
 - Update the suggested order when ratings, dependencies, or scope change.
 
 ## Rating key
@@ -15,6 +16,8 @@ Rate each dimension Low / Medium / High:
 - **Complexity:** Low is localized work; Medium spans connected parts; High is cross-cutting or algorithm-heavy.
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
+
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1 and B1.
 
 ## Suggested order
 
@@ -43,36 +46,18 @@ Acceptance checks:
 - With no saved preference, the checkbox is checked. Returning users get their saved choice; opting out prevents the tour from starting until they opt in again.
 - The tour can be skipped without blocking deck creation, and existing recommendation preferences remain intact.
 
-## [B1] Add a detailed deck review
-
-**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Static review reuses builder data; simulation is not justified by available metadata.
-
-**Status:** Complete. The review, completion trigger, and import handoff are implemented. Goldfish simulation was not retained.
-
-- Make deck review available at any time, including before the deck is complete.
-- Open review automatically when the main deck first reaches 100 cards, whether the player fills it manually or imports a complete list. Keep it available afterward without reopening it on every render.
-- Go beyond the builder sidebar: explain deck strengths and risks using mana curve, land/ramp/draw coverage, coloured requirements and sources, theme and keyword coverage, and other relevant card-type counts. Make findings understandable and actionable.
-- Goldfish decision: no-go for B1. Available card metadata cannot model turn sequencing or game interactions reliably enough to improve on the inspectable static analysis. Revisit only if a model tested against simple known decks adds useful guidance beyond that analysis.
-
-Current context: the builder now offers detailed review at any deck size and opens it when the main deck reaches 100 cards. Complete imports use the same review; sideboard cards do not count toward completion. The review reuses curve, mana, role, and type analysis, then adds theme-tag coverage. Goldfish remains out of scope because current metadata cannot model turn sequencing or game interactions reliably.
-
-Acceptance checks:
-
-- Players can open and close review from the builder at any deck size. Filling the main deck to 100 opens it once; sideboard cards do not count toward completion.
-- Review findings link to the cards or gaps they describe and do not replace the existing detailed analysis with unexplained scores.
-- If a goldfish model is retained, document what it models, test its estimates against simple known decks, and label the output as approximate. Drop it if it adds no useful information beyond static analysis.
-
 ## [B2] Connect deck import to deck review
 
-**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Import already validates and loads decks; the main dependency is the review flow in B1.
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — The review exists; the work is to explain the handoff and give players a per-import choice without weakening validation.
 
-Improve the handoff from import to review. After a successful import, route the player into the same review experience when the imported main deck is complete; allow partial imports to enter review manually. Preserve import errors and validation feedback, and distinguish the main deck from sideboard when checking completion.
+Make the handoff clear before import: when the parsed main deck is complete, tell the player that a successful import will open the same deck review and offer a per-import opt-out. After a successful complete import, open review unless the player opted out; partial imports remain editable and can be reviewed manually. Preserve import errors and validation feedback, and distinguish the main deck from sideboard when checking completion.
 
-Current context: `src/features/modals/ImportDeckModal.tsx` accepts pasted deck-list text, while `src/deck-import.ts` parses commander, mainboard, and sideboard sections. `applyImportedDeck` in `src/app/deck-actions.ts` resolves cards through Scryfall and checks commander, colour identity, and the 100-card limit. URL import is not supported in the client-only app; `docs/recommendation-design.md` lists Moxfield and Archidekt URL import as future work.
+Current context: `src/features/modals/ImportDeckModal.tsx` accepts pasted deck-list text, while `src/deck-import.ts` parses commander, mainboard, and sideboard sections. `applyImportedDeck` in `src/app/deck-actions.ts` resolves cards through Scryfall and checks commander, colour identity, and the 100-card limit. A successful complete import currently opens review without an advance notice or opt-out. URL import is not supported in the client-only app; `docs/recommendation-design.md` lists Moxfield and Archidekt URL import as future work.
 
 Acceptance checks:
 
-- A complete imported deck opens the same review as a deck built in the app. A partial import remains editable and can be reviewed on demand.
+- Before importing a complete main deck, the player sees that review will open after a successful import and can opt out for that import. The opt-out leaves the deck in the builder; review remains available manually.
+- A complete imported deck opens the same review as a deck built in the app when the player has not opted out. A partial import remains editable and can be reviewed on demand.
 - Import validation still identifies unresolved or illegal cards before replacing the current deck.
 
 ## [B3] Add Deck Doctor from deck review

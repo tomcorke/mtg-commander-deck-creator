@@ -1,0 +1,54 @@
+# Completed work
+
+Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
+
+## [A1] Improve land and mana-support recommendations
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — The existing basic-land planner and mana data provide a base; reliable castability scoring still needs judgment calls.
+
+**Status:** Complete — merged in `0103075` (`feat: improve land and mana recommendations`).
+
+The builder can recommend on-theme creatures without checking whether the deck has enough mana to cast them. It can also leave the deck below its land target without reliably offering enough lands, especially basics. Weak ramp makes expensive cards harder to cast; weak draw makes it harder to find lands, ramp, and other needed cards. Recommendations should account for those gaps alongside theme and commander synergy.
+
+### Required behavior
+
+- Treat lands as a recommendation need. Use the current editable land target and remaining deck slots. Surface enough legal lands to address the gap, including basic lands; do not rely on an occasional `Land or mana` card in a batch.
+- Distribute basic lands using commander colour identity and the deck's coloured mana requirements. Preserve basic-land quantities, allow repeat copies, and never exceed the target or the 100-card deck limit.
+- Judge creature suggestions against the deck's mana support. Consider land count, ramp, curve, mana value, and coloured pips. Do not force a creature into a batch when its mana demands are a poor fit and useful support cards are available. Avoid a blanket ban: affordable, castable creatures can still be good recommendations.
+- Treat card draw as consistency and access to resources, not as mana production. When draw is below target, make draw support more competitive with redundant theme cards.
+- Keep commander legality, selected deck targets, recommendation style, and theme/synergy preferences in view. Recommendations should return to normal theme and synergy priorities as support gaps close.
+
+### Context when planned
+
+- `src/deck-analysis.ts` defines editable targets (defaults: 35 lands, 10 ramp, 10 draw), role counts, mana curve, coloured mana requirements, and `deckRoleBoosts`. `rolesForCard` identifies ramp and draw with card-data fields and rules-text heuristics.
+- `basicLandPlan` calculates a basic-land count to fill the target gap and distributes it by commander colour identity and coloured mana demand. `src/features/builder/BuilderView.tsx` exposes this through a separate “Fill to land target” action after five non-land cards; normal recommendation batches do not guarantee it.
+- `src/domain/recommendation-queue.ts` builds four-card batches, generally reserving up to three non-mana picks before trying one `Land or mana` pick. The creature-inclusion option can reserve a creature without considering whether its mana cost fits the deck. Initial and displayed-batch scoring set the land role boost to zero (`src/app/recommendation-actions.ts`, `src/app/useBuilderData.ts`).
+- EDHREC is the primary recommendation source; Scryfall supplies card details and fallback recommendations. The app remains client-only. Useful card data includes mana cost, mana value, produced mana, colour identity, and Oracle text.
+
+### Acceptance checks
+
+- A deck below its land target gets actionable land recommendations or a basic-land fill that reaches the target without exceeding 100 cards. Basic-land colours stay within commander identity and follow coloured mana demand; colourless decks use Wastes.
+- When land, ramp, or draw support is deficient, suitable support cards can outrank redundant picks. An expensive, colour-intensive creature is not forced into a batch when the deck cannot reasonably support it; cheaper suitable creatures remain eligible.
+- Once support needs are met, theme and commander-synergy recommendations recover their normal priority. User-edited targets and recommendation settings still apply.
+- Cover mono-colour, multicolour, and colourless decks; decks below, at, and above their land targets; and nearly full decks in tests.
+
+## [B1] Add a detailed deck review
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Static review reuses builder data; simulation is not justified by available metadata.
+
+**Status:** Complete — merged in `992375d` (`feat: add detailed deck review dashboard`).
+
+- Make deck review available at any time, including before the deck is complete.
+- Open review automatically when the main deck first reaches 100 cards, whether the player fills it manually or imports a complete list. Keep it available afterward without reopening it on every render.
+- Go beyond the builder sidebar: explain deck strengths and risks using mana curve, land/ramp/draw coverage, coloured requirements and sources, theme and keyword coverage, and other relevant card-type counts. Make findings understandable and actionable.
+- Goldfish decision: no-go for B1. Available card metadata cannot model turn sequencing or game interactions reliably enough to improve on the inspectable static analysis. Revisit only if a model tested against simple known decks adds useful guidance beyond that analysis.
+
+### Completed behavior
+
+The builder offers detailed review at any deck size and opens it when the main deck reaches 100 cards. Complete imports use the same review; sideboard cards do not count toward completion. The review covers curve, roles, coloured mana, theme tags, and card types. Selecting a count closes the review, highlights matching cards, and jumps to the deck list.
+
+### Acceptance checks
+
+- Players can open and close review from the builder at any deck size. Filling the main deck to 100 opens it once; sideboard cards do not count toward completion.
+- Review findings link to the cards or gaps they describe and do not replace the existing detailed analysis with unexplained scores.
+- Goldfish simulation remains out of scope unless tests against simple known decks show that it adds useful information beyond static analysis.
