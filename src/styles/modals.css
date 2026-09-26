@@ -566,6 +566,26 @@
   font-size: 12px;
   line-height: 1.45;
 }
+.import-review-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 10px 0 0;
+  color: #403e58;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.import-review-checkbox input {
+  flex: 0 0 auto;
+  margin: 3px 0 0;
+  accent-color: #36327f;
+}
+.import-review-opt-out {
+  margin: 6px 0 0 24px;
+  color: #625f76;
+  font-size: 12px;
+  line-height: 1.4;
+}
 .saved-decks-modal {
   width: min(620px, 100%);
 }

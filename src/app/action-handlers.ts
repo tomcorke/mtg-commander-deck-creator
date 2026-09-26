@@ -51,7 +51,8 @@ export function createActionHandlers(deps: ActionDeps) {
     storeDeck: () => deckActions.storeDeck(deps),
     loadSavedDeck: (saved: SavedDeck) => deckActions.loadSavedDeck(deps, saved),
     removeSavedDeck: (saved: SavedDeck) => deckActions.removeSavedDeck(deps, saved),
-    importDeck: () => deckActions.importDeck(deps),
+    importDeck: (openReviewAfterImport: boolean) =>
+      deckActions.importDeck(deps, openReviewAfterImport),
     startOver: () => deckActions.startOver(deps),
     openSavedDecks: () => deckActions.openSavedDecks(deps),
   }

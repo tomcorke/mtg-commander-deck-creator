@@ -5,6 +5,7 @@ import {
   basicLandPlan,
   curveBucket,
   deckBecameComplete,
+  shouldAutoOpenDeckReview,
   deckGuidance,
   deckRoleBoosts,
   deckSection,
@@ -29,6 +30,12 @@ test('detects only the transition into a complete main deck', () => {
   assert.equal(deckBecameComplete(99, 100), true)
   assert.equal(deckBecameComplete(100, 100), false)
   assert.equal(deckBecameComplete(100, 99), false)
+})
+
+test('manual completion opens review, while imported completion can suppress it', () => {
+  assert.equal(shouldAutoOpenDeckReview(99, 100), true)
+  assert.equal(shouldAutoOpenDeckReview(99, 100, true), false)
+  assert.equal(shouldAutoOpenDeckReview(100, 100, true), false)
 })
 
 test('analyses curve, coloured requirements, production, roles, and land range', () => {

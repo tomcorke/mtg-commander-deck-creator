@@ -19,6 +19,9 @@ export function mainDeckCardCount(deck: ImportedDeck) {
     .reduce((total, { quantity }) => total + quantity, 0)
 }
 
+export const shouldOpenReviewAfterImport = (deck: ImportedDeck, requested: boolean) =>
+  requested && mainDeckCardCount(deck) === 100
+
 export function missingCardNames(missing: MissingIdentifier[], cards: ImportedCard[]) {
   return missing.map(
     (identifier) =>
@@ -77,4 +80,12 @@ export function parseDeckList(text: string): ImportedDeck {
     })
   }
   return { cards }
+}
+
+export function parseDeckImportSource(source: string) {
+  if (/^https?:\/\//i.test(source.trim()))
+    throw new Error(
+      'URL import is unavailable in this client-only app. Paste the exported deck list instead.',
+    )
+  return parseDeckList(source)
 }

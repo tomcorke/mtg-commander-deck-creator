@@ -3,6 +3,11 @@ export type TargetKey = (typeof targetKeys)[number]
 export type DeckTargets = Record<TargetKey, number>
 export const deckBecameComplete = (previousCount: number, nextCount: number) =>
   previousCount < 100 && nextCount >= 100
+export const shouldAutoOpenDeckReview = (
+  previousCount: number,
+  nextCount: number,
+  suppress = false,
+) => !suppress && deckBecameComplete(previousCount, nextCount)
 
 export type AnalysisCard = {
   name: string

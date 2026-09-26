@@ -29,6 +29,7 @@ export function useDeckState(saved: PersistedDeckState | null) {
   const cardSearchInput = useRef<HTMLInputElement>(null)
   const cardSearchDialog = useRef<HTMLElement>(null)
   const repairedPrintingBatches = useRef(new Set<string>())
+  const skipCompletionReviewDecks = useRef(new WeakSet<DeckCard[]>())
   const [exportFormat, setExportFormat] = useStoredOption<ExportFormat>(
     'exportFormat',
     () => 'moxfield',
@@ -76,6 +77,7 @@ export function useDeckState(saved: PersistedDeckState | null) {
     cardSearchInput,
     cardSearchDialog,
     repairedPrintingBatches,
+    skipCompletionReviewDecks,
     exportFormat,
     setExportFormat,
     copied,

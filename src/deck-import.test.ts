@@ -5,7 +5,9 @@ import {
   mainDeckCardCount,
   matchImportedCard,
   missingCardNames,
+  parseDeckImportSource,
   parseDeckList,
+  shouldOpenReviewAfterImport,
 } from './deck-import.ts'
 
 test('retries transient Scryfall collection failures', async () => {
@@ -62,6 +64,34 @@ test('counts commanders and mainboard, but excludes sideboard from completion', 
     }),
     100,
   )
+})
+
+test('rejects deck URLs before import', () => {
+  assert.throws(
+    () => parseDeckImportSource('https://moxfield.com/decks/example'),
+    /URL import is unavailable.*Paste the exported deck list/,
+  )
+})
+
+test('complete import opens review only when the player opts in', () => {
+  const complete = {
+    cards: [
+      { name: 'Commander', quantity: 1, board: 'commander' as const },
+      { name: 'Mainboard', quantity: 99, board: 'mainboard' as const },
+      { name: 'Sideboard', quantity: 20, board: 'sideboard' as const },
+    ],
+  }
+  const partial = {
+    cards: [
+      { name: 'Commander', quantity: 1, board: 'commander' as const },
+      { name: 'Mainboard', quantity: 98, board: 'mainboard' as const },
+      { name: 'Sideboard', quantity: 1, board: 'sideboard' as const },
+    ],
+  }
+
+  assert.equal(shouldOpenReviewAfterImport(complete, true), true)
+  assert.equal(shouldOpenReviewAfterImport(complete, false), false)
+  assert.equal(shouldOpenReviewAfterImport(partial, true), false)
 })
 
 test('parses common deck-list syntax, printings, and boards', () => {

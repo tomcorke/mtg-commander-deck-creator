@@ -52,3 +52,19 @@ The builder offers detailed review at any deck size and opens it when the main d
 - Players can open and close review from the builder at any deck size. Filling the main deck to 100 opens it once; sideboard cards do not count toward completion.
 - Review findings link to the cards or gaps they describe and do not replace the existing detailed analysis with unexplained scores.
 - Goldfish simulation remains out of scope unless tests against simple known decks show that it adds useful information beyond static analysis.
+
+## [B2] Connect deck import to deck review
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — The review exists; the work is to explain the handoff and give players a per-import choice without weakening validation.
+
+**Status:** Complete.
+
+### Completed behavior
+
+For a parsed 100-card main deck (commander included; sideboard excluded), the import modal says that a successful import opens Deck review. The checkbox is checked by default for each import; opting out keeps the player in the builder, where review remains available. Partial imports stay in the builder and can be reviewed manually. Import validation and error messages remain in place.
+
+### Acceptance checks
+
+- Before importing a complete main deck, the player sees the handoff and can opt out for that import.
+- A complete import opens the same review when opted in; an opted-out import remains in the builder. Manually completing a deck still opens review.
+- Partial imports remain editable, sideboard cards do not count toward 100, and illegal or unresolved cards are reported before the current deck is replaced.

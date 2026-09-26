@@ -29,7 +29,8 @@ import {
   mainDeckCardCount,
   matchImportedCard,
   missingCardNames,
-  parseDeckList,
+  parseDeckImportSource,
+  shouldOpenReviewAfterImport,
   type ImportedDeck,
 } from '../deck-import.ts'
 import { commanderPromotionInfo, promoteDeckCard } from '../domain/commander-promotion.ts'
@@ -978,20 +979,23 @@ export function removeSavedDeck(deps: ActionDeps, saved: SavedDeck) {
   }
 }
 
-export async function importDeck(deps: ActionDeps) {
-  const { closeModal, importSource, openModal, setImportError, setImportSource, setImportState } =
-    deps
+function closeImportAndMaybeReview(
+  deps: ActionDeps,
+  imported: ImportedDeck,
+  openReviewAfterImport: boolean,
+) {
+  deps.closeModal(true)
+  if (shouldOpenReviewAfterImport(imported, openReviewAfterImport)) deps.openModal('review')
+}
+
+export async function importDeck(deps: ActionDeps, openReviewAfterImport = true) {
+  const { importSource, setImportError, setImportSource, setImportState } = deps
   setImportState('loading')
   setImportError('')
   try {
-    if (/^https?:\/\//i.test(importSource.trim()))
-      throw new Error(
-        'URL import is unavailable in this client-only app. Paste the exported deck list instead.',
-      )
-    const imported = parseDeckList(importSource)
+    const imported = parseDeckImportSource(importSource)
     await applyImportedDeck(deps, imported)
-    closeModal(true)
-    if (mainDeckCardCount(imported) === 100) openModal('review')
+    closeImportAndMaybeReview(deps, imported, openReviewAfterImport)
     setImportSource('')
     setImportState('idle')
   } catch (error) {
@@ -1001,7 +1005,14 @@ export async function importDeck(deps: ActionDeps) {
 }
 
 export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck) {
-  const { setActiveSavedDeckId, setDeck, setDeckName, setQueue, setSideboard } = deps
+  const {
+    setActiveSavedDeckId,
+    setDeck,
+    setDeckName,
+    setQueue,
+    setSideboard,
+    skipCompletionReviewDecks,
+  } = deps
   const commanderEntries = imported.cards.filter(({ board }: any) => board === 'commander')
   if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
   if (commanderEntries.reduce((sum: any, card: any) => sum + card.quantity, 0) > 2)
@@ -1078,6 +1089,7 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
   const importedSideboard = expanded
     .filter(({ entry }: any) => entry.board === 'sideboard')
     .map(toImportedCard)
+  skipCompletionReviewDecks.current.add(importedMain)
   setDeck(importedMain)
   setSideboard(importedSideboard)
   setQueue((current: any) =>

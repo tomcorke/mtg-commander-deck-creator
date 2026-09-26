@@ -323,6 +323,12 @@
   background: #ffffff0d;
   color: #d4bd8b;
 }
+.dark .import-review-checkbox {
+  color: #e5e3f0;
+}
+.dark .import-review-opt-out {
+  color: #aaa8c2;
+}
 .dark .manual-card-button {
   border-color: #615b96;
   color: #d4d0ed;

@@ -106,6 +106,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     openModal: routing.openModal,
     commander: state.commander,
     deck: state.deck,
+    skipCompletionReviewDecks: state.skipCompletionReviewDecks,
     activeSavedDeck: state.activeSavedDeck,
     savedDeckChanged: state.savedDeckChanged,
     deckPageTitle,

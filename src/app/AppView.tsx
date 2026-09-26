@@ -18,6 +18,7 @@ export type AppViewProps = {
 function ImportModalView({ state, actions }: AppViewProps) {
   return (
     <ImportDeckModal
+      key={state.showImport ? 'import-open' : 'import-closed'}
       show={state.showImport}
       importState={state.importState}
       importSource={state.importSource}
@@ -25,7 +26,7 @@ function ImportModalView({ state, actions }: AppViewProps) {
       setImportSource={state.setImportSource}
       setImportState={state.setImportState}
       setImportError={state.setImportError}
-      importDeck={() => void actions.importDeck()}
+      importDeck={(openReviewAfterImport) => actions.importDeck(openReviewAfterImport)}
       closeModal={() => actions.closeModal()}
     />
   )

@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1 and B1.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, B1, and B2.
 
 ## Suggested order
 
@@ -25,10 +25,9 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 
 | Order | ID  | TODO                                 | Complexity | Value  | Delivery risk | Reason                                                                                |
 | ----- | --- | ------------------------------------ | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------- |
-| 1     | B2  | Import-to-review flow                | Medium     | Medium | Low           | B1 review is available; complete imports can now hand off directly.                   |
+| 1     | B3  | Deck Doctor                          | High       | High   | High          | Review is available; transparent findings and suggested swaps still need validation.  |
 | 2     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation. |
-| 3     | B3  | Deck Doctor                          | High       | High   | High          | Defer until review signals are trustworthy; swap quality needs validation.            |
-| 4     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                |
+| 3     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                |
 
 ## [A2] Improve the initial user flow
 
@@ -45,20 +44,6 @@ Acceptance checks:
 - A first-time player can choose a deck intent and start with matching recommendation options; the player can still change them later.
 - With no saved preference, the checkbox is checked. Returning users get their saved choice; opting out prevents the tour from starting until they opt in again.
 - The tour can be skipped without blocking deck creation, and existing recommendation preferences remain intact.
-
-## [B2] Connect deck import to deck review
-
-**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — The review exists; the work is to explain the handoff and give players a per-import choice without weakening validation.
-
-Make the handoff clear before import: when the parsed main deck is complete, tell the player that a successful import will open the same deck review and offer a per-import opt-out. After a successful complete import, open review unless the player opted out; partial imports remain editable and can be reviewed manually. Preserve import errors and validation feedback, and distinguish the main deck from sideboard when checking completion.
-
-Current context: `src/features/modals/ImportDeckModal.tsx` accepts pasted deck-list text, while `src/deck-import.ts` parses commander, mainboard, and sideboard sections. `applyImportedDeck` in `src/app/deck-actions.ts` resolves cards through Scryfall and checks commander, colour identity, and the 100-card limit. A successful complete import currently opens review without an advance notice or opt-out. URL import is not supported in the client-only app; `docs/recommendation-design.md` lists Moxfield and Archidekt URL import as future work.
-
-Acceptance checks:
-
-- Before importing a complete main deck, the player sees that review will open after a successful import and can opt out for that import. The opt-out leaves the deck in the builder; review remains available manually.
-- A complete imported deck opens the same review as a deck built in the app when the player has not opted out. A partial import remains editable and can be reviewed on demand.
-- Import validation still identifies unresolved or illegal cards before replacing the current deck.
 
 ## [B3] Add Deck Doctor from deck review
 
