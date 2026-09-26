@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
+import { deckBecameComplete } from '../deck-analysis.ts'
 import { commanderNames, randomThree } from '../domain/commander-catalog.ts'
 import { commanderPrintingOptions } from '../domain/printing.ts'
 
@@ -37,6 +38,15 @@ export function useRouteEffects(deps: AppEffectsDeps) {
       window.removeEventListener('hashchange', applyRoute)
     }
   }, [])
+}
+
+export function useCompletionReviewEffect(deps: AppEffectsDeps) {
+  const { deck, openModal, showBuilder } = deps
+  const previousCount = useRef(deck.length)
+  useEffect(() => {
+    if (showBuilder && deckBecameComplete(previousCount.current, deck.length)) openModal('review')
+    previousCount.current = deck.length
+  }, [deck.length, openModal, showBuilder])
 }
 
 export function usePersistenceEffect(deps: AppEffectsDeps) {
@@ -356,6 +366,7 @@ export function usePrintingRepairEffect(deps: AppEffectsDeps) {
 
 export function useAppEffects(deps: AppEffectsDeps) {
   useRouteEffects(deps)
+  useCompletionReviewEffect(deps)
   usePersistenceEffect(deps)
   useTitleEffect(deps)
   useCommanderPrintingEffect(deps)

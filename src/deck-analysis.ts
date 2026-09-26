@@ -1,6 +1,9 @@
 export const targetKeys = ['lands', 'ramp', 'draw', 'removal', 'wipes'] as const
 export type TargetKey = (typeof targetKeys)[number]
 export type DeckTargets = Record<TargetKey, number>
+export const deckBecameComplete = (previousCount: number, nextCount: number) =>
+  previousCount < 100 && nextCount >= 100
+
 export type AnalysisCard = {
   name: string
   layout: string
@@ -89,6 +92,10 @@ const manaCosts = (card: AnalysisCard) =>
   card.faces.length
     ? card.faces.filter((face) => !face.typeLine.includes('Land')).map((face) => face.manaCost)
     : [card.manaCost]
+export const requiredPipsForCard = (card: AnalysisCard, colour: ManaColour) =>
+  manaCosts(card)
+    .flatMap((cost) => [...cost.matchAll(/\{([^}]+)\}/g)])
+    .filter(([, symbol]) => symbol.split('/').includes(colour)).length
 
 export function analyseDeck(cards: AnalysisCard[]) {
   const spells = cards.filter((card) => curveBucket(card) !== null)
@@ -102,14 +109,7 @@ export function analyseDeck(cards: AnalysisCard[]) {
   const required = Object.fromEntries(
     colours.map((colour) => [
       colour,
-      cards.reduce(
-        (count, card) =>
-          count +
-          manaCosts(card)
-            .flatMap((cost) => [...cost.matchAll(/\{([^}]+)\}/g)])
-            .filter(([, symbol]) => symbol.split('/').includes(colour)).length,
-        0,
-      ),
+      cards.reduce((count, card) => count + requiredPipsForCard(card, colour), 0),
     ]),
   ) as Record<(typeof colours)[number], number>
   const produced = Object.fromEntries(

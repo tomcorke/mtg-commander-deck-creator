@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   fetchScryfallCollection,
+  mainDeckCardCount,
   matchImportedCard,
   missingCardNames,
   parseDeckList,
@@ -47,6 +48,19 @@ test('reports missing name and printing identifiers as card names', () => {
   assert.deepEqual(
     missingCardNames([{ name: 'Sol Ring' }, { set: 'm3c', collector_number: '317' }], cards),
     ['Sol Ring', 'Forest'],
+  )
+})
+
+test('counts commanders and mainboard, but excludes sideboard from completion', () => {
+  assert.equal(
+    mainDeckCardCount({
+      cards: [
+        { name: 'Commander', quantity: 1, board: 'commander' },
+        { name: 'Mainboard', quantity: 99, board: 'mainboard' },
+        { name: 'Sideboard', quantity: 20, board: 'sideboard' },
+      ],
+    }),
+    100,
   )
 })
 

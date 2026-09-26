@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 
 import type { PersistedDeckState } from '../deck-state.ts'
+import type { DeckReviewFilter } from '../deck-review.ts'
 import type { Card, DeckCard, DeckCardLocation, ScryfallCard } from '../domain/card-model.ts'
 import type { ExportFormat } from '../domain/card-model.ts'
 import { defaultDeckTargets, type DeckTargets } from '../deck-analysis.ts'
@@ -39,6 +40,7 @@ export function useDeckState(saved: PersistedDeckState | null) {
     saved?.deckTargets ?? defaultDeckTargets,
   )
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
+  const [deckReviewFilter, setDeckReviewFilter] = useState<DeckReviewFilter | null>(null)
   const [pendingRemoval, setPendingRemoval] = usePendingConfirmation<number | null>(null)
 
   return {
@@ -86,6 +88,8 @@ export function useDeckState(saved: PersistedDeckState | null) {
     setDeckTargets,
     highlightedManaValue,
     setHighlightedManaValue,
+    deckReviewFilter,
+    setDeckReviewFilter,
     pendingRemoval,
     setPendingRemoval,
   }

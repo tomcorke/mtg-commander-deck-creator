@@ -2,6 +2,7 @@ import { duplicateDeckName } from '../deck-state.ts'
 import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
+import { DeckReviewModal } from '../features/builder/DeckReviewModal.tsx'
 import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
 import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
@@ -138,6 +139,31 @@ function renderModals(props: AppViewProps) {
     savedDecksModal: <SavedDecksModalView {...props} />,
     deckCardModal: <DeckCardModalView {...props} />,
     recommendationSettingsModal: <RecommendationSettingsView {...props} />,
+    deckReviewModal: (
+      <DeckReviewModal
+        show={props.state.activeModal === 'review'}
+        deck={props.state.deck}
+        sideboardCount={props.state.sideboard.length}
+        commanderCount={commanderNames(props.state.commander).length}
+        theme={props.state.theme}
+        activeSubThemes={props.state.activeSubThemes}
+        analysis={props.builderData.analysis}
+        deckTargets={props.state.deckTargets}
+        setDeckTargets={props.state.setDeckTargets}
+        displayedTypeCounts={props.builderData.displayedTypeCounts}
+        selectManaValue={(value) => {
+          props.state.setDeckReviewFilter(null)
+          props.state.setHighlightedManaValue(value)
+          props.actions.closeModal()
+        }}
+        selectCards={(label, cardNames) => {
+          props.state.setHighlightedManaValue(null)
+          props.state.setDeckReviewFilter({ label, cardNames })
+          props.actions.closeModal()
+        }}
+        closeModal={() => props.actions.closeModal()}
+      />
+    ),
   }
 }
 

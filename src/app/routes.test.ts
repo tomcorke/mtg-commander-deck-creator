@@ -6,6 +6,7 @@ import { parseAppRoute, routeHash } from './routes.ts'
 test('routeHash preserves view and modal names', () => {
   assert.equal(routeHash('start', null), '#start')
   assert.equal(routeHash('builder', 'export'), '#build/export')
+  assert.equal(routeHash('builder', 'review'), '#build/review')
 })
 
 test('parseAppRoute ignores unknown hashes and validates history state', () => {
@@ -16,6 +17,7 @@ test('parseAppRoute ignores unknown hashes and validates history state', () => {
     modal: 'card',
     entry: false,
   })
+  assert.equal(parseAppRoute('#build/review', null)?.modal, 'review')
   assert.deepEqual(
     parseAppRoute('#start', {
       app: 'commander-deck-creator',

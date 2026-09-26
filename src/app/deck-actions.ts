@@ -26,6 +26,7 @@ import {
   type SavedDeck,
 } from '../deck-state.ts'
 import {
+  mainDeckCardCount,
   matchImportedCard,
   missingCardNames,
   parseDeckList,
@@ -978,7 +979,8 @@ export function removeSavedDeck(deps: ActionDeps, saved: SavedDeck) {
 }
 
 export async function importDeck(deps: ActionDeps) {
-  const { closeModal, importSource, setImportError, setImportSource, setImportState } = deps
+  const { closeModal, importSource, openModal, setImportError, setImportSource, setImportState } =
+    deps
   setImportState('loading')
   setImportError('')
   try {
@@ -986,8 +988,10 @@ export async function importDeck(deps: ActionDeps) {
       throw new Error(
         'URL import is unavailable in this client-only app. Paste the exported deck list instead.',
       )
-    await applyImportedDeck(deps, parseDeckList(importSource))
+    const imported = parseDeckList(importSource)
+    await applyImportedDeck(deps, imported)
     closeModal(true)
+    if (mainDeckCardCount(imported) === 100) openModal('review')
     setImportSource('')
     setImportState('idle')
   } catch (error) {
@@ -1002,9 +1006,7 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
   if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
   if (commanderEntries.reduce((sum: any, card: any) => sum + card.quantity, 0) > 2)
     throw new Error('Commander section must contain one commander or partner pair.')
-  const mainCount = imported.cards
-    .filter(({ board }: any) => board !== 'sideboard')
-    .reduce((sum: any, card: any) => sum + card.quantity, 0)
+  const mainCount = mainDeckCardCount(imported)
   if (mainCount > 100) throw new Error('Main deck exceeds 100 cards.')
 
   const identifiers = imported.cards.map((card: any) =>

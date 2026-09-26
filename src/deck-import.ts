@@ -13,6 +13,12 @@ export type ImportedCard = {
 export type ImportedDeck = { name?: string; cards: ImportedCard[] }
 type MissingIdentifier = ScryfallIdentifier
 
+export function mainDeckCardCount(deck: ImportedDeck) {
+  return deck.cards
+    .filter(({ board }) => board !== 'sideboard')
+    .reduce((total, { quantity }) => total + quantity, 0)
+}
+
 export function missingCardNames(missing: MissingIdentifier[], cards: ImportedCard[]) {
   return missing.map(
     (identifier) =>

@@ -1,4 +1,4 @@
-import { type CSSProperties, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, type CSSProperties, type Dispatch, type SetStateAction } from 'react'
 
 import {
   cardScryfallUri,
@@ -33,6 +33,7 @@ import type {
   RecommendationScoreBreakdown,
 } from '../../domain/recommendation-types.ts'
 import type { SavedDeck } from '../../deck-state.ts'
+import type { DeckReviewFilter } from '../../deck-review.ts'
 import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
 import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
@@ -44,6 +45,7 @@ type AnyFunction = (...args: any[]) => any
 type BuilderViewModel = {
   [key: string]: any
   activeDeckDelta: { added: number; removed: number } | null
+  activeModal: string | null
   activeSavedDeck: SavedDeck | undefined
   activeSubThemes: string[]
   analysis: ReturnType<typeof analyseDeck>
@@ -70,6 +72,7 @@ type BuilderViewModel = {
   commanderStyling: boolean
   copied: boolean
   darkMode: boolean
+  deckReviewFilter: DeckReviewFilter | null
   decisions: Record<string, 'add' | 'later' | 'ignore'>
   deck: DeckCard[]
   deckCards: DeckCard[]
@@ -136,6 +139,7 @@ type BuilderViewModel = {
   setCollectionBrowserType: Dispatch<SetStateAction<string>>
   setCommanderStyling: Dispatch<SetStateAction<boolean>>
   setDarkMode: Dispatch<SetStateAction<boolean>>
+  setDeckReviewFilter: Dispatch<SetStateAction<DeckReviewFilter | null>>
   setDeckTargets: Dispatch<SetStateAction<DeckTargets>>
   setDismissedSubThemes: Dispatch<SetStateAction<string[]>>
   setExportFormat: Dispatch<SetStateAction<'moxfield' | 'plain' | 'csv'>>
@@ -154,6 +158,7 @@ type BuilderViewModel = {
 export function BuilderView({ model }: { model: BuilderViewModel }) {
   const {
     activeDeckDelta,
+    activeModal,
     activeSavedDeck,
     activeSubThemes,
     addBasicLands,
@@ -198,12 +203,14 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     cycleManualPrinting,
     cyclePrinting,
     darkMode,
+    deckReviewFilter,
     decide,
     decisions,
     deck,
     deckCardModal,
     deckCards,
     deckList,
+    deckReviewModal,
     deckTargets,
     deferredCards,
     edhrecRetryRemaining,
@@ -271,6 +278,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     setCollectionBrowserType,
     setCommanderStyling,
     setDarkMode,
+    setDeckReviewFilter,
     setDeckTargets,
     setDismissedSubThemes,
     setExportFormat,
@@ -298,6 +306,24 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     theme,
     toggleCollectionSet,
   } = model
+  const reviewFilterNames = new Set(deckReviewFilter?.cardNames ?? [])
+  const activeHighlightLabel =
+    deckReviewFilter?.label ??
+    (highlightedManaValue === null
+      ? null
+      : `mana value ${highlightedManaValue === 7 ? '7 or more' : highlightedManaValue}`)
+  const highlightedCardCount = deckReviewFilter
+    ? deck.filter((card) => reviewFilterNames.has(card.name)).length
+    : highlightedManaValue === null
+      ? 0
+      : deck.filter((card) => curveBucket(card) === highlightedManaValue).length
+
+  useEffect(() => {
+    if (activeModal || !activeHighlightLabel) return
+    document
+      .getElementById('deck-list-title')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [activeHighlightLabel, activeModal])
 
   return (
     <main
@@ -380,6 +406,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
       {savedDecksModal}
       {importModal}
       {recommendationSettingsModal}
+      {deckReviewModal}
       <section className="intro commander-header">
         {commanderDetails ? (
           <figure
@@ -1042,8 +1069,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <p className="eyebrow">Main deck complete</p>
               <h2>Build your sideboard</h2>
               <p>Further picks go to sideboard. Move cards into main deck after removing a card.</p>
-              <button className="primary" type="button" onClick={() => openModal('export')}>
-                Review and export deck
+              <button className="primary" type="button" onClick={() => openModal('review')}>
+                Review deck
               </button>
             </div>
           )}
@@ -1319,11 +1346,16 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
         </section>
         <aside className="analysis-panel">
           <section className="deck-analysis" aria-labelledby="analysis-title">
-            <h3 id="analysis-title">Deck analysis</h3>
+            <div className="deck-analysis-heading">
+              <h3 id="analysis-title">Deck analysis</h3>
+              <button className="export" type="button" onClick={() => openModal('review')}>
+                Detailed review
+              </button>
+            </div>
             <p className="sr-only" aria-live="polite">
-              {highlightedManaValue === null
-                ? 'Mana-value filter cleared.'
-                : `Showing mana value ${highlightedManaValue === 7 ? '7 or more' : highlightedManaValue} cards.`}
+              {activeHighlightLabel
+                ? `${highlightedCardCount} cards highlighted for ${activeHighlightLabel}. Other cards are dimmed.`
+                : 'Deck highlight filter cleared.'}
             </p>
             <div className="curve-scroll">
               <div className="mana-curve" aria-label="Mana-value curve">
@@ -1331,11 +1363,12 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   <button
                     type="button"
                     className={highlightedManaValue === point.manaValue ? 'selected' : ''}
-                    onClick={() =>
+                    onClick={() => {
+                      setDeckReviewFilter(null)
                       setHighlightedManaValue((current) =>
                         current === point.manaValue ? null : point.manaValue,
                       )
-                    }
+                    }}
                     aria-pressed={highlightedManaValue === point.manaValue}
                     aria-label={`Mana value ${point.manaValue === 7 ? '7 or more' : point.manaValue}: ${point.permanents} permanents, ${point.nonPermanents} non-permanents`}
                     key={point.manaValue}
@@ -1505,6 +1538,24 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               </button>
             </div>
           </div>
+          {activeHighlightLabel && (
+            <div className="deck-review-filter-status" role="status">
+              <span>
+                {highlightedCardCount} cards highlighted for {activeHighlightLabel}; other cards are
+                dimmed.
+              </span>
+              <button
+                className="export"
+                type="button"
+                onClick={() => {
+                  setDeckReviewFilter(null)
+                  setHighlightedManaValue(null)
+                }}
+              >
+                Clear highlight
+              </button>
+            </div>
+          )}
           <div className="meter">
             <span style={{ width: `${deck.length}%` }} />
           </div>
@@ -1521,10 +1572,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       {cards.map(({ card, index }) => {
                         const curveValue = curveBucket(card)
                         const highlighted =
-                          highlightedManaValue === null || highlightedManaValue === curveValue
+                          (!deckReviewFilter || reviewFilterNames.has(card.name)) &&
+                          (highlightedManaValue === null || highlightedManaValue === curveValue)
                         return (
                           <li
-                            className={highlighted ? '' : 'curve-dimmed'}
+                            className={highlighted ? '' : 'deck-highlight-dimmed'}
                             key={`${card.name}-${index}`}
                             tabIndex={0}
                             onMouseEnter={(event) =>
@@ -1532,8 +1584,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             }
                             onFocus={(event) => positionDeckPreview(event.currentTarget)}
                           >
-                            {highlightedManaValue !== null && highlighted && (
-                              <span className="sr-only">Matches active mana-value filter. </span>
+                            {activeHighlightLabel && highlighted && (
+                              <span className="sr-only">
+                                Matches active deck highlight filter.{' '}
+                              </span>
                             )}
                             <button
                               type="button"

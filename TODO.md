@@ -22,11 +22,10 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 
 | Order | ID  | TODO                                 | Complexity | Value  | Delivery risk | Reason                                                                                |
 | ----- | --- | ------------------------------------ | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------- |
-| 1     | B1  | Detailed deck review                 | High       | High   | Medium        | High-value foundation for import review and Deck Doctor; keep goldfish optional.      |
-| 2     | B2  | Import-to-review flow                | Medium     | Medium | Low           | Bounded follow-up once B1 exists.                                                     |
-| 3     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation. |
-| 4     | B3  | Deck Doctor                          | High       | High   | High          | Defer until review signals are trustworthy; swap quality needs validation.            |
-| 5     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                |
+| 1     | B2  | Import-to-review flow                | Medium     | Medium | Low           | B1 review is available; complete imports can now hand off directly.                   |
+| 2     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation. |
+| 3     | B3  | Deck Doctor                          | High       | High   | High          | Defer until review signals are trustworthy; swap quality needs validation.            |
+| 4     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                |
 
 ## [A2] Improve the initial user flow
 
@@ -46,14 +45,16 @@ Acceptance checks:
 
 ## [B1] Add a detailed deck review
 
-**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Static analysis can reuse builder data; goldfish simulation is uncertain and should remain a go/no-go investigation.
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Static review reuses builder data; simulation is not justified by available metadata.
+
+**Status:** Complete. The review, completion trigger, and import handoff are implemented. Goldfish simulation was not retained.
 
 - Make deck review available at any time, including before the deck is complete.
 - Open review automatically when the main deck first reaches 100 cards, whether the player fills it manually or imports a complete list. Keep it available afterward without reopening it on every render.
 - Go beyond the builder sidebar: explain deck strengths and risks using mana curve, land/ramp/draw coverage, coloured requirements and sources, theme and keyword coverage, and other relevant card-type counts. Make findings understandable and actionable.
-- Offer an optional goldfish simulation only if investigation shows a shallow model can provide useful guidance. Test a model based on available card tags, land/mana/ramp roles, creatures, keywords, and other card types. Compare it with simpler static analysis first. Do not present a heuristic as a full rules simulation or a win-rate estimate; show its limits and assumptions.
+- Goldfish decision: no-go for B1. Available card metadata cannot model turn sequencing or game interactions reliably enough to improve on the inspectable static analysis. Revisit only if a model tested against simple known decks adds useful guidance beyond that analysis.
 
-Current context: the builder already shows a curve, coloured mana analysis, editable role targets, and gap guidance. At 100 cards it currently presents sideboard actions and a “Review and export deck” button; that button opens export, not a detailed review. `docs/recommendation-design.md` already says deck review should become the primary action at 100 cards. Card metadata and heuristic tags are available in `src/deck-analysis.ts`, `src/domain/card-model.ts`, and `src/domain/recommendation-themes.ts`. The app has no simulation engine or related dependency.
+Current context: the builder now offers detailed review at any deck size and opens it when the main deck reaches 100 cards. Complete imports use the same review; sideboard cards do not count toward completion. The review reuses curve, mana, role, and type analysis, then adds theme-tag coverage. Goldfish remains out of scope because current metadata cannot model turn sequencing or game interactions reliably.
 
 Acceptance checks:
 

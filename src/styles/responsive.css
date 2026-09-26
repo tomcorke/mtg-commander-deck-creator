@@ -89,6 +89,10 @@
 .dark .deck-board {
   background: #17162a;
 }
+.dark .deck-review-filter-status {
+  background: #201f34;
+  color: #e5e3f0;
+}
 .dark h1,
 .dark h2,
 .dark h3,
@@ -682,6 +686,13 @@
     gap: 8px;
   }
   .deck-board .manual-card-button {
+    width: 100%;
+  }
+  .deck-review-filter-status {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .deck-review-filter-status .export {
     width: 100%;
   }
   .deck-board .deck-list {

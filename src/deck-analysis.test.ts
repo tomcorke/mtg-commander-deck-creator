@@ -4,10 +4,12 @@ import {
   analyseDeck,
   basicLandPlan,
   curveBucket,
+  deckBecameComplete,
   deckGuidance,
   deckRoleBoosts,
   deckSection,
   defaultDeckTargets,
+  requiredPipsForCard,
   type AnalysisCard,
 } from './deck-analysis.ts'
 
@@ -21,6 +23,12 @@ const card = (overrides: Partial<AnalysisCard> = {}): AnalysisCard => ({
   producedMana: [],
   faces: [],
   ...overrides,
+})
+
+test('detects only the transition into a complete main deck', () => {
+  assert.equal(deckBecameComplete(99, 100), true)
+  assert.equal(deckBecameComplete(100, 100), false)
+  assert.equal(deckBecameComplete(100, 99), false)
 })
 
 test('analyses curve, coloured requirements, production, roles, and land range', () => {
@@ -119,18 +127,19 @@ test('modal spell-land counts as a land source and front spell in curve', () => 
 })
 
 test('counts castable multiface colour pips', () => {
-  const analysis = analyseDeck([
-    card({
-      layout: 'split',
-      manaCost: '{1}{R} // {1}{U}',
-      faces: [
-        { typeLine: 'Instant', manaCost: '{1}{R}' },
-        { typeLine: 'Instant', manaCost: '{1}{U}' },
-      ],
-    }),
-  ])
+  const splitCard = card({
+    layout: 'split',
+    manaCost: '{1}{R} // {1}{U}',
+    faces: [
+      { typeLine: 'Instant', manaCost: '{1}{R}' },
+      { typeLine: 'Instant', manaCost: '{1}{U}' },
+    ],
+  })
+  const analysis = analyseDeck([splitCard])
   assert.equal(analysis.required.R, 1)
   assert.equal(analysis.required.U, 1)
+  assert.equal(requiredPipsForCard(splitCard, 'R'), 1)
+  assert.equal(requiredPipsForCard(splitCard, 'U'), 1)
 })
 
 test('uses front face for adventure curve and excludes all-land modal cards', () => {

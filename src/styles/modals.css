@@ -223,6 +223,334 @@
   min-height: 260px;
   margin-top: 14px;
 }
+.deck-review-modal {
+  width: min(1440px, 100%);
+  min-width: 0;
+  max-width: 100%;
+}
+.deck-review-intro {
+  margin: 12px 0 4px;
+  color: #514e66;
+  font-size: 14px;
+}
+.deck-review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 14px;
+  margin-top: 16px;
+}
+.deck-review-section {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #d5d3e1;
+  border-top: 3px solid var(--commander-accent, #7546a8);
+  border-radius: 9px;
+  background: #fff;
+}
+.deck-review-section h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+.deck-review-section > p {
+  margin: 8px 0 12px;
+  color: #625f76;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.deck-review-findings,
+.deck-review-role-list,
+.deck-review-colours,
+.deck-review-tags,
+.deck-review-types {
+  display: grid;
+  gap: 8px;
+}
+.deck-review-findings > div {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0deea;
+}
+.deck-review-findings > div:last-child {
+  border-bottom: 0;
+}
+.deck-review-findings > div > b {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.deck-review-status {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.deck-review-status > b {
+  font-size: 12px;
+}
+.deck-review-status.good {
+  background: #e6f3e8;
+  color: #24613a;
+}
+.deck-review-status.attention {
+  background: #fae9e6;
+  color: #8d3029;
+}
+.deck-review-status.neutral {
+  background: #eeedf7;
+  color: #625f76;
+}
+.deck-review-filter {
+  display: grid;
+  width: 100%;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #d5d3e1;
+  border-radius: 7px;
+  background: #fbfaff;
+  color: #25243a;
+  font: inherit;
+  text-align: left;
+}
+.deck-review-filter:hover,
+.deck-review-filter:focus-visible {
+  border-color: var(--commander-accent, #7546a8);
+  background: #f0eef9;
+}
+.deck-review-filter:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.deck-review-filter-action {
+  color: #625f76;
+  font-size: 11px;
+  font-weight: 600;
+}
+.deck-review-curve {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.deck-review-curve-filter {
+  grid-template-rows: 40px auto auto auto;
+  gap: 4px;
+}
+.deck-review-curve-graph {
+  display: flex;
+  height: 40px;
+  align-items: end;
+  justify-content: center;
+  gap: 3px;
+}
+.deck-review-curve-graph i {
+  width: 10px;
+  min-height: 0;
+  border-radius: 3px 3px 0 0;
+}
+.deck-review-curve-counts,
+.deck-review-filter-action,
+.deck-review-tag-count {
+  color: #706d82;
+  font-size: 11px;
+}
+.deck-review-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 8px;
+  color: #706d82;
+  font-size: 11px;
+}
+.deck-review-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.deck-review-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.deck-review-role {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+.deck-review-role-filter {
+  min-height: 76px;
+}
+.deck-review-row-heading,
+.deck-review-colour-heading,
+.deck-review-tag-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.deck-review-row-heading strong {
+  white-space: nowrap;
+}
+.deck-review-ratio {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #e8e6ef;
+}
+.deck-review-ratio i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--commander-accent, #7546a8);
+}
+.deck-review-target {
+  display: grid;
+  gap: 3px;
+  color: #706d82;
+  font-size: 10px;
+  text-align: center;
+}
+.deck-review-target input {
+  width: 43px;
+  padding: 5px 2px;
+  border: 1px solid #bbb9cd;
+  border-radius: 5px;
+  background: white;
+  color: #25243a;
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+.deck-review-colour-filter {
+  gap: 8px;
+}
+.deck-review-colour-heading {
+  justify-content: flex-start;
+}
+.deck-review-colour-heading .mana-symbol {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+.deck-review-colour-heading .deck-review-status {
+  margin-left: auto;
+}
+.deck-review-colour-counts {
+  display: flex;
+  gap: 8px;
+  color: #706d82;
+  font-size: 11px;
+}
+.deck-review-colour-counts > span {
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #eeedf7;
+}
+.deck-review-colour-counts b {
+  color: #25243a;
+}
+.deck-review-tag-filter {
+  gap: 4px;
+}
+.deck-review-tag-kind {
+  color: #706d82;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.deck-review-tag-count {
+  line-height: 1.3;
+}
+.deck-review-empty {
+  color: #706d82 !important;
+  font-size: 12px !important;
+}
+.deck-review-type-filter {
+  gap: 5px;
+}
+.dark .deck-review-intro {
+  color: #c4c1d5;
+}
+.dark .deck-review-section {
+  border-color: #39374f;
+  border-top-color: var(--commander-accent, #9d78ce);
+  background: #1b1a2a;
+  color: #e5e3f0;
+}
+.dark .deck-review-section > p,
+.dark .deck-review-curve-counts,
+.dark .deck-review-filter-action,
+.dark .deck-review-tag-kind,
+.dark .deck-review-tag-count,
+.dark .deck-review-legend,
+.dark .deck-review-target {
+  color: #aaa8c2;
+}
+.dark .deck-review-findings > div {
+  border-color: #39374f;
+}
+.dark .deck-review-status.good {
+  background: #203929;
+  color: #b5e3bf;
+}
+.dark .deck-review-status.attention {
+  background: #482a2a;
+  color: #ffc5bc;
+}
+.dark .deck-review-status.neutral {
+  background: #292644;
+  color: #c4c1d5;
+}
+.dark .deck-review-filter {
+  border-color: #4b4867;
+  background: #121121;
+  color: #e5e3f0;
+}
+.dark .deck-review-filter:hover,
+.dark .deck-review-filter:focus-visible {
+  background: #292644;
+}
+.dark .deck-review-ratio {
+  background: #39374f;
+}
+.dark .deck-review-target input {
+  border-color: #4b4867;
+  background: #121121;
+  color: #e5e3f0;
+}
+.dark .deck-review-colour-counts {
+  color: #aaa8c2;
+}
+.dark .deck-review-colour-counts > span {
+  background: #292644;
+}
+.dark .deck-review-colour-counts b {
+  color: #e5e3f0;
+}
+.dark .deck-review-empty {
+  color: #aaa8c2 !important;
+}
+@media (max-width: 960px) {
+  .deck-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .deck-review-modal {
+    width: min(100%, calc(100vw - 32px));
+    justify-self: stretch;
+  }
+  .deck-review-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .import-help {
   margin: 18px 0 0;
   color: #625f76;

@@ -1,6 +1,13 @@
 export type AppView = 'start' | 'builder'
 export type AppModal =
-  'saved' | 'import' | 'search' | 'basics' | 'export' | 'card' | 'recommendation-settings'
+  | 'saved'
+  | 'import'
+  | 'search'
+  | 'basics'
+  | 'export'
+  | 'card'
+  | 'review'
+  | 'recommendation-settings'
 export type AppHistoryState = {
   app: 'commander-deck-creator'
   view: AppView
@@ -16,6 +23,7 @@ export const appModals: AppModal[] = [
   'basics',
   'export',
   'card',
+  'review',
   'recommendation-settings',
 ]
 

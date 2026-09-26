@@ -37,6 +37,24 @@
 .deck-board-heading h2 {
   margin: 0;
   font-size: 25px;
+  scroll-margin-top: 24px;
+}
+.deck-review-filter-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--commander-accent, #7546a8);
+  background: #fff;
+  color: #514e66;
+  font-size: 13px;
+}
+.deck-review-filter-status .export {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  font-size: 12px;
 }
 .deck-board .manual-card-button {
   width: auto;
