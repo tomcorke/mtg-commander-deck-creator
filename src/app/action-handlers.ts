@@ -14,6 +14,12 @@ import type { ActionDeps } from './recommendation-actions.ts'
 export function createActionHandlers(deps: ActionDeps) {
   return {
     addRecommendationCard: (card: Card) => deckActions.addRecommendationCard(deps, card),
+    applyDeckDoctorSwapPlan: (
+      cuts: { cutIndex: number; cutCard: DeckCard }[],
+      additions: Card[],
+      moveCutToSideboard: boolean,
+    ) => deckActions.applyDeckDoctorSwapPlan(deps, cuts, additions, moveCutToSideboard),
+    undoDeckDoctorSwap: (id: string) => deckActions.undoDeckDoctorSwap(deps, id),
     addCollectionCard: (card: ScryfallCard) => deckActions.addCollectionCard(deps, card),
     decide: (card: Card, action: 'add' | 'later' | 'ignore') =>
       deckActions.decide(deps, card, action),
@@ -25,6 +31,7 @@ export function createActionHandlers(deps: ActionDeps) {
     deckList: (format: ExportFormat) => deckActions.deckList(deps, format),
     copyDeck: () => deckActions.copyDeck(deps),
     openCollectionCard: (card: ScryfallCard) => deckActions.openCollectionCard(deps, card),
+    openCardReference: (card: Card | DeckCard) => deckActions.openCardReference(deps, card),
     openGuidanceCard: (card: Card) => deckActions.openGuidanceCard(deps, card),
     addSelectedGuidanceCard: () => deckActions.addSelectedGuidanceCard(deps),
     addBasicLands: (plan: { name: string; count: number }[]) =>

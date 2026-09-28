@@ -6,6 +6,7 @@ import {
   buildEdhrecRecommendations,
   commanderThemes,
   manaSupportFromAnalysis,
+  manualCardError,
   parseEdhrecEntries,
   preconFastMana,
   type ScryfallCard,
@@ -69,6 +70,7 @@ type StateSetters = {
       | 'setSelectedCollectionCard'
       | 'setSelectedDeckCardLocation'
       | 'setSelectedGuidanceCard'
+      | 'setSelectedCardReference'
       | 'setSelectedManualCard'
       | 'setSideboard'
       | 'setSubThemeSearch'
@@ -330,6 +332,8 @@ export function resetRecommendationState(deps: ActionDeps, preserveDeck: boolean
   if (!preserveDeck) {
     setDeck([])
     setSideboard([])
+    deps.setDeckDoctorHistory([])
+    deps.setDeckDoctorError('')
     setIgnoredCards([])
     setActiveSubThemes([])
     setDismissedSubThemes([])
@@ -440,6 +444,7 @@ async function addCollectionRecommendations(
   activeCollectionSets: string[],
   activeCollectionMode: string,
 ) {
+  if (activeCollectionMode === 'only' && !activeCollectionSets.length) return []
   if (activeCollectionMode === 'none' || !activeCollectionSets.length) return offeredCards
   try {
     const collectionCards = await collectionRecommendations(
@@ -457,6 +462,82 @@ async function addCollectionRecommendations(
     if (activeCollectionMode === 'only') throw error
     return offeredCards
   }
+}
+
+export async function fetchDeckDoctorCandidates(deps: ActionDeps) {
+  const { commander, commanderDetails, collectionSets, collectionMode, fetchCard } = deps
+  if (!commanderDetails) return []
+  const commanders = await Promise.all(
+    commanderNames(commander).map((name) => fetchCard(name) as Promise<CommanderCard>),
+  )
+  const identityColours = commanderDetails.colours
+  const offered =
+    collectionMode === 'only'
+      ? []
+      : await coreRecommendations(deps, commanders, identityColours, true)
+  const candidates: Card[] = await addCollectionRecommendations(
+    deps,
+    offered,
+    identityColours,
+    collectionSets,
+    collectionMode,
+  )
+  const existingNames = new Set(
+    [...deps.deck, ...deps.sideboard, ...commanders].map(({ name }: { name: string }) => name),
+  )
+  return candidates
+    .filter((card) => !existingNames.has(card.name))
+    .filter(
+      (card) =>
+        !manualCardError(
+          { name: card.name, type_line: card.typeLine, color_identity: card.colorIdentity ?? [] },
+          [],
+          identityColours,
+        ),
+    )
+    .slice(0, 80)
+}
+
+export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[]> {
+  const currentNames = commanderNames(deps.commander)
+  if (currentNames.length !== 1) return []
+  const themes = [...new Set([deps.theme, ...deps.activeSubThemes].filter(Boolean))]
+  const terms = [...new Set(themes.map((name) => themeSearchTerms[name]).filter(Boolean))]
+  if (!terms.length) return []
+
+  const requiredColours = new Set(
+    [...deps.deck.slice(currentNames.length), ...deps.sideboard].flatMap(
+      (card: any) => card.colorIdentity ?? [],
+    ),
+  )
+  const exclusions = [
+    deps.excludeGameChangers && '-is:gamechanger',
+    deps.excludeTutors && '-otag:tutor',
+    deps.excludeExtraTurns && '-otag:extra-turn',
+    deps.excludeUnreleased && 'date<=today',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const results = await deps.searchCards(
+    `is:commander legal:commander (${terms.join(' or ')}) ${exclusions}`,
+    undefined,
+    'edhrec',
+  )
+  const seen = new Set(currentNames)
+  return results
+    .filter((card: ScryfallCard) => {
+      if (
+        seen.has(card.name) ||
+        ![...requiredColours].every((colour) => card.color_identity.includes(colour))
+      )
+        return false
+      seen.add(card.name)
+      return true
+    })
+    .slice(0, 3)
+    .map((card: ScryfallCard) =>
+      toCard(card, 'Theme-compatible commander', `theme ${themes.join(' ')}`),
+    )
 }
 
 async function collectOfferedCards(

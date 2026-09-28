@@ -19,6 +19,7 @@ import {
   rankRecommendationCards,
   recommendationScore,
   recommendationScoreBreakdown,
+  recommendationScoreRating,
   recommendedScoreThreshold,
   releaseDeferred,
   releaseNextDeferred,
@@ -319,6 +320,14 @@ test('recommendation score rewards evidence and leaves weak picks below badge th
       { ...context, cardRoles: [] },
     ) < recommendedScoreThreshold,
   )
+})
+
+test('recommendation scores map to qualitative fit labels', () => {
+  assert.equal(recommendationScoreRating(75), 'top')
+  assert.equal(recommendationScoreRating(60), 'strong')
+  assert.equal(recommendationScoreRating(recommendedScoreThreshold), 'recommended')
+  assert.equal(recommendationScoreRating(25), 'possible')
+  assert.equal(recommendationScoreRating(24), 'low')
 })
 
 test('score breakdown exposes every contribution used by total score', () => {

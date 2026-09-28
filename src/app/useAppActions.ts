@@ -26,7 +26,11 @@ import {
 } from '../features/builder/interactions.ts'
 import { createActionHandlers } from './action-handlers.ts'
 import { loadPrintings as loadPrintingsAction } from './printing-actions.ts'
-import { start as startRecommendations } from './recommendation-actions.ts'
+import {
+  fetchDeckDoctorCandidates,
+  fetchDeckDoctorCommanders,
+  start as startRecommendations,
+} from './recommendation-actions.ts'
 import { useAppEffects, usePrintingRepairEffect } from './useAppEffects.ts'
 import type { ControllerState } from './useControllerState.ts'
 import {
@@ -301,6 +305,8 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     resetFan,
     clickCardImage: (event: any, card: Card) => clickCardImageAction(event, card, actions.decide),
     nextBatch: (extraSubTheme = '') => nextBatchAction(interactionDeps, extraSubTheme),
+    fetchDeckDoctorCandidates: () => fetchDeckDoctorCandidates(interactionDeps),
+    fetchDeckDoctorCommanders: () => fetchDeckDoctorCommanders(interactionDeps),
   }
 }
 

@@ -1,4 +1,10 @@
-import { useEffect, type CSSProperties, type Dispatch, type SetStateAction } from 'react'
+import {
+  useEffect,
+  type CSSProperties,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from 'react'
 
 import {
   cardScryfallUri,
@@ -32,21 +38,24 @@ import type {
   DeferredCard,
   RecommendationScoreBreakdown,
 } from '../../domain/recommendation-types.ts'
-import type { SavedDeck } from '../../deck-state.ts'
 import type { DeckReviewFilter } from '../../deck-review.ts'
 import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
 import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
+import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
 import { ScoreBreakdown } from '../score/ScoreBreakdown.tsx'
+import { CommanderCardArt } from './CommanderCardArt.tsx'
+import { CommanderSummary } from './CommanderSummary.tsx'
+import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 
 type AnyFunction = (...args: any[]) => any
 
 type BuilderViewModel = {
   [key: string]: any
-  activeDeckDelta: { added: number; removed: number } | null
+  appHeader: ReactNode
+  exportModal: ReactNode
   activeModal: string | null
-  activeSavedDeck: SavedDeck | undefined
   activeSubThemes: string[]
   analysis: ReturnType<typeof analyseDeck>
   basicLandState: 'idle' | 'loading' | 'error'
@@ -54,7 +63,6 @@ type BuilderViewModel = {
   batchAnnouncement: string
   batchNumber: number
   calculatedLandTarget: number
-  cardEffects: boolean
   cardSearch: string
   cardSearchResults: ScryfallCard[]
   cardSearchState: 'idle' | 'loading' | 'error'
@@ -69,9 +77,6 @@ type BuilderViewModel = {
   collectionSets: string[]
   commander: string
   commanderDetails: CommanderDetails | null
-  commanderStyling: boolean
-  copied: boolean
-  darkMode: boolean
   deckReviewFilter: DeckReviewFilter | null
   decisions: Record<string, 'add' | 'later' | 'ignore'>
   deck: DeckCard[]
@@ -79,7 +84,6 @@ type BuilderViewModel = {
   deckTargets: DeckTargets
   deferredCards: DeferredCard<Card>[]
   displayedTypeCounts: readonly (readonly [string, number])[]
-  exportFormat: 'moxfield' | 'plain' | 'csv'
   filterCardIdentity: boolean
   filteredCollectionCards: ScryfallCard[]
   filteredSubThemes: string[]
@@ -105,7 +109,6 @@ type BuilderViewModel = {
   missingHealthRoles: string[]
   pairCards: Card[]
   pendingRemoval: number | null
-  primaryTheme: [string, string]
   queue: Card[]
   recommendationLoadingStep: 'commander' | 'recommendations'
   recommendationLoadingTitle: string
@@ -115,14 +118,12 @@ type BuilderViewModel = {
   recommendationStyle: RecommendationStyle
   recommendedCard: { card: Card | null; score: number }
   scoredBatch: { card: Card; score: RecommendationScoreBreakdown }[]
-  secondaryTheme: [string, string]
   search: string
   selectedManualCard: ScryfallCard | null
   sideboard: DeckCard[]
   showBasicLands: boolean
   showCardSearch: boolean
   showCollectionBrowser: boolean
-  showExport: boolean
   showSubThemePicker: boolean
   subThemeSearch: string
   synergyPair: { cards: Card[]; explanation: string } | null
@@ -131,18 +132,14 @@ type BuilderViewModel = {
   start: AnyFunction
   setActiveSubThemes: Dispatch<SetStateAction<string[]>>
   setBasicLandState: (value: 'idle' | 'loading' | 'error') => void
-  setCardEffects: Dispatch<SetStateAction<boolean>>
   setCardSearch: Dispatch<SetStateAction<string>>
   setCardSearchResults: Dispatch<SetStateAction<ScryfallCard[]>>
   setCardSearchState: Dispatch<SetStateAction<'idle' | 'loading' | 'error'>>
   setCollectionBrowserMana: Dispatch<SetStateAction<string>>
   setCollectionBrowserType: Dispatch<SetStateAction<string>>
-  setCommanderStyling: Dispatch<SetStateAction<boolean>>
-  setDarkMode: Dispatch<SetStateAction<boolean>>
   setDeckReviewFilter: Dispatch<SetStateAction<DeckReviewFilter | null>>
   setDeckTargets: Dispatch<SetStateAction<DeckTargets>>
   setDismissedSubThemes: Dispatch<SetStateAction<string[]>>
-  setExportFormat: Dispatch<SetStateAction<'moxfield' | 'plain' | 'csv'>>
   setFilterCardIdentity: Dispatch<SetStateAction<boolean>>
   setHighlightedManaValue: Dispatch<SetStateAction<number | null>>
   setLiked: Dispatch<SetStateAction<string[]>>
@@ -156,10 +153,11 @@ type BuilderViewModel = {
 }
 
 export function BuilderView({ model }: { model: BuilderViewModel }) {
+  const { cardEffects, commanderStyling, darkMode } = useVisualPreferences()
   const {
-    activeDeckDelta,
+    appHeader,
+    exportModal,
     activeModal,
-    activeSavedDeck,
     activeSubThemes,
     addBasicLands,
     addCollectionCard,
@@ -172,7 +170,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     batchAnnouncement,
     batchNumber,
     calculatedLandTarget,
-    cardEffects,
     cardReason,
     cardSearch,
     cardSearchButton,
@@ -195,27 +192,22 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     collectionSets,
     commander,
     commanderDetails,
-    commanderStyling,
-    copied,
-    copyDeck,
     cycleCommanderPrinting,
     cycleDeckPrinting,
     cycleManualPrinting,
     cyclePrinting,
-    darkMode,
     deckReviewFilter,
     decide,
     decisions,
     deck,
     deckCardModal,
     deckCards,
-    deckList,
+    deckDoctorHistory,
     deckReviewModal,
     deckTargets,
     deferredCards,
     edhrecRetryRemaining,
     displayedTypeCounts,
-    exportFormat,
     fanCards,
     filterCardIdentity,
     filteredCollectionCards,
@@ -246,10 +238,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     openDeckCard,
     promoteToCommander,
     openModal,
-    openSavedDecks,
     pendingRemoval,
     positionDeckPreview,
-    primaryTheme,
     queue,
     recommendationLoadingStep,
     recommendationLoadingTitle,
@@ -265,23 +255,19 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     retryEdhrec,
     savedDecksModal,
     scoredBatch,
-    secondaryTheme,
     selectManualCard,
     selectedManualCard,
     setActiveSubThemes,
     setBasicLandState,
-    setCardEffects,
     setCardSearch,
     setCardSearchResults,
     setCardSearchState,
     setCollectionBrowserMana,
     setCollectionBrowserType,
-    setCommanderStyling,
-    setDarkMode,
     setDeckReviewFilter,
+    setDeckDoctorError,
     setDeckTargets,
     setDismissedSubThemes,
-    setExportFormat,
     setFilterCardIdentity,
     setHighlightedManaValue,
     setLiked,
@@ -295,7 +281,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     showBasicLands,
     showCardSearch,
     showCollectionBrowser,
-    showExport,
     showSubThemePicker,
     sideboard,
     startOver,
@@ -326,15 +311,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   }, [activeHighlightLabel, activeModal])
 
   return (
-    <main
-      className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`}
-      style={
-        {
-          '--commander-accent': primaryTheme[0],
-          '--commander-highlight': secondaryTheme[1],
-        } as CSSProperties
-      }
-    >
+    <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`}>
       {commanderStyling && commanderDetails?.art.length ? (
         <div className="commander-backdrop" aria-hidden="true">
           {commanderDetails.art.map((image) => (
@@ -342,154 +319,26 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           ))}
         </div>
       ) : null}
-      <header>
-        <button className="brand reset" onClick={startOver}>
-          Commander Deck Creator <small>v{__APP_VERSION__}</small>
-        </button>
-        <div className="deck-status">
-          {activeSavedDeck && (
-            <div className="saved-status">
-              <b>{activeSavedDeck.name}</b>
-              <small>
-                Saved {new Date(activeSavedDeck.updatedAt).toLocaleString()}{' '}
-                <span className="delta-added">+{activeDeckDelta?.added}</span>{' '}
-                <span className="delta-removed">−{activeDeckDelta?.removed}</span>
-              </small>
-            </div>
-          )}
-          <div className="progress">
-            <span
-              style={{
-                background: `linear-gradient(90deg, var(--commander-accent, #7650ae) ${deck.length}%, #dedcea ${deck.length}%)`,
-              }}
-            />
-            {deck.length} / 100 cards
-          </div>
-        </div>
-        <div className="header-actions">
-          <label className="theme-option">
-            <input
-              type="checkbox"
-              checked={commanderStyling}
-              onChange={(event) => setCommanderStyling(event.target.checked)}
-            />{' '}
-            Commander art and colours
-          </label>
-          <label
-            className="theme-option"
-            title="Enable card movement and foil or etched finish effects"
-          >
-            <input
-              type="checkbox"
-              checked={cardEffects}
-              onChange={(event) => setCardEffects(event.target.checked)}
-            />{' '}
-            Motion and finishes
-          </label>
-          <button className="theme-toggle" onClick={() => setDarkMode((current) => !current)}>
-            {darkMode ? '◐ Dark' : '☀ Light'}
-          </button>
-          <button className="start-over" type="button" onClick={startOver}>
-            Start over
-          </button>
-          <button className="export" type="button" onClick={() => openModal('import')}>
-            Import
-          </button>
-          <button className="export" type="button" onClick={openSavedDecks}>
-            Save / load
-          </button>
-          <button className="export" type="button" onClick={() => openModal('export')}>
-            Export deck
-          </button>
-        </div>
-      </header>
+      {appHeader}
       {savedDecksModal}
       {importModal}
+      {exportModal}
       {recommendationSettingsModal}
       {deckReviewModal}
       <section className="intro commander-header">
-        {commanderDetails ? (
-          <figure
-            className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`}
-            tabIndex={0}
-            aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}
-          >
-            {commanderDetails.images.map((image, index) => (
-              <img
-                src={image}
-                alt={`${commanderNames(commander)[index]} card`}
-                onClick={() => openCommanderCard(index)}
-                key={commanderNames(commander)[index]}
-              />
-            ))}
-            {commanderDetails.printings.some((printings) => printings.length > 1) && (
-              <span className="printing-indicator" aria-hidden="true">
-                ↻ Art
-              </span>
-            )}
-            <span className="card-zoom">
-              {commanderDetails.images.map((image, index) => (
-                <span className="commander-printing" key={commanderNames(commander)[index]}>
-                  <FinishedCardImage
-                    image={image}
-                    backImage={
-                      commanderDetails.printings[index][commanderDetails.selections[index]]
-                        ?.backImage
-                    }
-                    alt={`${commanderNames(commander)[index]} full card`}
-                    cardName={commanderNames(commander)[index]}
-                    finish={
-                      commanderDetails.printings[index][commanderDetails.selections[index]]?.finish
-                    }
-                    effectsEnabled={cardEffects}
-                    showFlipButton
-                    printing={{
-                      count: commanderDetails.printings[index].length,
-                      index: commanderDetails.selections[index],
-                      loading: Boolean(loadingArt),
-                      name: commanderNames(commander)[index],
-                      onClick: () => void cycleCommanderPrinting(index),
-                    }}
-                  />
-                </span>
-              ))}
-            </span>
-          </figure>
-        ) : (
-          <span className="commander-card commander-placeholder" aria-hidden="true" />
-        )}
-        <div className="commander-summary">
-          <p className="eyebrow">Building around</p>
-          <h1>
-            <button type="button" className="commander-name" onClick={() => openCommanderCard(0)}>
-              {commander}
-            </button>
-          </h1>
-          <div
-            className="identity"
-            aria-label={`Colour identity: ${commanderDetails?.colours.map((colour) => colourNames[colour]).join(', ') || 'loading'}`}
-          >
-            <span>Colour identity</span>
-            {commanderDetails?.colours.length === 0 && (
-              <img
-                className="colour"
-                src="https://svgs.scryfall.io/card-symbols/C.svg"
-                alt="Colourless"
-              />
-            )}
-            {commanderDetails?.colours.map((colour) => (
-              <img
-                className="colour"
-                src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`}
-                alt={colourNames[colour]}
-                key={colour}
-              />
-            ))}
-          </div>
-          <button className="change" onClick={startOver}>
-            Change commander
-          </button>
-        </div>
+        <CommanderCardArt
+          commander={commander}
+          commanderDetails={commanderDetails}
+          loadingArt={loadingArt}
+          openCommanderCard={openCommanderCard}
+          cycleCommanderPrinting={cycleCommanderPrinting}
+        />
+        <CommanderSummary
+          commander={commander}
+          colours={commanderDetails?.colours ?? null}
+          onOpenCommander={() => openCommanderCard(0)}
+          onChangeCommander={startOver}
+        />
         <div className="recommendation-setup">
           <div className="section-title">
             <div>
@@ -595,7 +444,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       className="collection-card-open"
                       onClick={() => openCollectionCard(card)}
                     >
-                      <div>{scryfallImage(card) && <img src={scryfallImage(card)} alt="" />}</div>
+                      <div>
+                        <SmallCardImage image={scryfallImage(card)} />
+                      </div>
                       <h3>{card.name}</h3>
                       <p>{card.type_line}</p>
                       <span>
@@ -733,7 +584,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           alt={`${card.name} card`}
                           cardName={card.name}
                           finish={defaultFinish(card.finishes)}
-                          effectsEnabled={cardEffects}
                           showFlipButton
                         />
                       </span>
@@ -757,7 +607,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         alt={`${selectedManualCard.name} enlarged card`}
                         cardName={selectedManualCard.name}
                         finish={defaultFinish(selectedManualCard.finishes)}
-                        effectsEnabled={cardEffects}
                         showFlipButton
                         printing={{
                           count: manualPrintings.length,
@@ -874,72 +723,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           </section>
         </div>
       )}
-      {showExport && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeModal()
-          }}
-        >
-          <section
-            className="export-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="export-title"
-          >
-            <div className="export-heading">
-              <div>
-                <p className="eyebrow">Export deck</p>
-                <h2 id="export-title">Copy your deck list</h2>
-              </div>
-              <ModalCloseButton onClick={() => closeModal()} label="Close export" />
-            </div>
-            <div className="format-tabs" role="group" aria-label="Deck list format">
-              <button
-                className={exportFormat === 'moxfield' ? 'selected' : ''}
-                onClick={() => setExportFormat('moxfield')}
-              >
-                Moxfield
-              </button>
-              <button
-                className={exportFormat === 'plain' ? 'selected' : ''}
-                onClick={() => setExportFormat('plain')}
-              >
-                Plain text
-              </button>
-              <button
-                className={exportFormat === 'csv' ? 'selected' : ''}
-                onClick={() => setExportFormat('csv')}
-              >
-                CSV
-              </button>
-            </div>
-            {exportFormat === 'moxfield' && (
-              <p className="moxfield-instructions">
-                <b>Commander must be selected manually in Moxfield.</b> Moxfield does not support
-                importing a deck with its commander included. Choose Commander format, set{' '}
-                {commanderNames(commander).length > 1 ? 'commanders' : 'commander'} to{' '}
-                <b>{commanderNames(commander).join(' and ')}</b>, then paste this{' '}
-                {deck.length - commanderNames(commander).length}-card mainboard list.
-              </p>
-            )}
-            <textarea
-              readOnly
-              value={deckList(exportFormat)}
-              onFocus={(event) => event.currentTarget.select()}
-              aria-label={`${exportFormat} deck list`}
-            />
-            <div className="export-actions">
-              <a href="https://www.moxfield.com/decks/personal" target="_blank" rel="noreferrer">
-                Open Moxfield decks ↗
-              </a>
-              <button className="primary" onClick={() => void copyDeck()}>
-                {copied ? 'Copied' : 'Copy to clipboard'}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
       <div className="workspace">
         <section className="recommendations">
           <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -1031,6 +814,16 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               )}
             </div>
             <div className="toolbar-actions">
+              <button
+                className="export"
+                type="button"
+                onClick={() => {
+                  setDeckDoctorError('')
+                  openModal('doctor')
+                }}
+              >
+                Deck Doctor
+              </button>
               <button
                 className="manual-card-button"
                 type="button"
@@ -1204,7 +997,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       alt={`${card.name} card`}
                       cardName={card.name}
                       finish={card.finish}
-                      effectsEnabled={cardEffects}
                       hasSynergyGlow={pairCards.includes(card)}
                       className="card-face-image"
                       showFlipButton
@@ -1305,7 +1097,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             image={card.image}
                             alt=""
                             finish={card.finish}
-                            effectsEnabled={cardEffects}
                             className="health-card-thumbnail-image"
                           />
                         </span>
@@ -1325,7 +1116,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           alt={`${card.name} card`}
                           cardName={card.name}
                           finish={card.finish}
-                          effectsEnabled={cardEffects}
                           className="health-card-full-image"
                           showFlipButton
                         />
@@ -1348,9 +1138,20 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <section className="deck-analysis" aria-labelledby="analysis-title">
             <div className="deck-analysis-heading">
               <h3 id="analysis-title">Deck analysis</h3>
-              <button className="export" type="button" onClick={() => openModal('review')}>
-                Detailed review
-              </button>
+              <div className="deck-analysis-actions">
+                {deckDoctorHistory.length > 0 && (
+                  <button
+                    className="export"
+                    type="button"
+                    onClick={() => openModal('doctor-history')}
+                  >
+                    Swap history ({deckDoctorHistory.length})
+                  </button>
+                )}
+                <button className="export" type="button" onClick={() => openModal('review')}>
+                  Detailed review
+                </button>
+              </div>
             </div>
             <p className="sr-only" aria-live="polite">
               {activeHighlightLabel
@@ -1648,7 +1449,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                   alt={`${card.name} card`}
                                   cardName={card.name}
                                   finish={card.finish}
-                                  effectsEnabled={cardEffects}
                                   className="deck-card-preview"
                                   showFlipButton
                                   printing={{
@@ -1775,7 +1575,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             alt={`${card.name} card`}
                             cardName={card.name}
                             finish={card.finish}
-                            effectsEnabled={cardEffects}
                             className="deck-card-preview"
                             showFlipButton
                           />

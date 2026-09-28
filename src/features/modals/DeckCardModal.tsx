@@ -11,12 +11,12 @@ type DeckCardModalProps = {
   selectedDeckCard: DeckCard | null
   selectedCollectionCard: DeckCard | null
   selectedGuidanceCard: boolean
+  selectedCardReference: boolean
   deckComplete: boolean
   selectedDeckCardIsCommander: boolean
   commanderPromotion: CommanderPromotionInfo | null
   promoteToCommander: () => void
   loadingArt: string
-  cardEffects: boolean
   cycleSelectedDeckCardPrinting: () => void
   pendingCardRemoval: { board: 'deck' | 'sideboard'; index: number } | null
   selectedDeckCardLocation: { board: 'deck' | 'sideboard'; index: number } | null
@@ -33,12 +33,12 @@ export function DeckCardModal({
   selectedDeckCard,
   selectedCollectionCard,
   selectedGuidanceCard,
+  selectedCardReference,
   deckComplete,
   selectedDeckCardIsCommander,
   commanderPromotion,
   promoteToCommander,
   loadingArt,
-  cardEffects,
   cycleSelectedDeckCardPrinting,
   pendingCardRemoval,
   selectedDeckCardLocation,
@@ -72,11 +72,13 @@ export function DeckCardModal({
       >
         <div className="export-heading">
           <p className="eyebrow">
-            {selectedGuidanceCard
-              ? 'Deck health suggestion'
-              : selectedCollectionCard
-                ? 'Collection card'
-                : 'Deck card'}
+            {selectedCardReference
+              ? 'Card details'
+              : selectedGuidanceCard
+                ? 'Deck health suggestion'
+                : selectedCollectionCard
+                  ? 'Collection card'
+                  : 'Deck card'}
           </p>
           <ModalCloseButton
             autoFocus
@@ -92,7 +94,6 @@ export function DeckCardModal({
               alt={`${selectedDeckCard.name} card`}
               cardName={selectedDeckCard.name}
               finish={selectedDeckCard.finish}
-              effectsEnabled={cardEffects}
               className="deck-card-modal-image"
               showFlipButton
               printing={{
@@ -136,7 +137,8 @@ export function DeckCardModal({
             </button>
           </div>
         )}
-        {!selectedGuidanceCard &&
+        {!selectedCardReference &&
+          !selectedGuidanceCard &&
           !selectedDeckCardIsCommander &&
           selectedCollectionCard === null && (
             <div className="deck-card-modal-actions">

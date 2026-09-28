@@ -5,7 +5,7 @@
 - Keep the app client-only until remote APIs require server-side secrets or proxying.
 - Use Scryfall image URLs for card art; do not commit downloaded card images.
 - Use pnpm. Run `pnpm lint`, `pnpm typecheck`, and `pnpm build` before handoff.
-- For UI changes, read `docs/agents/ui.md`, reuse its shared components and classes, and pass its review gate.
+- For UI changes, read `docs/agents/ui.md` first. It defines component reuse across screens, visual consistency, mana presentation, card previews, themed controls, full-page workflows, and rendered review.
 
 ## Releases
 

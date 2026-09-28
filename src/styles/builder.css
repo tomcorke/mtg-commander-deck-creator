@@ -512,11 +512,14 @@
   min-height: 72px;
   text-align: center;
 }
-.collection-browser-grid img {
+.collection-browser-grid .small-card-image {
   width: 52px;
   height: 72px;
-  object-fit: cover;
-  border-radius: 4px;
+  margin: 0 auto;
+}
+.collection-browser-grid .small-card-image-thumbnail {
+  width: 52px;
+  height: 72px;
 }
 .collection-browser-grid h3 {
   margin: 8px 0 3px;

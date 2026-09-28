@@ -188,12 +188,18 @@
 .dark .format-tabs button,
 .dark .actions button,
 .dark .theme-toggle,
-.dark .export,
 .dark .recommendation-options fieldset,
 .dark .recommendation-options select,
 .dark .clearable-input {
   border-color: #4b4867;
   color: #ccc9df;
+}
+.dark .export {
+  border-color: color-mix(in srgb, var(--commander-accent, #7169ca) 70%, #4b4867);
+  color: color-mix(in srgb, var(--commander-accent, #7169ca) 45%, #e5e3f0);
+}
+.dark .export:not(:disabled):hover {
+  background: color-mix(in srgb, var(--commander-accent, #7169ca) 16%, #121121);
 }
 .dark .recommendation-options select,
 .dark .collection-browser-filters select,
@@ -572,6 +578,24 @@
     padding: 16px 0 0;
     border-left: 0;
     border-top: 1px solid #dedcea;
+  }
+}
+
+@media (min-width: 801px) and (max-width: 1450px) {
+  header {
+    height: auto;
+    min-height: 72px;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    padding-block: 14px;
+  }
+  .header-actions {
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+  }
+  .header-actions > *,
+  .progress {
+    white-space: nowrap;
   }
 }
 

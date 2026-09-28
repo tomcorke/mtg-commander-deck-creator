@@ -121,17 +121,19 @@ export function useControllerState(
     : null
   const selectedDeckCard = useMemo(
     () =>
-      state.selectedDeckCardLocation
+      state.selectedCardReference ??
+      (state.selectedDeckCardLocation
         ? ((state.selectedDeckCardLocation.board === 'deck' ? state.deck : state.sideboard)[
             state.selectedDeckCardLocation.index
           ] ?? null)
         : (state.selectedCollectionCard ??
           (state.selectedGuidanceCard
             ? toDeckCardFromRecommendation(state.selectedGuidanceCard)
-            : null)),
+            : null))),
     [
       state.deck,
       state.selectedCollectionCard,
+      state.selectedCardReference,
       state.selectedDeckCardLocation,
       state.selectedGuidanceCard,
       state.sideboard,
@@ -153,6 +155,8 @@ export function useControllerState(
     showSavedDecks: state.activeModal === 'saved',
     showImport: state.activeModal === 'import',
     showDeckCard: state.activeModal === 'card' && selectedDeckCard !== null,
+    showDeckDoctor: state.activeModal === 'doctor' || state.activeModal === 'doctor-history',
+    showDeckDoctorHistory: state.activeModal === 'doctor-history',
     selectedDeckCardIsCommander:
       state.selectedDeckCardLocation?.board === 'deck' &&
       state.selectedDeckCardLocation.index < commanderNames(state.commander).length,

@@ -36,7 +36,6 @@ export function ManaSymbols({ symbols }: { symbols: string[] }) {
           className="mana-symbol"
           src={`https://svgs.scryfall.io/card-symbols/${symbol}.svg`}
           alt={colourNames[symbol] ?? 'Colourless'}
-          title={colourNames[symbol] ?? 'Colourless'}
           key={symbol}
         />
       ))}
@@ -60,7 +59,6 @@ export function OracleText({ text }: { text: string }) {
                 className="mana-symbol"
                 src={`https://svgs.scryfall.io/card-symbols/${file}.svg`}
                 alt={label}
-                title={label}
                 key={`${part}-${index}`}
               />
             )

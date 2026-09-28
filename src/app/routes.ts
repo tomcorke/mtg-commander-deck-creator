@@ -7,6 +7,8 @@ export type AppModal =
   | 'export'
   | 'card'
   | 'review'
+  | 'doctor'
+  | 'doctor-history'
   | 'recommendation-settings'
 export type AppHistoryState = {
   app: 'commander-deck-creator'
@@ -24,6 +26,8 @@ export const appModals: AppModal[] = [
   'export',
   'card',
   'review',
+  'doctor',
+  'doctor-history',
   'recommendation-settings',
 ]
 

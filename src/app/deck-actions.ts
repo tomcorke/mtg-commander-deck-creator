@@ -5,6 +5,10 @@ import {
   fetchScryfallPrintings,
 } from '../adapters/scryfall.ts'
 import { defaultDeckTargets } from '../deck-analysis.ts'
+import {
+  undoDeckDoctorSwap as undoDoctorSwap,
+  applyDeckDoctorSwapPlan as applyDoctorSwapPlan,
+} from '../deck-doctor.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
 import { cardPrintingOptions } from '../domain/printing.ts'
 import type {
@@ -495,7 +499,9 @@ export function openCollectionCard(deps: ActionDeps, card: ScryfallCard) {
     setSelectedCollectionCard,
     setSelectedDeckCardLocation,
     setSelectedGuidanceCard,
+    setSelectedCardReference,
   } = deps
+  setSelectedCardReference(null)
   setSelectedDeckCardLocation(null)
   setSelectedGuidanceCard(null)
   setSelectedCollectionCard(toDeckCard(card))
@@ -777,7 +783,9 @@ export function openGuidanceCard(deps: ActionDeps, card: Card) {
     setSelectedCollectionCard,
     setSelectedDeckCardLocation,
     setSelectedGuidanceCard,
+    setSelectedCardReference,
   } = deps
+  setSelectedCardReference(null)
   setSelectedDeckCardLocation(null)
   setSelectedCollectionCard(null)
   setSelectedGuidanceCard(card)
@@ -797,7 +805,9 @@ export function openDeckCard(deps: ActionDeps, card: DeckCard, location: DeckCar
     setSelectedCollectionCard,
     setSelectedDeckCardLocation,
     setSelectedGuidanceCard,
+    setSelectedCardReference,
   } = deps
+  setSelectedCardReference(null)
   setSelectedGuidanceCard(null)
   setSelectedCollectionCard(null)
   setSelectedDeckCardLocation(location)
@@ -820,6 +830,35 @@ export function openCommanderCard(deps: ActionDeps, index: number) {
   if (card) openDeckCard(deps, card, { board: 'deck', index })
 }
 
+export function openCardReference(deps: ActionDeps, card: Card | DeckCard) {
+  deps.setDeckDoctorReturnModal(deps.activeModal === 'doctor-history' ? 'doctor-history' : 'doctor')
+  const deckIndex = deps.deck.findIndex(
+    (item: DeckCard) =>
+      item.name === card.name &&
+      item.set === card.set &&
+      item.collectorNumber === card.collectorNumber,
+  )
+  if (deckIndex >= 0)
+    return openDeckCard(deps, deps.deck[deckIndex], { board: 'deck', index: deckIndex })
+  const sideboardIndex = deps.sideboard.findIndex(
+    (item: DeckCard) =>
+      item.name === card.name &&
+      item.set === card.set &&
+      item.collectorNumber === card.collectorNumber,
+  )
+  if (sideboardIndex >= 0)
+    return openDeckCard(deps, deps.sideboard[sideboardIndex], {
+      board: 'sideboard',
+      index: sideboardIndex,
+    })
+
+  deps.setSelectedCardReference('reason' in card ? toDeckCardFromRecommendation(card) : card)
+  deps.setSelectedDeckCardLocation(null)
+  deps.setSelectedCollectionCard(null)
+  deps.setSelectedGuidanceCard(null)
+  deps.openModal(deps, 'card')
+}
+
 export function closeDeckCard(deps: ActionDeps) {
   const {
     closeModal,
@@ -827,11 +866,13 @@ export function closeDeckCard(deps: ActionDeps) {
     setSelectedCollectionCard,
     setSelectedDeckCardLocation,
     setSelectedGuidanceCard,
+    setSelectedCardReference,
   } = deps
   setPendingCardRemoval(null)
   setSelectedDeckCardLocation(null)
   setSelectedCollectionCard(null)
   setSelectedGuidanceCard(null)
+  setSelectedCardReference(null)
   closeModal()
 }
 
@@ -958,6 +999,8 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
   setSideboard(state.sideboard)
   setPreferredPrintSet(state.preferredPrintSet)
   setDeckTargets(state.deckTargets)
+  deps.setDeckDoctorHistory([])
+  deps.setDeckDoctorError('')
   setActiveSavedDeckId(state.savedDeckId || saved.id)
   setDeckName(saved.name)
   navigateView(deps, 'builder', null, true)
@@ -1092,6 +1135,7 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
   skipCompletionReviewDecks.current.add(importedMain)
   setDeck(importedMain)
   setSideboard(importedSideboard)
+  deps.setDeckDoctorHistory([])
   setQueue((current: any) =>
     current.filter(
       (card: any) => !expanded.some(({ card: importedCard }) => importedCard.name === card.name),
@@ -1147,6 +1191,8 @@ export function startOver(deps: ActionDeps) {
   setCollectionPoolSize(null)
   setDeck([])
   setSideboard([])
+  deps.setDeckDoctorHistory([])
+  deps.setDeckDoctorError('')
   setQueue([])
   setDecisions({})
   setIgnoredCards([])
@@ -1162,4 +1208,55 @@ export function startOver(deps: ActionDeps) {
   setActiveSavedDeckId('')
   setDeckName('')
   navigateView(deps, 'start', null, true)
+}
+
+export function applyDeckDoctorSwapPlan(
+  deps: ActionDeps,
+  cuts: { cutIndex: number; cutCard: DeckCard }[],
+  additions: Card[],
+  moveCutToSideboard: boolean,
+) {
+  try {
+    const result = applyDoctorSwapPlan({
+      id: crypto.randomUUID(),
+      deck: deps.deck,
+      sideboard: deps.sideboard,
+      commanderCount: commanderNames(deps.commander).length,
+      commanderColours: deps.commanderDetails?.colours ?? [],
+      cuts,
+      additions,
+      moveCutToSideboard,
+    })
+    deps.setDeck(result.deck)
+    deps.setSideboard(result.sideboard)
+    deps.setDeckDoctorHistory((current: any[]) => [...current, ...result.records])
+    deps.setDeckDoctorError('')
+    return true
+  } catch (error) {
+    deps.setDeckDoctorError(error instanceof Error ? error.message : 'Could not apply the changes.')
+    return false
+  }
+}
+
+export function undoDeckDoctorSwap(deps: ActionDeps, id: string) {
+  const record = deps.deckDoctorHistory.find((swap: any) => swap.id === id)
+  if (!record) return false
+  try {
+    const result = undoDoctorSwap({
+      deck: deps.deck,
+      sideboard: deps.sideboard,
+      commanderCount: commanderNames(deps.commander).length,
+      commanderColours: deps.commanderDetails?.colours ?? [],
+      record,
+    })
+    deps.setDeck(result.deck)
+    deps.setSideboard(result.sideboard)
+    deps.setDeckDoctorHistory((current: any[]) => current.filter((swap: any) => swap.id !== id))
+    deps.setDeckDoctorError('')
+    return true
+  } catch (error) {
+    deps.setDeckDoctorHistory((current: any[]) => current.filter((swap: any) => swap.id !== id))
+    deps.setDeckDoctorError(error instanceof Error ? error.message : 'Could not undo swap safely.')
+    return false
+  }
 }

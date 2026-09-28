@@ -7,6 +7,7 @@ import {
 } from 'react'
 
 import type { CardFinish } from '../domain/card-model'
+import { useVisualPreferences } from './VisualPreferencesContext.tsx'
 
 export function ArtLoading({ active }: { active: boolean }) {
   return active ? (
@@ -48,7 +49,6 @@ export function FinishedCardImage({
   alt,
   cardName,
   finish,
-  effectsEnabled,
   hasSynergyGlow = false,
   className = '',
   printing,
@@ -59,7 +59,6 @@ export function FinishedCardImage({
   alt: string
   cardName?: string
   finish?: CardFinish
-  effectsEnabled: boolean
   hasSynergyGlow?: boolean
   className?: string
   printing?: {
@@ -71,6 +70,7 @@ export function FinishedCardImage({
   }
   showFlipButton?: boolean
 }) {
+  const { cardEffects: effectsEnabled } = useVisualPreferences()
   const [loadedImage, setLoadedImage] = useState('')
   const [flipped, setFlipped] = useState(false)
   const displayedImage = flipped && backImage ? backImage : image

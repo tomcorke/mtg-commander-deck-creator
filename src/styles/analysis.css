@@ -213,6 +213,12 @@
   padding: 6px 9px;
   font-size: 12px;
 }
+.deck-analysis-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
 .deck-analysis {
   margin-bottom: 24px;
   padding-bottom: 22px;
@@ -639,6 +645,92 @@ li.deck-highlight-dimmed {
   color: var(--commander-accent, #36327f);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+.card-reference {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+.card-reference-name {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline dotted transparent;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.card-reference-name:hover,
+.card-reference-name:focus-visible {
+  color: var(--commander-accent, #36327f);
+  text-decoration-color: currentColor;
+}
+.card-image-preview {
+  --preview-transform: translateX(-50%) scale(0.96);
+  --preview-transform-hover: translateX(-50%) scale(1);
+  position: absolute;
+  z-index: 160;
+  left: 50%;
+  display: block;
+  width: min(260px, 50vw);
+  padding: 4px;
+  border: 1px solid #ffffff55;
+  border-radius: 10px;
+  background: #161525;
+  box-shadow: 0 12px 36px #0009;
+  color: white;
+  font-size: 11px;
+  pointer-events: none;
+  opacity: 0;
+  transform: var(--preview-transform);
+  transition:
+    opacity 0.15s,
+    transform 0.15s,
+    visibility 0s 0.15s;
+  visibility: hidden;
+}
+.card-image-preview--above {
+  bottom: calc(100% + 8px);
+}
+.card-image-preview--center {
+  top: 50%;
+  --preview-transform: translate(-50%, -50%) scale(0.96);
+  --preview-transform-hover: translate(-50%, -50%) scale(1);
+}
+.card-image-preview img {
+  display: block;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  border-radius: 4.75%;
+  object-fit: contain;
+}
+.small-card-image {
+  position: relative;
+  display: block;
+}
+.small-card-image-thumbnail {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 4.75%;
+  object-fit: cover;
+}
+.small-card-image:hover,
+button:focus-visible .small-card-image {
+  z-index: 150;
+}
+.small-card-image:hover .card-image-preview,
+.small-card-image:focus-within .card-image-preview,
+button:focus-visible .card-image-preview,
+.card-reference:hover .card-image-preview,
+.card-reference:focus-within .card-image-preview {
+  opacity: 1;
+  transform: var(--preview-transform-hover);
+  transition-delay: 0s;
+  visibility: visible;
 }
 .foil-card-name {
   background: linear-gradient(90deg, #ff4f9a, #ffd84f, #42e8a8, #50bfff, #b16cff, #ff4f9a);

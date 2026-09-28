@@ -29,6 +29,7 @@ type DeckReviewModalProps = {
   displayedTypeCounts: readonly (readonly [string, number])[]
   selectManaValue: (value: number) => void
   selectCards: (label: string, cardNames: string[]) => void
+  openDoctor: () => void
   closeModal: () => void
 }
 
@@ -87,6 +88,7 @@ export function DeckReviewModal({
   displayedTypeCounts,
   selectManaValue,
   selectCards,
+  openDoctor,
   closeModal,
 }: DeckReviewModalProps) {
   if (!show) return null
@@ -174,7 +176,12 @@ export function DeckReviewModal({
             <p className="eyebrow">Static analysis</p>
             <h2 id="deck-review-title">Deck review</h2>
           </div>
-          <ModalCloseButton autoFocus onClick={closeModal} label="Close deck review" />
+          <div className="deck-review-heading-actions">
+            <button className="primary" type="button" onClick={openDoctor}>
+              Open Deck Doctor
+            </button>
+            <ModalCloseButton autoFocus onClick={closeModal} label="Close deck review" />
+          </div>
         </div>
         <p className="deck-review-intro">
           {deck.length} / 100 main-deck cards, including{' '}

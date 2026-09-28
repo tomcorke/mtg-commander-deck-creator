@@ -7,6 +7,8 @@ test('routeHash preserves view and modal names', () => {
   assert.equal(routeHash('start', null), '#start')
   assert.equal(routeHash('builder', 'export'), '#build/export')
   assert.equal(routeHash('builder', 'review'), '#build/review')
+  assert.equal(routeHash('builder', 'doctor'), '#build/doctor')
+  assert.equal(routeHash('builder', 'doctor-history'), '#build/doctor-history')
 })
 
 test('parseAppRoute ignores unknown hashes and validates history state', () => {
@@ -18,6 +20,8 @@ test('parseAppRoute ignores unknown hashes and validates history state', () => {
     entry: false,
   })
   assert.equal(parseAppRoute('#build/review', null)?.modal, 'review')
+  assert.equal(parseAppRoute('#build/doctor', null)?.modal, 'doctor')
+  assert.equal(parseAppRoute('#build/doctor-history', null)?.modal, 'doctor-history')
   assert.deepEqual(
     parseAppRoute('#start', {
       app: 'commander-deck-creator',

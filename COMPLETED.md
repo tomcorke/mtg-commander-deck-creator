@@ -68,3 +68,49 @@ For a parsed 100-card main deck (commander included; sideboard excluded), the im
 - Before importing a complete main deck, the player sees the handoff and can opt out for that import.
 - A complete import opens the same review when opted in; an opted-out import remains in the builder. Manually completing a deck still opens review.
 - Partial imports remain editable, sideboard cards do not count toward 100, and illegal or unresolved cards are reported before the current deck is replaced.
+
+## [B3] Add Deck Doctor from deck review
+
+**Complexity:** High · **Value:** High · **Delivery risk:** High — Heuristic tags and candidate recommendations need careful limits.
+
+**Status:** Complete on `feature/deck-doctor`; awaiting review and merge.
+
+### Completed behavior
+
+The optional Doctor opens from Deck review at any deck size. It reports selected-theme support, cards with no detected theme, role, or synergy link, role gaps at the existing 70/85-card thresholds, and expensive or colour-intensive cards. Findings name their evidence and limits. They prompt review; they do not make automatic cuts.
+
+A bounded simulator estimates land drops and land-only castability for one drawn, supported-cost spell at a time. It skips unsupported costs and omits ramp, tapped-land timing, mulligans, and card effects. Its estimates are not win rates or full-game predictions.
+
+Players can approve legal swaps from the current recommendation queue or fetch more candidates on demand, optionally move cuts to the sideboard, and safely undo swaps during the session. Opt-in commander comparisons preserve the legality of current deck cards and never change deck state. Partner-pair comparisons are skipped.
+
+The Doctor logic and swap/undo behavior have unit coverage, including fixed-seed known-deck simulation checks. Browser smoke checks covered review handoff, swaps and undo, sideboard retention, mocked commander comparisons, light/dark themes, and a narrow viewport.
+
+Detailed spec: [docs/specs/b3-deck-doctor.md](docs/specs/b3-deck-doctor.md).
+
+### Acceptance checks
+
+- The Doctor opens from review at any deck size; role-gap guidance follows the 70/85-card thresholds.
+- Findings use selected themes and sub-themes, name evidence, and explain heuristic uncertainty. Low support is a review prompt, not a cut decision.
+- Balanced changes show both cards, mark the in-deck card, respect legality, and require explicit approval. Sideboard retention and session-only safe undo work.
+- Commander comparisons are opt-in, preserve the current deck's legality, and never change the commander. Partner pairs retain other Doctor findings.
+- Fixed-seed known-deck tests show the bounded simulation adds land-drop and spell-castability estimates beyond static analysis; unsupported costs and excluded effects are labelled.
+- `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, and browser smoke checks pass.
+
+## [B5] Make Deck Doctor a visual workspace
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — The main risk was keeping card selection, comparisons, and undo clear across a dense workflow.
+
+**Status:** Complete on `feature/deck-doctor`; awaiting review and merge.
+
+### Completed behavior
+
+Deck Doctor is a full-page mode reachable directly from the builder or Deck review. It groups repeated mana concerns and weak-connection cards, and presents one shared replacement grid. Players choose equal numbers of cuts and additions, compare each pair with art and an in-deck label, then explicitly apply the atomic plan. Legal candidates, optional sideboard retention, and individual session undo remain supported. Commander comparisons remain opt-in and read-only.
+
+Card names preview art on hover or focus and open the existing card-details modal; off-deck cards are read-only. Small card images also enlarge on hover or focus. Card tiles show full mana-cost icons instead of repeating colour identity; they omit derived mana-value totals. The mode reflows for narrow screens.
+
+### Acceptance checks
+
+- Direct builder and Deck review entry both open the full-page Doctor; card details return to the same workflow with selections intact.
+- Mana concerns are grouped; candidates appear once. Card grids show art and full mana-cost icons without a duplicate colour-identity row, and every proposed pair marks the card currently in the deck.
+- Batch validation is atomic, keeps deck size and commander legality, supports sideboard retention, and preserves individual safe undo.
+- `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, and browser smoke checks pass in light, dark, and narrow layouts.

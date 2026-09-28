@@ -1,8 +1,13 @@
+import { useEffect } from 'react'
+
 import { duplicateDeckName } from '../deck-state.ts'
 import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
+import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
+import { ExportDeckModal } from '../features/builder/ExportDeckModal.tsx'
 import { DeckReviewModal } from '../features/builder/DeckReviewModal.tsx'
+import { DeckDoctorView } from '../features/builder/DeckDoctorView.tsx'
 import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
 import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
@@ -64,6 +69,7 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
       selectedDeckCard={state.selectedDeckCard}
       selectedCollectionCard={state.selectedCollectionCard}
       selectedGuidanceCard={Boolean(state.selectedGuidanceCard)}
+      selectedCardReference={Boolean(state.selectedCardReference)}
       deckComplete={state.deck.length >= 100}
       selectedDeckCardIsCommander={state.selectedDeckCardIsCommander}
       commanderPromotion={
@@ -79,7 +85,6 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
         if (state.selectedDeckCard) void actions.promoteToCommander(state.selectedDeckCard)
       }}
       loadingArt={state.loadingArt}
-      cardEffects={state.cardEffects}
       cycleSelectedDeckCardPrinting={() => void actions.cycleSelectedDeckCardPrinting()}
       pendingCardRemoval={state.pendingCardRemoval}
       selectedDeckCardLocation={state.selectedDeckCardLocation}
@@ -136,6 +141,19 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
 
 function renderModals(props: AppViewProps) {
   return {
+    exportModal: (
+      <ExportDeckModal
+        show={props.state.showExport}
+        commander={props.state.commander}
+        deckCount={props.state.deck.length}
+        exportFormat={props.state.exportFormat}
+        setExportFormat={props.state.setExportFormat}
+        copied={props.state.copied}
+        deckList={props.actions.deckList}
+        copyDeck={props.actions.copyDeck}
+        closeModal={() => props.actions.closeModal()}
+      />
+    ),
     importModal: <ImportModalView {...props} />,
     savedDecksModal: <SavedDecksModalView {...props} />,
     deckCardModal: <DeckCardModalView {...props} />,
@@ -162,6 +180,10 @@ function renderModals(props: AppViewProps) {
           props.state.setDeckReviewFilter({ label, cardNames })
           props.actions.closeModal()
         }}
+        openDoctor={() => {
+          props.state.setDeckDoctorError('')
+          props.actions.navigateView('builder', 'doctor', true)
+        }}
         closeModal={() => props.actions.closeModal()}
       />
     ),
@@ -180,12 +202,6 @@ function StartScreen({
   return (
     <StartView
       {...({ ...state, ...actions } as any)}
-      darkMode={state.darkMode}
-      commanderStyling={state.commanderStyling}
-      cardEffects={state.cardEffects}
-      setDarkMode={state.setDarkMode}
-      setCommanderStyling={state.setCommanderStyling}
-      setCardEffects={state.setCardEffects}
       savedDecks={state.savedDecks.length}
       savedDecksModal={modals.savedDecksModal}
       importModal={modals.importModal}
@@ -195,7 +211,92 @@ function StartScreen({
 }
 
 export function AppView({ state, actions, builderData }: AppViewProps) {
+  const {
+    activeModal,
+    deckDoctorReturnModal: storedDoctorReturn,
+    setDeckDoctorReturnModal,
+    showDeckDoctor,
+    showDeckDoctorHistory,
+  } = state
+  const preservesDoctor = ['card', 'export', 'import', 'saved'].includes(activeModal)
+  const doctorReturnModal = preservesDoctor ? storedDoctorReturn : null
+  useEffect(() => {
+    if (storedDoctorReturn && !showDeckDoctor && !doctorReturnModal) {
+      setDeckDoctorReturnModal(null)
+    }
+  }, [doctorReturnModal, setDeckDoctorReturnModal, showDeckDoctor, storedDoctorReturn])
+
   const modals = renderModals({ state, actions, builderData })
   if (!state.showBuilder) return <StartScreen state={state} actions={actions} modals={modals} />
-  return <BuilderView model={{ ...state, ...actions, ...builderData, ...modals } as any} />
+
+  const rememberDoctor = () => {
+    if (state.showDeckDoctor) {
+      setDeckDoctorReturnModal(showDeckDoctorHistory ? 'doctor-history' : 'doctor')
+    }
+  }
+  const appHeader = (
+    <BuilderTopBar
+      activeDeckDelta={state.activeDeckDelta}
+      activeSavedDeck={state.activeSavedDeck}
+      deckCount={state.deck.length}
+      startOver={actions.startOver}
+      onImport={() => {
+        rememberDoctor()
+        actions.openModal('import')
+      }}
+      onSaveLoad={() => {
+        rememberDoctor()
+        actions.openSavedDecks()
+      }}
+      onExport={() => {
+        rememberDoctor()
+        actions.openModal('export')
+      }}
+    />
+  )
+  if (state.showDeckDoctor || doctorReturnModal)
+    return (
+      <>
+        <DeckDoctorView
+          appHeader={appHeader}
+          showHistory={state.showDeckDoctorHistory || doctorReturnModal === 'doctor-history'}
+          commander={state.commander}
+          commanderDetails={state.commanderDetails}
+          loadingArt={state.loadingArt}
+          deck={state.deck}
+          sideboard={state.sideboard}
+          commanderCount={commanderNames(state.commander).length}
+          commanderColours={state.commanderDetails?.colours ?? []}
+          theme={state.theme}
+          activeSubThemes={state.activeSubThemes}
+          deckTargets={state.deckTargets}
+          candidates={state.queue}
+          scoreCandidate={builderData.scoreCandidate}
+          history={state.deckDoctorHistory}
+          error={state.deckDoctorError}
+          fetchCandidates={() => actions.fetchDeckDoctorCandidates()}
+          fetchCommanderAlternatives={() => actions.fetchDeckDoctorCommanders()}
+          openCard={actions.openCardReference}
+          cycleCommanderPrinting={actions.cycleCommanderPrinting}
+          startOver={actions.startOver}
+          applySwapPlan={actions.applyDeckDoctorSwapPlan}
+          undoSwap={actions.undoDeckDoctorSwap}
+          openHistory={() => actions.navigateView('builder', 'doctor-history', true)}
+          openDiagnosis={() => actions.navigateView('builder', 'doctor', true)}
+          closePage={() => {
+            state.setDeckDoctorReturnModal(null)
+            actions.closeModal()
+          }}
+        />
+        {modals.importModal}
+        {modals.savedDecksModal}
+        {modals.exportModal}
+        {state.showDeckCard && (
+          <DeckCardModalView state={state} actions={actions} builderData={builderData} />
+        )}
+      </>
+    )
+  return (
+    <BuilderView model={{ ...state, ...actions, ...builderData, ...modals, appHeader } as any} />
+  )
 }

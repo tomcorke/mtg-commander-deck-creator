@@ -181,8 +181,37 @@ header {
   color: #514e66;
 }
 .export {
-  border-color: #36327f;
-  color: #36327f;
+  border-color: var(--commander-accent, #36327f);
+  color: var(--commander-accent, #36327f);
+}
+.export:not(:disabled):hover {
+  background: color-mix(in srgb, var(--commander-accent, #36327f) 9%, transparent);
+}
+.export:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, white);
+  outline-offset: 2px;
+}
+.export:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.primary {
+  border: 1px solid var(--commander-accent, #36327f);
+  border-radius: 7px;
+  padding: 10px 16px;
+  background: var(--commander-accent, #36327f);
+  color: #fff;
+}
+.primary:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+.primary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, white);
+  outline-offset: 2px;
+}
+.primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 .start-over {
   padding: 9px 6px;

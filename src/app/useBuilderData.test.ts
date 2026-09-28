@@ -78,6 +78,7 @@ test('shows basic-land fill and scores lands when the deck has a land gap', () =
   assert.deepEqual(data.basicLands, [{ name: 'Forest', colour: 'G', count: 32 }])
   assert.ok(data.scoredBatch[0].score.deckNeeds > 0)
   assert.ok(data.scoredBatch[1].score.manaFitPenalty < 0)
+  assert.deepEqual(data.scoreCandidate(creature), data.scoredBatch[1].score)
   assert.equal(withoutDeckHealth.scoredBatch[0].score.deckNeeds, 0)
   assert.ok(withoutDeckHealth.scoredBatch[1].score.manaFitPenalty < 0)
 })

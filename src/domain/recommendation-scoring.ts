@@ -1,5 +1,8 @@
 import type { PrintingLike, ScryfallCard } from './card-model.ts'
-import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
+import {
+  recommendationScoreFactorMaximums,
+  recommendedScoreThreshold,
+} from './recommendation-types.ts'
 import type {
   ManaSupport,
   RecommendationScoreBreakdown,
@@ -223,6 +226,16 @@ export function recommendationScore(
   context: RecommendationScoreContext,
 ) {
   return recommendationScoreBreakdown(card, context).total
+}
+
+export type RecommendationScoreRating = 'top' | 'strong' | 'recommended' | 'possible' | 'low'
+
+export function recommendationScoreRating(score: number): RecommendationScoreRating {
+  if (score >= 75) return 'top'
+  if (score >= 60) return 'strong'
+  if (score >= recommendedScoreThreshold) return 'recommended'
+  if (score >= 25) return 'possible'
+  return 'low'
 }
 
 export function manualCardError(

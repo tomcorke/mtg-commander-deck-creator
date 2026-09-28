@@ -10,14 +10,9 @@ import {
 import type { AppModal, AppView } from '../../app/routes.ts'
 import { FinishedCardImage } from '../../shared/CardArt.tsx'
 import { OracleText } from '../../shared/ManaSymbols.tsx'
+import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 
 type StartViewProps = {
-  darkMode: boolean
-  commanderStyling: boolean
-  cardEffects: boolean
-  setDarkMode: Dispatch<SetStateAction<boolean>>
-  setCommanderStyling: Dispatch<SetStateAction<boolean>>
-  setCardEffects: Dispatch<SetStateAction<boolean>>
   navigateView: (view: AppView, modal?: AppModal | null, replace?: boolean) => void
   openModal: (modal: AppModal) => void
   openSavedDecks: () => void
@@ -44,12 +39,6 @@ type StartViewProps = {
 }
 
 export function StartView({
-  darkMode,
-  commanderStyling,
-  cardEffects,
-  setDarkMode,
-  setCommanderStyling,
-  setCardEffects,
   navigateView,
   openModal,
   openSavedDecks,
@@ -73,6 +62,15 @@ export function StartView({
   suggestionPool,
   setSuggestions,
 }: StartViewProps) {
+  const {
+    darkMode,
+    commanderStyling,
+    cardEffects,
+    setDarkMode,
+    setCommanderStyling,
+    setCardEffects,
+  } = useVisualPreferences()
+
   return (
     <main className={darkMode ? 'dark' : ''}>
       <header>
@@ -233,7 +231,6 @@ export function StartView({
                           backImage={backImage}
                           alt={`${commanderNames(name)[index]} card`}
                           cardName={commanderNames(name)[index]}
-                          effectsEnabled={cardEffects}
                           showFlipButton
                           key={image}
                         />

@@ -5,7 +5,10 @@ import type { DeckReviewFilter } from '../deck-review.ts'
 import type { Card, DeckCard, DeckCardLocation, ScryfallCard } from '../domain/card-model.ts'
 import type { ExportFormat } from '../domain/card-model.ts'
 import { defaultDeckTargets, type DeckTargets } from '../deck-analysis.ts'
+import type { DeckDoctorSwapRecord } from '../deck-doctor.ts'
 import { usePendingConfirmation, useStoredOption } from '../shared/hooks.ts'
+
+type DeckDoctorReturnModal = 'doctor' | 'doctor-history' | null
 
 export function useDeckState(saved: PersistedDeckState | null) {
   const [deck, setDeck] = useState<DeckCard[]>(saved?.deck ?? [])
@@ -15,6 +18,7 @@ export function useDeckState(saved: PersistedDeckState | null) {
   )
   const [selectedCollectionCard, setSelectedCollectionCard] = useState<DeckCard | null>(null)
   const [selectedGuidanceCard, setSelectedGuidanceCard] = useState<Card | null>(null)
+  const [selectedCardReference, setSelectedCardReference] = useState<DeckCard | null>(null)
   const [pendingCardRemoval, setPendingCardRemoval] =
     usePendingConfirmation<DeckCardLocation | null>(null)
   const [basicLandState, setBasicLandState] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -43,6 +47,9 @@ export function useDeckState(saved: PersistedDeckState | null) {
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [deckReviewFilter, setDeckReviewFilter] = useState<DeckReviewFilter | null>(null)
   const [pendingRemoval, setPendingRemoval] = usePendingConfirmation<number | null>(null)
+  const [deckDoctorHistory, setDeckDoctorHistory] = useState<DeckDoctorSwapRecord[]>([])
+  const [deckDoctorError, setDeckDoctorError] = useState('')
+  const [deckDoctorReturnModal, setDeckDoctorReturnModal] = useState<DeckDoctorReturnModal>(null)
 
   return {
     deck,
@@ -55,6 +62,8 @@ export function useDeckState(saved: PersistedDeckState | null) {
     setSelectedCollectionCard,
     selectedGuidanceCard,
     setSelectedGuidanceCard,
+    selectedCardReference,
+    setSelectedCardReference,
     pendingCardRemoval,
     setPendingCardRemoval,
     basicLandState,
@@ -94,6 +103,12 @@ export function useDeckState(saved: PersistedDeckState | null) {
     setDeckReviewFilter,
     pendingRemoval,
     setPendingRemoval,
+    deckDoctorHistory,
+    setDeckDoctorHistory,
+    deckDoctorError,
+    setDeckDoctorError,
+    deckDoctorReturnModal,
+    setDeckDoctorReturnModal,
   }
 }
 

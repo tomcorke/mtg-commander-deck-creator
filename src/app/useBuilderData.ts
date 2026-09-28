@@ -288,9 +288,8 @@ function buildRecommendationData(
       queue.filter((card: Card) => rolesForCard(card).includes(role)).length,
     ]),
   )
-  const scoredBatch = visibleBatch.map((card: Card) => ({
-    card,
-    score: recommendationScoreBreakdown(card, {
+  const scoreCandidate = (card: Card) =>
+    recommendationScoreBreakdown(card, {
       theme,
       activeSubThemes,
       pickedTags,
@@ -304,8 +303,8 @@ function buildRecommendationData(
       roleSupply: recommendationRoleSupply,
       batchNumber,
       manaSupport: deckData.manaSupport,
-    }),
-  }))
+    })
+  const scoredBatch = visibleBatch.map((card: Card) => ({ card, score: scoreCandidate(card) }))
   const recommendedCard = scoredBatch.reduce(
     (best, item) =>
       item.score.total > best.score ? { card: item.card, score: item.score.total } : best,
@@ -320,6 +319,7 @@ function buildRecommendationData(
     cardReason,
     neededRoles,
     recommendationRoleSupply,
+    scoreCandidate,
     scoredBatch,
     recommendedCard,
   }

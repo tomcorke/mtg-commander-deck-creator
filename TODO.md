@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, B1, and B2.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, B1, B2, B3, and B5.
 
 ## Suggested order
 
@@ -25,9 +25,8 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 
 | Order | ID  | TODO                                 | Complexity | Value  | Delivery risk | Reason                                                                                |
 | ----- | --- | ------------------------------------ | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------- |
-| 1     | B3  | Deck Doctor                          | High       | High   | High          | Review is available; transparent findings and suggested swaps still need validation.  |
-| 2     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation. |
-| 3     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                |
+| 1     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation. |
+| 2     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                |
 
 ## [A2] Improve the initial user flow
 
@@ -44,25 +43,6 @@ Acceptance checks:
 - A first-time player can choose a deck intent and start with matching recommendation options; the player can still change them later.
 - With no saved preference, the checkbox is checked. Returning users get their saved choice; opting out prevents the tour from starting until they opt in again.
 - The tour can be skipped without blocking deck creation, and existing recommendation preferences remain intact.
-
-## [B3] Add Deck Doctor from deck review
-
-**Complexity:** High · **Value:** High · **Delivery risk:** High — Heuristic tags and candidate recommendations may produce untrustworthy findings or weak swaps without substantial tuning.
-
-Build an optional diagnostic flow from review. It should:
-
-- Flag cards that appear weakly connected to the declared theme or deck direction, and strategies or keywords with unusually little support. Treat single-source or single-consumer findings as prompts to review, not automatic cut decisions.
-- Compare mana costs and coloured requirements with the deck's lands, ramp, and curve. Highlight expensive or colour-intensive outliers that may be hard to cast consistently.
-- Suggest user-approved swaps with concrete reasons: for example, replace a rarely castable or situational card with a synergistic card that improves a weak role such as draw.
-- Use goldfish results only if the review investigation validates them. Otherwise explain recommendations from deck roles, tags, mana data, and synergy evidence. Never change the deck automatically.
-
-Current context: `src/domain/recommendation-themes.ts` assigns heuristic tags and recognizes a small set of card-pair synergies. `src/deck-analysis.ts` provides curve and role counts, but these signals do not establish that a card is bad or that a keyword needs more support. Keep findings transparent and let the player decide.
-
-Acceptance checks:
-
-- Each finding names the cards or deck evidence behind it and states uncertainty where tag or rules-text heuristics may be incomplete.
-- Swap suggestions explain both the proposed cut and addition, including the role or synergy change. Players confirm every change.
-- Test cards with isolated keywords, narrow themes, colour-intensive costs, and otherwise valid exceptions to avoid treating unusual cards as automatic mistakes.
 
 ## [B4] Finish builder-view module ownership
 
