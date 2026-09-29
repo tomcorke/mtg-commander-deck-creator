@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, B1, B2, B3, and B5.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, B1, B2, B3, and B5.
 
 ## Suggested order
 
@@ -52,13 +52,13 @@ Finish the remaining module-ownership work without splitting markup that has no 
 
 ### Required behavior
 
-- Move the collection browser, card search, basic-land, and export dialogs into focused components with their related interaction state where practical. Keep `BuilderView` responsible for composing the builder workflow.
+- Move the remaining collection-browser and basic-land dialogs into focused components with their related interaction state where practical. Card search and export are already extracted. Keep `BuilderView` responsible for composing the builder workflow.
 - Move responsive and theme rules from `src/styles/responsive.css` into the owning feature styles; leave genuinely shared rules in shared styles.
 - Apply function-length, nested-callback, and cognitive-complexity checks to helpers and callbacks in feature TSX. Keep any exceptions narrow and documented rather than disabling checks for all feature views.
 
 ### Existing implementation to build on
 
-- `src/features/builder/BuilderView.tsx` is about 1,770 lines and still renders the collection browser, card search, basic-land, and export dialogs.
+- `src/features/builder/BuilderView.tsx` is about 1,390 lines and still renders the collection-browser and basic-land dialogs. `CardSearchView` owns search filters, requests, result pages, and selections; its theme and responsive rules live in `src/styles/card-search.css`. Export is composed through `ExportDeckModal`.
 - `src/styles/responsive.css` combines viewport rules with theme rules for several features.
 - `eslint.config.js` disables function-length, nested-callback, and cognitive-complexity checks across `src/features/**/*.tsx`.
 - The application root, start and builder views, adapters, domain logic, focused modals, formatter, and base complexity checks are already in place.

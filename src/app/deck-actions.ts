@@ -1,4 +1,4 @@
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { MouseEvent } from 'react'
 import {
   fetchScryfallCard,
   fetchScryfallCollection,
@@ -10,6 +10,7 @@ import {
   applyDeckDoctorSwapPlan as applyDoctorSwapPlan,
 } from '../deck-doctor.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
+import { addCardSearchCards } from '../domain/card-search.ts'
 import { cardPrintingOptions } from '../domain/printing.ts'
 import type {
   Card,
@@ -545,42 +546,37 @@ export async function addBasicLands(deps: ActionDeps, plan: { name: string; coun
   }
 }
 
-export function closeCardSearch(deps: ActionDeps) {
-  const {
-    cardSearchButton,
-    closeModal,
-    setCardSearch,
-    setCardSearchResults,
-    setCardSearchState,
-    setManualPrinting,
-    setManualPrintings,
-    setSelectedManualCard,
-  } = deps
-  closeModal()
-  setCardSearch('')
-  setCardSearchResults([])
-  setSelectedManualCard(null)
-  setManualPrintings([])
-  setManualPrinting(0)
-  setCardSearchState('idle')
-  requestAnimationFrame(() => cardSearchButton.current?.focus())
-}
-
 export async function selectManualCard(deps: ActionDeps, card: ScryfallCard) {
-  const { setManualPrinting, setManualPrintings, setSelectedManualCard } = deps
-  setSelectedManualCard(card)
-  setManualPrintings([card])
-  setManualPrinting(0)
+  deps.manualPrintingRequest.current?.abort()
+  const controller = new AbortController()
+  deps.manualPrintingRequest.current = controller
+  deps.setSelectedCardReference(null)
+  deps.setSelectedDeckCardLocation(null)
+  deps.setSelectedCollectionCard(null)
+  deps.setSelectedGuidanceCard(null)
+  deps.setSelectedManualCard(card)
+  deps.setManualPrintings([card])
+  deps.setManualPrinting(0)
+  deps.setManualPrintingError('')
+  deps.setBuilderModeReturn('search')
+  deps.openModal(deps, 'card')
   if (!card.prints_search_uri) return
-  const printings = (await fetchScryfallPrintings(card.prints_search_uri)).filter(
-    (printing: any) => printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal,
-  )
-  const selected = printings.findIndex(
-    (printing: any) =>
-      printing.set === card.set && printing.collector_number === card.collector_number,
-  )
-  setManualPrintings(printings)
-  setManualPrinting(Math.max(0, selected))
+  try {
+    const printings = (
+      await fetchScryfallPrintings(card.prints_search_uri, fetch, controller.signal)
+    ).filter((printing) => scryfallImage(printing))
+    if (controller.signal.aborted) return
+    if (!printings.length) throw new Error('Alternate printings unavailable.')
+    const selected = printings.findIndex(
+      (printing) =>
+        printing.set === card.set && printing.collector_number === card.collector_number,
+    )
+    deps.setManualPrintings(selected < 0 ? [card, ...printings] : printings)
+    deps.setManualPrinting(Math.max(0, selected))
+  } catch {
+    if (!controller.signal.aborted)
+      deps.setManualPrintingError('Alternate printings unavailable. Reopen details to retry.')
+  }
 }
 
 export async function cycleManualPrinting(deps: ActionDeps) {
@@ -589,67 +585,40 @@ export async function cycleManualPrinting(deps: ActionDeps) {
   if (manualPrintings.length < 2 || loadingArt) return
   const index = (manualPrinting + 1) % manualPrintings.length
   const selected = manualPrintings[index]
+  const controller = deps.manualPrintingRequest.current
   await changeArt(deps, selected.name, [scryfallImage(selected)], () => {
+    if (controller?.signal.aborted) return
     setSelectedManualCard(selected)
     setManualPrinting(index)
   })
 }
 
-export function addManualCard(deps: ActionDeps) {
-  const { commanderDetails, deck, selectedManualCard, setDeck, setQueue, setSideboard, sideboard } =
-    deps
-  if (
-    !selectedManualCard ||
-    manualCardError(
-      selectedManualCard,
-      [...deck, ...sideboard].map((card: any) => card.name),
-      commanderDetails?.colours ?? [],
+export function addSearchCards(deps: ActionDeps, cards: ScryfallCard[]) {
+  if (!cards.length) return 'Select at least one card.'
+  try {
+    const result = addCardSearchCards(
+      cards,
+      deps.deck,
+      deps.sideboard,
+      deps.commanderDetails?.colours ?? [],
     )
-  )
-    return
-  const added = {
-    ...toDeckCard(selectedManualCard),
-    finish: selectedManualCard.finishes?.includes('nonfoil')
-      ? ('nonfoil' as const)
-      : selectedManualCard.finishes?.[0],
+    deps.skipCompletionReviewDecks.current.add(result.deck)
+    deps.setDeck(result.deck)
+    deps.setSideboard(result.sideboard)
+    const names = new Set(cards.map(({ name }) => name))
+    deps.setQueue((current: Card[]) => current.filter(({ name }) => !names.has(name)))
+    deps.setBatchAnnouncement(
+      `Added ${result.mainCount} to deck and ${result.sideboardCount} to sideboard from search.`,
+    )
+    return ''
+  } catch (error) {
+    return error instanceof Error ? error.message : 'Could not add the selected cards.'
   }
-  if (deck.length < 100) setDeck((current: any) => [...current, added])
-  else setSideboard((current: any) => [...current, added])
-  setQueue((current: any) => current.filter((item: any) => item.name !== added.name))
-  closeCardSearch(deps)
 }
 
-export function handleCardSearchKeys(deps: ActionDeps, event: KeyboardEvent<HTMLElement>) {
-  const { cardSearchDialog } = deps
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    closeCardSearch(deps)
-    return
-  }
-  const focusable = [
-    ...((cardSearchDialog.current as HTMLElement | null)?.querySelectorAll<HTMLElement>(
-      'button:not(:disabled), input:not(:disabled)',
-    ) ?? []),
-  ]
-  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-    const index = focusable.indexOf(document.activeElement as HTMLElement)
-    const next =
-      event.key === 'ArrowDown' ? Math.min(index + 1, focusable.length - 1) : Math.max(index - 1, 0)
-    if (index >= 0 && next !== index) {
-      event.preventDefault()
-      focusable[next]?.focus()
-    }
-    return
-  }
-  if (event.key !== 'Tab' || !focusable.length) return
-  const next = event.shiftKey ? focusable.at(-1) : focusable[0]
-  if (
-    (event.shiftKey && document.activeElement === focusable[0]) ||
-    (!event.shiftKey && document.activeElement === focusable.at(-1))
-  ) {
-    event.preventDefault()
-    next?.focus()
-  }
+export function addManualCard(deps: ActionDeps) {
+  if (deps.selectedManualCard) return addSearchCards(deps, [deps.selectedManualCard])
+  return 'Select a card first.'
 }
 
 export async function addOneBasic(deps: ActionDeps, name: string) {
@@ -831,7 +800,10 @@ export function openCommanderCard(deps: ActionDeps, index: number) {
 }
 
 export function openCardReference(deps: ActionDeps, card: Card | DeckCard) {
-  deps.setDeckDoctorReturnModal(deps.activeModal === 'doctor-history' ? 'doctor-history' : 'doctor')
+  if (['doctor', 'doctor-history', 'search'].includes(deps.activeModal))
+    deps.setBuilderModeReturn(deps.activeModal)
+  deps.manualPrintingRequest.current?.abort()
+  deps.setSelectedManualCard(null)
   const deckIndex = deps.deck.findIndex(
     (item: DeckCard) =>
       item.name === card.name &&
@@ -868,6 +840,10 @@ export function closeDeckCard(deps: ActionDeps) {
     setSelectedGuidanceCard,
     setSelectedCardReference,
   } = deps
+  deps.manualPrintingRequest.current?.abort()
+  deps.setSelectedManualCard(null)
+  deps.setManualPrintings([])
+  deps.setManualPrintingError('')
   setPendingCardRemoval(null)
   setSelectedDeckCardLocation(null)
   setSelectedCollectionCard(null)

@@ -26,6 +26,8 @@ type DeckCardModalProps = {
   toggleCollectionSet: (set: string) => void
   collectionMode: CollectionMode
   collectionSets: string[]
+  notice?: string
+  addAction?: { label: string; disabled: boolean; error: string; onAdd: () => void }
 }
 
 export function DeckCardModal({
@@ -48,6 +50,8 @@ export function DeckCardModal({
   toggleCollectionSet,
   collectionMode,
   collectionSets,
+  notice,
+  addAction,
 }: DeckCardModalProps) {
   if (!show || !selectedDeckCard) return null
 
@@ -127,6 +131,20 @@ export function DeckCardModal({
             />
           </div>
         </div>
+        {notice && <p role="status">{notice}</p>}
+        {addAction && (
+          <div className="export-actions deck-card-modal-actions">
+            {addAction.error && <p role="status">{addAction.error}</p>}
+            <button
+              type="button"
+              className="primary"
+              disabled={addAction.disabled}
+              onClick={addAction.onAdd}
+            >
+              {addAction.label}
+            </button>
+          </div>
+        )}
         {commanderPromotion && (
           <CommanderPromotion info={commanderPromotion} onPromote={promoteToCommander} />
         )}

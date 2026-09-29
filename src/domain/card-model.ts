@@ -40,6 +40,7 @@ export type ScryfallCard = {
   toughness?: string
   produced_mana?: string[]
   color_identity: string[]
+  legalities?: { commander?: string }
   set: string
   set_name?: string
   collector_number: string

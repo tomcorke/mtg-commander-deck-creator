@@ -1,4 +1,4 @@
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { MouseEvent } from 'react'
 
 import type {
   Card,
@@ -36,12 +36,10 @@ export function createActionHandlers(deps: ActionDeps) {
     addSelectedGuidanceCard: () => deckActions.addSelectedGuidanceCard(deps),
     addBasicLands: (plan: { name: string; count: number }[]) =>
       deckActions.addBasicLands(deps, plan),
-    closeCardSearch: () => deckActions.closeCardSearch(deps),
     selectManualCard: (card: ScryfallCard) => deckActions.selectManualCard(deps, card),
     cycleManualPrinting: () => deckActions.cycleManualPrinting(deps),
     addManualCard: () => deckActions.addManualCard(deps),
-    handleCardSearchKeys: (event: KeyboardEvent<HTMLElement>) =>
-      deckActions.handleCardSearchKeys(deps, event),
+    addSearchCards: (cards: ScryfallCard[]) => deckActions.addSearchCards(deps, cards),
     addOneBasic: (name: string) => deckActions.addOneBasic(deps, name),
     positionDeckPreview: (
       rowOrEvent: HTMLLIElement | MouseEvent<HTMLLIElement>,

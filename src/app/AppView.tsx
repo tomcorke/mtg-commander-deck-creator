@@ -1,8 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 import { duplicateDeckName } from '../deck-state.ts'
 import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
+import { toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
+import { cardSearchError } from '../domain/card-search.ts'
+import { defaultFinish } from '../domain/printing.ts'
+import { CardSearchView } from '../features/builder/CardSearchView.tsx'
 import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
 import { ExportDeckModal } from '../features/builder/ExportDeckModal.tsx'
@@ -63,17 +67,36 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
 }
 
 function DeckCardModalView({ state, actions }: AppViewProps) {
+  const manualCard = state.selectedManualCard as ScryfallCard | null
+  const selectedDeckCard = manualCard
+    ? {
+        ...toDeckCard(manualCard),
+        finish: defaultFinish(manualCard.finishes),
+        printing: state.manualPrinting,
+        printings: state.manualPrintings.map((card: ScryfallCard) => ({
+          ...toDeckCard(card),
+          finish: defaultFinish(card.finishes),
+        })),
+      }
+    : state.selectedDeckCard
+  const manualError = manualCard
+    ? cardSearchError(
+        manualCard,
+        [...state.deck, ...state.sideboard].map(({ name }) => name),
+        state.commanderDetails?.colours ?? [],
+      )
+    : ''
   return (
     <DeckCardModal
       show={state.showDeckCard}
-      selectedDeckCard={state.selectedDeckCard}
+      selectedDeckCard={selectedDeckCard}
       selectedCollectionCard={state.selectedCollectionCard}
       selectedGuidanceCard={Boolean(state.selectedGuidanceCard)}
-      selectedCardReference={Boolean(state.selectedCardReference)}
+      selectedCardReference={Boolean(state.selectedCardReference || manualCard)}
       deckComplete={state.deck.length >= 100}
       selectedDeckCardIsCommander={state.selectedDeckCardIsCommander}
       commanderPromotion={
-        state.selectedDeckCard && !state.selectedDeckCardIsCommander
+        !manualCard && state.selectedDeckCard && !state.selectedDeckCardIsCommander
           ? commanderPromotionInfo(
               state.selectedDeckCard,
               state.deck,
@@ -85,7 +108,20 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
         if (state.selectedDeckCard) void actions.promoteToCommander(state.selectedDeckCard)
       }}
       loadingArt={state.loadingArt}
-      cycleSelectedDeckCardPrinting={() => void actions.cycleSelectedDeckCardPrinting()}
+      cycleSelectedDeckCardPrinting={() =>
+        void (manualCard ? actions.cycleManualPrinting() : actions.cycleSelectedDeckCardPrinting())
+      }
+      addAction={
+        manualCard
+          ? {
+              label: state.deck.length >= 100 ? 'Add to sideboard' : 'Add to deck',
+              disabled: Boolean(manualError) || Boolean(state.loadingArt),
+              error: manualError,
+              onAdd: () => actions.addManualCard(),
+            }
+          : undefined
+      }
+      notice={manualCard ? state.manualPrintingError : ''}
       pendingCardRemoval={state.pendingCardRemoval}
       selectedDeckCardLocation={state.selectedDeckCardLocation}
       removeSelectedDeckCard={actions.removeSelectedDeckCard}
@@ -190,6 +226,55 @@ function renderModals(props: AppViewProps) {
   }
 }
 
+function CardSearchScreen({
+  state,
+  actions,
+  builderData,
+  appHeader,
+  modals,
+}: AppViewProps & {
+  appHeader: ReactNode
+  modals: ReturnType<typeof renderModals>
+}) {
+  return (
+    <>
+      <CardSearchView
+        key={state.commander}
+        active={state.showCardSearch}
+        appHeader={appHeader}
+        commander={state.commander}
+        commanderDetails={state.commanderDetails}
+        loadingArt={state.loadingArt}
+        deck={state.deck}
+        sideboard={state.sideboard}
+        excludeUnreleased={state.excludeUnreleased}
+        cycleCommanderPrinting={actions.cycleCommanderPrinting}
+        startOver={actions.startOver}
+        openCard={(card) => {
+          const existing = [...state.deck, ...state.sideboard].find(
+            ({ name }) => name === card.name,
+          )
+          if (existing) actions.openCardReference(existing)
+          else void actions.selectManualCard(card)
+        }}
+        openCommander={(index) => actions.openCardReference(state.deck[index])}
+        addCards={actions.addSearchCards}
+        closePage={() => {
+          state.setBuilderModeReturn(null)
+          actions.closeModal()
+          requestAnimationFrame(() => state.cardSearchButton.current?.focus())
+        }}
+      />
+      {modals.importModal}
+      {modals.savedDecksModal}
+      {modals.exportModal}
+      {state.showDeckCard && (
+        <DeckCardModalView state={state} actions={actions} builderData={builderData} />
+      )}
+    </>
+  )
+}
+
 function StartScreen({
   state,
   actions,
@@ -210,30 +295,44 @@ function StartScreen({
   )
 }
 
-export function AppView({ state, actions, builderData }: AppViewProps) {
+function useBuilderMode(state: Record<string, any>) {
   const {
     activeModal,
-    deckDoctorReturnModal: storedDoctorReturn,
-    setDeckDoctorReturnModal,
+    builderModeReturn: storedModeReturn,
+    setBuilderModeReturn,
     showDeckDoctor,
+    showCardSearch,
     showDeckDoctorHistory,
+    selectedManualCard,
+    setSelectedManualCard,
+    manualPrintingRequest,
   } = state
-  const preservesDoctor = ['card', 'export', 'import', 'saved'].includes(activeModal)
-  const doctorReturnModal = preservesDoctor ? storedDoctorReturn : null
+  const preservesMode = ['card', 'export', 'import', 'saved'].includes(activeModal)
+  const modeReturn = preservesMode ? storedModeReturn : null
   useEffect(() => {
-    if (storedDoctorReturn && !showDeckDoctor && !doctorReturnModal) {
-      setDeckDoctorReturnModal(null)
-    }
-  }, [doctorReturnModal, setDeckDoctorReturnModal, showDeckDoctor, storedDoctorReturn])
+    if (storedModeReturn && !showDeckDoctor && !showCardSearch && !modeReturn)
+      setBuilderModeReturn(null)
+  }, [modeReturn, setBuilderModeReturn, showCardSearch, showDeckDoctor, storedModeReturn])
 
+  useEffect(() => {
+    if (activeModal !== 'card' && selectedManualCard) {
+      manualPrintingRequest.current?.abort()
+      setSelectedManualCard(null)
+    }
+  }, [activeModal, manualPrintingRequest, selectedManualCard, setSelectedManualCard])
+
+  const rememberMode = () => {
+    if (showCardSearch) setBuilderModeReturn('search')
+    else if (showDeckDoctor)
+      setBuilderModeReturn(showDeckDoctorHistory ? 'doctor-history' : 'doctor')
+  }
+  return { modeReturn, rememberMode }
+}
+
+export function AppView({ state, actions, builderData }: AppViewProps) {
+  const { modeReturn, rememberMode } = useBuilderMode(state)
   const modals = renderModals({ state, actions, builderData })
   if (!state.showBuilder) return <StartScreen state={state} actions={actions} modals={modals} />
-
-  const rememberDoctor = () => {
-    if (state.showDeckDoctor) {
-      setDeckDoctorReturnModal(showDeckDoctorHistory ? 'doctor-history' : 'doctor')
-    }
-  }
   const appHeader = (
     <BuilderTopBar
       activeDeckDelta={state.activeDeckDelta}
@@ -241,25 +340,35 @@ export function AppView({ state, actions, builderData }: AppViewProps) {
       deckCount={state.deck.length}
       startOver={actions.startOver}
       onImport={() => {
-        rememberDoctor()
+        rememberMode()
         actions.openModal('import')
       }}
       onSaveLoad={() => {
-        rememberDoctor()
+        rememberMode()
         actions.openSavedDecks()
       }}
       onExport={() => {
-        rememberDoctor()
+        rememberMode()
         actions.openModal('export')
       }}
     />
   )
-  if (state.showDeckDoctor || doctorReturnModal)
+  if (state.showCardSearch || modeReturn === 'search')
+    return (
+      <CardSearchScreen
+        state={state}
+        actions={actions}
+        builderData={builderData}
+        appHeader={appHeader}
+        modals={modals}
+      />
+    )
+  if (state.showDeckDoctor || modeReturn === 'doctor' || modeReturn === 'doctor-history')
     return (
       <>
         <DeckDoctorView
           appHeader={appHeader}
-          showHistory={state.showDeckDoctorHistory || doctorReturnModal === 'doctor-history'}
+          showHistory={state.showDeckDoctorHistory || modeReturn === 'doctor-history'}
           commander={state.commander}
           commanderDetails={state.commanderDetails}
           loadingArt={state.loadingArt}
@@ -284,7 +393,7 @@ export function AppView({ state, actions, builderData }: AppViewProps) {
           openHistory={() => actions.navigateView('builder', 'doctor-history', true)}
           openDiagnosis={() => actions.navigateView('builder', 'doctor', true)}
           closePage={() => {
-            state.setDeckDoctorReturnModal(null)
+            state.setBuilderModeReturn(null)
             actions.closeModal()
           }}
         />

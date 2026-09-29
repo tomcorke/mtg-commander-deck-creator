@@ -110,15 +110,6 @@ function updatedDeckPrintings(current: any[], printings: any[][], names: string[
   })
 }
 
-function uniqueCards(cards: any[]) {
-  const seen = new Set<string>()
-  return cards.filter((card) => {
-    if (seen.has(card.name)) return false
-    seen.add(card.name)
-    return true
-  })
-}
-
 function commanderCosts(cards: any[]) {
   return Object.fromEntries(
     cards.map((card) => [card.name, card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '']),
@@ -180,47 +171,6 @@ export function useSetCatalogEffect(deps: AppEffectsDeps) {
       .then((sets: any[]) => setSetOptions(sets))
       .catch(() => undefined)
   }, [])
-}
-
-export function useCardSearchEffect(deps: AppEffectsDeps) {
-  const {
-    showCardSearch,
-    cardSearch,
-    commanderDetails,
-    filterCardIdentity,
-    excludeUnreleased,
-    setCardSearchState,
-    setCardSearchResults,
-    fetchSearch,
-  } = deps
-  useEffect(() => {
-    if (!showCardSearch || cardSearch.trim().length < 2) return
-    const controller = new AbortController()
-    const timer = setTimeout(async () => {
-      setCardSearchState('loading')
-      try {
-        const identity = commanderDetails?.colours.join('').toLowerCase() || 'c'
-        const query = `name:${cardSearch.trim()}${filterCardIdentity ? ` id<=${identity}` : ''}${excludeUnreleased ? ' date<=today' : ''}`
-        const result = await fetchSearch(query, controller.signal)
-        setCardSearchResults(uniqueCards(result).slice(0, 8))
-        setCardSearchState('idle')
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError'))
-          setCardSearchState('error')
-      }
-    }, 250)
-    return () => {
-      clearTimeout(timer)
-      controller.abort()
-    }
-  }, [cardSearch, showCardSearch, filterCardIdentity, excludeUnreleased, commanderDetails?.colours])
-}
-
-export function useCardSearchFocusEffect(deps: AppEffectsDeps) {
-  const { showCardSearch, cardSearchInput } = deps
-  useEffect(() => {
-    if (showCardSearch) cardSearchInput.current?.focus()
-  }, [showCardSearch])
 }
 
 export function useCommanderSearchEffect(deps: AppEffectsDeps) {
@@ -374,8 +324,6 @@ export function useAppEffects(deps: AppEffectsDeps) {
   useCommanderPrintingEffect(deps)
   useBasicCardCacheEffect(deps)
   useSetCatalogEffect(deps)
-  useCardSearchEffect(deps)
-  useCardSearchFocusEffect(deps)
   useCommanderSearchEffect(deps)
   useColourSuggestionsEffect(deps)
   useCommanderImagesEffect(deps)

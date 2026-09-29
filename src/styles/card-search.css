@@ -1,0 +1,304 @@
+.card-search-shell {
+  --search-panel: #fff;
+  --search-soft: #f8f8ff;
+  --search-border: #dad8e6;
+  --search-muted: #625f76;
+  --search-input: #fff;
+  padding: 0;
+}
+.card-search-shell.dark {
+  --search-panel: #1b1a2a;
+  --search-soft: #141322;
+  --search-border: #39374f;
+  --search-muted: #aaa8c2;
+  --search-input: #121121;
+}
+.search-page-context {
+  min-width: 0;
+  padding-left: 24px;
+  border-left: 1px solid var(--search-border);
+}
+.search-page-context h1 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 44px);
+}
+.search-page-context p:not(.eyebrow) {
+  color: var(--search-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.card-search-workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  padding: 24px 5vw 48px;
+}
+.card-search-workspace.has-selection {
+  padding-bottom: 136px;
+}
+.card-search-filters,
+.card-search-results-panel {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--search-border);
+  border-radius: 10px;
+  background: var(--search-panel);
+}
+.card-search-filters {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 12px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+.card-search-filters fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--search-border);
+  border-radius: 7px;
+}
+.card-search-filters legend,
+.search-keywords > summary {
+  font-size: 14px;
+  font-weight: 600;
+}
+.card-search-filters p {
+  margin: 8px 0 0;
+  color: var(--search-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.search-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+.card-search-shell input:not([type='checkbox']),
+.card-search-shell select {
+  min-width: 0;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--search-border);
+  border-radius: 6px;
+  background: var(--search-input);
+  color: inherit;
+  font: inherit;
+}
+.card-search-shell input:focus-visible,
+.card-search-shell select:focus-visible,
+.search-card-art:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, white);
+  outline-offset: 2px;
+}
+.search-filter-actions {
+  position: sticky;
+  top: -20px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  background: var(--search-panel);
+}
+.search-filter-actions button {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 12px;
+}
+.search-value-bounds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.search-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.search-filter-row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.search-filter-row .search-match {
+  flex: 0 0 92px;
+  width: 92px;
+}
+.card-search-shell .search-match--need {
+  border-color: var(--commander-accent, #36327f);
+  background: color-mix(in srgb, var(--commander-accent, #36327f) 8%, var(--search-input));
+}
+.card-search-shell .search-match--exclude {
+  border-color: #b65660;
+}
+.search-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.search-checkbox input {
+  flex: none;
+  accent-color: var(--commander-accent, #36327f);
+}
+.search-results-heading,
+.search-result-actions,
+.search-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.search-results-heading h2 {
+  margin: 0;
+}
+.search-results-heading p,
+.search-notice,
+.card-search-results-panel > p {
+  color: var(--search-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.search-notice:empty {
+  display: none;
+}
+.search-result-actions {
+  margin: 16px 0;
+}
+.search-result-actions a {
+  color: inherit;
+  font-size: 12px;
+}
+.card-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.search-card {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--search-border);
+  border-radius: 8px;
+  background: var(--search-soft);
+}
+.search-card.selected {
+  border-color: var(--commander-accent, #36327f);
+  box-shadow: 0 0 0 1px var(--commander-accent, #36327f);
+}
+.search-card.already-in-deck {
+  border-color: #569d78;
+  background: color-mix(in srgb, #569d78 10%, var(--search-soft));
+}
+.search-card-art {
+  justify-self: center;
+  width: min(180px, 100%);
+  padding: 0;
+  border: 0;
+  border-radius: 4.75%;
+  background: transparent;
+  color: inherit;
+}
+.search-card .card-reference {
+  font-weight: 600;
+  font-size: 14px;
+}
+.search-card .card-reference:hover,
+.search-card .card-reference:focus-within {
+  z-index: 150;
+}
+.search-card-cost {
+  min-height: 20px;
+}
+.search-card p {
+  margin: 0;
+  color: var(--search-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.search-card-location {
+  font-size: 12px;
+}
+.search-card details {
+  min-width: 0;
+  font-size: 12px;
+}
+.search-card summary,
+.search-keywords summary {
+  cursor: pointer;
+}
+.search-card-rules {
+  padding-top: 8px;
+  white-space: pre-line;
+}
+.search-pagination {
+  justify-content: flex-start;
+  margin-top: 24px;
+  font-size: 13px;
+}
+.card-search-shell > .card-search-selection-bar {
+  position: fixed;
+  z-index: 40;
+  inset: auto 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 16px;
+  padding: 12px 5vw;
+  border-top: 1px solid var(--search-border);
+  background: var(--search-panel);
+  box-shadow: 0 -6px 18px #0003;
+  font-size: 13px;
+}
+@media (max-width: 1000px) {
+  .search-page-context {
+    grid-column: 1 / -1;
+    padding: 16px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--search-border);
+  }
+  .card-search-workspace {
+    grid-template-columns: minmax(250px, 280px) minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+@media (max-width: 700px) {
+  .card-search-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px 4vw 32px;
+  }
+  .card-search-workspace.has-selection {
+    padding-bottom: 152px;
+  }
+  .card-search-filters {
+    position: relative;
+    top: auto;
+    max-height: 65dvh;
+  }
+  .card-search-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .search-card {
+    padding: 8px;
+  }
+  .search-card .primary {
+    padding: 8px;
+    font-size: 12px;
+  }
+  .card-search-selection-bar > span {
+    width: 100%;
+  }
+}

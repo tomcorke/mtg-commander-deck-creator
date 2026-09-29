@@ -9,10 +9,12 @@ export type CollectionFilters = {
   excludeUnreleased: boolean
 }
 
-type CardListResponse = {
+export type CardListResponse = {
   data: ScryfallCard[]
   has_more?: boolean
   next_page?: string
+  total_cards?: number
+  warnings?: string[]
 }
 
 const collectionResponse = (response: Response) =>
@@ -61,8 +63,12 @@ export async function fetchScryfallCardsByIdentifiers(
   return ((await response.json()) as CardListResponse).data
 }
 
-export async function fetchScryfallPrintings(uri: string, fetcher: ScryfallFetcher = fetch) {
-  const response = await fetcher(uri)
+export async function fetchScryfallPrintings(
+  uri: string,
+  fetcher: ScryfallFetcher = fetch,
+  signal?: AbortSignal,
+) {
+  const response = await fetcher(uri, { signal })
   if (!response.ok) return []
   return ((await response.json()) as CardListResponse).data
 }
@@ -73,13 +79,21 @@ export async function searchScryfall(
   signal?: AbortSignal,
   order?: string,
 ) {
-  const response = await fetcher(
-    `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards${order ? `&order=${order}` : ''}`,
-    { signal },
-  )
-  if (response.status === 404) return []
-  if (!response.ok) throw new Error('Scryfall unavailable')
-  return ((await response.json()) as CardListResponse).data
+  return (await searchScryfallPage(query, fetcher, signal, order)).data
+}
+
+export async function searchScryfallPage(
+  query: string,
+  fetcher: ScryfallFetcher = fetch,
+  signal?: AbortSignal,
+  order = 'name',
+  page = 1,
+): Promise<CardListResponse> {
+  const params = new URLSearchParams({ q: query, unique: 'cards', order, page: String(page) })
+  const response = await fetcher(`https://api.scryfall.com/cards/search?${params}`, { signal })
+  if (response.status === 404) return { data: [], total_cards: 0, has_more: false }
+  if (!response.ok) throw new Error('Scryfall unavailable. Try again.')
+  return (await response.json()) as CardListResponse
 }
 
 export async function fetchScryfallSets(fetcher: ScryfallFetcher = fetch) {

@@ -9,7 +9,6 @@ import {
 import {
   cardScryfallUri,
   edhrecSlug,
-  scryfallBackImage,
   scryfallImage,
   type Card,
   type CommanderDetails,
@@ -18,9 +17,7 @@ import {
 } from '../../domain/card-model.ts'
 import { commanderNames, colourNames } from '../../domain/commander-catalog.ts'
 import { commanderPromotionInfo } from '../../domain/commander-promotion.ts'
-import { defaultFinish } from '../../domain/printing.ts'
 import {
-  cardText,
   manualCardError,
   type CollectionMode,
   type RecommendationStyle,
@@ -63,9 +60,6 @@ type BuilderViewModel = {
   batchAnnouncement: string
   batchNumber: number
   calculatedLandTarget: number
-  cardSearch: string
-  cardSearchResults: ScryfallCard[]
-  cardSearchState: 'idle' | 'loading' | 'error'
   collectionBrowserCards: ScryfallCard[]
   collectionBrowserError: string
   collectionBrowserMana: string
@@ -84,7 +78,6 @@ type BuilderViewModel = {
   deckTargets: DeckTargets
   deferredCards: DeferredCard<Card>[]
   displayedTypeCounts: readonly (readonly [string, number])[]
-  filterCardIdentity: boolean
   filteredCollectionCards: ScryfallCard[]
   filteredSubThemes: string[]
   groupedBasics: { name: string; cards: { card: DeckCard; index: number }[] }[]
@@ -102,8 +95,6 @@ type BuilderViewModel = {
   limitedRecommendations: boolean
   loadingArt: string
   manaColours: readonly ManaColour[]
-  manualPrinting: number
-  manualPrintings: ScryfallCard[]
   maxCurveCount: number
   maxTypeCount: number
   missingHealthRoles: string[]
@@ -119,10 +110,8 @@ type BuilderViewModel = {
   recommendedCard: { card: Card | null; score: number }
   scoredBatch: { card: Card; score: RecommendationScoreBreakdown }[]
   search: string
-  selectedManualCard: ScryfallCard | null
   sideboard: DeckCard[]
   showBasicLands: boolean
-  showCardSearch: boolean
   showCollectionBrowser: boolean
   showSubThemePicker: boolean
   subThemeSearch: string
@@ -132,20 +121,15 @@ type BuilderViewModel = {
   start: AnyFunction
   setActiveSubThemes: Dispatch<SetStateAction<string[]>>
   setBasicLandState: (value: 'idle' | 'loading' | 'error') => void
-  setCardSearch: Dispatch<SetStateAction<string>>
-  setCardSearchResults: Dispatch<SetStateAction<ScryfallCard[]>>
-  setCardSearchState: Dispatch<SetStateAction<'idle' | 'loading' | 'error'>>
   setCollectionBrowserMana: Dispatch<SetStateAction<string>>
   setCollectionBrowserType: Dispatch<SetStateAction<string>>
   setDeckReviewFilter: Dispatch<SetStateAction<DeckReviewFilter | null>>
   setDeckTargets: Dispatch<SetStateAction<DeckTargets>>
   setDismissedSubThemes: Dispatch<SetStateAction<string[]>>
-  setFilterCardIdentity: Dispatch<SetStateAction<boolean>>
   setHighlightedManaValue: Dispatch<SetStateAction<number | null>>
   setLiked: Dispatch<SetStateAction<string[]>>
   setPendingRemoval: Dispatch<SetStateAction<number | null>>
   setRecommendationOptionsChanged: Dispatch<SetStateAction<boolean>>
-  setSelectedManualCard: Dispatch<SetStateAction<ScryfallCard | null>>
   setShowCollectionBrowser: Dispatch<SetStateAction<boolean>>
   setShowSubThemePicker: Dispatch<SetStateAction<boolean>>
   setSubThemeSearch: Dispatch<SetStateAction<string>>
@@ -161,7 +145,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     activeSubThemes,
     addBasicLands,
     addCollectionCard,
-    addManualCard,
     addOneBasic,
     addRecommendationCard,
     analysis,
@@ -171,15 +154,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     batchNumber,
     calculatedLandTarget,
     cardReason,
-    cardSearch,
     cardSearchButton,
-    cardSearchDialog,
-    cardSearchInput,
-    cardSearchResults,
-    cardSearchState,
     chooseSubTheme,
     clickCardImage,
-    closeCardSearch,
     closeModal,
     collectionBrowserCards,
     collectionBrowserError,
@@ -194,7 +171,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     commanderDetails,
     cycleCommanderPrinting,
     cycleDeckPrinting,
-    cycleManualPrinting,
     cyclePrinting,
     deckReviewFilter,
     decide,
@@ -209,13 +185,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     edhrecRetryRemaining,
     displayedTypeCounts,
     fanCards,
-    filterCardIdentity,
     filteredCollectionCards,
     filteredSubThemes,
     groupedBasics,
     groupedDeckColumns,
     guidance,
-    handleCardSearchKeys,
     healthSuggestions,
     highlightedManaValue,
     importModal,
@@ -225,8 +199,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     limitedRecommendations,
     loadingArt,
     manaColours,
-    manualPrinting,
-    manualPrintings,
     maxCurveCount,
     maxTypeCount,
     missingHealthRoles,
@@ -255,31 +227,23 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     retryEdhrec,
     savedDecksModal,
     scoredBatch,
-    selectManualCard,
-    selectedManualCard,
     setActiveSubThemes,
     setBasicLandState,
-    setCardSearch,
-    setCardSearchResults,
-    setCardSearchState,
     setCollectionBrowserMana,
     setCollectionBrowserType,
     setDeckReviewFilter,
     setDeckDoctorError,
     setDeckTargets,
     setDismissedSubThemes,
-    setFilterCardIdentity,
     setHighlightedManaValue,
     setLiked,
     setPendingRemoval,
     setRecommendationOptionsChanged,
-    setSelectedManualCard,
     setShowCollectionBrowser,
     setShowSubThemePicker,
     setSubThemeSearch,
     setTheme,
     showBasicLands,
-    showCardSearch,
     showCollectionBrowser,
     showSubThemePicker,
     sideboard,
@@ -478,195 +442,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
         </div>
       )}
       {deckCardModal}
-      {showCardSearch && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeCardSearch()
-          }}
-        >
-          <section
-            className="export-modal card-search-modal"
-            ref={cardSearchDialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="card-search-title"
-            onKeyDown={handleCardSearchKeys}
-          >
-            <div className="export-heading">
-              <div>
-                <p className="eyebrow">Add any legal card</p>
-                <h2 id="card-search-title">Find a card</h2>
-              </div>
-              <ModalCloseButton onClick={closeCardSearch} label="Close card search" />
-            </div>
-            <form
-              className="card-search-form"
-              onSubmit={(event) => {
-                event.preventDefault()
-                const card =
-                  cardSearchResults.find(
-                    (item) => item.name.toLowerCase() === cardSearch.trim().toLowerCase(),
-                  ) ?? cardSearchResults[0]
-                if (card) selectManualCard(card)
-              }}
-            >
-              <input
-                ref={cardSearchInput}
-                value={cardSearch}
-                onChange={(event) => {
-                  setCardSearch(event.target.value)
-                  setCardSearchResults([])
-                  setCardSearchState('idle')
-                  setSelectedManualCard(null)
-                }}
-                placeholder="Search card names…"
-                aria-label="Card name"
-                autoComplete="off"
-              />
-              <button
-                className="primary"
-                disabled={!cardSearchResults.length || cardSearchState === 'loading'}
-              >
-                Search
-              </button>
-            </form>
-            <label className="card-search-filter">
-              <input
-                type="checkbox"
-                checked={filterCardIdentity}
-                onChange={(event) => {
-                  setFilterCardIdentity(event.target.checked)
-                  setCardSearchResults([])
-                  setSelectedManualCard(null)
-                }}
-              />{' '}
-              Only show cards in commander colour identity
-            </label>
-            {cardSearchState === 'loading' && (
-              <p className="card-search-status" role="status">
-                Searching…
-              </p>
-            )}
-            {cardSearchState === 'error' && (
-              <p className="form-error" role="alert">
-                Scryfall unavailable. Try again.
-              </p>
-            )}
-            {cardSearch.length >= 2 &&
-              cardSearchState === 'idle' &&
-              !cardSearchResults.length &&
-              !selectedManualCard && <p className="card-search-status">No cards found.</p>}
-            {!selectedManualCard && cardSearchResults.length > 0 && (
-              <div className="card-search-results" aria-label="Card search results">
-                {cardSearchResults.map((card) => (
-                  <div className="card-search-result" key={card.name}>
-                    <button type="button" onClick={() => void selectManualCard(card)}>
-                      <span>
-                        <b>{card.name}</b>
-                        <small>{card.type_line}</small>
-                      </span>
-                      <span className="search-result-mana">
-                        <OracleText
-                          text={card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''}
-                        />
-                      </span>
-                    </button>
-                    {(card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal) && (
-                      <span className="search-card-popover">
-                        <FinishedCardImage
-                          image={
-                            card.image_uris?.normal ??
-                            card.card_faces?.[0]?.image_uris?.normal ??
-                            ''
-                          }
-                          backImage={scryfallBackImage(card)}
-                          alt={`${card.name} card`}
-                          cardName={card.name}
-                          finish={defaultFinish(card.finishes)}
-                          showFlipButton
-                        />
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            {selectedManualCard && (
-              <div className="manual-card-preview">
-                {scryfallImage(selectedManualCard) && (
-                  <figure className="manual-card-image" tabIndex={0}>
-                    <img
-                      src={scryfallImage(selectedManualCard)}
-                      alt={`${selectedManualCard.name} card`}
-                    />
-                    <span className="manual-card-zoom">
-                      <FinishedCardImage
-                        image={scryfallImage(selectedManualCard)}
-                        backImage={scryfallBackImage(selectedManualCard)}
-                        alt={`${selectedManualCard.name} enlarged card`}
-                        cardName={selectedManualCard.name}
-                        finish={defaultFinish(selectedManualCard.finishes)}
-                        showFlipButton
-                        printing={{
-                          count: manualPrintings.length,
-                          index: manualPrinting,
-                          loading: Boolean(loadingArt),
-                          name: selectedManualCard.name,
-                          onClick: () => void cycleManualPrinting(),
-                        }}
-                      />
-                    </span>
-                    <ArtLoading active={loadingArt === selectedManualCard.name} />
-                  </figure>
-                )}
-                <div>
-                  <p className="eyebrow">
-                    {selectedManualCard.set.toUpperCase()} · {selectedManualCard.collector_number}
-                  </p>
-                  <h3>{selectedManualCard.name}</h3>
-                  <p>{selectedManualCard.type_line}</p>
-                  <p>
-                    <OracleText text={cardText(selectedManualCard)} />
-                  </p>
-                  {manualCardError(
-                    selectedManualCard,
-                    [...deck, ...sideboard].map((card) => card.name),
-                    commanderDetails?.colours ?? [],
-                  ) && (
-                    <p className="form-error" role="alert">
-                      {manualCardError(
-                        selectedManualCard,
-                        [...deck, ...sideboard].map((card) => card.name),
-                        commanderDetails?.colours ?? [],
-                      )}
-                    </p>
-                  )}
-                  <div className="export-actions">
-                    <button type="button" onClick={() => setSelectedManualCard(null)}>
-                      Back
-                    </button>
-                    <button
-                      className="primary"
-                      type="button"
-                      disabled={Boolean(
-                        manualCardError(
-                          selectedManualCard,
-                          [...deck, ...sideboard].map((card) => card.name),
-                          commanderDetails?.colours ?? [],
-                        ),
-                      )}
-                      onClick={addManualCard}
-                    >
-                      {deck.length >= 100 ? 'Add to sideboard' : 'Add to deck'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
-        </div>
-      )}
       {showBasicLands && (
         <div
           className="modal-backdrop"
@@ -829,7 +604,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 type="button"
                 onClick={() => openModal('search')}
               >
-                + Add card by name
+                + Search & add cards
               </button>
               {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && (
                 <div className="batch-controls">
@@ -1335,7 +1110,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 type="button"
                 onClick={() => openModal('search')}
               >
-                + Add card by name
+                + Search & add cards
               </button>
             </div>
           </div>

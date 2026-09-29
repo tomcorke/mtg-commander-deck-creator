@@ -8,7 +8,7 @@ import { defaultDeckTargets, type DeckTargets } from '../deck-analysis.ts'
 import type { DeckDoctorSwapRecord } from '../deck-doctor.ts'
 import { usePendingConfirmation, useStoredOption } from '../shared/hooks.ts'
 
-type DeckDoctorReturnModal = 'doctor' | 'doctor-history' | null
+type BuilderModeReturn = 'doctor' | 'doctor-history' | 'search' | null
 
 export function useDeckState(saved: PersistedDeckState | null) {
   const [deck, setDeck] = useState<DeckCard[]>(saved?.deck ?? [])
@@ -22,16 +22,12 @@ export function useDeckState(saved: PersistedDeckState | null) {
   const [pendingCardRemoval, setPendingCardRemoval] =
     usePendingConfirmation<DeckCardLocation | null>(null)
   const [basicLandState, setBasicLandState] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [cardSearch, setCardSearch] = useState('')
-  const [cardSearchResults, setCardSearchResults] = useState<ScryfallCard[]>([])
-  const [cardSearchState, setCardSearchState] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [filterCardIdentity, setFilterCardIdentity] = useState(true)
   const [selectedManualCard, setSelectedManualCard] = useState<ScryfallCard | null>(null)
   const [manualPrintings, setManualPrintings] = useState<ScryfallCard[]>([])
   const [manualPrinting, setManualPrinting] = useState(0)
   const cardSearchButton = useRef<HTMLButtonElement>(null)
-  const cardSearchInput = useRef<HTMLInputElement>(null)
-  const cardSearchDialog = useRef<HTMLElement>(null)
+  const manualPrintingRequest = useRef<AbortController | null>(null)
+  const [manualPrintingError, setManualPrintingError] = useState('')
   const repairedPrintingBatches = useRef(new Set<string>())
   const skipCompletionReviewDecks = useRef(new WeakSet<DeckCard[]>())
   const [exportFormat, setExportFormat] = useStoredOption<ExportFormat>(
@@ -49,7 +45,7 @@ export function useDeckState(saved: PersistedDeckState | null) {
   const [pendingRemoval, setPendingRemoval] = usePendingConfirmation<number | null>(null)
   const [deckDoctorHistory, setDeckDoctorHistory] = useState<DeckDoctorSwapRecord[]>([])
   const [deckDoctorError, setDeckDoctorError] = useState('')
-  const [deckDoctorReturnModal, setDeckDoctorReturnModal] = useState<DeckDoctorReturnModal>(null)
+  const [builderModeReturn, setBuilderModeReturn] = useState<BuilderModeReturn>(null)
 
   return {
     deck,
@@ -68,14 +64,6 @@ export function useDeckState(saved: PersistedDeckState | null) {
     setPendingCardRemoval,
     basicLandState,
     setBasicLandState,
-    cardSearch,
-    setCardSearch,
-    cardSearchResults,
-    setCardSearchResults,
-    cardSearchState,
-    setCardSearchState,
-    filterCardIdentity,
-    setFilterCardIdentity,
     selectedManualCard,
     setSelectedManualCard,
     manualPrintings,
@@ -83,8 +71,9 @@ export function useDeckState(saved: PersistedDeckState | null) {
     manualPrinting,
     setManualPrinting,
     cardSearchButton,
-    cardSearchInput,
-    cardSearchDialog,
+    manualPrintingRequest,
+    manualPrintingError,
+    setManualPrintingError,
     repairedPrintingBatches,
     skipCompletionReviewDecks,
     exportFormat,
@@ -107,8 +96,8 @@ export function useDeckState(saved: PersistedDeckState | null) {
     setDeckDoctorHistory,
     deckDoctorError,
     setDeckDoctorError,
-    deckDoctorReturnModal,
-    setDeckDoctorReturnModal,
+    builderModeReturn,
+    setBuilderModeReturn,
   }
 }
 

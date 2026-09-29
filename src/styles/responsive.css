@@ -308,19 +308,10 @@
 }
 .dark .suggestion-select,
 .dark .start-panel input,
-.dark .export-modal textarea,
-.dark .card-search-form input {
+.dark .export-modal textarea {
   color: #e5e3f0;
   background: #121121;
 }
-.dark .card-search-results,
-.dark .card-search-results button {
-  border-color: #39374f;
-}
-.dark .manual-card-preview p,
-.dark .card-search-status,
-.dark .card-search-filter,
-.dark .card-search-results small,
 .dark .moxfield-instructions,
 .dark .import-help {
   color: #aaa8c2;
@@ -756,9 +747,6 @@
   .card-offer {
     grid-template-columns: 1fr;
   }
-  .manual-card-preview {
-    grid-template-columns: 1fr;
-  }
   .deck-card-modal-content {
     grid-template-columns: 1fr;
   }
@@ -768,14 +756,6 @@
   }
   .deck-card-modal-copy {
     align-self: start;
-  }
-  .manual-card-image {
-    max-width: 220px;
-    margin: auto;
-  }
-  .manual-card-zoom,
-  .search-card-popover {
-    display: none;
   }
   .suggestion-type {
     grid-column: auto;

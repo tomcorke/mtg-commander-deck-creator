@@ -1,13 +1,61 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { fetchScryfallCollectionCards, fetchScryfallSets } from './scryfall.ts'
+import {
+  fetchScryfallCollectionCards,
+  fetchScryfallSets,
+  searchScryfall,
+  searchScryfallPage,
+} from './scryfall.ts'
 
 const response = (body: unknown, init?: ResponseInit) =>
   new Response(JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   })
+
+test('card search exposes page counts, sorting, warnings, and the cancellation signal', async () => {
+  const controller = new AbortController()
+  const result = await searchScryfallPage(
+    'legal:commander name:"Sol Ring"',
+    async (input, init) => {
+      const url = new URL(String(input))
+      assert.equal(url.searchParams.get('q'), 'legal:commander name:"Sol Ring"')
+      assert.equal(url.searchParams.get('page'), '2')
+      assert.equal(url.searchParams.get('order'), 'cmc')
+      assert.equal(url.searchParams.get('unique'), 'cards')
+      assert.equal(init?.signal, controller.signal)
+      return response({
+        data: [{ name: 'Sol Ring' }],
+        has_more: true,
+        total_cards: 200,
+        warnings: ['Search warning'],
+      })
+    },
+    controller.signal,
+    'cmc',
+    2,
+  )
+  assert.equal(result.total_cards, 200)
+  assert.equal(result.has_more, true)
+  assert.deepEqual(result.warnings, ['Search warning'])
+  assert.deepEqual(
+    await searchScryfall('test', async () => response({ data: [{ name: 'Sol Ring' }] })),
+    [{ name: 'Sol Ring' }],
+  )
+})
+
+test('card search treats no matches separately from service failures', async () => {
+  assert.deepEqual(await searchScryfallPage('none', async () => response({}, { status: 404 })), {
+    data: [],
+    total_cards: 0,
+    has_more: false,
+  })
+  await assert.rejects(
+    searchScryfallPage('busy', async () => response({}, { status: 429 })),
+    /Scryfall unavailable/,
+  )
+})
 
 test('fetchScryfallSets excludes token and memorabilia sets and keeps release order', async () => {
   const sets = await fetchScryfallSets(async () =>

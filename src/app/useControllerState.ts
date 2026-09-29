@@ -154,7 +154,9 @@ export function useControllerState(
     showRecommendationSettings: state.activeModal === 'recommendation-settings',
     showSavedDecks: state.activeModal === 'saved',
     showImport: state.activeModal === 'import',
-    showDeckCard: state.activeModal === 'card' && selectedDeckCard !== null,
+    showDeckCard:
+      state.activeModal === 'card' &&
+      (selectedDeckCard !== null || state.selectedManualCard !== null),
     showDeckDoctor: state.activeModal === 'doctor' || state.activeModal === 'doctor-history',
     showDeckDoctorHistory: state.activeModal === 'doctor-history',
     selectedDeckCardIsCommander:

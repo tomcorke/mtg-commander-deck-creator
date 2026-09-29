@@ -73,7 +73,7 @@ For a parsed 100-card main deck (commander included; sideboard excluded), the im
 
 **Complexity:** High · **Value:** High · **Delivery risk:** High — Heuristic tags and candidate recommendations need careful limits.
 
-**Status:** Complete on `feature/deck-doctor`; awaiting review and merge.
+**Status:** Complete — merged in `360728f`.
 
 ### Completed behavior
 
@@ -100,7 +100,7 @@ Detailed spec: [docs/specs/b3-deck-doctor.md](docs/specs/b3-deck-doctor.md).
 
 **Complexity:** High · **Value:** High · **Delivery risk:** Medium — The main risk was keeping card selection, comparisons, and undo clear across a dense workflow.
 
-**Status:** Complete on `feature/deck-doctor`; awaiting review and merge.
+**Status:** Complete — merged in `360728f`.
 
 ### Completed behavior
 
@@ -114,3 +114,28 @@ Card names preview art on hover or focus and open the existing card-details moda
 - Mana concerns are grouped; candidates appear once. Card grids show art and full mana-cost icons without a duplicate colour-identity row, and every proposed pair marks the card currently in the deck.
 - Batch validation is atomic, keeps deck size and commander legality, supports sideboard retention, and preserves individual safe undo.
 - `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, and browser smoke checks pass in light, dark, and narrow layouts.
+
+## [A3] Search and add multiple cards
+
+**Complexity:** Medium · **Value:** High · **Delivery risk:** Low — Scryfall supports the search criteria; the main changes are query construction and a persistent search workspace.
+
+**Status:** Complete.
+
+### Completed behavior
+
+The builder's “Search & add cards” action opens a full-page workspace with the shared top bar and commander context. Name and inclusive mana-value bounds are optional. Each criterion can be required, excluded, or ignored. Colour options follow commander identity by default and match mana-cost symbols, including hybrid and Phyrexian costs. Colourless cards, colourless payment, X, hybrid, and Phyrexian costs have separate options.
+
+Keyword and effect filters cover lifelink, trample, flying, haste, hexproof, indestructible, ward, +1/+1 and -1/-1 counters, counterspells, sacrifice, ETB triggers, draw, tokens, and lifegain. Additional rules-text phrases can be required or excluded. The UI explains that tags and text matches can include mentions or granted abilities; they do not guarantee an interaction. Searches always request Commander-legal cards, and additions still enforce commander identity and existing copy limits.
+
+Results show art, full mana-cost icons, rules text, and individual Add controls. Existing deck and sideboard cards are hidden by default; opting in highlights and labels their location. Players can select cards across result pages and add them together. The main deck fills to 100, then further cards go to the sideboard without closing search or opening review. Basic-land copies remain supported.
+
+Search displays twelve cards per page and can load further Scryfall pages. Sorting, reset, empty results, retry, and cancellation are supported. Details reuse the card modal and retain alternate-printing selection. Filters, result pages, and selections remain intact when opening details, export, import, or save/load; changed commander context resets search.
+
+### Acceptance checks
+
+- Filter-only searches work without a name; generated queries keep names and rules-text phrases literal and validate mana-value bounds.
+- Required and excluded criteria combine correctly, including hybrid colour costs and colourless commander identity.
+- Existing cards are hidden by default, visibly labelled when shown, and cannot be added twice unless existing rules allow additional copies.
+- Multiple additions fill the main deck up to 100 cards, then go to the sideboard without closing search or opening review.
+- Selections survive result-page changes and card details. Search errors and cancelled requests cannot replace newer results.
+- Tests, lint, typecheck, build, and light/dark/mobile browser smoke pass.
