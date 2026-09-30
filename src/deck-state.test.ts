@@ -199,6 +199,22 @@ test('legacy autosave gets empty saved-deck id and sideboard', () => {
   assert.equal(loadDeckState(storage)?.collectionMode, 'none')
 })
 
+test('legacy recommendation styles migrate to named deck goals', () => {
+  for (const [legacy, expected] of [
+    ['story', 'thematic'],
+    ['balanced', 'balanced'],
+    ['optimized', 'competitive'],
+  ] as const) {
+    const storage = memoryStorage({
+      [deckStateKey]: JSON.stringify({
+        version: deckStateVersion,
+        state: { ...state, recommendationStyle: legacy },
+      }),
+    })
+    assert.equal(loadDeckState(storage)?.recommendationStyle, expected)
+  }
+})
+
 test('invalid, old, and malformed deck state is ignored', () => {
   assert.equal(loadDeckState(memoryStorage({ [deckStateKey]: 'not json' })), null)
   assert.equal(

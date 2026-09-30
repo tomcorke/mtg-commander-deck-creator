@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { defaultDeckTargets } from '../deck-analysis.ts'
+import { fetchScryfallCardsByIdentifiers, fetchScryfallPrintings } from '../adapters/scryfall.ts'
+import { toCard } from '../domain/card-model.ts'
+import { loadPrintings } from './printing-actions.ts'
 import {
   fetchDeckDoctorCandidates,
   fetchDeckDoctorCommanders,
@@ -21,7 +24,7 @@ const card = (name: string, typeLine = 'Artifact', colourIdentity: string[] = []
   finishes: ['nonfoil'],
 })
 
-test('partner retry requests combined EDHREC recommendations', async () => {
+test('partner retry preserves commander sources and Scryfall rate-limit guidance', async (t) => {
   const edhrecSlugs: string[] = []
   const fallbackQueries: string[] = []
   const noop = () => {}
@@ -100,12 +103,63 @@ test('partner retry requests combined EDHREC recommendations', async () => {
   assert.deepEqual(edhrecSlugs, ['kraum-ludevics-opus-tymna-the-weaver'])
   assert.equal(result, true)
   assert.deepEqual(fallbackQueries, [])
+
+  let message = ''
+  const rateLimited = t.mock.fn(
+    async () => new Response('', { status: 429, headers: { 'Retry-After': '120' } }),
+  )
+  assert.equal(
+    await start(
+      {
+        ...deps,
+        fetchCards: (identifiers: { name: string }[]) =>
+          fetchScryfallCardsByIdentifiers(identifiers, rateLimited),
+        setCollectionError: (error: string) => (message = error),
+        setDeck: () => assert.fail('Retry must preserve the deck'),
+      },
+      'Kraum & Tymna',
+      true,
+    ),
+    false,
+  )
+  assert.match(message, /Scryfall.*rate limit.*2 minutes/i)
+  assert.equal(rateLimited.mock.callCount(), 1)
+  assert.deepEqual(fallbackQueries, [])
+})
+
+test('optional printing enrichment stops on rate limits without discarding suggestions', async () => {
+  const offered = toCard(card('Existing suggestion'), 'Popular inclusion')
+  let requests = 0
+  await loadPrintings(
+    {
+      queue: [offered],
+      deck: [],
+      collectionSets: [],
+      collectionMode: 'none',
+      fetchPrintings: (uri: string) =>
+        fetchScryfallPrintings(uri, async () => {
+          requests++
+          return new Response('', { status: 429, headers: { 'Retry-After': '120' } })
+        }),
+      setQueue: () => assert.fail('Keep the current suggestions'),
+    },
+    [offered, { ...offered, name: 'Another suggestion' }],
+  )
+  assert.equal(requests, 1)
 })
 
 test('fetches extra candidates only on demand and filters deck, sideboard, and colour identity', async () => {
   const slugs: string[] = []
   const searched: string[] = []
-  const candidateNames = ['New Candidate', 'In Main', 'In Sideboard', 'Wrong Colours']
+  const candidateNames = [
+    'New Candidate',
+    'In Main',
+    'In Sideboard',
+    'Wrong Colours',
+    'Ignored',
+    'Banned',
+    ...Array.from({ length: 85 }, (_, index) => `Candidate ${index}`),
+  ]
   const deps = {
     activeSubThemes: [],
     collectionMode: 'none',
@@ -114,6 +168,8 @@ test('fetches extra candidates only on demand and filters deck, sideboard, and c
     commanderDetails: { colours: ['G'] },
     deck: [{ name: 'In Main' }],
     sideboard: [{ name: 'In Sideboard' }],
+    ignoredCards: ['Ignored'],
+    theme: 'Tokens',
     excludeExtraTurns: false,
     excludeGameChangers: false,
     excludeTutors: false,
@@ -124,7 +180,9 @@ test('fetches extra candidates only on demand and filters deck, sideboard, and c
     }),
     fetchCards: async (identifiers: { name: string }[]) =>
       identifiers.map(({ name }) =>
-        name === 'Wrong Colours' ? card(name, 'Artifact', ['U']) : card(name),
+        name === 'Wrong Colours'
+          ? card(name, 'Artifact', ['U'])
+          : { ...card(name), legalities: { commander: name === 'Banned' ? 'banned' : 'legal' } },
       ),
     fetchEdhrec: async (slug: string) => {
       slugs.push(slug)
@@ -134,7 +192,7 @@ test('fetches extra candidates only on demand and filters deck, sideboard, and c
             cardlists: [
               {
                 header: 'High Synergy Cards',
-                tag: 'highsynergy',
+                tag: 'highsynergycards',
                 cardviews: candidateNames.map((name) => ({ name })),
               },
             ],
@@ -146,7 +204,7 @@ test('fetches extra candidates only on demand and filters deck, sideboard, and c
     powerTarget: 'upgraded',
     searchCards: async (query: string) => {
       searched.push(query)
-      return []
+      return [card('New Candidate')]
     },
     setCommanderSubThemes: () => {},
     setLimitedRecommendations: () => {},
@@ -154,11 +212,12 @@ test('fetches extra candidates only on demand and filters deck, sideboard, and c
 
   const candidates = await fetchDeckDoctorCandidates(deps)
   assert.deepEqual(slugs, ['test-commander'])
-  assert.deepEqual(searched, [])
+  assert.match(searched[0], /\(o:token\)/)
   assert.deepEqual(
     candidates.map(({ name }) => name),
-    ['New Candidate'],
+    ['New Candidate', ...candidateNames.slice(6)],
   )
+  assert.equal(candidates[0].reason, 'Commander synergy')
 })
 
 test('commander exploration returns only theme matches that preserve every card colour', async () => {

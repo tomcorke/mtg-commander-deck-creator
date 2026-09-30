@@ -10,7 +10,6 @@ import { CardSearchView } from '../features/builder/CardSearchView.tsx'
 import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
 import { ExportDeckModal } from '../features/builder/ExportDeckModal.tsx'
-import { DeckReviewModal } from '../features/builder/DeckReviewModal.tsx'
 import { DeckDoctorView } from '../features/builder/DeckDoctorView.tsx'
 import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
 import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
@@ -194,35 +193,6 @@ function renderModals(props: AppViewProps) {
     savedDecksModal: <SavedDecksModalView {...props} />,
     deckCardModal: <DeckCardModalView {...props} />,
     recommendationSettingsModal: <RecommendationSettingsView {...props} />,
-    deckReviewModal: (
-      <DeckReviewModal
-        show={props.state.activeModal === 'review'}
-        deck={props.state.deck}
-        sideboardCount={props.state.sideboard.length}
-        commanderCount={commanderNames(props.state.commander).length}
-        theme={props.state.theme}
-        activeSubThemes={props.state.activeSubThemes}
-        analysis={props.builderData.analysis}
-        deckTargets={props.state.deckTargets}
-        setDeckTargets={props.state.setDeckTargets}
-        displayedTypeCounts={props.builderData.displayedTypeCounts}
-        selectManaValue={(value) => {
-          props.state.setDeckReviewFilter(null)
-          props.state.setHighlightedManaValue(value)
-          props.actions.closeModal()
-        }}
-        selectCards={(label, cardNames) => {
-          props.state.setHighlightedManaValue(null)
-          props.state.setDeckReviewFilter({ label, cardNames })
-          props.actions.closeModal()
-        }}
-        openDoctor={() => {
-          props.state.setDeckDoctorError('')
-          props.actions.navigateView('builder', 'doctor', true)
-        }}
-        closeModal={() => props.actions.closeModal()}
-      />
-    ),
   }
 }
 
@@ -307,7 +277,9 @@ function useBuilderMode(state: Record<string, any>) {
     setSelectedManualCard,
     manualPrintingRequest,
   } = state
-  const preservesMode = ['card', 'export', 'import', 'saved'].includes(activeModal)
+  const preservesMode = ['card', 'export', 'import', 'saved', 'recommendation-settings'].includes(
+    activeModal,
+  )
   const modeReturn = preservesMode ? storedModeReturn : null
   useEffect(() => {
     if (storedModeReturn && !showDeckDoctor && !showCardSearch && !modeReturn)
@@ -327,6 +299,86 @@ function useBuilderMode(state: Record<string, any>) {
       setBuilderModeReturn(showDeckDoctorHistory ? 'doctor-history' : 'doctor')
   }
   return { modeReturn, rememberMode }
+}
+
+function DeckReviewScreen({
+  state,
+  actions,
+  builderData,
+  appHeader,
+  modals,
+  showHistory,
+  rememberMode,
+}: AppViewProps & {
+  appHeader: ReactNode
+  modals: ReturnType<typeof renderModals>
+  showHistory: boolean
+  rememberMode: () => void
+}) {
+  const closePage = () => {
+    state.setBuilderModeReturn(null)
+    actions.navigateView('builder', null, true)
+  }
+  return (
+    <>
+      <DeckDoctorView
+        appHeader={appHeader}
+        showHistory={showHistory}
+        commander={state.commander}
+        commanderDetails={state.commanderDetails}
+        loadingArt={state.loadingArt}
+        deck={state.deck}
+        sideboard={state.sideboard}
+        commanderCount={commanderNames(state.commander).length}
+        commanderColours={state.commanderDetails?.colours ?? []}
+        theme={state.theme}
+        activeSubThemes={state.activeSubThemes}
+        deckTargets={state.deckTargets}
+        setDeckTargets={(update) => {
+          state.setDeckTargets(update)
+          state.setRecommendationOptionsChanged(true)
+        }}
+        analysis={builderData.analysis}
+        displayedTypeCounts={builderData.displayedTypeCounts}
+        selectManaValue={(value) => {
+          state.setDeckReviewFilter(null)
+          state.setHighlightedManaValue(value)
+          closePage()
+        }}
+        selectCards={(label, cardNames) => {
+          state.setHighlightedManaValue(null)
+          state.setDeckReviewFilter({ label, cardNames })
+          closePage()
+        }}
+        recommendationSettingsSummary={builderData.recommendationSettingsSummary}
+        recommendationQueryKey={builderData.recommendationQueryKey}
+        recommendationOptionsChanged={state.recommendationOptionsChanged}
+        openRecommendationSettings={() => {
+          rememberMode()
+          actions.openModal('recommendation-settings')
+        }}
+        candidates={state.queue}
+        scoreReplacements={builderData.scoreReplacements}
+        history={state.deckDoctorHistory}
+        error={state.deckDoctorError}
+        fetchCandidates={() => actions.fetchDeckDoctorCandidates()}
+        fetchCommanderAlternatives={() => actions.fetchDeckDoctorCommanders()}
+        openCard={actions.openCardReference}
+        cycleCommanderPrinting={actions.cycleCommanderPrinting}
+        startOver={actions.startOver}
+        applySwapPlan={actions.applyDeckDoctorSwapPlan}
+        undoSwap={actions.undoDeckDoctorSwap}
+        closePage={closePage}
+      />
+      {modals.importModal}
+      {modals.savedDecksModal}
+      {modals.exportModal}
+      {modals.recommendationSettingsModal}
+      {state.showDeckCard && (
+        <DeckCardModalView state={state} actions={actions} builderData={builderData} />
+      )}
+    </>
+  )
 }
 
 export function AppView({ state, actions, builderData }: AppViewProps) {
@@ -363,47 +415,22 @@ export function AppView({ state, actions, builderData }: AppViewProps) {
         modals={modals}
       />
     )
-  if (state.showDeckDoctor || modeReturn === 'doctor' || modeReturn === 'doctor-history')
+  if (
+    state.showDeckDoctor ||
+    modeReturn === 'review' ||
+    modeReturn === 'doctor' ||
+    modeReturn === 'doctor-history'
+  )
     return (
-      <>
-        <DeckDoctorView
-          appHeader={appHeader}
-          showHistory={state.showDeckDoctorHistory || modeReturn === 'doctor-history'}
-          commander={state.commander}
-          commanderDetails={state.commanderDetails}
-          loadingArt={state.loadingArt}
-          deck={state.deck}
-          sideboard={state.sideboard}
-          commanderCount={commanderNames(state.commander).length}
-          commanderColours={state.commanderDetails?.colours ?? []}
-          theme={state.theme}
-          activeSubThemes={state.activeSubThemes}
-          deckTargets={state.deckTargets}
-          candidates={state.queue}
-          scoreCandidate={builderData.scoreCandidate}
-          history={state.deckDoctorHistory}
-          error={state.deckDoctorError}
-          fetchCandidates={() => actions.fetchDeckDoctorCandidates()}
-          fetchCommanderAlternatives={() => actions.fetchDeckDoctorCommanders()}
-          openCard={actions.openCardReference}
-          cycleCommanderPrinting={actions.cycleCommanderPrinting}
-          startOver={actions.startOver}
-          applySwapPlan={actions.applyDeckDoctorSwapPlan}
-          undoSwap={actions.undoDeckDoctorSwap}
-          openHistory={() => actions.navigateView('builder', 'doctor-history', true)}
-          openDiagnosis={() => actions.navigateView('builder', 'doctor', true)}
-          closePage={() => {
-            state.setBuilderModeReturn(null)
-            actions.closeModal()
-          }}
-        />
-        {modals.importModal}
-        {modals.savedDecksModal}
-        {modals.exportModal}
-        {state.showDeckCard && (
-          <DeckCardModalView state={state} actions={actions} builderData={builderData} />
-        )}
-      </>
+      <DeckReviewScreen
+        state={state}
+        actions={actions}
+        builderData={builderData}
+        appHeader={appHeader}
+        modals={modals}
+        showHistory={state.showDeckDoctorHistory || modeReturn === 'doctor-history'}
+        rememberMode={rememberMode}
+      />
     )
   return (
     <BuilderView model={{ ...state, ...actions, ...builderData, ...modals, appHeader } as any} />

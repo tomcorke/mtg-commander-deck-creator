@@ -157,7 +157,10 @@ export function useControllerState(
     showDeckCard:
       state.activeModal === 'card' &&
       (selectedDeckCard !== null || state.selectedManualCard !== null),
-    showDeckDoctor: state.activeModal === 'doctor' || state.activeModal === 'doctor-history',
+    showDeckDoctor:
+      state.activeModal === 'review' ||
+      state.activeModal === 'doctor' ||
+      state.activeModal === 'doctor-history',
     showDeckDoctorHistory: state.activeModal === 'doctor-history',
     selectedDeckCardIsCommander:
       state.selectedDeckCardLocation?.board === 'deck' &&

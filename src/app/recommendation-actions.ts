@@ -1,14 +1,16 @@
-import { analyseDeck, deckRoleBoosts, rolesForCard, targetKeys } from '../deck-analysis.ts'
+import { rolesForCard } from '../deck-analysis.ts'
+import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
+import { buildRecommendationContext } from './recommendation-context.ts'
 import { commanderNames, themeSearchTerms } from '../domain/commander-catalog.ts'
 import { commanderPrintingOptions, defaultFinish } from '../domain/printing.ts'
 import {
   batchRecommendations,
   buildEdhrecRecommendations,
   commanderThemes,
-  manaSupportFromAnalysis,
   manualCardError,
   parseEdhrecEntries,
   preconFastMana,
+  type CollectionMode,
   type ScryfallCard,
 } from '../recommendations.ts'
 import {
@@ -341,7 +343,7 @@ export function resetRecommendationState(deps: ActionDeps, preserveDeck: boolean
     setCollectionSearch('')
     setCollectionPoolSize(null)
     setShowCollectionBrowser(false)
-    setPrioritizeDeckHealth(recommendationStyle !== 'story')
+    setPrioritizeDeckHealth(recommendationStyle !== 'thematic')
   }
   setCommanderDetails(null)
   setQueue([])
@@ -418,7 +420,8 @@ async function coreRecommendations(
       .join('-')
     offeredCards = await edhrecRecommendations(deps, slug)
     if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
-  } catch {
+  } catch (error) {
+    if (error instanceof ScryfallRateLimitError) throw error
     offeredCards = await fallbackRecommendations(deps, identityColours)
     setLimitedRecommendations(true)
   }
@@ -427,9 +430,10 @@ async function coreRecommendations(
       theme,
       ...(preserveDeck ? activeSubThemes : []),
     ])
-    const names = new Set(themeCards.map((card: Card) => card.name))
-    return [...themeCards, ...offeredCards.filter((card: Card) => !names.has(card.name))]
-  } catch {
+    const names = new Set(offeredCards.map((card: Card) => card.name))
+    return [...offeredCards, ...themeCards.filter((card: Card) => !names.has(card.name))]
+  } catch (error) {
+    if (error instanceof ScryfallRateLimitError) throw error
     return offeredCards
   }
 }
@@ -456,7 +460,7 @@ async function addCollectionRecommendations(
       ...offeredCards.filter((card: Card) => !collectionNames.has(card.name)),
     ]
   } catch (error) {
-    if (activeCollectionMode === 'only') throw error
+    if (error instanceof ScryfallRateLimitError || activeCollectionMode === 'only') throw error
     return offeredCards
   }
 }
@@ -479,9 +483,10 @@ export async function fetchDeckDoctorCandidates(deps: ActionDeps) {
     collectionSets,
     collectionMode,
   )
-  const existingNames = new Set(
-    [...deps.deck, ...deps.sideboard, ...commanders].map(({ name }: { name: string }) => name),
-  )
+  const existingNames = new Set([
+    ...[...deps.deck, ...deps.sideboard, ...commanders].map(({ name }: { name: string }) => name),
+    ...(deps.ignoredCards ?? []),
+  ])
   return candidates
     .filter((card) => !existingNames.has(card.name))
     .filter(
@@ -492,7 +497,6 @@ export async function fetchDeckDoctorCandidates(deps: ActionDeps) {
           identityColours,
         ),
     )
-    .slice(0, 80)
 }
 
 export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[]> {
@@ -583,52 +587,24 @@ function buildInitialRankingContext(
   chosen: string,
   preserveDeck: boolean,
   activeCollectionSets: string[],
-  activeCollectionMode: string,
+  activeCollectionMode: CollectionMode,
 ) {
-  const {
-    deck,
-    prioritizeDeckHealth,
-    deckTargets,
-    activeSubThemes,
-    theme,
-    preferenceScores,
-    recommendationStyle,
-  } = deps
-  const rankingDeck = preserveDeck ? deck.slice(commanderNames(chosen).length) : []
-  const rankingAnalysis = analyseDeck(preserveDeck ? deck : [])
-  const rankingRoleBoosts: Record<string, number> = prioritizeDeckHealth
-    ? deckRoleBoosts(deck.length, rankingAnalysis.counts, deckTargets)
-    : {}
-  const rankingRoles = new Set(
-    prioritizeDeckHealth
-      ? targetKeys.filter((key) => rankingAnalysis.counts[key] < deckTargets[key])
-      : [],
+  return buildRecommendationContext(
+    {
+      ...deps,
+      commander: chosen,
+      activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
+      preferenceScores: preserveDeck ? deps.preferenceScores : {},
+      prioritizeDeckHealth: preserveDeck
+        ? deps.prioritizeDeckHealth
+        : deps.recommendationStyle !== 'thematic',
+      collectionSets: activeCollectionSets,
+      collectionMode: activeCollectionMode,
+      batchNumber: 1,
+    },
+    offeredCards,
+    preserveDeck ? deps.deck : [],
   )
-  return {
-    theme,
-    activeSubThemes,
-    pickedTags: new Set([
-      ...rankingDeck.flatMap((card: Card) => card.tags),
-      ...Object.entries(preferenceScores as Record<string, number>)
-        .filter(([, score]) => score > 0)
-        .map(([tag]) => tag),
-    ]),
-    preferenceScores,
-    neededRoles: rankingRoles,
-    cardRoles: [],
-    recommendationStyle,
-    collectionSets: activeCollectionSets,
-    collectionMode: activeCollectionMode,
-    roleBoosts: rankingRoleBoosts,
-    roleSupply: Object.fromEntries(
-      targetKeys.map((role) => [
-        role,
-        offeredCards.filter((card) => rolesForCard(card).includes(role)).length,
-      ]),
-    ),
-    batchNumber: 1,
-    manaSupport: manaSupportFromAnalysis(rankingAnalysis, deckTargets),
-  }
 }
 
 export function rankInitialRecommendations(
@@ -637,7 +613,7 @@ export function rankInitialRecommendations(
   chosen: string,
   preserveDeck: boolean,
   activeCollectionSets: string[],
-  activeCollectionMode: string,
+  activeCollectionMode: CollectionMode,
 ) {
   const { includeCreature, setQueue, setRecommendationState, loadPrintings, preferredPrintSet } =
     deps

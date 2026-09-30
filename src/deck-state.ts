@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { normalizeRecommendationStyle } from './domain/recommendation-types.ts'
+
 export const deckStateKey = 'commander-deck-state'
 export const savedDecksKey = 'commander-saved-decks'
 export const deckStateVersion = 1
@@ -63,7 +65,10 @@ export const persistedDeckStateSchema = z.object({
     selections: z.array(z.number().int().nonnegative()),
   }),
   theme: z.string(),
-  recommendationStyle: z.enum(['story', 'balanced', 'optimized']).default('balanced'),
+  recommendationStyle: z.preprocess(
+    normalizeRecommendationStyle,
+    z.enum(['thematic', 'fun', 'balanced', 'competitive']).default('balanced'),
+  ),
   collectionSets: z.array(z.string()).default([]),
   collectionGroups: z.array(z.string()).default([]),
   collectionMode: z.enum(['none', 'prefer', 'only']).default('none'),

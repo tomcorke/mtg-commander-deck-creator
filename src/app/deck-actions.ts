@@ -3,6 +3,7 @@ import {
   fetchScryfallCard,
   fetchScryfallCollection,
   fetchScryfallPrintings,
+  ScryfallRateLimitError,
 } from '../adapters/scryfall.ts'
 import { defaultDeckTargets } from '../deck-analysis.ts'
 import {
@@ -573,9 +574,13 @@ export async function selectManualCard(deps: ActionDeps, card: ScryfallCard) {
     )
     deps.setManualPrintings(selected < 0 ? [card, ...printings] : printings)
     deps.setManualPrinting(Math.max(0, selected))
-  } catch {
+  } catch (error) {
     if (!controller.signal.aborted)
-      deps.setManualPrintingError('Alternate printings unavailable. Reopen details to retry.')
+      deps.setManualPrintingError(
+        error instanceof ScryfallRateLimitError
+          ? error.message
+          : 'Alternate printings unavailable. Reopen details to retry.',
+      )
   }
 }
 
@@ -800,7 +805,7 @@ export function openCommanderCard(deps: ActionDeps, index: number) {
 }
 
 export function openCardReference(deps: ActionDeps, card: Card | DeckCard) {
-  if (['doctor', 'doctor-history', 'search'].includes(deps.activeModal))
+  if (['review', 'doctor', 'doctor-history', 'search'].includes(deps.activeModal))
     deps.setBuilderModeReturn(deps.activeModal)
   deps.manualPrintingRequest.current?.abort()
   deps.setSelectedManualCard(null)
@@ -1163,7 +1168,7 @@ export function startOver(deps: ActionDeps) {
   setCollectionSets([])
   setCollectionGroups([])
   setCollectionMode('none')
-  setPrioritizeDeckHealth(recommendationStyle !== 'story')
+  setPrioritizeDeckHealth(recommendationStyle !== 'thematic')
   setCollectionPoolSize(null)
   setDeck([])
   setSideboard([])

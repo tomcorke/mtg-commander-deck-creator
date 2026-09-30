@@ -96,7 +96,7 @@ export function ImportDeckModal({
                 </label>
                 {!openReviewAfterImport && (
                   <p className="import-review-opt-out">
-                    You’ll stay in the builder. Detailed review remains available there.
+                    You’ll stay in the builder. Open Deck review any time for findings and changes.
                   </p>
                 )}
               </>

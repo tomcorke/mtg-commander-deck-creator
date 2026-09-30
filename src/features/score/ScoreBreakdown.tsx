@@ -52,14 +52,14 @@ const recommendationScoreFactors = [
     label: 'Mana-fit penalty',
     max: recommendationScoreFactorMaximums.manaFitPenalty,
     description:
-      'Deducts up to 10 points when a creature’s mana value or colored pips exceed the deck’s current land, ramp, or color support. This is a heuristic, not a casting probability.',
+      'Deducts up to 10 points when a spell’s mana value or coloured pips exceed the deck’s current land, ramp, or colour support. This is a heuristic, not a casting probability.',
   },
   {
     key: 'popularityPenalty',
     label: 'Popularity penalty',
     max: recommendationScoreFactorMaximums.popularityPenalty,
     description:
-      'Story mode deduction for heavily played staples so more distinctive picks can surface.',
+      'Thematic goal deduction for heavily played staples so more distinctive picks can surface.',
   },
 ] as const
 

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make recommendations feel specific to the chosen commander, declared theme, selected cards, and emerging deck direction. Generic staples should support the deck rather than dominate each batch.
+Recommend cards for the player's chosen goal, commander, declared theme, and existing deck. Theme, variety, and effectiveness are different priorities; no goal guarantees fun, a bracket, or a win rate.
 
 ## Data sources
 
@@ -13,20 +13,22 @@ Make recommendations feel specific to the chosen commander, declared theme, sele
 
 ## Ranking
 
-Use these weights as guidance, not fixed batch quotas:
+The four goals use the same inspectable score factors, with different weights and ordering:
 
-- Declared theme: 40%
-- Confirmed inferred sub-themes: 30%
-- Commander synergy: 20%
-- Deck needs: 10%
+- **Thematic:** downweight generic popularity, favor selected themes and collections, and preserve identity-focused batches. Deck-health prioritization defaults off but remains available.
+- **Fun & varied:** retain the Balanced weights and add a discovery bonus for `Interesting new pick` cards. Allow more discovery picks in varied batches. Novelty is a source-based heuristic, not a measure of fun or a guarantee of lower popularity.
+- **Balanced:** keep the neutral mix of commander evidence, theme, preferences, and deck needs. This is the default; it has no discovery bonus or thematic popularity penalty.
+- **Competitive:** increase commander-evidence and role-gap weights, reduce theme and preference weights, and keep score order without reason/theme diversity quotas. The optional creature-inclusion preference still applies. This is not a cEDH optimizer or a bracket validator.
 
-Each four-card batch should:
+Scores combine source evidence, theme/sub-theme matches, collection preferences, picked-card tags, player preferences, role deficits and candidate scarcity, and mana-fit penalties. Apply mana-fit penalties to spells, not just creatures. On tied total scores, prefer the card that fills a greater deck need. The scoring module owns the numerical weights.
 
-- Include no more than one generic infrastructure card unless deck health shows an urgent gap.
-- Prefer cards matching the declared theme or active sub-themes.
-- Sometimes include a supported two-card synergy plus two standalone choices.
-- Reserve one slot for a lower-popularity, theme-relevant `Interesting pick` when confidence is high.
-- Keep each card independently selectable.
+Builder scoring, batch advancement, printing highlights, and review replacements share a ranking-context builder. Review replacements use the candidate pool and the deck after selected cuts; they do not copy the builder's score for the unmodified deck. Star labels describe heuristic fit, not card power.
+
+Power target and exclusions control eligibility separately from the deck goal. Choosing a goal sets the deck-health default; the player can override it. Changing power target resets its suggested exclusions, which remain individually editable. Collection-only mode, ignored cards, legality, and commander colour identity still apply.
+
+Balanced, Thematic, and Fun batches retain reason variety and theme coverage. Competitive bypasses those adjustments. Keep each card independently selectable and offer supported synergy pairs without making them mandatory.
+
+Saved `story` goals migrate to Thematic and `optimized` goals to Competitive. Saved Balanced goals stay Balanced; missing or unknown values default to Balanced. Normalize both saved decks and stored goal options.
 
 A synergy pair gets a shared visual marker and one concrete explanation naming the interaction. Selecting either card increases the other's later rank.
 
@@ -64,6 +66,10 @@ Show one primary reason on each card. Optional details can explain:
 Avoid labels that only say a card is popular.
 
 ## Deck analysis
+
+The unified **Deck review** combines overview, findings, proposed swaps, and session change history. It is available for partial and complete decks. Existing Doctor and history routes remain supported. Section controls move focus to their destination; card details and settings preserve the current review selections.
+
+Selecting an overview count returns to matching cards in the builder. Show the role-count and theme-match effects of a ready swap plan before approval. Swaps remain explicit, equal-count, atomic, and undoable; commanders are not ordinary cuts. Fetch fresh replacements on demand when eligibility settings change, and discard stale responses.
 
 Always show:
 

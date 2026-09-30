@@ -4,6 +4,7 @@ import {
   freshRecommendationCycle,
   rankRecommendationCards,
   selectSubTheme,
+  type RecommendationStyle,
 } from '../recommendations.ts'
 import { randomItems, randomThree, themeCommanders } from '../domain/commander-catalog.ts'
 import type { Card } from '../domain/card-model.ts'
@@ -226,9 +227,9 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     state.setShowSubThemePicker(false)
     state.setSubThemeSearch('')
   }
-  const chooseRecommendationStyle = (style: 'story' | 'balanced' | 'optimized') => {
+  const chooseRecommendationStyle = (style: RecommendationStyle) => {
     state.setRecommendationStyle(style)
-    state.setPrioritizeDeckHealth(style !== 'story')
+    state.setPrioritizeDeckHealth(style !== 'thematic')
     state.setRecommendationOptionsChanged(true)
   }
   const chooseCollectionMode = (mode: 'none' | 'prefer' | 'only') => {

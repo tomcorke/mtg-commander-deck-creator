@@ -1,4 +1,7 @@
-import { recommendationScoreBreakdown } from './recommendation-scoring.ts'
+import {
+  compareRecommendationScores,
+  recommendationScoreBreakdown,
+} from './recommendation-scoring.ts'
 import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
 import type {
   CollectionMode,
@@ -11,10 +14,15 @@ function takeNextRecommendation<T extends { reason: string }>(
   remaining: T[],
   picks: T[],
   test: (card: T) => boolean,
+  style: RecommendationStyle,
 ) {
   const allowedNewCard = (card: T) =>
-    card.reason !== 'Interesting new pick' || !picks.some((pick) => pick.reason === card.reason)
-  const newReason = (card: T) => !picks.some((pick) => pick.reason === card.reason)
+    style === 'competitive' ||
+    card.reason !== 'Interesting new pick' ||
+    picks.filter((pick) => pick.reason === 'Interesting new pick').length <
+      (style === 'fun' ? 2 : 1)
+  const newReason = (card: T) =>
+    style === 'competitive' || !picks.some((pick) => pick.reason === card.reason)
   let index = remaining.findIndex((card) => test(card) && allowedNewCard(card) && newReason(card))
   if (index < 0) index = remaining.findIndex((card) => test(card) && allowedNewCard(card))
   if (index < 0) index = remaining.findIndex(test)
@@ -25,23 +33,27 @@ function nextRecommendationBatch<T extends { reason: string; typeLine: string }>
   remaining: T[],
   includeCreature: boolean,
   canUse: (card: T) => boolean,
+  style: RecommendationStyle,
 ) {
   const picks: T[] = []
-  const take = (test: (card: T) => boolean) => takeNextRecommendation(remaining, picks, test)
+  const take = (test: (card: T) => boolean) => takeNextRecommendation(remaining, picks, test, style)
   if (includeCreature)
     take(
       (card) =>
         canUse(card) && card.reason !== 'Land or mana' && card.typeLine.includes('Creature'),
     )
-  while (picks.filter((card) => card.reason !== 'Land or mana').length < 3) {
+  while (
+    style !== 'competitive' &&
+    picks.filter((card) => card.reason !== 'Land or mana').length < 3
+  ) {
     const count = picks.length
     take((card) => canUse(card) && card.reason !== 'Land or mana')
     if (picks.length === count) break
   }
-  take((card) => card.reason === 'Land or mana')
+  if (style !== 'competitive') take((card) => card.reason === 'Land or mana')
   while (picks.length < 4) {
     const count = picks.length
-    take(canUse)
+    take(style === 'competitive' ? () => true : canUse)
     if (picks.length === count) take(() => true)
     if (picks.length === count) break
   }
@@ -52,11 +64,12 @@ export function batchRecommendations<T extends { name: string; reason: string; t
   cards: T[],
   includeCreature: boolean,
   canUse: (card: T) => boolean = () => true,
+  style: RecommendationStyle = 'balanced',
 ) {
   const remaining = [...cards]
   const ordered: T[] = []
   while (remaining.length)
-    ordered.push(...nextRecommendationBatch(remaining, includeCreature, canUse))
+    ordered.push(...nextRecommendationBatch(remaining, includeCreature, canUse, style))
   if (
     ordered.length !== cards.length ||
     new Set(ordered.map((card) => card.name)).size !== cards.length
@@ -65,7 +78,7 @@ export function batchRecommendations<T extends { name: string; reason: string; t
   return ordered
 }
 
-function keepStoryIdentity<T extends { tags: string[]; set?: string; collectionMatch?: boolean }>(
+function keepThemeIdentity<T extends { tags: string[]; set?: string; collectionMatch?: boolean }>(
   cards: T[],
   context: RecommendationScoreContext,
   canUse: (card: T) => boolean = () => true,
@@ -129,18 +142,21 @@ export function rankRecommendationCards<
       )
     return scores.get(card)!
   }
-  const ranked = [...eligible].sort((left, right) => score(right).total - score(left).total)
+  const ranked = [...eligible].sort((left, right) =>
+    compareRecommendationScores(score(left), score(right)),
+  )
   const canUse = (card: T) =>
     !card.typeLine.includes('Creature') ||
     score(card).manaFitPenalty > -recommendationScoreFactorMaximums.manaFitPenalty / 2
+  const style = context.recommendationStyle ?? 'balanced'
+  const batches = batchRecommendations(ranked, includeCreature, canUse, style)
+  if (style === 'competitive') return batches
   const varied = balanceThemeCoverage(
-    batchRecommendations(ranked, includeCreature, canUse),
+    batches,
     [context.theme, ...context.activeSubThemes].filter(Boolean),
     canUse,
   )
-  return context.recommendationStyle === 'story'
-    ? keepStoryIdentity(varied, context, canUse)
-    : varied
+  return style === 'thematic' ? keepThemeIdentity(varied, context, canUse) : varied
 }
 
 export function selectSubTheme(activeSubThemes: string[], name: string) {
@@ -319,7 +335,7 @@ export function advanceRecommendationQueue<
     collectionMode,
     roleBoosts,
     roleSupply,
-    batchNumber,
+    batchNumber: released.batchNumber,
     manaSupport,
   }
   return {

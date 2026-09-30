@@ -10,11 +10,15 @@ export function usePendingConfirmation<T>(empty: T) {
   return [pending, setPending] as const
 }
 
-export function useStoredOption<T>(key: string, fallback: () => T) {
+export function useStoredOption<T>(
+  key: string,
+  fallback: () => T,
+  parse: (value: unknown) => T = (value) => value as T,
+) {
   const [value, setValue] = useState<T>(() => {
     try {
       const stored = localStorage.getItem(`option:${key}`)
-      return stored === null ? fallback() : (JSON.parse(stored) as T)
+      return stored === null ? fallback() : parse(JSON.parse(stored))
     } catch {
       return fallback()
     }

@@ -448,9 +448,9 @@ test('mana fit favors castable creatures over expensive color-intensive creature
   assert.equal(hybrid.manaFitPenalty, 0)
   assert.equal(
     recommendationScoreBreakdown({ ...expensive, typeLine: 'Sorcery' }, context).manaFitPenalty,
-    0,
+    strained.manaFitPenalty,
   )
-  for (const recommendationStyle of ['story', 'balanced', 'optimized'] as const)
+  for (const recommendationStyle of ['thematic', 'fun', 'balanced', 'competitive'] as const)
     assert.equal(
       recommendationScoreBreakdown(expensive, { ...context, recommendationStyle }).manaFitPenalty,
       strained.manaFitPenalty,
@@ -538,7 +538,7 @@ test('does not force a poorly supported creature over available support cards', 
     },
   }
 
-  for (const recommendationStyle of ['story', 'balanced', 'optimized'] as const) {
+  for (const recommendationStyle of ['thematic', 'fun', 'balanced', 'competitive'] as const) {
     const ranked = advanceRecommendationQueue({ ...options, recommendationStyle }).queue
     assert.equal(
       ranked.slice(0, 4).some((card) => card.name === 'Expensive Creature'),
@@ -562,27 +562,77 @@ test('recommendation styles and collection affinity change visible factors', () 
     neededRoles: new Set<string>(),
     cardRoles: [],
   }
-  const story = recommendationScoreBreakdown(popular, {
+  const thematic = recommendationScoreBreakdown(popular, {
     ...context,
-    recommendationStyle: 'story',
+    recommendationStyle: 'thematic',
     collectionSets: ['ltr'],
   })
-  const optimized = recommendationScoreBreakdown(popular, {
+  const competitive = recommendationScoreBreakdown(popular, {
     ...context,
-    recommendationStyle: 'optimized',
+    recommendationStyle: 'competitive',
     collectionSets: [],
   })
-  assert.equal(story.popularityPenalty, -15)
+  assert.equal(thematic.popularityPenalty, -15)
   assert.equal(
     recommendationScoreBreakdown(collection, {
       ...context,
-      recommendationStyle: 'story',
+      recommendationStyle: 'thematic',
       collectionSets: ['ltr'],
       collectionMode: 'prefer',
     }).collection,
     12,
   )
-  assert.ok(story.total < optimized.total)
+  assert.ok(thematic.total < competitive.total)
+})
+
+test('fun favors fresh picks while balanced remains neutral and competitive stays score-first', () => {
+  const context = {
+    theme: '',
+    activeSubThemes: [],
+    pickedTags: new Set<string>(),
+    preferenceScores: {},
+    neededRoles: new Set<string>(),
+    cardRoles: [],
+  }
+  const freshPick = { reason: 'Interesting new pick', tags: [] }
+  assert.equal(
+    recommendationScoreBreakdown(freshPick, { ...context, recommendationStyle: 'balanced' })
+      .evidence,
+    12,
+  )
+  assert.equal(
+    recommendationScoreBreakdown(freshPick, { ...context, recommendationStyle: 'fun' }).evidence,
+    20,
+  )
+
+  const cards = Array.from({ length: 5 }, (_, index) => ({
+    name: `Strong spell ${index}`,
+    reason: 'Commander synergy',
+    typeLine: 'Instant',
+    tags: [],
+  }))
+  assert.deepEqual(
+    rankRecommendationCards(
+      [...cards, { name: 'Creature', reason: 'Popular inclusion', typeLine: 'Creature', tags: [] }],
+      { ...context, recommendationStyle: 'competitive' },
+      false,
+    )
+      .slice(0, 4)
+      .map(({ name }) => name),
+    cards.slice(0, 4).map(({ name }) => name),
+  )
+  assert.deepEqual(
+    batchRecommendations(cards, false, () => false, 'competitive'),
+    cards,
+  )
+  assert.equal(
+    rankRecommendationCards(
+      [...cards, { name: 'Creature', reason: 'Popular inclusion', typeLine: 'Creature', tags: [] }],
+      { ...context, recommendationStyle: 'competitive' },
+      true,
+    )[0].name,
+    'Creature',
+  )
 })
 
 test('collection preferences learn without banning unrelated cards', () => {
@@ -625,7 +675,7 @@ test('ranker and displayed score use the same style signal', () => {
     preferenceScores: {},
     neededRoles: new Set<string>(),
     cardRoles: [],
-    recommendationStyle: 'story' as const,
+    recommendationStyle: 'thematic' as const,
   }
   const ranked = rankRecommendationCards(cards, context, false, () => [])
   assert.equal(ranked[0].name, 'Tokens')
@@ -670,7 +720,7 @@ test('only collection ranking excludes outside cards and prefer ranks matches fi
   )
 })
 
-test('batches vary reasons with a creature, mana card, and at most one new card', () => {
+test('batches vary reasons, and fun allows two new picks', () => {
   const cards = [
     { name: 'Aura 1', reason: 'Enchantment synergy', typeLine: 'Enchantment — Aura' },
     { name: 'Aura 2', reason: 'Enchantment synergy', typeLine: 'Enchantment — Aura' },
@@ -686,6 +736,19 @@ test('batches vary reasons with a creature, mana card, and at most one new card'
       .slice(0, 4)
       .map(({ name }) => name),
     ['Creature', 'Aura 1', 'New 1', 'Land'],
+  )
+  const funCards = [
+    { name: 'Support 1', reason: 'Support', typeLine: 'Artifact' },
+    { name: 'New 1', reason: 'Interesting new pick', typeLine: 'Artifact' },
+    { name: 'New 2', reason: 'Interesting new pick', typeLine: 'Artifact' },
+    { name: 'Support 2', reason: 'Support', typeLine: 'Artifact' },
+    { name: 'Land', reason: 'Land or mana', typeLine: 'Land' },
+  ]
+  assert.equal(
+    batchRecommendations(funCards, false, () => true, 'fun')
+      .slice(0, 4)
+      .filter(({ reason }) => reason === 'Interesting new pick').length,
+    2,
   )
 })
 

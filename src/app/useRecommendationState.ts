@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 
 import type { PersistedDeckState } from '../deck-state.ts'
 import type { Card } from '../domain/card-model.ts'
-import type { DeferredCard, PowerTarget } from '../recommendations.ts'
+import {
+  normalizeRecommendationStyle,
+  type DeferredCard,
+  type PowerTarget,
+  type RecommendationStyle,
+} from '../recommendations.ts'
 import { useStoredOption } from '../shared/hooks.ts'
 
 function useEdhrecRetryState() {
@@ -40,10 +45,11 @@ export function useRecommendationState(saved: PersistedDeckState | null) {
   const [limitedRecommendations, setLimitedRecommendations] = useState(
     saved?.limitedRecommendations ?? false,
   )
-  const edhrecRetry = useEdhrecRetryState()
-  const [recommendationStyle, setRecommendationStyle] = useStoredOption<
-    'story' | 'balanced' | 'optimized'
-  >('recommendationStyle', () => saved?.recommendationStyle ?? 'balanced')
+  const [recommendationStyle, setRecommendationStyle] = useStoredOption<RecommendationStyle>(
+    'recommendationStyle',
+    () => saved?.recommendationStyle ?? 'balanced',
+    normalizeRecommendationStyle,
+  )
   const [prioritizeDeckHealth, setPrioritizeDeckHealth] = useState(
     saved?.prioritizeDeckHealth ?? true,
   )
@@ -85,7 +91,7 @@ export function useRecommendationState(saved: PersistedDeckState | null) {
     setRecommendationLoadingTitle,
     limitedRecommendations,
     setLimitedRecommendations,
-    ...edhrecRetry,
+    ...useEdhrecRetryState(),
     recommendationStyle,
     setRecommendationStyle,
     prioritizeDeckHealth,

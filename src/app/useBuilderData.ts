@@ -4,7 +4,6 @@ import {
   basicLandPlan,
   cardTypes,
   deckGuidance,
-  deckRoleBoosts,
   deckSection,
   isBasicLandName,
   rolesForCard,
@@ -14,6 +13,7 @@ import {
 import { colourThemes, commanderNames, deckColumnSections } from '../domain/commander-catalog.ts'
 import type { Card, DeckCard, ScryfallCard } from '../domain/card-model.ts'
 import {
+  compareRecommendationScores,
   findSynergyPair,
   manaSupportFromAnalysis,
   recommendationScoreBreakdown,
@@ -22,6 +22,8 @@ import {
   supportedThemes,
   themeMatchesSearch,
 } from '../recommendations.ts'
+
+import { buildRecommendationContext } from './recommendation-context.ts'
 
 export type BuilderDataDeps = Record<string, any>
 
@@ -139,7 +141,7 @@ function buildDeckData(deps: BuilderDataDeps) {
   const missingHealthRoles = targetKeys.filter((key) => analysis.counts[key] < deckTargets[key])
   const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
   const healthSuggestions =
-    deps.recommendationStyle === 'story' && !deps.prioritizeDeckHealth
+    deps.recommendationStyle === 'thematic' && !deps.prioritizeDeckHealth
       ? deps.queue
           .slice(4)
           .filter(
@@ -237,12 +239,7 @@ function buildRecommendationData(
     collectionMode,
     collectionSets,
     preferenceScores,
-    prioritizeDeckHealth,
     deckTargets,
-    recommendationStyle,
-    batchNumber,
-    commander,
-    deck,
   } = deps
   const rawBatch: Card[] = queue.slice(0, 4)
   const synergyPair = findSynergyPair(
@@ -252,12 +249,8 @@ function buildRecommendationData(
   const visibleBatch: Card[] = pairCards.length
     ? [...pairCards, ...rawBatch.filter((card: Card) => !pairCards.includes(card))]
     : rawBatch
-  const pickedTags = new Set([
-    ...deck.slice(commanderNames(commander).length).flatMap((card: Card) => card.tags),
-    ...Object.entries(preferenceScores as Record<string, number>)
-      .filter(([, score]) => score > 0)
-      .map(([tag]) => tag),
-  ])
+  const context = buildRecommendationContext(deps, queue)
+  const { pickedTags, neededRoles, roleSupply: recommendationRoleSupply } = context
   const cardReason = (card: Card) => {
     const subThemes = activeSubThemes.filter((tag: string) => card.tags.includes(tag))
     if (subThemes.length) return `${subThemes.join(' + ')} sub-theme`
@@ -274,42 +267,26 @@ function buildRecommendationData(
       .sort((a: string, b: string) => (preferenceScores[b] ?? 0) - (preferenceScores[a] ?? 0))[0]
     return preference ? `Matches your ${preference} picks` : card.reason
   }
-  const recommendationRoleBoosts: Record<string, number> = prioritizeDeckHealth
-    ? deckRoleBoosts(deck.length, deckData.analysis.counts, deckTargets)
-    : {}
-  const neededRoles = new Set(
-    prioritizeDeckHealth
-      ? targetKeys.filter((key) => deckData.analysis.counts[key] < deckTargets[key])
-      : [],
-  )
-  const recommendationRoleSupply = Object.fromEntries(
-    targetKeys.map((role) => [
-      role,
-      queue.filter((card: Card) => rolesForCard(card).includes(role)).length,
-    ]),
-  )
   const scoreCandidate = (card: Card) =>
-    recommendationScoreBreakdown(card, {
-      theme,
-      activeSubThemes,
-      pickedTags,
-      preferenceScores,
-      neededRoles,
-      cardRoles: rolesForCard(card),
-      recommendationStyle,
-      collectionSets,
-      collectionMode,
-      roleBoosts: recommendationRoleBoosts,
-      roleSupply: recommendationRoleSupply,
-      batchNumber,
-      manaSupport: deckData.manaSupport,
-    })
+    recommendationScoreBreakdown(card, { ...context, cardRoles: rolesForCard(card) })
+  const scoreReplacements = (pool: Card[], remainingDeck: DeckCard[]) => {
+    const replacementContext = buildRecommendationContext(deps, pool, remainingDeck)
+    return pool.map((card) => ({
+      card,
+      score: recommendationScoreBreakdown(card, {
+        ...replacementContext,
+        cardRoles: rolesForCard(card),
+      }),
+    }))
+  }
   const scoredBatch = visibleBatch.map((card: Card) => ({ card, score: scoreCandidate(card) }))
-  const recommendedCard = scoredBatch.reduce(
-    (best, item) =>
-      item.score.total > best.score ? { card: item.card, score: item.score.total } : best,
-    { card: null as Card | null, score: recommendedScoreThreshold - 1 },
-  )
+  const best = [...scoredBatch].sort((left, right) =>
+    compareRecommendationScores(left.score, right.score),
+  )[0]
+  const recommendedCard = {
+    card: best && best.score.total >= recommendedScoreThreshold ? best.card : null,
+    score: best?.score.total ?? recommendedScoreThreshold - 1,
+  }
   return {
     rawBatch,
     synergyPair,
@@ -320,6 +297,7 @@ function buildRecommendationData(
     neededRoles,
     recommendationRoleSupply,
     scoreCandidate,
+    scoreReplacements,
     scoredBatch,
     recommendedCard,
   }
@@ -339,7 +317,12 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
     excludeUnreleased,
   } = deps
   const recommendationStyleLabel = (
-    { story: 'Story', optimized: 'Optimized', balanced: 'Balanced' } as Record<string, string>
+    {
+      thematic: 'Thematic',
+      fun: 'Fun & varied',
+      balanced: 'Balanced',
+      competitive: 'Competitive',
+    } as Record<string, string>
   )[recommendationStyle]
   const powerTargetLabel = (
     { precon: 'Core', upgraded: 'Upgraded', high: 'High power' } as Record<string, string>
@@ -364,7 +347,20 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
       ? `${excludedRecommendations.length} exclusions`
       : 'No exclusions',
   ].join(' · ')
-  return { recommendationSettingsSummary }
+  const recommendationQueryKey = JSON.stringify([
+    deps.commander,
+    deps.theme,
+    deps.activeSubThemes,
+    powerTarget,
+    collectionMode,
+    collectionSets,
+    excludeGameChangers,
+    excludeTutors,
+    excludeExtraTurns,
+    excludeUnreleased,
+    deps.ignoredCards,
+  ])
+  return { recommendationSettingsSummary, recommendationQueryKey }
 }
 
 export function buildBuilderData(deps: BuilderDataDeps) {

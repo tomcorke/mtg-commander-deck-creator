@@ -6,7 +6,14 @@ export type TaggedCard = { name: string; typeLine: string; detail: string; tags:
 export type DeferredCard<T> = { card: T; eligibleBatch: number }
 export type EdhrecThemeCount = { count: number; slug: string; value: string }
 export type PowerTarget = 'precon' | 'upgraded' | 'high'
-export type RecommendationStyle = 'story' | 'balanced' | 'optimized'
+export type RecommendationStyle = 'thematic' | 'fun' | 'balanced' | 'competitive'
+
+export function normalizeRecommendationStyle(value: unknown): RecommendationStyle {
+  if (value === 'thematic' || value === 'story') return 'thematic'
+  if (value === 'fun') return 'fun'
+  if (value === 'competitive' || value === 'optimized') return 'competitive'
+  return 'balanced'
+}
 export type CollectionMode = 'none' | 'prefer' | 'only'
 export type RecommendationSource = 'edhrec' | 'scryfall'
 export type CuratedCollection = { id: string; name: string; setCodes: string[] }

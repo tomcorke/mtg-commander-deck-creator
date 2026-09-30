@@ -179,7 +179,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     deckCardModal,
     deckCards,
     deckDoctorHistory,
-    deckReviewModal,
     deckTargets,
     deferredCards,
     edhrecRetryRemaining,
@@ -288,7 +287,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
       {importModal}
       {exportModal}
       {recommendationSettingsModal}
-      {deckReviewModal}
       <section className="intro commander-header">
         <CommanderCardArt
           commander={commander}
@@ -594,10 +592,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 type="button"
                 onClick={() => {
                   setDeckDoctorError('')
-                  openModal('doctor')
+                  openModal('review')
                 }}
               >
-                Deck Doctor
+                Deck review
               </button>
               <button
                 className="manual-card-button"
@@ -666,7 +664,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="empty">
               <h3>Suggestions unavailable</h3>
               <p>{collectionError || 'Scryfall is busy. Try this commander again shortly.'}</p>
-              <button className="primary" onClick={() => void start(commander)}>
+              <button className="primary" type="button" onClick={() => void start(commander, true)}>
                 Retry
               </button>
             </div>
@@ -824,7 +822,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     />
                     <ScoreBreakdown
                       score={score}
-                      showPopularityPenalty={recommendationStyle === 'story'}
+                      showPopularityPenalty={recommendationStyle === 'thematic'}
                       showCollection={collectionMode !== 'none' && collectionSets.length > 0}
                       showTheme={Boolean(theme)}
                       showSubThemes={activeSubThemes.length > 0}
@@ -854,7 +852,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <div>
                 <p className="eyebrow">Optional guidance</p>
                 <h3 id="health-lane-title">Deck health suggestions</h3>
-                <p>Story mode keeps these separate from your theme picks.</p>
+                <p>The thematic goal keeps these separate from your theme picks.</p>
               </div>
               <div className="health-suggestion-list">
                 {healthSuggestions.map((card) => {
@@ -920,11 +918,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     type="button"
                     onClick={() => openModal('doctor-history')}
                   >
-                    Swap history ({deckDoctorHistory.length})
+                    Change history ({deckDoctorHistory.length})
                   </button>
                 )}
                 <button className="export" type="button" onClick={() => openModal('review')}>
-                  Detailed review
+                  Deck review
                 </button>
               </div>
             </div>

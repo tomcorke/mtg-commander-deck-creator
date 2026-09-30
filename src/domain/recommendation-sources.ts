@@ -75,6 +75,7 @@ export function buildEdhrecRecommendations(
     const text = card ? cardText(card) : ''
     return (
       card &&
+      (!card.legalities?.commander || card.legalities.commander === 'legal') &&
       !(options.excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) &&
       !(options.excludeTutors && /search your library/i.test(text)) &&
       !(options.excludeExtraTurns && /extra turn/i.test(text)) &&

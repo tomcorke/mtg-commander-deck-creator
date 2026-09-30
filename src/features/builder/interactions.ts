@@ -1,11 +1,10 @@
 import type { MouseEvent } from 'react'
 
-import { analyseDeck, deckRoleBoosts, rolesForCard } from '../../deck-analysis.ts'
+import { rolesForCard } from '../../deck-analysis.ts'
+import { buildRecommendationContext } from '../../app/recommendation-context.ts'
 import type { Card } from '../../domain/card-model.ts'
-import { commanderNames } from '../../domain/commander-catalog.ts'
 import {
   advanceRecommendationQueue,
-  manaSupportFromAnalysis,
   type CollectionMode,
   type RecommendationStyle,
 } from '../../recommendations.ts'
@@ -71,9 +70,6 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
     commander,
     setRecommendationOptionsChanged,
     queue,
-    deck,
-    prioritizeDeckHealth,
-    deckTargets,
     preferenceScores,
     deferredCards,
     batchNumber,
@@ -100,16 +96,7 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
     return
   }
   const batch: Card[] = queue.slice(0, 4)
-  const analysis = analyseDeck(deck)
-  const roleBoosts: Record<string, number> = prioritizeDeckHealth
-    ? deckRoleBoosts(deck.length, analysis.counts, deckTargets)
-    : {}
-  const pickedTags = new Set([
-    ...deck.slice(commanderNames(commander).length).flatMap((card: Card) => card.tags),
-    ...Object.entries(preferenceScores as Record<string, number>)
-      .filter(([, score]) => score > 0)
-      .map(([tag]) => tag),
-  ])
+  const { roleBoosts, pickedTags, manaSupport } = buildRecommendationContext(deps, queue)
   const next = advanceRecommendationQueue({
     queue,
     deferredCards,
@@ -124,7 +111,7 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
     includeCreature,
     roleBoosts,
     cardRoles: (card: any) => rolesForCard(card),
-    manaSupport: manaSupportFromAnalysis(analysis, deckTargets),
+    manaSupport,
     recommendationStyle: recommendationStyle as RecommendationStyle,
     collectionSets,
     collectionMode: collectionMode as CollectionMode,

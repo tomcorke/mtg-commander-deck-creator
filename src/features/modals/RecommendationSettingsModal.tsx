@@ -129,7 +129,8 @@ export function RecommendationSettingsModal({
             <p className="eyebrow">Recommendation preferences</p>
             <h2 id="recommendation-settings-title">Recommendation settings</h2>
             <p className="settings-help">
-              Changes apply when you request the next recommendations.
+              Your goal controls ranking, not deck legality. Power and exclusions control which
+              cards are offered. No setting guarantees a bracket or competitive strength.
             </p>
           </div>
           <ModalCloseButton
@@ -140,7 +141,7 @@ export function RecommendationSettingsModal({
         </div>
         <div className="recommendation-options recommendation-settings-form">
           <div className="recommendation-setting">
-            <label htmlFor="recommendation-style">Recommendation style</label>
+            <label htmlFor="recommendation-style">Deck goal</label>
             <select
               id="recommendation-style"
               value={recommendationStyle}
@@ -148,15 +149,26 @@ export function RecommendationSettingsModal({
                 chooseRecommendationStyle(event.target.value as RecommendationStyle)
               }
             >
-              <option value="story">Story deck</option>
+              <option value="thematic">Thematic</option>
+              <option value="fun">Fun &amp; varied</option>
               <option value="balanced">Balanced</option>
-              <option value="optimized">Optimized</option>
+              <option value="competitive">Competitive</option>
             </select>
             <SettingHelp
               id="recommendation-style-help"
-              label="Recommendation style"
-              description="Controls how cards are ranked. Story favors your theme, Balanced mixes theme and deck needs, and Optimized favors cards that fill deck needs."
+              label="Deck goal"
+              description="Thematic favors your chosen themes; Fun & varied boosts interesting new picks; Balanced mixes theme and deck needs; Competitive emphasizes EDHREC evidence, mana fit, and missing roles."
             />
+            <p className="settings-help">
+              {recommendationStyle === 'thematic'
+                ? 'Favors your theme, sub-themes, and selected sets over popularity.'
+                : recommendationStyle === 'fun'
+                  ? 'Boosts picks marked “Interesting new pick” and shows more of them together.'
+                  : recommendationStyle === 'competitive'
+                    ? 'Favors EDHREC evidence, mana fit, and missing deck roles. This is a heuristic, not a game simulator.'
+                    : 'Balances theme, synergy, learned preferences, and missing deck roles.'}{' '}
+              Choosing a goal resets the deck-health default below; you can override it.
+            </p>
           </div>
           <div className="recommendation-setting">
             <label htmlFor="power-target">Power target</label>
@@ -167,12 +179,12 @@ export function RecommendationSettingsModal({
             >
               <option value="precon">Core (Bracket 2)</option>
               <option value="upgraded">Upgraded (Bracket 3)</option>
-              <option value="high">High power / Optimized (Bracket 4)</option>
+              <option value="high">High power (Bracket 4)</option>
             </select>
             <SettingHelp
               id="power-target-help"
               label="Power target"
-              description="Sets the target power band. Core filters out fast-mana cards that are uncommon in precon-style decks. Higher targets allow them."
+              description="Core blocks listed fast-mana cards. Core and Upgraded turn on the Game Changer, tutor, and extra-turn exclusions; High power turns them off. You can override each exclusion below. These filters do not verify a bracket."
             />
           </div>
           <div className="recommendation-setting">

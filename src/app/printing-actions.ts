@@ -1,7 +1,7 @@
-import { analyseDeck, deckRoleBoosts, rolesForCard, targetKeys } from '../deck-analysis.ts'
-import { commanderNames } from '../domain/commander-catalog.ts'
+import { rolesForCard } from '../deck-analysis.ts'
+import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
+import { buildRecommendationContext } from './recommendation-context.ts'
 import {
-  manaSupportFromAnalysis,
   orderedPrintings,
   preferredPrintingIndex,
   recommendationScore,
@@ -16,52 +16,12 @@ function scoringContext(
   selectedCollectionSets: string[],
   selectedCollectionMode: CollectionMode,
 ) {
-  const {
-    deck,
-    commander,
-    preferenceScores,
-    prioritizeDeckHealth,
-    deckTargets,
-    theme,
-    activeSubThemes,
-    recommendationStyle,
-    batchNumber,
-  } = deps
-  const analysis = analyseDeck(deck)
-  const pickedTags = new Set([
-    ...deck.slice(commanderNames(commander).length).flatMap((card: Card) => card.tags),
-    ...Object.entries(preferenceScores as Record<string, number>)
-      .filter(([, score]) => score > 0)
-      .map(([tag]) => tag),
-  ])
-  const roleBoosts: Record<string, number> = prioritizeDeckHealth
-    ? deckRoleBoosts(deck.length, analysis.counts, deckTargets)
-    : {}
-  const neededRoles = new Set(
-    prioritizeDeckHealth ? targetKeys.filter((key) => analysis.counts[key] < deckTargets[key]) : [],
-  )
-  const roleSupply = Object.fromEntries(
-    targetKeys.map((role) => [
-      role,
-      cards.filter((card) => rolesForCard(card).includes(role)).length,
-    ]),
+  const context = buildRecommendationContext(
+    { ...deps, collectionSets: selectedCollectionSets, collectionMode: selectedCollectionMode },
+    deps.queue,
   )
   const score = (card: Card) =>
-    recommendationScore(card, {
-      theme,
-      activeSubThemes,
-      pickedTags,
-      preferenceScores,
-      neededRoles,
-      cardRoles: rolesForCard(card),
-      recommendationStyle,
-      collectionSets: selectedCollectionMode === 'none' ? [] : selectedCollectionSets,
-      collectionMode: selectedCollectionMode,
-      roleBoosts,
-      roleSupply,
-      batchNumber,
-      manaSupport: manaSupportFromAnalysis(analysis, deckTargets),
-    })
+    recommendationScore(card, { ...context, cardRoles: rolesForCard(card) })
   const specialCards = new Set(
     [0, 4].flatMap((start) => {
       const recommended = cards
@@ -190,7 +150,14 @@ export async function loadPrintings(
     )
       continue
     await new Promise((resolve) => setTimeout(resolve, 100))
-    const result = await fetchPrintings(offered.printsUri)
+    let result: ScryfallCard[]
+    try {
+      result = await fetchPrintings(offered.printsUri)
+    } catch (error) {
+      // Printing enrichment is optional; keep existing suggestions during the cooldown.
+      if (error instanceof ScryfallRateLimitError) return
+      throw error
+    }
     if (!result.length) continue
     const printings = buildPrintings(offered, result)
     const selectedIndex = selectedPrintingIndex(

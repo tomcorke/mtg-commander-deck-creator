@@ -2,6 +2,50 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [A4] Explain Scryfall rate limits and retry timing
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — The shared adapter now preserves rate-limit details for existing error displays.
+
+**Status:** Implemented on `feature/unified-deck-review`; not yet merged or published.
+
+### Completed behavior
+
+Scryfall HTTP 429 errors report a retry wait and local retry time. The adapter reads `Retry-After` seconds or HTTP dates and accounts for server clock skew using `Date` when exposed. Missing, invalid, or CORS-hidden retry headers produce a clearly labelled one-minute estimate, not a promise of recovery.
+
+All adapter endpoints share a cooldown per fetch client/tab. Further requests fail locally with updated retry guidance until that deadline; concurrent responses retain the longest cooldown. Collection requests no longer retry 429 after 500/1000 ms. Existing transient-server retries, search no-match handling, and cancellation remain intact. Requests already in flight finish normally; reloads and other tabs do not share the cooldown.
+
+Recommendation fallbacks no longer swallow rate-limit advice. Optional printing enrichment stops quietly without discarding existing suggestions, and manual printing details retain the retry message. The builder's Retry action preserves deck cards instead of restarting the deck.
+
+### Acceptance checks
+
+- Adapter checks cover every endpoint, numeric/date headers, clock skew, expired/invalid/missing headers, shared cooldowns, concurrent limits, expiry, and cancellation.
+- Recommendation tests verify the detailed error reaches the displayed state without fallback requests or deck resets; optional printing failures keep suggestions.
+- Browser checks inject 429 responses with numeric, date, missing, and CORS-hidden headers. They verify rendered guidance, no network requests on early Retry, deck-card preservation, and light/dark desktop/narrow layouts.
+- All 116 tests, lint, typecheck, and production build pass. Existing hook and bundle-size warnings remain.
+
+## [B6] Unify deck review and goal-driven recommendations
+
+**Complexity:** Medium · **Value:** High · **Delivery risk:** Medium — Existing analysis and swap controls were reused; recommendation consistency and navigation needed regression checks.
+
+**Status:** Implemented on `feature/unified-deck-review`; not yet merged or published.
+
+### Completed behavior
+
+Detailed review and Deck Doctor now share one full-page **Deck review**: overview, findings, explicit swap plans, optional commander comparisons, and session change history. Section controls move focus to their destination; overview counts return to matching builder cards. Details and settings keep the review open and preserve selections. Loading printing metadata no longer clears planned cuts. Existing Doctor/history links and import/completion handoffs remain supported.
+
+Thematic, Fun & varied, Balanced, and Competitive are explicit goals. Balanced stays the default with its existing neutral weights. Thematic favors identity; Fun rewards discovery; Competitive emphasizes evidence and deck needs without forced reason/theme diversity. Creature inclusion remains optional. Legacy Story and Optimized choices migrate to Thematic and Competitive in saved decks and local options. Goal ranking remains separate from eligibility filters and makes no bracket or win-rate promise.
+
+Recommendation surfaces share a scoring-context builder. Replacements are scored against the deck after selected cuts, and ready plans show role-count and theme-match changes before approval. Replacement fetching excludes ignored, existing, off-colour, and known-illegal candidates, preserves commander evidence when merging theme results, and keeps the full candidate pool. Changed eligibility options invalidate fetched results; stale responses cannot replace newer ones. Mana-fit penalties now cover non-creature spells too.
+
+### Acceptance checks
+
+- Unit checks cover goal-specific ranking, legacy migration, creature inclusion, non-creature mana fit, candidate filtering/evidence preservation, and replacement scoring after cuts.
+- Existing import, completion, route, swap, and safe-undo tests pass.
+- `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` pass. Existing hook and bundle-size warnings remain.
+- Rendered checks cover partial/complete decks, 1366px/390px layouts, light/dark themes, card-name and image previews, details/settings return, equal-count swaps, undo, candidate refresh, overview filters, and legacy links. Screenshots and the browser smoke script stay outside the repository; no artwork is committed.
+
+Ranking details: [docs/recommendation-design.md](docs/recommendation-design.md).
+
 ## [A1] Improve land and mana-support recommendations
 
 **Complexity:** High · **Value:** High · **Delivery risk:** Medium — The existing basic-land planner and mana data provide a base; reliable castability scoring still needs judgment calls.

@@ -220,16 +220,6 @@
   min-height: 260px;
   margin-top: 14px;
 }
-.deck-review-modal {
-  width: min(1440px, 100%);
-  min-width: 0;
-  max-width: 100%;
-}
-.deck-review-heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 .doctor-card-art:focus-visible,
 .doctor-card-select input:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--commander-accent, #7546a8) 48%, white);
@@ -290,6 +280,50 @@
   padding-left: 24px;
   border-left: 1px solid var(--doctor-border);
 }
+.doctor-navigation {
+  position: sticky;
+  z-index: 20;
+  top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--doctor-border);
+  border-radius: 10px;
+  background: var(--doctor-panel);
+  box-shadow: 0 4px 16px #0002;
+}
+.doctor-goal-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--doctor-border);
+  border-radius: 10px;
+  background: var(--doctor-panel);
+}
+.doctor-goal-settings p {
+  margin: 0;
+  color: var(--doctor-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.doctor-overview {
+  display: grid;
+  gap: 12px;
+}
+.doctor-overview .deck-review-grid {
+  margin-top: 0;
+}
+#deck-review-overview,
+#doctor-diagnosis,
+#doctor-changes,
+#deck-review-history {
+  scroll-margin-top: 78px;
+}
 .doctor-page-context h1 {
   margin: 0;
   font-size: clamp(28px, 3vw, 44px);
@@ -331,6 +365,9 @@
   color: var(--doctor-muted);
   font-size: 13px;
   line-height: 1.5;
+}
+.doctor-page [id] {
+  scroll-margin-top: 76px;
 }
 .doctor-intro {
   max-width: 1280px;
@@ -582,6 +619,18 @@
   display: grid;
   gap: 14px;
 }
+.doctor-impact h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.doctor-impact p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  color: var(--doctor-muted);
+  font-size: 12px;
+}
 .doctor-plan-pairs {
   display: grid;
   gap: 12px;
@@ -683,6 +732,18 @@
 @media (max-width: 620px) {
   .doctor-page {
     padding: 18px 6vw 32px;
+  }
+  .doctor-navigation {
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .doctor-navigation button {
+    flex: 0 0 auto;
+  }
+  .doctor-goal-settings {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .doctor-apply-bar {
     padding-inline: 6vw;
@@ -1017,12 +1078,15 @@
   }
 }
 @media (max-width: 620px) {
-  .deck-review-modal {
-    width: min(100%, calc(100vw - 32px));
-    justify-self: stretch;
-  }
   .deck-review-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .doctor-navigation {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .doctor-page [id] {
+    scroll-margin-top: 116px;
   }
 }
 .import-help {

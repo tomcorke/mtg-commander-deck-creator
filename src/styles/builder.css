@@ -149,6 +149,10 @@
 .recommendation-settings-form > .recommendation-setting {
   flex-basis: 100%;
 }
+.recommendation-setting > .settings-help {
+  grid-column: 1 / -1;
+  line-height: 1.5;
+}
 .recommendation-setting,
 .recommendation-setting-toggle,
 .collection-mode-setting {

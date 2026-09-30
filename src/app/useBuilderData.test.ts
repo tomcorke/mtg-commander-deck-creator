@@ -81,6 +81,21 @@ test('shows basic-land fill and scores lands when the deck has a land gap', () =
   assert.deepEqual(data.scoreCandidate(creature), data.scoredBatch[1].score)
   assert.equal(withoutDeckHealth.scoredBatch[0].score.deckNeeds, 0)
   assert.ok(withoutDeckHealth.scoredBatch[1].score.manaFitPenalty < 0)
+  assert.deepEqual(
+    data.scoreReplacements(deps.queue, deps.deck)[1].score,
+    data.scoreCandidate(creature),
+  )
+
+  const ramp = { ...creature, name: 'Ramp', manaValue: 1, manaCost: '{G}', producedMana: ['G'] }
+  const supportedDeck = [...deps.deck, ramp]
+  const supported = buildBuilderData({
+    ...deps,
+    deck: supportedDeck,
+    queue: [ramp],
+    deckTargets: { lands: 0, ramp: 1, draw: 0, removal: 0, wipes: 0 },
+  })
+  assert.equal(supported.scoreCandidate(ramp).deckNeeds, 0)
+  assert.ok(supported.scoreReplacements([ramp], deps.deck)[0].score.deckNeeds > 0)
 })
 
 test('groups planeswalker creatures with planeswalkers', () => {

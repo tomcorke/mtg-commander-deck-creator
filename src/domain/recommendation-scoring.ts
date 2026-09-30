@@ -40,8 +40,10 @@ function evidenceScore(
         : card.reason === 'Popular inclusion' || card.reason === 'Land or mana'
           ? 8
           : 12
-  if (style === 'story') return Math.round(base * 0.65)
-  if (style === 'optimized')
+  if (style === 'thematic') return Math.round(base * 0.65)
+  if (style === 'fun' && card.reason === 'Interesting new pick')
+    return Math.min(recommendationScoreFactorMaximums.evidence, base + 8)
+  if (style === 'competitive')
     return Math.min(recommendationScoreFactorMaximums.evidence, Math.round(base * 1.1))
   return base
 }
@@ -56,9 +58,9 @@ function collectionScore(
     mode !== 'none' && Boolean(card.collectionMatch || (card.set && sets.includes(card.set)))
   if (!matches) return { value: 0, matches: false }
   const value =
-    mode === 'only' || style === 'story'
+    mode === 'only' || style === 'thematic'
       ? recommendationScoreFactorMaximums.collection
-      : style === 'balanced'
+      : style === 'fun' || style === 'balanced'
         ? 8
         : 6
   return { value, matches: true }
@@ -75,13 +77,16 @@ function preferenceScore(
     (collectionMatch ? (preferenceScores.Collection ?? 0) : 0)
   return Math.max(
     -recommendationScoreFactorMaximums.preferences,
-    Math.min(recommendationScoreFactorMaximums.preferences, base * (style === 'story' ? 1.2 : 1)),
+    Math.min(
+      recommendationScoreFactorMaximums.preferences,
+      base * (style === 'thematic' ? 1.2 : style === 'competitive' ? 0.8 : 1),
+    ),
   )
 }
 
 // ponytail: source-count proxy; consider sampled draws if audits show poor castability rankings.
 function manaFitPenalty(card: RecommendationScoreCard, support?: ManaSupport) {
-  if (!support || !card.typeLine?.includes('Creature')) return 0
+  if (!support || !card.manaCost) return 0
   const totalSources = support.landCount + support.rampCount
   const targetSources = Math.max(1, support.landTarget + support.rampTarget)
   const sourceDeficit = Math.max(0, targetSources - totalSources) / targetSources
@@ -141,7 +146,7 @@ function deckNeedsScore(
     ? recommendationScoreFactorMaximums.deckNeeds * Math.min(1, urgency / ceiling) ** 1.23
     : cardRoles.filter((role) => neededRoles.has(role)).length * 10
   const styleMultiplier =
-    roleAware && style === 'story' ? 0.35 : roleAware && style === 'optimized' ? 1.25 : 1
+    roleAware && style === 'thematic' ? 0.35 : roleAware && style === 'competitive' ? 1.25 : 1
   return Math.min(recommendationScoreFactorMaximums.deckNeeds, Math.floor(base * styleMultiplier))
 }
 
@@ -165,15 +170,20 @@ export function recommendationScoreBreakdown(
 ): RecommendationScoreBreakdown {
   const collection = collectionScore(card, recommendationStyle, collectionSets, collectionMode)
   const evidence = evidenceScore(card, recommendationStyle)
+  const goalThemeWeight = recommendationStyle === 'competitive' ? 0.5 : 1
   const theme =
-    declaredTheme && card.tags.includes(declaredTheme) ? recommendationScoreFactorMaximums.theme : 0
+    declaredTheme && card.tags.includes(declaredTheme)
+      ? Math.round(recommendationScoreFactorMaximums.theme * goalThemeWeight)
+      : 0
   const subThemes = Math.min(
     recommendationScoreFactorMaximums.subThemes,
-    card.tags.filter((tag) => activeSubThemes.includes(tag)).length * 4,
+    Math.round(
+      card.tags.filter((tag) => activeSubThemes.includes(tag)).length * 4 * goalThemeWeight,
+    ),
   )
   const deckFit = Math.min(
     recommendationScoreFactorMaximums.deckFit,
-    card.tags.filter((tag) => pickedTags.has(tag)).length * 5,
+    Math.round(card.tags.filter((tag) => pickedTags.has(tag)).length * 5 * goalThemeWeight),
   )
   const preferences = preferenceScore(
     card,
@@ -191,7 +201,7 @@ export function recommendationScoreBreakdown(
   )
   const manaFit = manaFitPenalty(card, manaSupport)
   const popularityPenalty =
-    recommendationStyle === 'story' &&
+    recommendationStyle === 'thematic' &&
     (card.reason === 'Commander favourite' || card.reason === 'Popular inclusion')
       ? -recommendationScoreFactorMaximums.popularityPenalty
       : 0
@@ -219,6 +229,13 @@ export function recommendationScoreBreakdown(
     manaFitPenalty: manaFit,
     popularityPenalty,
   }
+}
+
+export function compareRecommendationScores(
+  left: RecommendationScoreBreakdown,
+  right: RecommendationScoreBreakdown,
+) {
+  return right.total - left.total || right.deckNeeds - left.deckNeeds
 }
 
 export function recommendationScore(
