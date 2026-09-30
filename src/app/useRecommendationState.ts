@@ -10,7 +10,9 @@ import {
 } from '../recommendations.ts'
 import { useStoredOption } from '../shared/hooks.ts'
 
-function useEdhrecRetryState() {
+function useEdhrecRequestState(savedDeckId: string) {
+  const [signatureDeckKey, setSignatureDeckKey] = useState(() => savedDeckId || crypto.randomUUID())
+  const [signatureEpoch, setSignatureEpoch] = useState(0)
   const [edhrecRetryAttempt, setEdhrecRetryAttempt] = useState(0)
   const [edhrecRetryRemaining, setEdhrecRetryRemaining] = useState(0)
   const edhrecRetryInFlight = useRef(false)
@@ -23,6 +25,10 @@ function useEdhrecRetryState() {
     return () => window.clearTimeout(timer)
   }, [edhrecRetryRemaining])
   return {
+    signatureDeckKey,
+    setSignatureDeckKey,
+    signatureEpoch,
+    setSignatureEpoch,
     edhrecRetryAttempt,
     setEdhrecRetryAttempt,
     edhrecRetryRemaining,
@@ -91,7 +97,7 @@ export function useRecommendationState(saved: PersistedDeckState | null) {
     setRecommendationLoadingTitle,
     limitedRecommendations,
     setLimitedRecommendations,
-    ...useEdhrecRetryState(),
+    ...useEdhrecRequestState(saved?.savedDeckId ?? ''),
     recommendationStyle,
     setRecommendationStyle,
     prioritizeDeckHealth,

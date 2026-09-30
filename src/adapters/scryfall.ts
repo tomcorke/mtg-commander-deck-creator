@@ -1,4 +1,10 @@
-import type { ScryfallCard, ScryfallSet } from '../domain/card-model'
+import {
+  cardNameKey,
+  isScryfallCard,
+  type ScryfallCard,
+  type ScryfallSet,
+} from '../domain/card-model.ts'
+import { retryTime, scheduleRequest, type RequestPolicy } from './request-scheduler.ts'
 
 export type ScryfallIdentifier = { name?: string; set?: string; collector_number?: string }
 export type ScryfallFetcher = typeof fetch
@@ -48,41 +54,57 @@ export class ScryfallRateLimitError extends Error {
 }
 
 function rateLimitError(response: Response) {
-  const value = response.headers.get('Retry-After')?.trim() ?? ''
-  const serverDate = Date.parse(response.headers.get('Date') ?? '')
-  const reference = Number.isFinite(serverDate) ? serverDate : Date.now()
-  const seconds = /^\d+$/.test(value)
-    ? Number(value)
-    : /[a-z]/i.test(value)
-      ? (Date.parse(value) - reference) / 1000
-      : NaN
-  const retryAt = Date.now() + Math.max(0, seconds) * 1000
-  const estimated = !Number.isFinite(retryAt) || Number.isNaN(new Date(retryAt).getTime())
-  // ponytail: one-minute estimate when headers are missing/hidden; server advice takes precedence.
-  return new ScryfallRateLimitError(estimated ? Date.now() + 60_000 : retryAt, estimated)
+  const { retryAt, estimated } = retryTime(response)
+  return new ScryfallRateLimitError(retryAt, estimated)
 }
 
 // ponytail: cooldown is per client/tab; use BroadcastChannel if multi-tab coordination becomes necessary.
 const rateLimits = new WeakMap<ScryfallFetcher, ScryfallRateLimitError>()
-
-async function requestScryfall(input: string, fetcher: ScryfallFetcher, init?: RequestInit) {
-  init?.signal?.throwIfAborted()
+function checkCooldown(fetcher: ScryfallFetcher) {
   const cooldown = rateLimits.get(fetcher)
   if (cooldown && cooldown.retryAt > Date.now())
     throw new ScryfallRateLimitError(cooldown.retryAt, cooldown.estimated)
-  const response = await fetcher(input, init)
-  if (response.status === 429) {
-    const error = rateLimitError(response)
-    const previous = rateLimits.get(fetcher)
-    const limit = !previous || error.retryAt >= previous.retryAt ? error : previous
-    rateLimits.set(fetcher, limit)
-    throw new ScryfallRateLimitError(limit.retryAt, limit.estimated)
-  }
-  return response
+}
+
+async function requestScryfall(
+  input: string,
+  fetcher: ScryfallFetcher,
+  init?: RequestInit,
+  policy: RequestPolicy = {},
+) {
+  init?.signal?.throwIfAborted()
+  checkCooldown(fetcher)
+  return scheduleRequest(
+    fetcher,
+    500,
+    async () => {
+      checkCooldown(fetcher)
+      policy.onDispatch?.()
+      const response = await fetcher(input, {
+        ...init,
+        headers: { Accept: 'application/json', ...init?.headers },
+      })
+      if (response.status === 429) {
+        const error = rateLimitError(response)
+        const previous = rateLimits.get(fetcher)
+        const limit = !previous || error.retryAt >= previous.retryAt ? error : previous
+        rateLimits.set(fetcher, limit)
+        throw new ScryfallRateLimitError(limit.retryAt, limit.estimated)
+      }
+      return response
+    },
+    init?.signal ?? undefined,
+    policy,
+  )
 }
 
 type CacheValue = ScryfallCard | ScryfallCard[]
-type RequestJob = { controller: AbortController; users: number; settled: boolean }
+type RequestJob = {
+  controller: AbortController
+  users: number
+  settled: boolean
+  policy?: RequestPolicy
+}
 type PendingValue = { job: RequestJob; promise: Promise<CacheValue | undefined> }
 type SessionCache = {
   values: Map<string, { value: CacheValue; expiresAt: number }>
@@ -109,7 +131,7 @@ function sessionCache(fetcher: ScryfallFetcher) {
 const identifierKey = ({ name, set, collector_number }: ScryfallIdentifier) =>
   set && collector_number
     ? `printing:${set.toLowerCase()}:${collector_number}`
-    : `name:${name?.trim().toLowerCase()}`
+    : `name:${cardNameKey(name ?? '')}`
 
 function cachedValue(cache: SessionCache, key: string) {
   const entry = cache.values.get(key)
@@ -129,10 +151,11 @@ function rememberValue(cache: SessionCache, key: string, value: CacheValue) {
 
 function rememberPrintings(cache: SessionCache, cards: ScryfallCard[]) {
   for (const card of cards)
-    if (card.set && card.collector_number) rememberValue(cache, identifierKey(card), card)
+    if (isScryfallCard(card)) rememberValue(cache, identifierKey(card), card)
 }
 
 function rememberResult(cache: SessionCache, key: string, value: CacheValue) {
+  if (Array.isArray(value) ? !value.every(isScryfallCard) : !isScryfallCard(value)) return
   rememberValue(cache, key, value)
   rememberPrintings(cache, Array.isArray(value) ? value : [value])
   if (key.startsWith('name:') && !Array.isArray(value))
@@ -166,8 +189,14 @@ function registerPending(
   return pending
 }
 
-function waitForValue(cache: SessionCache, pending: PendingValue, signal?: AbortSignal) {
+function waitForValue(
+  cache: SessionCache,
+  pending: PendingValue,
+  signal?: AbortSignal,
+  background = false,
+) {
   const { job } = pending
+  if (!background && job.policy) job.policy.background = false
   job.users++
   return new Promise<CacheValue | undefined>((resolve, reject) => {
     let released = false
@@ -223,20 +252,28 @@ export async function fetchScryfallCollection(
   fetcher: ScryfallFetcher = fetch,
   pause = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
   signal?: AbortSignal,
+  policy: RequestPolicy = {},
 ) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  const attempts = policy.background ? 1 : 3
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      const response = await requestScryfall('https://api.scryfall.com/cards/collection', fetcher, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifiers }),
-        signal,
-      })
+      const response = await requestScryfall(
+        'https://api.scryfall.com/cards/collection',
+        fetcher,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifiers }),
+          signal,
+        },
+        policy,
+      )
       if (collectionResponse(response)) return response
     } catch (error) {
-      if (signal?.aborted || error instanceof ScryfallRateLimitError || attempt === 2) throw error
+      if (signal?.aborted || error instanceof ScryfallRateLimitError || attempt === attempts - 1)
+        throw error
     }
-    if (attempt < 2) await pause(500 * 2 ** attempt)
+    if (attempt < attempts - 1) await pause(500 * 2 ** attempt)
   }
   throw new Error('Scryfall unavailable')
 }
@@ -271,8 +308,7 @@ function matchingCard(identifier: ScryfallIdentifier, cards: ScryfallCard[]) {
   return cards.find((card) =>
     identifier.set && identifier.collector_number
       ? identifierKey(card) === key
-      : identifierKey({ name: card.name }) === key ||
-        identifierKey({ name: card.name.split(' // ')[0] }) === key,
+      : identifierKey({ name: card.name }) === key,
   )
 }
 
@@ -280,6 +316,7 @@ export async function resolveScryfallIdentifiers(
   identifiers: ScryfallIdentifier[],
   fetcher: ScryfallFetcher = fetch,
   signal?: AbortSignal,
+  policy: RequestPolicy = {},
 ): Promise<CardCollectionResponse> {
   signal?.throwIfAborted()
   const cache = sessionCache(fetcher)
@@ -291,16 +328,19 @@ export async function resolveScryfallIdentifiers(
   let previous: Promise<unknown> = Promise.resolve()
   for (let index = 0; index < missing.length; index += 75) {
     const batch = missing.slice(index, index + 75)
-    const job = { controller: new AbortController(), users: 0, settled: false }
+    const job = { controller: new AbortController(), users: 0, settled: false, policy }
     const result = previous.then(async () => {
       const response = await fetchScryfallCollection(
         batch.map(([, identifier]) => identifier),
         fetcher,
         undefined,
         job.controller.signal,
+        policy,
       )
       if (!response.ok) throw new Error('Scryfall unavailable')
-      return ((await response.json()) as CardCollectionResponse).data
+      const json = (await response.json()) as { data: unknown[] }
+      if (!Array.isArray(json.data)) throw new Error('Invalid Scryfall collection response')
+      return json.data.filter(isScryfallCard)
     })
     previous = result
     for (const [key, identifier] of batch)
@@ -316,7 +356,7 @@ export async function resolveScryfallIdentifiers(
       const value = cached.get(key)
       return value !== undefined
         ? Promise.resolve(structuredClone(value) as ScryfallCard)
-        : (waitForValue(cache, cache.pending.get(key)!, signal) as Promise<
+        : (waitForValue(cache, cache.pending.get(key)!, signal, policy.background) as Promise<
             ScryfallCard | undefined
           >)
     }),
@@ -332,8 +372,9 @@ export async function fetchScryfallCardsByIdentifiers(
   identifiers: ScryfallIdentifier[],
   fetcher: ScryfallFetcher = fetch,
   signal?: AbortSignal,
+  policy: RequestPolicy = {},
 ) {
-  return (await resolveScryfallIdentifiers(identifiers, fetcher, signal)).data
+  return (await resolveScryfallIdentifiers(identifiers, fetcher, signal, policy)).data
 }
 
 export async function fetchScryfallPrintings(

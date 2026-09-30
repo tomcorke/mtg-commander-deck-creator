@@ -96,6 +96,9 @@
 .offer-heading .suggestion-type {
   flex: 1;
 }
+.suggestion-type .card-reference-name:is(:hover, :focus-visible) {
+  color: inherit;
+}
 .recommended-badge {
   padding: 3px 6px;
   border-radius: 10px;

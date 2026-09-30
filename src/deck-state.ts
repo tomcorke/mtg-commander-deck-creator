@@ -44,6 +44,19 @@ const cardBase = {
   priceUri: z.string().optional(),
   tags: z.array(z.string()),
   source: z.enum(['edhrec', 'scryfall']).optional(),
+  seedEvidence: z
+    .array(
+      z.object({
+        name: z.string(),
+        seed: z.string(),
+        page: z.enum(['cards', 'commanders']),
+        theme: z.string(),
+        tag: z.string(),
+        lift: z.number().optional(),
+        decks: z.number().optional(),
+      }),
+    )
+    .optional(),
   collectionMatch: z.boolean().optional(),
   printings: z.array(printingSchema).optional(),
   printing: z.number().int().nonnegative().optional(),

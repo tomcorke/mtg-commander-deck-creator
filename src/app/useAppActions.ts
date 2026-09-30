@@ -32,6 +32,7 @@ import {
   start as startRecommendations,
 } from './recommendation-actions.ts'
 import { useAppEffects, usePrintingRepairEffect } from './useAppEffects.ts'
+import { useSignatureRecommendations } from './useSignatureRecommendations.ts'
 import type { ControllerState } from './useControllerState.ts'
 import {
   appHistoryKey,
@@ -75,6 +76,7 @@ function useRoutingActions(state: AppState) {
 }
 
 function useRemoteActions(state: AppState, routing: RoutingActions) {
+  useSignatureRecommendations(state)
   const loadPrintings = (
     cards: Card[],
     preferredSet = '',

@@ -108,6 +108,7 @@ test('opening another search detail cancels stale printing results', async (cont
   assert.ok(signals[0].aborted)
   assert.equal(deps.builderModeReturn, 'search')
   assert.equal(deps.activeModal, 'card')
+  await new Promise((resolve) => setTimeout(resolve, 520))
   pending[1](Response.json({ data: [card('Newer'), { ...card('Newer'), set: 'alt' }] }))
   await newer
   pending[0](Response.json({ data: [card('Older')] }))

@@ -20,7 +20,7 @@ export const themeMatchers: [string, RegExp][] = [
   ['Blink', /exile .* return|exile .* then return/i],
   [
     'ETB',
-    /when(?:ever)? (?:this|another|a|one or more|one or another|an? [^,.]+) (?:creature |permanent )?enters|enters the battlefield/i,
+    /when(?:ever)? (?:this|another|a|one or more|one or another|an? [^,.]+) (?:creature |permanent )?enters|enters the battlefield|(?:artifact|creature) entering causes a triggered ability/i,
   ],
   [
     'Death triggers',
@@ -196,6 +196,11 @@ export function tagsFor(source: string, typeLine: string) {
 
 const synergyRules: { left: RegExp; right: RegExp; explanation: string }[] = [
   {
+    left: /exile .*return|triggers an additional time/i,
+    right: /when(?:ever)? (?![^\n,.]*\blands?\b)[^\n,.]*enters/i,
+    explanation: 'one reuses or multiplies entry triggers while the other rewards entering',
+  },
+  {
     left: /create[s]? .* token/i,
     right: /tokens? you control/i,
     explanation: 'one creates tokens while the other rewards your token army',
@@ -206,7 +211,7 @@ const synergyRules: { left: RegExp; right: RegExp; explanation: string }[] = [
     explanation: 'one places +1/+1 counters while the other rewards or spends them',
   },
   {
-    left: /sacrifice (?:another )?(?:creature|permanent)/i,
+    left: /sacrifice (?:a |another )?(?:creature|permanent)/i,
     right: /whenever .* dies|when .* dies/i,
     explanation: 'one provides a sacrifice outlet while the other rewards creatures dying',
   },

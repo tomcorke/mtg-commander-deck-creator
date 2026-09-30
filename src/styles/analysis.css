@@ -692,6 +692,13 @@ li.deck-highlight-dimmed {
     visibility 0s 0.15s;
   visibility: hidden;
 }
+.card-image-preview--reference {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  --preview-transform: scale(0.96);
+  --preview-transform-hover: scale(1);
+}
 .card-image-preview--above {
   bottom: calc(100% + 8px);
 }

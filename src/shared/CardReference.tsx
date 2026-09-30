@@ -1,5 +1,6 @@
 import type { Card } from '../domain/card-model.ts'
 import { CardImagePreview } from './CardImagePreview.tsx'
+import { showCardPreview, hideCardPreview } from './card-preview.ts'
 
 type Props = {
   card: Pick<Card, 'name' | 'image'>
@@ -8,7 +9,13 @@ type Props = {
 
 export function CardReference({ card, onOpen }: Props) {
   return (
-    <span className="card-reference">
+    <span
+      className="card-reference"
+      onMouseEnter={({ currentTarget }) => showCardPreview(currentTarget)}
+      onFocus={({ currentTarget }) => showCardPreview(currentTarget)}
+      onMouseLeave={({ currentTarget }) => hideCardPreview(currentTarget)}
+      onBlur={({ currentTarget }) => hideCardPreview(currentTarget)}
+    >
       <button
         type="button"
         className="card-reference-name"
@@ -18,7 +25,7 @@ export function CardReference({ card, onOpen }: Props) {
       >
         {card.name}
       </button>
-      <CardImagePreview image={card.image} placement="above" />
+      <CardImagePreview image={card.image} placement="reference" />
     </span>
   )
 }

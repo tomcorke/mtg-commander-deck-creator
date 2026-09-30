@@ -25,6 +25,29 @@ const card = (name: string, set = 'new'): ScryfallCard => ({
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve))
 
+test('front-face and combined names share hydration keys in both directions', async () => {
+  let calls = 0
+  const fetcher: typeof fetch = async () => {
+    calls++
+    return response({ data: [card('Accursed Witch')] })
+  }
+  assert.equal(
+    (
+      await fetchScryfallCardsByIdentifiers(
+        [{ name: 'Accursed Witch // Infectious Curse' }],
+        fetcher,
+      )
+    )[0]?.name,
+    'Accursed Witch',
+  )
+  assert.equal((await fetchScryfallCard('Accursed Witch', fetcher)).name, 'Accursed Witch')
+  assert.equal(
+    (await fetchScryfallCard('Accursed Witch / Infectious Curse', fetcher)).name,
+    'Accursed Witch',
+  )
+  assert.equal(calls, 1)
+})
+
 test('overlapping bulk and named lookups fetch each missing record once and isolate returned data', async () => {
   const first = Promise.withResolvers<Response>()
   const batches: ScryfallIdentifier[][] = []
@@ -39,7 +62,7 @@ test('overlapping bulk and named lookups fetch each missing record once and isol
   await tick()
   const b = fetchScryfallCardsByIdentifiers([{ name: 'b' }, { name: 'C' }], fetcher)
   const named = fetchScryfallCard('B', fetcher)
-  await tick()
+  await new Promise((resolve) => setTimeout(resolve, 520))
   assert.deepEqual(batches, [[{ name: 'A' }, { name: 'B' }], [{ name: 'C' }]])
   first.resolve(response({ data: [card('B'), card('A')] }))
   assert.deepEqual(

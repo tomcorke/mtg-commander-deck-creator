@@ -284,7 +284,10 @@ export function usePrintingRepairEffect(deps: AppEffectsDeps) {
     loadPrintings,
   } = deps
   useEffect(() => {
-    const cards = queue.slice(0, 8)
+    // Seed arrivals do not cause printing requests for unseen cards; normal advancement loads them.
+    const cards = queue
+      .slice(0, 8)
+      .filter((card: any, index: number) => index < 4 || !card.seedEvidence?.length)
     if (
       !cards.some(
         (card: any) =>

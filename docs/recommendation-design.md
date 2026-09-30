@@ -9,7 +9,7 @@ Recommend cards for the player's chosen goal, commander, declared theme, and exi
 - EDHREC commander JSON is the primary recommendation source. Fetch current data each session and rely on its CDN cache headers.
 - Scryfall supplies card rules, legality, images, printings, mana values, and fallback recommendations.
 - Keep the app client-only. If EDHREC is unavailable or its undocumented JSON shape changes, fall back to Scryfall and show `Limited recommendations`.
-- Persist user state, not remote recommendation data.
+- Persist user state and its card snapshots; keep provider source-page and hydration caches in memory only.
 
 ## Scryfall session cache
 
@@ -20,6 +20,18 @@ Bulk hydration reserves missing identifiers before dispatch, so overlapping requ
 Each caller receives a copy of cached data. Cancelling one caller leaves other consumers running; cancelling the last consumer aborts shared work. Failed, missing, and fully cancelled results are not retained. Successful printing lists include all pages. Recommendation refresh preserves commander art/finish choices, and enrichment does not overwrite a manual printing choice.
 
 Expired entries are fetched on the next lookup. For an explicit data refresh, call `clearScryfallCache()` before looking up cards or printings again; it clears the default client's data and pending-request registry without changing deck selections or the 429 cooldown. Existing consumers finish independently, and their old responses cannot refill the new cache. A normal recommendation refresh reuses unexpired raw data. Reloading the page starts a new session. The uncached `fetchScryfallCollection` function remains the retrying HTTP transport; application lookups use `resolveScryfallIdentifiers` or `fetchScryfallCardsByIdentifiers`.
+
+## Signature-card trial
+
+Commander recommendations still load first. While the partial-deck builder is idle, a two-second pause can select up to two main-deck engines for +1/+1 counters, blink/ETB, or sacrifice. Each needs two other mechanic participants. Commanders, lands, sideboard cards, generic staples, and unsupported mechanics are not seeds; legendary status earns no bonus.
+
+Use one validated EDHREC page per seed, at most 24 novel names per page, and at most one 48-name Scryfall collection POST per pass. Reserve at most four seed attempts and two background POSTs per deck session, or 12 and six per tab. Saving retains the allowance. Failed/cancelled reservations count; background work never retries automatically or fetches printings. Successful raw EDHREC pages share a 15-minute/32-entry session cache keyed by kind and slug.
+
+Foreground and background transport share provider scheduling: at least 500 ms between Scryfall dispatches; EDHREC is serialized with at least one-second spacing. Foreground work wins queued slots, including shared requests promoted by foreground consumers. Provider cooldowns block background dispatch. Background failure stays silent and never triggers the foreground fallback.
+
+Recheck Commander legality, colour identity, exclusions, collection constraints, deck/sideboard, ignored names, and deferred cards before merging. Require a concrete engine connection rather than a broad tag or incidental reminder text. Preserve the current four objects and all choices; append only unseen pending candidates and use ordinary goal-aware ranking on advancement. Deck identity/generation and current eligibility context reject stale responses, including switches between saved decks sharing a commander.
+
+Optional per-seed/list/page evidence persists with candidates and selected cards. New cards display `Seen with <seed>` through the shared card reference, not `Commander synergy`; source-only score boosts are not added. Complete 100-card main decks pause enrichment. The [A6 report](a6-signature-card-investigation.md#implemented-trial) records the live Anikthea check, transport/browser validation, and remaining player review.
 
 ## Ranking
 

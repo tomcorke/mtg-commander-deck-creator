@@ -1,6 +1,7 @@
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
+import { resetSignatureContext } from './signature-actions.ts'
 import { commanderNames, themeSearchTerms } from '../domain/commander-catalog.ts'
 import { commanderPrintingOptions, defaultFinish } from '../domain/printing.ts'
 import {
@@ -284,6 +285,7 @@ export async function loadCommanderCards(deps: ActionDeps, chosen: string) {
 }
 
 export function resetRecommendationState(deps: ActionDeps, preserveDeck: boolean) {
+  resetSignatureContext(deps, preserveDeck ? undefined : crypto.randomUUID())
   const {
     navigateView,
     activeModal,

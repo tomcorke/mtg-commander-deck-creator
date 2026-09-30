@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { cardText } from './recommendation-scoring.ts'
 import { tagsFor } from './recommendation-themes.ts'
 import { toRecommendationCard } from './recommendation-sources.ts'
@@ -55,6 +56,54 @@ export type ScryfallCard = {
   card_faces?: ScryfallCardFace[]
 }
 
+const faceSchema = z.object({
+  type_line: z.string().optional(),
+  mana_cost: z.string().optional(),
+  oracle_text: z.string().optional(),
+  power: z.string().optional(),
+  toughness: z.string().optional(),
+  image_uris: z.object({ normal: z.string(), art_crop: z.string().optional() }).optional(),
+})
+const scryfallCardSchema = z.object({
+  name: z.string().trim().min(1),
+  type_line: z.string(),
+  color_identity: z.array(z.enum(['W', 'U', 'B', 'R', 'G'])),
+  set: z.string(),
+  collector_number: z.string(),
+  prints_search_uri: z.string(),
+  layout: z.string().optional(),
+  mana_cost: z.string().optional(),
+  cmc: z.number().optional(),
+  oracle_text: z.string().optional(),
+  power: z.string().optional(),
+  toughness: z.string().optional(),
+  produced_mana: z.array(z.string()).optional(),
+  card_faces: z.array(faceSchema).optional(),
+  legalities: z.object({ commander: z.string().optional() }).optional(),
+  game_changer: z.boolean().optional(),
+  released_at: z.iso.date().optional(),
+  set_name: z.string().optional(),
+  scryfall_uri: z.string().optional(),
+  finishes: z.array(z.enum(['nonfoil', 'foil', 'etched'])).optional(),
+  prices: z
+    .object({
+      usd: z.string().nullable().optional(),
+      usd_foil: z.string().nullable().optional(),
+      usd_etched: z.string().nullable().optional(),
+    })
+    .optional(),
+  purchase_uris: z
+    .object({
+      tcgplayer: z.string().optional(),
+      cardmarket: z.string().optional(),
+      cardhoarder: z.string().optional(),
+    })
+    .optional(),
+  image_uris: z.object({ normal: z.string(), art_crop: z.string().optional() }).optional(),
+})
+export const isScryfallCard = (value: unknown): value is ScryfallCard =>
+  scryfallCardSchema.safeParse(value).success
+
 export type CommanderCard = ScryfallCard & {
   related_uris?: { edhrec?: string }
 }
@@ -93,6 +142,12 @@ export type CommanderDetails = {
 
 export type ExportFormat = 'moxfield' | 'plain' | 'csv'
 
+export const cardNameKey = (name: string) =>
+  name
+    .trim()
+    .toLowerCase()
+    .split(/\s+\/\/?\s+/)[0]
+
 export const scryfallImage = (card: ScryfallCard) =>
   card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? ''
 
@@ -109,6 +164,7 @@ export const toCard = (card: ScryfallCard, reason: string, category = ''): Card 
 export const toDeckCardFromRecommendation = (card: Card): DeckCard => ({
   name: card.name,
   layout: card.layout,
+  seedEvidence: card.seedEvidence,
   typeLine: card.typeLine,
   colorIdentity: card.colorIdentity,
   manaCost: card.manaCost,

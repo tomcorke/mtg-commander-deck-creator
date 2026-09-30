@@ -157,18 +157,13 @@ test('cooldown spans endpoints, expires, and does not mask cancellation', async 
 test('concurrent rate limits keep the longest cooldown', async (t) => {
   t.mock.method(Date, 'now', () => Date.parse('2026-09-29T22:00:00Z'))
   let calls = 0
+  const first = Promise.withResolvers<Response>()
   const fetcher = async () =>
-    response(
-      {},
-      {
-        status: 429,
-        headers: { 'Retry-After': ++calls === 1 ? '120' : '30' },
-      },
-    )
-  await Promise.all([
-    assert.rejects(searchScryfallPage('first', fetcher), /2 minutes/),
-    assert.rejects(searchScryfallPage('second', fetcher), /2 minutes/),
-  ])
+    ++calls === 1 ? first.promise : response({}, { status: 429, headers: { 'Retry-After': '120' } })
+  const pending = assert.rejects(searchScryfallPage('first', fetcher), /2 minutes/)
+  await assert.rejects(searchScryfallPage('second', fetcher), /2 minutes/)
+  first.resolve(response({}, { status: 429, headers: { 'Retry-After': '30' } }))
+  await pending
   await assert.rejects(fetchScryfallSets(fetcher), /2 minutes/)
   assert.equal(calls, 2)
 })

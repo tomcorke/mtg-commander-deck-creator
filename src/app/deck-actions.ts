@@ -41,6 +41,7 @@ import {
 } from '../deck-import.ts'
 import { commanderPromotionInfo, promoteDeckCard } from '../domain/commander-promotion.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
+import { bindSignatureBudget, resetSignatureContext } from './signature-actions.ts'
 function preloadArt(sources: (string | undefined)[]) {
   return Promise.all(
     sources.filter(Boolean).map(
@@ -59,33 +60,7 @@ const cardCanHavePowerToughness = (card: Pick<DeckCard, 'typeLine'>) =>
 
 export function addRecommendationCard(deps: ActionDeps, card: Card) {
   const { deck, setBatchAnnouncement, setDeck, setQueue, setSideboard } = deps
-  const added: DeckCard = {
-    name: card.name,
-    layout: card.layout,
-    typeLine: card.typeLine,
-    colorIdentity: card.colorIdentity,
-    manaCost: card.manaCost,
-    manaValue: card.manaValue,
-    detail: card.detail,
-    producedMana: card.producedMana,
-    faces: card.faces,
-    power: card.power,
-    toughness: card.toughness,
-    set: card.set,
-    setName: card.setName,
-    collectorNumber: card.collectorNumber,
-    scryfallUri: card.scryfallUri,
-    printsUri: card.printsUri,
-    image: card.image,
-    backImage: card.backImage,
-    price: card.price,
-    priceUri: card.priceUri,
-    tags: card.tags,
-    printings: card.printings,
-    printing: card.printing ?? 0,
-    printingManuallySelected: card.printingManuallySelected,
-    finish: card.finish,
-  }
+  const added = toDeckCardFromRecommendation(card)
   if (deck.length < 100)
     setDeck((list: any) =>
       list.some((item: any) => item.name === card.name) ? list : [...list, added],
@@ -145,33 +120,7 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
     setSideboard((list: any) => list.filter((item: any) => item.name !== card.name))
   }
   if (previous !== 'add' && action === 'add') {
-    const added = {
-      name: card.name,
-      layout: card.layout,
-      typeLine: card.typeLine,
-      colorIdentity: card.colorIdentity,
-      manaCost: card.manaCost,
-      manaValue: card.manaValue,
-      detail: card.detail,
-      producedMana: card.producedMana,
-      faces: card.faces,
-      power: card.power,
-      toughness: card.toughness,
-      set: card.set,
-      setName: card.setName,
-      collectorNumber: card.collectorNumber,
-      scryfallUri: card.scryfallUri,
-      printsUri: card.printsUri,
-      image: card.image,
-      backImage: card.backImage,
-      price: card.price,
-      priceUri: card.priceUri,
-      tags: card.tags,
-      printings: card.printings,
-      printing: card.printing ?? 0,
-      printingManuallySelected: card.printingManuallySelected,
-      finish: card.finish,
-    }
+    const added = toDeckCardFromRecommendation(card)
     if (deck.length < 100)
       setDeck((list: any) =>
         card.typeLine.includes('Basic Land') || !list.some((item: any) => item.name === card.name)
@@ -915,6 +864,8 @@ export function storeDeck(deps: ActionDeps) {
       state: { ...state, savedDeckId: id },
     }),
   )
+  if (deps.signatureDeckKey) bindSignatureBudget(deps.signatureDeckKey, id)
+  resetSignatureContext(deps, id)
   setActiveSavedDeckId(id)
 }
 
@@ -949,6 +900,7 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
     setTheme,
   } = deps
   const state = saved.state
+  resetSignatureContext(deps, state.savedDeckId || saved.id)
   setCommander(state.commander)
   setCommanderDetails(state.commanderDetails)
   setTheme(state.theme)
@@ -1144,6 +1096,7 @@ export function startOver(deps: ActionDeps) {
     )
   )
     return
+  resetSignatureContext(deps, crypto.randomUUID())
   clearDeckState()
   setCommander('')
   setCommanderDetails(null)

@@ -22,6 +22,15 @@ export const curatedCollections: CuratedCollection[] = [
   { id: 'marvel', name: 'Marvel', setCodes: ['spm'] },
 ]
 export type EdhrecEntry = { name: string; tag: string; header: string }
+export type SeedEvidence = {
+  name: string
+  seed: string
+  page: 'cards' | 'commanders'
+  theme: string
+  tag: string
+  lift?: number
+  decks?: number
+}
 export type RecommendationCard = {
   name: string
   layout: string
@@ -36,6 +45,7 @@ export type RecommendationCard = {
   toughness?: string
   reason: string
   source?: RecommendationSource
+  seedEvidence?: SeedEvidence[]
   image: string
   backImage?: string
   set: string

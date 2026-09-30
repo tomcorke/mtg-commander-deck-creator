@@ -1,0 +1,113 @@
+COMMANDER:
+1 Anikthea, Hand of Erebos (CMM) 705 *F*
+
+DECK:
+1 Abandoned Air Temple (TLA) 263
+1 Abundant Growth (EMA) 156
+1 Accursed Witch / Infectious Curse (SOI) 97
+1 Adventurer's Inn (FIN) 271
+1 All That Glitters (CMM) 622
+1 Amonkhet Raceway (DFT) 248
+1 Anointed Procession (AKH) 2
+1 Arcane Signet (KHC) 96
+1 Archon of Sun's Grace (THB) 3
+1 Arctic Flats (CSP) 143
+1 Arctic Treeline (KHM) 249
+1 Ash Barrens (PLST) CM2-235
+1 Binding the Old Gods (CMM) 917
+1 Birds of Paradise (MSC) 170
+1 Boon of the Spirit Realm (CMM) 720
+1 Botanical Plaza (SNC) 350
+1 Bountiful Promenade (MSC) 226
+1 Brightclimb Pathway / Grimclimb Pathway (ZNR) 285
+1 Calix, Guided by Fate (MAT) 26
+1 Canopy Vista (C20) 261
+1 Cathars' Crusade (JMP) 95
+1 Caves of Koilos (DRC) 148
+1 Command Tower (CM2) 242
+1 Composer of Spring (CMM) 739
+1 Deathcap Glade (VOW) 261
+1 Demon of Fate's Design (CMM) 731
+1 Destiny Spinner (THB) 168
+1 Dryad of the Ilysian Grove (PLST) THB-169
+1 Eclipsed Steppe (SOC) 101
+1 Eidolon of Blossoms (CMM) 892
+1 Enchantress's Presence (MH2) 283
+1 Eternal Witness (C15) 183
+1 Evolving Wilds (M20) 246
+1 Exotic Orchard (AFC) 236
+1 Farseek (PLST) C17-149
+1 Felidar Retreat (ZNR) 16
+1 Forest (J25) 95
+1 Generous Gift (MSC) 133
+1 Godless Shrine (TRK) 285
+1 Grasp of Fate (WOT) 3
+1 Grasslands (C17) 252
+1 Greater Auramancy (WOT) 4
+1 Grim Guardian (JOU) 73
+1 Hall of Heliod's Generosity (MH1) 241
+1 Hallowed Haunting (VOW) 17
+1 Haunted Mire (DMU) 248
+1 Herald of the Pantheon (C18) 151
+1 Heroic Intervention (WHO) 233
+1 Jukai Naturalist (NEO) 225
+1 Kodama's Reach (CMM) 300
+1 Lightning Greaves (FIC) 349
+1 Llanowar Wastes (M3C) 354
+1 Mesa Enchantress (DMR) 14
+1 Mirari's Wake (C17) 181
+1 Myriad Landscape (C19) 261
+1 Nature's Lore (MKC) 178
+1 Nylea, God of the Hunt (THS) 166
+1 Nyx Weaver (C20) 226
+1 Ondu Spiritdancer (CMM) 723
+1 Overgrown Tomb (TRK) 289
+1 Path of Ancestry (C20) 298
+1 Path to Exile (NCC) 208
+1 Plains (J25) 81
+1 Privileged Position (MAR) 92
+1 Radiant Grove (DMU) 253
+1 Reliquary Tower (MB2) 111
+1 Ripples of Undeath (MH3) 107
+1 S.H.I.E.L.D. Spy Satellite (MSC) 285
+1 Sanctum Weaver (MH2) 171
+1 Sandsteppe Citadel (PLST) CM2-264
+1 Satyr Enchanter (PLST) M19-223
+1 Setessan Champion (THB) 198
+1 Sigil of the Empty Throne (ORI) 31
+1 Skullclamp (C20) 251
+1 Soaring Lightbringer (DSC) 11
+1 Sol Ring (CM2) 217
+1 Springheart Nantuko (MH3) 171
+1 Starfield Mystic (M20) 39
+1 Starfield of Nyx (CMM) 840
+1 Sterling Grove (MH2) 293
+1 Sungrass Prairie (C19) 277
+1 Sunlit Marsh (DMU) 257
+1 Swamp (J25) 89
+1 Swiftfoot Boots (FIC) 361
+1 Swords to Plowshares (NCC) 211
+1 Sythis, Harvest's Hand (MH2) 214
+1 Temple Garden (TRK) 301
+1 Temple of Malady (M21) 253
+1 Temple of Plenty (THB) 248
+1 Temple of Silence (M21) 255
+1 Terramorphic Expanse (CM2) 273
+1 Tribute to the World Tree (MOM) 211
+1 Verduran Enchantress (5ED) 337
+1 Victimize (CNS) 133
+1 Weaver of Harmony (NEO) 213
+1 Wild Growth (PLST) C18-165
+1 Yavimaya, Cradle of Growth (MH2) 261
+1 Yenna, Redtooth Regent (WOE) 219
+1 Yuna, Hope of Spira (FIN) 250
+
+SIDEBOARD:
+1 Daxos the Returned (C15) 43
+1 Doomwake Giant (C15) 121
+1 Elemental Bond (SCD) 180
+1 Katilda, Dawnhart Martyr / Katilda's Rising Dawn (VOW) 21
+1 Seal of Primordium (TSR) 228
+1 Skybind (JOU) 25
+1 Spidersilk Armor (MMQ) 273
+1 Whip of Erebos (DSC) 159

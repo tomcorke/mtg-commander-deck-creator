@@ -23,21 +23,23 @@ Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5
 
 Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change.
 
-| Order | ID  | TODO                                 | Complexity | Value  | Delivery risk | Reason                                                                                  |
-| ----- | --- | ------------------------------------ | ---------- | ------ | ------------- | --------------------------------------------------------------------------------------- |
-| 1     | A6  | Signature-card recommendations       | High       | High   | High          | A5's cache is available; investigate sources and seed selection before adding requests. |
-| 2     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation.   |
-| 3     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                  |
+| Order | ID  | TODO                                 | Complexity | Value  | Delivery risk | Reason                                                                                           |
+| ----- | --- | ------------------------------------ | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------------------ |
+| 1     | A6  | Signature-card recommendations       | High       | High   | Medium        | Bounded trial is implemented; representative player review and broader mechanic coverage remain. |
+| 2     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation.            |
+| 3     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                           |
 
 ## [A6] Expand recommendations using signature cards in the deck
 
-**Complexity:** High · **Value:** High · **Delivery risk:** High — Non-commander EDHREC sources and useful seed-selection rules need investigation; background fetching must stay within request budgets.
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — The bounded integration is tested; heuristic relevance and undocumented provider sources still need player review.
 
-Commander-based EDHREC lists can miss cards that support engines already chosen for the deck. Keep the commander as the initial source, then investigate additional recommendations based on main-deck cards.
+Commander-based EDHREC lists can miss cards that support engines already chosen for the deck. Keep the commander as the initial source, then supplement it from selected main-deck engines.
 
-- Investigate how to identify signature cards. Likely candidates include legendary creatures, other relevant legendary cards, and planeswalkers; legendary status alone should not make a card a useful seed.
-- Verify which EDHREC data or endpoints support recommendations for non-commander seeds. Do not assume every card has a commander-style recommendation page.
-- Consider broader background fetching from other deck cards, prioritised by their contribution to selected themes and existing fit scores. Define a bounded seed set rather than fetching for every card on every deck change.
+**Trial status (2026-09-30): implemented.** The [investigation and validation report](docs/a6-signature-card-investigation.md#implemented-trial) records the counters, blink/ETB, and sacrifice trial. It selects at most two supported engines after a two-second pause, reads one page per seed, and hydrates at most 48 names through the shared cache. Provider pacing, cooldowns, request ceilings, eligibility rechecks, persisted seed evidence, partner exclusions, and stale saved-deck responses are covered. Browser checks preserve current choices and later-batch behavior. The supplied Anikthea deck produced four eligible additions beyond its commander pool when tested as an 86-card partial deck; its complete 100-card main deck correctly pauses enrichment. Unsupported mechanics do not trigger fetching. Requests remain user-driven; permission is not an investigation gate. Player acceptance and wider mechanic coverage remain unproven.
+
+- Keep seed selection tied to repeatable engine wording and at least two other main-deck participants. Legendary or planeswalker status earns no bonus; commanders, sideboard cards, lands, and ordinary staples are not seeds.
+- Use card-page co-occurrence or a suitable blink commander's page. Skip an unavailable source without trying a second route. Do not use the Recs endpoint or add a proxy for this trial.
+- Review the three supported mechanics with players before extending the profiles or request allowances. Broader coverage must produce useful additions without selecting every card on every deck change.
 - Build on A5's cache and deduplication. Bound concurrency, request frequency, and total work for both EDHREC and Scryfall; foreground requests take priority, and background work respects provider cooldowns.
 - Quietly merge completed results into the pending recommendation pool. Keep the visible batch and Add/Later/Ignore/like choices stable; new cards should naturally enter subsequent batches through the same goal-aware scoring and ranking as all other candidates.
 - Deduplicate results, retain source/seed evidence for explanations, and respect commander identity, legality, exclusions, collection constraints, ignored cards, and deferred-card cooldowns.
@@ -45,7 +47,7 @@ Commander-based EDHREC lists can miss cards that support engines already chosen 
 
 Current context: `edhrecRecommendations` in `src/app/recommendation-actions.ts` uses the commander or partner pair and hydrates names through Scryfall. `src/domain/recommendation-queue.ts` owns batching and deferrals; the shared scoring/context modules should also evaluate added candidates.
 
-Go/no-go: proceed after supported sources and seed-selection checks produce additional relevant, legal candidates within an explicit request budget. If the source cannot support this reliably, record the limitation and retain the commander-first flow rather than inventing unsupported recommendations.
+Go/no-go: the bounded trial has source, transport, queue, and browser evidence. Require representative player review before a wider rollout or broader scan. If a mechanic cannot produce useful additions within the current budget, retain commander-first behavior rather than inventing unsupported recommendations.
 
 Acceptance checks:
 

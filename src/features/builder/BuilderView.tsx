@@ -38,6 +38,7 @@ import type {
 import type { DeckReviewFilter } from '../../deck-review.ts'
 import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
 import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { CardReference } from '../../shared/CardReference.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
@@ -134,6 +135,23 @@ type BuilderViewModel = {
   setShowSubThemePicker: Dispatch<SetStateAction<boolean>>
   setSubThemeSearch: Dispatch<SetStateAction<string>>
   setTheme: Dispatch<SetStateAction<string>>
+}
+
+function recommendationReason(
+  card: Card,
+  fallback: string,
+  selected: DeckCard[],
+  onOpen: (card: DeckCard) => void,
+) {
+  const evidence = card.seedEvidence?.[0]
+  if (!evidence || !card.reason.startsWith('Seen with ')) return fallback
+  const seed = selected.find(({ name }) => name === evidence.seed)
+  if (!seed) return 'Seen with an earlier deck engine'
+  return (
+    <>
+      Seen with <CardReference card={seed} onOpen={() => onOpen(seed)} />
+    </>
+  )
 }
 
 export function BuilderView({ model }: { model: BuilderViewModel }) {
@@ -698,7 +716,14 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     </span>
                   )}
                   <div className="offer-heading">
-                    <h3 className="suggestion-type">{cardReason(card)}</h3>
+                    <h3 className="suggestion-type">
+                      {recommendationReason(
+                        card,
+                        cardReason(card),
+                        [...deck, ...sideboard],
+                        model.openCardReference,
+                      )}
+                    </h3>
                     {recommendedCard.card === card && (
                       <span className="recommended-badge">Recommended</span>
                     )}
