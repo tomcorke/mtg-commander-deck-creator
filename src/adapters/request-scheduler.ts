@@ -1,3 +1,17 @@
+export class ProviderRequestError extends Error {
+  readonly status?: number
+  readonly retryAt?: number
+  constructor(message: string, status?: number, retryAt?: number) {
+    super(message)
+    this.name = 'ProviderRequestError'
+    this.status = status
+    this.retryAt = retryAt
+  }
+  get transient() {
+    return this.status === undefined || this.status === 429 || this.status >= 500
+  }
+}
+
 export type RequestPolicy = { background?: boolean; onDispatch?: () => void }
 type QueuedRequest = {
   run: () => Promise<void>

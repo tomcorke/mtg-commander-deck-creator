@@ -20,6 +20,9 @@ import {
 import { buildRecommendationContext } from './recommendation-context.ts'
 import {
   loadSignatureResults,
+  completeSignatureResults,
+  signatureRetryAt,
+  signatureWindow,
   signatureBudget,
   bindSignatureBudget,
   tabSignatureBudget,
@@ -335,6 +338,7 @@ test('a pass caps source lists at 24, overlaps seeds, reuses raw pages and warm 
     budget,
   )
   assert.equal(first.length, 24)
+  completeSignatureResults('A', first, budget)
   assert.equal(first[0].evidence.length, 3)
   assert.equal(paths.length, 4)
   assert.deepEqual(
@@ -350,7 +354,7 @@ test('a pass caps source lists at 24, overlaps seeds, reuses raw pages and warm 
   )
   await loadSignatureResults('B', seeds, new Set(), new AbortController().signal, fetcher, budget)
   assert.equal(paths.length, 4)
-  assert.equal(budget.posts, 1)
+  assert.equal(budget.posts.length, 1)
 })
 
 test('three distinct seeds hydrate 72 names with one POST, never 96 or a second batch', async () => {
@@ -385,8 +389,9 @@ test('three distinct seeds hydrate 72 names with one POST, never 96 or a second 
   assert.equal(posts, 1)
 })
 
-test('actual transport stays within eight seed/four POST deck caps and twenty-four/twelve tab caps', async () => {
-  const budget = signatureBudget()
+test('actual transport obeys rolling deck/tab caps and replenishes one slot at the exact boundary', async () => {
+  let now = Date.now()
+  const budget = signatureBudget(() => now)
   let gets = 0,
     posts = 0
   const fetcher: typeof fetch = async (input, init) => {
@@ -400,8 +405,9 @@ test('actual transport stays within eight seed/four POST deck caps and twenty-fo
   }
   for (let deck = 0; deck < 3; deck++)
     for (let index = 0; index < 9; index++) {
+      now += 10_000
       const current = { ...seed, card: { ...seed.card, name: `Engine ${deck}-${index}` } }
-      const work = loadSignatureResults(
+      await loadSignatureResults(
         `Deck ${deck}`,
         [current],
         new Set(),
@@ -409,8 +415,6 @@ test('actual transport stays within eight seed/four POST deck caps and twenty-fo
         fetcher,
         budget,
       )
-      if (index >= 4 && index < 8) await assert.rejects(work, /budget exhausted/)
-      else await work
     }
   await loadSignatureResults(
     'New deck',
@@ -422,9 +426,50 @@ test('actual transport stays within eight seed/four POST deck caps and twenty-fo
   )
   assert.equal(gets, 24)
   assert.equal(posts, 12)
-  assert.equal(budget.attempts, 24)
-  assert.equal(budget.posts, 12)
-  const record = { seeds: new Set(['tried']), posts: 4 }
+  assert.equal(budget.attempts.length, 24)
+  assert.equal(budget.posts.length, 12)
+  const record = budget.decks.get('Deck 0')!
+  const pending = [{ ...seed, card: { ...seed.card, name: 'Engine 0-4' } }]
+  const boundary = record.posts[0] + signatureWindow
+  now = boundary - 1
+  assert.equal(signatureRetryAt('Deck 0', pending, budget), boundary)
+  assert.deepEqual(
+    await loadSignatureResults(
+      'Deck 0',
+      pending,
+      new Set(),
+      new AbortController().signal,
+      fetcher,
+      budget,
+    ),
+    [],
+  )
+  assert.equal(posts, 12)
+  now = boundary
+  const resumed = await loadSignatureResults(
+    'Deck 0',
+    pending,
+    new Set(),
+    new AbortController().signal,
+    fetcher,
+    budget,
+  )
+  assert.equal(resumed.length, 1)
+  assert.equal(gets, 24) // The successful source checkpoint survives the hour-long pause.
+  assert.equal(posts, 13)
+  assert.equal(record.posts.length, 4)
+  assert.equal(budget.posts.length, 12)
+  completeSignatureResults('Deck 0', resumed, budget)
+  await loadSignatureResults(
+    'New deck',
+    [{ ...seed, card: { ...seed.card, name: 'Another engine' } }],
+    new Set(),
+    new AbortController().signal,
+    fetcher,
+    budget,
+  )
+  assert.equal(gets, 25)
+  assert.equal(budget.attempts.length, 24)
   tabSignatureBudget.decks.set('unsaved-test', record)
   bindSignatureBudget('unsaved-test', 'saved-test')
   assert.equal(tabSignatureBudget.decks.get('saved-test'), record)
@@ -445,7 +490,7 @@ test('actual transport stays within eight seed/four POST deck caps and twenty-fo
   assert.equal(key, 'new')
 })
 
-test('cancelled queued seeds retain their reservation without spending a hydration POST', async () => {
+test('cancelled queued seeds remain pending and charge only actual dispatches', async () => {
   const held = Promise.withResolvers<Response>()
   let calls = 0
   const fetcher: typeof fetch = async () => {
@@ -468,9 +513,9 @@ test('cancelled queued seeds retain their reservation without spending a hydrati
   await assert.rejects(cancelled, { name: 'AbortError' })
   held.resolve(Response.json(page([])))
   await foreground
-  assert.equal(budget.attempts, 1)
+  assert.equal(budget.attempts.length, 0)
   assert.equal(budget.decks.get('cancelled')?.seeds.size, 1)
-  assert.equal(budget.posts, 0)
+  assert.equal(budget.posts.length, 0)
   assert.deepEqual(
     await loadSignatureResults(
       'cancelled',
@@ -482,10 +527,11 @@ test('cancelled queued seeds retain their reservation without spending a hydrati
     ),
     [],
   )
-  assert.equal(calls, 1)
+  assert.equal(calls, 2)
+  assert.equal(budget.attempts.length, 1)
 })
 
-test('failures, malformed pages and 429 cooldowns do not retry background work', async () => {
+test('each pass has one transport attempt; transient failures defer rather than retry immediately', async () => {
   let gets = 0,
     posts = 0
   const broken: typeof fetch = async (_input, init) => {
@@ -496,8 +542,8 @@ test('failures, malformed pages and 429 cooldowns do not retry background work',
     posts++
     return Response.json({}, { status: 503 })
   }
-  await assert.rejects(
-    loadSignatureResults(
+  assert.deepEqual(
+    await loadSignatureResults(
       'broken',
       [seed],
       new Set(),
@@ -505,7 +551,7 @@ test('failures, malformed pages and 429 cooldowns do not retry background work',
       broken,
       signatureBudget(),
     ),
-    /Scryfall unavailable/,
+    [],
   )
   assert.equal(gets, 1)
   assert.equal(posts, 1)

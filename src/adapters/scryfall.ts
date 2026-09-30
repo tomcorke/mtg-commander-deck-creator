@@ -4,7 +4,12 @@ import {
   type ScryfallCard,
   type ScryfallSet,
 } from '../domain/card-model.ts'
-import { retryTime, scheduleRequest, type RequestPolicy } from './request-scheduler.ts'
+import {
+  ProviderRequestError,
+  retryTime,
+  scheduleRequest,
+  type RequestPolicy,
+} from './request-scheduler.ts'
 
 export type ScryfallIdentifier = { name?: string; set?: string; collector_number?: string }
 export type ScryfallFetcher = typeof fetch
@@ -28,7 +33,7 @@ export type CardListResponse = {
   warnings?: string[]
 }
 
-export class ScryfallRateLimitError extends Error {
+export class ScryfallRateLimitError extends ProviderRequestError {
   readonly retryAt: number
   readonly estimated: boolean
 
@@ -46,6 +51,8 @@ export class ScryfallRateLimitError extends Error {
           ? `Try again ${wait} (after ${new Date(retryAt).toLocaleString()}).`
           : 'Try again now.'
       }${estimated ? ' No usable retry time was exposed; this wait is an estimate.' : ''}`,
+      429,
+      retryAt,
     )
     this.name = 'ScryfallRateLimitError'
     this.retryAt = retryAt
@@ -59,11 +66,13 @@ function rateLimitError(response: Response) {
 }
 
 // ponytail: cooldown is per client/tab; use BroadcastChannel if multi-tab coordination becomes necessary.
-const rateLimits = new WeakMap<ScryfallFetcher, ScryfallRateLimitError>()
+const rateLimits = new WeakMap<ScryfallFetcher, ProviderRequestError>()
 function checkCooldown(fetcher: ScryfallFetcher) {
   const cooldown = rateLimits.get(fetcher)
-  if (cooldown && cooldown.retryAt > Date.now())
-    throw new ScryfallRateLimitError(cooldown.retryAt, cooldown.estimated)
+  if (cooldown && (cooldown.retryAt ?? 0) > Date.now())
+    throw cooldown instanceof ScryfallRateLimitError
+      ? new ScryfallRateLimitError(cooldown.retryAt, cooldown.estimated)
+      : cooldown
 }
 
 async function requestScryfall(
@@ -80,20 +89,42 @@ async function requestScryfall(
     async () => {
       checkCooldown(fetcher)
       policy.onDispatch?.()
-      const response = await fetcher(input, {
-        ...init,
-        headers: { Accept: 'application/json', ...init?.headers },
-      })
-      if (response.status === 429) {
-        const error = rateLimitError(response)
+      let response: Response
+      try {
+        response = await fetcher(input, {
+          ...init,
+          headers: { Accept: 'application/json', ...init?.headers },
+        })
+      } catch (error) {
+        if (init?.signal?.aborted) throw error
+        throw new ProviderRequestError('Scryfall network unavailable')
+      }
+      if (
+        response.status === 429 ||
+        (response.status >= 500 && response.headers.has('Retry-After'))
+      ) {
+        const error =
+          response.status === 429
+            ? rateLimitError(response)
+            : new ProviderRequestError(
+                'Scryfall unavailable',
+                response.status,
+                retryTime(response).retryAt,
+              )
         const previous = rateLimits.get(fetcher)
-        const limit = !previous || error.retryAt >= previous.retryAt ? error : previous
+        const limit =
+          !previous || (error.retryAt ?? 0) >= (previous.retryAt ?? 0) ? error : previous
         rateLimits.set(fetcher, limit)
         await response.body?.cancel()
-        throw new ScryfallRateLimitError(limit.retryAt, limit.estimated)
+        throw limit
       }
       // Keep the slot until the body finishes, not just until headers arrive.
-      const body = response.body ? await response.arrayBuffer() : null
+      const body = response.body
+        ? await response.arrayBuffer().catch((error) => {
+            if (init?.signal?.aborted) throw error
+            throw new ProviderRequestError('Scryfall network unavailable')
+          })
+        : null
       return new Response(body, {
         status: response.status,
         statusText: response.statusText,
@@ -262,6 +293,7 @@ export async function fetchScryfallCollection(
   policy: RequestPolicy = {},
 ) {
   const attempts = policy.background ? 1 : 3
+  let lastStatus = 500
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const response = await requestScryfall(
@@ -275,14 +307,19 @@ export async function fetchScryfallCollection(
         },
         policy,
       )
-      if (collectionResponse(response)) return response
+      if (collectionResponse(response) || policy.background) return response
+      lastStatus = response.status
     } catch (error) {
-      if (signal?.aborted || error instanceof ScryfallRateLimitError || attempt === attempts - 1)
+      if (
+        signal?.aborted ||
+        (error instanceof ProviderRequestError && error.retryAt !== undefined) ||
+        attempt === attempts - 1
+      )
         throw error
     }
     if (attempt < attempts - 1) await pause(500 * 2 ** attempt)
   }
-  throw new Error('Scryfall unavailable')
+  throw new ProviderRequestError('Scryfall unavailable', lastStatus)
 }
 
 export async function fetchScryfallCard<T extends ScryfallCard = ScryfallCard>(
@@ -344,9 +381,9 @@ export async function resolveScryfallIdentifiers(
         job.controller.signal,
         policy,
       )
-      if (!response.ok) throw new Error('Scryfall unavailable')
-      const json = (await response.json()) as { data: unknown[] }
-      if (!Array.isArray(json.data)) throw new Error('Invalid Scryfall collection response')
+      if (!response.ok) throw new ProviderRequestError('Scryfall unavailable', response.status)
+      const json = (await response.json()) as { data?: unknown[] } | null
+      if (!Array.isArray(json?.data)) throw new Error('Invalid Scryfall collection response')
       return json.data.filter(isScryfallCard)
     })
     previous = result

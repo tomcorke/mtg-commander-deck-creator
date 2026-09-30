@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { retryTime, scheduleRequest, type RequestPolicy } from './request-scheduler.ts'
+import {
+  ProviderRequestError,
+  retryTime,
+  scheduleRequest,
+  type RequestPolicy,
+} from './request-scheduler.ts'
 
 const pageSchema = z.object({
   tag_counts: z
@@ -94,18 +99,35 @@ export async function fetchEdhrecPage(
       fetcher,
       1000,
       async () => {
-        if ((cooldowns.get(fetcher) ?? 0) > Date.now()) throw new Error('EDHREC cooling down')
+        const cooldown = cooldowns.get(fetcher) ?? 0
+        if (cooldown > Date.now())
+          throw new ProviderRequestError('EDHREC cooling down', 429, cooldown)
         policy.onDispatch?.()
-        const response = await fetcher(`https://json.edhrec.com/pages/${kind}/${slug}.json`, {
-          signal: controller.signal,
-          headers: { Accept: 'application/json' },
-        })
-        if (response.status === 429) cooldowns.set(fetcher, retryTime(response).retryAt)
+        let response: Response
+        try {
+          response = await fetcher(`https://json.edhrec.com/pages/${kind}/${slug}.json`, {
+            signal: controller.signal,
+            headers: { Accept: 'application/json' },
+          })
+        } catch (error) {
+          if (controller.signal.aborted) throw error
+          throw new ProviderRequestError('EDHREC network unavailable')
+        }
+        const retryAt =
+          response.status === 429 || (response.status >= 500 && response.headers.has('Retry-After'))
+            ? retryTime(response).retryAt
+            : undefined
+        if (retryAt !== undefined)
+          cooldowns.set(fetcher, Math.max(cooldowns.get(fetcher) ?? 0, retryAt))
         if (!response.ok) {
           await response.body?.cancel()
-          throw new Error('EDHREC unavailable')
+          throw new ProviderRequestError('EDHREC unavailable', response.status, retryAt)
         }
-        return pageSchema.parse(await response.json())
+        const text = await response.text().catch((error) => {
+          if (controller.signal.aborted) throw error
+          throw new ProviderRequestError('EDHREC network unavailable')
+        })
+        return pageSchema.parse(JSON.parse(text))
       },
       controller.signal,
       policy,

@@ -4,7 +4,7 @@ Investigated on 2026-09-30 against `917133f`; the user subsequently approved the
 
 ## Decision
 
-**The bounded trial is released; the approved expansion is implemented but unpublished.** Source comparisons and the offline proof supported the user's initial go-ahead for counters, blink/ETB, and sacrifice. Runtime checks cover request scheduling, cached hydration, eligibility, persisted evidence, and late queue integration. The expansion adds eight tested mechanic families and raises the approved ceilings. Player acceptance remains unproven.
+**The bounded trial is released; the approved expansion is implemented but unpublished.** Source comparisons and the offline proof supported the user's initial go-ahead for counters, blink/ETB, and sacrifice. Runtime checks cover request scheduling, cached hydration, eligibility, persisted evidence, and late queue integration. The expansion adds eight tested mechanic families and raises the approved ceilings. The user then approved rolling-hour budgets and backoff-based recovery, implemented below. Player acceptance remains unproven.
 
 A6's requests serve the user's commander selection and subsequent deck-building choices, rather than an independent crawler. [EDHREC's terms][terms] restrict automated requests, copying, redistribution, and access to build similar or competitive sites. The investigation did not establish that those restrictions prohibit this user-driven integration. The initial report overstated that uncertainty as a permission blocker. Treat the terms as an integration risk, not a requirement to obtain permission before continuing A6. Keep requests bounded and respect provider responses.
 
@@ -42,7 +42,7 @@ Remaining work is player review across representative decks, especially weak sou
 
 ## Expanded mechanics and limits (unreleased)
 
-The user approved broader profiles and increased request ceilings after the baseline release. `src/domain/signature-mechanics.test.ts` uses labeled rules-text excerpts for eight additional families:
+This section records `d18fc56`, before the rolling-hour recovery described next. The user approved broader profiles and increased request ceilings after the baseline release. `src/domain/signature-mechanics.test.ts` uses labeled rules-text excerpts for eight additional families:
 
 - Tokens/populate: Anointed Procession with token creation and token payoffs.
 - Enchantments: Sythis with selected enchantments and enchantment-triggered payoffs.
@@ -55,13 +55,27 @@ The user approved broader profiles and increased request ceilings after the base
 
 The two-other-participant rule remains. Declared family matches outrank incidental card tags, so Calix can be considered an enchantment engine rather than only a counter engine. Reminder text, one-shot populate, opponents-only triggers, removal that merely mentions a permanent type, mana rocks, and graveyard hate have negative controls. These are heuristic checks, not a general interaction solver or validation of every typal, Energy, or combo package.
 
-Current ceilings are **three seeds/pages per pass**, **24 names per seed**, and **one collection POST of at most 72 unique names**. Session limits are **eight seed attempts/four background POSTs per deck** and **24/12 per tab**. At most 12 added JSON requests per deck session or 36 per tab can dispatch, excluding foreground work; cached attempts can reduce those totals. Saving, failures, cancellation, cache reuse, and foreground promotion retain the original accounting rules. Further increases still require explicit approval.
+The initial expansion ceilings were **three seeds/pages per pass**, **24 names per seed**, and **one collection POST of at most 72 unique names**. Session limits are **eight seed attempts/four background POSTs per deck** and **24/12 per tab**. At most 12 added JSON requests per deck session or 36 per tab can dispatch, excluding foreground work; cached attempts can reduce those totals. Saving, failures, cancellation, cache reuse, and foreground promotion retain the original accounting rules. Further increases still require explicit approval.
 
 All foreground and background calls share **one active EDHREC request** and **two active Scryfall requests** per client/tab. Existing one-second/500-ms dispatch spacing, Retry-After cooldowns, queued cancellation, foreground priority, two-second settling delay, and no automatic background retries remain. Slots include full response-body transfer. Rejected EDHREC responses and Scryfall 429 bodies are cancelled before releasing their slot; other Scryfall bodies finish transferring first. Adapter checks hold responses and streaming bodies beyond the pacing interval to prove that slow providers cannot increase concurrency.
 
 The same 86-card Anikthea partial deck and eight-card sideboard selected **Archon of Sun's Grace, Boon of the Spirit Realm, and Calix, Guided by Fate**, all for Enchantments. The live pass made **three source GETs and one 47-name collection POST**. It appended 37 eligible cards; **18 were absent from the complete commander pool**, established by a separate commander-page GET. Examples include Darksteel Mutation, Ajani's Chosen, Ghostly Dancers, and Kenrith's Transformation. Several additions are Aura-oriented; novelty and mechanical participation are not measured recommendation precision or player acceptance. The full 100-card deck still pauses enrichment.
 
 Production checks cover three-seed overlap, 72 distinct cold names in one POST, warm hydration, revised deck/tab ceilings, malformed data, cancellations, cooldowns, eligibility, evidence, and all four queue goals. The original offline proof intentionally retains its historical two-seed/48-name scope. Rendered Chromium checks were repeated for late append, unchanged choices and deferrals, subsequent batches, saved-deck switches, silent 403 failures, complete-deck pause, light/dark/narrow layouts, and source-reference keyboard activation. Raw data, harnesses, and screenshots remain outside Git. Representative player review and broader mechanic relevance remain open; this branch has not been published.
+
+## Rolling-hour recovery (unreleased)
+
+The user approved replenishing budgets rather than abandoning transient failures when a tab's lifetime allowance runs out. Limits are now **eight background source attempts/four collection POSTs per deck per rolling hour**, and **24/12 per tab per rolling hour**. Each actual dispatch receives a timestamp that expires after one hour. Deck and tab limits both apply at dispatch, including every retry. Failed or cancelled in-flight requests remain charged; cached work, cancellation while queued, provider-cooldown checks, and foreground promotion do not consume an extra background request. Saving aliases the same usage record rather than resetting it.
+
+Network errors, HTTP 429, and 5xx responses remain pending. Backoff starts at **10 seconds**, doubles through 20/40/80/160 seconds, and is capped at **five minutes**, with up to 20% positive jitter within that cap. Usable, browser-exposed Retry-After can postpone work longer; an inaccessible or invalid 429 retry header retains the existing estimated 60-second cooldown. Both adapters expose transient status separately from malformed data and permanent HTTP errors; longer overlapping cooldowns cannot be shortened. HTTP 403/404, malformed JSON/schema, and missing or malformed individual card records are not automatically retried.
+
+Source pages and hydration have separate checkpoints. Successful source data is reused while hydration waits, even across a rolling-hour budget pause; current exclusions are reapplied. This pending-work checkpoint is not a change to the ordinary 15-minute provider cache policy. A successful result is acknowledged only after the hook's committed-context merge. Cancellation or stale rejection therefore does not silently complete work that never reached the current queue. The active seed set is still capped at three, and each hydration run at 72 names in one POST.
+
+One due-time timer resumes unfinished work, rather than polling throughout a cooldown or budget pause. The visible, idle partial-deck builder remains required. Hiding the tab aborts unused requests immediately; leaving the builder, switching decks, changing eligibility context, or reaching 100 main-deck cards stops that job. Pending checkpoints remain tab-local and resume only if their seeds are selected again. Existing one-EDHREC/two-Scryfall concurrency limits, dispatch spacing, foreground priority, neutral evidence, eligibility checks, visible choices, and queue deferrals remain unchanged.
+
+`src/app/signature-retry.test.ts` checks exponential/capped jitter, provider cooldowns and 5xx Retry-After, terminal failures, source reuse, changed exclusions, cancellation, stale-result replay, spent retry allowance, and timer cancellation. The transport-cap check advances to one millisecond before and exactly at the rolling boundary to verify replenishment rather than resetting an entire hour. Recovery requires the provider to become available and the eligible builder to remain active; it is not guaranteed delivery and does not persist through reloads. No live rate-limit stress test is used.
+
+Chromium checks with mocked providers confirmed 429 recovery, 503 hydration recovery without rereading sources, hidden-tab cancellation and visible-tab resumption, a saved-deck switch during cooldown, and automatic recovery at the rolling-hour boundary without another user edit. The header fixture explicitly exposes Retry-After through CORS; an unexposed-header probe confirmed the estimated 60-second fallback instead. The earlier light/dark/narrow queue and provenance checks also passed. Final validation passed 158 tests, lint, application typecheck, build, and standalone typechecks for the new retry check and original investigation script. Existing nonblocking React and bundle-size warnings remain. This work is not published.
 
 ## What the sources provide
 
@@ -199,7 +213,7 @@ Reuse and narrowly improve supported interaction/tag rules as the investigation 
 
 ## Request budget used for the trial
 
-These historical ceilings describe the released baseline, not published EDHREC limits. The approved expansion above replaces them:
+These historical ceilings describe the released baseline, not published EDHREC limits. The approved expansion and rolling-hour recovery above replace them:
 
 - Select at most **two seeds per pass**, after deck choices settle for two seconds. Require two other main-deck cards supporting the intended mechanic. Do not force a second seed to fill the allowance; Shalai demonstrates that a relevant in-deck engine can still yield a weak source shortlist. Rerun only when the selected seed set or eligibility context changes, not on printing changes or every render.
 - Permit at most **four distinct seed attempts per deck per tab session**, and at most **12 across the tab**. Record dispatched attempts even after failure or cancellation. Returning to a deck, removing/readding a seed, refreshing options, or changing goals must not reset its allowance.

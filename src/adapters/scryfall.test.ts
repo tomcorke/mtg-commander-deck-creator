@@ -168,6 +168,25 @@ test('concurrent rate limits keep the longest cooldown', async (t) => {
   assert.equal(calls, 2)
 })
 
+test('overlapping 5xx Retry-After responses cannot shorten the shared cooldown', async (t) => {
+  const now = Date.parse('2026-09-29T22:00:00Z')
+  t.mock.method(Date, 'now', () => now)
+  let calls = 0
+  const first = Promise.withResolvers<Response>()
+  const fetcher = async () =>
+    ++calls === 1 ? first.promise : response({}, { status: 503, headers: { 'Retry-After': '120' } })
+  const later = (error: unknown) => {
+    assert.equal((error as { retryAt?: number }).retryAt, now + 120_000)
+    return true
+  }
+  const pending = assert.rejects(searchScryfallPage('first', fetcher), later)
+  await assert.rejects(searchScryfallPage('second', fetcher), later)
+  first.resolve(response({}, { status: 503, headers: { 'Retry-After': '30' } }))
+  await pending
+  await assert.rejects(fetchScryfallSets(fetcher), later)
+  assert.equal(calls, 2)
+})
+
 test('fetchScryfallSets excludes token and memorabilia sets and keeps release order', async () => {
   const sets = await fetchScryfallSets(async () =>
     response({
