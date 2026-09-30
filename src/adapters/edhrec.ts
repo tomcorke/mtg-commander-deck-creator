@@ -101,7 +101,10 @@ export async function fetchEdhrecPage(
           headers: { Accept: 'application/json' },
         })
         if (response.status === 429) cooldowns.set(fetcher, retryTime(response).retryAt)
-        if (!response.ok) throw new Error('EDHREC unavailable')
+        if (!response.ok) {
+          await response.body?.cancel()
+          throw new Error('EDHREC unavailable')
+        }
         return pageSchema.parse(await response.json())
       },
       controller.signal,

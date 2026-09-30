@@ -14,8 +14,25 @@ import type { EdhrecCommanderPage } from '../adapters/edhrec.ts'
 
 export { cardNameKey } from './card-model.ts'
 const rulesText = (text: string) => text.replace(/\([^)]*\)/g, '')
-// ponytail: only three validated mechanics; add families with labeled decks, not generic popularity.
-const mechanics = [
+export const signatureLimits = {
+  seedsPerPass: 3,
+  namesPerSeed: 24,
+  seedsPerDeck: 8,
+  postsPerDeck: 4,
+  seedsPerTab: 24,
+  postsPerTab: 12,
+}
+
+type Mechanic = {
+  theme: string
+  aliases: string[]
+  participant: RegExp
+  engine: RegExp
+  multiplier?: RegExp
+  types?: string[]
+}
+// ponytail: narrow rules-text profiles; add labeled engine/participant cases for other families.
+const mechanics: Mechanic[] = [
   {
     theme: '+1/+1 counters',
     aliases: ['+1/+1 counters', 'Counters'],
@@ -39,7 +56,80 @@ const mechanics = [
     engine: /whenever .*creature.*dies|^sacrifice (?:a|another) creature:/i,
     multiplier: /whenever .*creature.*dies/i,
   },
+  {
+    theme: 'Tokens',
+    aliases: ['Tokens', 'Populate'],
+    participant:
+      /\bcreate\b[^\n]*tokens?|tokens?[^\n]*created under your control|tokens? you control|\bpopulate\b/i,
+    engine:
+      /would[^\n]*tokens?[^\n]*instead|whenever[^\n]*(?:create|tokens? you control)|at the beginning[^\n]*create[^\n]*token|(?:at the beginning|:)[^\n]*\bpopulate\b/i,
+    multiplier: /instead/i,
+  },
+  {
+    theme: 'Enchantments',
+    aliases: ['Enchantments', 'Sagas'],
+    types: ['Enchantment'],
+    participant:
+      /enchantments? you control|enchantment spells? you cast|cast[^\n]*enchantment|\bconstellation\b/i,
+    engine:
+      /whenever[^\n]*enchantment[^\n]*(?:you control|under your control)|whenever you cast[^\n]*enchantment|enchantment spells you cast cost|\bconstellation\b/i,
+  },
+  {
+    theme: 'Artifacts',
+    aliases: ['Artifacts', 'Resource tokens'],
+    types: ['Artifact'],
+    participant:
+      /artifacts? you control|artifact spells? you cast|cast[^\n]*artifact|create[^\n]*(?:Treasure|Clue|Food|Blood|Gold|Map|artifact) tokens?/i,
+    engine:
+      /whenever[^\n]*artifact[^\n]*(?:you control|under your control)|whenever you cast[^\n]*artifact|artifact spells you cast cost|sacrifice an? artifact:/i,
+  },
+  {
+    theme: 'Lifegain',
+    aliases: ['Lifegain'],
+    participant: /you (?:would )?gain[^\n]*life|\blifelink\b/i,
+    engine:
+      /whenever[^\n]*you (?:would )?gain[^\n]*life|you would gain[^\n]*instead|:[^\n]*you gain[^\n]*life/i,
+    multiplier: /instead/i,
+  },
+  {
+    theme: 'Graveyard',
+    aliases: ['Graveyard', 'Recursion', 'Mill'],
+    participant:
+      /your graveyard|return[^\n]*from a graveyard|(?:^|[,.]\s*)mill\b|you mill|\b(?:surveil|flashback|escape)\b/i,
+    engine:
+      /(?:cast|play)[^\n]*from your graveyard|(?:whenever|at the beginning|:)[^\n]*return[^\n]*graveyard/i,
+  },
+  {
+    theme: 'Spellslinger',
+    aliases: ['Spellslinger', 'Spell copying'],
+    types: ['Instant', 'Sorcery'],
+    participant:
+      /instant (?:or|and) sorcery|noncreature spells?|copy[^\n]*(?:instant|sorcery|spell)|\bmagecraft\b/i,
+    engine:
+      /whenever you (?:cast|copy)|\bmagecraft\b|(?:instant|sorcery|noncreature) spells[^\n]*cost[^\n]*less/i,
+  },
+  {
+    theme: 'Landfall',
+    aliases: ['Landfall'],
+    participant:
+      /\blandfall\b|whenever[^\n]*lands? (?:you control enters?|enters?[^\n]*under your control)|play (?:an?|two|three) additional lands?/i,
+    engine:
+      /whenever[^\n]*lands? (?:you control enters?|enters?[^\n]*under your control)|play (?:an?|two|three) additional lands?/i,
+  },
+  {
+    theme: 'Equipment',
+    aliases: ['Equipment', 'Voltron'],
+    types: ['Equipment'],
+    participant:
+      /equipped creatures?|equipment you control|equipment spells? you cast|equip (?:abilities|costs)|attach[^\n]*you control/i,
+    engine:
+      /whenever[^\n]*(?:equipment|equipped|attach)|equip[^\n]*(?:cost|pay)|equipment spells[^\n]*cost[^\n]*less/i,
+  },
 ]
+const participates = (card: Pick<Card, 'detail' | 'typeLine'>, mechanic: Mechanic) =>
+  mechanic.types?.some((type) => card.typeLine.includes(type)) ||
+  mechanic.participant.test(rulesText(card.detail))
+
 export type SignatureSeed = { card: DeckCard; theme: string; page: 'cards' | 'commanders' }
 
 export function selectSignatureSeeds(
@@ -52,7 +142,7 @@ export function selectSignatureSeeds(
     (card) => !names.has(cardNameKey(card.name)) && !card.typeLine.includes('Land'),
   )
   const choices = mechanics.flatMap((mechanic) => {
-    const participants = main.filter((card) => mechanic.participant.test(rulesText(card.detail)))
+    const participants = main.filter((card) => participates(card, mechanic))
     if (participants.length < 3) return []
     return participants
       .filter((card) => mechanic.engine.test(rulesText(card.detail)))
@@ -63,11 +153,12 @@ export function selectSignatureSeeds(
           mechanic.theme === 'ETB' && isCommanderCandidate(card)
             ? ('commanders' as const)
             : ('cards' as const),
-        priority: Number(mechanic.multiplier.test(rulesText(card.detail))),
+        priority: Number(mechanic.multiplier?.test(rulesText(card.detail)) ?? false),
         fit: recommendationScore({ ...card, reason: 'Deck engine' }, context),
-        selected: Number(
-          [context.theme, ...context.activeSubThemes].some(
-            (theme) => mechanic.aliases.includes(theme) || card.tags.includes(theme),
+        selected: Math.max(
+          0,
+          ...[context.theme, ...context.activeSubThemes].map((theme) =>
+            mechanic.aliases.includes(theme) ? 2 : Number(card.tags.includes(theme)),
           ),
         ),
       }))
@@ -81,7 +172,7 @@ export function selectSignatureSeeds(
       seen.add(key)
       return true
     })
-    .slice(0, 2)
+    .slice(0, signatureLimits.seedsPerPass)
 }
 
 const ordinaryLists = new Set([
@@ -121,7 +212,7 @@ export function signatureEntries(
         lift: entry.lift,
         decks: entry.num_decks,
       })
-    if (unique.size === 24) break
+    if (unique.size === signatureLimits.namesPerSeed) break
   }
   return [...unique.values()]
 }
@@ -138,10 +229,11 @@ export function supportsSignature(card: Card, seed: SignatureSeed, main: DeckCar
     main.filter((peer) => peer.tags.includes('Tokens')).length < 2
   )
     return false
-  const mechanic = mechanics.find(({ theme }) => theme === seed.theme)!
-  if (mechanic.participant.test(rulesText(card.detail))) return true
-  if (seed.theme === 'ETB') return false
-  if (findSynergyPair([card, { ...seed.card, reason: '' }])) return true
+  const mechanic = mechanics.find(({ theme }) => theme === seed.theme)
+  if (!mechanic) return false
+  if (participates(card, mechanic)) return true
+  if (seed.theme === '+1/+1 counters' && findSynergyPair([card, { ...seed.card, reason: '' }]))
+    return true
   return (
     seed.theme === 'Sacrifice' &&
     (/create[^\n]*creature tokens?/i.test(card.detail) ||

@@ -6,6 +6,7 @@ import { edhrecSlug, isScryfallCard, toCard, type ScryfallCard } from '../domain
 import {
   cardNameKey,
   signatureEntries,
+  signatureLimits,
   type SignatureResult,
   type SignatureSeed,
 } from '../domain/signature-recommendations.ts'
@@ -52,10 +53,15 @@ export async function loadSignatureResults(
   const deck = deckBudget(budget, deckKey)
   const evidence: SeedEvidence[] = []
   const used: SignatureSeed[] = []
-  for (const seed of seeds.slice(0, 2)) {
+  for (const seed of seeds.slice(0, signatureLimits.seedsPerPass)) {
     signal.throwIfAborted()
     const key = `${seed.page}:${cardNameKey(seed.card.name)}`
-    if (deck.seeds.has(key) || deck.seeds.size >= 4 || budget.attempts >= 12) continue
+    if (
+      deck.seeds.has(key) ||
+      deck.seeds.size >= signatureLimits.seedsPerDeck ||
+      budget.attempts >= signatureLimits.seedsPerTab
+    )
+      continue
     // Reservations also charge failed/cancelled work; editing cannot reset an allowance.
     deck.seeds.add(key)
     budget.attempts++
@@ -74,13 +80,16 @@ export async function loadSignatureResults(
       if (signal.aborted) throw error
     }
   }
-  const names = [...new Set(evidence.map(({ name }) => name))].slice(0, 48)
+  const names = [...new Set(evidence.map(({ name }) => name))].slice(
+    0,
+    signatureLimits.seedsPerPass * signatureLimits.namesPerSeed,
+  )
   if (!names.length) return []
   const policy: RequestPolicy = {
     background: true,
     onDispatch: () => {
       if (!policy.background) return // A foreground consumer promoted this shared request.
-      if (deck.posts >= 2 || budget.posts >= 6)
+      if (deck.posts >= signatureLimits.postsPerDeck || budget.posts >= signatureLimits.postsPerTab)
         throw new Error('Signature hydration budget exhausted')
       deck.posts++
       budget.posts++

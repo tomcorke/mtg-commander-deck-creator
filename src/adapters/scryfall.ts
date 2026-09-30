@@ -89,9 +89,16 @@ async function requestScryfall(
         const previous = rateLimits.get(fetcher)
         const limit = !previous || error.retryAt >= previous.retryAt ? error : previous
         rateLimits.set(fetcher, limit)
+        await response.body?.cancel()
         throw new ScryfallRateLimitError(limit.retryAt, limit.estimated)
       }
-      return response
+      // Keep the slot until the body finishes, not just until headers arrive.
+      const body = response.body ? await response.arrayBuffer() : null
+      return new Response(body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      })
     },
     init?.signal ?? undefined,
     policy,

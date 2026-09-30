@@ -4,7 +4,7 @@ type QueuedRequest = {
   background: boolean
   signal?: AbortSignal
 }
-type Schedule = { queue: QueuedRequest[]; running: boolean; lastDispatch: number }
+type Schedule = { queue: QueuedRequest[]; running: boolean; lastDispatch: number; active: number }
 const schedules = new WeakMap<typeof fetch, Map<number, Schedule>>()
 
 // ponytail: one scheduling lane per fetch client/provider; use cross-tab coordination if needed.
@@ -24,7 +24,7 @@ export function scheduleRequest<T>(
   }
   let lane = provider.get(interval)
   if (!lane) {
-    lane = { queue: [], running: false, lastDispatch: -Infinity }
+    lane = { queue: [], running: false, lastDispatch: -Infinity, active: 0 }
     provider.set(interval, lane)
   }
   return new Promise<T>((resolve, reject) => {
@@ -57,14 +57,18 @@ async function drain(lane: Schedule, interval: number, serial: boolean) {
   if (lane.running) return
   lane.running = true
   try {
-    while (lane.queue.length) {
+    while (lane.queue.length && lane.active < (serial ? 1 : 2)) {
       const delay = Math.max(0, interval - (performance.now() - lane.lastDispatch))
       if (delay) await new Promise((resolve) => setTimeout(resolve, Math.ceil(delay)))
       if (performance.now() - lane.lastDispatch < interval) continue
       const index = lane.queue.findIndex((entry) => !entry.background)
       const entry = lane.queue.splice(index < 0 ? 0 : index, 1)[0]
       if (!entry || entry.signal?.aborted) continue
-      const request = entry.run()
+      lane.active++
+      const request = entry.run().finally(() => {
+        lane.active--
+        void drain(lane, interval, serial)
+      })
       lane.lastDispatch = performance.now()
       if (serial) await request
     }

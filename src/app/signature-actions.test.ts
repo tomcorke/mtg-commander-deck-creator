@@ -165,7 +165,7 @@ test('seeds use known mechanics, primary intent, partners, and real Anikthea cou
     selectSignatureSeeds('Commander', anikthea, context('Enchantments', anikthea)).map(
       ({ card }) => card.name,
     ),
-    ['Calix, Guided by Fate', "Cathars' Crusade"],
+    ['Calix, Guided by Fate', 'Setessan Champion', "Cathars' Crusade"],
   )
   const blink = [
     deckCard('Commander', ''),
@@ -213,6 +213,7 @@ test('seeds use known mechanics, primary intent, partners, and real Anikthea cou
     [
       ['Pitiless Plunderer', 'cards'],
       ['Liliana', 'cards'],
+      ['Viscera Seer', 'cards'],
     ],
   )
 })
@@ -311,7 +312,11 @@ test('a pass caps source lists at 24, overlaps seeds, reuses raw pages and warm 
     assert.equal(identifiers.length, 24)
     return Response.json({ data: identifiers.map(({ name }) => raw(name)) })
   }
-  const seeds = [seed, { ...seed, card: counterDeck[2] }]
+  const seeds = [
+    seed,
+    { ...seed, card: counterDeck[2] },
+    { ...seed, card: { ...seed.card, name: 'Third engine' } },
+  ]
   assert.equal(
     signatureEntries(
       page(Array.from({ length: 30 }, (_, index) => `Candidate ${index}`)),
@@ -330,8 +335,8 @@ test('a pass caps source lists at 24, overlaps seeds, reuses raw pages and warm 
     budget,
   )
   assert.equal(first.length, 24)
-  assert.equal(first[0].evidence.length, 2)
-  assert.equal(paths.length, 3)
+  assert.equal(first[0].evidence.length, 3)
+  assert.equal(paths.length, 4)
   assert.deepEqual(
     await loadSignatureResults(
       'A',
@@ -344,11 +349,43 @@ test('a pass caps source lists at 24, overlaps seeds, reuses raw pages and warm 
     [],
   )
   await loadSignatureResults('B', seeds, new Set(), new AbortController().signal, fetcher, budget)
-  assert.equal(paths.length, 3)
+  assert.equal(paths.length, 4)
   assert.equal(budget.posts, 1)
 })
 
-test('actual transport stays within four seed/two POST deck caps and twelve/six tab caps', async () => {
+test('three distinct seeds hydrate 72 names with one POST, never 96 or a second batch', async () => {
+  let gets = 0,
+    posts = 0
+  const fetcher: typeof fetch = async (input, init) => {
+    if (!init?.body) {
+      gets++
+      return Response.json(
+        page(Array.from({ length: 30 }, (_, index) => `${String(input)} Card ${index}`)),
+      )
+    }
+    posts++
+    const identifiers = JSON.parse(String(init.body)).identifiers as { name: string }[]
+    assert.equal(identifiers.length, 72)
+    return Response.json({ data: identifiers.map(({ name }) => raw(name)) })
+  }
+  const seeds = Array.from({ length: 4 }, (_, index) => ({
+    ...seed,
+    card: { ...seed.card, name: `Distinct ${index}` },
+  }))
+  const loaded = await loadSignatureResults(
+    'three',
+    seeds,
+    new Set(),
+    new AbortController().signal,
+    fetcher,
+    signatureBudget(),
+  )
+  assert.equal(loaded.length, 72)
+  assert.equal(gets, 3)
+  assert.equal(posts, 1)
+})
+
+test('actual transport stays within eight seed/four POST deck caps and twenty-four/twelve tab caps', async () => {
   const budget = signatureBudget()
   let gets = 0,
     posts = 0
@@ -362,7 +399,7 @@ test('actual transport stays within four seed/two POST deck caps and twelve/six 
     return Response.json({ data: identifiers.map(({ name }) => raw(name)) })
   }
   for (let deck = 0; deck < 3; deck++)
-    for (let index = 0; index < 5; index++) {
+    for (let index = 0; index < 9; index++) {
       const current = { ...seed, card: { ...seed.card, name: `Engine ${deck}-${index}` } }
       const work = loadSignatureResults(
         `Deck ${deck}`,
@@ -372,7 +409,7 @@ test('actual transport stays within four seed/two POST deck caps and twelve/six 
         fetcher,
         budget,
       )
-      if (index === 2 || index === 3) await assert.rejects(work, /budget exhausted/)
+      if (index >= 4 && index < 8) await assert.rejects(work, /budget exhausted/)
       else await work
     }
   await loadSignatureResults(
@@ -383,11 +420,11 @@ test('actual transport stays within four seed/two POST deck caps and twelve/six 
     fetcher,
     budget,
   )
-  assert.equal(gets, 12)
-  assert.equal(posts, 6)
-  assert.equal(budget.attempts, 12)
-  assert.equal(budget.posts, 6)
-  const record = { seeds: new Set(['tried']), posts: 2 }
+  assert.equal(gets, 24)
+  assert.equal(posts, 12)
+  assert.equal(budget.attempts, 24)
+  assert.equal(budget.posts, 12)
+  const record = { seeds: new Set(['tried']), posts: 4 }
   tabSignatureBudget.decks.set('unsaved-test', record)
   bindSignatureBudget('unsaved-test', 'saved-test')
   assert.equal(tabSignatureBudget.decks.get('saved-test'), record)
@@ -406,6 +443,46 @@ test('actual transport stays within four seed/two POST deck caps and twelve/six 
   )
   assert.equal(epoch, 1)
   assert.equal(key, 'new')
+})
+
+test('cancelled queued seeds retain their reservation without spending a hydration POST', async () => {
+  const held = Promise.withResolvers<Response>()
+  let calls = 0
+  const fetcher: typeof fetch = async () => {
+    calls++
+    return held.promise
+  }
+  const foreground = fetchEdhrecPage('cards', 'foreground', fetcher)
+  const budget = signatureBudget(),
+    controller = new AbortController()
+  const cancelled = loadSignatureResults(
+    'cancelled',
+    [seed],
+    new Set(),
+    controller.signal,
+    fetcher,
+    budget,
+  )
+  await tick()
+  controller.abort()
+  await assert.rejects(cancelled, { name: 'AbortError' })
+  held.resolve(Response.json(page([])))
+  await foreground
+  assert.equal(budget.attempts, 1)
+  assert.equal(budget.decks.get('cancelled')?.seeds.size, 1)
+  assert.equal(budget.posts, 0)
+  assert.deepEqual(
+    await loadSignatureResults(
+      'cancelled',
+      [seed],
+      new Set(),
+      new AbortController().signal,
+      fetcher,
+      budget,
+    ),
+    [],
+  )
+  assert.equal(calls, 1)
 })
 
 test('failures, malformed pages and 429 cooldowns do not retry background work', async () => {

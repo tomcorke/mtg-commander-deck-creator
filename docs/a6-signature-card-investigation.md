@@ -1,16 +1,18 @@
 # A6: Signature-card investigation
 
-Investigated on 2026-09-30 against `917133f`; the user subsequently approved the bounded trial. The source comparisons below describe the baseline. The implemented trial and its validation are recorded separately.
+Investigated on 2026-09-30 against `917133f`; the user subsequently approved the bounded trial. The source comparisons below describe the baseline. The released trial (`47dab89`) and the subsequently approved, unpublished expansion are recorded separately.
 
 ## Decision
 
-**The bounded trial is implemented.** Source comparisons and the offline proof supported the user's go-ahead for counters, blink/ETB, and sacrifice. Runtime checks now cover request scheduling, cached hydration, eligibility, persisted evidence, and late queue integration. Player acceptance and broader mechanic coverage remain unproven.
+**The bounded trial is released; the approved expansion is implemented but unpublished.** Source comparisons and the offline proof supported the user's initial go-ahead for counters, blink/ETB, and sacrifice. Runtime checks cover request scheduling, cached hydration, eligibility, persisted evidence, and late queue integration. The expansion adds eight tested mechanic families and raises the approved ceilings. Player acceptance remains unproven.
 
 A6's requests serve the user's commander selection and subsequent deck-building choices, rather than an independent crawler. [EDHREC's terms][terms] restrict automated requests, copying, redistribution, and access to build similar or competitive sites. The investigation did not establish that those restrictions prohibit this user-driven integration. The initial report overstated that uncertainty as a permission blocker. Treat the terms as an integration risk, not a requirement to obtain permission before continuing A6. Keep requests bounded and respect provider responses.
 
-The initial comparison exposed off-colour candidates, unrelated theme associations, and missed engine tags. The trial uses only the three tested mechanics; an unsupported mechanic never triggers a seed request. Selected main-deck support can establish one of those mechanics even when the declared theme is different, as in the supplied Anikthea deck.
+The initial comparison exposed off-colour candidates, unrelated theme associations, and missed engine tags. The released trial used three tested mechanics; the expansion adds eight profiles. An unsupported mechanic never triggers a seed request. Selected main-deck support can establish a supported mechanic even when the declared theme is different, as in the supplied Anikthea deck.
 
 ## Implemented trial
+
+This section describes the released `47dab89` baseline. The next section records the expanded implementation and its higher ceilings.
 
 `src/domain/signature-recommendations.ts` selects up to two engines from main-deck metadata. Each needs two other mechanic participants. It strips reminder text, distinguishes landfall from ETB, excludes commanders and lands, and uses selected themes and the shared fit score for priority. Counter and sacrifice seeds use card pages; commander-eligible blink seeds can use their commander pages. Legendary status earns no bonus.
 
@@ -36,7 +38,30 @@ A live pass used the first 86 main-deck entries and all eight sideboard entries,
 
 Rendered Chromium checks with mocked APIs confirmed late append and later-batch display, stable Add/Later/Ignore/like decisions, unchanged deferred eligibility, a delayed same-commander saved-deck switch, silent source failure without fallback, and no enrichment on the complete 100-card/eight-sideboard fixture. Light, dark, and 390-pixel layouts were inspected; seed-name keyboard preview and detail activation were exercised. Live responses, cached card data, browser harness, and screenshots remain outside Git.
 
-Remaining work is player review across representative decks, especially weak source pools such as Shalai's, before broader mechanics or higher limits. Provider JSON and observed CORS remain undocumented integration risks. The separate 24-hour Scryfall cache-policy review remains open; A6 does not silently replace A5's 15-minute policy.
+Remaining work is player review across representative decks, especially weak source pools such as Shalai's. The user subsequently approved the expansion below without waiting for that review. Provider JSON and observed CORS remain undocumented integration risks. The separate 24-hour Scryfall cache-policy review remains open; A6 does not silently replace A5's 15-minute policy.
+
+## Expanded mechanics and limits (unreleased)
+
+The user approved broader profiles and increased request ceilings after the baseline release. `src/domain/signature-mechanics.test.ts` uses labeled rules-text excerpts for eight additional families:
+
+- Tokens/populate: Anointed Procession with token creation and token payoffs.
+- Enchantments: Sythis with selected enchantments and enchantment-triggered payoffs.
+- Artifacts: Etherium Sculptor with selected artifact spells.
+- Lifegain: Heliod with Soul Warden and Ajani's Pridemate.
+- Graveyard/recursion: Muldrotha with self-mill and recursion.
+- Spellslinger: Young Pyromancer with instant and sorcery spells.
+- Landfall: Lotus Cobra with other landfall engines; ordinary lands and generic ramp do not establish the package.
+- Equipment: Puresteel Paladin with selected equipment and attachment support.
+
+The two-other-participant rule remains. Declared family matches outrank incidental card tags, so Calix can be considered an enchantment engine rather than only a counter engine. Reminder text, one-shot populate, opponents-only triggers, removal that merely mentions a permanent type, mana rocks, and graveyard hate have negative controls. These are heuristic checks, not a general interaction solver or validation of every typal, Energy, or combo package.
+
+Current ceilings are **three seeds/pages per pass**, **24 names per seed**, and **one collection POST of at most 72 unique names**. Session limits are **eight seed attempts/four background POSTs per deck** and **24/12 per tab**. At most 12 added JSON requests per deck session or 36 per tab can dispatch, excluding foreground work; cached attempts can reduce those totals. Saving, failures, cancellation, cache reuse, and foreground promotion retain the original accounting rules. Further increases still require explicit approval.
+
+All foreground and background calls share **one active EDHREC request** and **two active Scryfall requests** per client/tab. Existing one-second/500-ms dispatch spacing, Retry-After cooldowns, queued cancellation, foreground priority, two-second settling delay, and no automatic background retries remain. Slots include full response-body transfer. Rejected EDHREC responses and Scryfall 429 bodies are cancelled before releasing their slot; other Scryfall bodies finish transferring first. Adapter checks hold responses and streaming bodies beyond the pacing interval to prove that slow providers cannot increase concurrency.
+
+The same 86-card Anikthea partial deck and eight-card sideboard selected **Archon of Sun's Grace, Boon of the Spirit Realm, and Calix, Guided by Fate**, all for Enchantments. The live pass made **three source GETs and one 47-name collection POST**. It appended 37 eligible cards; **18 were absent from the complete commander pool**, established by a separate commander-page GET. Examples include Darksteel Mutation, Ajani's Chosen, Ghostly Dancers, and Kenrith's Transformation. Several additions are Aura-oriented; novelty and mechanical participation are not measured recommendation precision or player acceptance. The full 100-card deck still pauses enrichment.
+
+Production checks cover three-seed overlap, 72 distinct cold names in one POST, warm hydration, revised deck/tab ceilings, malformed data, cancellations, cooldowns, eligibility, evidence, and all four queue goals. The original offline proof intentionally retains its historical two-seed/48-name scope. Rendered Chromium checks were repeated for late append, unchanged choices and deferrals, subsequent batches, saved-deck switches, silent 403 failures, complete-deck pause, light/dark/narrow layouts, and source-reference keyboard activation. Raw data, harnesses, and screenshots remain outside Git. Representative player review and broader mechanic relevance remain open; this branch has not been published.
 
 ## What the sources provide
 
@@ -139,7 +164,7 @@ Important negatives remain. Shalai's source pools largely favour Angels rather t
 
 New examples still use the ordinary shared scorer and neutral `Seen with <seed>` evidence. Their low scores in the tiny, preference-free fixtures are not a source failure: the badge threshold is a fit heuristic, not an eligibility gate. Do not inflate source scores to make a trial look successful.
 
-The comparison added two EDHREC JSON GETs and three Scryfall collection POSTs for 162 uncached names, in batches of 75/75/12 with the same 650 ms pauses. All names resolved. It compares eight shortlists; an application pass still admits only two seeds and at most 48 hydration names.
+The comparison added two EDHREC JSON GETs and three Scryfall collection POSTs for 162 uncached names, in batches of 75/75/12 with the same 650 ms pauses. All names resolved. It compares eight shortlists; the released baseline admitted only two seeds and at most 48 hydration names.
 
 ### The deck-conditioned Recs endpoint is not a direct client-side alternative
 
@@ -174,7 +199,7 @@ Reuse and narrowly improve supported interaction/tag rules as the investigation 
 
 ## Request budget used for the trial
 
-These are application ceilings for evaluation, not published EDHREC limits:
+These historical ceilings describe the released baseline, not published EDHREC limits. The approved expansion above replaces them:
 
 - Select at most **two seeds per pass**, after deck choices settle for two seconds. Require two other main-deck cards supporting the intended mechanic. Do not force a second seed to fill the allowance; Shalai demonstrates that a relevant in-deck engine can still yield a weak source shortlist. Rerun only when the selected seed set or eligibility context changes, not on printing changes or every render.
 - Permit at most **four distinct seed attempts per deck per tab session**, and at most **12 across the tab**. Record dispatched attempts even after failure or cancellation. Returning to a deck, removing/readding a seed, refreshing options, or changing goals must not reset its allowance.
@@ -183,7 +208,7 @@ These are application ceilings for evaluation, not published EDHREC limits:
 - Cap background collection dispatches at **two per deck session** and **six per tab**. This yields at most six added JSON requests per deck session and 18 per tab, excluding existing foreground work. Count actual transport attempts, including retries, against those ceilings. Disable automatic background retries if the shared transport cannot account for them.
 - Route foreground and background dispatch through the same provider scheduling point. Give queued foreground work priority; use at least 500 ms between Scryfall dispatches as a simple safe starting policy. A background job cannot bypass the existing shared 429 cooldown. EDHREC 429 responses also need a provider-wide cooldown, respecting usable Retry-After advice; no background retry occurs automatically.
 
-The one-pass budget is two source GETs plus at most one hydration POST. Debouncing alone is insufficient: attempts, concurrency, retry accounting, and session ceilings must all be enforced before dispatch. A later broader scan needs measured gains before increasing these limits.
+The one-pass budget is two source GETs plus at most one hydration POST. Debouncing alone is insufficient: attempts, concurrency, retry accounting, and session ceilings must all be enforced before dispatch. The user subsequently approved the expanded ceilings above. Future increases still require explicit approval and evidence of useful additions.
 
 ## Baseline integration gaps and release checks
 
