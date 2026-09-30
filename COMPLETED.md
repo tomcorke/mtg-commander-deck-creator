@@ -2,11 +2,34 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [A5] Cache Scryfall data and deduplicate requests
+
+**Complexity:** Medium · **Value:** High · **Delivery risk:** Medium — The shared adapter is a natural reuse point; cache freshness, printing identity, and cancellation need care.
+
+**Status:** Complete.
+
+### Completed behavior
+
+The shared adapter caches successful raw cards and fully paginated printing lists for 15 minutes, with a 2,000-entry session limit. Named and bulk lookups share pending records; printing-specific lookups remain distinct. Only missing identifiers are batched. Import and detail hydration use the same cache, and basic-land prefetch no longer owns a separate indefinite cache.
+
+EDHREC refreshes skip selected and ignored names before hydration. Current legality, exclusions, collection constraints, and goal scoring still apply. Returned data is copied; commander art/finish choices and manual printing selections remain intact. Individual cancellation does not abort another consumer; the last cancellation aborts shared work. Failed and missing records can be retried.
+
+Expired records are fetched on their next lookup. `clearScryfallCache()` explicitly invalidates data without clearing the 429 cooldown; old pending responses cannot repopulate the new cache. Normal recommendation refresh reuses warm data.
+
+### Acceptance checks
+
+- Warm refreshes reuse card/printing data; overlapping lookups fetch each missing record only once. Request-count checks cover named/bulk overlap, missing-only batches, and detail reuse.
+- Failures, cancellation, expiry, and explicit refresh recover without corrupting another caller's result or selected printings.
+- Tests verify current legality, exclusions, collection constraints, and goal scores on warm data, plus selected commander art and foil details.
+- All 132 tests, lint, typecheck, and production build pass. Browser checks cover light/dark desktop/narrow review, details/settings return, swaps/undo, candidate refresh, overview navigation, and legacy routes. Existing hook and bundle-size warnings remain.
+
+Cache policy: [docs/recommendation-design.md](docs/recommendation-design.md#scryfall-session-cache).
+
 ## [A4] Explain Scryfall rate limits and retry timing
 
 **Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — The shared adapter now preserves rate-limit details for existing error displays.
 
-**Status:** Implemented on `feature/unified-deck-review`; not yet merged or published.
+**Status:** Complete — merged in `7cc37e1`; not yet published.
 
 ### Completed behavior
 
@@ -27,7 +50,7 @@ Recommendation fallbacks no longer swallow rate-limit advice. Optional printing 
 
 **Complexity:** Medium · **Value:** High · **Delivery risk:** Medium — Existing analysis and swap controls were reused; recommendation consistency and navigation needed regression checks.
 
-**Status:** Implemented on `feature/unified-deck-review`; not yet merged or published.
+**Status:** Complete — merged in `7cc37e1`; not yet published.
 
 ### Completed behavior
 

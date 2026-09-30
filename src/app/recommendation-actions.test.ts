@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { defaultDeckTargets } from '../deck-analysis.ts'
+import { defaultDeckTargets, rolesForCard } from '../deck-analysis.ts'
+import { rankRecommendationCards, recommendationScore } from '../recommendations.ts'
+import { buildRecommendationContext } from './recommendation-context.ts'
 import { fetchScryfallCardsByIdentifiers, fetchScryfallPrintings } from '../adapters/scryfall.ts'
 import { toCard } from '../domain/card-model.ts'
 import { loadPrintings } from './printing-actions.ts'
 import {
+  addCommanderCards,
+  edhrecRecommendations,
   fetchDeckDoctorCandidates,
   fetchDeckDoctorCommanders,
   start,
@@ -151,6 +155,7 @@ test('optional printing enrichment stops on rate limits without discarding sugge
 test('fetches extra candidates only on demand and filters deck, sideboard, and colour identity', async () => {
   const slugs: string[] = []
   const searched: string[] = []
+  const hydrated: string[] = []
   const candidateNames = [
     'New Candidate',
     'In Main',
@@ -178,12 +183,14 @@ test('fetches extra candidates only on demand and filters deck, sideboard, and c
       ...card(name, 'Legendary Creature'),
       related_uris: { edhrec: 'https://edhrec.com/commanders/test-commander' },
     }),
-    fetchCards: async (identifiers: { name: string }[]) =>
-      identifiers.map(({ name }) =>
+    fetchCards: async (identifiers: { name: string }[]) => {
+      hydrated.push(...identifiers.map(({ name }) => name))
+      return identifiers.map(({ name }) =>
         name === 'Wrong Colours'
           ? card(name, 'Artifact', ['U'])
           : { ...card(name), legalities: { commander: name === 'Banned' ? 'banned' : 'legal' } },
-      ),
+      )
+    },
     fetchEdhrec: async (slug: string) => {
       slugs.push(slug)
       return {
@@ -218,6 +225,7 @@ test('fetches extra candidates only on demand and filters deck, sideboard, and c
     ['New Candidate', ...candidateNames.slice(6)],
   )
   assert.equal(candidates[0].reason, 'Commander synergy')
+  assert.ok(['In Main', 'In Sideboard', 'Ignored'].every((name) => !hydrated.includes(name)))
 })
 
 test('commander exploration returns only theme matches that preserve every card colour', async () => {
@@ -261,4 +269,146 @@ test('commander exploration returns only theme matches that preserve every card 
     }),
     [],
   )
+})
+
+test('warm EDHREC hydration reuses raw records while current safety, collection, and goal rules apply', async () => {
+  const records = [
+    { ...card('Tokens'), oracle_text: 'Create a token.' },
+    card('Off Collection'),
+    { ...card('Game Changer'), game_changer: true },
+    { ...card('Tutor'), oracle_text: 'Search your library for a card.' },
+    { ...card('Extra Turn'), oracle_text: 'Take an extra turn.' },
+    { ...card('Future'), released_at: '2999-01-01' },
+    card('Mana Vault'),
+    { ...card('Banned'), legalities: { commander: 'banned' } },
+  ].map((item) => ({ ...item, set: item.name === 'Off Collection' ? 'other' : 'tst' }))
+  let requests = 0
+  const fetcher: typeof fetch = async (_, init) => {
+    requests++
+    const { identifiers } = JSON.parse(String(init?.body))
+    return Response.json({
+      data: records.filter(({ name }) => identifiers.some((id) => id.name === name)),
+    })
+  }
+  const deps = {
+    deck: [],
+    sideboard: [],
+    activeSubThemes: [],
+    preferenceScores: {},
+    includeCreature: false,
+    powerTarget: 'high',
+    excludeGameChangers: false,
+    excludeTutors: false,
+    excludeExtraTurns: false,
+    excludeUnreleased: false,
+    fetchCards: (identifiers: { name: string }[]) =>
+      fetchScryfallCardsByIdentifiers(identifiers, fetcher),
+    fetchEdhrec: async () => ({
+      container: {
+        json_dict: {
+          cardlists: [
+            {
+              header: 'High Synergy Cards',
+              tag: 'highsynergycards',
+              cardviews: records.map(({ name }) => ({ name })),
+            },
+          ],
+        },
+      },
+    }),
+    setCommanderSubThemes: () => {},
+  }
+  const cold = await edhrecRecommendations(deps, 'commander')
+  const warm = await edhrecRecommendations(deps, 'commander')
+  assert.deepEqual(warm, cold)
+  assert.equal(requests, 1)
+  assert.ok(!warm.some(({ name }) => name === 'Banned'))
+  const safe = await edhrecRecommendations(
+    {
+      ...deps,
+      powerTarget: 'precon',
+      excludeGameChangers: true,
+      excludeTutors: true,
+      excludeExtraTurns: true,
+      excludeUnreleased: true,
+    },
+    'commander',
+  )
+  assert.deepEqual(new Set(safe.map(({ name }) => name)), new Set(['Tokens', 'Off Collection']))
+  const settings = {
+    ...deps,
+    commander: '',
+    theme: 'Tokens',
+    collectionSets: ['tst'],
+    collectionMode: 'only' as const,
+  }
+  const thematic = buildRecommendationContext(
+    { ...settings, recommendationStyle: 'thematic' },
+    safe,
+  )
+  const competitive = buildRecommendationContext(
+    { ...settings, recommendationStyle: 'competitive' },
+    safe,
+  )
+  const ranked = rankRecommendationCards(safe, competitive, false, rolesForCard)
+  assert.deepEqual(
+    ranked.map(({ name }) => name),
+    ['Tokens'],
+  )
+  assert.notEqual(
+    recommendationScore(ranked[0], thematic),
+    recommendationScore(ranked[0], competitive),
+  )
+  assert.equal(requests, 1, 'Safety and ranking changes must not refetch cached card records')
+})
+
+test('recommendation refresh and printing enrichment preserve manual printing selections', async () => {
+  const commanderDetails = {
+    images: ['chosen-art'],
+    printings: [[{ finish: 'foil' }]],
+    selections: [0],
+  }
+  let details = commanderDetails
+  addCommanderCards(
+    {
+      commanderDetails,
+      deck: [{ name: 'Commander' }],
+      setCommanderDetails: (value: typeof details) => {
+        details = value
+      },
+      setDeck: () => assert.fail('Refresh must not replace deck cards'),
+    },
+    {
+      commanders: [card('Commander')],
+      images: ['default-art'],
+      art: [],
+      identityColours: [],
+      printings: [[{ image: 'default-art', finish: 'nonfoil' }]],
+    },
+    true,
+  )
+  assert.equal(details, commanderDetails)
+  let queued = {
+    ...toCard(card('Manual'), 'Popular inclusion'),
+    image: 'chosen-art',
+    set: 'chosen',
+    collectorNumber: '42',
+    finish: 'foil' as const,
+    printingManuallySelected: true,
+  }
+  const before = queued
+  await loadPrintings(
+    {
+      deck: [],
+      queue: [queued],
+      collectionSets: [],
+      collectionMode: 'none',
+      fetchPrintings: async () => [{ ...card('Manual'), image_uris: { normal: 'default-art' } }],
+      setQueue: (update) => {
+        queued = update([queued])[0]
+      },
+    },
+    [queued],
+  )
+  assert.equal(queued, before)
 })

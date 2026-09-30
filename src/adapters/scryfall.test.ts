@@ -66,8 +66,11 @@ test('rate-limit errors explain when to retry across Scryfall endpoints without 
   t.mock.method(Date, 'now', () => now)
   const endpoints: ((fetcher: typeof fetch) => Promise<unknown>)[] = [
     (fetcher) => fetchScryfallCard('Card', fetcher),
-    (fetcher) => fetchScryfallCardsByIdentifiers([], fetcher),
-    (fetcher) => fetchScryfallCollection([], fetcher, async () => assert.fail('Do not retry 429')),
+    (fetcher) => fetchScryfallCardsByIdentifiers([{ name: 'Card' }], fetcher),
+    (fetcher) =>
+      fetchScryfallCollection([{ name: 'Card' }], fetcher, async () =>
+        assert.fail('Do not retry 429'),
+      ),
     (fetcher) => fetchScryfallPrintings('https://api.scryfall.com/printings', fetcher),
     (fetcher) => fetchScryfallSets(fetcher),
     (fetcher) => searchScryfallPage('busy', fetcher),

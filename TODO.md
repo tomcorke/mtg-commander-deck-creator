@@ -17,37 +17,17 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, B1, B2, B3, B5, and B6.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, and B6.
 
 ## Suggested order
 
 Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change.
 
-| Order | ID  | TODO                                 | Complexity | Value  | Delivery risk | Reason                                                                                 |
-| ----- | --- | ------------------------------------ | ---------- | ------ | ------------- | -------------------------------------------------------------------------------------- |
-| 1     | A5  | Cache Scryfall data and requests     | Medium     | High   | Medium        | Reduce repeated API calls before adding more recommendation sources.                   |
-| 2     | A6  | Signature-card recommendations       | High       | High   | High          | Investigate sources and seed selection; build on A5 before expanding network requests. |
-| 3     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation.  |
-| 4     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                 |
-
-## [A5] Cache Scryfall data and deduplicate requests
-
-**Complexity:** Medium · **Value:** High · **Delivery risk:** Medium — The shared adapter is a natural reuse point; cache freshness, printing identity, and cancellation need care.
-
-Reduce repeated Scryfall calls when the same cards appear in refreshed recommendations or overlapping requests.
-
-- Share a session cache for card records and printing lists across recommendation, review, and detail lookups. Resolve cached EDHREC card names locally, skip known selected/ignored candidates before hydration, and batch only missing records.
-- Deduplicate in-flight requests, including overlapping card lookups. Cache successful results only; failed or cancelled requests must not leave unusable entries.
-- Keep name-only and printing-specific lookups distinct. Preserve chosen printings/finishes and apply current goals and eligibility filters when reusing raw data.
-- Define expiry and explicit refresh behavior so cached legality, rules, and printing data do not become indefinitely stale. Retain the existing 429 cooldown.
-
-Current context: `src/adapters/scryfall.ts` has a rate-limit cooldown but no general response cache or in-flight deduplication. Queue/deferred cards and hydrated printings are reused; `src/app/useAppActions.ts` also has a basic-land cache. Full EDHREC refreshes still fetch card records before filtering existing/ignored cards. Bulk POST lookups cannot rely on normal browser caching.
-
-Acceptance checks:
-
-- Warm refreshes reuse card/printing data; overlapping lookups fetch each missing record only once.
-- Failures, cancellation, expiry, and explicit refresh recover correctly without corrupting another caller's result or selected printings.
-- Request-count tests demonstrate fewer calls while legality, exclusions, collection constraints, and recommendation scores remain correct.
+| Order | ID  | TODO                                 | Complexity | Value  | Delivery risk | Reason                                                                                  |
+| ----- | --- | ------------------------------------ | ---------- | ------ | ------------- | --------------------------------------------------------------------------------------- |
+| 1     | A6  | Signature-card recommendations       | High       | High   | High          | A5's cache is available; investigate sources and seed selection before adding requests. |
+| 2     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation.   |
+| 3     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                  |
 
 ## [A6] Expand recommendations using signature cards in the deck
 

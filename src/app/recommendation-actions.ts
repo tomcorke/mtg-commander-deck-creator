@@ -205,7 +205,11 @@ export async function themeRecommendations(
     .map((card: ScryfallCard) => toCard(card, 'Interesting new pick', `theme ${themes.join(' ')}`))
 }
 
-export async function edhrecRecommendations(deps: ActionDeps, slug: string) {
+export async function edhrecRecommendations(
+  deps: ActionDeps,
+  slug: string,
+  excludedNames: string[] = [],
+) {
   const {
     fetchEdhrec,
     setCommanderSubThemes,
@@ -220,14 +224,11 @@ export async function edhrecRecommendations(deps: ActionDeps, slug: string) {
   const result = await fetchEdhrec(slug)
   setCommanderSubThemes(commanderThemes(result.tag_counts ?? []))
   const lists = result.container?.json_dict?.cardlists ?? []
-  const entries = parseEdhrecEntries(lists)
-  if (!entries.length) throw new Error('No EDHREC cards')
-  const responseCards: ScryfallCard[] = []
-  for (let index = 0; index < entries.length; index += 75) {
-    responseCards.push(
-      ...(await fetchCards(entries.slice(index, index + 75).map(({ name }) => ({ name })))),
-    )
-  }
+  const allEntries = parseEdhrecEntries(lists)
+  if (!allEntries.length) throw new Error('No EDHREC cards')
+  const excluded = new Set(excludedNames.map((name) => name.toLowerCase()))
+  const entries = allEntries.filter(({ name }) => !excluded.has(name.toLowerCase()))
+  const responseCards: ScryfallCard[] = await fetchCards(entries.map(({ name }) => ({ name })))
   return buildEdhrecRecommendations(entries, responseCards, {
     includeCreature,
     excludeGameChangers,
@@ -362,7 +363,13 @@ export function resetRecommendationState(deps: ActionDeps, preserveDeck: boolean
 export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: boolean) {
   const { setCommanderDetails, setDeck, cardText } = deps
   const { commanders, images, art, identityColours, printings } = loaded
-  if (images.length)
+  if (
+    preserveDeck &&
+    deps.commanderDetails &&
+    commanders.every((card: CommanderCard, index: number) => deps.deck[index]?.name === card.name)
+  )
+    setCommanderDetails(deps.commanderDetails)
+  else if (images.length)
     setCommanderDetails({
       images,
       art,
@@ -418,7 +425,15 @@ async function coreRecommendations(
     const slug = commanders
       .map((commander) => edhrecSlug(commander.related_uris?.edhrec, commander.name))
       .join('-')
-    offeredCards = await edhrecRecommendations(deps, slug)
+    const excludedNames = [
+      ...commanders.map(({ name }) => name),
+      ...(preserveDeck
+        ? [...deps.deck, ...deps.sideboard]
+            .map(({ name }: Card) => name)
+            .concat(deps.ignoredCards ?? [])
+        : []),
+    ]
+    offeredCards = await edhrecRecommendations(deps, slug, excludedNames)
     if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error

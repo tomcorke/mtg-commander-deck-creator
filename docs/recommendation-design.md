@@ -11,6 +11,16 @@ Recommend cards for the player's chosen goal, commander, declared theme, and exi
 - Keep the app client-only. If EDHREC is unavailable or its undocumented JSON shape changes, fall back to Scryfall and show `Limited recommendations`.
 - Persist user state, not remote recommendation data.
 
+## Scryfall session cache
+
+The shared adapter caches successful raw card records and complete printing lists for 15 minutes from receipt, with a 2,000-entry limit per fetch client/tab. Nothing is persisted. Named and bulk lookups share normalized name keys; set/collector-number keys remain separate. Searches and printing lists also warm exact-printing records without changing the name-only default.
+
+Bulk hydration reserves missing identifiers before dispatch, so overlapping requests share each lookup. Missing records are sent in batches of at most 75, sequentially within each call. EDHREC hydration excludes commanders and, during refresh, main-deck, sideboard, and ignored cards before requesting records. Recommendation goals, safety filters, and collection constraints are applied again to raw results; scores and query results are not cached.
+
+Each caller receives a copy of cached data. Cancelling one caller leaves other consumers running; cancelling the last consumer aborts shared work. Failed, missing, and fully cancelled results are not retained. Successful printing lists include all pages. Recommendation refresh preserves commander art/finish choices, and enrichment does not overwrite a manual printing choice.
+
+Expired entries are fetched on the next lookup. For an explicit data refresh, call `clearScryfallCache()` before looking up cards or printings again; it clears the default client's data and pending-request registry without changing deck selections or the 429 cooldown. Existing consumers finish independently, and their old responses cannot refill the new cache. A normal recommendation refresh reuses unexpired raw data. Reloading the page starts a new session. The uncached `fetchScryfallCollection` function remains the retrying HTTP transport; application lookups use `resolveScryfallIdentifiers` or `fetchScryfallCardsByIdentifiers`.
+
 ## Ranking
 
 The four goals use the same inspectable score factors, with different weights and ordering:

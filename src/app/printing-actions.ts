@@ -103,7 +103,7 @@ function updateQueuedCard(
   const selected = printings[selectedIndex]
   setQueue((current: Card[]) =>
     current.map((item) =>
-      item.name === offered.name
+      item.name === offered.name && !item.printingManuallySelected
         ? {
             ...item,
             printings,

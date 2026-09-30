@@ -2,7 +2,13 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
-import { addManualCard, addSearchCards, selectManualCard } from './deck-actions.ts'
+import { fetchScryfallCard, fetchScryfallPrintings } from '../adapters/scryfall.ts'
+import {
+  addManualCard,
+  addSearchCards,
+  hydrateDeckCardDetails,
+  selectManualCard,
+} from './deck-actions.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
 
 const card = (name: string): ScryfallCard => ({
@@ -109,4 +115,41 @@ test('opening another search detail cancels stale printing results', async (cont
   assert.equal(deps.selectedManualCard.name, 'Newer')
   assert.equal(deps.manualPrintings.length, 2)
   assert.ok(deps.manualPrintings.every(({ name }) => name === 'Newer'))
+})
+
+test('cached printing metadata enriches details without replacing selected art or foil finish', async (context) => {
+  const uri = 'https://api.scryfall.com/selected-printings'
+  const chosen = {
+    ...card('Selected'),
+    set: 'old',
+    set_name: 'Old Set',
+    prints_search_uri: uri,
+    finishes: ['nonfoil', 'foil'] as const,
+    scryfall_uri: 'https://scryfall.com/card/old/1',
+    prices: { usd: '1', usd_foil: '3' },
+  }
+  const defaultCard = { ...chosen, set: 'new', image_uris: { normal: 'new-art' } }
+  let requests = 0
+  context.mock.method(globalThis, 'fetch', (input: unknown) => {
+    requests++
+    return Promise.resolve(
+      Response.json(
+        String(input).includes('/named') ? defaultCard : { data: [chosen, defaultCard] },
+      ),
+    )
+  })
+  await fetchScryfallCard(chosen.name)
+  await fetchScryfallPrintings(uri)
+  const deps = searchDeps()
+  deps.deck = [
+    { ...toDeckCard(chosen), setName: undefined, finish: 'foil', printingManuallySelected: true },
+  ]
+  deps.sideboard = []
+  await hydrateDeckCardDetails(deps, deps.deck[0])
+  assert.equal(deps.deck[0].set, 'old')
+  assert.equal(deps.deck[0].image, chosen.image_uris.normal)
+  assert.equal(deps.deck[0].finish, 'foil')
+  assert.equal(deps.deck[0].price, '3')
+  assert.equal(deps.deck[0].setName, 'Old Set')
+  assert.equal(requests, 2, 'Name and printing-list requests must warm detail hydration')
 })

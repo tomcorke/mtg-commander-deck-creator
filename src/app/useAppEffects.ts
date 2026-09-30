@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import { shouldAutoOpenDeckReview } from '../deck-analysis.ts'
+import { basicLandNames, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
 import { commanderNames, randomThree } from '../domain/commander-catalog.ts'
 import { commanderPrintingOptions } from '../domain/printing.ts'
 
@@ -155,12 +155,12 @@ export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
   }, [commander, commanderDetails, deck])
 }
 
-export function useBasicCardCacheEffect(deps: AppEffectsDeps) {
-  const { basicNames, fetchCards, basicCardCache } = deps
+export function useBasicCardPrefetchEffect(deps: AppEffectsDeps) {
+  const { fetchCards } = deps
   useEffect(() => {
-    void fetchCards(basicNames.map((name: string) => ({ name })))
-      .then((cards: any[]) => cards.forEach((card) => basicCardCache.set(card.name, card)))
-      .catch(() => undefined)
+    void fetchCards([...Object.values(basicLandNames), 'Wastes'].map((name) => ({ name }))).catch(
+      () => undefined,
+    )
   }, [])
 }
 
@@ -322,7 +322,7 @@ export function useAppEffects(deps: AppEffectsDeps) {
   usePersistenceEffect(deps)
   useTitleEffect(deps)
   useCommanderPrintingEffect(deps)
-  useBasicCardCacheEffect(deps)
+  useBasicCardPrefetchEffect(deps)
   useSetCatalogEffect(deps)
   useCommanderSearchEffect(deps)
   useColourSuggestionsEffect(deps)

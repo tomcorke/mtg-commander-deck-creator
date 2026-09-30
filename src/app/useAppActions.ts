@@ -8,7 +8,6 @@ import {
 } from '../recommendations.ts'
 import { randomItems, randomThree, themeCommanders } from '../domain/commander-catalog.ts'
 import type { Card } from '../domain/card-model.ts'
-import { basicLandNames } from '../deck-analysis.ts'
 import { fetchEdhrecCommander } from '../adapters/edhrec.ts'
 import { deckPageTitle, saveDeckState } from '../deck-state.ts'
 import {
@@ -42,9 +41,6 @@ import {
   type AppModal,
   type AppView,
 } from './routes.ts'
-
-const basicNames = [...Object.values(basicLandNames), 'Wastes']
-const basicCardCache = new Map<string, any>()
 
 type AppState = ControllerState & Record<string, any>
 
@@ -101,8 +97,6 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     readRoute: readAppRoute,
     writeRoute: writeAppRoute,
     appHistoryKey,
-    basicNames,
-    basicCardCache,
     setSetOptions: state.setSetOptions,
     recommendationState: state.recommendationState,
     currentDeckState: state.currentDeckState,
@@ -280,7 +274,6 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
   }
   const actions = createActionHandlers({
     ...state,
-    basicCardCache,
     openModal: (_deps: unknown, modal: AppModal) => routing.openModal(modal),
     closeModal: (replace = false) => routing.closeModal(replace),
     navigateView: (_deps: unknown, view: AppView, modal: AppModal | null = null, replace = false) =>

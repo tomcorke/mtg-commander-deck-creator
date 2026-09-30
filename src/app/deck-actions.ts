@@ -1,7 +1,7 @@
 import type { MouseEvent } from 'react'
 import {
   fetchScryfallCard,
-  fetchScryfallCollection,
+  resolveScryfallIdentifiers,
   fetchScryfallPrintings,
   ScryfallRateLimitError,
 } from '../adapters/scryfall.ts'
@@ -510,18 +510,12 @@ export function openCollectionCard(deps: ActionDeps, card: ScryfallCard) {
   openModal(deps, 'card')
 }
 
-export async function fetchBasic(deps: ActionDeps, name: string) {
-  const { basicCardCache } = deps
-  const cached = basicCardCache.get(name)
-  if (cached) return toDeckCard(cached)
-  let card: ScryfallCard
+export async function fetchBasic(name: string) {
   try {
-    card = await fetchScryfallCard(name)
+    return toDeckCard(await fetchScryfallCard(name))
   } catch {
     throw new Error('Basic land unavailable')
   }
-  basicCardCache.set(name, card)
-  return toDeckCard(card)
 }
 
 export async function addBasicLands(deps: ActionDeps, plan: { name: string; count: number }[]) {
@@ -530,7 +524,7 @@ export async function addBasicLands(deps: ActionDeps, plan: { name: string; coun
   try {
     const cards = await Promise.all(
       plan.map(async ({ name, count }) => ({
-        card: await fetchBasic(deps, name),
+        card: await fetchBasic(name),
         count,
       })),
     )
@@ -631,7 +625,7 @@ export async function addOneBasic(deps: ActionDeps, name: string) {
   if (deck.length >= 100) return
   try {
     const existing = deck.find((card: any) => card.name === name)
-    const added = existing ? { ...existing } : await fetchBasic(deps, name)
+    const added = existing ? { ...existing } : await fetchBasic(name)
     setDeck((current: any) => (current.length < 100 ? [...current, added] : current))
   } catch {
     setBasicLandState('error')
@@ -694,11 +688,10 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       (card.faces.length > 1 && !card.backImage) ||
       (cardCanHavePowerToughness(card) && (!card.power || !card.toughness))
     ) {
-      const response = await fetchScryfallCollection([
+      const result = await resolveScryfallIdentifiers([
         { set: card.set, collector_number: card.collectorNumber },
       ])
-      if (!response.ok) return
-      fetched = ((await response.json()) as { data: ScryfallCard[] }).data[0]
+      fetched = result.data[0]
       if (!fetched) return
     }
     const printsUri = card.printsUri ?? fetched?.prints_search_uri
@@ -1053,22 +1046,12 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
   const unresolved: typeof imported.cards = []
   for (let index = 0; index < identifiers.length; index += 75) {
     const entries = imported.cards.slice(index, index + 75)
-    const response = await fetchScryfallCollection(identifiers.slice(index, index + 75))
-    if (!response.ok) throw new Error('Scryfall unavailable. Try again.')
-    const result = (await response.json()) as {
-      data: ScryfallCard[]
-      not_found?: { name?: string; set?: string; collector_number?: string }[]
-    }
+    const result = await resolveScryfallIdentifiers(identifiers.slice(index, index + 75))
     fetched.push(...result.data)
     unresolved.push(...entries.filter((entry: any) => !matchImportedCard(entry, result.data)))
   }
   if (unresolved.length) {
-    const response = await fetchScryfallCollection(unresolved.map(({ name }: any) => ({ name })))
-    if (!response.ok) throw new Error('Scryfall unavailable. Try again.')
-    const result = (await response.json()) as {
-      data: ScryfallCard[]
-      not_found?: { name?: string; set?: string; collector_number?: string }[]
-    }
+    const result = await resolveScryfallIdentifiers(unresolved.map(({ name }: any) => ({ name })))
     fetched.push(...result.data)
     if (result.not_found?.length)
       throw new Error(
