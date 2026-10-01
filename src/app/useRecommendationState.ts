@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import type { PersistedDeckState } from '../deck-state.ts'
+import { restoredRecommendationDecisions, type PersistedDeckState } from '../deck-state.ts'
 import type { Card } from '../domain/card-model.ts'
 import {
   normalizeRecommendationStyle,
@@ -68,7 +68,7 @@ export function useRecommendationState(saved: PersistedDeckState | null) {
   const [excludeTutors, setExcludeTutors] = useStoredOption('excludeTutors', () => true)
   const [excludeExtraTurns, setExcludeExtraTurns] = useStoredOption('excludeExtraTurns', () => true)
   const [excludeUnreleased, setExcludeUnreleased] = useStoredOption('excludeUnreleased', () => true)
-  const [decisions, setDecisions] = useState<Record<string, 'add' | 'later' | 'ignore'>>({})
+  const [decisions, setDecisions] = useState(() => restoredRecommendationDecisions(saved))
   const [ignoredCards, setIgnoredCards] = useState<string[]>(saved?.ignoredCards ?? [])
   const [liked, setLiked] = useState<string[]>(saved?.liked ?? [])
   const [activeSubThemes, setActiveSubThemes] = useState<string[]>(saved?.activeSubThemes ?? [])

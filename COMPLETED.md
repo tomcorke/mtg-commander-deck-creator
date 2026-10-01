@@ -90,6 +90,10 @@ Recommendation surfaces share a scoring-context builder. Replacements are scored
 
 Ranking details: [docs/recommendation-design.md](docs/recommendation-design.md).
 
+**Reload follow-up: implemented, not yet published.** Restore the current batch's saved Add/Later/Ignore decisions on startup instead of initializing an empty map and autosaving it. Both reload and saved-deck loading recover missing Add flags when queued cards already exist in the main deck or sideboard. Existing decisions remain authoritative; recovery does not invent lost Later/Ignore choices or change either board or the queue.
+
+`src/app/useRecommendationState.test.ts` exercises storage, the real hook initializer, and first-click removal at 100 cards. All 164 tests, lint, typecheck, build, and standalone regression typecheck pass. Chromium reproduced the missing Liliana, Death Wielder badge before the fix, then verified 99-to-100 addition, reload highlighting, immediate removal, re-add/reload, legacy empty-map recovery, saved-deck loading, and sideboard removal. Light/dark desktop/narrow checks passed; harnesses and screenshots remain outside Git.
+
 ## [A1] Improve land and mana-support recommendations
 
 **Complexity:** High · **Value:** High · **Delivery risk:** Medium — The existing basic-land planner and mana data provide a base; reliable castability scoring still needs judgment calls.

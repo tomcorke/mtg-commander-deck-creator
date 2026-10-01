@@ -26,6 +26,7 @@ import {
   clearDeckState,
   deleteSavedDeck,
   duplicateDeckName,
+  restoredRecommendationDecisions,
   saveSavedDeck,
   suggestedDeckName,
   type PersistedDeckState,
@@ -912,7 +913,7 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
   setCollectionPoolSize(null)
   setQueue(state.queue)
   setLimitedRecommendations(state.limitedRecommendations)
-  setDecisions(state.decisions)
+  setDecisions(restoredRecommendationDecisions(state))
   setIgnoredCards(state.ignoredCards)
   setLiked(state.liked)
   setActiveSubThemes(state.activeSubThemes)

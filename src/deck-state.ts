@@ -114,6 +114,16 @@ export const persistedDeckStateSchema = z.object({
 export type PersistedDeckState = z.infer<typeof persistedDeckStateSchema>
 export type SavedDeck = { id: string; name: string; updatedAt: string; state: PersistedDeckState }
 
+export function restoredRecommendationDecisions(state: PersistedDeckState | null) {
+  const decisions = { ...state?.decisions }
+  if (!state) return decisions
+  // Earlier reloads could overwrite choices with {}; board membership can recover known additions.
+  const added = new Set([...state.deck, ...state.sideboard].map(({ name }) => name))
+  for (const card of state.queue)
+    if (!decisions[card.name] && added.has(card.name)) decisions[card.name] = 'add'
+  return decisions
+}
+
 export const deckPageTitle = (cardCount: number, name: string, modified = false) =>
   `${modified ? '*' : ''}${cardCount}/100 ${name} - Commander Deck Creator`
 
