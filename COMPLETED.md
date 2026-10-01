@@ -6,7 +6,7 @@ Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reus
 
 **Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Both providers share a request scheduler; deferred retries are reported separately.
 
-**Status:** Complete; not yet published.
+**Status:** Complete — released with implementation `6a3a731`.
 
 ### Completed behavior
 
