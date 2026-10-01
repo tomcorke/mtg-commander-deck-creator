@@ -8,6 +8,7 @@ import {
   ProviderRequestError,
   retryTime,
   scheduleRequest,
+  setRequestCooldown,
   type RequestPolicy,
 } from './request-scheduler.ts'
 
@@ -115,6 +116,7 @@ async function requestScryfall(
         const limit =
           !previous || (error.retryAt ?? 0) >= (previous.retryAt ?? 0) ? error : previous
         rateLimits.set(fetcher, limit)
+        setRequestCooldown(fetcher, 500, limit.retryAt ?? 0)
         await response.body?.cancel()
         throw limit
       }

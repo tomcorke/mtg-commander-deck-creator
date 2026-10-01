@@ -3,6 +3,7 @@ import {
   ProviderRequestError,
   retryTime,
   scheduleRequest,
+  setRequestCooldown,
   type RequestPolicy,
 } from './request-scheduler.ts'
 
@@ -117,8 +118,10 @@ export async function fetchEdhrecPage(
           response.status === 429 || (response.status >= 500 && response.headers.has('Retry-After'))
             ? retryTime(response).retryAt
             : undefined
-        if (retryAt !== undefined)
+        if (retryAt !== undefined) {
           cooldowns.set(fetcher, Math.max(cooldowns.get(fetcher) ?? 0, retryAt))
+          setRequestCooldown(fetcher, 1000, cooldowns.get(fetcher)!)
+        }
         if (!response.ok) {
           await response.body?.cancel()
           throw new ProviderRequestError('EDHREC unavailable', response.status, retryAt)

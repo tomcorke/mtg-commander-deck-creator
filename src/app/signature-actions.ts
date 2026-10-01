@@ -1,6 +1,10 @@
 import { fetchEdhrecPage, type EdhrecCommanderPage } from '../adapters/edhrec.ts'
 import { fetchScryfallCardsByIdentifiers } from '../adapters/scryfall.ts'
-import { ProviderRequestError, type RequestPolicy } from '../adapters/request-scheduler.ts'
+import {
+  ProviderRequestError,
+  setBackgroundRetry,
+  type RequestPolicy,
+} from '../adapters/request-scheduler.ts'
 import { persistedDeckStateSchema } from '../deck-state.ts'
 import { edhrecSlug, isScryfallCard, toCard, type ScryfallCard } from '../domain/card-model.ts'
 import {
@@ -118,21 +122,35 @@ export function signatureRetryAt(
 }
 
 // One timer for unfinished work; no interval polling while a provider or budget is paused.
-export function watchSignatureResults(load: () => Promise<number>, signal: AbortSignal) {
+export function watchSignatureResults(
+  load: () => Promise<number>,
+  signal: AbortSignal,
+  client: typeof fetch = fetch,
+) {
   signal.throwIfAborted()
   let timer: ReturnType<typeof setTimeout>
   const poll = async () => {
     if (signal.aborted) return
+    setBackgroundRetry(signal, 0, client)
     const retryAt = await load().catch(() => Infinity)
-    if (!signal.aborted && Number.isFinite(retryAt))
+    if (!signal.aborted && Number.isFinite(retryAt)) {
+      setBackgroundRetry(signal, retryAt, client)
       timer = setTimeout(
         () => {
           void poll()
         },
         Math.min(2_147_483_647, Math.max(2000, retryAt - Date.now())),
       )
+    }
   }
-  signal.addEventListener('abort', () => clearTimeout(timer), { once: true })
+  signal.addEventListener(
+    'abort',
+    () => {
+      clearTimeout(timer)
+      setBackgroundRetry(signal, 0, client)
+    },
+    { once: true },
+  )
   timer = setTimeout(() => {
     void poll()
   }, 2000)

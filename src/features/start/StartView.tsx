@@ -11,6 +11,7 @@ import type { AppModal, AppView } from '../../app/routes.ts'
 import { FinishedCardImage } from '../../shared/CardArt.tsx'
 import { OracleText } from '../../shared/ManaSymbols.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
+import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 
 type StartViewProps = {
   navigateView: (view: AppView, modal?: AppModal | null, replace?: boolean) => void
@@ -106,6 +107,7 @@ export function StartView({
           <button className="export" type="button" onClick={openSavedDecks}>
             Saved decks ({savedDecks})
           </button>
+          <RequestActivityIndicator />
         </div>
       </header>
       {savedDecksModal}

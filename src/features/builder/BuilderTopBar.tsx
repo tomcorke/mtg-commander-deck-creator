@@ -1,5 +1,6 @@
 import type { SavedDeck } from '../../deck-state.ts'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
+import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 
 export type BuilderTopBarProps = {
   activeDeckDelta: { added: number; removed: number } | null
@@ -94,6 +95,7 @@ export function BuilderTopBar({
         <button className="export" type="button" onClick={onExport}>
           Export deck
         </button>
+        <RequestActivityIndicator />
       </div>
     </header>
   )

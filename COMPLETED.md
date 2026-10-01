@@ -2,6 +2,27 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [B7] Show API request activity
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Both providers share a request scheduler; deferred retries are reported separately.
+
+**Status:** Complete; not yet published.
+
+### Completed behavior
+
+A small network icon with a queued-count badge appears at the right of the start and builder headers. Hover or keyboard focus opens its details; click pins them open. Escape or an outside click dismisses the native popover. Text and accessible labels accompany idle, active, and waiting colours. The same component supports light/dark themes and narrow layouts.
+
+The scheduler exposes per-client snapshots of active and queued EDHREC/Scryfall operations. Active slots include response-body transfer. Shared calls count once; cache hits and card-image downloads do not count. Provider cooldowns and the next active enrichment retry/allowance check appear separately from the queue. Cancelled contexts remove their retry waits; an expiry timer updates waiting status without polling providers or retaining request history. Existing pacing, concurrency, foreground priority, caches, and budgets are unchanged.
+
+Implementation: `src/shared/RequestActivityIndicator.tsx`, `src/styles/request-activity.css`, `src/adapters/request-scheduler.ts`, and `watchSignatureResults()` in `src/app/signature-actions.ts`.
+
+### Acceptance checks
+
+- `src/adapters/request-activity.test.ts` covers coalescing, cache hits, queued cancellation, slow response bodies, rejected operations, client/provider isolation, observer cleanup, cooldowns, and independent retry watchers.
+- Chromium checks with mocked providers verify live badge/table counts, hover/focus/click, Escape/outside dismissal, cooldown expiry, retry cancellation, text wrapping, and viewport bounds. Light/dark builder layouts were inspected at 390px and 1536px; the start header was also checked. Screenshots and harnesses remain outside Git.
+- The existing rendered recommendation checks still pass: late append and later batches, stable choices/deferrals, saved-deck switching, silent 403 failures, full-deck suspension, and card-reference previews/details.
+- All 162 tests, lint, application and standalone test typechecks, production build, and diff checks pass. Existing nonblocking React and bundle-size warnings remain. No dependency or downloaded card art was added.
+
 ## [A5] Cache Scryfall data and deduplicate requests
 
 **Complexity:** Medium · **Value:** High · **Delivery risk:** Medium — The shared adapter is a natural reuse point; cache freshness, printing identity, and cancellation need care.
