@@ -71,7 +71,7 @@ Choices remain visible until `Next recommendations` is clicked. Ranking changes 
 
 ## Sub-themes
 
-After two related selections, offer a non-blocking prompt above `Next recommendations`, such as `Lean into +1/+1 counters?`.
+When three of the last 12 selected cards share a supported tag, offer a non-blocking prompt above `Next recommendations`, such as `Lean into +1/+1 counters?`.
 
 - Clicking the prompt activates the sub-theme and advances the batch.
 - Dismissal continues without changing ranking.

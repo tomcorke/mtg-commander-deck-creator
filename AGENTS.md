@@ -22,3 +22,7 @@ Batch only tightly related edits. Skip publishing docs-only changes.
 
 - `TODO.md` is the source of truth for planned work. Read it before planning and update it when scope or priority changes.
 - This is a single-context repo. See `docs/agents/domain.md`.
+
+## MTG domain knowledge
+
+- Read `CONTEXT.md` before code, docs, or UI copy that depends on an MTG or Commander fact: rules, legality, brackets, Game Changers, card data, or deck-building heuristics. Its references outrank remembered MTG knowledge, which is often out of date.

@@ -23,17 +23,20 @@ Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5
 
 Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change. Items A7–A13 and B8–B11 come from the [design and UX review](docs/ux-review.md).
 
-| Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                     |
-| ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | ---------------------------------------------------------------------------------------------------------- |
-| 1     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                                |
-| 2     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation. |
-| 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                               |
-| 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.       |
-| 5     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                    |
-| 6     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                  |
-| 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                 |
-| 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                     |
-| 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.     |
+| Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                                |
+| ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 1     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                                           |
+| 2     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation.            |
+| 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                                          |
+| 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.                  |
+| 5     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                               |
+| 6     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
+| 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                            |
+| 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
+| 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
+| 10    | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
+| 11    | A14 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
+| 12    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
 
 ## [A12] Defer basic-land fill
 
@@ -217,6 +220,67 @@ Finish the remaining module-ownership work without splitting markup that has no 
 - Responsive and theme rules live with their owning styles; shared base rules remain shared.
 - Lint checks helper and callback functions in feature TSX, with no blanket feature-level exclusions.
 - Existing tests, lint, typecheck, production build, and the manual UI smoke check pass without behavior or accessibility regressions.
+
+## [B12] Enforce Commander construction rules at one boundary
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Several entry paths disagree on legality today; a shared validator is clear, but saved-deck migration and partner pairing need care.
+
+Start, promotion, manual add, recommendations, Doctor swaps, import, and saved-deck load each apply different subsets of the Commander rules. Some paths accept illegal decks; others reject legal ones. Route every path through one validator built on [docs/domain/commander-rules.md](docs/domain/commander-rules.md) and [docs/commander-eligibility.md](docs/commander-eligibility.md).
+
+- Copy limits: treat "basic" as a supertype so snow basics and Wastes repeat freely. Honour Oracle text allowing any number or a fixed number of copies (Relentless Rats, Seven Dwarves, Nazgûl). Compare cards by `oracle_id`, not display name.
+- Commander eligibility: judge the front face only. Westvale Abbey and Elbrus, the Binding Blade are not commanders. Grist, the Hunger Tide is a commander, because its creature ability works outside the game. Import must use the shared eligibility check, not "type line contains Legendary or Background".
+- Partner pairs: replace the six hard-coded pair aliases with the five partner abilities in CR 702.124. Fix imported pairs, which are currently joined into one exact-name lookup. Until a pairing keyword is supported, reject the pair with a clear message.
+- Legality: require `legalities.commander === 'legal'` for commanders and cards on every path. Unknown legality, unknown colour identity, and unknown mana value must fail closed, not become legal, colourless, or zero.
+- Colour identity: never rebuild identity from reminder text (Crypt Ghast's extort reminder is not white). Prefer fresh Scryfall `color_identity` over the fallback scanner; treat a missing value as unknown.
+- Persistence: revalidate saved decks and queued candidates on load against current legality and Game Changer data, and tell the player what changed.
+- Chosen-colour commanders (The Prismatic Piper, Faceless One): investigate support or reject them explicitly; do not treat them as colourless.
+
+Current context: [the 2026-10-03 assumption audit](docs/domain/assumption-audit-2026-10-03.md) lists each path with line references. Code has changed since that audit (A7, A8, A10), so recheck the paths. Key files are `src/domain/commander-promotion.ts`, `src/domain/commander-catalog.ts`, `src/domain/recommendation-scoring.ts`, `src/app/deck-actions.ts`, `src/deck-import.ts`, and `src/deck-state.ts`.
+
+Acceptance checks:
+
+- Tests cover snow basics, Wastes, Relentless Rats, Seven Dwarves above and at seven, Westvale Abbey, a legendary non-creature without permission, Grist, a banned legendary creature, Crypt Ghast's identity, and each supported partner ability, including a mismatched pair.
+- Import, manual add, recommendations, Doctor swaps, and promotion return the same verdict for the same card and deck.
+- A saved deck containing a newly banned card loads with a visible warning rather than silently counting as complete.
+
+## [B13] Correct deck-analysis and simulation mana semantics
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — The fixes are local to analysis, simulation, and card conversion, and the rules are verified.
+
+Deck review and Deck Doctor apply some two-player or outdated card-data assumptions.
+
+- Simulation: draw on turn one. CR 103.8c says no player skips the first draw in a multiplayer game.
+- Land counts: a transforming card's land back face is not a land drop from hand. Count spell/land MDFCs as optional land drops, not as both a land and a spell.
+- Card conversion: keep face mana costs when converting imported or manually added DFCs, as recommendations already do.
+- Mana symbols: use Scryfall `/symbology` `svg_uri` instead of building filenames (`{W/U/P}` is `WUP.svg`). Treat `{H}` as generic Phyrexian and `{P}` as the pawprint symbol. Recognise `{C/W}`-style hybrids. Show `{C}` and `{S}` costs in colour guidance.
+- Images: only DFC layouts have a back image. Split, Adventure, and flip cards have several faces on one side, so do not repeatedly fetch a missing back image for them.
+
+Acceptance checks:
+
+- Fixed-seed simulation tests show a turn-one draw, and the results change accordingly.
+- Tests cover a transforming land (for example, Westvale Abbey), a spell/land MDFC, an imported DFC's mana cost, `{W/U/P}` and `{C/W}` rendering, and a split card that does not trigger an image repair fetch.
+
+## [A14] Align recommendation filters and provider assumptions with current policy
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Mostly labels, mappings, and query changes; EDHREC's undocumented JSON remains a risk.
+
+Some recommendation settings and provider mappings encode outdated policy or data. See [docs/domain/format-policy.md](docs/domain/format-policy.md) and [docs/domain/data-sources.md](docs/domain/data-sources.md).
+
+- Present the tutor and extra-turn exclusions as player preferences. Wizards removed tutor restrictions from brackets in October 2025. Do not describe Core as "precon" level, because Wizards decoupled Bracket 2 from precons.
+- Map EDHREC's `highliftcards` list to the Commander-synergy reason, as `highsynergycards` was.
+- Recheck colour identity on the foreground EDHREC path and in `decide()`; EDHREC co-occurrence is not a legality check.
+- Stop excluding every `is:commander` card from Scryfall recommendations; legendary creatures are valid main-deck cards.
+- Replace `order=random`, which Scryfall does not document and which returned alphabetical results.
+- Make `scripts/recommendation-audit.ts` respect the 500 ms Scryfall spacing.
+- Verify the export modal's claim that Moxfield cannot import commanders with the main deck, and record the date checked.
+- Optional: show a deck-wide Game Changer count against the chosen power target's bracket limit (zero, up to three, unlimited).
+
+Acceptance checks:
+
+- Settings copy names official bracket limits only for Game Changers. Other exclusions are labelled as preferences.
+- A live EDHREC fixture with `highliftcards` produces Commander-synergy reasons.
+- An off-identity EDHREC card cannot be added from a batch.
+- The audit script cannot dispatch Scryfall collection requests less than 500 ms apart.
 
 ## Migrated GitHub issues
 

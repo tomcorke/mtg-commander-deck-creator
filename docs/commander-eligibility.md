@@ -1,6 +1,6 @@
 # Commander eligibility
 
-Checked 2026-09-22 against Wizards of the Coast's current Comprehensive Rules.
+Checked 2026-09-22 against Wizards of the Coast's current Comprehensive Rules. Face and outside-game rules added 2026-10-03 against the 2026-09-25 rules.
 
 ## Rules
 
@@ -23,6 +23,10 @@ Scryfall does not provide a per-card `can_be_commander` boolean. Its [search syn
 
 `legalities.commander` only means that a card may be included in a Commander deck; it is not a commander-eligibility flag. For example, a legal-in-deck Spacecraft without a power/toughness box is not necessarily a legal commander.
 
+## Front face only
+
+Outside the game, a double-faced card has only its front face's characteristics (712.8a). Eligibility is judged on the front face. Westvale Abbey (back face Ormendahl) and Elbrus, the Binding Blade (back face Withengar) are **not** eligible commanders. Scryfall's top-level `type_line` joins both faces, so check `card_faces[0].type_line` for multi-face cards. Colour identity is the exception: it does include the back face (903.4d).
+
 ## App rule
 
-Promotion should allow a card when it is a legendary creature, a legendary Vehicle, a legendary Spacecraft with power/toughness data, or any card whose Oracle text explicitly says it can be your commander. Regular planeswalkers and other legendary noncreature, non-Vehicle, non-Spacecraft cards remain ineligible unless they have that explicit permission.
+Promotion should allow a card when it is a legendary creature, a legendary Vehicle, a legendary Spacecraft with power/toughness data, or any card whose Oracle text explicitly says it can be your commander. Judge the front face only. Count abilities that work outside the game: Grist, the Hunger Tide is a creature outside the battlefield, so it is eligible without "can be your commander" text ([Wizards ruling, 2021-06-18](https://api.scryfall.com/cards/1925dc45-4dee-4772-aa16-3b4ca54be6c7/rulings); CR 113.6c). Regular planeswalkers and other legendary noncreature, non-Vehicle, non-Spacecraft cards remain ineligible unless they have that explicit permission.
