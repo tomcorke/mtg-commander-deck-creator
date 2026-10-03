@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, and A13.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A13, and B9.
 
 ## Suggested order
 
@@ -29,8 +29,8 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | 2     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation.            |
 | 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                                          |
 | 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.                  |
-| 5     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                               |
-| 6     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
+| 5     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
+| 6     | B14 | Keep deck-review drafts                  | Low        | Medium | Low           | Browser Back and settings refreshes can silently drop pending review choices.                                         |
 | 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                            |
 | 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
 | 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
@@ -129,24 +129,22 @@ Acceptance checks:
 - Late results appear in later batches with the same scoring rules, without duplicates, resurrected ignored/deferred cards, or changed current choices.
 - Measured request counts, rolling-hour boundaries, repeated deck edits, backoff, rate limits, failures, hidden tabs, and deck switches demonstrate bounded work and safe recovery. Successful work is reused; permanent failures do not retry.
 
-## [B9] Make deck review one clear workflow
+## [B14] Keep deck-review drafts across navigation and settings changes
 
-**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Reorganises existing sections without new analysis.
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Draft choices already survive in-review step changes; the gaps are browser history and settings refreshes.
 
-The feature appears as "Deck review" (two builder buttons and the page title), "Deck analysis" (sidebar), and Deck Doctor (code and history modal). The page opens with three caveat paragraphs, its Overview / Findings / Swap cards / History buttons scroll one long page, and the Diagnosis column stays empty beside a long cut list.
+Pending cuts and additions in Deck review can disappear without warning.
 
-- Use one user-facing name, "Deck review", and one builder entry point.
-- Replace the scroll anchors with real steps: Diagnose → Choose changes → Confirm, with a sticky summary of pending cuts and additions. Keep history in the existing history modal.
-- Replace the caveat paragraphs with one "How review works" disclosure.
-- Rename jargon labels such as "Sources reported" and "Tag matches found" in plain language.
-- Move "Try another commander" to the commander header as "Compare commanders".
+- Browser Back (popstate or hashchange) out of Diagnose discards pending choices without the warning that the explicit exit shows. Either intercept the route change before it applies, ask to discard, and restore the history entry if cancelled, or keep the draft outside `DeckDoctorView` so navigation cannot lose it.
+- Changing a recommendation setting while reviewing clears additions already picked, without telling the player. Keep picked additions that still pass the new settings, and say which were removed.
 
-Current context: `src/features/builder/DeckDoctorView.tsx` renders all sections on one page; builder entry points are in `BuilderView.tsx` and `DeckOverview.tsx`.
+Current context: `src/features/builder/DeckDoctorView.tsx` owns the draft; routes are applied in `useRouteEffects`. Found during the B9 browser review.
 
 Acceptance checks:
 
-- The builder shows one review entry point, and no user-facing text says "Deck Doctor".
-- Each step fits its content without a long empty column; Back and Escape behave predictably between steps.
+- With pending choices, browser Back asks before discarding; cancelling keeps the player on the page with choices intact.
+- Changing a setting from review keeps compatible picked additions and names any removed ones.
+- Tests cover both paths.
 
 ## [B10] Suggest swaps from review findings
 
@@ -235,7 +233,7 @@ Finish the remaining module-ownership work without splitting markup that has no 
 
 **Verified:** Regression tests cover basic/Oracle copy limits, interchangeable identities, front-face eligibility, Grist, banned/unknown metadata, Crypt Ghast, all supported partner abilities and mismatches, and consistent mutation rejection. Browser checks with mocked providers pass in light/dark at 1440px and dark at 390px: illegal Add decisions leave the deck unchanged, legal Add succeeds, and there is no horizontal overflow or runtime error. These checks do not verify fresh policy data on saved-deck load.
 
-**Remaining:** Refresh and revalidate saved decks, startup drafts, visible/queued cards, and deferrals against current legality and Game Changer data. Show persistent warnings for changed/unknown data, and keep an invalid 100-card snapshot from silently appearing complete. Preserve user printings, choices, and recovery data during migration; do not delete cards on a failed refresh. Legacy snapshots without Oracle IDs still use name matching. Unknown mana value retains the numeric display fallback with `manaValueKnown: false`; validation rejects it, but analysis of old snapshots still needs care.
+**Remaining:** Undoing a review swap whose cut card predates the B12 snapshot fields fails and drops its history entry (found in the B9 review). Refresh and revalidate saved decks, startup drafts, visible/queued cards, and deferrals against current legality and Game Changer data. Show persistent warnings for changed/unknown data, and keep an invalid 100-card snapshot from silently appearing complete. Preserve user printings, choices, and recovery data during migration; do not delete cards on a failed refresh. Legacy snapshots without Oracle IDs still use name matching. Unknown mana value retains the numeric display fallback with `manaValueKnown: false`; validation rejects it, but analysis of old snapshots still needs care.
 
 The original audit found that start, promotion, manual add, recommendations, Doctor swaps, import, and saved-deck load each applied different subsets of the Commander rules. Some paths accept illegal decks; others reject legal ones. Route every path through one validator built on [docs/domain/commander-rules.md](docs/domain/commander-rules.md) and [docs/commander-eligibility.md](docs/commander-eligibility.md).
 

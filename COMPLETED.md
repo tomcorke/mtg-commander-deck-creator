@@ -2,6 +2,24 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [B9] Make deck review one clear workflow
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Reorganises existing sections without new analysis.
+
+**Status:** Complete — merged in `828b440`; not yet released.
+
+### Completed behavior
+
+The builder has one Deck review entry point. Review runs as three route-backed steps (Diagnose, Choose changes, Confirm) with a fixed summary of pending cuts and additions; drafts survive step navigation and nested dialogs, Escape goes back one step, and an explicit exit asks before discarding drafts. Change history opens in its own dialog. One "How review works" disclosure replaces the caveat paragraphs, sidebar labels use plain language, and "Compare commanders" sits beside "Change commander". Changing settings from review refreshes candidates without leaving the page.
+
+Implemented by Pi (gpt-6.1-sol) from a partial Claude start; reviewed by Opus from code and screenshots, then interactively in Chrome with small fixes (single Back control, compact primary button, Escape after Undo in history, singular count labels).
+
+### Acceptance checks
+
+- Tests cover review routing, draft retention, settings refresh navigation, and history focus.
+- Chrome review: Diagnose → Choose changes → Confirm → apply and undo on partial and 100-card decks; over-100 trim; light, dark, and narrow; settings from review. A Playwright script (`scripts/check-deck-review.ts`) covers the discard prompt and browser Back. Follow-up: browser Back discards drafts without warning (B14).
+- All 193 tests, lint, typecheck, and production build pass.
+
 ## [A12] Defer basic-land fill
 
 **Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — The fill action exists; this changes when and how it is offered.
