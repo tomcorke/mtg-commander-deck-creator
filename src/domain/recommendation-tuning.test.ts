@@ -172,6 +172,61 @@ test('empty focused queues advance one batch without shortening role deferrals',
   assert.equal(next.deferredCards.find(({ card }) => card.name === ramp.name)?.eligibleBatch, 7)
 })
 
+test('exhausted pools fast-forward only without role focus', () => {
+  const ramp = card('Returning ramp', '{T}: Add {G}.')
+  const draw = card('Returning draw', 'Draw a card.')
+  const shared = {
+    decisions: {},
+    liked: [],
+    preferenceScores: {},
+    activeSubThemes: [],
+    theme: '',
+    includeCreature: false,
+    cardRoles: rolesForCard,
+  }
+  const unfocused = advanceRecommendationQueue({
+    ...shared,
+    queue: [],
+    deferredCards: [{ card: ramp, eligibleBatch: 7 }],
+    batchNumber: 3,
+  })
+  assert.equal(unfocused.batchNumber, 7)
+  assert.deepEqual(
+    unfocused.queue.map(({ name }) => name),
+    [ramp.name],
+  )
+
+  const advanceFocused = (
+    batchNumber: number,
+    deferredCards: { card: Card; eligibleBatch: number }[],
+  ) =>
+    advanceRecommendationQueue({
+      ...shared,
+      queue: [],
+      deferredCards,
+      batchNumber,
+      focusedRole: 'ramp',
+    })
+  const first = advanceFocused(3, [
+    { card: ramp, eligibleBatch: 7 },
+    { card: draw, eligibleBatch: 6 },
+  ])
+  assert.equal(first.batchNumber, 4)
+  assert.deepEqual(first.queue, [])
+  const second = advanceFocused(first.batchNumber, first.deferredCards)
+  assert.equal(second.batchNumber, 5)
+  assert.deepEqual(second.queue, [])
+  assert.equal(second.deferredCards.length, 2)
+  const third = advanceFocused(second.batchNumber, second.deferredCards)
+  assert.equal(third.batchNumber, 6)
+  assert.deepEqual(
+    third.queue.map(({ name }) => name),
+    [draw.name],
+  )
+  assert.equal(third.deferredCards[0].card.name, ramp.name)
+  assert.equal(third.deferredCards[0].eligibleBatch, 7)
+})
+
 test('focused empty-state return message requires an available matching deferral still waiting', () => {
   const ramp = card('Returning ramp', '{T}: Add {G}.')
   const waiting = [{ card: ramp, eligibleBatch: 5 }]

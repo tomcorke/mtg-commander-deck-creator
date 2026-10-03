@@ -5,7 +5,7 @@ import { defaultDeckTargets, rolesForCard } from '../../deck-analysis.ts'
 import { persistedDeckStateSchema } from '../../deck-state.ts'
 import { toCard, toDeckCard, type Card } from '../../domain/card-model.ts'
 import { focusedRecommendations } from '../../domain/recommendation-tuning.ts'
-import { rankRecommendationCards } from '../../recommendations.ts'
+import { rankRecommendationCards, releaseNextDeferred } from '../../recommendations.ts'
 import { decide } from '../../app/deck-actions.ts'
 import { buildRecommendationContext } from '../../app/recommendation-context.ts'
 import {
@@ -358,6 +358,20 @@ test('pool key ignores ranking controls but includes every fetch constraint', ()
     recommendationPoolKey({ ...deps, collectionSets: ['a', 'b'] }),
     recommendationPoolKey({ ...deps, collectionSets: ['b', 'a'] }),
   )
+})
+
+test('unavailable deferrals do not shorten or force a jump past an available cooldown', () => {
+  const blocked = { card: raw('Blocked'), eligibleBatch: 3, available: false }
+  const available = { card: raw('Available'), eligibleBatch: 5 }
+  const released = releaseNextDeferred([blocked, available], 2, false)
+  assert.equal(released.batchNumber, 5)
+  assert.deepEqual(released.ready, [available.card])
+  assert.deepEqual(released.waiting, [blocked])
+  assert.deepEqual(releaseNextDeferred([blocked], 2, false), {
+    batchNumber: 2,
+    ready: [],
+    waiting: [blocked],
+  })
 })
 
 test('focused Next advances one batch at a time and preserves all deferral cooldowns', async () => {
