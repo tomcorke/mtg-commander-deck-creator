@@ -233,6 +233,8 @@
   --doctor-border: #dedbe9;
   --doctor-text: #25243a;
   --doctor-muted: #625f76;
+}
+.deck-doctor-shell {
   min-height: 100vh;
   padding: 0;
   background: var(--doctor-bg);
@@ -1462,6 +1464,7 @@ main > .commander-header {
 .export-modal.doctor-commander {
   width: min(760px, 100%);
   color: var(--doctor-text);
+  background: var(--doctor-panel);
 }
 .deck-review-history-modal .doctor-history-pair > .doctor-card-tile:only-child {
   grid-column: 1 / -1;
