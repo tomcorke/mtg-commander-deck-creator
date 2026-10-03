@@ -25,18 +25,41 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 
 | Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                                |
 | ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 1     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                                           |
-| 2     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation.            |
-| 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                                          |
-| 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.                  |
-| 5     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                               |
-| 6     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
-| 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                            |
-| 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
-| 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
-| 10    | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
-| 11    | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
-| 12    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
+| 1     | A14 | Multi-tab drafts and autosaves           | High       | High   | High          | Top priority: prevent cross-tab draft loss.                                                                              |
+| 2     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                                           |
+| 3     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation.            |
+| 4     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                                          |
+| 5     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.                  |
+| 6     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                               |
+| 7     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
+| 8     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                            |
+| 9     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
+| 10    | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
+| 11    | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
+| 12    | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
+| 13    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
+
+## [A14] Support multiple tabs and safer autosaves
+
+**Complexity:** High · **Value:** High · **Delivery risk:** High — Tab isolation, recovery choices, and safe retention span startup, persistence, and saved-deck flows.
+
+`localStorage` stores one current work-in-progress deck for the app origin, so every tab restores and autosaves the same state. Concurrent deck building can overwrite another tab's draft; named manual saves live separately.
+
+- Investigate a client-only storage model that gives each tab its own deck workspace while retaining recoverable autosaves after reload. Define duplicate-tab behavior and whether loading a draft in another tab resumes or forks it; never silently share writes.
+- Clearly identify when a new tab automatically loads the latest work-in-progress deck, including its commander and last-saved time. Let the player choose another autosaved deck or start a new deck before editing.
+- List autosaved work separately from manual saves, showing each deck's identity, progress (such as card count), and last-saved time or age.
+- Make autosave retention configurable: allow a maximum number of autosaves and an age limit, with a sensible default (one week is a candidate). Never prune a live workspace's only recovery point or a manual save.
+
+Current context: `src/deck-state.ts` stores the in-progress deck under the shared `commander-deck-state` key and manual saves separately under `commander-saved-decks`. `src/app/AppController.tsx` restores the shared draft at startup; `src/app/useAppEffects.ts` autosaves idle changes. A2 also tracks a start-screen "Continue building" card; reuse the draft picker rather than creating a separate resume path.
+
+Go/no-go: proceed only after a browser-only design proves that two concurrent workspaces stay isolated and each can be recovered after reload without collisions with manual saves. If duplicate-tab behavior cannot be made clear, resolve that before implementing autosave retention.
+
+Acceptance checks:
+
+- Two tabs can edit different decks; switching or reloading either tab restores its own work without changing the other's autosave.
+- A new tab identifies the draft it auto-loaded and when it was last saved, and offers other autosaved decks or a new deck before editing.
+- Autosaved decks are distinct from manual saves and show deck identity, progress, and age.
+- Configured count and age limits clean up only eligible inactive autosaves; active workspaces and manual saves remain intact.
 
 ## [A12] Defer basic-land fill
 
