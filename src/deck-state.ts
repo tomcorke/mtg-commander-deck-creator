@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { ignoreReasons } from './domain/recommendation-tuning.ts'
 import { normalizeRecommendationStyle } from './domain/recommendation-types.ts'
 
 export const deckStateKey = 'commander-deck-state'
@@ -96,6 +97,8 @@ export const persistedDeckStateSchema = z.object({
   queue: z.array(cardSchema),
   limitedRecommendations: z.boolean(),
   decisions: z.record(z.string(), decisionSchema),
+  ignoreReasons: z.record(z.string(), z.enum(ignoreReasons)).optional(),
+  maxPrice: z.number().nonnegative().nullable().optional(),
   ignoredCards: z.array(z.string()),
   liked: z.array(z.string()),
   activeSubThemes: z.array(z.string()),

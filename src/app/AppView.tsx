@@ -150,8 +150,8 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       chooseRecommendationStyle={actions.chooseRecommendationStyle}
       powerTarget={state.powerTarget}
       choosePowerTarget={actions.choosePowerTarget}
-      prioritizeDeckHealth={state.prioritizeDeckHealth}
-      setPrioritizeDeckHealth={state.setPrioritizeDeckHealth}
+      maxPrice={state.maxPrice}
+      chooseMaxPrice={actions.chooseMaxPrice}
       includeCreature={state.includeCreature}
       setIncludeCreature={state.setIncludeCreature}
       collectionSearch={state.collectionSearch}

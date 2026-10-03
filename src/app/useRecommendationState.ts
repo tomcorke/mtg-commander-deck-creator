@@ -8,6 +8,12 @@ import {
   type PowerTarget,
   type RecommendationStyle,
 } from '../recommendations.ts'
+import {
+  migrateRecommendationPriority,
+  normalizeMaxPrice,
+  type IgnoreReason,
+} from '../domain/recommendation-tuning.ts'
+import type { TargetKey } from '../deck-analysis.ts'
 import { useStoredOption } from '../shared/hooks.ts'
 
 function useEdhrecRequestState(savedDeckId: string) {
@@ -37,6 +43,41 @@ function useEdhrecRequestState(savedDeckId: string) {
   }
 }
 
+function useRecommendationTuning(saved: PersistedDeckState | null) {
+  const [recommendationStyle, setRecommendationStyle] = useStoredOption<RecommendationStyle>(
+    'recommendationStyle',
+    () => migrateRecommendationPriority(saved?.recommendationStyle, saved?.prioritizeDeckHealth),
+    (value) =>
+      migrateRecommendationPriority(
+        value,
+        saved?.recommendationStyle === normalizeRecommendationStyle(value)
+          ? saved.prioritizeDeckHealth
+          : undefined,
+      ),
+  )
+  const prioritizeDeckHealth = recommendationStyle !== 'thematic'
+  const [maxPrice, setMaxPrice] = useStoredOption<number | null>(
+    'maxPrice',
+    () => saved?.maxPrice ?? null,
+    normalizeMaxPrice,
+  )
+  const [focusedRole, setFocusedRole] = useState<TargetKey | null>(null)
+  const [ignoreReasons, setIgnoreReasons] = useState<Record<string, IgnoreReason>>(
+    saved?.ignoreReasons ?? {},
+  )
+  return {
+    recommendationStyle,
+    setRecommendationStyle,
+    prioritizeDeckHealth,
+    maxPrice,
+    setMaxPrice,
+    focusedRole,
+    setFocusedRole,
+    ignoreReasons,
+    setIgnoreReasons,
+  }
+}
+
 export function useRecommendationState(saved: PersistedDeckState | null) {
   const [queue, setQueue] = useState<Card[]>(saved?.queue ?? [])
   const [recommendationState, setRecommendationState] = useState<'idle' | 'loading' | 'error'>(
@@ -50,14 +91,6 @@ export function useRecommendationState(saved: PersistedDeckState | null) {
   )
   const [limitedRecommendations, setLimitedRecommendations] = useState(
     saved?.limitedRecommendations ?? false,
-  )
-  const [recommendationStyle, setRecommendationStyle] = useStoredOption<RecommendationStyle>(
-    'recommendationStyle',
-    () => saved?.recommendationStyle ?? 'balanced',
-    normalizeRecommendationStyle,
-  )
-  const [prioritizeDeckHealth, setPrioritizeDeckHealth] = useState(
-    saved?.prioritizeDeckHealth ?? true,
   )
   const [includeCreature, setIncludeCreature] = useStoredOption('includeCreature', () => true)
   const [powerTarget, setPowerTarget] = useStoredOption<PowerTarget>('powerTarget', () => 'precon')
@@ -98,10 +131,7 @@ export function useRecommendationState(saved: PersistedDeckState | null) {
     limitedRecommendations,
     setLimitedRecommendations,
     ...useEdhrecRequestState(saved?.savedDeckId ?? ''),
-    recommendationStyle,
-    setRecommendationStyle,
-    prioritizeDeckHealth,
-    setPrioritizeDeckHealth,
+    ...useRecommendationTuning(saved),
     includeCreature,
     setIncludeCreature,
     powerTarget,

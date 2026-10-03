@@ -6,6 +6,8 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
+import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
+import { rolesForCard } from '../deck-analysis.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import {
   completeSignatureResults,
@@ -36,6 +38,8 @@ export function signatureContextKey(state: ControllerState) {
     state.deckTargets,
     state.includeCreature,
     state.powerTarget,
+    state.maxPrice,
+    state.focusedRole,
     state.excludeGameChangers,
     state.excludeTutors,
     state.excludeExtraTurns,
@@ -64,7 +68,7 @@ export function useSignatureRecommendations(state: ControllerState) {
     !state.recommendationOptionsChanged &&
     Boolean(state.commanderDetails) &&
     state.deck.length < 100 &&
-    state.queue.length >= 4
+    focusedRecommendations(state.queue, state.focusedRole, rolesForCard).length >= 4
   const seeds = selectSignatureSeeds(
     state.commander,
     state.deck,

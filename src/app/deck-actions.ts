@@ -1,4 +1,5 @@
 import type { MouseEvent } from 'react'
+import { migrateRecommendationPriority } from '../domain/recommendation-tuning.ts'
 import {
   fetchScryfallCard,
   resolveScryfallIdentifiers,
@@ -119,6 +120,11 @@ function additionError(deps: ActionDeps, card: Card | DeckCard) {
 }
 
 export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | 'ignore') {
+  deps.setIgnoreReasons?.((current: Record<string, unknown>) => {
+    const next = { ...current }
+    delete next[card.name]
+    return next
+  })
   const { decisions, deck, setDecisions, setDeck, setIgnoredCards, setLiked, setSideboard } = deps
   const previous = decisions[card.name]
   if (previous === action) {
@@ -929,7 +935,6 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
     setLimitedRecommendations,
     setPreferenceScores,
     setPreferredPrintSet,
-    setPrioritizeDeckHealth,
     setQueue,
     setRecommendationStyle,
     setSideboard,
@@ -940,11 +945,15 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
   setCommander(state.commander)
   setCommanderDetails(state.commanderDetails)
   setTheme(state.theme)
-  setRecommendationStyle(state.recommendationStyle)
+  setRecommendationStyle(
+    migrateRecommendationPriority(state.recommendationStyle, state.prioritizeDeckHealth),
+  )
+  deps.setMaxPrice?.(state.maxPrice ?? null)
+  deps.setIgnoreReasons?.(state.ignoreReasons ?? {})
+  deps.setFocusedRole?.(null)
   setCollectionSets(state.collectionSets)
   setCollectionGroups(state.collectionGroups)
   setCollectionMode(state.collectionMode)
-  setPrioritizeDeckHealth(state.prioritizeDeckHealth)
   setCollectionPoolSize(null)
   setQueue(state.queue)
   setLimitedRecommendations(state.limitedRecommendations)
@@ -1101,7 +1110,6 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
 export function startOver(deps: ActionDeps) {
   const {
     navigateView,
-    recommendationStyle,
     setActiveSavedDeckId,
     setActiveSubThemes,
     setBatchNumber,
@@ -1122,7 +1130,6 @@ export function startOver(deps: ActionDeps) {
     setLiked,
     setPreferenceScores,
     setPreferredPrintSet,
-    setPrioritizeDeckHealth,
     setQueue,
     setSideboard,
     setTheme,
@@ -1141,7 +1148,6 @@ export function startOver(deps: ActionDeps) {
   setCollectionSets([])
   setCollectionGroups([])
   setCollectionMode('none')
-  setPrioritizeDeckHealth(recommendationStyle !== 'thematic')
   setCollectionPoolSize(null)
   setDeck([])
   setSideboard([])
@@ -1149,6 +1155,8 @@ export function startOver(deps: ActionDeps) {
   deps.setDeckDoctorError('')
   setQueue([])
   setDecisions({})
+  deps.setIgnoreReasons?.({})
+  deps.setFocusedRole?.(null)
   setIgnoredCards([])
   setLiked([])
   setActiveSubThemes([])

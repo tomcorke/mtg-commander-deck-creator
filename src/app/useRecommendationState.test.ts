@@ -47,6 +47,10 @@ test('reload restores current-batch choices and the first Add click removes an a
     queue: [liliana, 'Later card', 'Ignored card', 'Sideboard card'].map((name) =>
       toCard(raw(name), 'Fixture'),
     ),
+    maxPrice: 5,
+    ignoreReasons: { 'Ignored card': 'Off-theme' },
+    recommendationStyle: 'thematic',
+    prioritizeDeckHealth: false,
     decisions: {
       [liliana]: 'add',
       'Later card': 'later',
@@ -77,6 +81,20 @@ test('reload restores current-batch choices and the first Add click removes an a
   const restored = restore(saved)
   assert.deepEqual(restored.decisions, state.decisions)
   assert.deepEqual(restored.queue, saved.queue)
+  assert.equal(restored.maxPrice, 5)
+  assert.deepEqual(restored.ignoreReasons, { 'Ignored card': 'Off-theme' })
+  assert.equal(restored.recommendationStyle, 'thematic')
+  assert.equal(restored.prioritizeDeckHealth, false)
+  assert.equal(
+    restore({ ...saved, recommendationStyle: 'thematic', prioritizeDeckHealth: true })
+      .recommendationStyle,
+    'balanced',
+  )
+  assert.equal(
+    restore({ ...saved, recommendationStyle: 'balanced', prioritizeDeckHealth: false })
+      .recommendationStyle,
+    'thematic',
+  )
   const deps: Record<string, any> = {
     decisions: restored.decisions,
     deck: saved.deck,

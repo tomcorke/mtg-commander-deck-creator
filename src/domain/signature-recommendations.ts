@@ -1,4 +1,6 @@
 import type { Card, DeckCard, ScryfallCard } from './card-model.ts'
+import { focusedRecommendations, withinPriceCap } from './recommendation-tuning.ts'
+import { rolesForCard } from '../deck-analysis.ts'
 import { cardNameKey, toCard } from './card-model.ts'
 import { isCommanderCandidate } from './commander-promotion.ts'
 import { commanderNames } from './commander-catalog.ts'
@@ -256,6 +258,7 @@ export type SignatureSettings = RecommendationOptions & {
   commanderDetails: { colours: string[] } | null
   collectionMode: 'none' | 'prefer' | 'only'
   collectionSets: string[]
+  focusedRole?: string | null
 }
 export type SignatureResult = {
   raw: ScryfallCard
@@ -264,7 +267,11 @@ export type SignatureResult = {
 }
 
 function allowedResult(raw: ScryfallCard, settings: SignatureSettings) {
-  if (!settings.commanderDetails) return false
+  if (
+    !settings.commanderDetails ||
+    !withinPriceCap({ price: raw.prices?.usd ?? undefined }, settings.maxPrice)
+  )
+    return false
   if (raw.legalities?.commander !== 'legal' || raw.type_line.includes('Land')) return false
   if (settings.excludeGameChangers && raw.game_changer !== false) return false
   if (settings.excludeUnreleased && !raw.released_at) return false
@@ -283,7 +290,7 @@ export function mergeSignatureResults(
   results: SignatureResult[],
   settings: SignatureSettings,
 ) {
-  if (queue.length < 4) return queue
+  if (focusedRecommendations(queue, settings.focusedRole, rolesForCard).length < 4) return queue
   const blocked = new Set(
     [
       ...commanderNames(settings.commander),
@@ -292,7 +299,7 @@ export function mergeSignatureResults(
         ...settings.deck,
         ...settings.sideboard,
         ...settings.deferredCards.map(({ card }) => card),
-        ...queue.slice(0, 4),
+        ...focusedRecommendations(queue, settings.focusedRole, rolesForCard).slice(0, 4),
       ].map(({ name }) => name),
     ].map(cardNameKey),
   )

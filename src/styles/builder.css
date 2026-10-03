@@ -140,6 +140,36 @@
   /* Grow downward so ticking a set never shifts rows under the cursor. */
   align-self: start;
 }
+.recommendation-disclosure {
+  margin-top: 10px;
+  font-size: 14px;
+}
+.recommendation-disclosure summary {
+  cursor: pointer;
+}
+.price-limit-input {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  align-items: center;
+  gap: 6px;
+}
+.price-limit-input input {
+  width: 110px;
+  padding: 5px 8px;
+  border: 1px solid #bbb9cd;
+  border-radius: 5px;
+  background: #fff;
+  color: #28273b;
+  font: inherit;
+  color-scheme: light;
+}
+.dark .price-limit-input input {
+  border-color: #4b4867;
+  background: #121121;
+  color: #ccc9df;
+  color-scheme: dark;
+}
 .settings-help {
   margin: 5px 0 0;
   color: #69667d;
@@ -523,6 +553,36 @@
 }
 .builder-set-chips button:hover {
   border-color: #8d88bd;
+}
+.role-focus {
+  margin-top: 10px;
+}
+.ignore-feedback {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+}
+.ignore-feedback > button {
+  justify-self: start;
+}
+.ignore-reasons button[aria-pressed='true'] {
+  border-color: var(--commander-accent, #36327f);
+  background: #d5d0f2;
+  font-weight: 600;
+}
+.dark .ignore-reasons button[aria-pressed='true'] {
+  border-color: #a69fde;
+  background: #423c69;
+}
+.ignore-reasons button:focus-visible,
+.role-focus button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+@media (max-width: 560px) {
+  .price-limit-input input {
+    width: 90px;
+  }
 }
 .collection-picker .form-error {
   font-size: 12px;

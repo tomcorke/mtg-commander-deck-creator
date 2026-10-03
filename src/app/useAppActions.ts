@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef } from 'react'
+import { type TargetKey } from '../deck-analysis.ts'
 
 import {
   cardText,
@@ -22,6 +23,8 @@ import {
 } from '../adapters/scryfall.ts'
 import {
   clickCardImage as clickCardImageAction,
+  chooseRoleFocus,
+  clearCompletedRoleFocus,
   fanCards,
   nextBatch as nextBatchAction,
   refreshRecommendationSettings,
@@ -199,10 +202,6 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
   function choosePowerTarget(target: 'precon' | 'upgraded' | 'high') {
     state.setPowerTarget(target)
     state.setRecommendationOptionsChanged(true)
-    const exclude = target !== 'high'
-    state.setExcludeGameChangers(exclude)
-    state.setExcludeTutors(exclude)
-    state.setExcludeExtraTurns(exclude)
   }
   async function retryEdhrec() {
     if (
@@ -254,6 +253,18 @@ function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
     state.recommendationState,
     state.showBuilder,
   ])
+  const clearCompletedFocus = useEffectEvent(() => {
+    void clearCompletedRoleFocus(interactionDeps)
+  })
+  useEffect(() => {
+    clearCompletedFocus()
+  }, [
+    state.deck,
+    state.deckTargets,
+    state.focusedRole,
+    state.recommendationOptionsChanged,
+    state.recommendationState,
+  ])
   return interactionDeps
 }
 
@@ -267,7 +278,6 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
   }
   const chooseRecommendationStyle = (style: RecommendationStyle) => {
     state.setRecommendationStyle(style)
-    state.setPrioritizeDeckHealth(style !== 'thematic')
     state.setRecommendationOptionsChanged(true)
   }
   const chooseCollectionMode = (mode: 'none' | 'prefer' | 'only') => {
@@ -329,6 +339,11 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     ...actions,
     chooseSubTheme,
     chooseRecommendationStyle,
+    chooseMaxPrice: (price: number | null) => {
+      state.setMaxPrice(price)
+      state.setRecommendationOptionsChanged(true)
+    },
+    chooseRoleFocus: (role: TargetKey | null) => chooseRoleFocus(interactionDeps, role),
     chooseCollectionMode,
     toggleCollectionSet,
     browseCollection,

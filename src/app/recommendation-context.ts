@@ -45,5 +45,6 @@ export function buildRecommendationContext(
     ),
     batchNumber: settings.batchNumber,
     manaSupport: manaSupportFromAnalysis(analysis, targets),
+    maxPrice: settings.maxPrice as number | null | undefined,
   }
 }

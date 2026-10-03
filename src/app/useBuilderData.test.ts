@@ -50,6 +50,36 @@ function builderDeps(queue: unknown[], overrides: Record<string, unknown> = {}) 
   }
 }
 
+test('priority and price summary reflect tuning, and the visible batch filters only the requested role', () => {
+  const cards = Array.from({ length: 8 }, (_, i) => ({
+    name: `Pick ${i}`,
+    layout: 'normal',
+    typeLine: 'Artifact',
+    manaCost: '{2}',
+    manaValue: 2,
+    detail: i % 2 ? '{T}: Add {G}.' : '',
+    producedMana: [],
+    faces: [],
+    reason: 'Commander synergy',
+    tags: [],
+    set: 'tst',
+    price: i === 0 ? '10.00' : undefined,
+  }))
+  const data = buildBuilderData(
+    builderDeps(cards, { focusedRole: 'ramp', recommendationStyle: 'competitive', maxPrice: 5 }),
+  )
+  assert.equal(data.scoredBatch.length, 4)
+  assert.deepEqual(
+    data.rawBatch.map(({ name }) => name),
+    ['Pick 1', 'Pick 3', 'Pick 5', 'Pick 7'],
+  )
+  assert(data.recommendationSettingsSummary.includes('Deck needs first'))
+  assert(data.recommendationSettingsSummary.includes('≤ $5'))
+  assert(!data.recommendationSettingsSummary.includes('Health'))
+  assert(!data.scoreReplacements(cards, []).some(({ card }) => card.name === 'Pick 0'))
+  assert(!buildBuilderData(builderDeps(cards)).recommendationSettingsSummary.includes('≤'))
+})
+
 test('shows basic-land fill and scores lands when the deck has a land gap', () => {
   const land = {
     name: 'Forest',

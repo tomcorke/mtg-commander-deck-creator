@@ -1,3 +1,4 @@
+import { withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
@@ -72,10 +73,15 @@ function selectedPrintingIndex(
   preferredSet: string,
   selectedCollectionSets: string[],
   selectedCollectionMode: CollectionMode,
+  maxPrice?: number | null,
 ) {
+  if (!printings.length) return -1
   const specialOptions = printings
     .map((printing, index) =>
-      printing.finish === 'foil' || printing.finish === 'etched' ? index : -1,
+      (printing.finish === 'foil' || printing.finish === 'etched') &&
+      withinPriceCap(printing, maxPrice)
+        ? index
+        : -1,
     )
     .filter((index) => index >= 0)
   const special =
@@ -86,11 +92,17 @@ function selectedPrintingIndex(
     !card.printingManuallySelected &&
     selectedCollectionMode !== 'none' &&
     selectedCollectionSets.length
-      ? printings.findIndex((printing) => selectedCollectionSets.includes(printing.set))
+      ? printings.findIndex(
+          (printing) =>
+            selectedCollectionSets.includes(printing.set) && withinPriceCap(printing, maxPrice),
+        )
       : -1
   if (special >= 0) return special
   if (collectionPrinting >= 0) return collectionPrinting
-  return preferredPrintingIndex(printings, preferredSet)
+  const preferred = preferredPrintingIndex(printings, preferredSet)
+  return withinPriceCap(printings[preferred], maxPrice)
+    ? preferred
+    : printings.findIndex((printing) => withinPriceCap(printing, maxPrice))
 }
 
 function updateQueuedCard(
@@ -101,6 +113,7 @@ function updateQueuedCard(
 ) {
   const { setQueue } = deps
   const selected = printings[selectedIndex]
+  if (!selected) return
   setQueue((current: Card[]) =>
     current.map((item) =>
       item.name === offered.name && !item.printingManuallySelected
@@ -167,6 +180,7 @@ export async function loadPrintings(
       preferredSet,
       selectedCollectionSets,
       selectedCollectionMode,
+      deps.maxPrice,
     )
     updateQueuedCard(deps, offered, printings, selectedIndex)
   }

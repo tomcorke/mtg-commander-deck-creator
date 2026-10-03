@@ -3,6 +3,11 @@ import { type Dispatch, type SetStateAction } from 'react'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import type { ScryfallSet } from '../../domain/card-model.ts'
 import { onlyModeMinimumPool, type SetPickerRow } from '../../domain/set-picker.ts'
+import {
+  normalizeMaxPrice,
+  priorityLabels,
+  priorityHelp,
+} from '../../domain/recommendation-tuning.ts'
 import type { CollectionMode, RecommendationStyle } from '../../recommendations.ts'
 
 type PowerTarget = 'precon' | 'upgraded' | 'high'
@@ -45,8 +50,8 @@ type RecommendationSettingsModalProps = {
   chooseRecommendationStyle: (value: RecommendationStyle) => void
   powerTarget: PowerTarget
   choosePowerTarget: (value: PowerTarget) => void
-  prioritizeDeckHealth: boolean
-  setPrioritizeDeckHealth: Dispatch<SetStateAction<boolean>>
+  maxPrice: number | null
+  chooseMaxPrice: (value: number | null) => void
   includeCreature: boolean
   setIncludeCreature: Dispatch<SetStateAction<boolean>>
   collectionSearch: string
@@ -84,8 +89,8 @@ export function RecommendationSettingsModal({
   chooseRecommendationStyle,
   powerTarget,
   choosePowerTarget,
-  prioritizeDeckHealth,
-  setPrioritizeDeckHealth,
+  maxPrice,
+  chooseMaxPrice,
   includeCreature,
   setIncludeCreature,
   collectionSearch,
@@ -147,10 +152,13 @@ export function RecommendationSettingsModal({
           <div>
             <p className="eyebrow">Recommendation preferences</p>
             <h2 id="recommendation-settings-title">Recommendation settings</h2>
-            <p className="settings-help">
-              Your goal controls ranking, not deck legality. Power and exclusions control which
-              cards are offered. No setting guarantees a bracket or competitive strength.
-            </p>
+            <details className="recommendation-disclosure">
+              <summary>How recommendations work</summary>
+              <p className="settings-help">
+                Priority controls ranking, not deck legality. Power, price, and exclusions filter
+                the cards offered. No setting guarantees a bracket or competitive strength.
+              </p>
+            </details>
           </div>
           <ModalCloseButton
             autoFocus
@@ -160,7 +168,7 @@ export function RecommendationSettingsModal({
         </div>
         <div className="recommendation-options recommendation-settings-form">
           <div className="recommendation-setting">
-            <label htmlFor="recommendation-style">Deck goal</label>
+            <label htmlFor="recommendation-style">Priority</label>
             <select
               id="recommendation-style"
               value={recommendationStyle}
@@ -168,26 +176,18 @@ export function RecommendationSettingsModal({
                 chooseRecommendationStyle(event.target.value as RecommendationStyle)
               }
             >
-              <option value="thematic">Thematic</option>
-              <option value="fun">Fun &amp; varied</option>
-              <option value="balanced">Balanced</option>
-              <option value="competitive">Competitive</option>
+              {(['thematic', 'balanced', 'competitive', 'fun'] as const).map((priority) => (
+                <option key={priority} value={priority}>
+                  {priorityLabels[priority]}
+                </option>
+              ))}
             </select>
             <SettingHelp
               id="recommendation-style-help"
-              label="Deck goal"
-              description="Thematic favors your chosen themes; Fun & varied boosts interesting new picks; Balanced mixes theme and deck needs; Competitive emphasizes EDHREC evidence, mana fit, and missing roles."
+              label="Priority"
+              description="Theme first favors themes and selected sets; Balanced mixes theme and deck needs; Deck needs first favors missing roles and mana fit; Surprise me boosts interesting new picks."
             />
-            <p className="settings-help">
-              {recommendationStyle === 'thematic'
-                ? 'Favors your theme, sub-themes, and selected sets over popularity.'
-                : recommendationStyle === 'fun'
-                  ? 'Boosts picks marked “Interesting new pick” and shows more of them together.'
-                  : recommendationStyle === 'competitive'
-                    ? 'Favors EDHREC evidence, mana fit, and missing deck roles. This is a heuristic, not a game simulator.'
-                    : 'Balances theme, synergy, learned preferences, and missing deck roles.'}{' '}
-              Choosing a goal resets the deck-health default below; you can override it.
-            </p>
+            <p className="settings-help">{priorityHelp[recommendationStyle]}</p>
           </div>
           <div className="recommendation-setting">
             <label htmlFor="power-target">Power target</label>
@@ -203,27 +203,32 @@ export function RecommendationSettingsModal({
             <SettingHelp
               id="power-target-help"
               label="Power target"
-              description="Core blocks listed fast-mana cards. Core and Upgraded turn on the Game Changer, tutor, and extra-turn exclusions; High power turns them off. You can override each exclusion below. These filters do not verify a bracket."
+              description="Core blocks listed fast-mana cards. Upgraded and High power allow them. Exclusions stay as you choose them below. These filters do not verify a bracket."
             />
           </div>
           <div className="recommendation-setting">
-            <label htmlFor="prioritize-deck-health">
+            <label htmlFor="max-price">Max price per card</label>
+            <span className="price-limit-input">
+              <span aria-hidden="true">$</span>
               <input
-                id="prioritize-deck-health"
-                type="checkbox"
-                checked={prioritizeDeckHealth}
-                onChange={(event) => {
-                  setPrioritizeDeckHealth(event.target.checked)
-                  setRecommendationOptionsChanged(true)
-                }}
-              />{' '}
-              Prioritize deck health
-            </label>
+                id="max-price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={maxPrice ?? ''}
+                placeholder="No limit"
+                onChange={(event) => chooseMaxPrice(normalizeMaxPrice(event.target.value))}
+                aria-describedby="max-price-description"
+              />
+            </span>
             <SettingHelp
-              id="deck-health-help"
-              label="Prioritize deck health"
-              description="Boosts cards that fill missing deck roles such as lands, ramp, card draw, removal, and board wipes."
+              id="max-price-help"
+              label="Max price per card"
+              description="Limits recommendations by their displayed US dollar price. Cards without a price are still offered."
             />
+            <p className="settings-help" id="max-price-description">
+              Leave empty for no limit. Cards without a price stay included.
+            </p>
           </div>
           <div className="recommendation-setting">
             <label htmlFor="include-creature">

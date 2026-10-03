@@ -2,6 +2,11 @@ import {
   compareRecommendationScores,
   recommendationScoreBreakdown,
 } from './recommendation-scoring.ts'
+import {
+  focusedRecommendations,
+  withinPriceCap,
+  type IgnoreReason,
+} from './recommendation-tuning.ts'
 import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
 import type {
   CollectionMode,
@@ -119,6 +124,7 @@ export function rankRecommendationCards<
     tags: string[]
     set?: string
     collectionMatch?: boolean
+    price?: string
   },
 >(
   cards: T[],
@@ -133,6 +139,7 @@ export function rankRecommendationCards<
             card.collectionMatch || (card.set && context.collectionSets?.includes(card.set)),
         )
       : cards
+  const affordable = eligible.filter((card) => withinPriceCap(card, context.maxPrice))
   const scores = new Map<T, ReturnType<typeof recommendationScoreBreakdown>>()
   const score = (card: T) => {
     if (!scores.has(card))
@@ -142,7 +149,7 @@ export function rankRecommendationCards<
       )
     return scores.get(card)!
   }
-  const ranked = [...eligible].sort((left, right) =>
+  const ranked = [...affordable].sort((left, right) =>
     compareRecommendationScores(score(left), score(right)),
   )
   const canUse = (card: T) =>
@@ -206,19 +213,40 @@ export function balanceThemeCoverage<T extends { tags: string[]; reason: string 
   return ordered
 }
 
+const ignorePreferenceChanges: Record<IgnoreReason, number> = {
+  'Not my style': -3,
+  'Too expensive': 0,
+  'Off-theme': -2,
+  'Have something similar': -2,
+}
+
+function preferenceChange(decision: RecommendationDecision, reason?: IgnoreReason) {
+  if (decision === 'add') return 2
+  if (decision !== 'ignore') return 0
+  return reason ? ignorePreferenceChanges[reason] : -1
+}
+
+function reinforceThemes(scores: Record<string, number>, themes: string[]) {
+  for (const theme of themes.filter(Boolean)) scores[theme] = (scores[theme] ?? 0) + 2
+}
+
 export function updatePreferenceScores(
   cards: { name: string; tags: string[]; collectionMatch?: boolean }[],
   decisions: Record<string, 'add' | 'later' | 'ignore'>,
   liked: string[],
   current: Record<string, number>,
+  reasons: Record<string, IgnoreReason> = {},
+  themes: string[] = [],
 ) {
   const scores = { ...current }
   for (const card of cards) {
     const decision = decisions[card.name]
-    const change = decision === 'add' ? 2 : decision === 'ignore' ? -1 : 0
+    const reason = reasons[card.name]
+    const change = preferenceChange(decision, reason)
     const likeBoost = decision !== 'ignore' && liked.includes(card.name) ? 4 : 0
     for (const tag of card.tags) scores[tag] = (scores[tag] ?? 0) + change + likeBoost
     if (card.collectionMatch) scores.Collection = (scores.Collection ?? 0) + change + likeBoost
+    if (decision === 'ignore' && reason === 'Off-theme') reinforceThemes(scores, themes)
   }
   return scores
 }
@@ -262,6 +290,34 @@ export function releaseNextDeferred<T>(
 
 export type RecommendationDecision = 'add' | 'later' | 'ignore'
 
+function transitionBatch<T extends { name: string }>(
+  queue: T[],
+  deferredCards: DeferredCard<T>[],
+  batchNumber: number,
+  decisions: Record<string, RecommendationDecision>,
+  focusedRole: string | null | undefined,
+  cardRoles: (card: T) => string[],
+) {
+  const focused = focusedRecommendations(queue, focusedRole, cardRoles)
+  const batch = focused.slice(0, 4)
+  const batchNames = new Set(batch.map((card) => card.name))
+  const remaining = queue.filter((card) => !batchNames.has(card.name))
+  const pending = [
+    ...deferredCards,
+    ...deferBatch(batch, decisions, batchNumber, (card) => card.name),
+  ]
+  const waitingForFocus = pending.filter(
+    (entry) =>
+      entry.available !== false && (!focusedRole || cardRoles(entry.card).includes(focusedRole)),
+  )
+  const nextBatchNumber =
+    focusedRole && focused.length <= 4 && waitingForFocus.length
+      ? Math.max(batchNumber + 1, Math.min(...waitingForFocus.map((entry) => entry.eligibleBatch)))
+      : batchNumber + 1
+  const released = releaseNextDeferred(pending, nextBatchNumber, remaining.length > 0)
+  return { batch, released, candidates: [...remaining, ...released.ready] }
+}
+
 export function advanceRecommendationQueue<
   T extends {
     name: string
@@ -270,6 +326,7 @@ export function advanceRecommendationQueue<
     tags: string[]
     set?: string
     collectionMatch?: boolean
+    price?: string
   },
 >({
   queue,
@@ -289,6 +346,9 @@ export function advanceRecommendationQueue<
   recommendationStyle = 'balanced',
   collectionSets = [],
   collectionMode = 'none',
+  maxPrice,
+  focusedRole,
+  ignoreReasons = {},
 }: {
   queue: T[]
   deferredCards: DeferredCard<T>[]
@@ -307,16 +367,23 @@ export function advanceRecommendationQueue<
   recommendationStyle?: RecommendationStyle
   collectionSets?: string[]
   collectionMode?: CollectionMode
+  maxPrice?: number | null
+  focusedRole?: string | null
+  ignoreReasons?: Record<string, IgnoreReason>
 }) {
-  const batch = queue.slice(0, 4)
-  const pending = [
-    ...deferredCards,
-    ...deferBatch(batch, decisions, batchNumber, (card) => card.name),
-  ]
-  const released = releaseNextDeferred(pending, batchNumber + 1, queue.length > 4)
-  const scores = updatePreferenceScores(batch, decisions, liked, preferenceScores)
+  const { batch, released, candidates } = transitionBatch(
+    queue,
+    deferredCards,
+    batchNumber,
+    decisions,
+    focusedRole,
+    cardRoles,
+  )
   const rankedSubThemes = extraSubTheme ? [...activeSubThemes, extraSubTheme] : activeSubThemes
-  const candidates = [...queue.slice(4), ...released.ready]
+  const scores = updatePreferenceScores(batch, decisions, liked, preferenceScores, ignoreReasons, [
+    theme,
+    ...rankedSubThemes,
+  ])
   const roleSupply = Object.fromEntries(
     Object.keys(roleBoosts).map((role) => [
       role,
@@ -342,6 +409,7 @@ export function advanceRecommendationQueue<
     roleSupply,
     batchNumber: released.batchNumber,
     manaSupport,
+    maxPrice,
   }
   return {
     queue: rankRecommendationCards(candidates, context, includeCreature, cardRoles),

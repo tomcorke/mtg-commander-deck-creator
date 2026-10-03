@@ -190,7 +190,7 @@
 .card-offer.later {
   opacity: 0.42;
 }
-.card-offer.ignore {
+.card-offer.ignore > :not(.ignore-feedback):not(.actions):not(.decision-badge) {
   opacity: 0.25;
   filter: grayscale(1);
 }

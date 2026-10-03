@@ -304,6 +304,35 @@ test('merge preserves visible objects, exclusions, cooldowns, printing choices a
   }
 })
 
+test('signature arrivals respect the price cap and preserve a focused batch outside the first four queue slots', () => {
+  const outside = ['Other 0', 'Other 1', 'Other 2', 'Other 3'].map((name) =>
+    toCard(raw(name), 'Initial'),
+  )
+  const ramp = Array.from({ length: 4 }, (_, i) =>
+    toCard(
+      raw(`Focused ${i}`, '{T}: Add {G}. Put a +1/+1 counter on target creature.', 'Artifact'),
+      'Initial',
+    ),
+  )
+  const queue = [...outside, ...ramp]
+  const live = { ...settings(), maxPrice: 5, focusedRole: 'ramp' }
+  const merged = mergeSignatureResults(
+    queue,
+    [
+      result({ ...raw('Expensive'), prices: { usd: '8.00' } }),
+      result({ ...raw('Affordable'), prices: { usd: '5.00' } }),
+      result(raw('Unpriced')),
+      ...ramp.map((card) => result(raw(card.name))),
+    ],
+    live,
+  )
+  assert(!merged.some(({ name }) => name === 'Expensive'))
+  assert(merged.some(({ name }) => name === 'Affordable'))
+  assert(merged.some(({ name }) => name === 'Unpriced'))
+  for (let i = 0; i < 4; i++) assert.equal(merged[4 + i], ramp[i])
+  assert.equal(mergeSignatureResults(queue.slice(0, 6), [result(raw('Incoming'))], live).length, 6)
+})
+
 test('a pass caps source lists at 24, overlaps seeds, reuses raw pages and warm hydration', async () => {
   const paths: string[] = []
   const fetcher: typeof fetch = async (input, init) => {

@@ -452,3 +452,43 @@ test('recommendation refresh and printing enrichment preserve manual printing se
   )
   assert.equal(queued, before)
 })
+
+test('automatic printing enrichment respects the cap even for a preferred set or premium finish', async () => {
+  let queued = { ...toCard(card('Budget card'), 'Commander synergy'), price: '2.00' }
+  await loadPrintings(
+    {
+      queue: [queued],
+      deck: [],
+      sideboard: [],
+      maxPrice: 5,
+      collectionSets: ['costly'],
+      collectionMode: 'prefer',
+      theme: 'Artifacts',
+      preferenceScores: { Artifacts: 10 },
+      fetchPrintings: async () => [
+        {
+          ...card('Budget card'),
+          set: 'costly',
+          image_uris: { normal: 'costly-art' },
+          finishes: ['nonfoil', 'foil', 'etched'],
+          prices: { usd: '20.00', usd_foil: '30.00', usd_etched: '40.00' },
+        },
+        {
+          ...card('Budget card'),
+          set: 'cheap',
+          image_uris: { normal: 'cheap-art' },
+          finishes: ['nonfoil', 'foil'],
+          prices: { usd: '2.00', usd_foil: '15.00' },
+        },
+      ],
+      setQueue: (update) => {
+        queued = update([queued])[0]
+      },
+    },
+    [queued],
+    'costly',
+  )
+  assert.equal(queued.price, '2.00')
+  assert.equal(queued.image, 'cheap-art')
+  assert.equal(queued.finish, 'nonfoil')
+})

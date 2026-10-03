@@ -1,3 +1,4 @@
+import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
@@ -44,6 +45,7 @@ export function recommendationPoolKey(deps: Record<string, any>) {
   return JSON.stringify([
     deps.commander,
     deps.powerTarget,
+    deps.maxPrice ?? null,
     deps.excludeGameChangers,
     deps.excludeTutors,
     deps.excludeExtraTurns,
@@ -89,7 +91,6 @@ type StateSetters = {
       | 'setPendingRemoval'
       | 'setPreferenceScores'
       | 'setPreferredPrintSet'
-      | 'setPrioritizeDeckHealth'
       | 'setQueue'
       | 'setRecommendationLoadingStep'
       | 'setRecommendationLoadingTitle'
@@ -343,8 +344,6 @@ export function resetRecommendationState(
     setCollectionSearch,
     setCollectionPoolSize,
     setShowCollectionBrowser,
-    recommendationStyle,
-    setPrioritizeDeckHealth,
     setCommanderDetails,
     setQueue,
     setLimitedRecommendations,
@@ -365,6 +364,8 @@ export function resetRecommendationState(
   setDeferredCards(cycle.deferredCards)
   setBatchNumber(cycle.batchNumber)
   setDecisions({})
+  deps.setIgnoreReasons?.({})
+  if (!preserveDeck) deps.setFocusedRole?.(null)
   setLiked((current: string[]) => (progress ? current : []))
   setBatchAnnouncement('')
   setCommanderSubThemes([])
@@ -383,7 +384,6 @@ export function resetRecommendationState(
     setCollectionSearch('')
     setCollectionPoolSize(null)
     setShowCollectionBrowser(false)
-    setPrioritizeDeckHealth(recommendationStyle !== 'thematic')
   }
   setCommanderDetails(null)
   setQueue([])
@@ -623,9 +623,7 @@ function buildInitialRankingContext(
       commander: chosen,
       activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
       preferenceScores: progress?.preferenceScores ?? (preserveDeck ? deps.preferenceScores : {}),
-      prioritizeDeckHealth: preserveDeck
-        ? deps.prioritizeDeckHealth
-        : deps.recommendationStyle !== 'thematic',
+      prioritizeDeckHealth: deps.prioritizeDeckHealth,
       collectionSets: activeCollectionSets,
       collectionMode: activeCollectionMode,
       batchNumber: progress?.batchNumber ?? 1,
@@ -661,7 +659,9 @@ export function rankInitialRecommendations(
     const deferred = progress.deferredCards.map((entry) => ({
       ...entry,
       card: offered.get(entry.card.name) ?? entry.card,
-      available: offered.has(entry.card.name),
+      available:
+        offered.has(entry.card.name) &&
+        withinPriceCap(offered.get(entry.card.name)!, deps.maxPrice),
     }))
     progress = {
       ...progress,
@@ -690,7 +690,7 @@ export function rankInitialRecommendations(
     deps.setBatchAnnouncement(`Recommendations updated for batch ${progress.batchNumber}.`)
   setRecommendationState('idle')
   void loadPrintings(
-    ranked.slice(0, 8),
+    focusedRecommendations(ranked, deps.focusedRole, rolesForCard).slice(0, 8),
     activeCollectionSets[0] || (preserveDeck ? preferredPrintSet : ''),
     activeCollectionSets,
     activeCollectionMode,

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 
-import { basicLandNames, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
+import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
+import type { Card } from '../domain/card-model.ts'
+import { basicLandNames, rolesForCard, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
 import { commanderNames, randomThree } from '../domain/commander-catalog.ts'
 import { commanderPrintingOptions } from '../domain/printing.ts'
 
@@ -316,13 +318,14 @@ export function usePrintingRepairEffect(deps: AppEffectsDeps) {
     batchNumber,
     commander,
     repairedPrintingBatches,
+    focusedRole,
     collectionSets,
     preferredPrintSet,
     loadPrintings,
   } = deps
   useEffect(() => {
     // Seed arrivals do not cause printing requests for unseen cards; normal advancement loads them.
-    const cards = queue
+    const cards = focusedRecommendations<Card>(queue, focusedRole, rolesForCard)
       .slice(0, 8)
       .filter((card: any, index: number) => index < 4 || !card.seedEvidence?.length)
     if (
@@ -352,6 +355,7 @@ export function usePrintingRepairEffect(deps: AppEffectsDeps) {
     commander,
     loadPrintings,
     preferredPrintSet,
+    focusedRole,
     queue,
   ])
 }

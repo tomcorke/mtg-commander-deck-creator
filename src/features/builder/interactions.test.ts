@@ -4,6 +4,7 @@ import test from 'node:test'
 import { defaultDeckTargets, rolesForCard } from '../../deck-analysis.ts'
 import { persistedDeckStateSchema } from '../../deck-state.ts'
 import { toCard, toDeckCard, type Card } from '../../domain/card-model.ts'
+import { focusedRecommendations } from '../../domain/recommendation-tuning.ts'
 import { rankRecommendationCards, releaseNextDeferred } from '../../recommendations.ts'
 import { decide } from '../../app/deck-actions.ts'
 import { buildRecommendationContext } from '../../app/recommendation-context.ts'
@@ -14,6 +15,8 @@ import {
   type RecommendationProgress,
 } from '../../app/recommendation-actions.ts'
 import {
+  chooseRoleFocus,
+  clearCompletedRoleFocus,
   nextBatch,
   refreshRecommendationSettings,
   type BuilderInteractionDeps,
@@ -61,6 +64,9 @@ function fixture() {
     ],
     batchNumber: 7,
     decisions: {},
+    ignoreReasons: {},
+    focusedRole: null,
+    maxPrice: null,
     liked: [],
     ignoredCards: [],
     preferenceScores: { Existing: 3 },
@@ -366,4 +372,103 @@ test('unavailable deferrals do not shorten or force a jump past an available coo
     ready: [],
     waiting: [blocked],
   })
+})
+
+test('role shortcut processes the old batch once, focuses four cards, and toggles off without losing others', async () => {
+  const deps = fixture()
+  chooseBatch(deps)
+  deps.ignoreReasons = { Ignored: 'Not my style' }
+  deps.queue = deps.queue.map((card: Card, index: number) =>
+    index > 3 && index % 2 === 0 ? { ...card, detail: '{T}: Add {G}.' } : card,
+  )
+  deps.start = async () => assert.fail('Role focus must not fetch a new pool')
+  const otherNames = deps.queue
+    .slice(4)
+    .filter((card: Card) => !rolesForCard(card).includes('ramp'))
+    .map((card: Card) => card.name)
+  await chooseRoleFocus(deps, 'ramp')
+  assert.equal(deps.focusedRole, 'ramp')
+  assert.equal(deps.batchNumber, 7)
+  assert.deepEqual(deps.ignoreReasons, {})
+  assert.equal(deps.preferenceScores['Ignored tag'], -3)
+  const focused = focusedRecommendations<Card>(deps.queue, deps.focusedRole, rolesForCard).slice(
+    0,
+    4,
+  )
+  assert.equal(focused.length, 4)
+  assert(focused.every((card) => rolesForCard(card).includes('ramp')))
+  decide(deps, focused[0], 'later')
+  deps.setLiked([focused[1].name])
+  await nextBatch(deps)
+  assert.equal(deps.batchNumber, 8)
+  assert.equal(
+    deps.deferredCards.find((entry: { card: Card }) => entry.card.name === focused[0].name)
+      ?.eligibleBatch,
+    11,
+  )
+  await chooseRoleFocus(deps, 'ramp')
+  assert.equal(deps.focusedRole, null)
+  for (const name of otherNames) assert(hasCard(deps.queue, name))
+  assert.equal(deps.preferenceScores['Ignored tag'], -3, 'Do not apply ignore feedback twice')
+})
+
+test('role focus clears when the main-deck target is reached, not for a sideboard addition', async () => {
+  const deps = fixture()
+  const ramp = { ...deps.queue[4], detail: '{T}: Add {G}.' }
+  deps.queue[4] = ramp
+  deps.deckTargets = { ...deps.deckTargets, ramp: 1 }
+  deps.start = async () => assert.fail('Clearing focus must not re-fetch')
+  await chooseRoleFocus(deps, 'ramp')
+  await clearCompletedRoleFocus(deps)
+  assert.equal(deps.focusedRole, 'ramp')
+  deps.sideboard = [{ ...ramp }]
+  await clearCompletedRoleFocus(deps)
+  assert.equal(deps.focusedRole, 'ramp')
+  deps.sideboard = []
+  decide(deps, ramp, 'add')
+  await clearCompletedRoleFocus(deps)
+  assert.equal(deps.focusedRole, null)
+  assert(!hasCard(deps.queue, ramp.name))
+  assert.equal(deps.batchNumber, 7)
+})
+
+test('changing a decision clears its optional ignore reason', () => {
+  const deps = fixture()
+  const card: Card = deps.queue[0]
+  decide(deps, card, 'ignore')
+  deps.ignoreReasons = { [card.name]: 'Off-theme' }
+  decide(deps, card, 'later')
+  assert.deepEqual(deps.ignoreReasons, {})
+  assert(!deps.ignoredCards.includes(card.name))
+})
+
+test('applying a price offer refreshes the pool without resetting choices or cooldowns; clearing it restores costly candidates', async () => {
+  const deps = fixture()
+  chooseBatch(deps)
+  deps.ignoreReasons = { Ignored: 'Too expensive' }
+  const hydrate = deps.fetchCards
+  deps.fetchCards = async (ids: { name: string }[]) =>
+    (await hydrate(ids)).map((raw: { name: string }) => ({
+      ...raw,
+      prices: { usd: raw.name === 'Unseen 0' ? '9.80' : '2.00' },
+    }))
+  deps.maxPrice = 5
+  deps.recommendationOptionsChanged = true
+  await refreshRecommendationSettings(deps)
+  assert.equal(deps.batchNumber, 7)
+  assert.equal(deps.preferenceScores['Ignored tag'], 0)
+  assert(!hasCard(deps.queue, 'Unseen 0'))
+  assert(!hasCard(deps.queue, 'Ignored'))
+  assert(!hasCard(deps.queue, 'Added'))
+  assert.equal(
+    deps.deferredCards.find((entry: { card: Card }) => entry.card.name === 'Later')?.eligibleBatch,
+    11,
+  )
+  deps.maxPrice = null
+  deps.recommendationOptionsChanged = true
+  await refreshRecommendationSettings(deps)
+  assert(hasCard(deps.queue, 'Unseen 0'))
+  assert(!hasCard(deps.queue, 'Ignored'))
+  assert(!hasCard(deps.queue, 'Later'))
+  assert.equal(deps.batchNumber, 7)
 })

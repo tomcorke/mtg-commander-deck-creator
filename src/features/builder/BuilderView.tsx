@@ -29,7 +29,13 @@ import {
   rolesForCard,
   targetKeys,
   targetLabels,
+  type TargetKey,
 } from '../../deck-analysis.ts'
+import {
+  ignoreReasons as quickIgnoreReasons,
+  suggestedPriceCap,
+  type IgnoreReason,
+} from '../../domain/recommendation-tuning.ts'
 import type {
   DeferredCard,
   RecommendationScoreBreakdown,
@@ -78,6 +84,11 @@ type BuilderViewModel = {
   commanderDetails: CommanderDetails | null
   deckReviewFilter: DeckReviewFilter | null
   decisions: Record<string, 'add' | 'later' | 'ignore'>
+  ignoreReasons: Record<string, IgnoreReason>
+  setIgnoreReasons: Dispatch<SetStateAction<Record<string, IgnoreReason>>>
+  focusedRole: TargetKey | null
+  chooseRoleFocus: (role: TargetKey | null) => Promise<void>
+  chooseMaxPrice: (price: number | null) => void
   deck: DeckCard[]
   deckCards: DeckCard[]
   deckTargets: DeckTargets
@@ -110,6 +121,7 @@ type BuilderViewModel = {
   recommendationSettingsSummary: string
   recommendationState: 'idle' | 'loading' | 'error'
   recommendationStyle: RecommendationStyle
+  maxPrice: number | null
   recommendedCard: { card: Card | null; score: number }
   scoredBatch: { card: Card; score: RecommendationScoreBreakdown }[]
   search: string
@@ -205,6 +217,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     deckReviewFilter,
     decide,
     decisions,
+    ignoreReasons,
+    setIgnoreReasons,
+    focusedRole,
+    chooseRoleFocus,
+    chooseMaxPrice,
     deck,
     deckCardModal,
     deckCards,
@@ -247,6 +264,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     recommendationSettingsSummary,
     recommendationState,
     recommendationStyle,
+    maxPrice,
     recommendedCard,
     removeDeckCard,
     removeSideboardCard,
@@ -351,6 +369,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </div>
             <span>Batch {batchNumber}</span>
           </div>
+          {focusedRole && (
+            <div className="builder-set-chips role-focus" role="status">
+              <button
+                type="button"
+                onClick={() => void chooseRoleFocus(null)}
+                disabled={recommendationState !== 'idle'}
+                aria-label={`Clear ${targetLabels[focusedRole]} focus`}
+              >
+                Focusing on {targetLabels[focusedRole]} <span aria-hidden="true">×</span>
+              </button>
+            </div>
+          )}
           <div className="recommendation-settings-summary">
             <button
               type="button"
@@ -782,7 +812,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 Retry
               </button>
             </div>
-          ) : queue.length ? (
+          ) : scoredBatch.length ? (
             <div
               className={`card-grid connector-glow juicy-fan ${cardEffects ? '' : 'static-fan'}`}
               onMouseMove={cardEffects ? fanCards : undefined}
@@ -795,6 +825,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   [...deck, ...sideboard],
                   model.openCardReference,
                 )
+                const priceCap = suggestedPriceCap(card)
                 return (
                   <article
                     className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`}
@@ -828,6 +859,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       <div>
                         <button
                           className="primary"
+                          type="button"
                           aria-pressed={decisions[card.name] === 'add'}
                           onClick={() => decide(card, 'add')}
                         >
@@ -837,6 +869,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         </button>
                         <span className="action-help-wrap">
                           <button
+                            type="button"
                             aria-pressed={decisions[card.name] === 'later'}
                             onClick={() => decide(card, 'later')}
                             aria-describedby={`later-${card.name}`}
@@ -850,6 +883,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         <span className="action-help-wrap">
                           <button
                             className="quiet"
+                            type="button"
                             aria-pressed={decisions[card.name] === 'ignore'}
                             onClick={() => decide(card, 'ignore')}
                             aria-describedby={`ignore-${card.name}`}
@@ -886,6 +920,48 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         </span>
                       </span>
                     </div>
+                    {decisions[card.name] === 'ignore' && (
+                      <div className="ignore-feedback">
+                        <div
+                          className="builder-set-chips ignore-reasons"
+                          role="group"
+                          aria-label={`Optional ignore reason for ${card.name}`}
+                        >
+                          <span>Optional reason:</span>
+                          {quickIgnoreReasons.map((reason) => (
+                            <button
+                              type="button"
+                              key={reason}
+                              aria-pressed={ignoreReasons[card.name] === reason}
+                              onClick={() =>
+                                setIgnoreReasons((current) => {
+                                  const next = { ...current }
+                                  if (next[card.name] === reason) delete next[card.name]
+                                  else next[card.name] = reason
+                                  return next
+                                })
+                              }
+                            >
+                              {reason}
+                            </button>
+                          ))}
+                        </div>
+                        {ignoreReasons[card.name] === 'Too expensive' &&
+                          (priceCap === null ? (
+                            <p className="settings-help">
+                              No price available. Set a limit in Recommendation settings.
+                            </p>
+                          ) : (
+                            <button
+                              type="button"
+                              className="export"
+                              onClick={() => chooseMaxPrice(priceCap)}
+                            >
+                              Hide cards over ${priceCap}
+                            </button>
+                          ))}
+                      </div>
+                    )}
                     <div className="offered-image">
                       <FinishedCardImage
                         image={card.image}
@@ -966,11 +1042,21 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </div>
           ) : (
             <div className="empty">
-              <h3>{deferredCards.length ? 'Suggestions resting' : 'No more suggestions'}</h3>
+              <h3>
+                {focusedRole
+                  ? `No ${targetLabels[focusedRole].toLowerCase()} suggestions ready`
+                  : deferredCards.length
+                    ? 'Suggestions resting'
+                    : 'No more suggestions'}
+              </h3>
               <p>
-                {deferredCards.length
-                  ? 'Advance recommendations to keep their waiting period, then bring them back.'
-                  : 'Review your deck or choose another commander.'}
+                {focusedRole
+                  ? 'Advance to returning cards, or clear focus to see other roles.'
+                  : deferredCards.length
+                    ? 'Advance recommendations to keep their waiting period, then bring them back.'
+                    : maxPrice !== null
+                      ? 'Raise or clear your price limit in Recommendation settings.'
+                      : 'Review your deck or choose another commander.'}
               </p>
             </div>
           )}
@@ -1149,34 +1235,50 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               ))}
             <div className="deck-targets">
               {targetKeys.map((key) => (
-                <label key={key}>
-                  <span className="bar-label">
-                    <span>{targetLabels[key]}</span>
-                    <span className="ratio-bar">
-                      <i
-                        style={{
-                          width: `${Math.min(100, (analysis.counts[key] / Math.max(1, deckTargets[key])) * 100)}%`,
-                        }}
-                      />
+                <div className="bar-label deck-target-row" key={key}>
+                  {analysis.counts[key] < deckTargets[key] ? (
+                    <button
+                      type="button"
+                      className="export deck-target-focus"
+                      aria-label={`Focus recommendations on ${targetLabels[key]}: ${analysis.counts[key]} of ${deckTargets[key]}`}
+                      aria-pressed={focusedRole === key}
+                      disabled={recommendationState !== 'idle'}
+                      onClick={() => void chooseRoleFocus(key)}
+                    >
+                      <span>{targetLabels[key]}</span>
+                      <span className="ratio-bar">
+                        <i
+                          style={{
+                            width: `${Math.min(100, (analysis.counts[key] / Math.max(1, deckTargets[key])) * 100)}%`,
+                          }}
+                        />
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="deck-target-met">
+                      <span>{targetLabels[key]}</span>
+                      <span className="ratio-bar">
+                        <i style={{ width: '100%' }} />
+                      </span>
                     </span>
-                    <b>
-                      {analysis.counts[key]} /{' '}
-                      <input
-                        type="number"
-                        min="0"
-                        max="99"
-                        value={deckTargets[key]}
-                        onChange={(event) =>
-                          setDeckTargets((current) => ({
-                            ...current,
-                            [key]: Math.max(0, Number(event.target.value)),
-                          }))
-                        }
-                        aria-label={`${targetLabels[key]} target`}
-                      />
-                    </b>
-                  </span>
-                </label>
+                  )}
+                  <b>
+                    {analysis.counts[key]} /{' '}
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={deckTargets[key]}
+                      onChange={(event) =>
+                        setDeckTargets((current) => ({
+                          ...current,
+                          [key]: Math.max(0, Number(event.target.value)),
+                        }))
+                      }
+                      aria-label={`${targetLabels[key]} target`}
+                    />
+                  </b>
+                </div>
               ))}
             </div>
             {displayedTypeCounts.some(([, count]) => count > 0) && (

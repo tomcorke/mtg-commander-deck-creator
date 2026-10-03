@@ -25,6 +25,11 @@ import {
   themeMatchesSearch,
 } from '../recommendations.ts'
 
+import {
+  focusedRecommendations,
+  priorityLabels,
+  withinPriceCap,
+} from '../domain/recommendation-tuning.ts'
 import { setPickerRows } from '../domain/set-picker.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 
@@ -327,7 +332,7 @@ function buildRecommendationData(
   deckData: ReturnType<typeof buildDeckData>,
 ) {
   const { queue } = deps
-  const rawBatch: Card[] = queue.slice(0, 4)
+  const rawBatch = focusedRecommendations<Card>(queue, deps.focusedRole, rolesForCard).slice(0, 4)
   const synergyPair = findSynergyPair(
     rawBatch.filter((card: Card) => card.reason !== 'Land or mana'),
   )
@@ -342,13 +347,15 @@ function buildRecommendationData(
     recommendationScoreBreakdown(card, { ...context, cardRoles: rolesForCard(card) })
   const scoreReplacements = (pool: Card[], remainingDeck: DeckCard[]) => {
     const replacementContext = buildRecommendationContext(deps, pool, remainingDeck)
-    return pool.map((card) => ({
-      card,
-      score: recommendationScoreBreakdown(card, {
-        ...replacementContext,
-        cardRoles: rolesForCard(card),
-      }),
-    }))
+    return pool
+      .filter((card) => withinPriceCap(card, deps.maxPrice))
+      .map((card) => ({
+        card,
+        score: recommendationScoreBreakdown(card, {
+          ...replacementContext,
+          cardRoles: rolesForCard(card),
+        }),
+      }))
   }
   const scoredBatch = visibleBatch.map((card: Card) => ({ card, score: scoreCandidate(card) }))
   const best = [...scoredBatch].sort((left, right) =>
@@ -378,7 +385,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
   const {
     recommendationStyle,
     powerTarget,
-    prioritizeDeckHealth,
+    maxPrice,
     includeCreature,
     collectionSets,
     collectionMode,
@@ -387,14 +394,8 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
     excludeExtraTurns,
     excludeUnreleased,
   } = deps
-  const recommendationStyleLabel = (
-    {
-      thematic: 'Thematic',
-      fun: 'Fun & varied',
-      balanced: 'Balanced',
-      competitive: 'Competitive',
-    } as Record<string, string>
-  )[recommendationStyle]
+  const recommendationStyleLabel =
+    priorityLabels[recommendationStyle as keyof typeof priorityLabels]
   const powerTargetLabel = (
     { precon: 'Core', upgraded: 'Upgraded', high: 'High power' } as Record<string, string>
   )[powerTarget]
@@ -411,7 +412,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
   const recommendationSettingsSummary = [
     recommendationStyleLabel,
     powerTargetLabel,
-    prioritizeDeckHealth ? 'Health prioritized' : 'Health optional',
+    ...(maxPrice == null ? [] : [`≤ $${maxPrice}`]),
     includeCreature ? 'Creatures included' : 'Creatures optional',
     collectionSummary,
     excludedRecommendations.length
@@ -423,6 +424,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
     deps.theme,
     deps.activeSubThemes,
     powerTarget,
+    maxPrice,
     collectionMode,
     collectionSets,
     excludeGameChangers,

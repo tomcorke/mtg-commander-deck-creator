@@ -77,6 +77,7 @@ export type RecommendationOptions = {
   excludeExtraTurns: boolean
   excludeUnreleased: boolean
   powerTarget: PowerTarget
+  maxPrice?: number | null
 }
 export const recommendedScoreThreshold = 45
 export const recommendationScoreFactorMaximums = {
@@ -116,6 +117,7 @@ export type RecommendationScoreContext = {
   roleSupply?: Record<string, number>
   batchNumber?: number
   manaSupport?: ManaSupport
+  maxPrice?: number | null
 }
 export type RecommendationScoreBreakdown = {
   total: number
