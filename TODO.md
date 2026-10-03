@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, and A13.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, and A13.
 
 ## Suggested order
 
@@ -26,18 +26,17 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                                |
 | ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | --------------------------------------------------------------------------------------------------------------------- |
 | 1     | A14 | Multi-tab drafts and autosaves           | High       | High   | High          | Top priority: prevent cross-tab draft loss.                                                                           |
-| 2     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                                           |
-| 3     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation.            |
-| 4     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                                          |
-| 5     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.                  |
-| 6     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                               |
-| 7     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
-| 8     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                            |
-| 9     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
-| 10    | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
-| 11    | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
-| 12    | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
-| 13    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
+| 2     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation.            |
+| 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                                          |
+| 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.                  |
+| 5     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                               |
+| 6     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
+| 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                            |
+| 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
+| 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
+| 10    | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
+| 11    | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
+| 12    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
 
 ## [A14] Support multiple tabs and safer autosaves
 
@@ -60,22 +59,6 @@ Acceptance checks:
 - A new tab identifies the draft it auto-loaded and when it was last saved, and offers other autosaved decks or a new deck before editing.
 - Autosaved decks are distinct from manual saves and show deck identity, progress, and age.
 - Configured count and age limits clean up only eligible inactive autosaves; active workspaces and manual saves remain intact.
-
-## [A12] Defer basic-land fill
-
-**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — The fill action exists; this changes when and how it is offered.
-
-"Fill to land target" is the most prominent sidebar action from the first card. With three cards in the deck it offered 35 basics split from four pips, leaving the deck 38% "complete" before any spells or nonbasic lands.
-
-- Keep land progress visible, but promote the fill action only once most non-land slots are filled (for example 55 or more non-land cards), or when the player opens it deliberately.
-- Before adding basics, offer recommended nonbasic lands for the commander's colours, then fill the remaining slots with basics split by current pip demand.
-
-Current context: the sidebar renders the fill button in `src/features/builder/DeckOverview.tsx`; the confirmation dialog lives in `BuilderView`. A1 in [COMPLETED.md](COMPLETED.md) covers land recommendations.
-
-Acceptance checks:
-
-- An early deck shows land progress without a primary fill action.
-- A deck near its non-land total sees nonbasic suggestions before the basic split.
 
 ## [A2] Add a play-style step, resume, and optional intro guide
 

@@ -2,6 +2,24 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [A12] Defer basic-land fill
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — The fill action exists; this changes when and how it is offered.
+
+**Status:** Complete — merged in `9c2030f`; not yet released.
+
+### Completed behavior
+
+Early in a build, the Deck targets sidebar keeps land progress visible but replaces the primary fill button with "Fill lands once most spells are in." and a small "Fill now" action. Once the deck nears its non-land total, a primary "Fill to land target" button appears. Its "Choose lands" dialog lists recommended nonbasic lands for the commander's colours first, then fills the remaining slots with basics split by current pip demand. Adding a nonbasic recalculates the remaining room, the basic split, and the button label, brings in a new suggestion, and moves focus to the next Add button. The dialog traps Tab, closes on Escape, and returns focus to its trigger.
+
+Implemented by Pi (gpt-6.1-sol); reviewed and fixed by Opus in the browser.
+
+### Acceptance checks
+
+- Tests in `src/deck-analysis.test.ts`, `src/app/useBuilderData.test.ts`, and `src/app/deck-actions.test.ts` cover the promotion threshold, nonbasic suggestions, and the basic split.
+- Opus browser review: early-deck deferral, promotion at 59 non-land cards with nonbasics before basics, the add/recalculate/focus flow, Tab trap, Escape and focus return, hover previews, light and dark, and 390px (iframe). Not checked: opening card details from a dialog thumbnail by keyboard, and the dialog with commander theming off.
+- All 185 tests, lint, typecheck, and production build pass.
+
 ## [A10] Make set selection clear and stable
 
 **Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Scryfall set data already provides the fields needed for filtering and icons.
