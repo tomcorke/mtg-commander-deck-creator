@@ -405,24 +405,18 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     start: remote.start,
     beginWorkspace: () => state.workspace.begin(),
   })
-  const loadAutosave = async (draft: AutosavedDraft) => {
+  const loadWorkspaceDeck = async (saved: SavedDeck | AutosavedDraft) => {
+    const draft = 'version' in saved ? saved : undefined
     if (!(await state.workspace.begin(draft))) return
-    actions.loadSavedDeck({
-      id: '',
-      name: draft.name,
-      updatedAt: draft.updatedAt,
-      state: { ...draft.state, savedDeckId: '' },
-    })
-  }
-  const loadSavedDeck = async (saved: SavedDeck) => {
-    if (!(await state.workspace.begin())) return
-    actions.loadSavedDeck(saved)
+    actions.loadSavedDeck(
+      draft ? { ...draft, id: '', state: { ...draft.state, savedDeckId: '' } } : saved,
+    )
   }
   const interactionDeps = useRecommendationInteractions(state, remote)
   return {
     ...actions,
-    loadAutosave,
-    loadSavedDeck,
+    loadAutosave: loadWorkspaceDeck,
+    loadSavedDeck: loadWorkspaceDeck,
     chooseSubTheme,
     chooseRecommendationStyle,
     chooseMaxPrice: (price: number | null) => {

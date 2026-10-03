@@ -507,7 +507,8 @@ test('fresh and duplicated tabs do not write copies until their first edit, even
   duplicate.close()
   const session = memoryStorage()
   let copy = await env.tab(session)
-  await copy.save(copy.initialState!, copy.initialName)
+  // Startup hooks supply the new tuning defaults even when an older draft omitted them.
+  await copy.save({ ...copy.initialState!, ignoreReasons: {}, maxPrice: null }, copy.initialName)
   assert.deepEqual(listAutosaves(env.storage), [saved])
   copy.close()
   await new Promise((resolve) => setImmediate(resolve))

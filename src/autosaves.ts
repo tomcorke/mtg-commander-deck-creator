@@ -6,6 +6,7 @@ import {
   loadDeckState,
   loadSavedDecks,
   persistedDeckStateSchema,
+  restoredRecommendationDecisions,
   suggestedDeckName,
   type PersistedDeckState,
 } from './deck-state.ts'
@@ -62,6 +63,18 @@ function serializeDraft(value: AutosavedDraft) {
   ] as (keyof (typeof queue)[number])[]
   const rows = queue.map((card) => fields.map((field) => card[field] ?? null))
   return JSON.stringify({ ...draft, state: { ...draft.state, queue: { fields, rows } } })
+}
+
+function stateForComparison(state: PersistedDeckState) {
+  // Startup defaults and recovered Add choices are not player edits to an older draft.
+  return JSON.stringify(
+    persistedDeckStateSchema.parse({
+      ...state,
+      ignoreReasons: state.ignoreReasons ?? {},
+      maxPrice: state.maxPrice ?? null,
+      decisions: restoredRecommendationDecisions(state),
+    }),
+  )
 }
 
 function isQuotaError(error: unknown) {
@@ -424,7 +437,7 @@ class Workspace {
         }
         if (
           previous?.name === draft.name &&
-          JSON.stringify(previous.state) === JSON.stringify(state)
+          stateForComparison(previous.state) === stateForComparison(state)
         )
           return
         await this.persist(draft)
