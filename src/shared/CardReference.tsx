@@ -6,9 +6,10 @@ type Props = {
   card: Pick<Card, 'name' | 'image'>
   onOpen: () => void
   thumbnail?: boolean
+  disabled?: boolean
 }
 
-export function CardReference({ card, onOpen, thumbnail = false }: Props) {
+export function CardReference({ card, onOpen, thumbnail = false, disabled = false }: Props) {
   return (
     <span
       className="card-reference"
@@ -17,16 +18,17 @@ export function CardReference({ card, onOpen, thumbnail = false }: Props) {
       onMouseLeave={({ currentTarget }) => hideCardPreview(currentTarget)}
       onBlur={({ currentTarget }) => hideCardPreview(currentTarget)}
     >
-      {thumbnail && card.image && (
-        <img className="card-reference-thumbnail" src={card.image} alt="" loading="lazy" />
-      )}
       <button
         type="button"
         className="card-reference-name"
         aria-label={`Show details for ${card.name}`}
         aria-haspopup="dialog"
+        disabled={disabled}
         onClick={onOpen}
       >
+        {thumbnail && card.image && (
+          <img className="card-reference-thumbnail" src={card.image} alt="" loading="lazy" />
+        )}
         {card.name}
       </button>
       <CardImagePreview image={card.image} placement="reference" />

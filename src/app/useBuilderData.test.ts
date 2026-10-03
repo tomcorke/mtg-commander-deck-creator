@@ -104,6 +104,62 @@ test('shows basic-land fill and scores lands when the deck has a land gap', () =
   assert.ok(supported.scoreReplacements([ramp], deps.deck)[0].score.deckNeeds > 0)
 })
 
+test('defers land fill, respects current decisions, and recalculates after a nonbasic add', () => {
+  const card = (name: string, typeLine = 'Land') => ({
+    name,
+    layout: 'normal',
+    typeLine,
+    manaCost: typeLine === 'Land' ? '' : '{G}',
+    manaValue: typeLine === 'Land' ? 0 : 1,
+    detail: '',
+    producedMana: ['G'],
+    faces: [],
+    reason: 'Land or mana',
+    tags: [],
+    set: 'tst',
+  })
+  const queue = [
+    card('In sideboard'),
+    card('Ignored'),
+    card('Later'),
+    card('Pending ignore'),
+    card('First land'),
+    card('Second land'),
+  ]
+  const deps = builderDeps(queue, {
+    sideboard: [card('In sideboard')],
+    ignoredCards: ['Ignored'],
+    decisions: { Later: 'later', 'Pending ignore': 'ignore' },
+  })
+  const early = buildBuilderData(deps)
+  assert.equal(early.showLandFill, false)
+  assert.equal(early.landGap, 32)
+  assert.deepEqual(
+    early.nonbasicLands.map(({ name }) => name),
+    ['First land', 'Second land'],
+  )
+
+  const deck = Array.from({ length: 58 }, (_, index) => card(`Spell ${index}`, 'Creature'))
+  const nearComplete = buildBuilderData({ ...deps, deck })
+  assert.equal(nearComplete.showLandFill, true)
+  assert.deepEqual(nearComplete.basicLands, [{ name: 'Forest', colour: 'G', count: 32 }])
+
+  const updated = buildBuilderData({ ...deps, deck: [...deck, queue[4]] })
+  assert.equal(updated.landGap, 31)
+  assert.deepEqual(updated.basicLands, [{ name: 'Forest', colour: 'G', count: 31 }])
+  assert.deepEqual(
+    updated.nonbasicLands.map(({ name }) => name),
+    ['Second land'],
+  )
+
+  const oneSlot = buildBuilderData({ ...deps, deck: Array(99).fill(deck[0]) })
+  assert.equal(oneSlot.landGap, 1)
+  assert.equal(oneSlot.nonbasicLands.length, 1)
+  const full = buildBuilderData({ ...deps, deck: Array(100).fill(deck[0]) })
+  assert.equal(full.landGap, 0)
+  assert.deepEqual(full.nonbasicLands, [])
+})
+
 test('groups planeswalker creatures with planeswalkers', () => {
   for (const typeLine of [
     'Legendary Planeswalker Creature — Test',

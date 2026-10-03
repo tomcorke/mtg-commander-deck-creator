@@ -498,9 +498,14 @@
   padding: 6px 0;
   border-bottom: 1px solid #d5d3e1;
 }
-.card-reference:has(.card-reference-thumbnail) {
+.card-reference-name:has(.card-reference-thumbnail) {
+  display: inline-flex;
   align-items: center;
   gap: 10px;
+}
+.card-reference-name:has(.card-reference-thumbnail):hover,
+.card-reference-name:has(.card-reference-thumbnail):focus-visible {
+  color: inherit;
 }
 .card-reference-thumbnail {
   width: 32px;

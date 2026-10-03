@@ -226,6 +226,7 @@ test('suggests owned-free nonbasic lands before basics', () => {
   })
   const candidates = [
     card('Forest', 'Basic Land — Forest'),
+    card('Snow-Covered Forest', 'Basic Snow Land — Forest'),
     card('Llanowar Elves', 'Creature — Elf Druid'),
     card('Command Tower', 'Land'),
     card('Woodland Cemetery', 'Land'),

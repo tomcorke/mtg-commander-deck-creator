@@ -203,6 +203,7 @@ export function nonbasicLandSuggestions<T extends AnalysisCard>(
     .filter(
       (card) =>
         rolesForCard(card).includes('lands') &&
+        !/\bBasic\b/.test(card.typeLine) &&
         !isBasicLandName(card.name) &&
         !ownedNames.includes(card.name),
     )

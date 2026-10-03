@@ -156,7 +156,9 @@ function buildDeckData(deps: BuilderDataDeps) {
   const landGap = basicLands.reduce((sum, land) => sum + land.count, 0)
   const nonbasicLands = nonbasicLandSuggestions(
     deps.queue,
-    [...deck, ...deps.sideboard].map((card: Card) => card.name),
+    [...deck, ...deps.sideboard]
+      .map((card: Card) => card.name)
+      .concat(deps.ignoredCards ?? [], Object.keys(deps.decisions ?? {})),
     Math.min(6, landGap),
   )
   const showLandFill = landFillReady(deck.length, analysis.counts.lands, calculatedLandTarget)

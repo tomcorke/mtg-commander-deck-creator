@@ -4,6 +4,7 @@ import test from 'node:test'
 import { toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
 import { fetchScryfallCard, fetchScryfallPrintings } from '../adapters/scryfall.ts'
 import {
+  addBasicLands,
   addManualCard,
   addSearchCards,
   hydrateDeckCardDetails,
@@ -75,6 +76,43 @@ test('search additions keep the workspace open, suppress completion review, and 
   assert.equal(deps.sideboard.at(-1)?.set, 'alt')
   assert.equal(deps.sideboard.at(-1)?.collectorNumber, '42')
   assert.equal(deps.selectedManualCard.name, 'Alternate')
+})
+
+test('basic fill adds the reviewed split without replacing existing cards', async (context) => {
+  const deps = searchDeps()
+  deps.deck = deps.deck.slice(0, 55)
+  const existing = [...deps.deck]
+  const states: string[] = []
+  let closed = false
+  deps.setBasicLandState = (state: string) => states.push(state)
+  deps.closeModal = () => {
+    closed = true
+  }
+  context.mock.method(globalThis, 'fetch', (input: unknown) => {
+    const name = new URL(String(input)).searchParams.get('exact')!
+    return Promise.resolve(Response.json({ ...card(name), type_line: 'Basic Land' }))
+  })
+  await addBasicLands(deps, [
+    { name: 'Forest', count: 12 },
+    { name: 'Swamp', count: 23 },
+  ])
+  assert.deepEqual(deps.deck.slice(0, existing.length), existing)
+  assert.equal(deps.deck.filter(({ name }) => name === 'Forest').length, 12)
+  assert.equal(deps.deck.filter(({ name }) => name === 'Swamp').length, 23)
+  assert.deepEqual(states, ['loading', 'idle'])
+  assert.equal(closed, true)
+})
+
+test('failed basic fill keeps the deck and dialog unchanged', async (context) => {
+  const deps = searchDeps()
+  const existing = deps.deck
+  const states: string[] = []
+  deps.setBasicLandState = (state: string) => states.push(state)
+  deps.closeModal = () => assert.fail('A failed fill must stay open')
+  context.mock.method(globalThis, 'fetch', () => Promise.resolve(new Response('', { status: 500 })))
+  await addBasicLands(deps, [{ name: 'Unavailable basic', count: 1 }])
+  assert.equal(deps.deck, existing)
+  assert.deepEqual(states, ['loading', 'error'])
 })
 
 test('invalid multi-add changes neither board nor the recommendation queue', () => {

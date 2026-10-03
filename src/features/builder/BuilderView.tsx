@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   type CSSProperties,
   type Dispatch,
   type ReactNode,
@@ -283,6 +284,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     theme,
     toggleCollectionSet,
   } = model
+  const basicLandDialog = useRef<HTMLElement>(null)
+  const landFillTrigger = useRef<HTMLButtonElement>(null)
   const reviewFilterNames = new Set(deckReviewFilter?.cardNames ?? [])
   const activeHighlightLabel =
     deckReviewFilter?.label ??
@@ -301,6 +304,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
       .getElementById('deck-list-title')
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [activeHighlightLabel, activeModal])
+
+  useEffect(() => {
+    const dialog = basicLandDialog.current
+    if (!showBasicLands || !dialog) return
+    const opener = landFillTrigger.current
+    const searchButton = cardSearchButton.current
+    dialog.querySelector<HTMLButtonElement>('.modal-close')?.focus()
+    return () => {
+      if (dialog.contains(document.activeElement) || document.activeElement === document.body)
+        (opener?.isConnected ? opener : searchButton)?.focus()
+    }
+  }, [cardSearchButton, showBasicLands])
 
   return (
     <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`}>
@@ -488,15 +503,36 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           }}
         >
           <section
+            ref={basicLandDialog}
             className="export-modal basic-land-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="basic-land-title"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                if (basicLandState !== 'loading') closeModal()
+              }
+              if (event.key !== 'Tab') return
+              const buttons =
+                event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+              const first = buttons[0]
+              const last = buttons[buttons.length - 1]
+              if (!first || !last) event.preventDefault()
+              else if (
+                (event.shiftKey && document.activeElement === first) ||
+                (!event.shiftKey && document.activeElement === last)
+              ) {
+                event.preventDefault()
+                const target = event.shiftKey ? last : first
+                target.focus()
+              }
+            }}
           >
             <div className="export-heading">
               <div>
                 <p className="eyebrow">Complete mana base</p>
-                <h2 id="basic-land-title">Add basic lands?</h2>
+                <h2 id="basic-land-title">Choose lands</h2>
               </div>
               <ModalCloseButton
                 disabled={basicLandState === 'loading'}
@@ -504,9 +540,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 label="Close basic land review"
               />
             </div>
-            <p>
-              {landGap} of your {calculatedLandTarget} land slots are open. Existing cards stay
-              unchanged.
+            <p aria-live="polite" aria-atomic="true">
+              Room for {landGap} more lands toward your {calculatedLandTarget}-land target. Existing
+              cards stay unchanged.
             </p>
             {nonbasicLands.length > 0 && (
               <section className="land-fill-step" aria-labelledby="nonbasic-land-title">
@@ -515,12 +551,30 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 <ul className="nonbasic-land-list">
                   {nonbasicLands.map((card) => (
                     <li key={card.name}>
-                      <CardReference card={card} onOpen={() => openGuidanceCard(card)} thumbnail />
+                      <CardReference
+                        card={card}
+                        onOpen={() => openGuidanceCard(card)}
+                        thumbnail
+                        disabled={basicLandState === 'loading'}
+                      />
                       <button
                         type="button"
                         className="compact-action"
+                        aria-label={`Add ${card.name} to deck`}
                         disabled={basicLandState === 'loading'}
-                        onClick={() => addRecommendationCard(card)}
+                        onClick={(event) => {
+                          const next =
+                            event.currentTarget
+                              .closest('li')
+                              ?.nextElementSibling?.querySelector<HTMLButtonElement>(
+                                '.compact-action',
+                              ) ??
+                            basicLandDialog.current?.querySelector<HTMLButtonElement>(
+                              '.modal-close',
+                            )
+                          addRecommendationCard(card)
+                          next?.focus()
+                        }}
                       >
                         Add
                       </button>
@@ -549,15 +603,23 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               </p>
             )}
             <div className="export-actions">
-              <button onClick={() => closeModal()} disabled={basicLandState === 'loading'}>
+              <button
+                type="button"
+                className="export"
+                onClick={() => closeModal()}
+                disabled={basicLandState === 'loading'}
+              >
                 Cancel
               </button>
               <button
+                type="button"
                 className="primary"
-                disabled={basicLandState === 'loading'}
+                disabled={basicLandState === 'loading' || landGap === 0}
                 onClick={() => void addBasicLands(basicLands)}
               >
-                {basicLandState === 'loading' ? 'Adding…' : `Add ${landGap} basics`}
+                {basicLandState === 'loading'
+                  ? 'Adding…'
+                  : `Add ${landGap} basic${landGap === 1 ? '' : 's'}`}
               </button>
             </div>
           </section>
@@ -1066,6 +1128,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             {basicLands.length > 0 &&
               (showLandFill ? (
                 <button
+                  ref={landFillTrigger}
                   className="basic-land-button"
                   type="button"
                   onClick={() => {
@@ -1082,6 +1145,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   <button
                     type="button"
                     className="compact-action"
+                    ref={landFillTrigger}
                     onClick={() => {
                       setBasicLandState('idle')
                       openModal('basics')
