@@ -467,6 +467,48 @@
   padding: 9px 0;
   border-bottom: 1px solid #d5d3e1;
 }
+.land-fill-later {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 10px;
+  color: #706d82;
+  font-size: 12px;
+}
+.land-fill-step h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.land-fill-step > p {
+  margin: 2px 0 8px;
+  color: #706d82;
+  font-size: 12px;
+}
+.nonbasic-land-list {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+.nonbasic-land-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #d5d3e1;
+}
+.card-reference:has(.card-reference-thumbnail) {
+  align-items: center;
+  gap: 10px;
+}
+.card-reference-thumbnail {
+  width: 32px;
+  flex: none;
+  aspect-ratio: 488 / 680;
+  border-radius: 4.75%;
+  object-fit: cover;
+}
 .form-error {
   color: #9a392f !important;
   font-weight: 600;

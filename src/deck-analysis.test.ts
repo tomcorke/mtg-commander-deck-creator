@@ -3,6 +3,8 @@ import test from 'node:test'
 import {
   analyseDeck,
   basicLandPlan,
+  landFillReady,
+  nonbasicLandSuggestions,
   curveBucket,
   deckBecameComplete,
   shouldAutoOpenDeckReview,
@@ -202,6 +204,42 @@ test('splits basic lands by demand, falls back evenly, and respects open slots',
   assert.deepEqual(basicLandPlan(['W'], demand, 35, 35, 90), [])
   assert.deepEqual(basicLandPlan(['W'], demand, 36, 35, 90), [])
   assert.deepEqual(basicLandPlan(['W'], demand, 30, 35, 100), [])
+})
+
+test('promotes the land fill only once most non-land slots are filled', () => {
+  assert.equal(landFillReady(4, 0, 35), false)
+  assert.equal(landFillReady(64, 10, 35), false)
+  assert.equal(landFillReady(65, 10, 35), true)
+  assert.equal(landFillReady(50, 0, 40), true)
+})
+
+test('suggests owned-free nonbasic lands before basics', () => {
+  const card = (name: string, typeLine: string) => ({
+    name,
+    layout: 'normal',
+    typeLine,
+    manaCost: '',
+    manaValue: 0,
+    detail: '',
+    producedMana: [],
+    faces: [],
+  })
+  const candidates = [
+    card('Forest', 'Basic Land — Forest'),
+    card('Llanowar Elves', 'Creature — Elf Druid'),
+    card('Command Tower', 'Land'),
+    card('Woodland Cemetery', 'Land'),
+    card('Overgrown Tomb', 'Land — Swamp Forest'),
+  ]
+  assert.deepEqual(
+    nonbasicLandSuggestions(candidates, ['Command Tower'], 5).map(({ name }) => name),
+    ['Woodland Cemetery', 'Overgrown Tomb'],
+  )
+  assert.deepEqual(
+    nonbasicLandSuggestions(candidates, [], 1).map(({ name }) => name),
+    ['Command Tower'],
+  )
+  assert.deepEqual(nonbasicLandSuggestions(candidates, [], 0), [])
 })
 
 test('role boosts stay modest early and strengthen late', () => {

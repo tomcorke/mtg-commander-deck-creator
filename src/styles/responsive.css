@@ -273,7 +273,7 @@
   color: #e5e3f0;
 }
 .dark .collection-browser-grid button,
-.dark .health-card-add {
+.dark .compact-action {
   border-color: #615b96;
   color: #d4d0ed;
 }
@@ -463,7 +463,12 @@
 .dark .basic-land-modal > p {
   color: #c4c1d5;
 }
-.dark .basic-land-plan li {
+.dark .land-fill-later,
+.dark .land-fill-step > p {
+  color: #aaa8c2;
+}
+.dark .basic-land-plan li,
+.dark .nonbasic-land-list li {
   border-color: #393650;
 }
 .dark .deck-guidance p {

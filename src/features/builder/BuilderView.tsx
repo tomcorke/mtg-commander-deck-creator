@@ -59,6 +59,9 @@ type BuilderViewModel = {
   analysis: ReturnType<typeof analyseDeck>
   basicLandState: 'idle' | 'loading' | 'error'
   basicLands: { name: string; count: number }[]
+  landGap: number
+  nonbasicLands: Card[]
+  showLandFill: boolean
   batchAnnouncement: string
   batchNumber: number
   calculatedLandTarget: number
@@ -174,6 +177,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     analysis,
     basicLandState,
     basicLands,
+    landGap,
+    nonbasicLands,
+    showLandFill,
     batchAnnouncement,
     batchNumber,
     calculatedLandTarget,
@@ -499,17 +505,44 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               />
             </div>
             <p>
-              This fills {basicLands.reduce((sum, land) => sum + land.count, 0)} slots toward your{' '}
-              {calculatedLandTarget}-land target. Existing cards stay unchanged.
+              {landGap} of your {calculatedLandTarget} land slots are open. Existing cards stay
+              unchanged.
             </p>
-            <ul className="basic-land-plan">
-              {basicLands.map((land) => (
-                <li key={land.name}>
-                  <span>{land.name}</span>
-                  <b>{land.count}</b>
-                </li>
-              ))}
-            </ul>
+            {nonbasicLands.length > 0 && (
+              <section className="land-fill-step" aria-labelledby="nonbasic-land-title">
+                <h3 id="nonbasic-land-title">Start with nonbasic lands</h3>
+                <p>Recommended for this commander. Each one you add replaces a basic.</p>
+                <ul className="nonbasic-land-list">
+                  {nonbasicLands.map((card) => (
+                    <li key={card.name}>
+                      <CardReference card={card} onOpen={() => openGuidanceCard(card)} thumbnail />
+                      <button
+                        type="button"
+                        className="compact-action"
+                        disabled={basicLandState === 'loading'}
+                        onClick={() => addRecommendationCard(card)}
+                      >
+                        Add
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            <section className="land-fill-step" aria-labelledby="basic-land-split-title">
+              <h3 id="basic-land-split-title">
+                {nonbasicLands.length > 0 ? 'Then fill the rest with basics' : 'Basic land split'}
+              </h3>
+              <p>Split by the coloured mana symbols in your deck.</p>
+              <ul className="basic-land-plan">
+                {basicLands.map((land) => (
+                  <li key={land.name}>
+                    <span>{land.name}</span>
+                    <b>{land.count}</b>
+                  </li>
+                ))}
+              </ul>
+            </section>
             {basicLandState === 'error' && (
               <p className="form-error" role="alert">
                 Could not load basic lands. Try again.
@@ -524,7 +557,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 disabled={basicLandState === 'loading'}
                 onClick={() => void addBasicLands(basicLands)}
               >
-                {basicLandState === 'loading' ? 'Adding…' : 'Add lands'}
+                {basicLandState === 'loading' ? 'Adding…' : `Add ${landGap} basics`}
               </button>
             </div>
           </section>
@@ -942,7 +975,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       </span>
                       <button
                         type="button"
-                        className="health-card-add"
+                        className="compact-action"
                         onClick={() => addRecommendationCard(card)}
                       >
                         Add
@@ -1030,19 +1063,34 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 Suggested lands {analysis.landRange[0]}-{analysis.landRange[1]}
               </span>
             </div>
-            {basicLands.length > 0 && (
-              <button
-                className="basic-land-button"
-                type="button"
-                onClick={() => {
-                  setBasicLandState('idle')
-                  openModal('basics')
-                }}
-              >
-                <span>Fill to land target</span>
-                <b>+{basicLands.reduce((sum, land) => sum + land.count, 0)} basics</b>
-              </button>
-            )}
+            {basicLands.length > 0 &&
+              (showLandFill ? (
+                <button
+                  className="basic-land-button"
+                  type="button"
+                  onClick={() => {
+                    setBasicLandState('idle')
+                    openModal('basics')
+                  }}
+                >
+                  <span>Fill to land target</span>
+                  <b>{landGap} lands left</b>
+                </button>
+              ) : (
+                <p className="land-fill-later">
+                  <span>Fill lands once most spells are in.</span>
+                  <button
+                    type="button"
+                    className="compact-action"
+                    onClick={() => {
+                      setBasicLandState('idle')
+                      openModal('basics')
+                    }}
+                  >
+                    Fill now
+                  </button>
+                </p>
+              ))}
             <div className="deck-targets">
               {targetKeys.map((key) => (
                 <label key={key}>

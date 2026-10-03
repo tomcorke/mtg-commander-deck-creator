@@ -5,9 +5,10 @@ import { showCardPreview, hideCardPreview } from './card-preview.ts'
 type Props = {
   card: Pick<Card, 'name' | 'image'>
   onOpen: () => void
+  thumbnail?: boolean
 }
 
-export function CardReference({ card, onOpen }: Props) {
+export function CardReference({ card, onOpen, thumbnail = false }: Props) {
   return (
     <span
       className="card-reference"
@@ -16,6 +17,9 @@ export function CardReference({ card, onOpen }: Props) {
       onMouseLeave={({ currentTarget }) => hideCardPreview(currentTarget)}
       onBlur={({ currentTarget }) => hideCardPreview(currentTarget)}
     >
+      {thumbnail && card.image && (
+        <img className="card-reference-thumbnail" src={card.image} alt="" loading="lazy" />
+      )}
       <button
         type="button"
         className="card-reference-name"

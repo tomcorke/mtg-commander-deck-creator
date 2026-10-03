@@ -748,7 +748,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.health-card-add {
+.compact-action {
   padding: 4px 7px;
   border: 1px solid #36327f;
   border-radius: 4px;

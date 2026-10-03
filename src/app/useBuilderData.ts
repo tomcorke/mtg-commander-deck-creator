@@ -2,6 +2,8 @@ import {
   analyseDeck,
   basicLandNames,
   basicLandPlan,
+  landFillReady,
+  nonbasicLandSuggestions,
   cardTypes,
   deckGuidance,
   deckSection,
@@ -151,6 +153,13 @@ function buildDeckData(deps: BuilderDataDeps) {
     calculatedLandTarget,
     deck.length,
   )
+  const landGap = basicLands.reduce((sum, land) => sum + land.count, 0)
+  const nonbasicLands = nonbasicLandSuggestions(
+    deps.queue,
+    [...deck, ...deps.sideboard].map((card: Card) => card.name),
+    Math.min(6, landGap),
+  )
+  const showLandFill = landFillReady(deck.length, analysis.counts.lands, calculatedLandTarget)
   const indexedDeck: { card: DeckCard; index: number }[] = deck.map(
     (card: DeckCard, index: number) => ({ card, index }),
   )
@@ -206,6 +215,9 @@ function buildDeckData(deps: BuilderDataDeps) {
     guidance,
     calculatedLandTarget,
     basicLands,
+    landGap,
+    nonbasicLands,
+    showLandFill,
     groupedBasics,
     groupedDeckColumns,
     legalBasicNames,
