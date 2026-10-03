@@ -2,6 +2,24 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [A11] Richer recommendation tuning
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — Mapping reasons to scoring changes needs validation so feedback visibly improves later batches.
+
+**Status:** Complete — merged in `8e1546c`; not yet released.
+
+### Completed behavior
+
+Recommendation settings use one Priority control (Theme first, Balanced, Deck needs first, Surprise me) beside an independent Power control; stored legacy goals and the deck-health flag map to the new options. A "How recommendations work" disclosure replaces the opening caveat. An optional maximum price per card hides pricier cards (cards without a price are kept) and appears in the settings summary. Ignore stays one click and then offers optional inline reasons (Not my style, Too expensive, Off-theme, Have something similar) that feed preference scoring; "Too expensive" offers a one-click "Hide cards over $N". Below-target rows in Deck targets focus batches on that role, shown as a removable chip; focus clears automatically at target. With a role focused, each Next advances exactly one batch and says when the role has no more suggestions; without focus, an exhausted pool still jumps ahead to returning Later cards. Keyboard focus moves to a sensible place when the price offer or focus chip disappears.
+
+Implemented by Pi (gpt-6.1-sol, follow-ups on gpt-6-luna); Opus browser review and re-review with small fixes.
+
+### Acceptance checks
+
+- Tests cover Priority mapping, price capping, ignore reasons, role focus, one-batch advancement with focus, and the unfocused fast-forward.
+- Opus Chrome review in light, dark, and 390px (iframe), then a focused re-review of focus handling, batch counting, and the focused empty state. Not checked in the browser: the missing-price fallback, disabled controls during loading, and the unfocused fast-forward (unit tests only).
+- All 209 tests, lint, typecheck, and production build pass.
+
 ## [B9] Make deck review one clear workflow
 
 **Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Reorganises existing sections without new analysis.

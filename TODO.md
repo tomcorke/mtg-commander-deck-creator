@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A13, and B9.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, and B9.
 
 ## Suggested order
 
@@ -31,12 +31,11 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.                  |
 | 5     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
 | 6     | B14 | Keep deck-review drafts                  | Low        | Medium | Low           | Browser Back and settings refreshes can silently drop pending review choices.                                         |
-| 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                            |
-| 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
-| 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
-| 10    | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
-| 11    | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
-| 12    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
+| 7     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
+| 8     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
+| 9     | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
+| 10    | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
+| 11    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
 
 ## [A14] Support multiple tabs and safer autosaves
 
@@ -163,25 +162,6 @@ Acceptance checks:
 
 - A deck with a ramp shortfall receives ramp swap suggestions whose cuts come from flagged or low-fit cards.
 - Applying a suggested swap updates the deck, findings, and history in one action.
-
-## [A11] Richer recommendation tuning
-
-**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — Mapping reasons to scoring changes needs validation so feedback visibly improves later batches.
-
-Add, Later, Ignore, and like are the only in-flow tuning. Ignore records no reason, there is no budget control although prices are shown, and no action targets a missing role directly.
-
-- Let Ignore take an optional quick reason: Not my style, Too expensive, Off-theme, Have something similar. Feed each reason into an existing mechanism (preference score, price cap, theme weighting).
-- Add an optional maximum price per card to Recommendation settings.
-- Replace the overlapping Deck goal and Prioritize deck health controls with one Priority setting (Theme first, Balanced, Deck needs first, Surprise me), keeping Power separate. Choosing one control must not silently reset another.
-- Replace the modal's opening caveat paragraph with one "How recommendations work" disclosure.
-- Make each below-target row in the Deck targets sidebar open a batch filtered to that role, keeping the normal batch size.
-
-Current context: preference learning lives in `src/domain/recommendation-queue.ts` and the scoring modules; role detection in `src/deck-analysis.ts`. Depends on A7.
-
-Acceptance checks:
-
-- Ignoring a card as Too expensive offers or applies a price cap, and later batches respect it.
-- Selecting Ramp 2/10 shows only ramp candidates in a normal-size batch.
 
 ## [B11] Builder UI consistency pass
 
