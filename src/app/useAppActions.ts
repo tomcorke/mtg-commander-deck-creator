@@ -82,7 +82,27 @@ function useRoutingActions(state: AppState) {
     }
     navigateView(current?.view ?? (state.showBuilder ? 'builder' : 'start'), null, true)
   }
-  return { navigateView, openModal, closeModal }
+  function cancelReviewNavigation() {
+    state.reviewNavigation.current = null
+    state.setShowReviewExitPrompt(false)
+  }
+  function confirmReviewNavigation() {
+    const direction = state.reviewNavigation.current
+    if (!direction || !state.showReviewExitPrompt) return
+    state.reviewNavigation.current = null
+    state.reviewNavigationAllowed.current = true
+    state.pendingReviewChanges.current = false
+    state.setShowReviewExitPrompt(false)
+    if (direction === 'back') window.history.back()
+    else window.history.forward()
+  }
+  return {
+    navigateView,
+    openModal,
+    closeModal,
+    cancelReviewNavigation,
+    confirmReviewNavigation,
+  }
 }
 
 function useRemoteActions(state: AppState, routing: RoutingActions) {
@@ -109,6 +129,10 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     readRoute: readAppRoute,
     writeRoute: writeAppRoute,
     appHistoryKey,
+    pendingReviewChanges: state.pendingReviewChanges,
+    reviewNavigation: state.reviewNavigation,
+    reviewNavigationAllowed: state.reviewNavigationAllowed,
+    setShowReviewExitPrompt: state.setShowReviewExitPrompt,
     setSetOptions: state.setSetOptions,
     recommendationState: state.recommendationState,
     currentDeckState: state.currentDeckState,

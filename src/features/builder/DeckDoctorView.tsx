@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -29,6 +30,7 @@ import {
   analyzeDeckDoctor,
   deckReviewMode,
   groupDeckCards,
+  reconcileDoctorAdditions,
   type DeckDoctorFinding,
   type DeckDoctorSwapRecord,
 } from '../../deck-doctor.ts'
@@ -70,6 +72,7 @@ type Props = {
   recommendationSettingsSummary: string
   recommendationQueryKey: string
   recommendationOptionsChanged: boolean
+  setPendingReviewChanges: (pending: boolean) => void
   openRecommendationSettings: () => void
   candidates: Card[]
   scoreReplacements: (
@@ -135,6 +138,7 @@ export function DeckDoctorView({
   recommendationSettingsSummary,
   recommendationQueryKey,
   recommendationOptionsChanged,
+  setPendingReviewChanges,
   openRecommendationSettings,
   candidates,
   scoreReplacements,
@@ -164,6 +168,9 @@ export function DeckDoctorView({
   const [candidatePage, setCandidatePage] = useState(0)
   const [selectedCutIndexes, setSelectedCutIndexes] = useState<number[]>([])
   const [selectedAdditionNames, setSelectedAdditionNames] = useState<string[]>([])
+  const [selectedAdditionCards, setSelectedAdditionCards] = useState<Card[]>([])
+  const [settingsRefreshPending, setSettingsRefreshPending] = useState(false)
+  const [removedAdditionNames, setRemovedAdditionNames] = useState<string[]>([])
   const [moveCutToSideboard, setMoveCutToSideboard] = useState(false)
   const [otherCutFilter, setOtherCutFilter] = useState('')
   const [candidateFilter, setCandidateFilter] = useState('all')
@@ -238,7 +245,9 @@ export function DeckDoctorView({
     return cutCard ? [{ cutIndex, cutCard }] : []
   })
   const selectedAdditions = selectedAdditionNames.flatMap((name) => {
-    const card = availableCandidates.find((candidate) => candidate.name === name)
+    const card =
+      availableCandidates.find((candidate) => candidate.name === name) ??
+      selectedAdditionCards.find((candidate) => candidate.name === name)
     return card ? [card] : []
   })
   const pairCount = Math.min(selectedCuts.length, selectedAdditions.length)
@@ -247,6 +256,8 @@ export function DeckDoctorView({
   const currentCommander = commanderCards[0]
   const commanderTitle = commanderCards.map(({ name }) => name).join(' // ') || commander
   const planReady =
+    !settingsRefreshPending &&
+    !recommendationOptionsChanged &&
     selectedCuts.length + selectedAdditions.length > 0 &&
     selectedCuts.length === selectedCutIndexes.length &&
     selectedAdditions.length === selectedAdditionNames.length
@@ -264,11 +275,42 @@ export function DeckDoctorView({
     if (previousQueryKey.current === recommendationQueryKey) return
     previousQueryKey.current = recommendationQueryKey
     candidateRequest.current += 1
-    setSelectedAdditionNames([])
     setCandidatePage(0)
+    setSettingsRefreshPending(true)
+    setRemovedAdditionNames([])
   }, [recommendationQueryKey])
 
+  useEffect(() => {
+    if (recommendationOptionsChanged) {
+      setSettingsRefreshPending(true)
+      setRemovedAdditionNames((current) => (current.length ? [] : current))
+      return
+    }
+    if (!settingsRefreshPending) return
+    const result = reconcileDoctorAdditions(
+      selectedAdditionNames,
+      availableCandidates.map(({ name }) => name),
+    )
+    if (result.removedNames.length) {
+      setSelectedAdditionNames(result.selectedNames)
+      setSelectedAdditionCards((current) =>
+        current.filter(({ name }) => !result.removedNames.includes(name)),
+      )
+      setRemovedAdditionNames(result.removedNames)
+    }
+    setSettingsRefreshPending(false)
+  }, [
+    availableCandidates,
+    recommendationOptionsChanged,
+    selectedAdditionNames,
+    settingsRefreshPending,
+  ])
+
   const hasPendingChanges = selectedCutIndexes.length + selectedAdditionNames.length > 0
+  useLayoutEffect(() => {
+    setPendingReviewChanges(hasPendingChanges)
+    return () => setPendingReviewChanges(false)
+  }, [hasPendingChanges, setPendingReviewChanges])
   const confirmExit = useCallback(
     () =>
       !hasPendingChanges || window.confirm('Discard pending changes and return to the builder?'),
@@ -302,6 +344,7 @@ export function DeckDoctorView({
       previousBoards.current = boardKey
       setSelectedCutIndexes([])
       setSelectedAdditionNames([])
+      setSelectedAdditionCards([])
     }
   }, [boardKey])
 
@@ -359,8 +402,17 @@ export function DeckDoctorView({
   }
 
   function toggleName(name: string) {
+    const card = availableCandidates.find((candidate) => candidate.name === name)
+    setRemovedAdditionNames([])
     setSelectedAdditionNames((selected) =>
       selected.includes(name) ? selected.filter((item) => item !== name) : [...selected, name],
+    )
+    setSelectedAdditionCards((selected) =>
+      selected.some((candidate) => candidate.name === name)
+        ? selected.filter((candidate) => candidate.name !== name)
+        : card
+          ? [...selected, card]
+          : selected,
     )
   }
 
@@ -403,6 +455,7 @@ export function DeckDoctorView({
     if (applySwapPlan(selectedCuts, selectedAdditions, moveCutToSideboard)) {
       setSelectedCutIndexes([])
       setSelectedAdditionNames([])
+      setSelectedAdditionCards([])
       changeStep('Diagnose', true)
     }
   }
@@ -576,6 +629,11 @@ export function DeckDoctorView({
             Adjust goals and filters
           </button>
         </div>
+        {removedAdditionNames.length > 0 && (
+          <p className="doctor-muted" role="status">
+            Removed from picked additions after settings changed: {removedAdditionNames.join(', ')}.
+          </p>
+        )}
         {step === 'Diagnose' && mode !== 'review' && (
           <section className="doctor-readiness" aria-labelledby="doctor-readiness-title">
             <div className="doctor-section-heading">

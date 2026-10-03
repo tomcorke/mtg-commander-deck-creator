@@ -8,6 +8,7 @@ import {
   applyDeckDoctorSwapPlan,
   deckReviewMode,
   groupDeckCards,
+  reconcileDoctorAdditions,
   undoDeckDoctorSwap,
 } from './deck-doctor.ts'
 import type { Card, DeckCard } from './domain/card-model.ts'
@@ -35,6 +36,13 @@ const candidate = (name: string, overrides: Partial<Card> = {}): Card => ({
   reason: 'Interesting new pick',
   printsUri: '',
   ...overrides,
+})
+
+test('keeps picked additions available after settings refresh and names the rest', () => {
+  assert.deepEqual(
+    reconcileDoctorAdditions(['Keep', 'Remove', 'Keep too'], ['Keep', 'New candidate', 'Keep too']),
+    { selectedNames: ['Keep', 'Keep too'], removedNames: ['Remove'] },
+  )
 })
 
 test('reports theme support and flags cards that lack other connections', () => {

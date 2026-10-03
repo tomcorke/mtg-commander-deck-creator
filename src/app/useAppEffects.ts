@@ -5,10 +5,12 @@ import type { Card } from '../domain/card-model.ts'
 import { basicLandNames, rolesForCard, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
 import { commanderNames, randomThree } from '../domain/commander-catalog.ts'
 import { commanderPrintingOptions } from '../domain/printing.ts'
+import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
 
 export type AppEffectsDeps = Record<string, any>
 
 export function useRouteEffects(deps: AppEffectsDeps) {
+  const currentRoute = useRef<AppHistoryState | null>(null)
   const {
     initialRoute,
     savedCommander,
@@ -18,6 +20,12 @@ export function useRouteEffects(deps: AppEffectsDeps) {
     readRoute,
     writeRoute,
     appHistoryKey,
+    pendingReviewChanges,
+    reviewNavigation,
+    reviewNavigationAllowed,
+    setShowReviewExitPrompt,
+    showBuilder,
+    activeModal,
   } = deps
   useEffect(() => {
     const route = initialRoute ?? {
@@ -26,20 +34,55 @@ export function useRouteEffects(deps: AppEffectsDeps) {
       modal: null,
       entry: false,
     }
+    currentRoute.current = route
     writeRoute(route, true)
     historyReady.current = true
-    const applyRoute = () => {
-      const next = readRoute() ?? { app: appHistoryKey, view: 'start', modal: null, entry: false }
+    const applyRoute = (next: AppHistoryState) => {
+      currentRoute.current = next
       setShowBuilder(next.view === 'builder')
       setActiveModal(next.modal)
     }
-    window.addEventListener('popstate', applyRoute)
-    window.addEventListener('hashchange', applyRoute)
+    const handleRoute = (direction: 'back' | 'hash') => {
+      const next = readRoute() ?? { app: appHistoryKey, view: 'start', modal: null, entry: false }
+      if (reviewNavigationAllowed.current) {
+        reviewNavigationAllowed.current = false
+        reviewNavigation.current = null
+        setShowReviewExitPrompt(false)
+        applyRoute(next)
+        return
+      }
+      if (reviewNavigation.current) {
+        const current = currentRoute.current
+        if (current && current.view === next.view && current.modal === next.modal)
+          setShowReviewExitPrompt(true)
+        return
+      }
+      if (shouldConfirmReviewNavigation(currentRoute.current, next, pendingReviewChanges.current)) {
+        reviewNavigation.current = direction
+        if (direction === 'back') window.history.go(1)
+        else window.history.back()
+        return
+      }
+      applyRoute(next)
+    }
+    const handlePopState = () => handleRoute('back')
+    const handleHashChange = () => handleRoute('hash')
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('hashchange', handleHashChange)
     return () => {
-      window.removeEventListener('popstate', applyRoute)
-      window.removeEventListener('hashchange', applyRoute)
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('hashchange', handleHashChange)
     }
   }, [])
+  useEffect(() => {
+    if (!historyReady.current) return
+    currentRoute.current = {
+      app: appHistoryKey,
+      view: showBuilder ? 'builder' : 'start',
+      modal: activeModal,
+      entry: false,
+    }
+  }, [activeModal, appHistoryKey, historyReady, showBuilder])
 }
 
 export function useCompletionReviewEffect(deps: AppEffectsDeps) {

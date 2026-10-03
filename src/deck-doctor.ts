@@ -19,6 +19,14 @@ export type DeckDoctorSwap = {
   reason: string
 }
 
+export function reconcileDoctorAdditions(selectedNames: string[], availableNames: string[]) {
+  const available = new Set(availableNames)
+  return {
+    selectedNames: selectedNames.filter((name) => available.has(name)),
+    removedNames: selectedNames.filter((name) => !available.has(name)),
+  }
+}
+
 export type DeckDoctorCardSignal = {
   cardName: string
   summary: string

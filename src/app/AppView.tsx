@@ -315,6 +315,50 @@ function useBuilderMode(state: Record<string, any>) {
   return { modeReturn, rememberMode }
 }
 
+function ReviewExitConfirmation({ cancel, confirm }: { cancel: () => void; confirm: () => void }) {
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) cancel()
+      }}
+    >
+      <section
+        className="export-modal doctor-discard-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="doctor-discard-title"
+        aria-describedby="doctor-discard-description"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            event.stopPropagation()
+            cancel()
+          }
+        }}
+      >
+        <div className="export-heading">
+          <div>
+            <p className="eyebrow">Pending deck review changes</p>
+            <h2 id="doctor-discard-title">Discard your choices?</h2>
+          </div>
+        </div>
+        <p id="doctor-discard-description">
+          Going back will discard your pending cuts and additions.
+        </p>
+        <div className="export-actions">
+          <button autoFocus className="export" type="button" onClick={cancel}>
+            Keep choices
+          </button>
+          <button className="primary" type="button" onClick={confirm}>
+            Discard and leave
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function DeckReviewScreen({
   state,
   actions,
@@ -382,6 +426,7 @@ function DeckReviewScreen({
         recommendationSettingsSummary={builderData.recommendationSettingsSummary}
         recommendationQueryKey={builderData.recommendationQueryKey}
         recommendationOptionsChanged={state.recommendationOptionsChanged}
+        setPendingReviewChanges={state.setPendingReviewChanges}
         openRecommendationSettings={() => {
           rememberMode()
           actions.openModal('recommendation-settings')
@@ -404,6 +449,12 @@ function DeckReviewScreen({
       {modals.recommendationSettingsModal}
       {state.showDeckCard && (
         <DeckCardModalView state={state} actions={actions} builderData={builderData} />
+      )}
+      {state.showReviewExitPrompt && (
+        <ReviewExitConfirmation
+          cancel={actions.cancelReviewNavigation}
+          confirm={actions.confirmReviewNavigation}
+        />
       )}
     </>
   )

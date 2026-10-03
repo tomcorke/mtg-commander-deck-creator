@@ -9,6 +9,7 @@ import {
   reviewRouteDepth,
   reviewRoutes,
   reviewSteps,
+  shouldConfirmReviewNavigation,
 } from './routes.ts'
 
 test('routeHash preserves view and modal names', () => {
@@ -31,6 +32,25 @@ test('review steps have distinct routes and predictable predecessors, including 
   assert.equal(reviewStepForModal('doctor-history'), null)
   assert.equal(reviewStepForModal('card'), null)
   assert.equal(reviewStepForModal(null), null)
+})
+
+test('pending Diagnose choices block exits, but not review steps or clean routes', () => {
+  const diagnose = parseAppRoute('#build/review', null)!
+  const builder = parseAppRoute('#build', null)!
+  assert.equal(shouldConfirmReviewNavigation(diagnose, builder, true), true)
+  assert.equal(shouldConfirmReviewNavigation(diagnose, builder, false), false)
+  assert.equal(
+    shouldConfirmReviewNavigation(diagnose, parseAppRoute('#build/search', null)!, true),
+    true,
+  )
+  assert.equal(
+    shouldConfirmReviewNavigation(diagnose, parseAppRoute('#build/review-changes', null)!, true),
+    false,
+  )
+  assert.equal(
+    shouldConfirmReviewNavigation(parseAppRoute('#build/doctor-history', null), builder, true),
+    false,
+  )
 })
 
 test('review history depth exits an app-started workflow without guessing direct-link history', () => {

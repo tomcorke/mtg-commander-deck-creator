@@ -216,6 +216,9 @@
 .import-modal {
   width: min(680px, 100%);
 }
+.doctor-discard-modal {
+  width: min(460px, 100%);
+}
 .import-modal textarea {
   min-height: 260px;
   margin-top: 14px;

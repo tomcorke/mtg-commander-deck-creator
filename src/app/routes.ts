@@ -39,6 +39,16 @@ export const appModals: AppModal[] = [
 export const reviewSteps = ['Diagnose', 'Choose changes', 'Confirm'] as const
 export type DeckReviewStep = (typeof reviewSteps)[number]
 export const reviewRoutes = ['review', 'review-changes', 'review-confirm'] as const
+const routesPreservingDeckReview = new Set<AppModal>([
+  ...reviewRoutes,
+  'doctor',
+  'doctor-history',
+  'card',
+  'export',
+  'import',
+  'saved',
+  'recommendation-settings',
+])
 
 export function reviewStepForModal(modal: AppModal | null): DeckReviewStep | null {
   if (modal === 'doctor') return 'Diagnose'
@@ -48,6 +58,19 @@ export function reviewStepForModal(modal: AppModal | null): DeckReviewStep | nul
 
 export function reviewBackModal(step: DeckReviewStep): AppModal | null {
   return step === 'Confirm' ? 'review-changes' : step === 'Choose changes' ? 'review' : null
+}
+
+export function shouldConfirmReviewNavigation(
+  current: AppHistoryState | null,
+  next: AppHistoryState,
+  hasPendingChanges: boolean,
+) {
+  return Boolean(
+    hasPendingChanges &&
+    current?.view === 'builder' &&
+    reviewStepForModal(current.modal) === 'Diagnose' &&
+    !(next.view === 'builder' && next.modal && routesPreservingDeckReview.has(next.modal)),
+  )
 }
 
 /** Track only review entries pushed from the builder, never guess a direct link's history. */

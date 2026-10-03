@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 import { loadSavedDecks, type PersistedDeckState } from '../deck-state.ts'
 import type { AppHistoryState, AppModal } from './routes.ts'
@@ -18,6 +18,13 @@ export function useUiState(
   const [commanderStyling, setCommanderStyling] = useStoredOption('commanderStyling', () => true)
   const [cardEffects, setCardEffects] = useStoredOption('cardEffects', () => true)
   const [recommendationOptionsChanged, setRecommendationOptionsChanged] = useState(false)
+  const pendingReviewChanges = useRef(false)
+  const setPendingReviewChanges = useCallback((pending: boolean) => {
+    pendingReviewChanges.current = pending
+  }, [])
+  const reviewNavigation = useRef<'back' | 'hash' | null>(null)
+  const reviewNavigationAllowed = useRef(false)
+  const [showReviewExitPrompt, setShowReviewExitPrompt] = useState(false)
   const [savedDecks, setSavedDecks] = useState(loadSavedDecks)
   const [activeSavedDeckId, setActiveSavedDeckId] = useState(saved?.savedDeckId ?? '')
   const [deckName, setDeckName] = useState(
@@ -42,6 +49,12 @@ export function useUiState(
     setCardEffects,
     recommendationOptionsChanged,
     setRecommendationOptionsChanged,
+    pendingReviewChanges,
+    setPendingReviewChanges,
+    reviewNavigation,
+    reviewNavigationAllowed,
+    showReviewExitPrompt,
+    setShowReviewExitPrompt,
     savedDecks,
     setSavedDecks,
     activeSavedDeckId,
