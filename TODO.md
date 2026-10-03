@@ -23,17 +23,17 @@ Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5
 
 Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change. Items A7–A13 and B8–B11 come from the [design and UX review](docs/ux-review.md).
 
-| Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                 |
-| ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------ |
-| 1     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
-| 2     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
-| 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
-| 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
-| 5     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                |
-| 6     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
-| 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
-| 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
-| 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
+| Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                     |
+| ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                                |
+| 2     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation. |
+| 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                               |
+| 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.       |
+| 5     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                    |
+| 6     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                  |
+| 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.                 |
+| 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                     |
+| 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.     |
 
 ## [A12] Defer basic-land fill
 
@@ -60,7 +60,7 @@ Power level, deck goal, and exclusions are only reachable in Recommendation sett
 - After choosing a commander and before the first batch, ask how the player wants to play it with three large choices mapped to existing settings: Casual (Core, Thematic, exclusions on), Upgraded (Upgraded, Balanced), High power (High, Competitive, exclusions off). Offer an optional link to the set picker and a "Skip, use defaults" action. Keep all options editable in Recommendation settings.
 - When a deck is in progress, show a "Continue building" card at the top of the start page with commander art, card count, and last-edited time.
 - Move display preferences (commander art and colours, motion and finishes, dark mode) from the start header into one settings menu.
-- Add an optional intro guide, controlled by a checkbox on the initial screen. Check it by default for first-time users, then persist and honor each player's choice.
+- Add an optional intro guide, controlled by a checkbox on the initial screen. Check it by default for first-time users. Run it once, after the first batch of the player's first new deck, then switch the checkbox off; players can switch it back on from the start screen. Persist and honor each player's choice.
 - Try React Joyride for the guide. It is not currently installed; check compatibility with the app's React 19 setup before adding it. Keep the guide skippable and make its controls usable by keyboard and assistive technology.
 
 Current context: `src/features/start/StartView.tsx` asks for a theme or colours and a commander. Recommendation settings already include style, power target, deck-health priority, and creature inclusion; `useStoredOption` persists settings in local storage, and the current deck persists through `src/deck-state.ts`. There is no play-style step, resume entry, or first-run guide state.
