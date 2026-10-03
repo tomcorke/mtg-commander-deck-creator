@@ -186,12 +186,12 @@ export function DeckOverview({
                     ? 'Possible gap'
                     : hasColourSignal
                       ? 'Mana sources found'
-                      : 'No coloured mana to check'
+                      : 'No mana costs to check'
                 }
               />
               <b>
-                {unsupportedColours} colour{unsupportedColours === 1 ? '' : 's'} with pip demand and
-                no mana source
+                {unsupportedColours} cost symbol{unsupportedColours === 1 ? '' : 's'} with no mana
+                source
               </b>
             </div>
             <div>
