@@ -25,6 +25,7 @@ import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
 import { SavedDecksModal } from '../features/modals/SavedDecksModal.tsx'
 import { StartView } from '../features/start/StartView.tsx'
+import { ModalCloseButton } from '../shared/CardDetails.tsx'
 
 export type AppViewProps = {
   state: Record<string, any>
@@ -362,8 +363,9 @@ function ReviewExitConfirmation({ state, actions }: Pick<AppViewProps, 'state' |
             <p className="eyebrow">Pending deck review changes</p>
             <h2 id="doctor-discard-title">Discard your choices?</h2>
           </div>
+          <ModalCloseButton onClick={cancelAndRefocus} label="Close and keep choices" />
         </div>
-        <p id="doctor-discard-description">
+        <p id="doctor-discard-description" className="import-help">
           Leaving Deck review will discard your pending cuts and additions.
         </p>
         <div className="export-actions">

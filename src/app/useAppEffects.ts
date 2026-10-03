@@ -39,6 +39,7 @@ export function useRouteEffects(deps: AppEffectsDeps) {
     historyReady.current = true
     const applyRoute = (next: AppHistoryState) => {
       currentRoute.current = next
+      if (window.history.state?.app !== appHistoryKey) writeRoute(next, true)
       setShowBuilder(next.view === 'builder')
       setActiveModal(next.modal)
     }
@@ -65,7 +66,9 @@ export function useRouteEffects(deps: AppEffectsDeps) {
       }
       applyRoute(next)
     }
-    const handlePopState = () => handleRoute('back')
+    // A typed hash fires popstate first with no app state; it has no forward entry to restore.
+    const handlePopState = () =>
+      handleRoute(window.history.state?.app === appHistoryKey ? 'back' : 'hash')
     const handleHashChange = () => handleRoute('hash')
     window.addEventListener('popstate', handlePopState)
     window.addEventListener('hashchange', handleHashChange)
