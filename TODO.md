@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, B9, and B14.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, B9, B13, and B14.
 
 ## Suggested order
 
@@ -34,7 +34,6 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | 7     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
 | 8     | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
 | 9     | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
-| 10    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
 
 ## [A14] Support multiple tabs and safer autosaves
 
@@ -214,23 +213,6 @@ Acceptance checks:
 - Tests cover snow basics, Wastes, Relentless Rats, Seven Dwarves above and at seven, Westvale Abbey, a legendary non-creature without permission, Grist, a banned legendary creature, Crypt Ghast's identity, and each supported partner ability, including a mismatched pair.
 - Import, manual add, recommendations, Doctor swaps, and promotion return the same verdict for the same card and deck.
 - A saved deck containing a newly banned card loads with a visible warning rather than silently counting as complete.
-
-## [B13] Correct deck-analysis and simulation mana semantics
-
-**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — The fixes are local to analysis, simulation, and card conversion, and the rules are verified.
-
-Deck review and Deck Doctor apply some two-player or outdated card-data assumptions.
-
-- Simulation: draw on turn one. CR 103.8c says no player skips the first draw in a multiplayer game.
-- Land counts: a transforming card's land back face is not a land drop from hand. Count spell/land MDFCs as optional land drops, not as both a land and a spell.
-- Card conversion: keep face mana costs when converting imported or manually added DFCs, as recommendations already do.
-- Mana symbols: use Scryfall `/symbology` `svg_uri` instead of building filenames (`{W/U/P}` is `WUP.svg`). Treat `{H}` as generic Phyrexian and `{P}` as the pawprint symbol. Recognise `{C/W}`-style hybrids. Show `{C}` and `{S}` costs in colour guidance.
-- Images: only DFC layouts have a back image. Split, Adventure, and flip cards have several faces on one side, so do not repeatedly fetch a missing back image for them.
-
-Acceptance checks:
-
-- Fixed-seed simulation tests show a turn-one draw, and the results change accordingly.
-- Tests cover a transforming land (for example, Westvale Abbey), a spell/land MDFC, an imported DFC's mana cost, `{W/U/P}` and `{C/W}` rendering, and a split card that does not trigger an image repair fetch.
 
 ## [A15] Align recommendation filters and provider assumptions with current policy
 
