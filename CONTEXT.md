@@ -13,7 +13,7 @@ Commander rules and policy changed often in 2024–2026. Model training data is 
 | What is banned? What do brackets and Game Changers mean?                                                        | [docs/domain/format-policy.md](docs/domain/format-policy.md)                                                                                                                                 |
 | What do Scryfall and EDHREC fields mean, and how far can they be trusted?                                       | [docs/domain/data-sources.md](docs/domain/data-sources.md)                                                                                                                                   |
 | Which app numbers and classifiers are heuristics, and what are their limits?                                    | [docs/domain/heuristics.md](docs/domain/heuristics.md)                                                                                                                                       |
-| Where does the code encode an MTG assumption, and is it right?                                                  | [docs/domain/assumption-audit-2026-10-03.md](docs/domain/assumption-audit-2026-10-03.md), a dated snapshot whose line numbers drift; its fixes are tracked in `TODO.md` as B12, B13, and A14 |
+| Where does the code encode an MTG assumption, and is it right?                                                  | [docs/domain/assumption-audit-2026-10-03.md](docs/domain/assumption-audit-2026-10-03.md), a dated snapshot whose line numbers drift; its fixes are tracked in `TODO.md` as B12, B13, and A15 |
 
 If a reference does not answer the question, check the primary source it cites, then add the answer to the reference with the date checked.
 

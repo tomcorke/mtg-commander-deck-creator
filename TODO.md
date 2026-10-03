@@ -35,7 +35,7 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
 | 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
 | 10    | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
-| 11    | A14 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
+| 11    | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
 | 12    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
 
 ## [A12] Defer basic-land fill
@@ -260,7 +260,7 @@ Acceptance checks:
 - Fixed-seed simulation tests show a turn-one draw, and the results change accordingly.
 - Tests cover a transforming land (for example, Westvale Abbey), a spell/land MDFC, an imported DFC's mana cost, `{W/U/P}` and `{C/W}` rendering, and a split card that does not trigger an image repair fetch.
 
-## [A14] Align recommendation filters and provider assumptions with current policy
+## [A15] Align recommendation filters and provider assumptions with current policy
 
 **Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Mostly labels, mappings, and query changes; EDHREC's undocumented JSON remains a risk.
 
