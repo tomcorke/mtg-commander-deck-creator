@@ -60,7 +60,7 @@ The [rate-limit contract](https://scryfall.com/docs/api/rate-limits), checked on
 - HTTP 429 limits access for 30 seconds. Continuing to overload can cause blocking. Honour exposed retry timing and provider cooldowns; immediate retries are not acceptable.
 - Cache downloaded data for **at least 24 hours** where practical. Prices update once daily; gameplay data changes less often. Scryfall directs high-volume name, price, and image resolution to [daily bulk data](https://scryfall.com/docs/api/bulk-data).
 
-The app currently uses 500 ms Scryfall pacing and a **15-minute**, per-client session cache in `src/adapters/scryfall.ts`. That cache is an app choice, not Scryfall's recommended freshness interval. Cached legality, Game Changers, prices, and saved snapshots describe their fetch date, not an immutable fact.
+App pacing and per-client session caching live in `src/adapters/scryfall.ts`. Their local settings are not Scryfall's provider limits or recommended freshness interval. Cached legality, Game Changers, prices, and saved snapshots describe their fetch date, not an immutable fact.
 
 ## EDHREC pages and list taxonomy
 
@@ -83,4 +83,4 @@ The primary references are the [FAQ](https://edhrec.com/faq) and [From Synergy t
 
 EDHREC says it collects daily from Archidekt, Moxfield, and Scryfall, with website updates usually following within days. Its users are a self-selected sample, not all Commander players, played games, or tournament results. Popularity, budget, precons, uploaded-but-unplayed decks, and EDHREC's own recommendations can affect associations. EDHREC attempts to reject illegal decks, but does not guarantee complete ingestion or rules validation of every returned pairing. Its theme definitions are developer-tuned, not one scientific formula.
 
-**Co-occurrence is not a rules interaction, combo proof, win rate, optimality measure, or bracket verdict.** App cutoffs such as 100 decks and lift 1.5 are [heuristics](heuristics.md), not provider guarantees. The app's one-second EDHREC pacing and 15-minute page cache are local safeguards, not an EDHREC service contract.
+**Co-occurrence is not a rules interaction, combo proof, win rate, optimality measure, or bracket verdict.** App sample-size and association cutoffs are [heuristics](heuristics.md), not provider guarantees. Pacing and cache settings in `src/adapters/edhrec.ts` are local safeguards, not an EDHREC service contract.
