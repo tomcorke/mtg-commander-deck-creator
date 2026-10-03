@@ -12,6 +12,7 @@ import {
   edhrecRecommendations,
   fetchDeckDoctorCandidates,
   fetchDeckDoctorCommanders,
+  resetRecommendationState,
   start,
 } from './recommendation-actions.ts'
 
@@ -111,20 +112,6 @@ test('partner retry preserves commander sources and Scryfall rate-limit guidance
   assert.equal(result, true)
   assert.deepEqual(fallbackQueries, [])
 
-  assert.equal(
-    await start(
-      {
-        ...deps,
-        activeModal: 'review-changes',
-        navigateView: () => assert.fail('Refreshing settings must keep the current workflow open'),
-      },
-      'Kraum & Tymna',
-      true,
-      { batchNumber: 4, deferredCards: [], preferenceScores: {} },
-    ),
-    true,
-  )
-
   let message = ''
   const rateLimited = t.mock.fn(
     async () => new Response('', { status: 429, headers: { 'Retry-After': '120' } }),
@@ -146,6 +133,42 @@ test('partner retry preserves commander sources and Scryfall rate-limit guidance
   assert.match(message, /Scryfall.*rate limit.*2 minutes/i)
   assert.equal(rateLimited.mock.callCount(), 1)
   assert.deepEqual(fallbackQueries, [])
+})
+
+test('settings refresh preserves the active workflow while an explicit restart navigates', (context) => {
+  const noop = () => {}
+  const navigateView = context.mock.fn(noop)
+  const progress = { batchNumber: 4, deferredCards: [], preferenceScores: {} }
+  const setters = Object.fromEntries(
+    [
+      'setDeferredCards',
+      'setBatchNumber',
+      'setDecisions',
+      'setLiked',
+      'setBatchAnnouncement',
+      'setCommanderSubThemes',
+      'setCommanderDetails',
+      'setQueue',
+      'setLimitedRecommendations',
+      'setCollectionState',
+      'setCollectionError',
+      'setRecommendationLoadingStep',
+      'setRecommendationLoadingTitle',
+      'setRecommendationState',
+    ].map((name) => [name, noop]),
+  )
+  const deps = {
+    ...setters,
+    activeModal: 'review-changes',
+    collectionMode: 'none',
+    collectionSets: [],
+    navigateView,
+    freshRecommendationCycle: () => progress,
+  }
+  resetRecommendationState(deps, true, progress)
+  assert.equal(navigateView.mock.callCount(), 0)
+  resetRecommendationState(deps, true)
+  assert.equal(navigateView.mock.callCount(), 1)
 })
 
 test('optional printing enrichment stops on rate limits without discarding suggestions', async () => {
