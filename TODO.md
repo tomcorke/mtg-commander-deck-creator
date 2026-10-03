@@ -17,45 +17,24 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A8, and A13.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, and A13.
 
 ## Suggested order
 
 Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change. Items A7–A13 and B8–B11 come from the [design and UX review](docs/ux-review.md).
 
-| Order | ID  | TODO                                            | Complexity | Value  | Delivery risk | Reason                                                                                                 |
-| ----- | --- | ----------------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------ |
-| 1     | A7  | Keep recommendation progress on settings change | Low        | High   | Low           | Behaves like a bug: tuning discards Later choices and batch progress. Every tuning item depends on it. |
-| 2     | A12 | Defer basic-land fill                           | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
-| 3     | A10 | Clearer set selection                           | Low        | Medium | Low           | Self-contained; uses Scryfall set fields already available.                                            |
-| 4     | A2  | Play-style step, resume, and intro guide        | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
-| 5     | A9  | Commander discovery on the start screen         | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
-| 6     | A6  | Signature-card recommendations                  | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
-| 7     | B9  | One deck-review workflow                        | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                |
-| 8     | B10 | Finding-driven swap suggestions                 | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
-| 9     | A11 | Richer recommendation tuning                    | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
-| 10    | B11 | Builder UI consistency pass                     | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
-| 11    | B4  | Finish builder-view module ownership            | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
-
-## [A7] Keep recommendation progress when settings change
-
-**Complexity:** Low · **Value:** High · **Delivery risk:** Low — The queue already supports re-ranking; the fix is mostly wiring and tests.
-
-Changing any recommendation setting currently restarts the recommendation cycle. Players who tune settings lose their Later deferrals and current-batch choices, which discourages the tuning the app depends on.
-
-- Record the visible batch's decisions (Add, Later, Ignore, like) before applying new settings.
-- Keep deferred cards, their eligible batch, the batch number, ignored cards, and preference scores across a settings change.
-- Re-rank the existing candidate pool when a setting only changes ranking (goal, deck health, creature inclusion, Prefer mode). Re-fetch only when the candidate pool changes (power or exclusions that remove cards, Only mode, set changes), and still apply existing deferrals and ignores to the new pool.
-- Apply changed settings when the modal closes so the next batch reflects them without first spending the current batch. Remove or reword the "Changes apply with next recommendations" notice to match.
-
-Current context: with pending changes, `nextBatch` calls `start(commander, true)` instead of `advanceRecommendationQueue` (`src/features/builder/interactions.ts:94`). `resetRecommendationState` then applies `freshRecommendationCycle()`, clearing deferred cards and resetting the batch number, and clears decisions and likes (`src/app/recommendation-actions.ts:327-331`). In testing, a card marked Later reappeared in the next batch after one setting change, and the header still read "Batch 1".
-
-Acceptance checks:
-
-- Mark a card Later, change a ranking-only setting, and continue: the card stays deferred for its full waiting period and the batch number keeps increasing.
-- Likes and Add decisions made in the batch visible during the change are recorded.
-- A pool-changing setting (Only mode with a set) yields candidates that respect existing ignores and deferrals.
-- Tests cover ranking-only and pool-changing paths.
+| Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                 |
+| ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------ |
+| 1     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
+| 2     | A10 | Clearer set selection                    | Low        | Medium | Low           | Self-contained; uses Scryfall set fields already available.                                            |
+| 3     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
+| 4     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
+| 5     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
+| 6     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                |
+| 7     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
+| 8     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
+| 9     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
+| 10    | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
 
 ## [A12] Defer basic-land fill
 

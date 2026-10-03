@@ -2,6 +2,24 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [A7] Keep recommendation progress when settings change
+
+**Complexity:** Low · **Value:** High · **Delivery risk:** Low — The queue already supports re-ranking; the fix is mostly wiring and tests.
+
+**Status:** Complete — merged in `59d8bc0`; not yet released.
+
+### Completed behavior
+
+Changing recommendation settings no longer restarts the recommendation cycle. When the settings dialog closes (or a sub-theme is chosen), the visible batch's Later, like, and Add decisions are recorded first; deferred cards, the batch number, ignored cards, and preference scores carry over. Ranking-only changes re-rank the existing pool without spending undecided cards or advancing waiting periods. Changes to the candidate pool (commander, power and exclusions, theme and sub-themes, set selection and collection mode, including Prefer) re-fetch, then apply the same progress. The builder's pending-changes notice is gone; the dialog says changes apply when it closes.
+
+Implementation: `refreshRecommendationSettings` and `nextBatch` in `src/features/builder/interactions.ts`; `recommendationPoolKey` and progress-preserving `start` in `src/app/recommendation-actions.ts`; the close-triggered refresh in `src/app/useAppActions.ts`.
+
+### Acceptance checks
+
+- `src/features/builder/interactions.test.ts` covers ranking-only and pool-changing paths, Later deferral across a settings change, recorded likes and adds, and ignores and deferrals applied to a re-fetched pool.
+- Browser checks with mocked providers in light, dark, and narrow layouts; the live-provider flow was not checked.
+- All 175 tests, lint, typecheck, and production build pass.
+
 ## [A13] Investigate collection import
 
 **Complexity:** Medium · **Value:** Medium · **Delivery risk:** High — Export formats vary, and name and printing matching may be unreliable without a server.
