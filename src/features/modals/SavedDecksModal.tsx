@@ -1,10 +1,19 @@
-import { type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
 
 import type { SavedDeck } from '../../deck-state.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { CardReference } from '../../shared/CardReference.tsx'
+import type { DeckCard } from '../../domain/card-model.ts'
+import type { AutosavedDraft, DeckWorkspace } from '../../autosaves.ts'
+import { DraftSavedTime } from './WorkspaceNotice.tsx'
 
 type SavedDecksModalProps = {
   show: boolean
+  workspace: DeckWorkspace
+  autosave: ReturnType<DeckWorkspace['getSnapshot']>
+  loadAutosave: (draft: AutosavedDraft) => void
+  openCard: (card: DeckCard) => void
+  loading: boolean
   commander: string
   deckName: string
   setDeckName: (value: string) => void
@@ -22,6 +31,11 @@ type SavedDecksModalProps = {
 
 export function SavedDecksModal({
   show,
+  workspace,
+  autosave,
+  loadAutosave,
+  openCard,
+  loading,
   commander,
   deckName,
   setDeckName,
@@ -36,6 +50,16 @@ export function SavedDecksModal({
   removeSavedDeck,
   closeModal,
 }: SavedDecksModalProps) {
+  const dialog = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!show) return
+    const opener = document.activeElement as HTMLElement | null
+    dialog.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
+    void workspace.refresh()
+    return () => {
+      if (opener?.isConnected) opener.focus()
+    }
+  }, [show, workspace])
   if (!show) return null
 
   return (
@@ -47,6 +71,28 @@ export function SavedDecksModal({
     >
       <section
         className="export-modal saved-decks-modal"
+        ref={dialog}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.stopPropagation()
+            closeModal()
+          }
+          if (event.key !== 'Tab') return
+          const controls = [
+            ...event.currentTarget.querySelectorAll<HTMLElement>(
+              'button:not(:disabled), input:not(:disabled), a[href]',
+            ),
+          ]
+          const first = controls[0]
+          const last = controls.at(-1)
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault()
+            last?.focus()
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault()
+            first?.focus()
+          }
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="saved-decks-title"
@@ -54,10 +100,109 @@ export function SavedDecksModal({
         <div className="export-heading">
           <div>
             <p className="eyebrow">Local decks</p>
-            <h2 id="saved-decks-title">Saved decks</h2>
+            <h2 id="saved-decks-title">Drafts and saved decks</h2>
           </div>
           <ModalCloseButton onClick={() => closeModal()} label="Close saved decks" />
         </div>
+        {autosave.error && <p role="alert">{autosave.error}</p>}
+        <h3 className="draft-section-title">Autosaved drafts</h3>
+        <p className="draft-help">
+          Opening a draft makes a separate copy in this tab; edits do not change the original.
+        </p>
+        <div className="saved-deck-list autosaved-draft-list">
+          {autosave.drafts.map((draft) => (
+            <article key={draft.id}>
+              <div className="saved-deck-details">
+                <b>{draft.name || draft.state.commander}</b>
+                <CardReference
+                  card={draft.state.deck[0]}
+                  thumbnail
+                  onOpen={() => openCard(draft.state.deck[0])}
+                />
+                <small>
+                  {draft.state.deck.length}/100 cards · Saved{' '}
+                  <DraftSavedTime updatedAt={draft.updatedAt} />
+                </small>
+                {draft.id === autosave.id ? (
+                  <small>Current workspace</small>
+                ) : (
+                  autosave.activeIds.includes(draft.id) && (
+                    <small>Open in another tab — opening makes a copy</small>
+                  )
+                )}
+              </div>
+              <button
+                className="saved-deck-load"
+                type="button"
+                disabled={loading || autosave.busy}
+                onClick={() => loadAutosave(draft)}
+              >
+                Open in this tab
+              </button>
+            </article>
+          ))}
+        </div>
+        {!autosave.drafts.length && <p className="saved-decks-empty">No autosaved drafts yet.</p>}
+        <form
+          className="autosave-retention"
+          key={`${autosave.retention.maxCount}:${autosave.retention.maxAgeDays}`}
+          onSubmit={(event) => {
+            event.preventDefault()
+            const values = new FormData(event.currentTarget)
+            void workspace.setRetention({
+              maxCount: Number(values.get('maxCount')),
+              maxAgeDays: Number(values.get('maxAgeDays')),
+            })
+          }}
+        >
+          <h4>Keep autosaves</h4>
+          <div>
+            <label>
+              Maximum drafts
+              <input
+                className="clearable-input"
+                type="number"
+                min="1"
+                max="200"
+                step="1"
+                required
+                name="maxCount"
+                defaultValue={autosave.retention.maxCount}
+                disabled={!autosave.cleanupAvailable}
+              />
+            </label>
+            <label>
+              Age limit (days)
+              <input
+                className="clearable-input"
+                type="number"
+                min="1"
+                max="365"
+                step="1"
+                required
+                name="maxAgeDays"
+                defaultValue={autosave.retention.maxAgeDays}
+                disabled={!autosave.cleanupAvailable}
+              />
+            </label>
+            <button
+              className="saved-deck-load"
+              disabled={!autosave.cleanupAvailable || autosave.busy}
+            >
+              Apply limits
+            </button>
+          </div>
+          <p className="draft-help">
+            Limits remove only inactive drafts. Decks open in any tab and manual saves are kept,
+            even above the maximum.
+          </p>
+          {!autosave.cleanupAvailable && (
+            <p className="draft-help">
+              Automatic cleanup is off because this browser cannot detect live workspaces safely.
+            </p>
+          )}
+        </form>
+        <h3 className="draft-section-title">Manual saves</h3>
         {commander && (
           <>
             <form
@@ -114,11 +259,17 @@ export function SavedDecksModal({
                 </span>
                 <small>Updated {new Date(saved.updatedAt).toLocaleString()}</small>
               </div>
-              <button className="saved-deck-load" onClick={() => loadSavedDeck(saved)}>
+              <button
+                className="saved-deck-load"
+                type="button"
+                disabled={loading || autosave.busy}
+                onClick={() => loadSavedDeck(saved)}
+              >
                 Load
               </button>
               <span className="saved-deck-delete-wrap">
                 <button
+                  type="button"
                   className={`saved-deck-delete ${pendingSavedDeckRemoval === saved.id ? 'confirm' : ''}`}
                   onClick={() =>
                     pendingSavedDeckRemoval === saved.id

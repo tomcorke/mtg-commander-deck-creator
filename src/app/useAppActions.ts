@@ -11,7 +11,8 @@ import {
 import { randomItems, randomThree, themeCommanders } from '../domain/commander-catalog.ts'
 import type { Card } from '../domain/card-model.ts'
 import { fetchEdhrecCommander } from '../adapters/edhrec.ts'
-import { deckPageTitle, saveDeckState } from '../deck-state.ts'
+import { deckPageTitle, type SavedDeck } from '../deck-state.ts'
+import type { AutosavedDraft } from '../autosaves.ts'
 import {
   fetchScryfallCard,
   fetchScryfallCardsByIdentifiers,
@@ -119,6 +120,22 @@ function useRoutingActions(state: AppState) {
   }
 }
 
+async function startInWorkspace(
+  state: AppState,
+  deps: Parameters<typeof startRecommendations>[0],
+  name: string,
+  preserveDeck: boolean,
+  progress?: RecommendationProgress,
+) {
+  if (!name.trim()) return false
+  if (!preserveDeck) {
+    if (!(await state.workspace.begin())) return false
+    state.setActiveSavedDeckId('')
+    state.setDeckName('')
+  }
+  return startRecommendations(deps, name, preserveDeck, progress)
+}
+
 function useRemoteActions(state: AppState, routing: RoutingActions) {
   useSignatureRecommendations(state)
   const loadPrintings = (
@@ -150,7 +167,8 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     setSetOptions: state.setSetOptions,
     recommendationState: state.recommendationState,
     currentDeckState: state.currentDeckState,
-    saveDeckState,
+    workspace: state.workspace,
+    deckName: state.deckName,
     showBuilder: state.showBuilder,
     openModal: routing.openModal,
     commander: state.commander,
@@ -216,7 +234,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     rankRecommendationCards,
   }
   const start = (name: string, preserveDeck = false, progress?: RecommendationProgress) =>
-    startRecommendations(recommendationDeps, name, preserveDeck, progress)
+    startInWorkspace(state, recommendationDeps, name, preserveDeck, progress)
   return { loadPrintings, recommendationDeps, start }
 }
 
@@ -385,10 +403,26 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     navigateView: (_deps: unknown, view: AppView, modal: AppModal | null = null, replace = false) =>
       routing.navigateView(view, modal, replace),
     start: remote.start,
+    beginWorkspace: () => state.workspace.begin(),
   })
+  const loadAutosave = async (draft: AutosavedDraft) => {
+    if (!(await state.workspace.begin(draft))) return
+    actions.loadSavedDeck({
+      id: '',
+      name: draft.name,
+      updatedAt: draft.updatedAt,
+      state: { ...draft.state, savedDeckId: '' },
+    })
+  }
+  const loadSavedDeck = async (saved: SavedDeck) => {
+    if (!(await state.workspace.begin())) return
+    actions.loadSavedDeck(saved)
+  }
   const interactionDeps = useRecommendationInteractions(state, remote)
   return {
     ...actions,
+    loadAutosave,
+    loadSavedDeck,
     chooseSubTheme,
     chooseRecommendationStyle,
     chooseMaxPrice: (price: number | null) => {

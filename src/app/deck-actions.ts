@@ -30,7 +30,6 @@ import {
 import { hasBackFace } from '../domain/card-layout.ts'
 import { orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
 import {
-  clearDeckState,
   deleteSavedDeck,
   duplicateDeckName,
   restoredRecommendationDecisions,
@@ -947,7 +946,7 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
     setTheme,
   } = deps
   const state = saved.state
-  resetSignatureContext(deps, state.savedDeckId || saved.id)
+  resetSignatureContext(deps, state.savedDeckId || saved.id || crypto.randomUUID())
   setCommander(state.commander)
   setCommanderDetails(state.commanderDetails)
   setTheme(state.theme)
@@ -962,6 +961,9 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
   setCollectionMode(state.collectionMode)
   setCollectionPoolSize(null)
   setQueue(state.queue)
+  deps.setRecommendationState('idle')
+  deps.setRecommendationOptionsChanged(false)
+  deps.setCollectionError('')
   setLimitedRecommendations(state.limitedRecommendations)
   setDecisions(restoredRecommendationDecisions(state))
   setIgnoredCards(state.ignoredCards)
@@ -1113,7 +1115,7 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
   setActiveSavedDeckId('')
 }
 
-export function startOver(deps: ActionDeps) {
+export async function startOver(deps: ActionDeps) {
   const {
     navigateView,
     setActiveSavedDeckId,
@@ -1142,12 +1144,12 @@ export function startOver(deps: ActionDeps) {
   } = deps
   if (
     !window.confirm(
-      'Start over? This clears your current deck and recommendation history. Saved decks remain available.',
+      'Start a new deck? Your current deck remains available in Autosaved drafts. Manual saves are unchanged.',
     )
   )
     return
+  if (deps.beginWorkspace && !(await deps.beginWorkspace())) return
   resetSignatureContext(deps, crypto.randomUUID())
-  clearDeckState()
   setCommander('')
   setCommanderDetails(null)
   setTheme('')

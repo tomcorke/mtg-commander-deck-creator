@@ -6,6 +6,7 @@ import { usePendingConfirmation, useStoredOption } from '../shared/hooks.ts'
 export function useUiState(
   saved: PersistedDeckState | null,
   initialRoute: Pick<AppHistoryState, 'view' | 'modal'> | null,
+  initialDeckName?: string,
 ) {
   const [showBuilder, setShowBuilder] = useState(
     () => (initialRoute?.view ?? (saved?.commander ? 'builder' : 'start')) === 'builder',
@@ -28,7 +29,8 @@ export function useUiState(
   const [savedDecks, setSavedDecks] = useState(loadSavedDecks)
   const [activeSavedDeckId, setActiveSavedDeckId] = useState(saved?.savedDeckId ?? '')
   const [deckName, setDeckName] = useState(
-    () => loadSavedDecks().find(({ id }) => id === saved?.savedDeckId)?.name ?? '',
+    () =>
+      initialDeckName ?? loadSavedDecks().find(({ id }) => id === saved?.savedDeckId)?.name ?? '',
   )
   const [pendingSavedDeckRemoval, setPendingSavedDeckRemoval] = usePendingConfirmation('')
   const [importSource, setImportSource] = useState('')

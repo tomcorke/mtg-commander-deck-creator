@@ -24,6 +24,7 @@ import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
 import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
 import { SavedDecksModal } from '../features/modals/SavedDecksModal.tsx'
+import { WorkspaceNotice } from '../features/modals/WorkspaceNotice.tsx'
 import { StartView } from '../features/start/StartView.tsx'
 import { ModalCloseButton } from '../shared/CardDetails.tsx'
 
@@ -54,6 +55,11 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
   return (
     <SavedDecksModal
       show={state.showSavedDecks}
+      workspace={state.workspace}
+      autosave={state.autosave}
+      loadAutosave={actions.loadAutosave}
+      openCard={actions.openCardReference}
+      loading={state.recommendationState === 'loading'}
       commander={state.commander}
       deckName={state.deckName}
       setDeckName={state.setDeckName}
@@ -261,19 +267,25 @@ function StartScreen({
   state,
   actions,
   modals,
+  workspaceNotice,
 }: {
   state: Record<string, any>
   actions: Record<string, any>
   modals: Record<string, any>
+  workspaceNotice: ReactNode
 }) {
   return (
-    <StartView
-      {...({ ...state, ...actions } as any)}
-      savedDecks={state.savedDecks.length}
-      savedDecksModal={modals.savedDecksModal}
-      importModal={modals.importModal}
-      commanderNames={commanderNames}
-    />
+    <>
+      <StartView
+        {...({ ...state, ...actions } as any)}
+        savedDecks={state.savedDecks.length}
+        workspaceNotice={workspaceNotice}
+        savedDecksModal={modals.savedDecksModal}
+        importModal={modals.importModal}
+        commanderNames={commanderNames}
+      />
+      {modals.deckCardModal}
+    </>
   )
 }
 
@@ -481,26 +493,45 @@ function DeckReviewScreen({
 export function AppView({ state, actions, builderData }: AppViewProps) {
   const { modeReturn, rememberMode } = useBuilderMode(state)
   const modals = renderModals({ state, actions, builderData })
-  if (!state.showBuilder) return <StartScreen state={state} actions={actions} modals={modals} />
-  const appHeader = (
-    <BuilderTopBar
-      activeDeckDelta={state.activeDeckDelta}
-      activeSavedDeck={state.activeSavedDeck}
-      deckCount={state.deck.length}
-      startOver={actions.startOver}
-      onImport={() => {
-        rememberMode()
-        actions.openModal('import')
-      }}
-      onSaveLoad={() => {
-        rememberMode()
-        actions.openSavedDecks()
-      }}
-      onExport={() => {
-        rememberMode()
-        actions.openModal('export')
-      }}
+  const workspaceNotice = (
+    <WorkspaceNotice
+      workspace={state.workspace}
+      autosave={state.autosave}
+      startNew={actions.startOver}
+      chooseDraft={actions.openSavedDecks}
     />
+  )
+  if (!state.showBuilder)
+    return (
+      <StartScreen
+        state={state}
+        actions={actions}
+        modals={modals}
+        workspaceNotice={workspaceNotice}
+      />
+    )
+  const appHeader = (
+    <>
+      <BuilderTopBar
+        activeDeckDelta={state.activeDeckDelta}
+        activeSavedDeck={state.activeSavedDeck}
+        deckCount={state.deck.length}
+        startOver={actions.startOver}
+        onImport={() => {
+          rememberMode()
+          actions.openModal('import')
+        }}
+        onSaveLoad={() => {
+          rememberMode()
+          actions.openSavedDecks()
+        }}
+        onExport={() => {
+          rememberMode()
+          actions.openModal('export')
+        }}
+      />
+      {workspaceNotice}
+    </>
   )
   if (state.showCardSearch || modeReturn === 'search')
     return (

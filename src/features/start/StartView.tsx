@@ -19,6 +19,7 @@ type StartViewProps = {
   openSavedDecks: () => void
   savedDecks: number
   savedDecksModal: ReactNode
+  workspaceNotice: ReactNode
   importModal: ReactNode
   visibleThemes: string[]
   setVisibleThemes: Dispatch<SetStateAction<string[]>>
@@ -45,6 +46,7 @@ export function StartView({
   openSavedDecks,
   savedDecks,
   savedDecksModal,
+  workspaceNotice,
   importModal,
   visibleThemes,
   setVisibleThemes,
@@ -105,11 +107,12 @@ export function StartView({
             Import deck
           </button>
           <button className="export" type="button" onClick={openSavedDecks}>
-            Saved decks ({savedDecks})
+            Drafts / saved decks ({savedDecks} saves)
           </button>
           <RequestActivityIndicator />
         </div>
       </header>
+      {workspaceNotice}
       {savedDecksModal}
       {importModal}
       <section className="start">

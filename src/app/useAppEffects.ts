@@ -101,11 +101,11 @@ export function useCompletionReviewEffect(deps: AppEffectsDeps) {
 }
 
 export function usePersistenceEffect(deps: AppEffectsDeps) {
-  const { recommendationState, currentDeckState, saveDeckState } = deps
+  const { recommendationState, currentDeckState, deckName, workspace } = deps
   useEffect(() => {
     if (recommendationState !== 'idle' || !currentDeckState) return
-    saveDeckState(currentDeckState)
-  }, [currentDeckState, recommendationState])
+    workspace.save(currentDeckState, deckName)
+  }, [currentDeckState, recommendationState, deckName, workspace])
 }
 
 export function useTitleEffect(deps: AppEffectsDeps) {
