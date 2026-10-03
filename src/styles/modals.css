@@ -311,6 +311,58 @@
   font-size: 12px;
   line-height: 1.5;
 }
+.doctor-readiness {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--doctor-border);
+  border-left: 4px solid var(--commander-accent, #7546a8);
+  border-radius: 12px;
+  background: var(--doctor-panel);
+}
+.doctor-readiness .doctor-section-heading {
+  width: 100%;
+}
+.doctor-readiness p {
+  margin: 0;
+  color: var(--doctor-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.doctor-gap-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.doctor-gap-list button[aria-pressed='true'] {
+  border-color: var(--commander-accent, #7546a8);
+}
+.doctor-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--doctor-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+.doctor-filter select,
+.doctor-card-select input[type='number'] {
+  border: 1px solid var(--doctor-border);
+  border-radius: 6px;
+  background: var(--doctor-soft);
+  color: inherit;
+  font: inherit;
+}
+.doctor-filter select {
+  padding: 6px 8px;
+}
+.doctor-card-select input[type='number'] {
+  width: 48px;
+  padding: 3px 4px;
+  text-align: center;
+}
 .doctor-overview {
   display: grid;
   gap: 12px;
@@ -866,50 +918,10 @@
   font-size: 11px;
   font-weight: 600;
 }
-.deck-review-curve {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-}
-.deck-review-curve-filter {
-  grid-template-rows: 40px auto auto auto;
-  gap: 4px;
-}
-.deck-review-curve-graph {
-  display: flex;
-  height: 40px;
-  align-items: end;
-  justify-content: center;
-  gap: 3px;
-}
-.deck-review-curve-graph i {
-  width: 10px;
-  min-height: 0;
-  border-radius: 3px 3px 0 0;
-}
-.deck-review-curve-counts,
 .deck-review-filter-action,
 .deck-review-tag-count {
   color: #706d82;
   font-size: 11px;
-}
-.deck-review-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-top: 8px;
-  color: #706d82;
-  font-size: 11px;
-}
-.deck-review-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.deck-review-legend i {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
 }
 .deck-review-role {
   display: grid;
@@ -1020,11 +1032,9 @@
   color: #e5e3f0;
 }
 .dark .deck-review-section > p,
-.dark .deck-review-curve-counts,
 .dark .deck-review-filter-action,
 .dark .deck-review-tag-kind,
 .dark .deck-review-tag-count,
-.dark .deck-review-legend,
 .dark .deck-review-target {
   color: #aaa8c2;
 }

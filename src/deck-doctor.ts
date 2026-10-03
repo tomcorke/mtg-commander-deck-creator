@@ -213,10 +213,29 @@ export function analyzeDeckDoctor(input: DeckDoctorInput): DeckDoctorFinding[] {
 
 export type DeckDoctorSwapRecord = {
   id: string
-  cutCard: DeckCard
-  addedCard: DeckCard
+  /** Missing on add-only records. */
+  cutCard?: DeckCard
+  /** Missing on cut-only records. */
+  addedCard?: DeckCard
   cutIndex: number
   movedToSideboard: boolean
+}
+
+export type DeckReviewMode = 'build' | 'review' | 'trim'
+
+/** Below about 90 cards, fill gaps; above 100, cut down; otherwise review swaps. */
+export const deckReviewMode = (deckSize: number): DeckReviewMode =>
+  deckSize < 90 ? 'build' : deckSize > 100 ? 'trim' : 'review'
+
+/** Groups deck positions by card name, keeping first-seen order. */
+export function groupDeckCards<T extends { card: DeckCard; index: number }>(cards: T[]) {
+  const groups = new Map<string, { card: DeckCard; indexes: number[] }>()
+  for (const { card, index } of cards) {
+    const group = groups.get(card.name)
+    if (group) group.indexes.push(index)
+    else groups.set(card.name, { card, indexes: [index] })
+  }
+  return [...groups.values()]
 }
 
 function samePrinting(left: DeckCard, right: DeckCard) {
@@ -296,14 +315,14 @@ export function applyDeckDoctorSwapPlan({
   additions: Card[]
   moveCutToSideboard: boolean
 }): { deck: DeckCard[]; sideboard: DeckCard[]; records: DeckDoctorSwapRecord[] } {
-  if (!cuts.length || cuts.length !== additions.length)
-    throw new Error('Choose the same number of cards to cut and add.')
+  if (!cuts.length && !additions.length) throw new Error('Choose cards to cut or add.')
   if (new Set(cuts.map(({ cutIndex }) => cutIndex)).size !== cuts.length)
     throw new Error('Select each cut card only once.')
 
+  const pairCount = Math.min(cuts.length, additions.length)
   let nextDeck = deck
   let nextSideboard = sideboard
-  const records = cuts.map((cut, index) => {
+  const records: DeckDoctorSwapRecord[] = cuts.slice(0, pairCount).map((cut, index) => {
     const result = applyDeckDoctorSwap({
       id: `${id}:${index}`,
       deck: nextDeck,
@@ -317,6 +336,45 @@ export function applyDeckDoctorSwapPlan({
     nextSideboard = result.sideboard
     return result.record
   })
+
+  // Remove from the highest index down so earlier positions stay valid.
+  const extraCuts = cuts.slice(pairCount).sort((left, right) => right.cutIndex - left.cutIndex)
+  for (const cut of extraCuts) {
+    if (cut.cutIndex < commanderCount || cut.cutIndex >= nextDeck.length)
+      throw new Error('The commander cannot be cut.')
+    const cutCard = nextDeck[cut.cutIndex]
+    if (!samePrinting(cutCard, cut.cutCard))
+      throw new Error('The deck changed; rerun the diagnosis.')
+    nextDeck = nextDeck.filter((_, index) => index !== cut.cutIndex)
+    if (moveCutToSideboard) nextSideboard = [...nextSideboard, cutCard]
+    records.push({
+      id: `${id}:${records.length}`,
+      cutCard,
+      cutIndex: cut.cutIndex,
+      movedToSideboard: moveCutToSideboard,
+    })
+  }
+
+  for (const addCard of additions.slice(pairCount)) {
+    const error = manualCardError(
+      {
+        name: addCard.name,
+        type_line: addCard.typeLine,
+        color_identity: addCard.colorIdentity ?? [],
+      },
+      [...nextDeck, ...nextSideboard].map(({ name }) => name),
+      commanderColours,
+    )
+    if (error) throw new Error(error)
+    const addedCard = toDeckCardFromRecommendation(addCard)
+    records.push({
+      id: `${id}:${records.length}`,
+      addedCard,
+      cutIndex: nextDeck.length,
+      movedToSideboard: false,
+    })
+    nextDeck = [...nextDeck, addedCard]
+  }
   return { deck: nextDeck, sideboard: nextSideboard, records }
 }
 
@@ -333,34 +391,41 @@ export function undoDeckDoctorSwap({
   commanderColours: string[]
   record: DeckDoctorSwapRecord
 }): { deck: DeckCard[]; sideboard: DeckCard[] } {
-  const addedIndex =
-    record.cutIndex >= commanderCount &&
-    deck[record.cutIndex] &&
-    samePrinting(deck[record.cutIndex], record.addedCard)
-      ? record.cutIndex
-      : deck.findIndex(
-          (card, index) => index >= commanderCount && samePrinting(card, record.addedCard),
-        )
-  if (addedIndex < 0) throw new Error('The added card changed; this swap cannot be undone safely.')
+  const { addedCard, cutCard } = record
+  let addedIndex = -1
+  if (addedCard) {
+    addedIndex =
+      record.cutIndex >= commanderCount &&
+      deck[record.cutIndex] &&
+      samePrinting(deck[record.cutIndex], addedCard)
+        ? record.cutIndex
+        : deck.findIndex((card, index) => index >= commanderCount && samePrinting(card, addedCard))
+    if (addedIndex < 0)
+      throw new Error('The added card changed; this swap cannot be undone safely.')
+  }
+  const remaining = deck.filter((_, index) => index !== addedIndex)
+  if (!cutCard) return { deck: remaining, sideboard }
+
   const error = manualCardError(
     {
-      name: record.cutCard.name,
-      type_line: record.cutCard.typeLine,
-      color_identity: record.cutCard.colorIdentity ?? [],
+      name: cutCard.name,
+      type_line: cutCard.typeLine,
+      color_identity: cutCard.colorIdentity ?? [],
     },
-    deck.filter((_, index) => index !== addedIndex).map(({ name }) => name),
+    remaining.map(({ name }) => name),
     commanderColours,
   )
   if (error) throw new Error(error)
 
   let nextSideboard = sideboard
   if (record.movedToSideboard) {
-    const cutIndex = sideboard.findIndex((card) => samePrinting(card, record.cutCard))
+    const cutIndex = sideboard.findIndex((card) => samePrinting(card, cutCard))
     if (cutIndex < 0)
       throw new Error('The cut card left the sideboard; this swap cannot be undone safely.')
     nextSideboard = sideboard.filter((_, index) => index !== cutIndex)
   }
   const nextDeck = [...deck]
-  nextDeck[addedIndex] = record.cutCard
+  if (addedCard) nextDeck[addedIndex] = cutCard
+  else nextDeck.splice(Math.max(commanderCount, Math.min(record.cutIndex, deck.length)), 0, cutCard)
   return { deck: nextDeck, sideboard: nextSideboard }
 }

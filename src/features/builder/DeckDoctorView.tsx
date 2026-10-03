@@ -16,9 +16,19 @@ import {
   type RecommendationScoreRating,
 } from '../../domain/recommendation-scoring.ts'
 import type { RecommendationScoreBreakdown } from '../../domain/recommendation-types.ts'
-import { analyseDeck, targetKeys, targetLabels, type DeckTargets } from '../../deck-analysis.ts'
+import {
+  analyseDeck,
+  cardTypes,
+  rolesForCard,
+  targetKeys,
+  targetLabels,
+  type DeckTargets,
+  type TargetKey,
+} from '../../deck-analysis.ts'
 import {
   analyzeDeckDoctor,
+  deckReviewMode,
+  groupDeckCards,
   type DeckDoctorFinding,
   type DeckDoctorSwapRecord,
 } from '../../deck-doctor.ts'
@@ -40,6 +50,8 @@ type CardSelection = {
   disabled?: boolean
   onChange: () => void
 }
+
+type CardQuantity = { value: number; max: number; onChange: (value: number) => void }
 
 type Props = {
   appHeader: ReactNode
@@ -91,6 +103,7 @@ function CardTile({
   note,
   fit,
   selection,
+  quantity,
 }: {
   card: DoctorCard
   status: string
@@ -98,9 +111,28 @@ function CardTile({
   note?: string
   fit?: RecommendationScoreRating
   selection?: CardSelection
+  quantity?: CardQuantity
 }) {
   return (
-    <article className={`doctor-card-tile${selection?.checked ? ' selected' : ''}`}>
+    <article
+      className={`doctor-card-tile${selection?.checked || quantity?.value ? ' selected' : ''}`}
+    >
+      {quantity && (
+        <label className="doctor-card-select">
+          <span>Cut</span>
+          <input
+            type="number"
+            min="0"
+            max={quantity.max}
+            value={quantity.value}
+            aria-label={`Copies of ${card.name} to cut`}
+            onChange={(event) =>
+              quantity.onChange(Math.min(quantity.max, Math.max(0, Number(event.target.value))))
+            }
+          />
+          <span>of {quantity.max}</span>
+        </label>
+      )}
       {selection && (
         <label className="doctor-card-select">
           <input
@@ -149,7 +181,21 @@ function CardTile({
   )
 }
 
-const doctorCandidatePageSize = 3
+const doctorCandidatePageSize = 12
+const typeFilters = ['Land', ...cardTypes] as const
+
+function cardTypeLines(card: DoctorCard) {
+  return [card.typeLine, ...card.faces.map((face) => face.typeLine)]
+}
+
+/** Filters are `type:<Type>`, `role:<TargetKey>`, `tag:<Tag>`, or `all`. */
+function matchesCardFilter(card: DoctorCard, filter: string) {
+  const [kind, value] = filter.split(/:(.*)/)
+  if (kind === 'type') return cardTypeLines(card).some((line) => line.includes(value))
+  if (kind === 'role') return rolesForCard(card).includes(value as TargetKey)
+  if (kind === 'tag') return card.tags.includes(value)
+  return true
+}
 const fitLabels: Record<RecommendationScoreRating, string> = {
   top: 'Top fit',
   strong: 'Strong fit',
@@ -231,6 +277,8 @@ export function DeckDoctorView({
   const [selectedCutIndexes, setSelectedCutIndexes] = useState<number[]>([])
   const [selectedAdditionNames, setSelectedAdditionNames] = useState<string[]>([])
   const [moveCutToSideboard, setMoveCutToSideboard] = useState(false)
+  const [otherCutFilter, setOtherCutFilter] = useState('')
+  const [candidateFilter, setCandidateFilter] = useState('all')
   const boardKey = JSON.stringify([deck.map(({ name }) => name), sideboard.map(({ name }) => name)])
   const previousBoards = useRef(boardKey)
   const [exploreCommanders, setExploreCommanders] = useState(false)
@@ -269,7 +317,7 @@ export function DeckDoctorView({
     (card) => !hasCardError(card, usedNames, commanderColours),
   )
   const ratedCandidates = scoreReplacements(
-    availableCandidates,
+    availableCandidates.filter((card) => matchesCardFilter(card, candidateFilter)),
     deck.filter((_, index) => !selectedCutIndexes.includes(index)),
   ).sort((left, right) => compareRecommendationScores(left.score, right.score))
   const candidatePageCount = Math.ceil(ratedCandidates.length / doctorCandidatePageSize)
@@ -284,9 +332,20 @@ export function DeckDoctorView({
   const mainDeckCards = deck.flatMap((card, index) =>
     index >= commanderCount ? [{ card, index }] : [],
   )
-  const flaggedCards = mainDeckCards.filter(({ card }) => flaggedNames.has(card.name))
+  const flaggedGroups = groupDeckCards(
+    mainDeckCards.filter(({ card }) => flaggedNames.has(card.name)),
+  )
   const otherCards = mainDeckCards.filter(({ card }) => !flaggedNames.has(card.name))
-  const cutCards = flaggedCards.length ? flaggedCards : mainDeckCards
+  const otherGroups = otherCutFilter
+    ? groupDeckCards(otherCards.filter(({ card }) => matchesCardFilter(card, otherCutFilter)))
+    : []
+  const mode = deckReviewMode(deck.length)
+  const requiredCuts = Math.max(0, deck.length - 100)
+  const missingCards = Math.max(0, 100 - deck.length)
+  const roleGaps = targetKeys.flatMap((key) => {
+    const gap = deckTargets[key] - analysis.counts[key]
+    return gap > 0 ? [{ key, gap }] : []
+  })
   const selectedCuts = selectedCutIndexes.flatMap((cutIndex) => {
     const cutCard = deck[cutIndex]
     return cutCard ? [{ cutIndex, cutCard }] : []
@@ -296,16 +355,16 @@ export function DeckDoctorView({
     return card ? [card] : []
   })
   const pairCount = Math.min(selectedCuts.length, selectedAdditions.length)
+  const projectedSize = deck.length - selectedCuts.length + selectedAdditions.length
   const commanderCards = deck.slice(0, commanderCount)
   const currentCommander = commanderCards[0]
   const commanderTitle = commanderCards.map(({ name }) => name).join(' // ') || commander
   const planReady =
-    selectedCuts.length > 0 &&
+    selectedCuts.length + selectedAdditions.length > 0 &&
     selectedCuts.length === selectedCutIndexes.length &&
-    selectedAdditions.length === selectedAdditionNames.length &&
-    selectedCuts.length === selectedAdditions.length
+    selectedAdditions.length === selectedAdditionNames.length
   const projectedDeck = planReady
-    ? deck.map((card, index) => selectedAdditions[selectedCutIndexes.indexOf(index)] ?? card)
+    ? [...deck.filter((_, index) => !selectedCutIndexes.includes(index)), ...selectedAdditions]
     : null
   const projectedAnalysis = projectedDeck ? analyseDeck(projectedDeck) : null
   const selectedThemes = [theme, ...activeSubThemes].filter(Boolean)
@@ -350,6 +409,53 @@ export function DeckDoctorView({
   function toggleIndex(index: number, selected: number[], update: (value: number[]) => void) {
     update(
       selected.includes(index) ? selected.filter((item) => item !== index) : [...selected, index],
+    )
+  }
+
+  function setGroupCuts(indexes: number[], count: number) {
+    setSelectedCutIndexes((selected) => [
+      ...selected.filter((index) => !indexes.includes(index)),
+      ...indexes.slice(0, count),
+    ])
+  }
+
+  function filterCandidates(filter: string) {
+    setCandidateFilter(filter)
+    setCandidatePage(0)
+  }
+
+  function cutGroupTile({ card, indexes }: { card: DeckCard; indexes: number[] }) {
+    const flagged = flaggedNames.has(card.name)
+    const status = flagged ? 'In deck · flagged' : 'In deck'
+    if (indexes.length > 1)
+      return (
+        <CardTile
+          key={card.name}
+          card={card}
+          status={`${status} · ×${indexes.length}`}
+          openCard={openCard}
+          quantity={{
+            value: indexes.filter((index) => selectedCutIndexes.includes(index)).length,
+            max: indexes.length,
+            onChange: (count) => setGroupCuts(indexes, count),
+          }}
+        />
+      )
+    const [index] = indexes
+    const selected = selectedCutIndexes.includes(index)
+    return (
+      <CardTile
+        key={card.name}
+        card={card}
+        status={status}
+        openCard={openCard}
+        selection={{
+          checked: selected,
+          label: 'Cut',
+          order: selected ? selectedCutIndexes.indexOf(index) + 1 : undefined,
+          onChange: () => toggleIndex(index, selectedCutIndexes, setSelectedCutIndexes),
+        }}
+      />
     )
   }
 
@@ -400,6 +506,56 @@ export function DeckDoctorView({
       setSelectedAdditionNames([])
     }
   }
+
+  const cutSection = (
+    <section className="doctor-selection-section" aria-labelledby="doctor-cuts-title">
+      <div className="doctor-section-heading">
+        <div>
+          <p className="eyebrow">Choose what leaves</p>
+          <h2 id="doctor-cuts-title">Select cuts</h2>
+        </div>
+        <span>
+          {selectedCutIndexes.length}
+          {requiredCuts ? ` of ${requiredCuts}` : ''} selected
+        </span>
+      </div>
+      <p className="doctor-muted">
+        {flaggedGroups.length
+          ? 'Flagged cards appear first. Filter the rest of the main deck to choose other cuts.'
+          : 'No cards are flagged. Filter the main deck by type or role to choose cuts.'}
+      </p>
+      {flaggedGroups.length > 0 && (
+        <div className="doctor-card-grid">{flaggedGroups.map(cutGroupTile)}</div>
+      )}
+      <label className="doctor-filter">
+        Other main-deck cards
+        <select value={otherCutFilter} onChange={(event) => setOtherCutFilter(event.target.value)}>
+          <option value="">Choose a type or role</option>
+          <option value="all">All {otherCards.length} cards</option>
+          <optgroup label="Card type">
+            {typeFilters.map((type) => (
+              <option key={type} value={`type:${type}`}>
+                {type}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Role">
+            {targetKeys.map((key) => (
+              <option key={key} value={`role:${key}`}>
+                {targetLabels[key]}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+      </label>
+      {otherCutFilter &&
+        (otherGroups.length ? (
+          <div className="doctor-card-grid">{otherGroups.map(cutGroupTile)}</div>
+        ) : (
+          <p className="doctor-muted">No other main-deck cards match this filter.</p>
+        ))}
+    </section>
+  )
 
   return (
     <main
@@ -496,6 +652,68 @@ export function DeckDoctorView({
             Adjust goals and filters
           </button>
         </div>
+        {mode !== 'review' && (
+          <section className="doctor-readiness" aria-labelledby="doctor-readiness-title">
+            <div className="doctor-section-heading">
+              <div>
+                <p className="eyebrow">
+                  {deck.length} of 100 cards · {mode === 'build' ? 'Still building' : 'Over 100'}
+                </p>
+                <h2 id="doctor-readiness-title">
+                  {mode === 'build'
+                    ? `Add ${missingCards} more card${missingCards === 1 ? '' : 's'}`
+                    : `Cut ${requiredCuts} card${requiredCuts === 1 ? '' : 's'} to reach 100`}
+                </h2>
+              </div>
+              {mode === 'trim' && (
+                <span>
+                  {selectedCutIndexes.length} of {requiredCuts} selected
+                </span>
+              )}
+            </div>
+            {mode === 'build' ? (
+              <>
+                <p>
+                  Fill role gaps first. Cuts are optional until the deck nears 100; the full review
+                  starts at about 90 cards.
+                </p>
+                {roleGaps.length > 0 && (
+                  <div className="doctor-gap-list">
+                    {roleGaps.map(({ key, gap }) => (
+                      <button
+                        className="export"
+                        type="button"
+                        key={key}
+                        aria-pressed={candidateFilter === `role:${key}`}
+                        onClick={() => {
+                          filterCandidates(`role:${key}`)
+                          navigateSection('doctor-adds')
+                        }}
+                      >
+                        {targetLabels[key]}: {analysis.counts[key]} of {deckTargets[key]} · add{' '}
+                        {gap}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p>
+                  Commander decks hold exactly 100 cards. Flagged cards are listed first; add
+                  replacements only if you want to swap.
+                </p>
+                <button
+                  className="export"
+                  type="button"
+                  onClick={() => navigateSection('doctor-changes')}
+                >
+                  Choose cuts
+                </button>
+              </>
+            )}
+          </section>
+        )}
         <nav className="doctor-navigation" aria-label="Deck review sections">
           <button
             className="export"
@@ -531,6 +749,7 @@ export function DeckDoctorView({
             deck={deck}
             sideboardCount={sideboard.length}
             commanderCount={commanderCount}
+            commanderColours={commanderColours}
             theme={theme}
             activeSubThemes={activeSubThemes}
             analysis={analysis}
@@ -626,65 +845,21 @@ export function DeckDoctorView({
           </section>
 
           <div id="doctor-changes" className="doctor-change-panel" tabIndex={-1}>
-            <section className="doctor-selection-section" aria-labelledby="doctor-cuts-title">
-              <div className="doctor-section-heading">
-                <div>
-                  <p className="eyebrow">Choose what leaves</p>
-                  <h2 id="doctor-cuts-title">Select cuts</h2>
-                </div>
-                <span>{selectedCutIndexes.length} selected</span>
-              </div>
-              <p className="doctor-muted">
-                Flagged cards appear first. You can also choose any other card in the main deck.
-              </p>
-              <div className="doctor-card-grid">
-                {cutCards.map(({ card, index }) => {
-                  const selected = selectedCutIndexes.includes(index)
-                  return (
-                    <CardTile
-                      key={`${index}:${card.name}`}
-                      card={card}
-                      status={flaggedNames.has(card.name) ? 'In deck · flagged' : 'In deck'}
-                      openCard={openCard}
-                      selection={{
-                        checked: selected,
-                        label: 'Cut',
-                        order: selected ? selectedCutIndexes.indexOf(index) + 1 : undefined,
-                        onChange: () =>
-                          toggleIndex(index, selectedCutIndexes, setSelectedCutIndexes),
-                      }}
-                    />
-                  )
-                })}
-              </div>
-              {flaggedCards.length > 0 && otherCards.length > 0 && (
-                <details className="doctor-other-cuts">
-                  <summary>Show the other {otherCards.length} main-deck cards</summary>
-                  <div className="doctor-card-grid">
-                    {otherCards.map(({ card, index }) => {
-                      const selected = selectedCutIndexes.includes(index)
-                      return (
-                        <CardTile
-                          key={`${index}:${card.name}`}
-                          card={card}
-                          status="In deck"
-                          openCard={openCard}
-                          selection={{
-                            checked: selected,
-                            label: 'Cut',
-                            order: selected ? selectedCutIndexes.indexOf(index) + 1 : undefined,
-                            onChange: () =>
-                              toggleIndex(index, selectedCutIndexes, setSelectedCutIndexes),
-                          }}
-                        />
-                      )
-                    })}
-                  </div>
-                </details>
-              )}
-            </section>
+            {mode === 'build' ? (
+              <details className="doctor-other-cuts">
+                <summary>Optional: choose cards to cut</summary>
+                {cutSection}
+              </details>
+            ) : (
+              cutSection
+            )}
 
-            <section className="doctor-selection-section" aria-labelledby="doctor-adds-title">
+            <section
+              id="doctor-adds"
+              tabIndex={-1}
+              className="doctor-selection-section"
+              aria-labelledby="doctor-adds-title"
+            >
               <div className="doctor-section-heading">
                 <div>
                   <p className="eyebrow">Shared replacement pool</p>
@@ -693,9 +868,38 @@ export function DeckDoctorView({
                 <span>{selectedAdditionNames.length} selected</span>
               </div>
               <p className="doctor-muted">
-                Choose as many additions as cuts. Candidates are ranked for your goal and the deck
-                after the selected cuts. Stars show fit, not power or win rate.
+                Candidates are ranked for your goal and the deck after the selected cuts. Stars show
+                fit, not power or win rate.
               </p>
+              <label className="doctor-filter">
+                Show candidates for
+                <select
+                  value={candidateFilter}
+                  onChange={(event) => filterCandidates(event.target.value)}
+                >
+                  <option value="all">Any role or theme</option>
+                  <optgroup label="Role">
+                    {targetKeys.map((key) => {
+                      const gap = roleGaps.find((item) => item.key === key)?.gap
+                      return (
+                        <option key={key} value={`role:${key}`}>
+                          {targetLabels[key]}
+                          {gap ? ` (${gap} below target)` : ''}
+                        </option>
+                      )
+                    })}
+                  </optgroup>
+                  {selectedThemes.length > 0 && (
+                    <optgroup label="Theme">
+                      {selectedThemes.map((tag) => (
+                        <option key={tag} value={`tag:${tag}`}>
+                          {tag}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </label>
               {ratedCandidates.length ? (
                 <>
                   <div
@@ -726,10 +930,6 @@ export function DeckDoctorView({
                             order: selected
                               ? selectedAdditionNames.indexOf(card.name) + 1
                               : undefined,
-                            disabled:
-                              !selected &&
-                              (selectedAdditionNames.length >= selectedCutIndexes.length ||
-                                selectedCutIndexes.length === 0),
                             onChange: () => toggleName(card.name),
                           }}
                         />
@@ -761,7 +961,11 @@ export function DeckDoctorView({
                   )}
                 </>
               ) : (
-                <p className="doctor-muted">No legal replacement cards in the current queue.</p>
+                <p className="doctor-muted">
+                  {candidateFilter === 'all'
+                    ? 'No legal replacement cards in the current queue.'
+                    : 'No legal candidates match this filter. Choose another or find more below.'}
+                </p>
               )}
               <div className="doctor-more">
                 <button
@@ -794,14 +998,14 @@ export function DeckDoctorView({
                   {selectedCutIndexes.length} cuts · {selectedAdditionNames.length} additions
                 </span>
               </div>
-              {pairCount > 0 ? (
+              {pairCount > 0 && (
                 <div className="doctor-plan-pairs">
                   {Array.from({ length: pairCount }, (_, index) => (
                     <div
                       className="doctor-plan-pair"
                       key={`${index}:${selectedCuts[index].cutCard.name}`}
                     >
-                      <span className="doctor-pair-number">Pair {index + 1}</span>
+                      <span className="doctor-pair-number">Swap {index + 1}</span>
                       <CardTile
                         card={selectedCuts[index].cutCard}
                         status="In deck · cut"
@@ -818,12 +1022,43 @@ export function DeckDoctorView({
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="doctor-muted">Select cut and addition cards to review the plan.</p>
               )}
-              {selectedCutIndexes.length !== selectedAdditionNames.length && (
+              {selectedCuts.length > pairCount && (
+                <>
+                  <h3>Cut without replacement</h3>
+                  <div className="doctor-card-grid">
+                    {selectedCuts.slice(pairCount).map(({ cutIndex, cutCard }) => (
+                      <CardTile
+                        key={cutIndex}
+                        card={cutCard}
+                        status="In deck · cut"
+                        openCard={openCard}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+              {selectedAdditions.length > pairCount && (
+                <>
+                  <h3>Add without cutting</h3>
+                  <div className="doctor-card-grid">
+                    {selectedAdditions.slice(pairCount).map((card) => (
+                      <CardTile key={card.name} card={card} status="Addition" openCard={openCard} />
+                    ))}
+                  </div>
+                </>
+              )}
+              {!selectedCutIndexes.length && !selectedAdditionNames.length ? (
+                <p className="doctor-muted">Select cards to cut or add to review the plan.</p>
+              ) : (
                 <p className="doctor-muted" role="status">
-                  Choose equal numbers of cuts and additions before applying.
+                  Deck size after applying: {deck.length} → {projectedSize} cards
+                  {projectedSize < 100
+                    ? ` (${100 - projectedSize} short of 100)`
+                    : projectedSize > 100
+                      ? ` (${projectedSize - 100} over 100)`
+                      : ''}
+                  .
                 </p>
               )}
               {projectedDeck && projectedAnalysis && (
@@ -956,21 +1191,33 @@ export function DeckDoctorView({
             history.map((swap) => (
               <article className="doctor-history-item" key={swap.id}>
                 <div className="doctor-history-pair">
-                  <CardTile
-                    card={swap.cutCard}
-                    status={swap.movedToSideboard ? 'Moved to sideboard' : 'Cut from deck'}
-                    openCard={openCard}
-                  />
-                  <span className="doctor-pair-arrow" aria-hidden="true">
-                    →
-                  </span>
-                  <CardTile card={swap.addedCard} status="In deck" openCard={openCard} />
+                  {swap.cutCard && (
+                    <CardTile
+                      card={swap.cutCard}
+                      status={swap.movedToSideboard ? 'Moved to sideboard' : 'Cut from deck'}
+                      openCard={openCard}
+                    />
+                  )}
+                  {swap.cutCard && swap.addedCard && (
+                    <span className="doctor-pair-arrow" aria-hidden="true">
+                      →
+                    </span>
+                  )}
+                  {swap.addedCard && (
+                    <CardTile card={swap.addedCard} status="In deck" openCard={openCard} />
+                  )}
                 </div>
                 <button
                   className="export"
                   type="button"
                   onClick={() => undoSwap(swap.id)}
-                  aria-label={`Undo ${swap.addedCard.name} for ${swap.cutCard.name}`}
+                  aria-label={
+                    swap.cutCard && swap.addedCard
+                      ? `Undo ${swap.addedCard.name} for ${swap.cutCard.name}`
+                      : swap.addedCard
+                        ? `Undo adding ${swap.addedCard.name}`
+                        : `Undo cutting ${swap.cutCard?.name}`
+                  }
                 >
                   Undo this change
                 </button>
@@ -989,8 +1236,9 @@ export function DeckDoctorView({
       {planReady && (
         <div className="doctor-apply-bar" role="region" aria-label="Ready to apply changes">
           <button className="primary doctor-apply" type="button" onClick={applyPlan}>
-            Apply {selectedCutIndexes.length} change
-            {selectedCutIndexes.length === 1 ? '' : 's'}
+            Apply {selectedCutIndexes.length + selectedAdditionNames.length} change
+            {selectedCutIndexes.length + selectedAdditionNames.length === 1 ? '' : 's'} · deck
+            becomes {projectedSize}
           </button>
         </div>
       )}

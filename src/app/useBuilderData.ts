@@ -200,10 +200,6 @@ function buildDeckData(deps: BuilderDataDeps) {
         (colour: string) => basicLandNames[colour as keyof typeof basicLandNames],
       )
     : ['Wastes']
-  const maxCurveCount = Math.max(
-    1,
-    ...analysis.curve.map((point) => point.permanents + point.nonPermanents),
-  )
   const displayedTypeCounts = [
     ['Land', analysis.counts.lands],
     ...cardTypes.map((type) => [type, analysis.typeCounts[type]] as const),
@@ -221,7 +217,6 @@ function buildDeckData(deps: BuilderDataDeps) {
     groupedBasics,
     groupedDeckColumns,
     legalBasicNames,
-    maxCurveCount,
     displayedTypeCounts,
     maxTypeCount,
     manaColours: ['W', 'U', 'B', 'R', 'G'] as const,

@@ -6,6 +6,8 @@ import {
   analyzeDeckDoctor,
   applyDeckDoctorSwap,
   applyDeckDoctorSwapPlan,
+  deckReviewMode,
+  groupDeckCards,
   undoDeckDoctorSwap,
 } from './deck-doctor.ts'
 import type { Card, DeckCard } from './domain/card-model.ts'
@@ -330,10 +332,7 @@ test('applies a balanced multi-card plan atomically with sideboard retention', (
     deck.map(({ name }) => name),
     ['Commander', 'Cut One', 'Cut Two'],
   )
-  assert.throws(
-    () => applyDeckDoctorSwapPlan({ ...plan, additions: [candidate('Only One')] }),
-    /same number/,
-  )
+  assert.throws(() => applyDeckDoctorSwapPlan({ ...plan, cuts: [], additions: [] }), /cut or add/)
   assert.throws(
     () =>
       applyDeckDoctorSwapPlan({
@@ -435,5 +434,113 @@ test('rejects illegal, stale, or unsafe swaps without overwriting deck edits', (
         swap: { cutIndex: 1, cutCard: cut, addCard: candidate('Replacement'), reason: '' },
       }),
     /changed/,
+  )
+})
+
+test('fits the review mode to deck size', () => {
+  assert.equal(deckReviewMode(38), 'build')
+  assert.equal(deckReviewMode(89), 'build')
+  assert.equal(deckReviewMode(90), 'review')
+  assert.equal(deckReviewMode(100), 'review')
+  assert.equal(deckReviewMode(105), 'trim')
+})
+
+test('groups duplicate basics into one entry per name', () => {
+  const deck = [
+    deckCard('Commander'),
+    ...Array.from({ length: 9 }, () => deckCard('Swamp', { typeLine: 'Basic Land' })),
+    ...Array.from({ length: 26 }, () => deckCard('Forest', { typeLine: 'Basic Land' })),
+  ]
+  const groups = groupDeckCards(deck.slice(1).map((card, index) => ({ card, index: index + 1 })))
+  assert.deepEqual(
+    groups.map(({ card, indexes }) => [card.name, indexes.length]),
+    [
+      ['Swamp', 9],
+      ['Forest', 26],
+    ],
+  )
+  const forestCuts = groups[1].indexes.slice(0, 3)
+  const applied = applyDeckDoctorSwapPlan({
+    id: 'forests',
+    deck,
+    sideboard: [],
+    commanderCount: 1,
+    commanderColours: ['B', 'G'],
+    cuts: forestCuts.map((cutIndex) => ({ cutIndex, cutCard: deck[cutIndex] })),
+    additions: [],
+    moveCutToSideboard: false,
+  })
+  assert.equal(applied.deck.filter(({ name }) => name === 'Forest').length, 23)
+  assert.equal(applied.deck.filter(({ name }) => name === 'Swamp').length, 9)
+  assert.equal(applied.records.length, 3)
+})
+
+test('applies and undoes unequal plans', () => {
+  const commander = deckCard('Commander')
+  const deck = [commander, deckCard('Keep'), deckCard('Cut One'), deckCard('Cut Two')]
+  const addOnly = applyDeckDoctorSwapPlan({
+    id: 'adds',
+    deck,
+    sideboard: [],
+    commanderCount: 1,
+    commanderColours: ['G'],
+    cuts: [],
+    additions: [candidate('Add One'), candidate('Add Two')],
+    moveCutToSideboard: false,
+  })
+  assert.deepEqual(
+    addOnly.deck.map(({ name }) => name),
+    ['Commander', 'Keep', 'Cut One', 'Cut Two', 'Add One', 'Add Two'],
+  )
+  assert.equal(addOnly.records.length, 2)
+  const undoneAdd = undoDeckDoctorSwap({
+    deck: addOnly.deck,
+    sideboard: [],
+    commanderCount: 1,
+    commanderColours: ['G'],
+    record: addOnly.records[0],
+  })
+  assert.deepEqual(
+    undoneAdd.deck.map(({ name }) => name),
+    ['Commander', 'Keep', 'Cut One', 'Cut Two', 'Add Two'],
+  )
+
+  const mixed = applyDeckDoctorSwapPlan({
+    id: 'mixed',
+    deck,
+    sideboard: [],
+    commanderCount: 1,
+    commanderColours: ['G'],
+    cuts: [
+      { cutIndex: 2, cutCard: deck[2] },
+      { cutIndex: 3, cutCard: deck[3] },
+    ],
+    additions: [candidate('Swap In')],
+    moveCutToSideboard: true,
+  })
+  assert.deepEqual(
+    mixed.deck.map(({ name }) => name),
+    ['Commander', 'Keep', 'Swap In'],
+  )
+  assert.deepEqual(
+    mixed.sideboard.map(({ name }) => name),
+    ['Cut One', 'Cut Two'],
+  )
+  const cutOnly = mixed.records.find((record) => !record.addedCard)
+  assert.equal(cutOnly?.cutCard?.name, 'Cut Two')
+  const restored = undoDeckDoctorSwap({
+    deck: mixed.deck,
+    sideboard: mixed.sideboard,
+    commanderCount: 1,
+    commanderColours: ['G'],
+    record: cutOnly!,
+  })
+  assert.deepEqual(
+    restored.deck.map(({ name }) => name),
+    ['Commander', 'Keep', 'Swap In', 'Cut Two'],
+  )
+  assert.deepEqual(
+    restored.sideboard.map(({ name }) => name),
+    ['Cut One'],
   )
 })

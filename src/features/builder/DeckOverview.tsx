@@ -14,11 +14,13 @@ import {
   type ManaColour,
 } from '../../deck-analysis.ts'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
+import { ManaCurve } from './ManaCurve.tsx'
 
 type DeckOverviewProps = {
   deck: DeckCard[]
   sideboardCount: number
   commanderCount: number
+  commanderColours: string[]
   theme: string
   activeSubThemes: string[]
   analysis: ReturnType<typeof analyseDeck>
@@ -73,6 +75,7 @@ export function DeckOverview({
   deck,
   sideboardCount,
   commanderCount,
+  commanderColours,
   theme,
   activeSubThemes,
   analysis,
@@ -97,7 +100,10 @@ export function DeckOverview({
     .filter(({ tag, cards }) => !selectedTags.includes(tag) && cards.length > 1)
     .sort((left, right) => right.cards.length - left.cards.length)
     .slice(0, 5)
-  const colourStats = (['W', 'U', 'B', 'R', 'G'] as const).flatMap((colour: ManaColour) => {
+  const identity = (['W', 'U', 'B', 'R', 'G'] as const).filter((colour) =>
+    commanderColours.includes(colour),
+  )
+  const colourStats = identity.map((colour: ManaColour) => {
     const sourceCards = deck.filter((card) => card.producedMana.includes(colour))
     const requiredCardNames = new Set(
       deck.filter((card) => requiredPipsForCard(card, colour) > 0).map((card) => card.name),
@@ -106,7 +112,7 @@ export function DeckOverview({
       (card) => card.producedMana.includes(colour) || requiredCardNames.has(card.name),
     )
     const pips = analysis.required[colour]
-    return pips || sourceCards.length ? [{ colour, pips, sourceCards, matchingCards }] : []
+    return { colour, pips, sourceCards, matchingCards }
   })
   const typeStats = displayedTypeCounts.map(([type, count]) => ({
     type,
@@ -133,12 +139,8 @@ export function DeckOverview({
   const unsupportedColours = colourStats.filter(
     ({ pips, sourceCards }) => pips > 0 && sourceCards.length === 0,
   ).length
-  const hasColourSignal = colourStats.length > 0
+  const hasColourSignal = colourStats.some(({ pips, sourceCards }) => pips || sourceCards.length)
   const selectedTagsFound = selectedCoverage.filter(({ cards }) => cards.length > 0).length
-  const maxCurveCount = Math.max(
-    1,
-    ...analysis.curve.map((point) => point.permanents + point.nonPermanents),
-  )
   const maxTypeCount = Math.max(1, ...typeStats.map(({ count }) => count))
 
   return (
@@ -222,46 +224,7 @@ export function DeckOverview({
             {' · '}
             {expensiveCount} cost 5 or more. Select a bar to highlight those cards in the deck list.
           </p>
-          <div className="deck-review-curve">
-            {analysis.curve
-              .filter((point) => point.permanents + point.nonPermanents > 0)
-              .map((point) => {
-                const matchingCards = deck.filter((card) => curveBucket(card) === point.manaValue)
-                const value = point.manaValue === 7 ? '7 or more' : String(point.manaValue)
-                return (
-                  <FilterButton
-                    key={point.manaValue}
-                    label={`mana value ${value}`}
-                    count={matchingCards.length}
-                    className="deck-review-curve-filter"
-                    onClick={() => selectManaValue(point.manaValue)}
-                  >
-                    <span className="deck-review-curve-graph" aria-hidden="true">
-                      <i
-                        className="permanent"
-                        style={{ height: `${(point.permanents / maxCurveCount) * 100}%` }}
-                      />
-                      <i
-                        className="non-permanent"
-                        style={{ height: `${(point.nonPermanents / maxCurveCount) * 100}%` }}
-                      />
-                    </span>
-                    <b>Mana value {value}</b>
-                    <span className="deck-review-curve-counts">
-                      {point.permanents} permanent · {point.nonPermanents} non-permanent
-                    </span>
-                  </FilterButton>
-                )
-              })}
-          </div>
-          <div className="deck-review-legend">
-            <span>
-              <i className="permanent" /> Permanent
-            </span>
-            <span>
-              <i className="non-permanent" /> Non-permanent
-            </span>
-          </div>
+          <ManaCurve analysis={analysis} selected={null} onSelect={selectManaValue} />
         </section>
 
         <section className="deck-review-section">
@@ -373,7 +336,7 @@ export function DeckOverview({
               ))}
             </div>
           ) : (
-            <p className="deck-review-empty">No coloured pips or sources detected.</p>
+            <p className="deck-review-empty">Colourless commander: no coloured mana to check.</p>
           )}
         </section>
 

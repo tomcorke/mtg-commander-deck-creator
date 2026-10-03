@@ -44,6 +44,7 @@ import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
 import { ScoreBreakdown } from '../score/ScoreBreakdown.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
+import { ManaCurve } from './ManaCurve.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 
@@ -96,7 +97,6 @@ type BuilderViewModel = {
   limitedRecommendations: boolean
   loadingArt: string
   manaColours: readonly ManaColour[]
-  maxCurveCount: number
   maxTypeCount: number
   missingHealthRoles: string[]
   pairCards: Card[]
@@ -216,7 +216,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     limitedRecommendations,
     loadingArt,
     manaColours,
-    maxCurveCount,
     maxTypeCount,
     missingHealthRoles,
     moveSideboardCard,
@@ -956,49 +955,14 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 ? `${highlightedCardCount} cards highlighted for ${activeHighlightLabel}. Other cards are dimmed.`
                 : 'Deck highlight filter cleared.'}
             </p>
-            <div className="curve-scroll">
-              <div className="mana-curve" aria-label="Mana-value curve">
-                {analysis.curve.map((point) => (
-                  <button
-                    type="button"
-                    className={highlightedManaValue === point.manaValue ? 'selected' : ''}
-                    onClick={() => {
-                      setDeckReviewFilter(null)
-                      setHighlightedManaValue((current) =>
-                        current === point.manaValue ? null : point.manaValue,
-                      )
-                    }}
-                    aria-pressed={highlightedManaValue === point.manaValue}
-                    aria-label={`Mana value ${point.manaValue === 7 ? '7 or more' : point.manaValue}: ${point.permanents} permanents, ${point.nonPermanents} non-permanents`}
-                    key={point.manaValue}
-                  >
-                    <span className="curve-bars">
-                      <i
-                        className="permanent"
-                        style={{ height: `${(point.permanents / maxCurveCount) * 100}%` }}
-                      />
-                      <i
-                        className="non-permanent"
-                        style={{ height: `${(point.nonPermanents / maxCurveCount) * 100}%` }}
-                      />
-                    </span>
-                    <b>{point.manaValue === 7 ? '7+' : point.manaValue}</b>
-                    {highlightedManaValue === point.manaValue && (
-                      <span className="sr-only">Selected</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="curve-legend">
-              <span>
-                <i className="permanent" /> Permanent
-              </span>
-              <span>
-                <i className="non-permanent" /> Non-permanent
-              </span>
-              <b>Avg {analysis.averageManaValue.toFixed(1)}</b>
-            </div>
+            <ManaCurve
+              analysis={analysis}
+              selected={highlightedManaValue}
+              onSelect={(manaValue) => {
+                setDeckReviewFilter(null)
+                setHighlightedManaValue((current) => (current === manaValue ? null : manaValue))
+              }}
+            />
             <div className="mana-balance">
               <h4>Colour balance</h4>
               {(
