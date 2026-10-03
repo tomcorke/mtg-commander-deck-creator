@@ -3,7 +3,7 @@ import type { CardFinish } from './card-model.ts'
 export type { CardFinish, PrintingLike, ScryfallCard, ScryfallCardFace } from './card-model.ts'
 
 export type TaggedCard = { name: string; typeLine: string; detail: string; tags: string[] }
-export type DeferredCard<T> = { card: T; eligibleBatch: number }
+export type DeferredCard<T> = { card: T; eligibleBatch: number; available?: boolean }
 export type EdhrecThemeCount = { count: number; slug: string; value: string }
 export type PowerTarget = 'precon' | 'upgraded' | 'high'
 export type RecommendationStyle = 'thematic' | 'fun' | 'balanced' | 'competitive'

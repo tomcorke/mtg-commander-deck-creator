@@ -104,7 +104,6 @@ type BuilderViewModel = {
   queue: Card[]
   recommendationLoadingStep: 'commander' | 'recommendations'
   recommendationLoadingTitle: string
-  recommendationOptionsChanged: boolean
   recommendationSettingsSummary: string
   recommendationState: 'idle' | 'loading' | 'error'
   recommendationStyle: RecommendationStyle
@@ -237,7 +236,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     queue,
     recommendationLoadingStep,
     recommendationLoadingTitle,
-    recommendationOptionsChanged,
     recommendationSettingsModal,
     recommendationSettingsSummary,
     recommendationState,
@@ -341,11 +339,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               Recommendation settings
             </button>
             <p title={recommendationSettingsSummary}>{recommendationSettingsSummary}</p>
-            {recommendationOptionsChanged && (
-              <span className="options-pending" role="status">
-                Changes apply with next recommendations.
-              </span>
-            )}
           </div>
         </div>
       </section>

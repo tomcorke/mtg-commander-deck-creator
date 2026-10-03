@@ -11,7 +11,9 @@ import {
   manualCardError,
   parseEdhrecEntries,
   preconFastMana,
+  releaseDeferred,
   type CollectionMode,
+  type DeferredCard,
   type ScryfallCard,
 } from '../recommendations.ts'
 import {
@@ -24,6 +26,30 @@ import {
 } from '../domain/card-model.ts'
 
 type StateSetter = (value: any) => void
+
+/** Queue progress carried across a settings change that re-fetches the candidate pool. */
+export type RecommendationProgress = {
+  deferredCards: DeferredCard<Card>[]
+  batchNumber: number
+  preferenceScores: Record<string, number>
+}
+
+/** Settings that decide which cards are fetched; other settings only re-rank the pool. */
+export function recommendationPoolKey(deps: Record<string, any>) {
+  const { collectionMode = 'none', collectionSets = [] } = deps
+  return JSON.stringify([
+    deps.commander,
+    deps.powerTarget,
+    deps.excludeGameChangers,
+    deps.excludeTutors,
+    deps.excludeExtraTurns,
+    deps.excludeUnreleased,
+    deps.theme,
+    [...(deps.activeSubThemes ?? [])].sort(),
+    collectionMode,
+    [...collectionSets].sort(),
+  ])
+}
 
 type StateSetters = {
   [
@@ -284,7 +310,11 @@ export async function loadCommanderCards(deps: ActionDeps, chosen: string) {
   return { commanders, images, art, identityColours, printings }
 }
 
-export function resetRecommendationState(deps: ActionDeps, preserveDeck: boolean) {
+export function resetRecommendationState(
+  deps: ActionDeps,
+  preserveDeck: boolean,
+  progress?: RecommendationProgress,
+) {
   resetSignatureContext(deps, preserveDeck ? undefined : crypto.randomUUID())
   const {
     navigateView,
@@ -324,11 +354,11 @@ export function resetRecommendationState(deps: ActionDeps, preserveDeck: boolean
   const activeCollectionSets = preserveDeck ? collectionSets : []
   const activeCollectionMode = preserveDeck ? collectionMode : 'none'
   navigateView('builder', null, activeModal !== null)
-  const cycle = deps.freshRecommendationCycle()
+  const cycle = progress ?? deps.freshRecommendationCycle()
   setDeferredCards(cycle.deferredCards)
   setBatchNumber(cycle.batchNumber)
   setDecisions({})
-  setLiked([])
+  setLiked((current: string[]) => (progress ? current : []))
   setBatchAnnouncement('')
   setCommanderSubThemes([])
   if (!preserveDeck) {
@@ -588,12 +618,15 @@ function filterInitialRecommendations(
   offeredCards: Card[],
   deps: ActionDeps,
   preserveDeck: boolean,
+  progress?: RecommendationProgress,
 ) {
   if (!preserveDeck) return offeredCards
   const { ignoredCards, deck, sideboard } = deps
+  const deferred = new Set(progress?.deferredCards.map(({ card }) => card.name))
   return offeredCards.filter(
     (card) =>
       !ignoredCards.includes(card.name) &&
+      !deferred.has(card.name) &&
       ![...deck, ...sideboard].some((deckCard: Card) => deckCard.name === card.name),
   )
 }
@@ -605,19 +638,20 @@ function buildInitialRankingContext(
   preserveDeck: boolean,
   activeCollectionSets: string[],
   activeCollectionMode: CollectionMode,
+  progress?: RecommendationProgress,
 ) {
   return buildRecommendationContext(
     {
       ...deps,
       commander: chosen,
       activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
-      preferenceScores: preserveDeck ? deps.preferenceScores : {},
+      preferenceScores: progress?.preferenceScores ?? (preserveDeck ? deps.preferenceScores : {}),
       prioritizeDeckHealth: preserveDeck
         ? deps.prioritizeDeckHealth
         : deps.recommendationStyle !== 'thematic',
       collectionSets: activeCollectionSets,
       collectionMode: activeCollectionMode,
-      batchNumber: 1,
+      batchNumber: progress?.batchNumber ?? 1,
     },
     offeredCards,
     preserveDeck ? deps.deck : [],
@@ -631,6 +665,7 @@ export function rankInitialRecommendations(
   preserveDeck: boolean,
   activeCollectionSets: string[],
   activeCollectionMode: CollectionMode,
+  progress?: RecommendationProgress,
 ) {
   const { includeCreature, setQueue, setRecommendationState, loadPrintings, preferredPrintSet } =
     deps
@@ -640,7 +675,21 @@ export function rankInitialRecommendations(
         ? 'Selected collection has too few legal cards.'
         : 'Too few recommendation cards',
     )
-  offeredCards = filterInitialRecommendations(offeredCards, deps, preserveDeck)
+  if (progress) {
+    const offered = new Map(offeredCards.map((card) => [card.name, card]))
+    // Keep off-pool deferrals so restoring settings also restores their original waiting period.
+    const deferred = progress.deferredCards.map((entry) => ({
+      ...entry,
+      card: offered.get(entry.card.name) ?? entry.card,
+      available: offered.has(entry.card.name),
+    }))
+    progress = {
+      ...progress,
+      deferredCards: releaseDeferred(deferred, progress.batchNumber).waiting,
+    }
+    deps.setDeferredCards(progress.deferredCards)
+  }
+  offeredCards = filterInitialRecommendations(offeredCards, deps, preserveDeck, progress)
   const rankingContext = buildInitialRankingContext(
     deps,
     offeredCards,
@@ -648,6 +697,7 @@ export function rankInitialRecommendations(
     preserveDeck,
     activeCollectionSets,
     activeCollectionMode,
+    progress,
   )
   const ranked = deps.rankRecommendationCards(
     offeredCards,
@@ -656,6 +706,8 @@ export function rankInitialRecommendations(
     rolesForCard,
   )
   setQueue(ranked)
+  if (progress)
+    deps.setBatchAnnouncement(`Recommendations updated for batch ${progress.batchNumber}.`)
   setRecommendationState('idle')
   void loadPrintings(
     ranked.slice(0, 8),
@@ -666,11 +718,29 @@ export function rankInitialRecommendations(
   return true
 }
 
-export async function start(deps: ActionDeps, name: string, preserveDeck = false) {
+export async function start(
+  deps: ActionDeps,
+  name: string,
+  preserveDeck = false,
+  progress?: RecommendationProgress,
+) {
   const chosen = name.trim()
   if (!chosen) return false
-  const reset = resetRecommendationState(deps, preserveDeck)
+  if (preserveDeck)
+    progress ??= {
+      deferredCards: deps.deferredCards ?? [],
+      batchNumber: deps.batchNumber ?? 1,
+      preferenceScores: deps.preferenceScores ?? {},
+    }
+  const reset = resetRecommendationState(deps, preserveDeck, progress)
   deps.setCommander(chosen)
+  const poolKey = recommendationPoolKey({
+    ...deps,
+    commander: chosen,
+    activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
+    collectionSets: reset.activeCollectionSets,
+    collectionMode: reset.activeCollectionMode,
+  })
   try {
     const loaded = await loadCommanderCards(deps, chosen)
     addCommanderCards(deps, loaded, preserveDeck)
@@ -681,14 +751,18 @@ export async function start(deps: ActionDeps, name: string, preserveDeck = false
       reset.activeCollectionSets,
       reset.activeCollectionMode,
     )
-    return rankInitialRecommendations(
+    rankInitialRecommendations(
       deps,
       offeredCards,
       chosen,
       preserveDeck,
       reset.activeCollectionSets,
       reset.activeCollectionMode,
+      progress,
     )
+    if (deps.recommendationPoolKey) deps.recommendationPoolKey.current = poolKey
+    deps.setRecommendationOptionsChanged?.(false)
+    return true
   } catch (error) {
     deps.setCollectionError(error instanceof Error ? error.message : 'Suggestions unavailable')
     deps.setRecommendationState('error')

@@ -238,8 +238,12 @@ export function deferBatch<T>(
 
 export function releaseDeferred<T>(deferred: DeferredCard<T>[], batchNumber: number) {
   return {
-    ready: deferred.filter((item) => item.eligibleBatch <= batchNumber).map((item) => item.card),
-    waiting: deferred.filter((item) => item.eligibleBatch > batchNumber),
+    ready: deferred
+      .filter((item) => item.available !== false && item.eligibleBatch <= batchNumber)
+      .map((item) => item.card),
+    waiting: deferred.filter(
+      (item) => item.available === false || item.eligibleBatch > batchNumber,
+    ),
   }
 }
 
@@ -248,9 +252,10 @@ export function releaseNextDeferred<T>(
   requestedBatch: number,
   hasUnseenCards: boolean,
 ) {
+  const available = deferred.filter((item) => item.available !== false)
   const batchNumber =
-    !hasUnseenCards && deferred.length
-      ? Math.max(requestedBatch, Math.min(...deferred.map((item) => item.eligibleBatch)))
+    !hasUnseenCards && available.length
+      ? Math.max(requestedBatch, Math.min(...available.map((item) => item.eligibleBatch)))
       : requestedBatch
   return { batchNumber, ...releaseDeferred(deferred, batchNumber) }
 }

@@ -2,14 +2,25 @@ import type { MouseEvent } from 'react'
 
 import { rolesForCard } from '../../deck-analysis.ts'
 import { buildRecommendationContext } from '../../app/recommendation-context.ts'
+import {
+  recommendationPoolKey,
+  type RecommendationProgress,
+} from '../../app/recommendation-actions.ts'
 import type { Card } from '../../domain/card-model.ts'
 import {
   advanceRecommendationQueue,
+  deferBatch,
+  rankRecommendationCards,
+  updatePreferenceScores,
   type CollectionMode,
   type RecommendationStyle,
 } from '../../recommendations.ts'
 export type BuilderInteractionDeps = Record<string, any> & {
-  start: (name: string, preserveDeck?: boolean) => Promise<boolean>
+  start: (
+    name: string,
+    preserveDeck?: boolean,
+    progress?: RecommendationProgress,
+  ) => Promise<boolean>
   loadPrintings: (
     cards: Card[],
     preferredSet?: string,
@@ -63,12 +74,64 @@ export function clickCardImage(
     decide(card, 'add')
 }
 
+export async function refreshRecommendationSettings(deps: BuilderInteractionDeps) {
+  if (!deps.recommendationOptionsChanged || deps.recommendationState === 'loading') return
+  if (deps.recommendationRefreshInFlight.current) return
+  deps.recommendationRefreshInFlight.current = true
+  try {
+    const batch: Card[] = deps.queue.slice(0, 4)
+    const progress: RecommendationProgress = {
+      batchNumber: deps.batchNumber,
+      deferredCards: [
+        ...deps.deferredCards,
+        ...deferBatch(
+          batch.filter((card) => deps.decisions[card.name] === 'later'),
+          deps.decisions,
+          deps.batchNumber,
+          (card) => card.name,
+        ),
+      ],
+      preferenceScores: updatePreferenceScores(
+        batch,
+        deps.decisions,
+        deps.liked,
+        deps.preferenceScores,
+      ),
+    }
+    deps.setPreferenceScores(progress.preferenceScores)
+    deps.setDeferredCards(progress.deferredCards)
+    deps.setDecisions({})
+    deps.setLiked((current: string[]) =>
+      current.filter((name) => !batch.some((card) => card.name === name)),
+    )
+    if (deps.recommendationPoolKey.current !== recommendationPoolKey(deps)) {
+      await deps.start(deps.commander, true, progress)
+      return
+    }
+    const excluded = new Set([
+      ...deps.ignoredCards,
+      ...[...deps.deck, ...deps.sideboard].map((card: Card) => card.name),
+      ...progress.deferredCards.map(({ card }) => card.name),
+    ])
+    // Refresh the preview without spending undecided cards or advancing the waiting period.
+    const candidates: Card[] = deps.queue.filter((card: Card) => !excluded.has(card.name))
+    const context = buildRecommendationContext({ ...deps, ...progress }, candidates)
+    const queue = rankRecommendationCards(candidates, context, deps.includeCreature, rolesForCard)
+    deps.setQueue(queue)
+    deps.setRecommendationOptionsChanged(false)
+    deps.setBatchAnnouncement(`Recommendations updated for batch ${progress.batchNumber}.`)
+    void deps.loadPrintings(queue.slice(0, 8), deps.collectionSets[0] || deps.preferredPrintSet)
+  } finally {
+    deps.recommendationRefreshInFlight.current = false
+  }
+}
+
 export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = '') {
+  if (deps.recommendationOptionsChanged) {
+    await refreshRecommendationSettings(deps)
+    return
+  }
   const {
-    recommendationOptionsChanged,
-    start,
-    commander,
-    setRecommendationOptionsChanged,
     queue,
     preferenceScores,
     deferredCards,
@@ -91,10 +154,6 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
     preferredPrintSet,
     loadPrintings,
   } = deps
-  if (recommendationOptionsChanged) {
-    if (await start(commander, true)) setRecommendationOptionsChanged(false)
-    return
-  }
   const batch: Card[] = queue.slice(0, 4)
   const { roleBoosts, pickedTags, manaSupport } = buildRecommendationContext(deps, queue)
   const next = advanceRecommendationQueue({

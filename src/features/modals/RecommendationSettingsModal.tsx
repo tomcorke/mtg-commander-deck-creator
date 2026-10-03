@@ -411,7 +411,7 @@ export function RecommendationSettingsModal({
           </fieldset>
           {recommendationOptionsChanged && (
             <span className="options-pending" role="status">
-              Changes apply with next recommendations.
+              Changes apply when you close settings.
             </span>
           )}
         </div>

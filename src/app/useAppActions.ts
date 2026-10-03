@@ -1,5 +1,6 @@
+import { useEffect, useEffectEvent, useRef } from 'react'
+
 import {
-  balanceThemeCoverage,
   cardText,
   freshRecommendationCycle,
   rankRecommendationCards,
@@ -22,6 +23,7 @@ import {
   clickCardImage as clickCardImageAction,
   fanCards,
   nextBatch as nextBatchAction,
+  refreshRecommendationSettings,
   resetFan,
 } from '../features/builder/interactions.ts'
 import { createActionHandlers } from './action-handlers.ts'
@@ -30,6 +32,8 @@ import {
   fetchDeckDoctorCandidates,
   fetchDeckDoctorCommanders,
   start as startRecommendations,
+  recommendationPoolKey,
+  type RecommendationProgress,
 } from './recommendation-actions.ts'
 import { useAppEffects, usePrintingRepairEffect } from './useAppEffects.ts'
 import { useSignatureRecommendations } from './useSignatureRecommendations.ts'
@@ -158,8 +162,8 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     loadPrintings,
     rankRecommendationCards,
   }
-  const start = (name: string, preserveDeck = false) =>
-    startRecommendations(recommendationDeps, name, preserveDeck)
+  const start = (name: string, preserveDeck = false, progress?: RecommendationProgress) =>
+    startRecommendations(recommendationDeps, name, preserveDeck, progress)
   return { loadPrintings, recommendationDeps, start }
 }
 
@@ -214,12 +218,38 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
   }
 }
 
+function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
+  const recommendationRefreshInFlight = useRef(false)
+  const interactionDeps = {
+    ...remote.recommendationDeps,
+    start: remote.start,
+    recommendationRefreshInFlight,
+  }
+  const applySettings = useEffectEvent(() => {
+    void refreshRecommendationSettings(interactionDeps)
+  })
+  useEffect(() => {
+    if (
+      state.showBuilder &&
+      state.activeModal !== 'recommendation-settings' &&
+      state.recommendationOptionsChanged &&
+      state.recommendationState === 'idle'
+    )
+      applySettings()
+  }, [
+    state.activeModal,
+    state.recommendationOptionsChanged,
+    state.recommendationState,
+    state.showBuilder,
+  ])
+  return interactionDeps
+}
+
 function useBuilderActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
   const chooseSubTheme = (name: string) => {
     const selection = selectSubTheme(state.activeSubThemes, name)
     state.setActiveSubThemes(selection.activeSubThemes)
     if (selection.refreshRecommendations) state.setRecommendationOptionsChanged(true)
-    state.setQueue((current: Card[]) => balanceThemeCoverage(current, selection.activeSubThemes))
     state.setShowSubThemePicker(false)
     state.setSubThemeSearch('')
   }
@@ -282,7 +312,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
       routing.navigateView(view, modal, replace),
     start: remote.start,
   })
-  const interactionDeps = { ...remote.recommendationDeps, start: remote.start }
+  const interactionDeps = useRecommendationInteractions(state, remote)
   return {
     ...actions,
     chooseSubTheme,
@@ -301,7 +331,8 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
 
 export function useAppActions(state: AppState) {
   const routing = useRoutingActions(state)
-  const remote = useRemoteActions(state, routing)
+  const poolKey = useRef(recommendationPoolKey(state))
+  const remote = useRemoteActions({ ...state, recommendationPoolKey: poolKey }, routing)
   return {
     ...useStartActions(state, routing, remote),
     ...useBuilderActions(state, routing, remote),

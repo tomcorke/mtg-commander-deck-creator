@@ -97,7 +97,11 @@ export const persistedDeckStateSchema = z.object({
   preferenceScores: z.record(z.string(), z.number()),
   commanderSubThemes: z.array(z.string()),
   deferredCards: z.array(
-    z.object({ card: cardSchema, eligibleBatch: z.number().int().positive() }),
+    z.object({
+      card: cardSchema,
+      eligibleBatch: z.number().int().positive(),
+      available: z.boolean().optional(),
+    }),
   ),
   batchNumber: z.number().int().positive(),
   deck: z.array(deckCardSchema).min(1).max(100),
