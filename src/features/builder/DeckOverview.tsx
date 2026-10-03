@@ -182,13 +182,13 @@ export function DeckOverview({
                   unsupportedColours
                     ? 'Possible gap'
                     : hasColourSignal
-                      ? 'Sources reported'
+                      ? 'Every colour has sources'
                       : 'No colour signal'
                 }
               />
               <b>
                 {unsupportedColours} colour{unsupportedColours === 1 ? '' : 's'} with pip demand and
-                no reported source
+                no mana source
               </b>
             </div>
             <div>
@@ -204,7 +204,7 @@ export function DeckOverview({
                   !selectedTags.length
                     ? 'No theme selected'
                     : selectedTagsFound === selectedTags.length
-                      ? 'Tag matches found'
+                      ? 'Theme cards found'
                       : 'Check theme tags'
                 }
               />

@@ -715,16 +715,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </div>
             <div className="toolbar-actions">
               <button
-                className="export"
-                type="button"
-                onClick={() => {
-                  setDeckDoctorError('')
-                  openModal('review')
-                }}
-              >
-                Deck review
-              </button>
-              <button
                 className="manual-card-button"
                 type="button"
                 onClick={() => openModal('search')}
@@ -1061,7 +1051,14 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     Change history ({deckDoctorHistory.length})
                   </button>
                 )}
-                <button className="export" type="button" onClick={() => openModal('review')}>
+                <button
+                  className="export"
+                  type="button"
+                  onClick={() => {
+                    setDeckDoctorError('')
+                    openModal('review')
+                  }}
+                >
                   Deck review
                 </button>
               </div>
