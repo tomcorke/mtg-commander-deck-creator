@@ -275,19 +275,6 @@ export function releaseDeferred<T>(deferred: DeferredCard<T>[], batchNumber: num
   }
 }
 
-export function releaseNextDeferred<T>(
-  deferred: DeferredCard<T>[],
-  requestedBatch: number,
-  hasUnseenCards: boolean,
-) {
-  const available = deferred.filter((item) => item.available !== false)
-  const batchNumber =
-    !hasUnseenCards && available.length
-      ? Math.max(requestedBatch, Math.min(...available.map((item) => item.eligibleBatch)))
-      : requestedBatch
-  return { batchNumber, ...releaseDeferred(deferred, batchNumber) }
-}
-
 export type RecommendationDecision = 'add' | 'later' | 'ignore'
 
 function transitionBatch<T extends { name: string }>(
@@ -306,15 +293,11 @@ function transitionBatch<T extends { name: string }>(
     ...deferredCards,
     ...deferBatch(batch, decisions, batchNumber, (card) => card.name),
   ]
-  const waitingForFocus = pending.filter(
-    (entry) =>
-      entry.available !== false && (!focusedRole || cardRoles(entry.card).includes(focusedRole)),
-  )
-  const nextBatchNumber =
-    focusedRole && focused.length <= 4 && waitingForFocus.length
-      ? Math.max(batchNumber + 1, Math.min(...waitingForFocus.map((entry) => entry.eligibleBatch)))
-      : batchNumber + 1
-  const released = releaseNextDeferred(pending, nextBatchNumber, remaining.length > 0)
+  const nextBatchNumber = batchNumber + 1
+  const released = {
+    batchNumber: nextBatchNumber,
+    ...releaseDeferred(pending, nextBatchNumber),
+  }
   return { batch, released, candidates: [...remaining, ...released.ready] }
 }
 

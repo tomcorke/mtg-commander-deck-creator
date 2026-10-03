@@ -105,6 +105,10 @@
   margin: 0;
   font-size: 25px;
 }
+.section-title h2:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, white);
+  outline-offset: 4px;
+}
 .section-title > span {
   color: #838093;
   font-size: 12px;

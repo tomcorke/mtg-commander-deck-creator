@@ -32,6 +32,7 @@ import {
   type TargetKey,
 } from '../../deck-analysis.ts'
 import {
+  hasWaitingFocusedRecommendations,
   ignoreReasons as quickIgnoreReasons,
   suggestedPriceCap,
   type IgnoreReason,
@@ -301,6 +302,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     toggleCollectionSet,
   } = model
   const basicLandDialog = useRef<HTMLElement>(null)
+  const batchHeading = useRef<HTMLHeadingElement>(null)
   const landFillTrigger = useRef<HTMLButtonElement>(null)
   const reviewFilterNames = new Set(deckReviewFilter?.cardNames ?? [])
   const activeHighlightLabel =
@@ -313,6 +315,21 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     : highlightedManaValue === null
       ? 0
       : deck.filter((card) => curveBucket(card) === highlightedManaValue).length
+  const focusedRoleName = focusedRole
+    ? targetLabels[focusedRole].toLowerCase().replace(/s$/, '')
+    : ''
+  const hasReturningFocusedCards = hasWaitingFocusedRecommendations(
+    deferredCards,
+    focusedRole,
+    batchNumber,
+    rolesForCard,
+  )
+  async function clearRoleFocus(role: TargetKey) {
+    await chooseRoleFocus(null)
+    const target = document.getElementById(`deck-target-${role}`)
+    if (target) target.focus()
+    else batchHeading.current?.focus()
+  }
 
   useEffect(() => {
     if (activeModal || !activeHighlightLabel) return
@@ -365,7 +382,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="section-title">
             <div>
               <p className="eyebrow">Next pick</p>
-              <h2>Add to your deck</h2>
+              <h2 ref={batchHeading} tabIndex={-1}>
+                Add to your deck
+              </h2>
             </div>
             <span>Batch {batchNumber}</span>
           </div>
@@ -373,7 +392,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="builder-set-chips role-focus" role="status">
               <button
                 type="button"
-                onClick={() => void chooseRoleFocus(null)}
+                onClick={() => void clearRoleFocus(focusedRole)}
                 disabled={recommendationState !== 'idle'}
                 aria-label={`Clear ${targetLabels[focusedRole]} focus`}
               >
@@ -955,7 +974,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             <button
                               type="button"
                               className="export"
-                              onClick={() => chooseMaxPrice(priceCap)}
+                              onClick={() => {
+                                chooseMaxPrice(priceCap)
+                                batchHeading.current?.focus()
+                              }}
                             >
                               Hide cards over ${priceCap}
                             </button>
@@ -1044,20 +1066,32 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="empty">
               <h3>
                 {focusedRole
-                  ? `No ${targetLabels[focusedRole].toLowerCase()} suggestions ready`
+                  ? `No more ${focusedRoleName} suggestions right now`
                   : deferredCards.length
                     ? 'Suggestions resting'
                     : 'No more suggestions'}
               </h3>
               <p>
                 {focusedRole
-                  ? 'Advance to returning cards, or clear focus to see other roles.'
+                  ? hasReturningFocusedCards
+                    ? 'Advance recommendations to see returning cards, or clear focus to see other roles.'
+                    : 'No more suggestions for this role. Clear focus to see other roles.'
                   : deferredCards.length
                     ? 'Advance recommendations to keep their waiting period, then bring them back.'
                     : maxPrice !== null
                       ? 'Raise or clear your price limit in Recommendation settings.'
                       : 'Review your deck or choose another commander.'}
               </p>
+              {focusedRole && (
+                <button
+                  type="button"
+                  className="export"
+                  onClick={() => void clearRoleFocus(focusedRole)}
+                  disabled={recommendationState !== 'idle'}
+                >
+                  Clear focus
+                </button>
+              )}
             </div>
           )}
           {healthSuggestions.length > 0 && (
@@ -1239,6 +1273,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   {analysis.counts[key] < deckTargets[key] ? (
                     <button
                       type="button"
+                      id={`deck-target-${key}`}
                       className="export deck-target-focus"
                       aria-label={`Focus recommendations on ${targetLabels[key]}: ${analysis.counts[key]} of ${deckTargets[key]}`}
                       aria-pressed={focusedRole === key}

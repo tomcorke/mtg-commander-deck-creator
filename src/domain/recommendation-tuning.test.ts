@@ -12,6 +12,7 @@ import { recommendationScore } from './recommendation-scoring.ts'
 import type { RecommendationScoreContext } from './recommendation-types.ts'
 import {
   focusedRecommendations,
+  hasWaitingFocusedRecommendations,
   migrateRecommendationPriority,
   normalizeMaxPrice,
   suggestedPriceCap,
@@ -146,7 +147,7 @@ test('focused batches have four role matches and preserve every unseen non-role 
   assert.equal(focusedRecommendations(next.queue, null, rolesForCard), next.queue)
 })
 
-test('empty focused queue releases the next role deferral without waiting on other roles', () => {
+test('empty focused queues advance one batch without shortening role deferrals', () => {
   const ramp = card('Returning ramp', '{T}: Add {G}.')
   const other = card('Unseen other')
   const next = advanceRecommendationQueue({
@@ -165,12 +166,28 @@ test('empty focused queue releases the next role deferral without waiting on oth
     focusedRole: 'ramp',
     cardRoles: rolesForCard,
   })
-  assert.equal(next.batchNumber, 7)
-  assert.deepEqual(
-    focusedRecommendations(next.queue, 'ramp', rolesForCard).map(({ name }) => name),
-    [ramp.name],
-  )
+  assert.equal(next.batchNumber, 4)
+  assert.deepEqual(focusedRecommendations(next.queue, 'ramp', rolesForCard), [])
   assert(next.queue.some(({ name }) => name === other.name))
+  assert.equal(next.deferredCards.find(({ card }) => card.name === ramp.name)?.eligibleBatch, 7)
+})
+
+test('focused empty-state return message requires an available matching deferral still waiting', () => {
+  const ramp = card('Returning ramp', '{T}: Add {G}.')
+  const waiting = [{ card: ramp, eligibleBatch: 5 }]
+  assert.equal(hasWaitingFocusedRecommendations(waiting, 'ramp', 3, rolesForCard), true)
+  assert.equal(hasWaitingFocusedRecommendations([], 'ramp', 3, rolesForCard), false)
+  assert.equal(hasWaitingFocusedRecommendations(waiting, 'wipes', 3, rolesForCard), false)
+  assert.equal(hasWaitingFocusedRecommendations(waiting, 'ramp', 5, rolesForCard), false)
+  assert.equal(
+    hasWaitingFocusedRecommendations(
+      [{ ...waiting[0], available: false }],
+      'ramp',
+      3,
+      rolesForCard,
+    ),
+    false,
+  )
 })
 
 test('returning deferred cards respect the price cap too', () => {

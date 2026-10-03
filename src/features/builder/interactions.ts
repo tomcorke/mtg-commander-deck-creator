@@ -1,7 +1,7 @@
 import type { MouseEvent } from 'react'
 
 import { focusedRecommendations, type IgnoreReason } from '../../domain/recommendation-tuning.ts'
-import { analyseDeck, rolesForCard, type TargetKey } from '../../deck-analysis.ts'
+import { analyseDeck, rolesForCard, targetLabels, type TargetKey } from '../../deck-analysis.ts'
 import { buildRecommendationContext } from '../../app/recommendation-context.ts'
 import {
   recommendationPoolKey,
@@ -145,7 +145,7 @@ export async function chooseRoleFocus(deps: BuilderInteractionDeps, role: Target
   await refreshRecommendationSettings({ ...deps, recommendationOptionsChanged: true }, nextRole)
   deps.setFocusedRole(nextRole)
   deps.setBatchAnnouncement(
-    nextRole ? `Recommendations focused on ${nextRole}.` : 'Recommendation focus cleared.',
+    nextRole ? `Recommendations focused on ${targetLabels[nextRole]}.` : 'Role focus cleared.',
   )
 }
 
@@ -221,14 +221,20 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
   setLiked((current: string[]) =>
     current.filter((name) => !batch.some((card: Card) => card.name === name)),
   )
-  const focusedQueue = focusedRecommendations(next.queue, deps.focusedRole, rolesForCard)
+  const focusedRole = deps.focusedRole as TargetKey | null
+  const focusedQueue = focusedRecommendations(next.queue, focusedRole, rolesForCard)
+  const focusedRoleName = focusedRole
+    ? targetLabels[focusedRole].toLowerCase().replace(/s$/, '')
+    : ''
   setBatchAnnouncement(
     focusedQueue.length
       ? `Recommendation batch ${next.batchNumber} loaded: ${focusedQueue
           .slice(0, 4)
           .map((card) => card.name)
           .join(', ')}.`
-      : 'No recommendations currently eligible. Deferred cards will return after their waiting period.',
+      : focusedRole
+        ? `No more ${focusedRoleName} suggestions right now.`
+        : 'No recommendations currently eligible. Deferred cards will return after their waiting period.',
   )
   void loadPrintings(focusedQueue.slice(0, 8), collectionSets[0] || preferredPrintSet)
 }

@@ -21,7 +21,6 @@ import {
   recommendationScoreRating,
   recommendedScoreThreshold,
   releaseDeferred,
-  releaseNextDeferred,
   selectSubTheme,
   sharedThemes,
   supportedThemes,
@@ -811,11 +810,7 @@ test('undecided and later cards observe full cooldown near queue exhaustion', ()
     releaseDeferred(deferred, 5).ready.map((card) => card.name),
     ['Undecided', 'Later'],
   )
-  assert.deepEqual(
-    releaseNextDeferred(deferred, 2, false).ready.map((card) => card.name),
-    ['Undecided'],
-  )
-  assert.equal(releaseNextDeferred(deferred, 2, false).batchNumber, 4)
+  assert.deepEqual(releaseDeferred(deferred, 2), { ready: [], waiting: deferred })
 })
 
 test('theme search matches names and readable aliases', () => {

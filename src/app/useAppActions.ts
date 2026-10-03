@@ -231,13 +231,21 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
 
 function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
   const recommendationRefreshInFlight = useRef(false)
+  const pendingPriceCapAnnouncement = useRef<string | null>(null)
   const interactionDeps = {
     ...remote.recommendationDeps,
     start: remote.start,
     recommendationRefreshInFlight,
   }
-  const applySettings = useEffectEvent(() => {
-    void refreshRecommendationSettings(interactionDeps)
+  const applySettings = useEffectEvent(async () => {
+    try {
+      await refreshRecommendationSettings(interactionDeps)
+    } finally {
+      if (pendingPriceCapAnnouncement.current) {
+        state.setBatchAnnouncement(pendingPriceCapAnnouncement.current)
+        pendingPriceCapAnnouncement.current = null
+      }
+    }
   })
   useEffect(() => {
     if (
@@ -246,7 +254,7 @@ function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
       state.recommendationOptionsChanged &&
       state.recommendationState === 'idle'
     )
-      applySettings()
+      void applySettings()
   }, [
     state.activeModal,
     state.recommendationOptionsChanged,
@@ -265,7 +273,13 @@ function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
     state.recommendationOptionsChanged,
     state.recommendationState,
   ])
-  return interactionDeps
+  return {
+    ...interactionDeps,
+    announcePriceCap: (price: number | null) => {
+      pendingPriceCapAnnouncement.current =
+        price === null ? 'Price cap cleared.' : `Price cap set to $${price}.`
+    },
+  }
 }
 
 function useBuilderActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
@@ -340,6 +354,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     chooseSubTheme,
     chooseRecommendationStyle,
     chooseMaxPrice: (price: number | null) => {
+      interactionDeps.announcePriceCap(price)
       state.setMaxPrice(price)
       state.setRecommendationOptionsChanged(true)
     },

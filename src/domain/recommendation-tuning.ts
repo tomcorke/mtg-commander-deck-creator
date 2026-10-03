@@ -57,3 +57,18 @@ export function focusedRecommendations<T>(
 ) {
   return focusedRole ? queue.filter((card) => cardRoles(card).includes(focusedRole)) : queue
 }
+
+export function hasWaitingFocusedRecommendations<T>(
+  deferred: { card: T; eligibleBatch: number; available?: boolean }[],
+  focusedRole: string | null | undefined,
+  batchNumber: number,
+  cardRoles: (card: T) => string[],
+) {
+  return Boolean(
+    focusedRole &&
+    deferred.some(
+      ({ card, eligibleBatch, available }) =>
+        available !== false && eligibleBatch > batchNumber && cardRoles(card).includes(focusedRole),
+    ),
+  )
+}

@@ -5,7 +5,7 @@ import { defaultDeckTargets, rolesForCard } from '../../deck-analysis.ts'
 import { persistedDeckStateSchema } from '../../deck-state.ts'
 import { toCard, toDeckCard, type Card } from '../../domain/card-model.ts'
 import { focusedRecommendations } from '../../domain/recommendation-tuning.ts'
-import { rankRecommendationCards, releaseNextDeferred } from '../../recommendations.ts'
+import { rankRecommendationCards } from '../../recommendations.ts'
 import { decide } from '../../app/deck-actions.ts'
 import { buildRecommendationContext } from '../../app/recommendation-context.ts'
 import {
@@ -360,18 +360,43 @@ test('pool key ignores ranking controls but includes every fetch constraint', ()
   )
 })
 
-test('unavailable deferrals do not shorten or force a jump past an available cooldown', () => {
-  const blocked = { card: raw('Blocked'), eligibleBatch: 3, available: false }
-  const available = { card: raw('Available'), eligibleBatch: 5 }
-  const released = releaseNextDeferred([blocked, available], 2, false)
-  assert.equal(released.batchNumber, 5)
-  assert.deepEqual(released.ready, [available.card])
-  assert.deepEqual(released.waiting, [blocked])
-  assert.deepEqual(releaseNextDeferred([blocked], 2, false), {
-    batchNumber: 2,
-    ready: [],
-    waiting: [blocked],
-  })
+test('focused Next advances one batch at a time and preserves all deferral cooldowns', async () => {
+  const deps = fixture()
+  const wipe = (name: string) =>
+    toCard({ ...raw(name), oracle_text: 'Destroy all creatures.' }, 'Popular inclusion')
+  const returningRamp = toCard(
+    { ...raw('Returning ramp'), oracle_text: '{T}: Add {G}.' },
+    'Popular inclusion',
+  )
+  deps.queue = [wipe('Wipe one'), wipe('Wipe two')]
+  deps.deferredCards = [{ card: returningRamp, eligibleBatch: 5 }]
+  deps.batchNumber = 2
+  deps.focusedRole = 'wipes'
+
+  await nextBatch(deps)
+  assert.equal(deps.batchNumber, 3)
+  assert.equal(deps.batchAnnouncement, 'No more board wipe suggestions right now.')
+  assert.deepEqual(
+    deps.deferredCards.map(({ card, eligibleBatch }) => [card.name, eligibleBatch]),
+    [
+      ['Returning ramp', 5],
+      ['Wipe one', 5],
+      ['Wipe two', 5],
+    ],
+  )
+
+  await nextBatch(deps)
+  assert.equal(deps.batchNumber, 4)
+  assert.equal(deps.deferredCards.length, 3)
+
+  await nextBatch(deps)
+  assert.equal(deps.batchNumber, 5)
+  assert.equal(deps.deferredCards.length, 0)
+  assert.deepEqual(
+    focusedRecommendations(deps.queue, 'wipes', rolesForCard).map(({ name }) => name),
+    ['Wipe one', 'Wipe two'],
+  )
+  assert(hasCard(deps.queue, 'Returning ramp'))
 })
 
 test('role shortcut processes the old batch once, focuses four cards, and toggles off without losing others', async () => {
@@ -408,6 +433,7 @@ test('role shortcut processes the old batch once, focuses four cards, and toggle
   )
   await chooseRoleFocus(deps, 'ramp')
   assert.equal(deps.focusedRole, null)
+  assert.equal(deps.batchAnnouncement, 'Role focus cleared.')
   for (const name of otherNames) assert(hasCard(deps.queue, name))
   assert.equal(deps.preferenceScores['Ignored tag'], -3, 'Do not apply ignore feedback twice')
 })
