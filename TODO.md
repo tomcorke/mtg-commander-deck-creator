@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, and A13.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, and A13.
 
 ## Suggested order
 
@@ -26,15 +26,14 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                 |
 | ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------ |
 | 1     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
-| 2     | A10 | Clearer set selection                    | Low        | Medium | Low           | Self-contained; uses Scryfall set fields already available.                                            |
-| 3     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
-| 4     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
-| 5     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
-| 6     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                |
-| 7     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
-| 8     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
-| 9     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
-| 10    | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
+| 2     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
+| 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
+| 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
+| 5     | B9  | One deck-review workflow                 | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                |
+| 6     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
+| 7     | A11 | Richer recommendation tuning             | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
+| 8     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
+| 9     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
 
 ## [A12] Defer basic-land fill
 
@@ -51,26 +50,6 @@ Acceptance checks:
 
 - An early deck shows land progress without a primary fill action.
 - A deck near its non-land total sees nonbasic suggestions before the basic split.
-
-## [A10] Make set selection clear and stable
-
-**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Scryfall set data already provides the fields needed for filtering and icons.
-
-Set selection is labelled "Collection affinity" inside Recommendation settings. Searching "dusk" returns the digital Alchemy set, the main set, its Commander product, and promos as truncated text buttons, and a chosen set disappears from the list so the remaining buttons shift under the cursor. The per-card "Use set" button reads like a printing choice.
-
-- Rename the section to describe intent, such as "Sets to build from", and show selected sets as a removable chip in the builder.
-- Hide digital, token, memorabilia, and promo sets by default using Scryfall `digital` and `set_type`, behind a "Show promos and digital sets" toggle. Offer each main set's Commander product as an option on the same row.
-- Show stable rows with set icon (`icon_svg_uri`), name, release year, and a checkbox; selected rows stay in place. With an empty search, list recent main releases.
-- Show the legal-card count for the selection, and warn when Only mode leaves too few candidates to finish a deck (for example fewer than 150).
-- Relabel the printing-details button "Prefer this set" / "Stop preferring this set".
-
-Current context: the picker is in `src/features/modals/RecommendationSettingsModal.tsx`; the printing-details button is in `src/shared/CardDetails.tsx:66`.
-
-Acceptance checks:
-
-- Searching "dusk" shows Duskmourn: House of Horror with its Commander option, and no Alchemy or promo sets unless the toggle is on.
-- Selecting a set never moves other rows.
-- Only mode with a small selection shows the legal count and a warning.
 
 ## [A2] Add a play-style step, resume, and optional intro guide
 

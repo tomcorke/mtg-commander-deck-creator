@@ -2,6 +2,24 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [A10] Make set selection clear and stable
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Scryfall set data already provides the fields needed for filtering and icons.
+
+**Status:** Complete — merged in `e057554`; not yet released.
+
+### Completed behavior
+
+Recommendation settings has a "Sets to build from" picker. Digital, token, memorabilia, and promo sets are hidden behind a "Show promos and digital sets" toggle; each main set's Commander product is a checkbox on the same row. Rows show the set icon, name, release year, and a checkbox, and stay in place when selected (the dialog now anchors to the top so it grows downward). An empty search lists recent main releases. A single Scryfall request counts legal cards for the selection while the dialog is open, with a warning in Only mode below 150 cards. Selected sets appear as removable chips in the builder. The mode menu reads "Prefer these sets" / "Only these sets", the summary says "All sets" instead of "Collection off", the printing-details button reads "Prefer this set" / "Stop preferring this set", and leftover "collection" labels use set wording.
+
+Implementation: `src/domain/set-picker.ts`, `src/features/modals/RecommendationSettingsModal.tsx`, `src/shared/CardDetails.tsx`, the count effect in `src/app/useAppEffects.ts`, and the builder chips in `BuilderView.tsx`.
+
+### Acceptance checks
+
+- `src/domain/set-picker.test.ts` covers set filtering, Commander grouping, and ordering.
+- Browser checks: searching "dusk" shows only Duskmourn: House of Horror with its Commander option unless the toggle is on; row positions are unchanged after selecting; Only mode with a small selection shows the count and warning; light, dark, and 390px render correctly. A recheck after A8 and B8 found no regressions. Not rendered: the dialog in dark at 390px, the set-browser heading, and the Only-mode error text.
+- All 180 tests, lint, typecheck, and production build pass.
+
 ## [A7] Keep recommendation progress when settings change
 
 **Complexity:** Low · **Value:** High · **Delivery risk:** Low — The queue already supports re-ranking; the fix is mostly wiring and tests.
