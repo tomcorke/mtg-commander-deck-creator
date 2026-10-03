@@ -72,10 +72,13 @@ export function ExportDeckModal({
             CSV
           </button>
         </div>
+        {/* Unverified: whether Moxfield's text import accepts commanders with the mainboard.
+            Rechecked 2026-10-04 in Chrome; moxfield.com/help never finished loading. */}
         {exportFormat === 'moxfield' && (
           <p className="moxfield-instructions">
             This {deckCount - names.length}-card mainboard list omits your{' '}
-            {names.length > 1 ? 'commanders' : 'commander'}: <b>{names.join(' and ')}</b>.
+            {names.length > 1 ? 'commanders' : 'commander'}. In Moxfield, set{' '}
+            <b>{names.join(' and ')}</b> as your {names.length > 1 ? 'commanders' : 'commander'}.
           </p>
         )}
         <textarea

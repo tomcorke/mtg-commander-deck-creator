@@ -434,11 +434,11 @@ export function RecommendationSettingsModal({
                     setRecommendationOptionsChanged(true)
                   }}
                 />{' '}
-                Avoid tutors (preference)
+                Exclude tutors (preference)
               </label>
               <SettingHelp
                 id="exclude-tutors-help"
-                label="Avoid tutors (preference)"
+                label="Exclude tutors (preference)"
                 description="Personal preference, not a Commander Bracket restriction. Wizards removed tutor restrictions in October 2025. This filter uses card tags and text."
               />
             </div>
@@ -453,11 +453,11 @@ export function RecommendationSettingsModal({
                     setRecommendationOptionsChanged(true)
                   }}
                 />{' '}
-                Avoid extra turns (preference)
+                Exclude extra turns (preference)
               </label>
               <SettingHelp
                 id="exclude-extra-turns-help"
-                label="Avoid extra turns (preference)"
+                label="Exclude extra turns (preference)"
                 description="Personal preference. Removes cards identified as granting extra turns; this does not analyse quantity, chaining, loops, or intent."
               />
             </div>
@@ -476,7 +476,7 @@ export function RecommendationSettingsModal({
               </label>
               <SettingHelp
                 id="exclude-unreleased-help"
-                label="Exclude unreleased cards"
+                label="Exclude unreleased cards (preference)"
                 description="Removes cards that are not released yet."
               />
             </div>
