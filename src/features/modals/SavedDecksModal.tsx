@@ -53,6 +53,7 @@ export function SavedDecksModal({
   const dialog = useRef<HTMLElement>(null)
   const [retentionResult, setRetentionResult] = useState('')
   async function applyLimits(values: FormData) {
+    setRetentionResult('')
     const limits = {
       maxCount: Number(values.get('maxCount')),
       maxAgeDays: Number(values.get('maxAgeDays')),
@@ -195,6 +196,11 @@ export function SavedDecksModal({
           ))}
         </div>
         {!autosave.drafts.length && <p className="saved-decks-empty">No autosaved drafts yet.</p>}
+        {autosave.draftDeleteError && (
+          <p className="draft-help" role="status">
+            {autosave.draftDeleteError}
+          </p>
+        )}
         <form
           className="autosave-retention"
           key={`${autosave.retention.maxCount}:${autosave.retention.maxAgeDays}`}
@@ -319,7 +325,7 @@ export function SavedDecksModal({
                   thumbnail
                   onOpen={() => openCard(saved.state.deck[0])}
                 />
-                <span>{saved.state.deck.length}/100 cards</span>
+                <small>{saved.state.deck.length}/100 cards</small>
                 <small>Updated {new Date(saved.updatedAt).toLocaleString()}</small>
               </div>
               <button

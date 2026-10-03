@@ -1,12 +1,15 @@
 import { z } from 'zod'
 
 import {
+  deckStateForStorage,
   deckStateKey,
   deckStateVersion,
+  encodeDeckState,
   loadDeckState,
   loadSavedDecks,
   persistedDeckStateSchema,
   restoredRecommendationDecisions,
+  storedDeckStateSchema,
   suggestedDeckName,
   type PersistedDeckState,
 } from './deck-state.ts'
@@ -32,48 +35,24 @@ const autosaveSchema = z.object({
   state: persistedDeckStateSchema,
 })
 export type AutosavedDraft = z.infer<typeof autosaveSchema>
-// Store queue field names once, without dropping scoring inputs, art, or selected printings.
-const compactQueueSchema = z
-  .object({ fields: z.array(z.string()), rows: z.array(z.array(z.unknown())) })
-  .refine(({ fields, rows }) => rows.every((row) => row.length === fields.length))
-  .transform(({ fields, rows }) =>
-    rows.map((row) =>
-      Object.fromEntries(
-        fields.flatMap((field, index) => (row[index] === null ? [] : [[field, row[index]]])),
-      ),
-    ),
-  )
-  .pipe(persistedDeckStateSchema.shape.queue)
-const storedAutosaveSchema = autosaveSchema.extend({
-  state: persistedDeckStateSchema.extend({
-    queue: z.union([persistedDeckStateSchema.shape.queue, compactQueueSchema]),
-  }),
-})
+const storedAutosaveSchema = autosaveSchema.extend({ state: storedDeckStateSchema })
 
 function serializeDraft(value: AutosavedDraft) {
   const draft = autosaveSchema.parse(value)
-  const queue = draft.state.queue
-  if (!queue.length) return JSON.stringify(draft)
-  const fields = [
-    ...new Set(
-      queue.flatMap((card) =>
-        Object.keys(card).filter((key) => card[key as keyof typeof card] !== undefined),
-      ),
-    ),
-  ] as (keyof (typeof queue)[number])[]
-  const rows = queue.map((card) => fields.map((field) => card[field] ?? null))
-  return JSON.stringify({ ...draft, state: { ...draft.state, queue: { fields, rows } } })
+  return JSON.stringify({ ...draft, state: encodeDeckState(draft.state) })
 }
 
 function stateForComparison(state: PersistedDeckState) {
   // Startup defaults and recovered Add choices are not player edits to an older draft.
   return JSON.stringify(
-    persistedDeckStateSchema.parse({
-      ...state,
-      ignoreReasons: state.ignoreReasons ?? {},
-      maxPrice: state.maxPrice ?? null,
-      decisions: restoredRecommendationDecisions(state),
-    }),
+    deckStateForStorage(
+      persistedDeckStateSchema.parse({
+        ...state,
+        ignoreReasons: state.ignoreReasons ?? {},
+        maxPrice: state.maxPrice ?? null,
+        decisions: restoredRecommendationDecisions(state),
+      }),
+    ),
   )
 }
 
@@ -132,6 +111,8 @@ class Workspace {
     retention: defaultRetention,
     notice: null as { draft: AutosavedDraft; copied: boolean; latest: boolean } | null,
     error: '',
+    cleanupMessage: '',
+    draftDeleteError: '',
     busy: false,
     cleanupAvailable: false,
   }
@@ -331,17 +312,13 @@ class Workspace {
       }
       if (tryWrite()) return 0
       const drafts = listAutosaves(storage)
+      const count = drafts.length + (retry && !drafts.some(({ id }) => id === retry.id) ? 1 : 0)
       let removed = 0
       const cutoff = this.now().getTime() - retention.maxAgeDays * 86_400_000
       for (const draft of [...drafts].reverse()) {
         if (this.closed) break
         if (draft.id === this.snapshot.id || draft.id === retry?.id) continue
-        if (
-          !retry &&
-          drafts.length - removed <= retention.maxCount &&
-          Date.parse(draft.updatedAt) >= cutoff
-        )
-          continue
+        if (count - removed <= retention.maxCount && Date.parse(draft.updatedAt) >= cutoff) continue
         // Atomic try-lock protects hidden/frozen owners and races with new owners.
         await locks.request(autosavePrefix + draft.id, { ifAvailable: true }, (lock) => {
           if (!lock) return
@@ -349,9 +326,12 @@ class Workspace {
           if (this.closed || !current || JSON.stringify(current) !== JSON.stringify(draft)) return
           storage.removeItem(autosavePrefix + draft.id)
           removed++
+          this.publish({
+            cleanupMessage: `Deleted ${removed} inactive draft${removed === 1 ? '' : 's'} exceeding your autosave limits.`,
+          })
           this.notify()
         })
-        // On quota pressure, remove only as many oldest inactive drafts as this write needs.
+        // Quota pressure never authorizes deletion within the configured limits.
         if (tryWrite()) return removed
       }
       if (retry) throw new DOMException('Storage full', 'QuotaExceededError')
@@ -382,7 +362,11 @@ class Workspace {
   }
   deleteDraft = async (draft: AutosavedDraft) => {
     const { locks, storage } = this.options
-    if (!locks || this.closed || draft.id === this.snapshot.id) return false
+    const unavailable = 'Draft is in use or changed; try again.'
+    if (!locks || this.closed || draft.id === this.snapshot.id) {
+      this.publish({ draftDeleteError: unavailable })
+      return false
+    }
     try {
       const deleted = await locks.request(
         autosavePrefix + draft.id,
@@ -397,8 +381,10 @@ class Workspace {
         },
       )
       if (deleted) this.notify()
+      this.publish({ draftDeleteError: deleted ? '' : unavailable })
       return deleted
     } catch {
+      this.publish({ draftDeleteError: 'Could not delete this draft. Try again.' })
       this.storageError()
       return false
     } finally {
@@ -411,9 +397,13 @@ class Workspace {
       await this.refresh()
       this.notify()
       return await this.prune()
-    } catch {
+    } catch (error) {
       this.publish({
-        error: 'Could not save autosave limits. Use a count from 1–200 and an age from 1–365 days.',
+        error: isQuotaError(error)
+          ? 'Storage is full. Could not save autosave limits; delete an unwanted saved deck or draft and try again.'
+          : error instanceof z.ZodError
+            ? 'Could not save autosave limits. Use a count from 1–200 and an age from 1–365 days.'
+            : 'Could not save autosave limits. Storage is unavailable; try again.',
       })
     }
   }
@@ -495,6 +485,7 @@ class Workspace {
     return () => this.listeners.delete(listener)
   }
   dismissNotice = () => this.publish({ notice: null })
+  dismissCleanupMessage = () => this.publish({ cleanupMessage: '' })
   close = () => {
     if (this.closed) return
     this.closed = true

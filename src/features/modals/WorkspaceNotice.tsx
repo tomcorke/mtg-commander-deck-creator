@@ -20,14 +20,20 @@ export function WorkspaceNotice({
   startNew: () => void
   chooseDraft: () => void
 }) {
-  const { notice, error, busy } = autosave
-  if (!notice && !error) return null
+  const { notice, error, cleanupMessage, busy } = autosave
+  if (!notice && !error && !cleanupMessage) return null
   return (
     <>
-      {error && (
-        <p className="workspace-alert" role="alert">
-          {error}
-        </p>
+      {(error || cleanupMessage) && (
+        <div className="workspace-alert" role="alert">
+          {[error, cleanupMessage].filter(Boolean).join(' ')}
+          {cleanupMessage && (
+            <ModalCloseButton
+              label="Dismiss autosave cleanup message"
+              onClick={workspace.dismissCleanupMessage}
+            />
+          )}
+        </div>
       )}
       {notice && (
         <section className="workspace-notice" aria-label="Draft recovery">

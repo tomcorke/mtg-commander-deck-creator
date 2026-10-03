@@ -5,7 +5,8 @@ import { defaultDeckTargets, rolesForCard } from '../deck-analysis.ts'
 import { rankRecommendationCards, recommendationScore } from '../recommendations.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import { fetchScryfallCardsByIdentifiers, fetchScryfallPrintings } from '../adapters/scryfall.ts'
-import { toCard } from '../domain/card-model.ts'
+import { toCard, type Card } from '../domain/card-model.ts'
+import { cyclePrinting } from './deck-actions.ts'
 import { loadPrintings } from './printing-actions.ts'
 import {
   addCommanderCards,
@@ -451,6 +452,77 @@ test('recommendation refresh and printing enrichment preserve manual printing se
     [queued],
   )
   assert.equal(queued, before)
+})
+
+test('restored single-printing queues fetch alternatives, preserve their selection and can switch printings', async (context) => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'Image')
+  Object.defineProperty(globalThis, 'Image', {
+    configurable: true,
+    value: class {
+      onload = () => {}
+      set src(_value: string) {
+        this.onload()
+      }
+    },
+  })
+  context.after(() => {
+    if (descriptor) Object.defineProperty(globalThis, 'Image', descriptor)
+    else Reflect.deleteProperty(globalThis, 'Image')
+  })
+  for (const manual of [false, true]) {
+    const chosen = {
+      image: 'chosen-art',
+      set: 'chosen',
+      setName: 'Chosen Set',
+      collectorNumber: '42',
+      scryfallUri: 'https://scryfall.com/card/chosen/42',
+      price: '3.00',
+      finish: 'foil' as const,
+    }
+    let queued: Card = {
+      ...toCard(card('Restored'), 'Popular inclusion'),
+      ...chosen,
+      printings: [chosen],
+      printing: 0,
+      printingManuallySelected: manual,
+    }
+    let requests = 0
+    const deps = {
+      deck: [],
+      queue: [queued],
+      collectionSets: [],
+      collectionMode: 'none',
+      fetchPrintings: async () => {
+        requests++
+        return [
+          {
+            ...card('Restored'),
+            set_name: 'Default Set',
+            scryfall_uri: 'https://scryfall.com/card/tst/1',
+            image_uris: { normal: 'default-art' },
+          },
+        ]
+      },
+      setQueue: (update) => {
+        queued = update([queued])[0]
+      },
+    }
+    await loadPrintings(deps, [queued], 'tst')
+    assert.equal(requests, 1)
+    assert.equal(queued.image, chosen.image)
+    assert.equal(queued.finish, chosen.finish)
+    assert.equal(queued.set, chosen.set)
+    assert.equal(queued.price, chosen.price)
+    assert.equal(queued.printingManuallySelected, manual)
+    assert.equal(queued.printings?.length, 2)
+    await cyclePrinting(
+      { ...deps, decisions: {}, setLoadingArt: () => {}, setSelectedGuidanceCard: () => {} },
+      queued,
+    )
+    assert.equal(queued.image, 'default-art')
+    assert.equal(queued.finish, 'nonfoil')
+    assert.equal(queued.printingManuallySelected, true)
+  }
 })
 
 test('automatic printing enrichment respects the cap even for a preferred set or premium finish', async () => {

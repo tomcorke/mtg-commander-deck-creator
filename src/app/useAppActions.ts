@@ -207,16 +207,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     fetchSearch: (query: string, signal?: AbortSignal, order?: string) =>
       searchScryfall(query, fetch, signal, order),
   })
-  usePrintingRepairEffect({
-    queue: state.queue,
-    activeSavedDeckId: state.activeSavedDeckId,
-    batchNumber: state.batchNumber,
-    commander: state.commander,
-    repairedPrintingBatches: state.repairedPrintingBatches,
-    collectionSets: state.collectionSets,
-    preferredPrintSet: state.preferredPrintSet,
-    loadPrintings,
-  })
+  usePrintingRepairEffect({ ...state, workspaceId: state.autosave.id, loadPrintings })
   const recommendationDeps = {
     ...state,
     ...routing,

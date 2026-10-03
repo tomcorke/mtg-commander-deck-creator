@@ -11,6 +11,7 @@ import {
   workspaceSessionKey,
 } from './autosaves.ts'
 import {
+  deckStateChanged,
   deckStateKey,
   loadSavedDecks,
   persistedDeckStateSchema,
@@ -595,12 +596,13 @@ test('a taken manual-save name requires explicit overwrite and reuses the existi
   }
 })
 
-test('quota failures prune oldest inactive drafts and retry without touching live drafts or manual saves', async () => {
+test('quota failures prune only drafts beyond retention and report deletion without touching live drafts or manual saves', async () => {
   const env = environment()
   const a = await env.tab()
   await a.save(state, 'A')
   const b = await env.tab()
   await b.save({ ...state, commander: 'Other' }, 'B')
+  await a.setRetention({ maxCount: 3, maxAgeDays: 7 })
   seed(env, 'oldest', '2026-10-02T12:00:00Z')
   seed(env, 'recent', '2026-10-03T11:00:00Z')
   saveSavedDeck(
@@ -627,6 +629,7 @@ test('quota failures prune oldest inactive drafts and retry without touching liv
   assert.equal(a.getSnapshot().error, '')
   assert.equal(env.storage.getItem(autosavePrefix + 'oldest'), null)
   assert.ok(env.storage.getItem(autosavePrefix + 'recent'))
+  assert.match(a.getSnapshot().cleanupMessage, /Deleted 1 inactive draft.*autosave limits/)
   assert.deepEqual(readOwnDraft(env, b), live)
   assert.equal(env.storage.getItem(savedDecksKey), manual)
   assert.equal(env.storage.getItem('junk'), 'unrelated data')
@@ -645,6 +648,7 @@ test('autosaves store the recommendation queue compactly and restore every scori
     source: 'edhrec' as const,
     inclusion: index / 100,
     collectionMatch: index % 2 === 0,
+    ...(index === 0 ? { image: 'chosen', collectorNumber: '2', finish: 'foil' as const } : {}),
     printings:
       index === 0
         ? [{ image: 'chosen', set: 'tst', collectorNumber: '2', finish: 'foil' as const }]
@@ -662,6 +666,7 @@ test('quota retries serialize rapid edits, and non-quota failures never authoriz
   const env = environment()
   const workspace = await env.tab()
   await workspace.save(state, 'Original')
+  await workspace.setRetention({ maxCount: 1, maxAgeDays: 7 })
   seed(env, 'inactive', '2026-10-02T12:00:00Z')
   const setItem = env.storage.setItem
   env.storage.setItem = (key, value) => {
@@ -695,11 +700,17 @@ test('individual deletion and retention previews protect current and live drafts
   assert.equal(await a.previewRetention({ maxCount: 1, maxAgeDays: 7 }), 1)
   assert.equal(await a.deleteDraft(readOwnDraft(env, a)!), false)
   assert.equal(await a.deleteDraft(readOwnDraft(env, b)!), false)
+  assert.match(a.getSnapshot().draftDeleteError, /Draft is in use or changed; try again/)
+  const inactive = listAutosaves(env.storage).find(({ id }) => id === 'inactive')!
+  seed(env, 'inactive', '2026-10-03T11:00:00Z')
+  assert.equal(await a.deleteDraft(inactive), false)
+  assert.match(a.getSnapshot().draftDeleteError, /Draft is in use or changed; try again/)
   assert.equal(
     await a.deleteDraft(listAutosaves(env.storage).find(({ id }) => id === 'inactive')!),
     true,
   )
   assert.equal(listAutosaves(env.storage).length, 2)
+  assert.equal(a.getSnapshot().draftDeleteError, '')
   a.close()
   b.close()
 })
@@ -716,6 +727,175 @@ test('the restored notice is shown once per tab session, including when not dism
   assert.equal(reload.getSnapshot().notice, null)
   assert.equal(reload.initialState?.commander, state.commander)
   reload.close()
+})
+
+test('storage pressure keeps inactive drafts within retention, including after a failed cleanup retry', async () => {
+  const env = environment()
+  const workspace = await env.tab()
+  await workspace.save(state, 'Original')
+  seed(env, 'recent', '2026-10-02T12:00:00Z')
+  const recent = env.storage.getItem(autosavePrefix + 'recent')
+  const setItem = env.storage.setItem
+  const fullStorage = () => {
+    throw new DOMException('Storage full', 'QuotaExceededError')
+  }
+  env.storage.setItem = fullStorage
+  await workspace.save({ ...state, theme: 'Unsaved' }, 'Original')
+  assert.equal(env.storage.getItem(autosavePrefix + 'recent'), recent)
+  assert.equal(readOwnDraft(env, workspace)?.state.theme, state.theme)
+  assert.match(workspace.getSnapshot().error, /Autosave unavailable/)
+  assert.equal(workspace.getSnapshot().cleanupMessage, '')
+  // A pre-existing expired draft is eligible even when the retry still cannot fit.
+  env.storage.setItem = setItem
+  seed(env, 'expired', '2026-09-01T12:00:00Z')
+  env.storage.setItem = fullStorage
+  await workspace.save({ ...state, theme: 'Still unsaved' }, 'Original')
+  assert.equal(env.storage.getItem(autosavePrefix + 'expired'), null)
+  assert.equal(env.storage.getItem(autosavePrefix + 'recent'), recent)
+  assert.match(workspace.getSnapshot().error, /Autosave unavailable/)
+  assert.match(workspace.getSnapshot().cleanupMessage, /Deleted 1 inactive draft/)
+  workspace.close()
+})
+
+test('retention storage failures distinguish quota errors from invalid limits', async () => {
+  const env = environment()
+  const workspace = await env.tab()
+  env.storage.setItem = () => {
+    throw new DOMException('Storage full', 'QuotaExceededError')
+  }
+  assert.equal(await workspace.setRetention({ maxCount: 5, maxAgeDays: 7 }), undefined)
+  assert.match(workspace.getSnapshot().error, /Storage is full/)
+  assert.doesNotMatch(workspace.getSnapshot().error, /Use a count/)
+  assert.equal(await workspace.setRetention({ maxCount: 0, maxAgeDays: 7 }), undefined)
+  assert.match(workspace.getSnapshot().error, /Use a count/)
+  workspace.close()
+})
+
+test('autosaves, session recovery and manual saves stay below 60K characters with a printing-heavy queue', async (context) => {
+  const env = environment()
+  const session = memoryStorage()
+  const workspace = await env.tab(session)
+  const printings = Array.from({ length: 40 }, (_, index) => ({
+    image: `https://cards.scryfall.io/normal/front/a/b/abcdef01-2345-6789-abcd-0123456789ab.jpg?${index}`,
+    backImage: `https://cards.scryfall.io/normal/back/a/b/abcdef01-2345-6789-abcd-0123456789ab.jpg?${index}`,
+    set: 'tst',
+    setName: 'Test Commander Set',
+    collectorNumber: String(index),
+    scryfallUri: `https://scryfall.com/card/tst/${index}/test-card`,
+    price: '2.50',
+    priceUri: `https://www.tcgplayer.com/product/123456?partner=Scryfall&printing=${index}`,
+    finish: index % 2 ? ('foil' as const) : ('nonfoil' as const),
+  }))
+  const queue = Array.from({ length: 19 }, (_, index) => ({
+    ...state.deck[0],
+    ...printings[17],
+    name: `Printing-heavy candidate ${index}`,
+    detail: 'Whenever another permanent enters, put a counter on this creature. '.repeat(3),
+    reason: 'Popular inclusion for this commander',
+    printsUri: `https://api.scryfall.com/cards/search?order=released&q=oracleid%3Acandidate-${index}&unique=prints`,
+    source: 'edhrec' as const,
+    inclusion: index / 19,
+    collectionMatch: index % 2 === 0,
+    printings,
+    printing: 17,
+    printingManuallySelected: index === 0,
+    seedEvidence: [
+      {
+        name: `Candidate ${index}`,
+        seed: 'Test engine',
+        page: 'cards' as const,
+        theme: 'Counters',
+        tag: 'highliftcards',
+        lift: 2,
+      },
+    ],
+  }))
+  const full = persistedDeckStateSchema.parse({
+    ...state,
+    commanderDetails: {
+      images: [printings[0].image],
+      art: [printings[0].image],
+      colours: ['G'],
+      printings: [printings.slice(0, 2)],
+      selections: [0],
+    },
+    deck: Array.from({ length: 12 }, (_, index) => ({
+      ...queue[index],
+      ...printings[0],
+      name: index === 0 ? state.commander : `Deck card ${index}`,
+      printings: printings.slice(0, 2),
+      printing: 0,
+    })),
+    queue,
+    deferredCards: [{ card: queue[0], eligibleBatch: 3 }],
+  })
+  await workspace.save(full, 'Printing-heavy deck')
+  saveSavedDeck(
+    { id: 'manual', name: 'Manual', updatedAt: env.options.now().toISOString(), state: full },
+    env.storage,
+  )
+  for (const [label, raw] of [
+    ['autosave', env.storage.getItem(autosavePrefix + workspace.getSnapshot().id)!],
+    ['session recovery', session.getItem(workspaceRecoveryKey)!],
+    ['manual save', env.storage.getItem(savedDecksKey)!],
+  ]) {
+    context.diagnostic(`${label}: ${raw.length} characters (budget: 60,000)`)
+    assert.ok(
+      raw.length < 60_000,
+      `Serialized deck must stay under 60K characters; got ${raw.length}`,
+    )
+  }
+  const compact = readOwnDraft(env, workspace)!.state
+  for (const loaded of [compact, loadSavedDecks(env.storage)[0].state]) {
+    assert.equal(loaded.queue[0].printings?.length, 1)
+    assert.equal(loaded.queue[0].printing, 0)
+    assert.deepEqual(loaded.queue[0].printings?.[0], printings[17])
+    assert.deepEqual(loaded.deferredCards[0].card, loaded.queue[0])
+    assert.deepEqual(loaded.deck, JSON.parse(JSON.stringify(full.deck)))
+    assert.equal(deckStateChanged(loaded, full), false)
+    const changed = {
+      ...loaded,
+      queue: [{ ...loaded.queue[0], ...printings[18] }, ...loaded.queue.slice(1)],
+    }
+    assert.equal(deckStateChanged(loaded, changed), true)
+  }
+  const timestamp = readOwnDraft(env, workspace)!.updatedAt
+  env.setTime('2026-10-03T12:05:00Z')
+  await workspace.save(full, 'Printing-heavy deck')
+  assert.equal(readOwnDraft(env, workspace)!.updatedAt, timestamp)
+  workspace.close()
+})
+
+test('older full-object and compact queues keep their printing lists when loaded', () => {
+  const env = environment()
+  const queue = [
+    {
+      ...state.deck[0],
+      reason: 'Test',
+      printsUri: '',
+      printings: [
+        { image: 'first', set: 'tst', collectorNumber: '1' },
+        { image: 'chosen', set: 'tst', collectorNumber: '2', finish: 'foil' as const },
+      ],
+      printing: 1,
+    },
+  ]
+  const full = persistedDeckStateSchema.parse({ ...state, queue })
+  const fields = Object.keys(queue[0])
+  for (const storedQueue of [queue, { fields, rows: [Object.values(queue[0])] }]) {
+    const draft = {
+      version: 1,
+      id: 'old',
+      name: 'Old',
+      updatedAt: env.options.now().toISOString(),
+      state: { ...full, queue: storedQueue },
+    }
+    env.storage.setItem(autosavePrefix + draft.id, JSON.stringify(draft))
+    env.storage.setItem(savedDecksKey, JSON.stringify({ version: 1, decks: [draft] }))
+    const expected = JSON.parse(JSON.stringify(full))
+    assert.deepEqual(listAutosaves(env.storage)[0].state, expected)
+    assert.deepEqual(loadSavedDecks(env.storage)[0].state, expected)
+  }
 })
 
 test('relative age handles fresh, future, minute, hour and day timestamps', () => {

@@ -361,6 +361,7 @@ export function useCommanderImagesEffect(deps: AppEffectsDeps) {
 export function usePrintingRepairEffect(deps: AppEffectsDeps) {
   const {
     queue,
+    workspaceId,
     activeSavedDeckId,
     batchNumber,
     commander,
@@ -375,12 +376,18 @@ export function usePrintingRepairEffect(deps: AppEffectsDeps) {
     const cards = focusedRecommendations<Card>(queue, focusedRole, rolesForCard)
       .slice(0, 8)
       .filter((card: any, index: number) => index < 4 || !card.seedEvidence?.length)
-    if (!cards.some(needsPrintingRepair)) return
-    const repairKey = `${activeSavedDeckId}:${batchNumber}:${commander}:${cards.map((card: any) => card.name).join('|')}`
+    if (
+      !cards.some(
+        (card) => !card.printings || card.printings.length < 2 || needsPrintingRepair(card),
+      )
+    )
+      return
+    const repairKey = `${workspaceId}:${activeSavedDeckId}:${batchNumber}:${commander}:${cards.map((card: any) => card.name).join('|')}`
     if (repairedPrintingBatches.current.has(repairKey)) return
     repairedPrintingBatches.current.add(repairKey)
     void loadPrintings(cards, collectionSets[0] || preferredPrintSet)
   }, [
+    workspaceId,
     activeSavedDeckId,
     batchNumber,
     collectionSets,

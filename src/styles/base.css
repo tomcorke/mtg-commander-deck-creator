@@ -87,6 +87,9 @@ main > .workspace-alert {
   max-width: min(420px, calc(100vw - 32px));
   margin: 0;
   padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   border: 1px solid #a13e4c;
   border-left-width: 4px;
   border-radius: 6px;
