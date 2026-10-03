@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, and A8.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A8, and A13.
 
 ## Suggested order
 
@@ -35,8 +35,7 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | 8     | B10 | Finding-driven swap suggestions                 | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
 | 9     | A11 | Richer recommendation tuning                    | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
 | 10    | B11 | Builder UI consistency pass                     | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
-| 11    | A13 | Collection import investigation                 | Medium     | Medium | High          | Valuable for collectors, but export formats and matching quality are unproven.                         |
-| 12    | B4  | Finish builder-view module ownership            | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
+| 11    | B4  | Finish builder-view module ownership            | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
 
 ## [A7] Keep recommendation progress when settings change
 
@@ -234,19 +233,6 @@ Acceptance checks:
 
 - Rendered review passes in light, dark, and narrow layouts with no duplicated builder controls.
 - No measurable main-thread stall on the builder with four tiles and motion on.
-
-## [A13] Investigate collection import
-
-**Complexity:** Medium · **Value:** Medium · **Delivery risk:** High — Export formats vary, and name and printing matching may be unreliable without a server.
-
-Set selection approximates a collection. Players who track collections in Moxfield, Archidekt, ManaBox, or Deckbox could import an export instead.
-
-- Investigate pasting or uploading CSV or text exports from those tools, matching names through the existing Scryfall collection lookup, and reusing Prefer and Only modes.
-- Go/no-go: each major format parses client-side, and a sample collection matches at least 98% of cards by name. Otherwise keep set-based selection.
-
-Acceptance checks:
-
-- The investigation records sample formats, parsing results, match rates, and a recommendation.
 
 ## [B4] Finish builder-view module ownership
 

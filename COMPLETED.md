@@ -2,6 +2,22 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [A13] Investigate collection import
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** High — Export formats vary, and name and printing matching may be unreliable without a server.
+
+**Status:** Investigation complete — no-go; merged in `3c6ade3`. Keep set-based selection.
+
+### Findings
+
+Parsing CSV exports client-side is feasible, and matching names with the existing `cardNameKey` normalization resolved 107 of 108 names (99.07%) on the Anikthea deck used as a collection proxy (104/108 without normalization; 108/108 by printing identifier). No native collection export was obtained from Moxfield, Archidekt, ManaBox, or Deckbox, so the gate that every major format parses without losing records is unproven. Imported ownership would also need card-level identities rather than the current set-based candidate search in `collectionRecommendations`.
+
+Report: [docs/a13-collection-import-investigation.md](docs/a13-collection-import-investigation.md).
+
+### Reconsider when
+
+Anonymized, untouched exports from all four tools are available (both ManaBox variants, and an Archidekt export with optional fields changed). Approve implementation only if every native format parses without losing records, the sample reaches at least 98% by name, and misses are visible to the player.
+
 ## [A8] Explain recommendations in plain language
 
 **Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Uses existing score and evidence data; the work is wording and placement.
