@@ -117,7 +117,9 @@ function roleGapFindings(context: DiagnosisContext): DeckDoctorFinding[] {
       kind: 'role-gap',
       title: `${targetLabels[key]} may be short`,
       summary: guidance.text,
-      evidence: [`${analysis.counts[key]} cards detected against a target of ${deckTargets[key]}.`],
+      evidence: [
+        `${analysis.counts[key]} card${analysis.counts[key] === 1 ? '' : 's'} detected against a target of ${deckTargets[key]}.`,
+      ],
       cardNames: cardNames(deck.filter((card) => rolesForCard(card).includes(key))),
       supportCount: analysis.counts[key],
     }

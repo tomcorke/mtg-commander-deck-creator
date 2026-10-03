@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+
 import type { Card, DeckCard } from '../../domain/card-model.ts'
 import type { DeckDoctorSwapRecord } from '../../deck-doctor.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
@@ -20,6 +22,7 @@ export function DeckReviewHistoryModal({
   undoSwap,
   closeModal,
 }: Props) {
+  const list = useRef<HTMLElement>(null)
   if (!show) return null
   return (
     <div
@@ -47,6 +50,7 @@ export function DeckReviewHistoryModal({
         </div>
         <section
           id="deck-review-history"
+          ref={list}
           tabIndex={-1}
           className="doctor-history"
           aria-labelledby="history-title"
@@ -81,7 +85,10 @@ export function DeckReviewHistoryModal({
                 <button
                   className="export"
                   type="button"
-                  onClick={() => undoSwap(swap.id)}
+                  onClick={() => {
+                    // The undone item's button unmounts; keep focus in the dialog for Escape.
+                    if (undoSwap(swap.id)) list.current?.focus()
+                  }}
                   aria-label={
                     swap.cutCard && swap.addedCard
                       ? `Undo ${swap.addedCard.name} for ${swap.cutCard.name}`

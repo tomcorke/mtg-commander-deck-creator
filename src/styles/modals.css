@@ -256,6 +256,9 @@
   margin: 0;
   padding: 24px 5vw 48px;
 }
+.doctor-page > .primary {
+  justify-self: start;
+}
 .doctor-page.has-pending-summary {
   padding-bottom: 144px;
 }

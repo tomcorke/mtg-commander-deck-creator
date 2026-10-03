@@ -544,19 +544,11 @@ export function DeckDoctorView({
           <h2 ref={stepHeading} tabIndex={-1}>
             {step}
           </h2>
-          <button
-            className="export"
-            type="button"
-            onClick={() => {
-              if (step !== 'Diagnose' || confirmExit()) back()
-            }}
-          >
-            {step === 'Confirm'
-              ? 'Back to Choose changes'
-              : step === 'Choose changes'
-                ? 'Back to Diagnose'
-                : 'Back to builder'}
-          </button>
+          {step !== 'Diagnose' && (
+            <button className="export" type="button" onClick={back}>
+              {step === 'Confirm' ? 'Back to Choose changes' : 'Back to Diagnose'}
+            </button>
+          )}
         </div>
         <details className="doctor-intro">
           <summary>How review works</summary>
@@ -912,7 +904,8 @@ export function DeckDoctorView({
                 <h2 id="doctor-plan-title">Proposed changes</h2>
               </div>
               <span>
-                {selectedCutIndexes.length} cuts · {selectedAdditionNames.length} additions
+                {selectedCuts.length} cut{selectedCuts.length === 1 ? '' : 's'} ·{' '}
+                {selectedAdditions.length} addition{selectedAdditions.length === 1 ? '' : 's'}
               </span>
             </div>
             {pairCount > 0 && (
