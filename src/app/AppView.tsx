@@ -315,12 +315,18 @@ function useBuilderMode(state: Record<string, any>) {
   return { modeReturn, rememberMode }
 }
 
-function ReviewExitConfirmation({ cancel, confirm }: { cancel: () => void; confirm: () => void }) {
+function ReviewExitConfirmation({ state, actions }: Pick<AppViewProps, 'state' | 'actions'>) {
+  if (!state.showReviewExitPrompt) return null
+  const { cancelReviewNavigation: cancel, confirmReviewNavigation: confirm } = actions
+  const cancelAndRefocus = () => {
+    cancel()
+    requestAnimationFrame(() => document.getElementById('deck-review-title')?.focus())
+  }
   return (
     <div
       className="modal-backdrop"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) cancel()
+        if (event.target === event.currentTarget) cancelAndRefocus()
       }}
     >
       <section
@@ -333,7 +339,21 @@ function ReviewExitConfirmation({ cancel, confirm }: { cancel: () => void; confi
           if (event.key === 'Escape') {
             event.preventDefault()
             event.stopPropagation()
-            cancel()
+            cancelAndRefocus()
+          } else if (event.key === 'Tab') {
+            const buttons =
+              event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+            const first = buttons[0]
+            const last = buttons[buttons.length - 1]
+            if (!first || !last) event.preventDefault()
+            else if (
+              (event.shiftKey && document.activeElement === first) ||
+              (!event.shiftKey && document.activeElement === last)
+            ) {
+              event.preventDefault()
+              const target = event.shiftKey ? last : first
+              target.focus()
+            }
           }
         }}
       >
@@ -344,10 +364,10 @@ function ReviewExitConfirmation({ cancel, confirm }: { cancel: () => void; confi
           </div>
         </div>
         <p id="doctor-discard-description">
-          Going back will discard your pending cuts and additions.
+          Leaving Deck review will discard your pending cuts and additions.
         </p>
         <div className="export-actions">
-          <button autoFocus className="export" type="button" onClick={cancel}>
+          <button autoFocus className="export" type="button" onClick={cancelAndRefocus}>
             Keep choices
           </button>
           <button className="primary" type="button" onClick={confirm}>
@@ -427,6 +447,7 @@ function DeckReviewScreen({
         recommendationQueryKey={builderData.recommendationQueryKey}
         recommendationOptionsChanged={state.recommendationOptionsChanged}
         setPendingReviewChanges={state.setPendingReviewChanges}
+        requestExit={actions.requestReviewExit}
         openRecommendationSettings={() => {
           rememberMode()
           actions.openModal('recommendation-settings')
@@ -450,12 +471,7 @@ function DeckReviewScreen({
       {state.showDeckCard && (
         <DeckCardModalView state={state} actions={actions} builderData={builderData} />
       )}
-      {state.showReviewExitPrompt && (
-        <ReviewExitConfirmation
-          cancel={actions.cancelReviewNavigation}
-          confirm={actions.confirmReviewNavigation}
-        />
-      )}
+      <ReviewExitConfirmation state={state} actions={actions} />
     </>
   )
 }

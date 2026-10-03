@@ -22,7 +22,7 @@ export function useUiState(
   const setPendingReviewChanges = useCallback((pending: boolean) => {
     pendingReviewChanges.current = pending
   }, [])
-  const reviewNavigation = useRef<'back' | 'hash' | null>(null)
+  const reviewNavigation = useRef<'back' | 'hash' | (() => void) | null>(null)
   const reviewNavigationAllowed = useRef(false)
   const [showReviewExitPrompt, setShowReviewExitPrompt] = useState(false)
   const [savedDecks, setSavedDecks] = useState(loadSavedDecks)

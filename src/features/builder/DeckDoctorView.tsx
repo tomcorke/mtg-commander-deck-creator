@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -73,6 +72,7 @@ type Props = {
   recommendationQueryKey: string
   recommendationOptionsChanged: boolean
   setPendingReviewChanges: (pending: boolean) => void
+  requestExit: (exit: () => void) => void
   openRecommendationSettings: () => void
   candidates: Card[]
   scoreReplacements: (
@@ -139,6 +139,7 @@ export function DeckDoctorView({
   recommendationQueryKey,
   recommendationOptionsChanged,
   setPendingReviewChanges,
+  requestExit,
   openRecommendationSettings,
   candidates,
   scoreReplacements,
@@ -311,11 +312,6 @@ export function DeckDoctorView({
     setPendingReviewChanges(hasPendingChanges)
     return () => setPendingReviewChanges(false)
   }, [hasPendingChanges, setPendingReviewChanges])
-  const confirmExit = useCallback(
-    () =>
-      !hasPendingChanges || window.confirm('Discard pending changes and return to the builder?'),
-    [hasPendingChanges],
-  )
   const stepHeading = useRef<HTMLHeadingElement>(null)
   const comparisonDialog = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -332,12 +328,12 @@ export function DeckDoctorView({
       event.preventDefault()
       if (exploreCommanders) setExploreCommanders(false)
       else if (step === 'Diagnose') {
-        if (confirmExit()) back()
+        requestExit(back)
       } else back()
     }
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
-  }, [active, back, confirmExit, exploreCommanders, step])
+  }, [active, back, exploreCommanders, requestExit, step])
 
   useEffect(() => {
     if (previousBoards.current !== boardKey) {
@@ -547,7 +543,9 @@ export function DeckDoctorView({
           <div className="section-title">
             <div>
               <p className="eyebrow">Review and refine</p>
-              <h1 id="deck-review-title">Deck review</h1>
+              <h1 id="deck-review-title" tabIndex={-1}>
+                Deck review
+              </h1>
             </div>
             <span>
               {findings.length} finding{findings.length === 1 ? '' : 's'} · {history.length} change
@@ -573,7 +571,7 @@ export function DeckDoctorView({
               className="primary"
               type="button"
               onClick={() => {
-                if (confirmExit()) closePage()
+                requestExit(closePage)
               }}
             >
               Back to builder
@@ -711,10 +709,10 @@ export function DeckDoctorView({
                 setDeckTargets={setDeckTargets}
                 displayedTypeCounts={displayedTypeCounts}
                 selectManaValue={(value) => {
-                  if (confirmExit()) selectManaValue(value)
+                  requestExit(() => selectManaValue(value))
                 }}
                 selectCards={(label, names) => {
-                  if (confirmExit()) selectCards(label, names)
+                  requestExit(() => selectCards(label, names))
                 }}
               />
             </div>

@@ -46,6 +46,7 @@ import {
   appHistoryKey,
   readAppRoute,
   reviewRouteDepth,
+  runOrConfirmReviewExit,
   writeAppRoute,
   type AppHistoryState,
   type AppModal,
@@ -90,16 +91,29 @@ function useRoutingActions(state: AppState) {
     const direction = state.reviewNavigation.current
     if (!direction || !state.showReviewExitPrompt) return
     state.reviewNavigation.current = null
+    if (typeof direction === 'function') {
+      state.pendingReviewChanges.current = false
+      state.setShowReviewExitPrompt(false)
+      direction()
+      return
+    }
     state.reviewNavigationAllowed.current = true
     state.pendingReviewChanges.current = false
     state.setShowReviewExitPrompt(false)
     if (direction === 'back') window.history.back()
     else window.history.forward()
   }
+  function requestReviewExit(exit: () => void) {
+    runOrConfirmReviewExit(state.pendingReviewChanges.current, exit, (pendingExit) => {
+      state.reviewNavigation.current = pendingExit
+      state.setShowReviewExitPrompt(true)
+    })
+  }
   return {
     navigateView,
     openModal,
     closeModal,
+    requestReviewExit,
     cancelReviewNavigation,
     confirmReviewNavigation,
   }

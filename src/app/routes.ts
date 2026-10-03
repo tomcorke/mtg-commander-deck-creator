@@ -73,6 +73,15 @@ export function shouldConfirmReviewNavigation(
   )
 }
 
+export function runOrConfirmReviewExit(
+  hasPendingChanges: boolean,
+  exit: () => void,
+  requestConfirmation: (exit: () => void) => void,
+) {
+  if (hasPendingChanges) requestConfirmation(exit)
+  else exit()
+}
+
 /** Track only review entries pushed from the builder, never guess a direct link's history. */
 export function reviewRouteDepth(
   current: AppHistoryState | null,

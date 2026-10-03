@@ -5,6 +5,7 @@ import {
   parseAppRoute,
   routeHash,
   reviewBackModal,
+  runOrConfirmReviewExit,
   reviewStepForModal,
   reviewRouteDepth,
   reviewRoutes,
@@ -51,6 +52,24 @@ test('pending Diagnose choices block exits, but not review steps or clean routes
     shouldConfirmReviewNavigation(parseAppRoute('#build/doctor-history', null), builder, true),
     false,
   )
+})
+
+test('explicit review exit runs immediately when clean and waits for confirmation when pending', () => {
+  const calls: string[] = []
+  let confirmedExit: (() => void) | undefined
+  const exit = () => calls.push('exit')
+
+  runOrConfirmReviewExit(false, exit, () => calls.push('confirm'))
+  assert.deepEqual(calls, ['exit'])
+
+  runOrConfirmReviewExit(true, exit, (proceed) => {
+    calls.push('confirm')
+    confirmedExit = proceed
+  })
+  assert.deepEqual(calls, ['exit', 'confirm'])
+  assert.ok(confirmedExit)
+  confirmedExit()
+  assert.deepEqual(calls, ['exit', 'confirm', 'exit'])
 })
 
 test('review history depth exits an app-started workflow without guessing direct-link history', () => {
