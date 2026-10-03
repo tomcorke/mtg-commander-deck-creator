@@ -315,7 +315,7 @@ export const dualCommanders: Record<string, string[]> = {
   'Ishai & Jeska': ['Ishai, Ojutai Dragonspeaker', 'Jeska, Thrice Reborn'],
   'Kodama & Sakashima': ['Kodama of the East Tree', 'Sakashima of a Thousand Faces'],
 }
-export const commanderNames = (name: string) => dualCommanders[name] ?? [name]
+export const commanderNames = (name: string) => dualCommanders[name] ?? name.split(' & ')
 export const deckColumnSections = [
   ['Commander', 'Planeswalkers', 'Creatures'],
   ['Enchantments', 'Artifacts', 'Other Permanents'],

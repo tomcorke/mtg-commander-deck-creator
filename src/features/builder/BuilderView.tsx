@@ -11,6 +11,7 @@ import {
   cardScryfallUri,
   edhrecSlug,
   scryfallImage,
+  toDeckCard,
   type Card,
   type CommanderDetails,
   type DeckCard,
@@ -18,11 +19,8 @@ import {
 } from '../../domain/card-model.ts'
 import { commanderNames, colourNames } from '../../domain/commander-catalog.ts'
 import { commanderPromotionInfo } from '../../domain/commander-promotion.ts'
-import {
-  manualCardError,
-  type CollectionMode,
-  type RecommendationStyle,
-} from '../../recommendations.ts'
+import { cardConstructionError } from '../../domain/commander-construction.ts'
+import { type CollectionMode, type RecommendationStyle } from '../../recommendations.ts'
 import {
   analyseDeck,
   curveBucket,
@@ -474,9 +472,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     <button
                       type="button"
                       disabled={Boolean(
-                        manualCardError(
-                          card,
-                          [...deck, ...sideboard].map((item) => item.name),
+                        cardConstructionError(
+                          toDeckCard(card),
+                          deck.length < 100 ? deck : sideboard,
                           commanderDetails?.colours ?? [],
                         ),
                       )}

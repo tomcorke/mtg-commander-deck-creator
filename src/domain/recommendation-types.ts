@@ -42,11 +42,15 @@ export type RecommendationCard = {
   layout: string
   typeLine: string
   colorIdentity?: string[]
+  oracleId?: string
+  commanderLegality?: string
+  manaValueKnown?: boolean
+  gameChanger?: boolean
   manaCost: string
   manaValue: number
   detail: string
   producedMana: string[]
-  faces: { typeLine: string; manaCost: string }[]
+  faces: { typeLine: string; manaCost: string; detail?: string }[]
   power?: string
   toughness?: string
   reason: string

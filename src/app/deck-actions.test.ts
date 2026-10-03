@@ -15,6 +15,8 @@ import type { ActionDeps } from './recommendation-actions.ts'
 const card = (name: string): ScryfallCard => ({
   name,
   type_line: 'Creature',
+  cmc: 2,
+  legalities: { commander: 'legal' },
   color_identity: ['G'],
   set: 'tst',
   collector_number: '1',

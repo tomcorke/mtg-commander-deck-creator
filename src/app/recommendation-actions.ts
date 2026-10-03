@@ -8,7 +8,6 @@ import {
   batchRecommendations,
   buildEdhrecRecommendations,
   commanderThemes,
-  manualCardError,
   parseEdhrecEntries,
   preconFastMana,
   releaseDeferred,
@@ -17,13 +16,18 @@ import {
   type ScryfallCard,
 } from '../recommendations.ts'
 import {
-  cardTags,
+  toDeckCard,
   edhrecSlug,
   scryfallBackImage,
   toCard,
   type Card,
   type CommanderCard,
 } from '../domain/card-model.ts'
+
+import {
+  cardConstructionError,
+  commanderConstructionError,
+} from '../domain/commander-construction.ts'
 
 type StateSetter = (value: any) => void
 
@@ -271,6 +275,8 @@ export async function loadCommanderCards(deps: ActionDeps, chosen: string) {
   const commanders = await Promise.all(
     commanderNames(chosen).map((name) => fetchCard(name) as Promise<CommanderCard>),
   )
+  const error = commanderConstructionError(commanders.map(toDeckCard))
+  if (error) throw new Error(error)
   const images = commanders.flatMap(
     (card) => card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? [],
   )
@@ -393,7 +399,7 @@ export function resetRecommendationState(
 }
 
 export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: boolean) {
-  const { setCommanderDetails, setDeck, cardText } = deps
+  const { setCommanderDetails, setDeck } = deps
   const { commanders, images, art, identityColours, printings } = loaded
   if (
     preserveDeck &&
@@ -412,31 +418,7 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
   if (!preserveDeck) {
     setDeck(
       commanders.map((card: CommanderCard, index: number) => ({
-        name: card.name,
-        layout: card.layout ?? 'normal',
-        typeLine: card.type_line,
-        colorIdentity: card.color_identity,
-        manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '',
-        manaValue: card.cmc ?? 0,
-        detail: cardText(card),
-        producedMana: card.produced_mana ?? [],
-        faces:
-          card.card_faces?.map((face) => ({
-            typeLine: face.type_line ?? '',
-            manaCost: face.mana_cost ?? '',
-          })) ?? [],
-        power: card.power ?? card.card_faces?.[0]?.power,
-        toughness: card.toughness ?? card.card_faces?.[0]?.toughness,
-        set: card.set,
-        setName: card.set_name,
-        collectorNumber: card.collector_number,
-        scryfallUri: card.scryfall_uri,
-        printsUri: card.prints_search_uri,
-        image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '',
-        backImage: scryfallBackImage(card),
-        price: card.prices?.usd ?? undefined,
-        priceUri: card.purchase_uris?.tcgplayer,
-        tags: cardTags(card),
+        ...toDeckCard(card),
         printings: printings[index],
         printing: 0,
         finish: printings[index][0].finish,
@@ -466,6 +448,7 @@ async function coreRecommendations(
         : []),
     ]
     offeredCards = await edhrecRecommendations(deps, slug, excludedNames)
+    offeredCards = offeredCards.filter((card) => !cardConstructionError(card, [], identityColours))
     if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
@@ -536,14 +519,7 @@ export async function fetchDeckDoctorCandidates(deps: ActionDeps) {
   ])
   return candidates
     .filter((card) => !existingNames.has(card.name))
-    .filter(
-      (card) =>
-        !manualCardError(
-          { name: card.name, type_line: card.typeLine, color_identity: card.colorIdentity ?? [] },
-          [],
-          identityColours,
-        ),
-    )
+    .filter((card) => !cardConstructionError(card, deps.deck, identityColours))
 }
 
 export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[]> {
@@ -669,6 +645,9 @@ export function rankInitialRecommendations(
 ) {
   const { includeCreature, setQueue, setRecommendationState, loadPrintings, preferredPrintSet } =
     deps
+  offeredCards = offeredCards.filter(
+    (card) => !cardConstructionError(card, [], deps.commanderDetails?.colours ?? []),
+  )
   if (offeredCards.length < 4)
     throw new Error(
       activeCollectionMode === 'only'

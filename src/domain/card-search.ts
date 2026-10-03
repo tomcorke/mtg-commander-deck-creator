@@ -1,7 +1,7 @@
 import type { DeckCard, ScryfallCard } from './card-model.ts'
 import { toDeckCard } from './card-model.ts'
 import { defaultFinish } from './printing.ts'
-import { manualCardError } from './recommendation-scoring.ts'
+import { cardConstructionError } from './commander-construction.ts'
 
 export type SearchMatch = 'any' | 'need' | 'exclude'
 export type CardSearchFilters = {
@@ -121,14 +121,8 @@ export function buildCardSearchQuery(
   return query
 }
 
-export function cardSearchError(
-  card: ScryfallCard,
-  usedNames: string[],
-  commanderColours: string[],
-) {
-  if (card.legalities?.commander && card.legalities.commander !== 'legal')
-    return 'Card is not legal in Commander.'
-  return manualCardError(card, usedNames, commanderColours)
+export function cardSearchError(card: ScryfallCard, deck: DeckCard[], commanderColours: string[]) {
+  return cardConstructionError(toDeckCard(card), deck, commanderColours)
 }
 
 export function addCardSearchCards(
@@ -137,13 +131,14 @@ export function addCardSearchCards(
   sideboard: DeckCard[],
   commanderColours: string[],
 ) {
-  const names = [...deck, ...sideboard].map(({ name }) => name)
-  const additions = cards.map((card) => {
-    const error = cardSearchError(card, names, commanderColours)
+  const additions: DeckCard[] = []
+  for (const card of cards) {
+    const target = deck.length + additions.length < 100 ? deck : sideboard
+    const pending = additions.slice(target === deck ? 0 : Math.max(0, 100 - deck.length))
+    const error = cardSearchError(card, [...target, ...pending], commanderColours)
     if (error) throw new Error(`${card.name}: ${error}`)
-    names.push(card.name)
-    return { ...toDeckCard(card), finish: defaultFinish(card.finishes) }
-  })
+    additions.push({ ...toDeckCard(card), finish: defaultFinish(card.finishes) })
+  }
   const mainCount = Math.min(additions.length, Math.max(0, 100 - deck.length))
   return {
     deck: [...deck, ...additions.slice(0, mainCount)],

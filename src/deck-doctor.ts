@@ -9,7 +9,7 @@ import {
 } from './deck-analysis.ts'
 import { toDeckCardFromRecommendation, type Card, type DeckCard } from './domain/card-model.ts'
 import { findSynergyPair } from './domain/recommendation-themes.ts'
-import { manualCardError } from './domain/recommendation-scoring.ts'
+import { cardConstructionError } from './domain/commander-construction.ts'
 import type { ManaAccessSimulation } from './deck-simulation.ts'
 
 export type DeckDoctorSwap = {
@@ -269,13 +269,9 @@ export function applyDeckDoctorSwap({
   if (!samePrinting(cutCard, swap.cutCard))
     throw new Error('The deck changed; rerun the diagnosis.')
   const addCard = swap.addCard
-  const error = manualCardError(
-    {
-      name: addCard.name,
-      type_line: addCard.typeLine,
-      color_identity: addCard.colorIdentity ?? [],
-    },
-    [...deck, ...sideboard].map(({ name }) => name),
+  const error = cardConstructionError(
+    addCard,
+    deck.filter((_, index) => index !== swap.cutIndex),
     commanderColours,
   )
   if (error) throw new Error(error)
@@ -356,15 +352,7 @@ export function applyDeckDoctorSwapPlan({
   }
 
   for (const addCard of additions.slice(pairCount)) {
-    const error = manualCardError(
-      {
-        name: addCard.name,
-        type_line: addCard.typeLine,
-        color_identity: addCard.colorIdentity ?? [],
-      },
-      [...nextDeck, ...nextSideboard].map(({ name }) => name),
-      commanderColours,
-    )
+    const error = cardConstructionError(addCard, nextDeck, commanderColours)
     if (error) throw new Error(error)
     const addedCard = toDeckCardFromRecommendation(addCard)
     records.push({
@@ -406,15 +394,7 @@ export function undoDeckDoctorSwap({
   const remaining = deck.filter((_, index) => index !== addedIndex)
   if (!cutCard) return { deck: remaining, sideboard }
 
-  const error = manualCardError(
-    {
-      name: cutCard.name,
-      type_line: cutCard.typeLine,
-      color_identity: cutCard.colorIdentity ?? [],
-    },
-    remaining.map(({ name }) => name),
-    commanderColours,
-  )
+  const error = cardConstructionError(cutCard, remaining, commanderColours)
   if (error) throw new Error(error)
 
   let nextSideboard = sideboard

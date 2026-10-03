@@ -337,13 +337,14 @@ export function CardSearchView({
   const resultsHeading = useRef<HTMLHeadingElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const colours = commanderDetails?.colours ?? []
+  const targetBoard = deck.length < 100 ? deck : sideboard
   const usedNames = [...deck, ...sideboard].map(({ name }) => name)
   const available = cards.filter((card) => includeExisting || !usedNames.includes(card.name))
   const pages = Math.ceil(available.length / pageSize)
   const activePage = Math.min(page, Math.max(0, pages - 1))
   const visible = available.slice(activePage * pageSize, (activePage + 1) * pageSize)
   const selected = cards.filter(
-    (card) => selectedNames.includes(card.name) && !cardSearchError(card, usedNames, colours),
+    (card) => selectedNames.includes(card.name) && !cardSearchError(card, targetBoard, colours),
   )
   const signature = JSON.stringify({ filters, order })
 
@@ -567,13 +568,13 @@ export function CardSearchView({
                 <button
                   className="export"
                   type="button"
-                  disabled={!visible.some((card) => !cardSearchError(card, usedNames, colours))}
+                  disabled={!visible.some((card) => !cardSearchError(card, targetBoard, colours))}
                   onClick={() =>
                     setSelectedNames((current) => [
                       ...new Set([
                         ...current,
                         ...visible
-                          .filter((card) => !cardSearchError(card, usedNames, colours))
+                          .filter((card) => !cardSearchError(card, targetBoard, colours))
                           .map(({ name }) => name),
                       ]),
                     ])
@@ -597,7 +598,7 @@ export function CardSearchView({
                     key={card.name}
                     card={card}
                     location={cardLocation(card.name, deck, sideboard)}
-                    error={cardSearchError(card, usedNames, colours)}
+                    error={cardSearchError(card, targetBoard, colours)}
                     selected={selected.some(({ name }) => name === card.name)}
                     onSelect={() =>
                       setSelectedNames((current) =>

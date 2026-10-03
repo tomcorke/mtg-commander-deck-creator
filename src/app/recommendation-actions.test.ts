@@ -21,6 +21,9 @@ const recommendationNames = ['Sol Ring', 'Arcane Signet', 'Rhystic Study', 'Smot
 const card = (name: string, typeLine = 'Artifact', colourIdentity: string[] = []) => ({
   name,
   type_line: typeLine,
+  cmc: 2,
+  legalities: { commander: 'legal' },
+  oracle_text: 'Partner',
   color_identity: colourIdentity,
   set: 'tst',
   collector_number: '1',

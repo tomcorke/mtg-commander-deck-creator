@@ -48,6 +48,10 @@ export function toRecommendationCard(
     layout: card.layout ?? 'normal',
     typeLine: card.type_line,
     colorIdentity: card.color_identity,
+    oracleId: card.oracle_id,
+    commanderLegality: card.legalities?.commander,
+    manaValueKnown: Number.isFinite(card.cmc),
+    gameChanger: card.game_changer,
     manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '',
     manaValue: card.cmc ?? 0,
     detail: cardText(card),
@@ -56,6 +60,7 @@ export function toRecommendationCard(
       card.card_faces?.map((face) => ({
         typeLine: face.type_line ?? '',
         manaCost: face.mana_cost ?? '',
+        detail: face.oracle_text,
       })) ?? [],
     power: card.power ?? card.card_faces?.[0]?.power,
     toughness: card.toughness ?? card.card_faces?.[0]?.toughness,
@@ -85,7 +90,7 @@ export function buildEdhrecRecommendations(
     const text = card ? cardText(card) : ''
     return (
       card &&
-      (!card.legalities?.commander || card.legalities.commander === 'legal') &&
+      card.legalities?.commander === 'legal' &&
       !(options.excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) &&
       !(options.excludeTutors && /search your library/i.test(text)) &&
       !(options.excludeExtraTurns && /extra turn/i.test(text)) &&

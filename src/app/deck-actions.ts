@@ -21,7 +21,7 @@ import type {
   ScryfallCard,
 } from '../domain/card-model.ts'
 import { scryfallImage, toDeckCard, toDeckCardFromRecommendation } from '../domain/card-model.ts'
-import { manualCardError, orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
+import { orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
 import {
   clearDeckState,
   deleteSavedDeck,
@@ -43,6 +43,11 @@ import {
 import { commanderPromotionInfo, promoteDeckCard } from '../domain/commander-promotion.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
 import { bindSignatureBudget, resetSignatureContext } from './signature-actions.ts'
+import {
+  cardConstructionError,
+  commanderConstructionError,
+} from '../domain/commander-construction.ts'
+
 function preloadArt(sources: (string | undefined)[]) {
   return Promise.all(
     sources.filter(Boolean).map(
@@ -62,14 +67,17 @@ const cardCanHavePowerToughness = (card: Pick<DeckCard, 'typeLine'>) =>
 export function addRecommendationCard(deps: ActionDeps, card: Card) {
   const { deck, setBatchAnnouncement, setDeck, setQueue, setSideboard } = deps
   const added = toDeckCardFromRecommendation(card)
-  if (deck.length < 100)
-    setDeck((list: any) =>
-      list.some((item: any) => item.name === card.name) ? list : [...list, added],
-    )
-  else
-    setSideboard((list: any) =>
-      list.some((item: any) => item.name === card.name) ? list : [...list, added],
-    )
+  const error = cardConstructionError(
+    added,
+    deck.length < 100 ? deck : deps.sideboard,
+    deps.commanderDetails?.colours ?? [],
+  )
+  if (error) {
+    setBatchAnnouncement(`${card.name}: ${error}`)
+    return
+  }
+  if (deck.length < 100) setDeck((list: DeckCard[]) => [...list, added])
+  else setSideboard((list: DeckCard[]) => [...list, added])
   setQueue((current: any) => current.filter((item: any) => item.name !== card.name))
   setBatchAnnouncement(`${card.name} added from deck-health guidance.`)
 }
@@ -84,19 +92,30 @@ export function addCollectionCard(deps: ActionDeps, card: ScryfallCard) {
     setQueue,
     setSideboard,
   } = deps
-  if (
-    manualCardError(
-      card,
-      [...deck, ...sideboard].map((item: any) => item.name),
-      commanderDetails?.colours ?? [],
-    )
-  )
-    return
   const added = toDeckCard(card)
+  const error = cardConstructionError(
+    added,
+    deck.length < 100 ? deck : sideboard,
+    commanderDetails?.colours ?? [],
+  )
+  if (error) {
+    setBatchAnnouncement(`${card.name}: ${error}`)
+    return
+  }
   if (deck.length < 100) setDeck((current: any) => [...current, added])
   else setSideboard((current: any) => [...current, added])
   setQueue((current: any) => current.filter((item: any) => item.name !== added.name))
   setBatchAnnouncement(`${card.name} added from collection browsing.`)
+}
+
+function additionError(deps: ActionDeps, card: Card | DeckCard) {
+  const error = cardConstructionError(
+    card,
+    deps.deck.length < 100 ? deps.deck : deps.sideboard,
+    deps.commanderDetails?.colours ?? [],
+  )
+  if (error) deps.setBatchAnnouncement(`${card.name}: ${error}`)
+  return error
 }
 
 export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | 'ignore') {
@@ -116,24 +135,15 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
     })
     return
   }
+  if (previous !== 'add' && action === 'add' && additionError(deps, card)) return
   if (previous === 'add') {
     setDeck((list: any) => list.filter((item: any) => item.name !== card.name))
     setSideboard((list: any) => list.filter((item: any) => item.name !== card.name))
   }
   if (previous !== 'add' && action === 'add') {
     const added = toDeckCardFromRecommendation(card)
-    if (deck.length < 100)
-      setDeck((list: any) =>
-        card.typeLine.includes('Basic Land') || !list.some((item: any) => item.name === card.name)
-          ? [...list, added]
-          : list,
-      )
-    else
-      setSideboard((list: any) =>
-        card.typeLine.includes('Basic Land') || !list.some((item: any) => item.name === card.name)
-          ? [...list, added]
-          : list,
-      )
+    if (deck.length < 100) setDeck((list: DeckCard[]) => [...list, added])
+    else setSideboard((list: DeckCard[]) => [...list, added])
   }
   if (action === 'ignore') {
     setLiked((current: any) => current.filter((name: any) => name !== card.name))
@@ -159,6 +169,11 @@ export async function promoteToCommander(deps: ActionDeps, candidate: Card | Dec
   if (commanderNames(commander).includes(candidate.name)) return
   const promotion = commanderPromotionInfo(candidate, deck, commanderDetails?.colours ?? [])
   if (!promotion?.canPromote) return
+  const error = commanderConstructionError([candidate])
+  if (error) {
+    setBatchAnnouncement(error)
+    return
+  }
   const existing = [...deck, ...sideboard].find((card: DeckCard) => card.name === candidate.name)
   const promoted = existing ?? toDeckCardFromRecommendation(candidate as Card)
   const next = promoteDeckCard(deck, sideboard, promoted)
@@ -478,12 +493,16 @@ export async function addBasicLands(deps: ActionDeps, plan: { name: string; coun
         count,
       })),
     )
-    setDeck((current: any) =>
-      [
-        ...current,
-        ...cards.flatMap(({ card, count }) => Array.from({ length: count }, () => ({ ...card }))),
-      ].slice(0, 100),
-    )
+    const next: DeckCard[] = [...deps.deck]
+    for (const { card, count } of cards) {
+      if (!Number.isInteger(count) || count < 0) throw new Error('Invalid basic-land count.')
+      for (let index = 0; index < count && next.length < 100; index++) {
+        const error = cardConstructionError(card, next, deps.commanderDetails?.colours ?? [])
+        if (error) throw new Error(error)
+        next.push({ ...card })
+      }
+    }
+    setDeck(next)
     setBasicLandState('idle')
     closeModal()
   } catch {
@@ -574,8 +593,9 @@ export async function addOneBasic(deps: ActionDeps, name: string) {
   const { deck, setBasicLandState, setDeck } = deps
   if (deck.length >= 100) return
   try {
-    const existing = deck.find((card: any) => card.name === name)
-    const added = existing ? { ...existing } : await fetchBasic(name)
+    const added = await fetchBasic(name)
+    if (cardConstructionError(added, deps.deck, deps.commanderDetails?.colours ?? []))
+      throw new Error('Cannot add this basic land.')
     setDeck((current: any) => (current.length < 100 ? [...current, added] : current))
   } catch {
     setBasicLandState('error')
@@ -670,6 +690,10 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       power: fetched?.power ?? fetched?.card_faces?.[0]?.power ?? card.power,
       toughness: fetched?.toughness ?? fetched?.card_faces?.[0]?.toughness ?? card.toughness,
       colorIdentity: fetched?.color_identity ?? card.colorIdentity,
+      oracleId: fetched?.oracle_id ?? card.oracleId,
+      commanderLegality: fetched?.legalities?.commander ?? card.commanderLegality,
+      manaValueKnown: fetched ? Number.isFinite(fetched.cmc) : card.manaValueKnown,
+      gameChanger: fetched?.game_changer ?? card.gameChanger,
       printsUri,
       price: selected?.price ?? fetched?.prices?.usd ?? card.price,
       priceUri: selected?.priceUri ?? fetched?.purchase_uris?.tcgplayer ?? card.priceUri,
@@ -834,6 +858,11 @@ export function moveSideboardCard(deps: ActionDeps, index: number) {
   const { deck, setDeck, setSideboard, sideboard } = deps
   if (deck.length >= 100) return
   const card = sideboard[index]
+  const error = cardConstructionError(card, deck, deps.commanderDetails?.colours ?? [])
+  if (error) {
+    deps.setBatchAnnouncement(`${card.name}: ${error}`)
+    return
+  }
   setSideboard((current: any) => current.filter((_: any, cardIndex: any) => cardIndex !== index))
   setDeck((current: any) => [...current, card])
 }
@@ -1022,18 +1051,19 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
     Array.from({ length: entry.quantity }, () => ({ entry, card: resolved[index]! })),
   )
   const commanderCards = expanded.filter(({ entry }: any) => entry.board === 'commander')
-  if (
-    commanderCards.some(
-      ({ card }: any) =>
-        !card.type_line.includes('Legendary') && !card.type_line.includes('Background'),
-    )
+  const commanderError = commanderConstructionError(
+    commanderCards.map(({ card }) => toDeckCard(card)),
   )
-    throw new Error('Commander section contains a card that cannot be a commander.')
+  if (commanderError) throw new Error(commanderError)
   const identity = [...new Set(commanderCards.flatMap(({ card }: any) => card.color_identity))]
-  const illegal = expanded.find(({ card }: any) =>
-    card.color_identity.some((colour: any) => !identity.includes(colour)),
-  )
-  if (illegal) throw new Error(`${illegal.card.name} is outside commander colour identity.`)
+  const checked: DeckCard[] = []
+  for (const { card, entry } of expanded) {
+    if (entry.board === 'sideboard') continue
+    const converted = toDeckCard(card)
+    const error = cardConstructionError(converted, checked, identity)
+    if (error) throw new Error(`${card.name}: ${error}`)
+    checked.push(converted)
+  }
 
   const name = commanderCards.map(({ card }: any) => card.name).join(' & ')
   const loaded = await deps.start(name)

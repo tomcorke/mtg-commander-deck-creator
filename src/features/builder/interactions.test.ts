@@ -21,7 +21,9 @@ import {
 
 const raw = (name: string, set = 'tst') => ({
   name,
-  type_line: 'Artifact',
+  type_line: name === 'Commander' ? 'Legendary Creature' : 'Artifact',
+  cmc: 2,
+  legalities: { commander: 'legal' },
   color_identity: [],
   set,
   collector_number: '1',

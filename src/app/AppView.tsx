@@ -81,7 +81,7 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
   const manualError = manualCard
     ? cardSearchError(
         manualCard,
-        [...state.deck, ...state.sideboard].map(({ name }) => name),
+        state.deck.length < 100 ? state.deck : state.sideboard,
         state.commanderDetails?.colours ?? [],
       )
     : ''

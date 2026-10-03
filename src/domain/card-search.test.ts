@@ -15,6 +15,8 @@ const query = (filters: Partial<CardSearchFilters> = {}, colours = ['G', 'U']) =
 const card = (name: string, overrides: Partial<ScryfallCard> = {}): ScryfallCard => ({
   name,
   type_line: 'Creature',
+  cmc: 2,
+  legalities: { commander: 'legal' },
   color_identity: ['G'],
   mana_cost: '{1}{G}',
   set: 'tst',
@@ -157,7 +159,6 @@ test('rejects duplicates, off-identity and banned cards atomically but allows ba
   const sideboard = [toDeckCard(card('Sideboard card'))]
   for (const rejected of [
     card('Existing'),
-    card('Sideboard card'),
     card('Blue', { color_identity: ['U'] }),
     card('Banned', { legalities: { commander: 'banned' } }),
   ])
@@ -168,6 +169,7 @@ test('rejects duplicates, off-identity and banned cards atomically but allows ba
   )
   assert.equal(deck.length, 1)
   assert.equal(sideboard.length, 1)
+  assert.equal(addCardSearchCards([card('Sideboard card')], deck, sideboard, ['G']).deck.length, 2)
   const basic = card('Forest', { type_line: 'Basic Land — Forest' })
   assert.equal(addCardSearchCards([basic, basic], deck, sideboard, ['G']).deck.length, 3)
 })

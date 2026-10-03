@@ -16,6 +16,7 @@ const deckCard = (name: string, overrides: Partial<DeckCard> = {}): DeckCard => 
   name,
   layout: 'normal',
   typeLine: 'Creature',
+  commanderLegality: 'legal',
   colorIdentity: ['G'],
   manaCost: '{1}{G}',
   manaValue: 2,

@@ -289,14 +289,18 @@ test('production EDHREC builder applies safety filters and batches every card on
     header: 'Top Cards',
     ...(card.name === 'Creature' ? { inclusion: 12 } : {}),
   }))
-  const result = buildEdhrecRecommendations(entries, cards, {
-    includeCreature: true,
-    excludeGameChangers: true,
-    excludeTutors: true,
-    excludeExtraTurns: true,
-    excludeUnreleased: true,
-    powerTarget: 'precon',
-  })
+  const result = buildEdhrecRecommendations(
+    entries,
+    cards.map((card) => ({ ...card, cmc: 2, legalities: { commander: 'legal' } })),
+    {
+      includeCreature: true,
+      excludeGameChangers: true,
+      excludeTutors: true,
+      excludeExtraTurns: true,
+      excludeUnreleased: true,
+      powerTarget: 'precon',
+    },
+  )
   assert.deepEqual(
     result.map((card) => card.name),
     ['Creature', 'Spell', 'Rock'],

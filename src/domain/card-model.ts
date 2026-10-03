@@ -32,6 +32,7 @@ export type ScryfallCardFace = {
 
 export type ScryfallCard = {
   name: string
+  oracle_id?: string
   layout?: string
   type_line: string
   mana_cost?: string
@@ -66,6 +67,7 @@ const faceSchema = z.object({
 })
 const scryfallCardSchema = z.object({
   name: z.string().trim().min(1),
+  oracle_id: z.string().optional(),
   type_line: z.string(),
   color_identity: z.array(z.enum(['W', 'U', 'B', 'R', 'G'])),
   set: z.string(),
@@ -170,6 +172,10 @@ export const toDeckCardFromRecommendation = (card: Card): DeckCard => ({
   seedEvidence: card.seedEvidence,
   typeLine: card.typeLine,
   colorIdentity: card.colorIdentity,
+  oracleId: card.oracleId,
+  commanderLegality: card.commanderLegality,
+  manaValueKnown: card.manaValueKnown,
+  gameChanger: card.gameChanger,
   manaCost: card.manaCost,
   manaValue: card.manaValue,
   detail: card.detail,
@@ -198,7 +204,11 @@ export const toDeckCard = (card: ScryfallCard): DeckCard => ({
   layout: card.layout ?? 'normal',
   typeLine: card.type_line,
   colorIdentity: card.color_identity,
-  manaCost: card.mana_cost ?? '',
+  oracleId: card.oracle_id,
+  commanderLegality: card.legalities?.commander,
+  manaValueKnown: Number.isFinite(card.cmc),
+  gameChanger: card.game_changer,
+  manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '',
   manaValue: card.cmc ?? 0,
   detail: cardText(card),
   producedMana: card.produced_mana ?? [],
@@ -206,6 +216,7 @@ export const toDeckCard = (card: ScryfallCard): DeckCard => ({
     card.card_faces?.map((face) => ({
       typeLine: face.type_line ?? '',
       manaCost: face.mana_cost ?? '',
+      detail: face.oracle_text,
     })) ?? [],
   power: card.power ?? card.card_faces?.[0]?.power,
   toughness: card.toughness ?? card.card_faces?.[0]?.toughness,

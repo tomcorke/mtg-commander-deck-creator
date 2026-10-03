@@ -9,8 +9,8 @@ import {
 } from 'react'
 
 import type { Card, CommanderDetails, DeckCard } from '../../domain/card-model.ts'
+import { cardConstructionError } from '../../domain/commander-construction.ts'
 import {
-  manualCardError,
   compareRecommendationScores,
   recommendationScoreRating,
   type RecommendationScoreRating,
@@ -211,18 +211,8 @@ const fitStars: Record<RecommendationScoreRating, number> = {
   low: 1,
 }
 
-function hasCardError(card: Card, usedNames: string[], commanderColours: string[]) {
-  return Boolean(
-    manualCardError(
-      {
-        name: card.name,
-        type_line: card.typeLine,
-        color_identity: card.colorIdentity ?? [],
-      },
-      usedNames,
-      commanderColours,
-    ),
-  )
+function hasCardError(card: Card, deck: DeckCard[], commanderColours: string[]) {
+  return Boolean(cardConstructionError(card, deck, commanderColours))
 }
 
 export function DeckDoctorView({
@@ -312,9 +302,8 @@ export function DeckDoctorView({
       ]),
     ).values(),
   ]
-  const usedNames = [...deck, ...sideboard].map(({ name }) => name)
   const availableCandidates = candidatePool.filter(
-    (card) => !hasCardError(card, usedNames, commanderColours),
+    (card) => !hasCardError(card, deck, commanderColours),
   )
   const ratedCandidates = scoreReplacements(
     availableCandidates.filter((card) => matchesCardFilter(card, candidateFilter)),
