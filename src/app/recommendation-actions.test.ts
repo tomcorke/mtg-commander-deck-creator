@@ -10,10 +10,12 @@ import { loadPrintings } from './printing-actions.ts'
 import {
   addCommanderCards,
   edhrecRecommendations,
+  fallbackRecommendations,
   fetchDeckDoctorCandidates,
   fetchDeckDoctorCommanders,
   resetRecommendationState,
   start,
+  themeRecommendations,
 } from './recommendation-actions.ts'
 
 const names = ["Kraum, Ludevic's Opus", 'Tymna the Weaver']
@@ -30,6 +32,99 @@ const card = (name: string, typeLine = 'Artifact', colourIdentity: string[] = []
   collector_number: '1',
   prints_search_uri: 'https://scryfall.com/search?q=test',
   finishes: ['nonfoil'],
+})
+
+test('current EDHREC high-lift fixture maps to Commander synergy and filters identity', async () => {
+  // Live Brago page sample, checked 2026-10-03:
+  // https://json.edhrec.com/pages/commanders/brago-king-eternal.json
+  const page = {
+    container: {
+      json_dict: {
+        cardlists: [
+          {
+            header: 'High Lift Cards',
+            tag: 'highliftcards',
+            cardviews: [
+              { name: 'Reality Acid', num_decks: 7340, potential_decks: 15239 },
+              { name: 'Off Identity', num_decks: 20, potential_decks: 100 },
+            ],
+          },
+        ],
+      },
+    },
+  }
+  const candidates = [
+    card('Reality Acid', 'Enchantment', ['U']),
+    card('Off Identity', 'Artifact', ['B']),
+  ]
+  const result = await edhrecRecommendations(
+    {
+      setCommanderSubThemes: () => {},
+      includeCreature: true,
+      excludeGameChangers: false,
+      excludeTutors: false,
+      excludeExtraTurns: false,
+      excludeUnreleased: false,
+      powerTarget: 'high',
+      fetchEdhrec: async () => page,
+      fetchCards: async (identifiers: { name: string }[]) =>
+        identifiers.map(({ name }) => candidates.find((candidate) => candidate.name === name)!),
+    },
+    'brago-king-eternal',
+    ['W', 'U'],
+    [],
+  )
+
+  assert.deepEqual(
+    result.map(({ name }) => name),
+    ['Reality Acid'],
+  )
+  assert.equal(result[0].reason, 'Commander synergy')
+})
+
+test('Scryfall recommendations include commander-eligible cards and use documented sorting', async () => {
+  const support = card('Legendary Support', 'Legendary Creature', ['G'])
+  const fallbackQueries: string[] = []
+  const fallback = await fallbackRecommendations(
+    {
+      excludeGameChangers: false,
+      excludeTutors: false,
+      excludeExtraTurns: false,
+      excludeUnreleased: false,
+      powerTarget: 'high',
+      includeCreature: true,
+      searchCards: async (query: string, _signal?: AbortSignal, order?: string) => {
+        fallbackQueries.push(query)
+        assert.equal(order, 'edhrec')
+        return [query.includes('-t:land') ? support : card('Legendary Land', 'Land', ['G'])]
+      },
+    },
+    ['G'],
+  )
+  assert.ok(fallbackQueries.every((query) => !query.includes('-is:commander')))
+  assert.ok(fallback.some(({ name }) => name === support.name))
+
+  let themeQuery = ''
+  let themeOrder = ''
+  const themed = await themeRecommendations(
+    {
+      excludeGameChangers: false,
+      excludeTutors: false,
+      excludeExtraTurns: false,
+      excludeUnreleased: false,
+      powerTarget: 'high',
+      searchCards: async (query: string, _signal?: AbortSignal, order?: string) => {
+        themeQuery = query
+        themeOrder = order ?? ''
+        return [support]
+      },
+    },
+    ['G'],
+    ['Tokens'],
+  )
+  assert.ok(!themeQuery.includes('-is:commander'))
+  assert.equal(themeOrder, 'edhrec')
+  assert.ok(themed.some(({ name }) => name === support.name))
 })
 
 test('partner retry preserves commander sources and Scryfall rate-limit guidance', async (t) => {
@@ -358,8 +453,8 @@ test('warm EDHREC hydration reuses raw records while current safety, collection,
     }),
     setCommanderSubThemes: () => {},
   }
-  const cold = await edhrecRecommendations(deps, 'commander')
-  const warm = await edhrecRecommendations(deps, 'commander')
+  const cold = await edhrecRecommendations(deps, 'commander', [])
+  const warm = await edhrecRecommendations(deps, 'commander', [])
   assert.deepEqual(warm, cold)
   assert.equal(requests, 1)
   assert.ok(!warm.some(({ name }) => name === 'Banned'))
@@ -373,6 +468,7 @@ test('warm EDHREC hydration reuses raw records while current safety, collection,
       excludeUnreleased: true,
     },
     'commander',
+    [],
   )
   assert.deepEqual(new Set(safe.map(({ name }) => name)), new Set(['Tokens', 'Off Collection']))
   const settings = {

@@ -80,7 +80,7 @@ async function productionRecommendations(commander: Commander, powerTarget: Powe
       },
     )
     cards.push(...result.data)
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 500))
   }
   return buildEdhrecRecommendations(entries, cards, {
     includeCreature: true,

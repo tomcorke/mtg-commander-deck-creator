@@ -50,9 +50,9 @@ Scores combine source evidence, theme/sub-theme matches, collection preferences,
 
 Builder scoring, batch advancement, printing highlights, and review replacements share a ranking-context builder. Review replacements use the candidate pool and the deck after selected cuts; they do not copy the builder's score for the unmodified deck. Star labels describe heuristic fit, not card power.
 
-Power target and exclusions control eligibility separately from the deck goal. Choosing a goal sets the deck-health default; the player can override it. Changing power target resets its suggested exclusions, which remain individually editable. Collection-only mode, ignored cards, legality, and commander colour identity still apply.
+Priority (Theme first, Balanced, Deck needs first, Surprise me) changes recommendation ranking. Power (Core, Upgraded, High) applies app-specific recommendation filters; it does not set or reset the independent exclusions. Collection-only mode, ignored cards, legality, and commander colour identity still apply.
 
-Balanced, Thematic, and Fun batches retain reason variety and theme coverage. Competitive bypasses those adjustments. Keep each card independently selectable and offer supported synergy pairs without making them mandatory.
+Balanced, Theme first, and Surprise me batches retain reason variety and theme coverage. Deck needs first bypasses those adjustments. Keep each card independently selectable and offer supported synergy pairs without making them mandatory.
 
 Saved `story` goals migrate to Thematic and `optimized` goals to Competitive. Saved Balanced goals stay Balanced; missing or unknown values default to Balanced. Normalize both saved decks and stored goal options.
 
