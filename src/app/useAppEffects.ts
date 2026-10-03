@@ -173,6 +173,43 @@ export function useSetCatalogEffect(deps: AppEffectsDeps) {
   }, [])
 }
 
+export function useCollectionCountEffect(deps: AppEffectsDeps) {
+  const {
+    activeModal,
+    collectionSets,
+    collectionMode,
+    commanderDetails,
+    excludeGameChangers,
+    excludeTutors,
+    excludeExtraTurns,
+    excludeUnreleased,
+    setCollectionPoolSize,
+    fetchCollectionCount,
+  } = deps
+  const colours: string[] | undefined = commanderDetails?.colours
+  const identity = colours?.join('')
+  useEffect(() => {
+    if (activeModal !== 'recommendation-settings' || !collectionSets.length || !colours) return
+    const controller = new AbortController()
+    const filters = { excludeGameChangers, excludeTutors, excludeExtraTurns, excludeUnreleased }
+    void fetchCollectionCount(colours, collectionSets, filters, fetch, controller.signal)
+      .then((count: number) => {
+        if (!controller.signal.aborted) setCollectionPoolSize(count)
+      })
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [
+    activeModal,
+    collectionSets,
+    collectionMode,
+    identity,
+    excludeGameChangers,
+    excludeTutors,
+    excludeExtraTurns,
+    excludeUnreleased,
+  ])
+}
+
 export function useCommanderSearchEffect(deps: AppEffectsDeps) {
   const { search, setMatches, setCommanderCosts, fetchSearch } = deps
   useEffect(() => {
@@ -327,6 +364,7 @@ export function useAppEffects(deps: AppEffectsDeps) {
   useCommanderPrintingEffect(deps)
   useBasicCardPrefetchEffect(deps)
   useSetCatalogEffect(deps)
+  useCollectionCountEffect(deps)
   useCommanderSearchEffect(deps)
   useColourSuggestionsEffect(deps)
   useCommanderImagesEffect(deps)

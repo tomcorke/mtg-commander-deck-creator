@@ -150,12 +150,14 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       collectionSets={state.collectionSets}
       toggleCollectionSet={actions.toggleCollectionSet}
       collectionSetLabel={builderData.collectionSetLabel}
-      filteredSetOptions={builderData.filteredSetOptions}
+      setOptions={state.setOptions}
+      setRows={builderData.setRows}
+      showSupplementalSets={state.showSupplementalSets}
+      setShowSupplementalSets={state.setShowSupplementalSets}
       collectionMode={state.collectionMode}
       chooseCollectionMode={actions.chooseCollectionMode}
       collectionBrowserState={state.collectionBrowserState}
       browseCollection={() => void actions.browseCollection()}
-      collectionState={state.collectionState}
       collectionError={state.collectionError}
       collectionPoolSize={state.collectionPoolSize}
       excludeGameChangers={state.excludeGameChangers}

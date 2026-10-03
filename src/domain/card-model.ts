@@ -114,6 +114,9 @@ export type ScryfallSet = {
   set_type?: string
   released_at?: string
   card_count?: number
+  digital?: boolean
+  parent_set_code?: string
+  icon_svg_uri?: string
 }
 
 export type Card = RecommendationCard & {

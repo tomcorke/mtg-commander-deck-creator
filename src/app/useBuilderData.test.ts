@@ -33,6 +33,7 @@ function builderDeps(queue: unknown[], overrides: Record<string, unknown> = {}) 
     collectionBrowserMana: '',
     collectionSearch: '',
     setOptions: [],
+    showSupplementalSets: false,
     collectionSets: [],
     collectionMode: 'none',
     preferenceScores: {},

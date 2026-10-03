@@ -12,6 +12,7 @@ export function useCollectionState(saved: PersistedDeckState | null) {
   )
   const [setOptions, setSetOptions] = useState<ScryfallSet[]>([])
   const [collectionSearch, setCollectionSearch] = useState('')
+  const [showSupplementalSets, setShowSupplementalSets] = useState(false)
   const [collectionPoolSize, setCollectionPoolSize] = useState<number | null>(null)
   const [collectionState, setCollectionState] = useState<'idle' | 'loading' | 'error'>('idle')
   const [collectionError, setCollectionError] = useState('')
@@ -35,6 +36,8 @@ export function useCollectionState(saved: PersistedDeckState | null) {
     setSetOptions,
     collectionSearch,
     setCollectionSearch,
+    showSupplementalSets,
+    setShowSupplementalSets,
     collectionPoolSize,
     setCollectionPoolSize,
     collectionState,

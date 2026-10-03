@@ -489,13 +489,11 @@ export async function fetchScryfallSets(fetcher: ScryfallFetcher = fetch) {
     .sort((left, right) => (right.released_at ?? '').localeCompare(left.released_at ?? ''))
 }
 
-export async function fetchScryfallCollectionCards(
+function collectionQuery(
   identityColours: string[],
   selectedSets: string[],
   filters: CollectionFilters,
-  fetcher: ScryfallFetcher = fetch,
 ) {
-  const cache = sessionCache(fetcher)
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     filters.excludeGameChangers && '-is:gamechanger',
@@ -506,7 +504,35 @@ export async function fetchScryfallCollectionCards(
     .filter(Boolean)
     .join(' ')
   const setQuery = selectedSets.map((code) => `set:${code}`).join(' or ')
-  const query = `id<=${identity} legal:commander -is:commander (${setQuery}) ${bracketFilters}`
+  return `id<=${identity} legal:commander -is:commander (${setQuery}) ${bracketFilters}`
+}
+
+export async function fetchScryfallCollectionCount(
+  identityColours: string[],
+  selectedSets: string[],
+  filters: CollectionFilters,
+  fetcher: ScryfallFetcher = fetch,
+  signal?: AbortSignal,
+) {
+  const query = collectionQuery(identityColours, selectedSets, filters)
+  const response = await requestScryfall(
+    `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards`,
+    fetcher,
+    { signal },
+  )
+  if (response.status === 404) return 0
+  if (!response.ok) throw new Error('Scryfall unavailable')
+  return ((await response.json()) as CardListResponse).total_cards ?? 0
+}
+
+export async function fetchScryfallCollectionCards(
+  identityColours: string[],
+  selectedSets: string[],
+  filters: CollectionFilters,
+  fetcher: ScryfallFetcher = fetch,
+) {
+  const cache = sessionCache(fetcher)
+  const query = collectionQuery(identityColours, selectedSets, filters)
   const cards: ScryfallCard[] = []
   let url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards&order=set`
 

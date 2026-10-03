@@ -15,6 +15,7 @@ import {
   fetchScryfallCard,
   fetchScryfallCardsByIdentifiers,
   fetchScryfallCollectionCards,
+  fetchScryfallCollectionCount,
   fetchScryfallPrintings,
   fetchScryfallSets,
   searchScryfall,
@@ -133,6 +134,15 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     fetchPrintings: fetchScryfallPrintings,
     fetchCards: fetchScryfallCardsByIdentifiers,
     fetchSets: fetchScryfallSets,
+    activeModal: state.activeModal,
+    collectionSets: state.collectionSets,
+    collectionMode: state.collectionMode,
+    excludeGameChangers: state.excludeGameChangers,
+    excludeTutors: state.excludeTutors,
+    excludeExtraTurns: state.excludeExtraTurns,
+    excludeUnreleased: state.excludeUnreleased,
+    setCollectionPoolSize: state.setCollectionPoolSize,
+    fetchCollectionCount: fetchScryfallCollectionCount,
     fetchSearch: (query: string, signal?: AbortSignal, order?: string) =>
       searchScryfall(query, fetch, signal, order),
   })

@@ -63,7 +63,7 @@ export function CardDetails({
               onClick={onToggleSet}
               aria-pressed={collectionSelected}
             >
-              {collectionSelected ? 'Remove set' : 'Use set'}
+              {collectionSelected ? 'Stop preferring this set' : 'Prefer this set'}
             </button>
           )}
         </dd>

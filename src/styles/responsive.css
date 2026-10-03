@@ -211,7 +211,12 @@
   color-scheme: dark;
 }
 .dark .collection-set-search > span:first-child,
-.dark .collection-selection > span {
+.dark .collection-set-list > span,
+.dark .collection-selection > span,
+.dark .set-picker-row small,
+.dark .set-picker-commander,
+.dark .collection-pool,
+.dark .builder-set-chips {
   color: #aaa8c2;
 }
 .dark .recommendation-options select option,
@@ -221,6 +226,30 @@
 }
 .dark .collection-chips button {
   background: #292644;
+}
+.dark .set-picker-row {
+  border-color: #39374f;
+  background: #19182d;
+}
+.dark .set-picker-row:has(input:checked) {
+  border-color: #615b96;
+  background: #292644;
+}
+.dark .set-picker-icon {
+  filter: invert(0.85);
+}
+.dark .collection-pool-warning {
+  border-color: #6e5426;
+  background: #2a2216;
+  color: #e7b965;
+}
+.dark .builder-set-chips button {
+  border-color: #4b4867;
+  background: #292644;
+  color: #d4d0ed;
+}
+.dark .builder-set-chips button:hover {
+  border-color: #7169ca;
 }
 .dark .collection-browser,
 .dark .health-lane {

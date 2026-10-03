@@ -1,10 +1,19 @@
 import { type Dispatch, type SetStateAction } from 'react'
 
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import type { ScryfallSet } from '../../domain/card-model.ts'
+import { onlyModeMinimumPool, type SetPickerRow } from '../../domain/set-picker.ts'
 import type { CollectionMode, RecommendationStyle } from '../../recommendations.ts'
 
 type PowerTarget = 'precon' | 'upgraded' | 'high'
-type SetOption = { code: string; name: string }
+
+function SetIcon({ uri }: { uri?: string }) {
+  return uri ? (
+    <img className="set-picker-icon" src={uri} alt="" loading="lazy" />
+  ) : (
+    <span className="set-picker-icon" aria-hidden="true" />
+  )
+}
 
 type SettingHelpProps = {
   id: string
@@ -45,12 +54,14 @@ type RecommendationSettingsModalProps = {
   collectionSets: string[]
   toggleCollectionSet: (code: string) => void
   collectionSetLabel: (code: string) => string
-  filteredSetOptions: SetOption[]
+  setOptions: ScryfallSet[]
+  setRows: SetPickerRow[]
+  showSupplementalSets: boolean
+  setShowSupplementalSets: Dispatch<SetStateAction<boolean>>
   collectionMode: CollectionMode
   chooseCollectionMode: (value: CollectionMode) => void
   collectionBrowserState: 'idle' | 'loading' | 'error'
   browseCollection: () => void
-  collectionState: 'idle' | 'loading' | 'error'
   collectionError: string
   collectionPoolSize: number | null
   excludeGameChangers: boolean
@@ -82,12 +93,14 @@ export function RecommendationSettingsModal({
   collectionSets,
   toggleCollectionSet,
   collectionSetLabel,
-  filteredSetOptions,
+  setOptions,
+  setRows,
+  showSupplementalSets,
+  setShowSupplementalSets,
   collectionMode,
   chooseCollectionMode,
   collectionBrowserState,
   browseCollection,
-  collectionState,
   collectionError,
   collectionPoolSize,
   excludeGameChangers,
@@ -104,6 +117,12 @@ export function RecommendationSettingsModal({
   closeModal,
 }: RecommendationSettingsModalProps) {
   if (!show) return null
+  const searching = collectionSearch.trim().length >= 2
+  const smallOnlyPool =
+    collectionMode === 'only' &&
+    collectionSets.length > 0 &&
+    collectionPoolSize !== null &&
+    collectionPoolSize < onlyModeMinimumPool
 
   return (
     <div
@@ -227,81 +246,124 @@ export function RecommendationSettingsModal({
           </div>
           <fieldset className="collection-picker">
             <legend>
-              <span>Collection affinity</span>
+              <span>Sets to build from</span>
               <SettingHelp
                 id="collection-affinity-help"
-                label="Collection affinity"
-                description="Choose sets to prefer or limit recommendations to. Select sets below, then choose how strongly to match them."
+                label="Sets to build from"
+                description="Tick sets you own or want to play. Prefer ranks their cards first; Only limits recommendations to them."
               />
             </legend>
             <p className="collection-picker-help">
-              Choose a set here or use the set button in any card's printing details.
+              Tick sets here, or use “Prefer this set” in any card’s printing details.
             </p>
             <div className="collection-set-controls">
-              <label className="collection-set-search">
-                <span>Search all sets</span>
-                <span className="collection-set-input">
+              <div className="collection-set-filters">
+                <label className="collection-set-search">
+                  <span>Find a set</span>
+                  <span className="collection-set-input">
+                    <input
+                      className="clearable-input"
+                      value={collectionSearch}
+                      onChange={(event) => setCollectionSearch(event.target.value)}
+                      placeholder="Set name or code…"
+                    />
+                    <button
+                      type="button"
+                      className="clear-deck-name"
+                      onClick={() => setCollectionSearch('')}
+                      aria-label="Clear set search"
+                    >
+                      ×
+                    </button>
+                  </span>
+                </label>
+                <label className="collection-supplemental-toggle">
                   <input
-                    className="clearable-input"
-                    value={collectionSearch}
-                    onChange={(event) => setCollectionSearch(event.target.value)}
-                    placeholder="Search by set name or code…"
-                    aria-label="Search all sets"
+                    type="checkbox"
+                    checked={showSupplementalSets}
+                    onChange={(event) => setShowSupplementalSets(event.target.checked)}
                   />
-                  <button
-                    type="button"
-                    className="clear-deck-name"
-                    onClick={() => setCollectionSearch('')}
-                    aria-label="Clear set search"
-                  >
-                    ×
-                  </button>
+                  Show promos and digital sets
+                </label>
+              </div>
+              <div className="collection-set-list">
+                <span id="set-picker-rows-label">
+                  {searching ? 'Matching sets' : 'Recent releases'}
                 </span>
-              </label>
+                {setRows.length > 0 ? (
+                  <ul className="set-picker-rows" aria-labelledby="set-picker-rows-label">
+                    {setRows.map(({ set, commander }) => (
+                      <li key={set.code} className="set-picker-row">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={collectionSets.includes(set.code)}
+                            onChange={() => toggleCollectionSet(set.code)}
+                          />
+                          <SetIcon uri={set.icon_svg_uri} />
+                          <span className="set-picker-name">{set.name}</span>
+                          <small>{set.released_at?.slice(0, 4)}</small>
+                        </label>
+                        {commander && (
+                          <label className="set-picker-commander">
+                            <input
+                              type="checkbox"
+                              checked={collectionSets.includes(commander.code)}
+                              onChange={() => toggleCollectionSet(commander.code)}
+                              aria-label={commander.name}
+                            />
+                            <span aria-hidden="true">+ Commander decks</span>
+                          </label>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="collection-empty">
+                    {setOptions.length === 0
+                      ? 'Loading sets…'
+                      : `No sets match “${collectionSearch.trim()}”.`}
+                  </p>
+                )}
+              </div>
               <div className="collection-selection">
-                <span>Selected sets</span>
+                <span>Selected</span>
                 {collectionSets.length > 0 ? (
                   <div className="collection-chips">
                     {collectionSets.map((code) => (
-                      <button type="button" key={code} onClick={() => toggleCollectionSet(code)}>
-                        {collectionSetLabel(code)} ×
+                      <button
+                        type="button"
+                        key={code}
+                        onClick={() => toggleCollectionSet(code)}
+                        aria-label={`Remove ${collectionSetLabel(code)}`}
+                      >
+                        {collectionSetLabel(code)} <span aria-hidden="true">×</span>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <p className="collection-empty">No sets selected yet.</p>
+                  <p className="collection-empty">
+                    No sets selected. Recommendations draw from every set.
+                  </p>
                 )}
               </div>
-              {filteredSetOptions.length > 0 && (
-                <div className="collection-set-results" aria-label="Set search results">
-                  {filteredSetOptions.map((set) => (
-                    <button
-                      type="button"
-                      key={set.code}
-                      onClick={() => toggleCollectionSet(set.code)}
-                    >
-                      {set.name} <small>{set.code.toUpperCase()}</small>
-                    </button>
-                  ))}
-                </div>
-              )}
               <div className="collection-affinity-actions">
                 <div className="collection-mode-setting">
-                  <label htmlFor="collection-mode">Match</label>
+                  <label htmlFor="collection-mode">Use</label>
                   <select
                     id="collection-mode"
                     value={collectionMode}
                     disabled={!collectionSets.length}
                     onChange={(event) => chooseCollectionMode(event.target.value as CollectionMode)}
                   >
-                    <option value="none">No collection preference</option>
-                    <option value="prefer">Prefer selected collection</option>
-                    <option value="only">Only selected collection</option>
+                    <option value="none">Every set (clear selection)</option>
+                    <option value="prefer">Prefer these sets</option>
+                    <option value="only">Only these sets</option>
                   </select>
                   <SettingHelp
                     id="collection-mode-help"
-                    label="Collection matching"
-                    description="Prefer puts cards from selected sets first. Only removes cards from other sets."
+                    label="Set matching"
+                    description="Prefer ranks cards from the selected sets first. Only removes cards from every other set."
                   />
                 </div>
                 <button
@@ -312,22 +374,27 @@ export function RecommendationSettingsModal({
                     void browseCollection()
                   }}
                 >
-                  {collectionBrowserState === 'loading'
-                    ? 'Loading collection…'
-                    : 'Browse collection'}
+                  {collectionBrowserState === 'loading' ? 'Loading cards…' : 'Browse these cards'}
                 </button>
               </div>
             </div>
-            {collectionState === 'loading' && (
-              <small role="status">Checking legal collection…</small>
+            {collectionSets.length > 0 && (
+              <p className="collection-pool" role="status">
+                {collectionPoolSize === null
+                  ? 'Counting legal cards…'
+                  : `${collectionPoolSize.toLocaleString()} legal ${collectionPoolSize === 1 ? 'card' : 'cards'} for this commander in the selected sets.`}
+              </p>
+            )}
+            {smallOnlyPool && (
+              <p className="collection-pool-warning" role="alert">
+                Only these sets leaves too few cards to finish a 100-card deck with room to choose.
+                Add more sets or switch to Prefer.
+              </p>
             )}
             {collectionError && (
               <small className="form-error" role="alert">
                 {collectionError}
               </small>
-            )}
-            {collectionSets.length > 0 && collectionPoolSize !== null && (
-              <small>{collectionPoolSize} legal unique cards found.</small>
             )}
           </fieldset>
           <fieldset>

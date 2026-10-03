@@ -71,6 +71,7 @@ type BuilderViewModel = {
   collectionMode: CollectionMode
   collectionPoolSize: number | null
   collectionSets: string[]
+  collectionSetLabel: (code: string) => string
   commander: string
   commanderDetails: CommanderDetails | null
   deckReviewFilter: DeckReviewFilter | null
@@ -190,6 +191,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     collectionMode,
     collectionPoolSize,
     collectionSets,
+    collectionSetLabel,
     commander,
     commanderDetails,
     cycleCommanderPrinting,
@@ -339,6 +341,22 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               Recommendation settings
             </button>
             <p title={recommendationSettingsSummary}>{recommendationSettingsSummary}</p>
+            {collectionMode !== 'none' && collectionSets.length > 0 && (
+              <div className="builder-set-chips">
+                <span>{collectionMode === 'only' ? 'Only sets:' : 'Preferring sets:'}</span>
+                {collectionSets.map((code) => (
+                  <button
+                    type="button"
+                    key={code}
+                    onClick={() => toggleCollectionSet(code)}
+                    aria-label={`Stop building from ${collectionSetLabel(code)}`}
+                    title={`Stop building from ${collectionSetLabel(code)}`}
+                  >
+                    {collectionSetLabel(code)} <span aria-hidden="true">×</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>

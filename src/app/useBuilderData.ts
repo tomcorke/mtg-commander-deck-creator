@@ -23,6 +23,7 @@ import {
   themeMatchesSearch,
 } from '../recommendations.ts'
 
+import { setPickerRows } from '../domain/set-picker.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 
 export type BuilderDataDeps = Record<string, any>
@@ -92,7 +93,7 @@ function buildCollectionData(deps: BuilderDataDeps) {
     collectionBrowserMana,
     collectionSearch,
     setOptions,
-    collectionSets,
+    showSupplementalSets,
     queue,
     deck,
     sideboard,
@@ -112,26 +113,17 @@ function buildCollectionData(deps: BuilderDataDeps) {
       )
     })
     .slice(0, 60)
-  const filteredSetOptions = setOptions.filter((set: any) => {
-    const query = collectionSearch.trim().toLowerCase()
-    return (
-      query.length >= 2 &&
-      `${set.name} ${set.code}`.toLowerCase().includes(query) &&
-      !collectionSets.includes(set.code)
-    )
-  })
+  const setRows = setPickerRows(setOptions, collectionSearch, showSupplementalSets)
   const collectionSetLabel = (code: string) => {
     const set = setOptions.find((item: any) => item.code === code)
-    if (set) return `${set.name} (${code.toUpperCase()})`
+    if (set) return set.name
     const card = [...queue, ...deck, ...sideboard, ...collectionBrowserCards].find(
       (item: any) => item.set === code,
     )
     const name = card && ('set_name' in card ? card.set_name : (card as DeckCard).setName)
-    return name && name.toLowerCase() !== code
-      ? `${name} (${code.toUpperCase()})`
-      : code.toUpperCase()
+    return name && name.toLowerCase() !== code ? name : code.toUpperCase()
   }
-  return { filteredCollectionCards, filteredSetOptions, collectionSetLabel }
+  return { filteredCollectionCards, setRows, collectionSetLabel }
 }
 
 function buildDeckData(deps: BuilderDataDeps) {
@@ -401,7 +393,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
   const collectionSummary =
     collectionSets.length && collectionMode !== 'none'
       ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} ${collectionSets.length} set${collectionSets.length === 1 ? '' : 's'}`
-      : 'Collection off'
+      : 'All sets'
   const recommendationSettingsSummary = [
     recommendationStyleLabel,
     powerTargetLabel,
