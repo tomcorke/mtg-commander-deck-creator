@@ -4,12 +4,14 @@ Reviewed 2026-10-03 against `main@e7d6a1e` (app v0.1.123), running locally in Ch
 
 The four focus areas follow, each with observed issues and proposed changes. Cross-cutting issues and a suggested order come at the end.
 
+**Update:** Large recommendation cards and four-card batches are deliberate design choices, so this review no longer proposes shrinking cards or enlarging batches. Prioritised work is tracked in [TODO.md](../TODO.md).
+
 ## Summary
 
 The app has a solid engine. The interface often exposes that engine directly instead of guiding the player. The biggest problems:
 
 1. **Tuning recommendations destroys progress.** Changing any setting restarts the recommendation cycle. Cards marked Later come straight back, unprocessed choices in the current batch are lost, and the batch counter resets. This discourages the tuning the app depends on.
-2. **Recommendation tiles are too large to compare.** Each tile shows a full-size card, the same rules text again, printing, source, price, links, and a score radar. Only about one row of four fits on screen, and the decision buttons scroll away from the reasons.
+2. **Recommendation reasons don't explain themselves.** The large cards and small batches work as intended, but the text around them is scorer vocabulary ("RAMP", "Evidence 12/20") rather than a reason a player can weigh.
 3. **The start flow asks for one dimension at a time.** Theme and colours cancel each other out, each theme has six hard-coded commanders, and play intent (power, goal, sets) only appears later in a modal.
 4. **Deck review is a long reference page, not a workflow.** It lists every basic land as its own tile, pages replacements three at a time (page 1 of 144), and requires equal cuts and additions even for a 38-card deck.
 5. **Set selection is a flat text search.** It mixes digital, promo, and Commander products, reflows under the cursor, and is hidden under the label "Collection affinity".
@@ -47,9 +49,7 @@ The app has a solid engine. The interface often exposes that engine directly ins
 - **Settings changes are deferred and invisible.** "Changes apply with next recommendations" means the player changes something and sees no effect. To see one, they must spend the current batch.
 - **The modal has three overlapping goal controls.** "Deck goal", "Power target", and "Prioritize deck health" overlap. Choosing a goal silently resets the deck-health checkbox, and the help text has to explain that. The modal opens with an 80-word disclaimer in small type.
 - **Feedback controls are vague.** Add / Later / Ignore / ♡ are the only in-flow tuning. The heart means "Prioritise similar cards", which you only learn from its tooltip. Ignore records no reason, so the app can't learn "too expensive" from "off-theme". There is no budget control, although every tile shows a price.
-- **Tiles are oversized and repeat themselves** (screenshots at 1568×775). The card image is about 360 px tall, and its rules text is repeated in HTML below it. Below that come printing, set button, source, price, and links, then a radar chart with seven numeric rows. Add/Later/Ignore sit above the image, so the reason and score are off-screen when you decide. The header area above the tiles uses another 250 px.
 - **Reasons are category labels, not explanations.** "RAMP", "DEATH TRIGGERS THEME", "SELECTED COLLECTION CARD", and "Evidence 12/20" describe the scorer's internals. They don't tell the player why the card is good here.
-- **Four cards per batch makes deck building slow.** About 60 non-land picks at four per batch, with skips, means 20–30 "Next" clicks. No action adds the best few cards for a role the deck is missing.
 - **"Fill to land target" is premature.** It is the most prominent sidebar action from the first card. At three cards it offered 35 basics (9 Swamp, 26 Forest, derived from four pips). Accepting it makes the deck 38% "complete" before any nonbasic lands or spells, and skews later colour analysis.
 
 ### Proposals
@@ -58,9 +58,9 @@ The app has a solid engine. The interface often exposes that engine directly ins
 - **Apply settings immediately to the next batch preview.** When the modal closes, briefly mark which visible cards would change ("2 cards replaced by your new settings"), or show an "Apply now" button beside the summary. Remove the pending-changes banner.
 - **Collapse the goal controls into two settings:** _Power_ (Core / Upgraded / High) and _Priority_ (Theme first / Balanced / Deck needs first / Surprise me). Fold "Prioritize deck health" into Priority. Move the long caveat to one "How recommendations work" link.
 - **Turn Ignore into a quick reason picker:** Not my style · Too expensive · Off-theme · Already own something similar. Each reason feeds an existing mechanism: preference score, a price cap, theme weighting. Add a _Max price per card_ setting, since price data is already loaded. Relabel the heart "More like this" with visible text.
-- **Use a compact tile.** Show the card image at about 220 px (it already enlarges on hover via `SmallCardImage`), then one sentence of reason, then Add · Later · Skip below the reason. Put printing, links, price, and the score breakdown behind a "Details" disclosure or the existing card-details modal. Don't repeat rules text that the image already shows. At 1568 px wide this fits 6–8 cards per row.
+- **Keep the large cards and small batches; they are intentional.** Place the one-sentence reason directly under the card name so it reads alongside the image.
 - **Write reasons as sentences from the same data:** "In 41% of Meren decks on EDHREC", "Sacrifices creatures, which returns them with Meren", "Fills ramp: you have 2 of 10". The score breakdown stays for players who want it.
-- **Add role shortcuts in the Deck targets sidebar.** Clicking a row below target (Ramp 2/10) shows a batch filtered to that role, with "Add top 3". This uses the existing role detection and ranking.
+- **Add role shortcuts in the Deck targets sidebar.** Clicking a row below target (Ramp 2/10) shows a normal-size batch filtered to that role. This uses the existing role detection and ranking.
 - **Move "Fill to land target" later in the build.** Show it once the deck has around 55+ non-land cards, and offer recommended nonbasic lands for the colour pair before basics.
 
 ## 3. Card set selection
@@ -120,15 +120,15 @@ The app has a solid engine. The interface often exposes that engine directly ins
 - **Type scale.** Content that drives decisions (settings help, review findings, score rows, sidebar targets) is set around 11–12 px. Headings are very large serif type. Raise body text to at least 14 px and reduce heading sizes on working screens.
 - **Duplicate controls.** Two "Deck review" buttons and two "+ Search & add cards" buttons appear on the builder screen. Keep one of each in a consistent place.
 - **The builder deck list** is a name-only column list far below the recommendations, which goes against `docs/agents/ui.md` ("compact wrapping grids or rails instead of vertical name-only lists"). Consider a collapsible deck rail on the right, shared with the sidebar's analysis.
-- **Header actions.** "Start over" (destructive) sits between the dark-mode toggle and "Import", styled like the others. Separate it and confirm before discarding.
-- **Rendering cost.** With four full-size foil-effect tiles plus a blurred commander backdrop, the browser stalled once while taking a screenshot. Compact tiles would reduce this; profile with "Motion and finishes" on before assuming it's fine.
+- **Header actions.** "Start over" (destructive) sits between the dark-mode toggle and "Import", styled like the others. It does ask for confirmation, but it should look different from routine actions.
+- **Rendering cost.** With four full-size foil-effect cards plus a blurred commander backdrop, the browser stalled once while taking a screenshot. Profile with "Motion and finishes" on before assuming it's fine.
 
 ## Suggested order
 
 | Order | Change                                                                  | Complexity | Value  | Why now                                                  |
 | ----- | ----------------------------------------------------------------------- | ---------- | ------ | -------------------------------------------------------- |
 | 1     | Settings changes re-rank instead of resetting the cycle (§2)            | Low        | High   | Behaves like a bug; makes all other tuning trustworthy.  |
-| 2     | Compact recommendation tiles with sentence reasons (§2)                 | Medium     | High   | Most-used screen; speeds every decision.                 |
+| 2     | Plain-language recommendation reasons (§2)                              | Low        | Medium | Most-used screen; players learn why each card fits.      |
 | 3     | Start flow: combined filters, art gallery, play-style step, resume (§1) | Medium     | High   | Subsumes A2; shapes every deck from the first click.     |
 | 4     | Review: readiness modes, grouped duplicates, larger pages (§4)          | Medium     | High   | Removes the worst friction without redesigning findings. |
 | 5     | Set picker cleanup and relabelling (§3)                                 | Low        | Medium | Small, self-contained.                                   |

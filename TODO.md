@@ -21,13 +21,159 @@ Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5
 
 ## Suggested order
 
-Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change.
+Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change. Items A7–A13 and B8–B11 come from the [design and UX review](docs/ux-review.md).
 
-| Order | ID  | TODO                                 | Complexity | Value  | Delivery risk | Reason                                                                                               |
-| ----- | --- | ------------------------------------ | ---------- | ------ | ------------- | ---------------------------------------------------------------------------------------------------- |
-| 1     | A6  | Signature-card recommendations       | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains. |
-| 2     | A2  | Initial user flow                    | Medium     | Medium | Medium        | Useful onboarding improvement; intent mapping and tour compatibility need validation.                |
-| 3     | B4  | Finish builder-view module ownership | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work.                               |
+| Order | ID  | TODO                                            | Complexity | Value  | Delivery risk | Reason                                                                                                 |
+| ----- | --- | ----------------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------ |
+| 1     | A7  | Keep recommendation progress on settings change | Low        | High   | Low           | Behaves like a bug: tuning discards Later choices and batch progress. Every tuning item depends on it. |
+| 2     | A8  | Plain-language recommendation reasons           | Low        | Medium | Low           | Small change on the most-used screen; players learn why each card fits.                                |
+| 3     | B8  | Fit deck review to the deck's state             | Medium     | High   | Low           | Removes the worst review friction (incomplete decks, 35 land tiles, 3-card pages) with existing data.  |
+| 4     | A12 | Defer basic-land fill                           | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
+| 5     | A10 | Clearer set selection                           | Low        | Medium | Low           | Self-contained; uses Scryfall set fields already available.                                            |
+| 6     | A2  | Play-style step, resume, and intro guide        | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
+| 7     | A9  | Commander discovery on the start screen         | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
+| 8     | A6  | Signature-card recommendations                  | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
+| 9     | B9  | One deck-review workflow                        | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; easier after B8.                                               |
+| 10    | B10 | Finding-driven swap suggestions                 | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
+| 11    | A11 | Richer recommendation tuning                    | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
+| 12    | B11 | Builder UI consistency pass                     | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
+| 13    | A13 | Collection import investigation                 | Medium     | Medium | High          | Valuable for collectors, but export formats and matching quality are unproven.                         |
+| 14    | B4  | Finish builder-view module ownership            | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
+
+## [A7] Keep recommendation progress when settings change
+
+**Complexity:** Low · **Value:** High · **Delivery risk:** Low — The queue already supports re-ranking; the fix is mostly wiring and tests.
+
+Changing any recommendation setting currently restarts the recommendation cycle. Players who tune settings lose their Later deferrals and current-batch choices, which discourages the tuning the app depends on.
+
+- Record the visible batch's decisions (Add, Later, Ignore, like) before applying new settings.
+- Keep deferred cards, their eligible batch, the batch number, ignored cards, and preference scores across a settings change.
+- Re-rank the existing candidate pool when a setting only changes ranking (goal, deck health, creature inclusion, Prefer mode). Re-fetch only when the candidate pool changes (power or exclusions that remove cards, Only mode, set changes), and still apply existing deferrals and ignores to the new pool.
+- Apply changed settings when the modal closes so the next batch reflects them without first spending the current batch. Remove or reword the "Changes apply with next recommendations" notice to match.
+
+Current context: with pending changes, `nextBatch` calls `start(commander, true)` instead of `advanceRecommendationQueue` (`src/features/builder/interactions.ts:94`). `resetRecommendationState` then applies `freshRecommendationCycle()`, clearing deferred cards and resetting the batch number, and clears decisions and likes (`src/app/recommendation-actions.ts:327-331`). In testing, a card marked Later reappeared in the next batch after one setting change, and the header still read "Batch 1".
+
+Acceptance checks:
+
+- Mark a card Later, change a ranking-only setting, and continue: the card stays deferred for its full waiting period and the batch number keeps increasing.
+- Likes and Add decisions made in the batch visible during the change are recorded.
+- A pool-changing setting (Only mode with a set) yields candidates that respect existing ignores and deferrals.
+- Tests cover ranking-only and pool-changing paths.
+
+## [A8] Explain recommendations in plain language
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Uses existing score and evidence data; the work is wording and placement.
+
+Large card images and small batches are intentional: the player sees a few cards at full size and is not overwhelmed. The supporting text is the weak part. Reasons are category labels ("RAMP", "DEATH TRIGGERS THEME", "SELECTED COLLECTION CARD") and the score breakdown shows internal numbers ("Evidence 12/20"), so the player cannot tell why a card suits this deck.
+
+- Write one sentence per recommendation from existing evidence, for example "In 41% of Meren decks on EDHREC", "Fills ramp: you have 2 of 10", or "Seen with Skullclamp". Keep category labels as secondary text at most.
+- Place the reason directly under the card name so it reads with the image before the details.
+- Give the heart button a visible label such as "More like this".
+- Keep card image size and batch size unchanged.
+
+Current context: reasons come from `cardReason` and `recommendationReason` in `src/features/builder/BuilderView.tsx`; `ScoreBreakdown` in `src/features/score/ScoreBreakdown.tsx` holds the factor data.
+
+Acceptance checks:
+
+- Every recommendation shows a readable sentence explaining the pick; the score breakdown remains available.
+- The heart control's purpose is clear without hovering.
+
+## [B8] Fit deck review to the deck's state
+
+**Complexity:** Medium · **Value:** High · **Delivery risk:** Low — Existing analysis and candidate data are sufficient; changes are presentation and swap rules.
+
+Deck review runs a full diagnosis and cut-and-replace workflow regardless of deck size. A 38-card deck is told "1 of 5 role targets met" and asked to choose cuts. The cut list shows each basic land as a separate tile, replacements are shown three per page ("Page 1 of 144"), and applying requires equal cuts and additions.
+
+- Adapt to deck completeness. Below about 90 main-deck cards, lead with role gaps and add-only suggestions. Between about 90 and 100, show the full review. Above 100, lead with choosing the required number of cuts.
+- Allow applying unequal numbers of cuts and additions; show the resulting deck size before applying.
+- Group duplicate cards into one tile with a count and a quantity control for cuts.
+- Show flagged cards first; filter the remaining deck cards by type or role instead of listing all of them.
+- Show 12–24 replacement candidates per page, filterable by the selected finding or role.
+- Use the fixed 0–7+ mana curve from the builder sidebar, and hide colour rows outside the commander's identity.
+
+Current context: `src/features/builder/DeckDoctorView.tsx` sets `doctorCandidatePageSize = 3` and requires equal counts before applying. Deck analysis comes from `src/deck-analysis.ts`; findings from `src/deck-doctor.ts`.
+
+Acceptance checks:
+
+- A 38-card deck sees add-only gap filling with no required cuts; a 105-card deck is asked for five cuts.
+- 35 basics appear as two grouped tiles; cutting three Forests leaves the correct count.
+- Applying two additions and no cuts to an incomplete deck works and records history.
+- The curve shows every bucket from 0 to 7+; a black-green deck shows only black and green colour rows.
+
+## [A12] Defer basic-land fill
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — The fill action exists; this changes when and how it is offered.
+
+"Fill to land target" is the most prominent sidebar action from the first card. With three cards in the deck it offered 35 basics split from four pips, leaving the deck 38% "complete" before any spells or nonbasic lands.
+
+- Keep land progress visible, but promote the fill action only once most non-land slots are filled (for example 55 or more non-land cards), or when the player opens it deliberately.
+- Before adding basics, offer recommended nonbasic lands for the commander's colours, then fill the remaining slots with basics split by current pip demand.
+
+Current context: the sidebar renders the fill button in `src/features/builder/DeckOverview.tsx`; the confirmation dialog lives in `BuilderView`. A1 in [COMPLETED.md](COMPLETED.md) covers land recommendations.
+
+Acceptance checks:
+
+- An early deck shows land progress without a primary fill action.
+- A deck near its non-land total sees nonbasic suggestions before the basic split.
+
+## [A10] Make set selection clear and stable
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Scryfall set data already provides the fields needed for filtering and icons.
+
+Set selection is labelled "Collection affinity" inside Recommendation settings. Searching "dusk" returns the digital Alchemy set, the main set, its Commander product, and promos as truncated text buttons, and a chosen set disappears from the list so the remaining buttons shift under the cursor. The per-card "Use set" button reads like a printing choice.
+
+- Rename the section to describe intent, such as "Sets to build from", and show selected sets as a removable chip in the builder.
+- Hide digital, token, memorabilia, and promo sets by default using Scryfall `digital` and `set_type`, behind a "Show promos and digital sets" toggle. Offer each main set's Commander product as an option on the same row.
+- Show stable rows with set icon (`icon_svg_uri`), name, release year, and a checkbox; selected rows stay in place. With an empty search, list recent main releases.
+- Show the legal-card count for the selection, and warn when Only mode leaves too few candidates to finish a deck (for example fewer than 150).
+- Relabel the printing-details button "Prefer this set" / "Stop preferring this set".
+
+Current context: the picker is in `src/features/modals/RecommendationSettingsModal.tsx`; the printing-details button is in `src/shared/CardDetails.tsx:66`.
+
+Acceptance checks:
+
+- Searching "dusk" shows Duskmourn: House of Horror with its Commander option, and no Alchemy or promo sets unless the toggle is on.
+- Selecting a set never moves other rows.
+- Only mode with a small selection shows the legal count and a warning.
+
+## [A2] Add a play-style step, resume, and optional intro guide
+
+**Complexity:** Medium · **Value:** High · **Delivery risk:** Medium — Settings can be preselected with existing state, but React Joyride compatibility needs validation.
+
+Power level, deck goal, and exclusions are only reachable in Recommendation settings after the first batch, with defaults the player never sees. The start page also offers no way back to a deck in progress.
+
+- After choosing a commander and before the first batch, ask how the player wants to play it with three large choices mapped to existing settings: Casual (Core, Thematic, exclusions on), Upgraded (Upgraded, Balanced), High power (High, Competitive, exclusions off). Offer an optional link to the set picker and a "Skip, use defaults" action. Keep all options editable in Recommendation settings.
+- When a deck is in progress, show a "Continue building" card at the top of the start page with commander art, card count, and last-edited time.
+- Move display preferences (commander art and colours, motion and finishes, dark mode) from the start header into one settings menu.
+- Add an optional intro guide, controlled by a checkbox on the initial screen. Check it by default for first-time users, then persist and honor each player's choice.
+- Try React Joyride for the guide. It is not currently installed; check compatibility with the app's React 19 setup before adding it. Keep the guide skippable and make its controls usable by keyboard and assistive technology.
+
+Current context: `src/features/start/StartView.tsx` asks for a theme or colours and a commander. Recommendation settings already include style, power target, deck-health priority, and creature inclusion; `useStoredOption` persists settings in local storage, and the current deck persists through `src/deck-state.ts`. There is no play-style step, resume entry, or first-run guide state.
+
+Acceptance checks:
+
+- A first-time player can choose a play style and start with matching recommendation options; the player can still change them later, and skipping keeps the defaults.
+- Returning to the start page with a deck in progress offers to continue it.
+- With no saved preference, the guide checkbox is checked. Returning users get their saved choice; opting out prevents the tour from starting until they opt in again.
+- The tour can be skipped without blocking deck creation, and existing recommendation preferences remain intact.
+
+## [A9] Improve commander discovery on the start screen
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — A query-backed commander source must return relevant, legal results within the existing request limits.
+
+Theme and colour choices cancel each other, each theme maps to six hard-coded commanders shown three at a time, and commander rows show only a name and mana cost with the image on hover.
+
+- Let a theme and colours combine as filters on one commander list.
+- Show commanders as a card-art grid of about 8–12 with a one-line reason each, reusing `FinishedCardImage`.
+- Investigate sourcing theme commanders from Scryfall or EDHREC theme pages through the shared request scheduler. Go/no-go: results for each supported theme are recognisably on-theme and legal; otherwise keep curated lists, expanded beyond six.
+- Remove the 01/02 step numbering unless the steps become sequential.
+
+Current context: `themeCommanders` in `src/domain/commander-catalog.ts`; `chooseTheme` and `toggleColour` in `src/app/useAppActions.ts:167-182` clear each other.
+
+Acceptance checks:
+
+- Choosing Tokens and then green and white shows only green-white token commanders, and both choices stay visibly selected.
+- The grid shows card art without hover; hover or focus still enlarges it.
 
 ## [A6] Expand recommendations using signature cards in the deck
 
@@ -59,21 +205,90 @@ Acceptance checks:
 - Late results appear in later batches with the same scoring rules, without duplicates, resurrected ignored/deferred cards, or changed current choices.
 - Measured request counts, rolling-hour boundaries, repeated deck edits, backoff, rate limits, failures, hidden tabs, and deck switches demonstrate bounded work and safe recovery. Successful work is reused; permanent failures do not retry.
 
-## [A2] Improve the initial user flow
+## [B9] Make deck review one clear workflow
 
-**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — Settings can be preselected with existing state, but deck-intent mapping and React Joyride compatibility need validation.
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Reorganises existing sections without new analysis.
 
-- Ask what kind of deck the player wants to build, then use the answer to set starting recommendation options. Keep those options editable in the existing settings.
-- Add an optional intro guide, controlled by a checkbox on the initial screen. Check it by default for first-time users, then persist and honor each player's choice.
-- Try React Joyride for the guide. It is not currently installed; check compatibility with the app's React 19 setup before adding it. Keep the guide skippable and make its controls usable by keyboard and assistive technology.
+The feature appears as "Deck review" (two builder buttons and the page title), "Deck analysis" (sidebar), and Deck Doctor (code and history modal). The page opens with three caveat paragraphs, its Overview / Findings / Swap cards / History buttons scroll one long page, and the Diagnosis column stays empty beside a long cut list.
 
-Current context: `src/features/start/StartView.tsx` currently asks for a theme or colours and a commander. Recommendation settings already include style, power target, deck-health priority, and creature inclusion; `useStoredOption` persists settings in local storage. There is no deck-intent questionnaire or first-run guide state.
+- Use one user-facing name, "Deck review", and one builder entry point.
+- Replace the scroll anchors with real steps: Diagnose → Choose changes → Confirm, with a sticky summary of pending cuts and additions. Keep history in the existing history modal.
+- Replace the caveat paragraphs with one "How review works" disclosure.
+- Rename jargon labels such as "Sources reported" and "Tag matches found" in plain language.
+- Move "Try another commander" to the commander header as "Compare commanders".
+
+Current context: `src/features/builder/DeckDoctorView.tsx` renders all sections on one page; builder entry points are in `BuilderView.tsx` and `DeckOverview.tsx`.
 
 Acceptance checks:
 
-- A first-time player can choose a deck intent and start with matching recommendation options; the player can still change them later.
-- With no saved preference, the checkbox is checked. Returning users get their saved choice; opting out prevents the tour from starting until they opt in again.
-- The tour can be skipped without blocking deck creation, and existing recommendation preferences remain intact.
+- The builder shows one review entry point, and no user-facing text says "Deck Doctor".
+- Each step fits its content without a long empty column; Back and Escape behave predictably between steps.
+
+## [B10] Suggest swaps from review findings
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Pairing cuts with additions needs a ranking rule that players find sensible.
+
+Findings describe problems but leave players to choose cuts and additions separately and pair them mentally.
+
+- For each actionable finding, propose up to three concrete swaps, for example "Cut Swamp → Add Deadly Dispute: ramp 2→3, card draw 0→1".
+- Show both card images, label the in-deck card, and show the role and curve impact before applying.
+- Keep manual cut and addition selection as an advanced path.
+- Respect goal, power, exclusions, collection settings, and ignored cards.
+
+Current context: findings come from `src/deck-doctor.ts`; replacement ranking already uses the shared scoring. `docs/agents/ui.md` defines comparison presentation.
+
+Acceptance checks:
+
+- A deck with a ramp shortfall receives ramp swap suggestions whose cuts come from flagged or low-fit cards.
+- Applying a suggested swap updates the deck, findings, and history in one action.
+
+## [A11] Richer recommendation tuning
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — Mapping reasons to scoring changes needs validation so feedback visibly improves later batches.
+
+Add, Later, Ignore, and like are the only in-flow tuning. Ignore records no reason, there is no budget control although prices are shown, and no action targets a missing role directly.
+
+- Let Ignore take an optional quick reason: Not my style, Too expensive, Off-theme, Have something similar. Feed each reason into an existing mechanism (preference score, price cap, theme weighting).
+- Add an optional maximum price per card to Recommendation settings.
+- Replace the overlapping Deck goal and Prioritize deck health controls with one Priority setting (Theme first, Balanced, Deck needs first, Surprise me), keeping Power separate. Choosing one control must not silently reset another.
+- Replace the modal's opening caveat paragraph with one "How recommendations work" disclosure.
+- Make each below-target row in the Deck targets sidebar open a batch filtered to that role, keeping the normal batch size.
+
+Current context: preference learning lives in `src/domain/recommendation-queue.ts` and the scoring modules; role detection in `src/deck-analysis.ts`. Depends on A7.
+
+Acceptance checks:
+
+- Ignoring a card as Too expensive offers or applies a price cap, and later batches respect it.
+- Selecting Ramp 2/10 shows only ramp candidates in a normal-size batch.
+
+## [B11] Builder UI consistency pass
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Styling and layout work inside existing components.
+
+- Raise decision-driving text (settings help, findings, score rows, sidebar targets) to at least 14 px, and reduce oversized headings on working screens.
+- Keep one "+ Search & add cards" control on the builder screen.
+- Replace the name-only deck list below the recommendations with a compact grid or a collapsible deck rail, as `docs/agents/ui.md` requires.
+- Separate "Start over" from routine header actions and give it a destructive style; keep its confirmation.
+- Profile rendering with Motion and finishes on; the browser stalled once while capturing a builder screenshot.
+- Verify light mode, narrow viewports, and keyboard-only use; the UX review could not check them.
+
+Acceptance checks:
+
+- Rendered review passes in light, dark, and narrow layouts with no duplicated builder controls.
+- No measurable main-thread stall on the builder with four tiles and motion on.
+
+## [A13] Investigate collection import
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** High — Export formats vary, and name and printing matching may be unreliable without a server.
+
+Set selection approximates a collection. Players who track collections in Moxfield, Archidekt, ManaBox, or Deckbox could import an export instead.
+
+- Investigate pasting or uploading CSV or text exports from those tools, matching names through the existing Scryfall collection lookup, and reusing Prefer and Only modes.
+- Go/no-go: each major format parses client-side, and a sample collection matches at least 98% of cards by name. Otherwise keep set-based selection.
+
+Acceptance checks:
+
+- The investigation records sample formats, parsing results, match rates, and a recommendation.
 
 ## [B4] Finish builder-view module ownership
 
