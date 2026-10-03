@@ -2,6 +2,25 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [B13] Correct deck-analysis and simulation mana semantics
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — The fixes are local to analysis, simulation, and card conversion, and the rules are verified.
+
+**Status:** Complete — merged in `e70fee2`; not yet released.
+
+### Completed behavior
+
+Simulation draws on turn one (CR 103.8c). Transforming cards with a land back face no longer count as land drops from hand, and spell/land MDFCs count as optional land drops rather than both a land and a spell. Imported and manually added DFCs keep their face mana costs. Mana symbols come from Scryfall `/symbology` `svg_uri` (so `{W/U/P}` renders correctly), `{H}` is treated as generic Phyrexian and `{P}` as the pawprint, `{C/W}`-style hybrids are recognised, and colour guidance shows `{C}` and `{S}`. Only DFC layouts get back images; split, Adventure, and flip cards no longer trigger repeated back-image repair fetches.
+
+Implemented by Pi (gpt-6-luna); Opus browser review with fixes (dark-mode `{H}` visibility, mana summary wording).
+
+### Acceptance checks
+
+- Tests cover the turn-one draw, Westvale Abbey, a spell/land MDFC, an imported DFC's cost, `{W/U/P}` and `{C/W}` rendering, and a split card without a repair fetch.
+- Chrome review: Phyrexian hybrid and `{H}` in light and dark, `{C}`/`{S}` rows, unchanged costs and Oracle text, 390px, and an Adventure card with no back-image fetch. Not checked in the browser: a real `{C/W}` cost, a nonzero `{S}` cost, split cards.
+- Known trade-off: until the symbology request completes (or if it fails), mana symbols render as text; card images also depend on Scryfall.
+- All 220 tests, lint, typecheck, and production build pass.
+
 ## [B14] Keep deck-review drafts across navigation and settings changes
 
 **Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Draft choices already survive in-review step changes; the gaps are browser history and settings refreshes.
