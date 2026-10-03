@@ -231,6 +231,14 @@ test('one-shots, reminder text, opponents-only triggers and unsupported packages
     ['Lifegain', raw('Opponent payoff', 'Whenever an opponent gains life, draw a card.')],
     ['Tokens', raw('Opponent tokens', 'Whenever an opponent creates a token, draw a card.')],
     [
+      'Tokens',
+      raw(
+        'Smothering Tithe',
+        "Whenever an opponent draws a card, that player may pay {2}. If the player doesn't, you create a Treasure token.",
+        'Enchantment',
+      ),
+    ],
+    [
       'Landfall',
       raw('Opponent lands', "Whenever a land enters under an opponent's control, draw a card."),
     ],
@@ -253,4 +261,38 @@ test('one-shots, reminder text, opponents-only triggers and unsupported packages
     page: 'cards' as const,
   }
   assert(!supportsSignature(toCard(raw('Control', ''), ''), seed, []))
+})
+
+test('equipment and death-trigger staples do not become engines', () => {
+  const skullclamp = raw(
+    'Skullclamp',
+    'Equipped creature gets +1/-1.\nWhenever equipped creature dies, draw two cards.\nEquip {1}',
+    'Artifact — Equipment',
+  )
+  const deck = [
+    raw('Commander', ''),
+    skullclamp,
+    raw(
+      'Lightning Greaves',
+      'Equipped creature has haste and shroud.\nEquip {0}',
+      'Artifact — Equipment',
+    ),
+    raw(
+      'Swiftfoot Boots',
+      'Equipped creature has hexproof and haste.\nEquip {1}',
+      'Artifact — Equipment',
+    ),
+    raw(
+      'Sword of Fire and Ice',
+      'Whenever equipped creature deals combat damage to a player, draw a card.\nEquip {2}',
+      'Artifact — Equipment',
+    ),
+    raw('Doomed Dissenter', 'When this creature dies, create a 2/2 black Zombie creature token.'),
+    raw('Viscera Seer', 'Sacrifice a creature: Scry 1.'),
+  ].map(toDeckCard)
+  const seeds = selectSignatureSeeds('Commander', deck, buildRecommendationContext({ deck }, []))
+  assert.deepEqual(
+    seeds.map(({ card, theme }) => `${card.name}:${theme}`),
+    ['Viscera Seer:Sacrifice'],
+  )
 })

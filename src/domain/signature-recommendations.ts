@@ -14,6 +14,9 @@ import type { EdhrecCommanderPage } from '../adapters/edhrec.ts'
 
 export { cardNameKey } from './card-model.ts'
 const rulesText = (text: string) => text.replace(/\([^)]*\)/g, '')
+// Opponent-triggered sentences (Smothering Tithe) are not deck engines; later sentences still count.
+const engineText = (text: string) =>
+  rulesText(text).replace(/whenever (?:an?|each) opponent\b[^.\n]*\.?/gi, '')
 export const signatureLimits = {
   seedsPerPass: 3,
   namesPerSeed: 24,
@@ -53,8 +56,10 @@ const mechanics: Mechanic[] = [
     theme: 'Sacrifice',
     aliases: ['Sacrifice', 'Death triggers'],
     participant: /creature.*dies|sacrifice (?:a|another|one or more) .*creature/i,
-    engine: /whenever .*creature.*dies|^sacrifice (?:a|another) creature:/i,
-    multiplier: /whenever .*creature.*dies/i,
+    // Equipped/enchanted death triggers belong to staples like Skullclamp, not sacrifice engines.
+    engine:
+      /whenever (?!(?:equipped|enchanted) ).*creature.*dies|^sacrifice (?:a|another) creature:/i,
+    multiplier: /whenever (?!(?:equipped|enchanted) ).*creature.*dies/i,
   },
   {
     theme: 'Tokens',
@@ -123,7 +128,7 @@ const mechanics: Mechanic[] = [
     participant:
       /equipped creatures?|equipment you control|equipment spells? you cast|equip (?:abilities|costs)|attach[^\n]*you control/i,
     engine:
-      /whenever[^\n]*(?:equipment|equipped|attach)|equip[^\n]*(?:cost|pay)|equipment spells[^\n]*cost[^\n]*less/i,
+      /whenever[^\n]*(?:equipment|attach)|equip[^\n]*(?:cost|pay)|equipment spells[^\n]*cost[^\n]*less/i,
   },
 ]
 const participates = (card: Pick<Card, 'detail' | 'typeLine'>, mechanic: Mechanic) =>
@@ -145,7 +150,7 @@ export function selectSignatureSeeds(
     const participants = main.filter((card) => participates(card, mechanic))
     if (participants.length < 3) return []
     return participants
-      .filter((card) => mechanic.engine.test(rulesText(card.detail)))
+      .filter((card) => mechanic.engine.test(engineText(card.detail)))
       .map((card) => ({
         card,
         theme: mechanic.theme,
@@ -153,7 +158,7 @@ export function selectSignatureSeeds(
           mechanic.theme === 'ETB' && isCommanderCandidate(card)
             ? ('commanders' as const)
             : ('cards' as const),
-        priority: Number(mechanic.multiplier?.test(rulesText(card.detail)) ?? false),
+        priority: Number(mechanic.multiplier?.test(engineText(card.detail)) ?? false),
         fit: recommendationScore({ ...card, reason: 'Deck engine' }, context),
         selected: Math.max(
           0,

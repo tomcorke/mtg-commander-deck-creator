@@ -1,4 +1,11 @@
-import { useEffect, useEffectEvent, useLayoutEffect, useState, useSyncExternalStore } from 'react'
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import {
   completeSignatureResults,
@@ -95,9 +102,11 @@ export function useSignatureRecommendations(state: ControllerState) {
     }
   }, [key, seedKey, enabled])
 
+  const applied = useRef(completed)
   // Apply after React commits: a response racing a deck switch sees the new context, not a stale closure.
   useLayoutEffect(() => {
-    if (!completed || completed.key !== key || !enabled) return
+    if (!completed || completed.key !== key || !enabled || applied.current === completed) return
+    applied.current = completed // Apply once; a later queue removal must not resurrect these cards.
     state.setQueue((queue) => mergeSignatureResults(queue, completed.results, state))
     completeSignatureResults(state.signatureDeckKey, completed.results)
   }, [completed, enabled, key, state])
