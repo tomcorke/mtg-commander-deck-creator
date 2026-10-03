@@ -11,6 +11,15 @@ import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
 import { ExportDeckModal } from '../features/builder/ExportDeckModal.tsx'
 import { DeckDoctorView } from '../features/builder/DeckDoctorView.tsx'
+import { DeckReviewHistoryModal } from '../features/modals/DeckReviewHistoryModal.tsx'
+import {
+  readAppRoute,
+  reviewBackModal,
+  reviewRoutes,
+  reviewStepForModal,
+  reviewSteps,
+  type DeckReviewStep,
+} from './routes.ts'
 import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
 import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
@@ -274,14 +283,18 @@ function useBuilderMode(state: Record<string, any>) {
     setBuilderModeReturn,
     showDeckDoctor,
     showCardSearch,
-    showDeckDoctorHistory,
     selectedManualCard,
     setSelectedManualCard,
     manualPrintingRequest,
   } = state
-  const preservesMode = ['card', 'export', 'import', 'saved', 'recommendation-settings'].includes(
-    activeModal,
-  )
+  const preservesMode = [
+    'card',
+    'export',
+    'import',
+    'saved',
+    'recommendation-settings',
+    'doctor-history',
+  ].includes(activeModal)
   const modeReturn = preservesMode ? storedModeReturn : null
   useEffect(() => {
     if (storedModeReturn && !showDeckDoctor && !showCardSearch && !modeReturn)
@@ -297,8 +310,7 @@ function useBuilderMode(state: Record<string, any>) {
 
   const rememberMode = () => {
     if (showCardSearch) setBuilderModeReturn('search')
-    else if (showDeckDoctor)
-      setBuilderModeReturn(showDeckDoctorHistory ? 'doctor-history' : 'doctor')
+    else if (showDeckDoctor) setBuilderModeReturn(activeModal)
   }
   return { modeReturn, rememberMode }
 }
@@ -309,12 +321,12 @@ function DeckReviewScreen({
   builderData,
   appHeader,
   modals,
-  showHistory,
+  step,
   rememberMode,
 }: AppViewProps & {
   appHeader: ReactNode
   modals: ReturnType<typeof renderModals>
-  showHistory: boolean
+  step: DeckReviewStep
   rememberMode: () => void
 }) {
   const closePage = () => {
@@ -325,7 +337,20 @@ function DeckReviewScreen({
     <>
       <DeckDoctorView
         appHeader={appHeader}
-        showHistory={showHistory}
+        step={step}
+        active={state.showDeckDoctor}
+        changeStep={(next, replace = false) =>
+          actions.navigateView('builder', reviewRoutes[reviewSteps.indexOf(next)], replace)
+        }
+        back={() => {
+          if (step === 'Diagnose') closePage()
+          else if (readAppRoute()?.entry) actions.closeModal()
+          else actions.navigateView('builder', reviewBackModal(step), true)
+        }}
+        openHistory={() => {
+          rememberMode()
+          actions.openModal('doctor-history')
+        }}
         commander={state.commander}
         commanderDetails={state.commanderDetails}
         loadingArt={state.loadingArt}
@@ -369,7 +394,6 @@ function DeckReviewScreen({
         cycleCommanderPrinting={actions.cycleCommanderPrinting}
         startOver={actions.startOver}
         applySwapPlan={actions.applyDeckDoctorSwapPlan}
-        undoSwap={actions.undoDeckDoctorSwap}
         closePage={closePage}
       />
       {modals.importModal}
@@ -417,24 +441,36 @@ export function AppView({ state, actions, builderData }: AppViewProps) {
         modals={modals}
       />
     )
-  if (
-    state.showDeckDoctor ||
-    modeReturn === 'review' ||
-    modeReturn === 'doctor' ||
-    modeReturn === 'doctor-history'
+  const reviewStep = reviewStepForModal(state.activeModal) ?? reviewStepForModal(modeReturn)
+  const historyModal = (
+    <DeckReviewHistoryModal
+      show={state.showDeckDoctorHistory}
+      history={state.deckDoctorHistory}
+      error={state.deckDoctorError}
+      openCard={actions.openCardReference}
+      undoSwap={actions.undoDeckDoctorSwap}
+      closeModal={() => actions.closeModal()}
+    />
   )
+  if (reviewStep)
     return (
-      <DeckReviewScreen
-        state={state}
-        actions={actions}
-        builderData={builderData}
-        appHeader={appHeader}
-        modals={modals}
-        showHistory={state.showDeckDoctorHistory || modeReturn === 'doctor-history'}
-        rememberMode={rememberMode}
-      />
+      <>
+        <DeckReviewScreen
+          state={state}
+          actions={actions}
+          builderData={builderData}
+          appHeader={appHeader}
+          modals={modals}
+          step={reviewStep}
+          rememberMode={rememberMode}
+        />
+        {historyModal}
+      </>
     )
   return (
-    <BuilderView model={{ ...state, ...actions, ...builderData, ...modals, appHeader } as any} />
+    <>
+      <BuilderView model={{ ...state, ...actions, ...builderData, ...modals, appHeader } as any} />
+      {historyModal}
+    </>
   )
 }

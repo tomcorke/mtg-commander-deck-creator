@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { parseAppRoute, routeHash } from './routes.ts'
+import {
+  parseAppRoute,
+  routeHash,
+  reviewBackModal,
+  reviewStepForModal,
+  reviewRoutes,
+  reviewSteps,
+} from './routes.ts'
 
 test('routeHash preserves view and modal names', () => {
   assert.equal(routeHash('start', null), '#start')
@@ -9,6 +16,20 @@ test('routeHash preserves view and modal names', () => {
   assert.equal(routeHash('builder', 'review'), '#build/review')
   assert.equal(routeHash('builder', 'doctor'), '#build/doctor')
   assert.equal(routeHash('builder', 'doctor-history'), '#build/doctor-history')
+})
+
+test('review steps have distinct routes and predictable predecessors, including direct links', () => {
+  for (const [index, modal] of reviewRoutes.entries()) {
+    const parsed = parseAppRoute(routeHash('builder', modal), null)
+    assert.equal(parsed?.modal, modal)
+    assert.equal(parsed?.entry, false)
+    assert.equal(reviewStepForModal(modal), reviewSteps[index])
+    assert.equal(reviewBackModal(reviewSteps[index]), index ? reviewRoutes[index - 1] : null)
+  }
+  assert.equal(reviewStepForModal('doctor'), 'Diagnose')
+  assert.equal(reviewStepForModal('doctor-history'), null)
+  assert.equal(reviewStepForModal('card'), null)
+  assert.equal(reviewStepForModal(null), null)
 })
 
 test('parseAppRoute ignores unknown hashes and validates history state', () => {

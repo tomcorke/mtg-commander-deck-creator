@@ -6,6 +6,7 @@ type Props = {
   headingLevel?: 'h1' | 'h2'
   onChangeCommander: () => void
   onOpenCommander: () => void
+  onCompareCommanders?: () => void
 }
 
 export function CommanderSummary({
@@ -14,6 +15,7 @@ export function CommanderSummary({
   headingLevel = 'h1',
   onChangeCommander,
   onOpenCommander,
+  onCompareCommanders,
 }: Props) {
   const Heading = headingLevel
   const identityLabel =
@@ -49,9 +51,16 @@ export function CommanderSummary({
           />
         ))}
       </div>
-      <button className="change" type="button" onClick={onChangeCommander}>
-        Change commander
-      </button>
+      <div className="commander-summary-actions">
+        <button className="change" type="button" onClick={onChangeCommander}>
+          Change commander
+        </button>
+        {onCompareCommanders && (
+          <button className="export" type="button" onClick={onCompareCommanders}>
+            Compare commanders
+          </button>
+        )}
+      </div>
     </div>
   )
 }

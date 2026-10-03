@@ -752,9 +752,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <p className="eyebrow">Main deck complete</p>
               <h2>Build your sideboard</h2>
               <p>Further picks go to sideboard. Move cards into main deck after removing a card.</p>
-              <button className="primary" type="button" onClick={() => openModal('review')}>
-                Review deck
-              </button>
             </div>
           )}
           {recommendationState === 'loading' ? (
@@ -1040,7 +1037,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
         <aside className="analysis-panel">
           <section className="deck-analysis" aria-labelledby="analysis-title">
             <div className="deck-analysis-heading">
-              <h3 id="analysis-title">Deck analysis</h3>
+              <h3 id="analysis-title">Deck overview</h3>
               <div className="deck-analysis-actions">
                 {deckDoctorHistory.length > 0 && (
                   <button
@@ -1052,7 +1049,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   </button>
                 )}
                 <button
-                  className="export"
+                  className={deck.length >= 90 ? 'primary' : 'export'}
                   type="button"
                   onClick={() => {
                     setDeckDoctorError('')

@@ -773,7 +773,12 @@ export function openCommanderCard(deps: ActionDeps, index: number) {
 }
 
 export function openCardReference(deps: ActionDeps, card: Card | DeckCard) {
-  if (['review', 'doctor', 'doctor-history', 'search'].includes(deps.activeModal))
+  if (
+    ['review', 'review-changes', 'review-confirm', 'doctor', 'doctor-history', 'search'].includes(
+      deps.activeModal,
+    ) &&
+    !(deps.activeModal === 'doctor-history' && deps.builderModeReturn)
+  )
     deps.setBuilderModeReturn(deps.activeModal)
   deps.manualPrintingRequest.current?.abort()
   deps.setSelectedManualCard(null)

@@ -7,6 +7,8 @@ export type AppModal =
   | 'export'
   | 'card'
   | 'review'
+  | 'review-changes'
+  | 'review-confirm'
   | 'doctor'
   | 'doctor-history'
   | 'recommendation-settings'
@@ -26,10 +28,26 @@ export const appModals: AppModal[] = [
   'export',
   'card',
   'review',
+  'review-changes',
+  'review-confirm',
   'doctor',
   'doctor-history',
   'recommendation-settings',
 ]
+
+export const reviewSteps = ['Diagnose', 'Choose changes', 'Confirm'] as const
+export type DeckReviewStep = (typeof reviewSteps)[number]
+export const reviewRoutes = ['review', 'review-changes', 'review-confirm'] as const
+
+export function reviewStepForModal(modal: AppModal | null): DeckReviewStep | null {
+  if (modal === 'doctor') return 'Diagnose'
+  const index = reviewRoutes.findIndex((route) => route === modal)
+  return index < 0 ? null : reviewSteps[index]
+}
+
+export function reviewBackModal(step: DeckReviewStep): AppModal | null {
+  return step === 'Confirm' ? 'review-changes' : step === 'Choose changes' ? 'review' : null
+}
 
 export function routeHash(view: AppView, modal: AppModal | null) {
   return `#${view === 'builder' ? 'build' : 'start'}${modal ? `/${modal}` : ''}`

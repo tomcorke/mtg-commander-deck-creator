@@ -147,7 +147,7 @@ export function DeckOverview({
     <section className="doctor-overview" aria-labelledby="deck-overview-title">
       <div className="doctor-section-heading">
         <div>
-          <p className="eyebrow">Static analysis</p>
+          <p className="eyebrow">Your deck</p>
           <h2 id="deck-overview-title">Deck overview</h2>
         </div>
       </div>
@@ -161,10 +161,7 @@ export function DeckOverview({
       <div className="deck-review-grid">
         <section className="deck-review-section deck-review-overview">
           <h3>At a glance</h3>
-          <p>
-            Static signals from card data and rules text—not a game simulation or deck grade. Green
-            means a heuristic found support; amber marks a possible gap.
-          </p>
+
           <div className="deck-review-findings">
             <div>
               <ReviewStatus
@@ -182,8 +179,8 @@ export function DeckOverview({
                   unsupportedColours
                     ? 'Possible gap'
                     : hasColourSignal
-                      ? 'Every colour has sources'
-                      : 'No colour signal'
+                      ? 'Mana sources found'
+                      : 'No coloured mana to check'
                 }
               />
               <b>
@@ -205,13 +202,13 @@ export function DeckOverview({
                     ? 'No theme selected'
                     : selectedTagsFound === selectedTags.length
                       ? 'Theme cards found'
-                      : 'Check theme tags'
+                      : 'Check theme support'
                 }
               />
               <b>
                 {selectedTags.length
-                  ? `${selectedTagsFound} of ${selectedTags.length} selected theme tags found`
-                  : 'Choose a theme to check tag matches'}
+                  ? `${selectedTagsFound} of ${selectedTags.length} selected themes have cards`
+                  : 'Choose a theme to check its cards'}
               </b>
             </div>
           </div>
@@ -229,9 +226,7 @@ export function DeckOverview({
 
         <section className="deck-review-section">
           <h3>Role coverage</h3>
-          <p>
-            Counts use heuristic role detection. Adjust targets; select a row to highlight matches.
-          </p>
+          <p>Adjust targets; select a row to highlight matching cards.</p>
           <div className="deck-review-role-list">
             {roleStats.map(({ key, cards, count, target }) => {
               const gap = Math.max(0, target - count)
@@ -286,8 +281,8 @@ export function DeckOverview({
         <section className="deck-review-section">
           <h3>Coloured mana</h3>
           <p>
-            Pips are coloured symbols in card costs; sources are cards reporting that colour. Counts
-            are not draw odds. Select a colour to highlight its costs and sources.
+            Pips are coloured symbols in card costs; sources are cards that can produce that colour.
+            Select a colour to highlight its costs and sources.
           </p>
           {colourStats.length ? (
             <div className="deck-review-colours">
@@ -317,10 +312,10 @@ export function DeckOverview({
                       }
                       label={
                         pips > 0 && sourceCards.length === 0
-                          ? 'No source reported'
+                          ? 'No mana source'
                           : pips > 0
-                            ? 'Source reported'
-                            : 'No pip demand'
+                            ? 'Mana sources found'
+                            : 'No coloured costs'
                       }
                     />
                   </span>
@@ -341,11 +336,8 @@ export function DeckOverview({
         </section>
 
         <section className="deck-review-section">
-          <h3>Theme and mechanic tags</h3>
-          <p>
-            Tag matches come from card type and rules text. They can miss interactions or
-            misclassify cards; treat them as clues, not proof of synergy.
-          </p>
+          <h3>Theme and mechanics</h3>
+          <p>Cards matching your themes and mechanics.</p>
           {[...selectedCoverage, ...inferredCoverage].length ? (
             <div className="deck-review-tags">
               {[...selectedCoverage, ...inferredCoverage].map(({ tag, cards }) => {
@@ -353,17 +345,17 @@ export function DeckOverview({
                 const kind = selected ? (cards.length ? 'good' : 'attention') : 'neutral'
                 const label =
                   tag === theme
-                    ? 'Declared theme'
+                    ? 'Selected theme'
                     : activeSubThemes.includes(tag)
                       ? 'Active sub-theme'
-                      : 'Detected signal'
+                      : 'Also found in deck'
                 return (
                   <FilterButton
                     key={tag}
-                    label={`${tag} tag`}
+                    label={tag}
                     count={cards.length}
                     className="deck-review-tag-filter"
-                    onClick={() => selectCards(`${tag} tag`, cardNames(cards))}
+                    onClick={() => selectCards(tag, cardNames(cards))}
                   >
                     <span className="deck-review-tag-kind">{label}</span>
                     <span className="deck-review-tag-heading">
@@ -375,13 +367,13 @@ export function DeckOverview({
                         }
                       />
                     </span>
-                    <span className="deck-review-tag-count">{cards.length} tagged cards</span>
+                    <span className="deck-review-tag-count">{cards.length} matching cards</span>
                   </FilterButton>
                 )
               })}
             </div>
           ) : (
-            <p className="deck-review-empty">No selected theme or mechanic tags detected.</p>
+            <p className="deck-review-empty">No matching themes or mechanics found.</p>
           )}
         </section>
 

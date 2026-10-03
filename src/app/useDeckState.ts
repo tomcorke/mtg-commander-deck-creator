@@ -8,7 +8,8 @@ import { defaultDeckTargets, type DeckTargets } from '../deck-analysis.ts'
 import type { DeckDoctorSwapRecord } from '../deck-doctor.ts'
 import { usePendingConfirmation, useStoredOption } from '../shared/hooks.ts'
 
-type BuilderModeReturn = 'review' | 'doctor' | 'doctor-history' | 'search' | null
+type BuilderModeReturn =
+  'review' | 'review-changes' | 'review-confirm' | 'doctor' | 'doctor-history' | 'search' | null
 
 export function useDeckState(saved: PersistedDeckState | null) {
   const [deck, setDeck] = useState<DeckCard[]>(saved?.deck ?? [])

@@ -8,6 +8,7 @@ import {
   addManualCard,
   addSearchCards,
   hydrateDeckCardDetails,
+  openCardReference,
   selectManualCard,
 } from './deck-actions.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
@@ -115,6 +116,22 @@ test('failed basic fill keeps the deck and dialog unchanged', async (context) =>
   await addBasicLands(deps, [{ name: 'Unavailable basic', count: 1 }])
   assert.equal(deps.deck, existing)
   assert.deepEqual(states, ['loading', 'error'])
+})
+
+test('card details preserve every review step and the review underneath history', () => {
+  for (const modal of ['review', 'review-changes', 'review-confirm', 'doctor-history']) {
+    const deps = searchDeps()
+    deps.activeModal = modal
+    openCardReference(deps, toDeckCard(card('Read-only reference')))
+    assert.equal(deps.builderModeReturn, modal)
+    assert.equal(deps.activeModal, 'card')
+  }
+  const deps = searchDeps()
+  deps.activeModal = 'doctor-history'
+  deps.builderModeReturn = 'review-confirm'
+  openCardReference(deps, toDeckCard(card('History reference')))
+  assert.equal(deps.builderModeReturn, 'review-confirm')
+  assert.equal(deps.activeModal, 'card')
 })
 
 test('invalid multi-add changes neither board nor the recommendation queue', () => {

@@ -13,7 +13,6 @@ import { cardConstructionError } from '../../domain/commander-construction.ts'
 import {
   compareRecommendationScores,
   recommendationScoreRating,
-  type RecommendationScoreRating,
 } from '../../domain/recommendation-scoring.ts'
 import type { RecommendationScoreBreakdown } from '../../domain/recommendation-types.ts'
 import {
@@ -36,26 +35,22 @@ import { simulateManaAccess } from '../../deck-simulation.ts'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
-import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
+import { CardTile } from './DeckReviewCard.tsx'
+import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { reviewSteps, type DeckReviewStep } from '../../app/routes.ts'
 import { CommanderSummary } from './CommanderSummary.tsx'
 import { DeckOverview } from './DeckOverview.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 
 type DoctorCard = Card | DeckCard
 
-type CardSelection = {
-  checked: boolean
-  label: string
-  order?: number
-  disabled?: boolean
-  onChange: () => void
-}
-
-type CardQuantity = { value: number; max: number; onChange: (value: number) => void }
-
 type Props = {
   appHeader: ReactNode
-  showHistory: boolean
+  step: DeckReviewStep
+  active: boolean
+  changeStep: (step: DeckReviewStep, replace?: boolean) => void
+  back: () => void
+  openHistory: () => void
   commander: string
   commanderDetails: CommanderDetails | null
   loadingArt: string
@@ -92,93 +87,7 @@ type Props = {
     additions: Card[],
     moveCutToSideboard: boolean,
   ) => boolean
-  undoSwap: (id: string) => boolean
   closePage: () => void
-}
-
-function CardTile({
-  card,
-  status,
-  openCard,
-  note,
-  fit,
-  selection,
-  quantity,
-}: {
-  card: DoctorCard
-  status: string
-  openCard: (card: DoctorCard) => void
-  note?: string
-  fit?: RecommendationScoreRating
-  selection?: CardSelection
-  quantity?: CardQuantity
-}) {
-  return (
-    <article
-      className={`doctor-card-tile${selection?.checked || quantity?.value ? ' selected' : ''}`}
-    >
-      {quantity && (
-        <label className="doctor-card-select">
-          <span>Cut</span>
-          <input
-            type="number"
-            min="0"
-            max={quantity.max}
-            value={quantity.value}
-            aria-label={`Copies of ${card.name} to cut`}
-            onChange={(event) =>
-              quantity.onChange(Math.min(quantity.max, Math.max(0, Number(event.target.value))))
-            }
-          />
-          <span>of {quantity.max}</span>
-        </label>
-      )}
-      {selection && (
-        <label className="doctor-card-select">
-          <input
-            type="checkbox"
-            checked={selection.checked}
-            disabled={selection.disabled}
-            aria-label={`${selection.label} ${card.name}`}
-            onChange={selection.onChange}
-          />
-          <span>
-            {selection.order ? `${selection.order}. ` : ''}
-            {selection.label}
-          </span>
-        </label>
-      )}
-      <button
-        className="doctor-card-art"
-        type="button"
-        aria-label={`Show details for ${card.name}`}
-        onClick={() => openCard(card)}
-      >
-        {card.image ? <SmallCardImage image={card.image} /> : <span>No card art</span>}
-      </button>
-      <div className="doctor-card-copy">
-        <span className={`doctor-card-status${status.startsWith('In deck') ? ' in-deck' : ''}`}>
-          {status}
-        </span>
-        {fit && (
-          <span className={`doctor-card-fit doctor-card-fit--${fit}`}>
-            <span className="doctor-card-fit-stars" aria-hidden="true">
-              {'★'.repeat(fitStars[fit])}
-              {'☆'.repeat(5 - fitStars[fit])}
-            </span>
-            {fitLabels[fit]}
-          </span>
-        )}
-        <CardReference card={card} onOpen={() => openCard(card)} />
-        {card.manaCost && (
-          <small className="doctor-card-cost">
-            <OracleText text={card.manaCost} />
-          </small>
-        )}
-        {note && <small>{note}</small>}
-      </div>
-    </article>
-  )
 }
 
 const doctorCandidatePageSize = 12
@@ -196,28 +105,17 @@ function matchesCardFilter(card: DoctorCard, filter: string) {
   if (kind === 'tag') return card.tags.includes(value)
   return true
 }
-const fitLabels: Record<RecommendationScoreRating, string> = {
-  top: 'Top fit',
-  strong: 'Strong fit',
-  recommended: 'Recommended',
-  possible: 'Possible fit',
-  low: 'Lower fit',
-}
-const fitStars: Record<RecommendationScoreRating, number> = {
-  top: 5,
-  strong: 4,
-  recommended: 3,
-  possible: 2,
-  low: 1,
-}
-
 function hasCardError(card: Card, deck: DeckCard[], commanderColours: string[]) {
   return Boolean(cardConstructionError(card, deck, commanderColours))
 }
 
 export function DeckDoctorView({
   appHeader,
-  showHistory,
+  step,
+  active,
+  changeStep,
+  back,
+  openHistory,
   commander,
   commanderDetails,
   loadingArt,
@@ -247,7 +145,6 @@ export function DeckDoctorView({
   cycleCommanderPrinting,
   startOver,
   applySwapPlan,
-  undoSwap,
   closePage,
 }: Props) {
   const { commanderStyling, darkMode } = useVisualPreferences()
@@ -370,13 +267,10 @@ export function DeckDoctorView({
     setCandidatePage(0)
   }, [recommendationQueryKey])
 
+  const stepHeading = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
-    if (!showHistory) return
-    const frame = requestAnimationFrame(() =>
-      document.getElementById('deck-review-history')?.scrollIntoView({ block: 'start' }),
-    )
-    return () => cancelAnimationFrame(frame)
-  }, [showHistory])
+    if (active) stepHeading.current?.focus()
+  }, [active, step])
 
   useEffect(() => {
     if (previousBoards.current !== boardKey) {
@@ -385,15 +279,6 @@ export function DeckDoctorView({
       setSelectedAdditionNames([])
     }
   }, [boardKey])
-
-  function navigateSection(id: string) {
-    const section = document.getElementById(id)
-    section?.focus({ preventScroll: true })
-    section?.scrollIntoView({
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      block: 'start',
-    })
-  }
 
   function toggleIndex(index: number, selected: number[], update: (value: number[]) => void) {
     update(
@@ -477,7 +362,7 @@ export function DeckDoctorView({
     setExploreCommanders(enabled)
     setCommanderCandidates([])
     setCommanderError('')
-    if (!enabled) return
+    if (!enabled || commanderCount > 1 || (!theme && !activeSubThemes.length)) return
     setCommanderState('loading')
     try {
       setCommanderCandidates(await fetchCommanderAlternatives())
@@ -493,6 +378,7 @@ export function DeckDoctorView({
     if (applySwapPlan(selectedCuts, selectedAdditions, moveCutToSideboard)) {
       setSelectedCutIndexes([])
       setSelectedAdditionNames([])
+      changeStep('Diagnose', true)
     }
   }
 
@@ -551,6 +437,12 @@ export function DeckDoctorView({
       id="deck-doctor-page"
       aria-labelledby="deck-review-title"
       className={`${darkMode ? 'dark ' : ''}deck-doctor-shell${commanderStyling ? ' commander-themed' : ''}`}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || !active) return
+        event.preventDefault()
+        if (exploreCommanders) setExploreCommanders(false)
+        else back()
+      }}
     >
       {commanderStyling && commanderDetails?.art.length ? (
         <div className="commander-backdrop" aria-hidden="true">
@@ -577,6 +469,7 @@ export function DeckDoctorView({
           headingLevel="h2"
           onOpenCommander={() => currentCommander && openCard(currentCommander)}
           onChangeCommander={startOver}
+          onCompareCommanders={() => void findCommanderAlternatives(true)}
         />
         <div className="doctor-page-context">
           <div className="section-title">
@@ -589,10 +482,6 @@ export function DeckDoctorView({
               {history.length === 1 ? '' : 's'}
             </span>
           </div>
-          <p>
-            Check the signals, tune the deck, and choose any swaps yourself. No suggested change is
-            applied until you approve it.
-          </p>
           <div className="doctor-context-status">
             <span>
               {sideboard.length} sideboard card{sideboard.length === 1 ? '' : 's'}
@@ -605,27 +494,48 @@ export function DeckDoctorView({
             )}
           </div>
           <div className="doctor-page-actions">
-            {showHistory && (
-              <button
-                className="export"
-                type="button"
-                onClick={() => navigateSection('doctor-diagnosis')}
-              >
-                Back to findings
-              </button>
-            )}
+            <button className="export" type="button" onClick={openHistory}>
+              Change history ({history.length})
+            </button>
             <button className="primary" type="button" onClick={closePage}>
               Back to builder
             </button>
           </div>
         </div>
       </section>
-      <div className={`doctor-page${planReady ? ' has-ready-plan' : ''}`}>
-        <p className="doctor-intro">
-          Findings are prompts, not cut decisions. Mana estimates simulate one drawn spell and one
-          land drop per turn; they omit ramp, tapped-land timing, mulligans, and card effects. They
-          are not win-rate or full-game predictions. You choose and approve any changes.
-        </p>
+      <div className={`doctor-page${step !== 'Diagnose' ? ' has-pending-summary' : ''}`}>
+        <nav className="doctor-navigation" aria-label="Deck review steps">
+          <ol>
+            {reviewSteps.map((label, index) => (
+              <li key={label} aria-current={step === label ? 'step' : undefined}>
+                <span>{index + 1}</span> {label}
+              </li>
+            ))}
+          </ol>
+        </nav>
+        <div className="doctor-section-heading">
+          <h2 ref={stepHeading} tabIndex={-1}>
+            {step}
+          </h2>
+          <button className="export" type="button" onClick={back}>
+            {step === 'Confirm'
+              ? 'Back to Choose changes'
+              : step === 'Choose changes'
+                ? 'Back to Diagnose'
+                : 'Back to builder'}
+          </button>
+        </div>
+        <details className="doctor-intro">
+          <summary>How review works</summary>
+          <p>
+            Counts and findings come from card data and rules text, not a deck grade. Green marks
+            detected support; amber marks a possible gap. Findings are prompts, not cut decisions.
+            Mana estimates simulate one drawn spell and one land drop per turn; they omit ramp,
+            tapped-land timing, mulligans, and card effects. They are not win-rate or full-game
+            predictions. Choose cuts and additions, then confirm them before anything changes.
+            Escape goes back one step; at Diagnose it returns to the builder.
+          </p>
+        </details>
         <div className="doctor-goal-settings">
           <p>
             <b>Recommendation settings:</b> {recommendationSettingsSummary}
@@ -641,7 +551,7 @@ export function DeckDoctorView({
             Adjust goals and filters
           </button>
         </div>
-        {mode !== 'review' && (
+        {step === 'Diagnose' && mode !== 'review' && (
           <section className="doctor-readiness" aria-labelledby="doctor-readiness-title">
             <div className="doctor-section-heading">
               <div>
@@ -676,7 +586,7 @@ export function DeckDoctorView({
                         aria-pressed={candidateFilter === `role:${key}`}
                         onClick={() => {
                           filterCandidates(`role:${key}`)
-                          navigateSection('doctor-adds')
+                          changeStep('Choose changes')
                         }}
                       >
                         {targetLabels[key]}: {analysis.counts[key]} of {deckTargets[key]} · add{' '}
@@ -695,7 +605,7 @@ export function DeckDoctorView({
                 <button
                   className="export"
                   type="button"
-                  onClick={() => navigateSection('doctor-changes')}
+                  onClick={() => changeStep('Choose changes')}
                 >
                   Choose cuts
                 </button>
@@ -703,137 +613,115 @@ export function DeckDoctorView({
             )}
           </section>
         )}
-        <nav className="doctor-navigation" aria-label="Deck review sections">
-          <button
-            className="export"
-            type="button"
-            onClick={() => navigateSection('deck-review-overview')}
-          >
-            Overview
-          </button>
-          <button
-            className="export"
-            type="button"
-            onClick={() => navigateSection('doctor-diagnosis')}
-          >
-            Findings
-          </button>
-          <button
-            className="export"
-            type="button"
-            onClick={() => navigateSection('doctor-changes')}
-          >
-            Swap cards
-          </button>
-          <button
-            className="export"
-            type="button"
-            onClick={() => navigateSection('deck-review-history')}
-          >
-            History ({history.length})
-          </button>
-        </nav>
-        <div id="deck-review-overview" tabIndex={-1}>
-          <DeckOverview
-            deck={deck}
-            sideboardCount={sideboard.length}
-            commanderCount={commanderCount}
-            commanderColours={commanderColours}
-            theme={theme}
-            activeSubThemes={activeSubThemes}
-            analysis={analysis}
-            deckTargets={deckTargets}
-            setDeckTargets={setDeckTargets}
-            displayedTypeCounts={displayedTypeCounts}
-            selectManaValue={selectManaValue}
-            selectCards={selectCards}
-          />
-        </div>
-        <div className="doctor-workspace">
-          <section
-            id="doctor-diagnosis"
-            tabIndex={-1}
-            className="doctor-findings"
-            aria-labelledby="doctor-diagnosis-title"
-          >
-            <div className="doctor-section-heading">
-              <div>
-                <p className="eyebrow">Grouped signals</p>
-                <h2 id="doctor-diagnosis-title">Diagnosis</h2>
-              </div>
-              <span>
-                {findings.length} finding{findings.length === 1 ? '' : 's'}
-              </span>
+        {step === 'Diagnose' && (
+          <>
+            <div id="deck-review-overview" tabIndex={-1}>
+              <DeckOverview
+                deck={deck}
+                sideboardCount={sideboard.length}
+                commanderCount={commanderCount}
+                commanderColours={commanderColours}
+                theme={theme}
+                activeSubThemes={activeSubThemes}
+                analysis={analysis}
+                deckTargets={deckTargets}
+                setDeckTargets={setDeckTargets}
+                displayedTypeCounts={displayedTypeCounts}
+                selectManaValue={selectManaValue}
+                selectCards={selectCards}
+              />
             </div>
-            {findings.length ? (
-              findings.map((finding) => (
-                <article className="doctor-finding" key={finding.id}>
-                  <h3>{finding.title}</h3>
-                  <p>{finding.summary}</p>
-                  {finding.evidence.length > 0 && (
-                    <ul>
-                      {finding.evidence.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {finding.cardNames.length > 0 && (
-                    <div className="doctor-reference-grid">
-                      {finding.cardNames.map((name) => {
-                        const card = deck.find((item) => item.name === name)
-                        if (!card) return null
-                        const signal = finding.cardSignals?.find(
-                          (item) => item.cardName === card.name,
-                        )
-                        return (
-                          <div className="doctor-reference-card" key={card.name}>
-                            <span
-                              className={`doctor-card-status${flaggedNames.has(card.name) ? ' in-deck' : ''}`}
-                            >
-                              {flaggedNames.has(card.name) ? 'In deck · flagged' : 'In deck'}
-                            </span>
-                            <CardReference card={card} onOpen={() => openCard(card)} />
-                            {card.manaCost && (
-                              <small className="doctor-card-cost">
-                                <OracleText text={card.manaCost} />
-                              </small>
-                            )}
-                            {signal && (
-                              <details className="doctor-signal-details">
-                                <summary>{signal.summary}</summary>
-                                <ul>
-                                  {signal.colourGaps.map(({ colour, required, sources }) => (
-                                    <li key={colour}>
-                                      <ManaSymbols symbols={[colour]} /> {required} pip
-                                      {required === 1 ? '' : 's'}; {sources} reported source
-                                      {sources === 1 ? '' : 's'}.
-                                    </li>
-                                  ))}
-                                  {signal.simulation && (
-                                    <li>
-                                      When drawn, it was payable by turn {signal.simulation.turn} in{' '}
-                                      {Math.round(signal.simulation.castableChance * 100)}% of
-                                      simulated hands ({simulation.trials} trials).
-                                    </li>
-                                  )}
-                                </ul>
-                              </details>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </article>
-              ))
-            ) : (
-              <p className="doctor-empty">
-                No findings at the current settings. The heuristics cannot verify every interaction.
-              </p>
-            )}
-          </section>
+            <section
+              id="doctor-diagnosis"
+              tabIndex={-1}
+              className="doctor-findings"
+              aria-labelledby="doctor-diagnosis-title"
+            >
+              <div className="doctor-section-heading">
+                <div>
+                  <p className="eyebrow">What to check</p>
+                  <h2 id="doctor-diagnosis-title">Findings</h2>
+                </div>
+                <span>
+                  {findings.length} finding{findings.length === 1 ? '' : 's'}
+                </span>
+              </div>
+              {findings.length ? (
+                findings.map((finding) => (
+                  <article className="doctor-finding" key={finding.id}>
+                    <h3>{finding.title}</h3>
+                    <p>{finding.summary}</p>
+                    {finding.evidence.length > 0 && (
+                      <ul>
+                        {finding.evidence.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {finding.cardNames.length > 0 && (
+                      <div className="doctor-reference-grid">
+                        {finding.cardNames.map((name) => {
+                          const card = deck.find((item) => item.name === name)
+                          if (!card) return null
+                          const signal = finding.cardSignals?.find(
+                            (item) => item.cardName === card.name,
+                          )
+                          return (
+                            <div className="doctor-reference-card" key={card.name}>
+                              <span
+                                className={`doctor-card-status${flaggedNames.has(card.name) ? ' in-deck' : ''}`}
+                              >
+                                {flaggedNames.has(card.name) ? 'In deck · flagged' : 'In deck'}
+                              </span>
+                              <CardReference card={card} onOpen={() => openCard(card)} />
+                              {card.manaCost && (
+                                <small className="doctor-card-cost">
+                                  <OracleText text={card.manaCost} />
+                                </small>
+                              )}
+                              {signal && (
+                                <details className="doctor-signal-details">
+                                  <summary>{signal.summary}</summary>
+                                  <ul>
+                                    {signal.colourGaps.map(({ colour, required, sources }) => (
+                                      <li key={colour}>
+                                        <ManaSymbols symbols={[colour]} /> {required} pip
+                                        {required === 1 ? '' : 's'}; {sources} mana source
+                                        {sources === 1 ? '' : 's'}.
+                                      </li>
+                                    ))}
+                                    {signal.simulation && (
+                                      <li>
+                                        When drawn, it was payable by turn {signal.simulation.turn}{' '}
+                                        in {Math.round(signal.simulation.castableChance * 100)}% of
+                                        simulated hands ({simulation.trials} trials).
+                                      </li>
+                                    )}
+                                  </ul>
+                                </details>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </article>
+                ))
+              ) : (
+                <p className="doctor-empty">
+                  No findings at the current settings. The heuristics cannot verify every
+                  interaction.
+                </p>
+              )}
+            </section>
+            <button className="primary" type="button" onClick={() => changeStep('Choose changes')}>
+              Choose changes
+            </button>
+          </>
+        )}
 
-          <div id="doctor-changes" className="doctor-change-panel" tabIndex={-1}>
+        {step === 'Choose changes' && (
+          <div id="doctor-changes" className="doctor-change-panel">
             {mode === 'build' ? (
               <details className="doctor-other-cuts">
                 <summary>Optional: choose cards to cut</summary>
@@ -851,7 +739,7 @@ export function DeckDoctorView({
             >
               <div className="doctor-section-heading">
                 <div>
-                  <p className="eyebrow">Shared replacement pool</p>
+                  <p className="eyebrow">Choose what joins</p>
                   <h2 id="doctor-adds-title">Select additions</h2>
                 </div>
                 <span>{selectedAdditionNames.length} selected</span>
@@ -976,259 +864,241 @@ export function DeckDoctorView({
                 )}
               </div>
             </section>
+          </div>
+        )}
 
-            <section className="doctor-plan" aria-labelledby="doctor-plan-title">
-              <div className="doctor-section-heading">
-                <div>
-                  <p className="eyebrow">Review before applying</p>
-                  <h2 id="doctor-plan-title">Proposed changes</h2>
-                </div>
-                <span>
-                  {selectedCutIndexes.length} cuts · {selectedAdditionNames.length} additions
-                </span>
+        {step === 'Confirm' && (
+          <section className="doctor-plan" aria-labelledby="doctor-plan-title">
+            <div className="doctor-section-heading">
+              <div>
+                <p className="eyebrow">Review before applying</p>
+                <h2 id="doctor-plan-title">Proposed changes</h2>
               </div>
-              {pairCount > 0 && (
-                <div className="doctor-plan-pairs">
-                  {Array.from({ length: pairCount }, (_, index) => (
-                    <div
-                      className="doctor-plan-pair"
-                      key={`${index}:${selectedCuts[index].cutCard.name}`}
-                    >
-                      <span className="doctor-pair-number">Swap {index + 1}</span>
-                      <CardTile
-                        card={selectedCuts[index].cutCard}
-                        status="In deck · cut"
-                        openCard={openCard}
-                      />
-                      <span className="doctor-pair-arrow" aria-hidden="true">
-                        →
-                      </span>
-                      <CardTile
-                        card={selectedAdditions[index]}
-                        status="Replacement"
-                        openCard={openCard}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedCuts.length > pairCount && (
-                <>
-                  <h3>Cut without replacement</h3>
-                  <div className="doctor-card-grid">
-                    {selectedCuts.slice(pairCount).map(({ cutIndex, cutCard }) => (
-                      <CardTile
-                        key={cutIndex}
-                        card={cutCard}
-                        status="In deck · cut"
-                        openCard={openCard}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-              {selectedAdditions.length > pairCount && (
-                <>
-                  <h3>Add without cutting</h3>
-                  <div className="doctor-card-grid">
-                    {selectedAdditions.slice(pairCount).map((card) => (
-                      <CardTile key={card.name} card={card} status="Addition" openCard={openCard} />
-                    ))}
-                  </div>
-                </>
-              )}
-              {!selectedCutIndexes.length && !selectedAdditionNames.length ? (
-                <p className="doctor-muted">Select cards to cut or add to review the plan.</p>
-              ) : (
-                <p className="doctor-muted" role="status">
-                  Deck size after applying: {deck.length} → {projectedSize} cards
-                  {projectedSize < 100
-                    ? ` (${100 - projectedSize} short of 100)`
-                    : projectedSize > 100
-                      ? ` (${projectedSize - 100} over 100)`
-                      : ''}
-                  .
-                </p>
-              )}
-              {projectedDeck && projectedAnalysis && (
-                <div className="doctor-impact" role="status">
-                  <h3>After these changes</h3>
-                  <p>
-                    {targetKeys.map((role) => (
-                      <span key={role}>
-                        {targetLabels[role]}: {analysis.counts[role]} →{' '}
-                        {projectedAnalysis.counts[role]}
-                        {projectedAnalysis.counts[role] < deckTargets[role] &&
-                          projectedAnalysis.counts[role] < analysis.counts[role] &&
-                          ' (below your target)'}
-                      </span>
-                    ))}
-                    {selectedThemes.length > 0 && (
-                      <span>
-                        Theme matches: {themeCount(deck)} → {themeCount(projectedDeck)}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              )}
-              <label className="doctor-checkbox">
-                <input
-                  type="checkbox"
-                  checked={moveCutToSideboard}
-                  onChange={(event) => setMoveCutToSideboard(event.target.checked)}
-                />
-                Move cut cards to the sideboard
-              </label>
-              {error && (
-                <p className="doctor-error" role="status">
-                  {error}
-                </p>
-              )}
-            </section>
-          </div>
-        </div>
-
-        <section className="doctor-commander" aria-labelledby="doctor-commander-title">
-          <div className="doctor-section-heading">
-            <div>
-              <p className="eyebrow">Optional comparison</p>
-              <h2 id="doctor-commander-title">Try another commander</h2>
+              <span>
+                {selectedCutIndexes.length} cuts · {selectedAdditionNames.length} additions
+              </span>
             </div>
-          </div>
-          {commanderCount > 1 ? (
-            <p>
-              Partner-pair alternatives are not compared. Your current commanders stay unchanged.
-            </p>
-          ) : !theme && !activeSubThemes.length ? (
-            <p>Select a theme or sub-theme to compare commander options.</p>
-          ) : (
-            <>
-              <label className="doctor-checkbox">
-                <input
-                  type="checkbox"
-                  checked={exploreCommanders}
-                  onChange={(event) => void findCommanderAlternatives(event.target.checked)}
-                />
-                Compare theme-compatible commanders (deck remains unchanged)
-              </label>
-              {exploreCommanders && (
-                <div className="doctor-commander-results" aria-live="polite">
-                  {commanderState === 'loading' && <p>Searching Commander-legal options…</p>}
-                  {commanderState === 'error' && <p className="doctor-error">{commanderError}</p>}
-                  {commanderState === 'done' && commanderCandidates.length === 0 && (
-                    <p>No Commander-legal alternative found for this theme and deck identity.</p>
-                  )}
-                  {commanderCandidates.map((candidate) => {
-                    const candidateColours = candidate.colorIdentity ?? []
-                    const added = candidateColours.filter(
-                      (colour) => !commanderColours.includes(colour),
-                    )
-                    const removed = commanderColours.filter(
-                      (colour) => !candidateColours.includes(colour),
-                    )
-                    return (
-                      <article className="doctor-commander-option" key={candidate.name}>
-                        <div className="doctor-commander-pair">
-                          {currentCommander && (
-                            <CardTile
-                              card={currentCommander}
-                              status="In deck"
-                              openCard={openCard}
-                            />
-                          )}
-                          <span className="doctor-pair-arrow" aria-hidden="true">
-                            →
-                          </span>
-                          <CardTile card={candidate} status="Alternative" openCard={openCard} />
-                        </div>
-                        <p>
-                          {added.length ? (
-                            <>
-                              Adds <ManaSymbols symbols={added} /> to identity.{' '}
-                            </>
-                          ) : null}
-                          {removed.length ? (
-                            <>
-                              Drops unused <ManaSymbols symbols={removed} />.
-                            </>
-                          ) : (
-                            'Keeps the current colour access.'
-                          )}
-                        </p>
-                      </article>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          )}
-        </section>
-        <section
-          id="deck-review-history"
-          tabIndex={-1}
-          className="doctor-history"
-          aria-labelledby="history-title"
-        >
-          <div className="doctor-section-heading">
-            <div>
-              <p className="eyebrow">Your changes</p>
-              <h2 id="history-title">Change history</h2>
-            </div>
-            <span>{history.length} applied</span>
-          </div>
-          {history.length ? (
-            history.map((swap) => (
-              <article className="doctor-history-item" key={swap.id}>
-                <div className="doctor-history-pair">
-                  {swap.cutCard && (
+            {pairCount > 0 && (
+              <div className="doctor-plan-pairs">
+                {Array.from({ length: pairCount }, (_, index) => (
+                  <div
+                    className="doctor-plan-pair"
+                    key={`${index}:${selectedCuts[index].cutCard.name}`}
+                  >
+                    <span className="doctor-pair-number">Swap {index + 1}</span>
                     <CardTile
-                      card={swap.cutCard}
-                      status={swap.movedToSideboard ? 'Moved to sideboard' : 'Cut from deck'}
+                      card={selectedCuts[index].cutCard}
+                      status="In deck · cut"
                       openCard={openCard}
                     />
-                  )}
-                  {swap.cutCard && swap.addedCard && (
                     <span className="doctor-pair-arrow" aria-hidden="true">
                       →
                     </span>
-                  )}
-                  {swap.addedCard && (
-                    <CardTile card={swap.addedCard} status="In deck" openCard={openCard} />
-                  )}
+                    <CardTile
+                      card={selectedAdditions[index]}
+                      status="Replacement"
+                      openCard={openCard}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            {selectedCuts.length > pairCount && (
+              <>
+                <h3>Cut without replacement</h3>
+                <div className="doctor-card-grid">
+                  {selectedCuts.slice(pairCount).map(({ cutIndex, cutCard }) => (
+                    <CardTile
+                      key={cutIndex}
+                      card={cutCard}
+                      status="In deck · cut"
+                      openCard={openCard}
+                    />
+                  ))}
                 </div>
-                <button
-                  className="export"
-                  type="button"
-                  onClick={() => undoSwap(swap.id)}
-                  aria-label={
-                    swap.cutCard && swap.addedCard
-                      ? `Undo ${swap.addedCard.name} for ${swap.cutCard.name}`
-                      : swap.addedCard
-                        ? `Undo adding ${swap.addedCard.name}`
-                        : `Undo cutting ${swap.cutCard?.name}`
-                  }
-                >
-                  Undo this change
-                </button>
-              </article>
-            ))
-          ) : (
-            <p className="doctor-muted">No changes applied yet.</p>
-          )}
-          {error && (
-            <p className="doctor-error" role="status">
-              {error}
-            </p>
-          )}
-        </section>
+              </>
+            )}
+            {selectedAdditions.length > pairCount && (
+              <>
+                <h3>Add without cutting</h3>
+                <div className="doctor-card-grid">
+                  {selectedAdditions.slice(pairCount).map((card) => (
+                    <CardTile key={card.name} card={card} status="Addition" openCard={openCard} />
+                  ))}
+                </div>
+              </>
+            )}
+            {!selectedCutIndexes.length && !selectedAdditionNames.length ? (
+              <p className="doctor-muted">Select cards to cut or add to review the plan.</p>
+            ) : (
+              <p className="doctor-muted" role="status">
+                Deck size after applying: {deck.length} → {projectedSize} cards
+                {projectedSize < 100
+                  ? ` (${100 - projectedSize} short of 100)`
+                  : projectedSize > 100
+                    ? ` (${projectedSize - 100} over 100)`
+                    : ''}
+                .
+              </p>
+            )}
+            {projectedDeck && projectedAnalysis && (
+              <div className="doctor-impact" role="status">
+                <h3>After these changes</h3>
+                <p>
+                  {targetKeys.map((role) => (
+                    <span key={role}>
+                      {targetLabels[role]}: {analysis.counts[role]} →{' '}
+                      {projectedAnalysis.counts[role]}
+                      {projectedAnalysis.counts[role] < deckTargets[role] &&
+                        projectedAnalysis.counts[role] < analysis.counts[role] &&
+                        ' (below your target)'}
+                    </span>
+                  ))}
+                  {selectedThemes.length > 0 && (
+                    <span>
+                      Theme matches: {themeCount(deck)} → {themeCount(projectedDeck)}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+            <label className="doctor-checkbox">
+              <input
+                type="checkbox"
+                checked={moveCutToSideboard}
+                onChange={(event) => setMoveCutToSideboard(event.target.checked)}
+              />
+              Move cut cards to the sideboard
+            </label>
+            {error && (
+              <p className="doctor-error" role="status">
+                {error}
+              </p>
+            )}
+          </section>
+        )}
       </div>
-      {planReady && (
-        <div className="doctor-apply-bar" role="region" aria-label="Ready to apply changes">
-          <button className="primary doctor-apply" type="button" onClick={applyPlan}>
-            Apply {selectedCutIndexes.length + selectedAdditionNames.length} change
-            {selectedCutIndexes.length + selectedAdditionNames.length === 1 ? '' : 's'} · deck
-            becomes {projectedSize}
-          </button>
+
+      {exploreCommanders && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setExploreCommanders(false)
+          }}
+        >
+          <section
+            className="export-modal doctor-commander"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="doctor-commander-title"
+          >
+            <div className="export-heading">
+              <p className="eyebrow">Deck review</p>
+              <ModalCloseButton
+                autoFocus
+                label="Close commander comparison"
+                onClick={() => setExploreCommanders(false)}
+              />
+            </div>
+            <div className="doctor-section-heading">
+              <div>
+                <p className="eyebrow">Optional comparison</p>
+                <h2 id="doctor-commander-title">Compare commanders</h2>
+              </div>
+            </div>
+            {commanderCount > 1 ? (
+              <p>
+                Partner-pair alternatives are not compared. Your current commanders stay unchanged.
+              </p>
+            ) : !theme && !activeSubThemes.length ? (
+              <p>Select a theme or sub-theme to compare commander options.</p>
+            ) : (
+              <>
+                <p>Compare theme-compatible commanders without changing your deck.</p>
+                {exploreCommanders && (
+                  <div className="doctor-commander-results" aria-live="polite">
+                    {commanderState === 'loading' && <p>Searching Commander-legal options…</p>}
+                    {commanderState === 'error' && <p className="doctor-error">{commanderError}</p>}
+                    {commanderState === 'done' && commanderCandidates.length === 0 && (
+                      <p>No Commander-legal alternative found for this theme and deck identity.</p>
+                    )}
+                    {commanderCandidates.map((candidate) => {
+                      const candidateColours = candidate.colorIdentity ?? []
+                      const added = candidateColours.filter(
+                        (colour) => !commanderColours.includes(colour),
+                      )
+                      const removed = commanderColours.filter(
+                        (colour) => !candidateColours.includes(colour),
+                      )
+                      return (
+                        <article className="doctor-commander-option" key={candidate.name}>
+                          <div className="doctor-commander-pair">
+                            {currentCommander && (
+                              <CardTile
+                                card={currentCommander}
+                                status="In deck"
+                                openCard={openCard}
+                              />
+                            )}
+                            <span className="doctor-pair-arrow" aria-hidden="true">
+                              →
+                            </span>
+                            <CardTile card={candidate} status="Alternative" openCard={openCard} />
+                          </div>
+                          <p>
+                            {added.length ? (
+                              <>
+                                Adds <ManaSymbols symbols={added} /> to identity.{' '}
+                              </>
+                            ) : null}
+                            {removed.length ? (
+                              <>
+                                Drops unused <ManaSymbols symbols={removed} />.
+                              </>
+                            ) : (
+                              'Keeps the current colour access.'
+                            )}
+                          </p>
+                        </article>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        </div>
+      )}
+      {step !== 'Diagnose' && (
+        <div className="doctor-apply-bar" role="region" aria-label="Pending changes">
+          <div aria-live="polite">
+            <strong>
+              Cutting {selectedCuts.length} · Adding {selectedAdditions.length}
+            </strong>
+            <span>
+              Deck: {deck.length} → {projectedSize} / 100 · Not applied yet
+            </span>
+          </div>
+          {step === 'Choose changes' ? (
+            <button
+              className="primary"
+              type="button"
+              disabled={!planReady}
+              onClick={() => changeStep('Confirm')}
+            >
+              Confirm changes
+            </button>
+          ) : (
+            <button
+              className="primary doctor-apply"
+              type="button"
+              disabled={!planReady}
+              onClick={applyPlan}
+            >
+              Apply {selectedCuts.length + selectedAdditions.length} change
+              {selectedCuts.length + selectedAdditions.length === 1 ? '' : 's'}
+            </button>
+          )}
         </div>
       )}
     </main>

@@ -225,7 +225,8 @@
   outline: 3px solid color-mix(in srgb, var(--commander-accent, #7546a8) 48%, white);
   outline-offset: 2px;
 }
-.deck-doctor-shell {
+.deck-doctor-shell,
+.deck-review-history-modal {
   --doctor-bg: #f4f3fa;
   --doctor-panel: #fff;
   --doctor-soft: #faf9fd;
@@ -237,7 +238,8 @@
   background: var(--doctor-bg);
   color: var(--doctor-text);
 }
-.deck-doctor-shell.dark {
+.deck-doctor-shell.dark,
+.dark .deck-review-history-modal {
   --doctor-bg: #11101d;
   --doctor-panel: #1b1a2a;
   --doctor-soft: #141322;
@@ -252,15 +254,18 @@
   margin: 0;
   padding: 24px 5vw 48px;
 }
-.doctor-page.has-ready-plan {
-  padding-bottom: 112px;
+.doctor-page.has-pending-summary {
+  padding-bottom: 144px;
 }
 .deck-doctor-shell > .doctor-apply-bar {
   position: fixed;
   z-index: 40;
   inset: auto 0 0;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 20px;
   padding: 12px 5vw;
   border-top: 1px solid var(--doctor-border);
   background: var(--doctor-panel);
@@ -281,9 +286,6 @@
   border-left: 1px solid var(--doctor-border);
 }
 .doctor-navigation {
-  position: sticky;
-  z-index: 20;
-  top: 8px;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -370,12 +372,6 @@
 .doctor-overview .deck-review-grid {
   margin-top: 0;
 }
-#deck-review-overview,
-#doctor-diagnosis,
-#doctor-changes,
-#deck-review-history {
-  scroll-margin-top: 78px;
-}
 .doctor-page-context h1 {
   margin: 0;
   font-size: clamp(28px, 3vw, 44px);
@@ -431,12 +427,6 @@
 .doctor-muted {
   margin: 6px 0 12px;
   font-size: 12px;
-}
-.doctor-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  align-items: start;
-  gap: 20px;
 }
 .doctor-findings,
 .doctor-change-panel,
@@ -776,22 +766,13 @@
     border-left: 0;
   }
 }
-@media (max-width: 1000px) {
-  .doctor-workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 @media (max-width: 620px) {
   .doctor-page {
     padding: 18px 6vw 32px;
   }
-  .doctor-navigation {
-    justify-content: flex-start;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-  }
-  .doctor-navigation button {
-    flex: 0 0 auto;
+  .doctor-navigation ol {
+    flex-direction: column;
+    gap: 8px;
   }
   .doctor-goal-settings {
     align-items: flex-start;
@@ -1430,6 +1411,56 @@ main > .commander-header {
 .commander-card:focus-visible .card-zoom {
   opacity: 1;
   transform: scale(1);
+}
+.commander-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.doctor-navigation ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--doctor-muted);
+  font-size: 14px;
+}
+.doctor-navigation li[aria-current='step'] {
+  color: var(--doctor-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.doctor-navigation li > span {
+  font-weight: 700;
+}
+.doctor-apply-bar > div {
+  display: grid;
+  gap: 4px;
+  color: var(--doctor-text);
+  font-size: 14px;
+}
+.doctor-apply-bar > div > span {
+  color: var(--doctor-muted);
+}
+.doctor-intro summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+}
+.doctor-intro p {
+  margin-bottom: 0;
+}
+.deck-review-history-modal,
+.export-modal.doctor-commander {
+  width: min(760px, 100%);
+  color: var(--doctor-text);
+}
+.deck-review-history-modal .doctor-history-pair > .doctor-card-tile:only-child {
+  grid-column: 1 / -1;
 }
 .commander-summary-title {
   margin: 0 0 8px;
