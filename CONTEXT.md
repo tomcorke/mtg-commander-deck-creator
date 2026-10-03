@@ -66,4 +66,4 @@ Prefer reading rules and policy from Scryfall fields at runtime over hard-coding
 
 **Deck review** and **Deck Doctor** — analysis of the current deck, and an optional flow that proposes equal-count swaps for the player to approve.
 
-**Collection** — set codes the player prefers or restricts to. It is not an inventory of owned cards.
+**Set selection** — set codes the player prefers or restricts to, shown as "Sets to build from". It is not an inventory of owned cards. Older code and documents call this "collection".

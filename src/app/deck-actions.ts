@@ -493,16 +493,17 @@ export async function addBasicLands(deps: ActionDeps, plan: { name: string; coun
         count,
       })),
     )
-    const next: DeckCard[] = [...deps.deck]
     for (const { card, count } of cards) {
-      if (!Number.isInteger(count) || count < 0) throw new Error('Invalid basic-land count.')
-      for (let index = 0; index < count && next.length < 100; index++) {
-        const error = cardConstructionError(card, next, deps.commanderDetails?.colours ?? [])
-        if (error) throw new Error(error)
-        next.push({ ...card })
-      }
+      if (!Number.isInteger(count) || count < 0 || count > 100)
+        throw new Error('Invalid basic-land count.')
+      if (!/\bBasic\b/.test(card.typeLine)) throw new Error('Choose a basic land.')
+      const error = cardConstructionError(card, deps.deck, deps.commanderDetails?.colours ?? [])
+      if (error) throw new Error(error)
     }
-    setDeck(next)
+    const additions = cards.flatMap(({ card, count }) =>
+      Array.from({ length: count }, () => ({ ...card })),
+    )
+    setDeck((current: DeckCard[]) => [...current, ...additions].slice(0, 100))
     setBasicLandState('idle')
     closeModal()
   } catch {

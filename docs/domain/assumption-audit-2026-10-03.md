@@ -6,6 +6,12 @@ The rules reference is the **2026-09-25 Comprehensive Rules**, linked by Wizards
 
 **Classes:** **Rule** = Comprehensive Rules / official format construction rule; **Policy** = Wizards format policy; **Provider** = a data-provider contract or observed response; **Heuristic** = community convention or an app-specific estimate. **Correct** does not mean a heuristic has been validated with players. **Incomplete** means a real rule or data case is missing. **Unverified** means primary-source evidence did not establish the claim.
 
+## Follow-up implementation
+
+The construction checks in `src/domain/commander-construction.ts` now cover start, import, search/manual add, recommendation Add decisions and guidance, basic-land additions, sideboard-to-deck moves, promotion, and review swaps/undo. New card snapshots retain Oracle identity and policy metadata. Front-face eligibility, Grist, basic and Oracle copy exceptions, all five partner ability families, and fail-closed metadata checks have regression coverage. Chosen-colour commanders are explicitly unsupported. Manual/import conversion now retains front-face mana costs.
+
+The table below remains the original dated audit, not a description of the fixed paths. B12 in `TODO.md` tracks the remaining saved-deck/queue refresh and visible legality warnings. A15 and B13 retain the policy/provider and mana-analysis work.
+
 ## Assumptions table
 
 | ID  | File:line                                                                                                                                                                             | What the code assumes                                                                                                                                                                                                                                                                              | Class                           | Assessment and source                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |

@@ -12,7 +12,6 @@ import {
   findSynergyPair,
   formatUsdPrice,
   freshRecommendationCycle,
-  manualCardError,
   orderedPrintings,
   parseEdhrecEntries,
   preferredPrintingIndex,
@@ -171,21 +170,6 @@ test('synergy pair requires concrete complementary rules text', () => {
   assert.equal(
     findSynergyPair(cards.map((card) => ({ ...card, detail: 'Artifact creature.' }))),
     null,
-  )
-})
-
-test('manual card validation enforces deck legality', () => {
-  const card = { name: 'Swords to Plowshares', type_line: 'Instant', color_identity: ['W'] }
-  assert.equal(manualCardError(card, [], ['W']), '')
-  assert.match(manualCardError(card, [], ['U']), /colour identity/)
-  assert.match(manualCardError(card, [card.name], ['W']), /already in/)
-  assert.equal(
-    manualCardError(
-      { name: 'Plains', type_line: 'Basic Land — Plains', color_identity: [] },
-      ['Plains'],
-      ['W'],
-    ),
-    '',
   )
 })
 

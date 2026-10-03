@@ -64,7 +64,7 @@ The same module owns Later/undecided cooldowns and can advance to deferred cards
 - **Power presets:** `src/app/useRecommendationState.ts` and `src/app/useAppActions.ts` set optional exclusions. Loose bracket mappings over-filter acceptable Upgraded decks and miss combos, land denial, loops, and intent. Never present settings as bracket compliance.
 - **Fast mana:** Core-only `preconFastMana` in `src/domain/recommendation-scoring.ts` is incomplete: it omits Sol Ring, Ancient Tomb, and Lion's Eye Diamond and includes outright-banned cards. Never call it the ban list, Game Changers list, or a complete definition.
 - **Tutor/turn filters:** `src/domain/recommendation-sources.ts` uses literal wording; Scryfall routes in `src/app/recommendation-actions.ts` use Tagger. Land-search ramp can be excluded; prevention of extra turns can match. Other wording, indirect engines, and loops escape. Never call these equivalent, exhaustive, or complete bracket checks.
-- **Collection:** curated/selected sets in `src/domain/recommendation-types.ts` are affinity, not inventory or complete franchise taxonomy. Broad membership admits off-theme cards; other sets and allowed alternate printings are missed, especially when only the hydrated printing is checked. Never present matches as ownership or exhaustive theme coverage.
+- **Set selection:** curated/selected sets in `src/domain/recommendation-types.ts` are affinity, not inventory or complete franchise taxonomy. Broad membership admits off-theme cards; other sets and allowed alternate printings are missed, especially when only the hydrated printing is checked. Never present matches as ownership or exhaustive theme coverage.
 
 ## Deck Doctor and simulations
 
