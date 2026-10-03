@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, and B7.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, and B8.
 
 ## Suggested order
 
@@ -27,18 +27,17 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | ----- | --- | ----------------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------ |
 | 1     | A7  | Keep recommendation progress on settings change | Low        | High   | Low           | Behaves like a bug: tuning discards Later choices and batch progress. Every tuning item depends on it. |
 | 2     | A8  | Plain-language recommendation reasons           | Low        | Medium | Low           | Small change on the most-used screen; players learn why each card fits.                                |
-| 3     | B8  | Fit deck review to the deck's state             | Medium     | High   | Low           | Removes the worst review friction (incomplete decks, 35 land tiles, 3-card pages) with existing data.  |
-| 4     | A12 | Defer basic-land fill                           | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
-| 5     | A10 | Clearer set selection                           | Low        | Medium | Low           | Self-contained; uses Scryfall set fields already available.                                            |
-| 6     | A2  | Play-style step, resume, and intro guide        | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
-| 7     | A9  | Commander discovery on the start screen         | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
-| 8     | A6  | Signature-card recommendations                  | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
-| 9     | B9  | One deck-review workflow                        | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; easier after B8.                                               |
-| 10    | B10 | Finding-driven swap suggestions                 | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
-| 11    | A11 | Richer recommendation tuning                    | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
-| 12    | B11 | Builder UI consistency pass                     | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
-| 13    | A13 | Collection import investigation                 | Medium     | Medium | High          | Valuable for collectors, but export formats and matching quality are unproven.                         |
-| 14    | B4  | Finish builder-view module ownership            | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
+| 3     | A12 | Defer basic-land fill                           | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
+| 4     | A10 | Clearer set selection                           | Low        | Medium | Low           | Self-contained; uses Scryfall set fields already available.                                            |
+| 5     | A2  | Play-style step, resume, and intro guide        | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
+| 6     | A9  | Commander discovery on the start screen         | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
+| 7     | A6  | Signature-card recommendations                  | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
+| 8     | B9  | One deck-review workflow                        | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                |
+| 9     | B10 | Finding-driven swap suggestions                 | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
+| 10    | A11 | Richer recommendation tuning                    | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
+| 11    | B11 | Builder UI consistency pass                     | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
+| 12    | A13 | Collection import investigation                 | Medium     | Medium | High          | Valuable for collectors, but export formats and matching quality are unproven.                         |
+| 13    | B4  | Finish builder-view module ownership            | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
 
 ## [A7] Keep recommendation progress when settings change
 
@@ -77,28 +76,6 @@ Acceptance checks:
 
 - Every recommendation shows a readable sentence explaining the pick; the score breakdown remains available.
 - The heart control's purpose is clear without hovering.
-
-## [B8] Fit deck review to the deck's state
-
-**Complexity:** Medium · **Value:** High · **Delivery risk:** Low — Existing analysis and candidate data are sufficient; changes are presentation and swap rules.
-
-Deck review runs a full diagnosis and cut-and-replace workflow regardless of deck size. A 38-card deck is told "1 of 5 role targets met" and asked to choose cuts. The cut list shows each basic land as a separate tile, replacements are shown three per page ("Page 1 of 144"), and applying requires equal cuts and additions.
-
-- Adapt to deck completeness. Below about 90 main-deck cards, lead with role gaps and add-only suggestions. Between about 90 and 100, show the full review. Above 100, lead with choosing the required number of cuts.
-- Allow applying unequal numbers of cuts and additions; show the resulting deck size before applying.
-- Group duplicate cards into one tile with a count and a quantity control for cuts.
-- Show flagged cards first; filter the remaining deck cards by type or role instead of listing all of them.
-- Show 12–24 replacement candidates per page, filterable by the selected finding or role.
-- Use the fixed 0–7+ mana curve from the builder sidebar, and hide colour rows outside the commander's identity.
-
-Current context: `src/features/builder/DeckDoctorView.tsx` sets `doctorCandidatePageSize = 3` and requires equal counts before applying. Deck analysis comes from `src/deck-analysis.ts`; findings from `src/deck-doctor.ts`.
-
-Acceptance checks:
-
-- A 38-card deck sees add-only gap filling with no required cuts; a 105-card deck is asked for five cuts.
-- 35 basics appear as two grouped tiles; cutting three Forests leaves the correct count.
-- Applying two additions and no cuts to an incomplete deck works and records history.
-- The curve shows every bucket from 0 to 7+; a black-green deck shows only black and green colour rows.
 
 ## [A12] Defer basic-land fill
 

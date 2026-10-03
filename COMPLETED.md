@@ -2,6 +2,24 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [B8] Fit deck review to the deck's state
+
+**Complexity:** Medium · **Value:** High · **Delivery risk:** Low — Existing analysis and candidate data are sufficient; changes are presentation and swap rules.
+
+**Status:** Complete — merged in `71ff6c9`; not yet released.
+
+### Completed behavior
+
+Deck review adapts to deck size: below 90 main-deck cards it leads with "Add N more cards" and role-gap buttons, with cuts optional in a collapsed section; 90–100 cards shows the full review; above 100 it asks the player to cut down to 100. Cuts and additions no longer need to match: paired cuts and additions become swaps, extra cuts are removed, and extra additions are appended, each with its own undoable history entry. The plan shows the resulting deck size before applying. Duplicate cards are grouped into one tile with a count and a cut quantity. Flagged cards come first; the rest of the deck appears after choosing a type, role, or All. Replacements show 12 per page, filterable by role gap or the selected theme. The sidebar's 0–7+ curve is now the shared `src/features/builder/ManaCurve.tsx`, and colour rows show only the commander's colours.
+
+Implementation: `deckReviewMode`, `groupDeckCards`, and unequal plans in `applyDeckDoctorSwapPlan`/`undoDeckDoctorSwap` in `src/deck-doctor.ts`; `src/features/builder/DeckDoctorView.tsx`.
+
+### Acceptance checks
+
+- `src/deck-doctor.test.ts` covers mode thresholds, grouping 9 Swamps and 26 Forests into two tiles, cutting three Forests, add-only plans, and undoing mixed plans.
+- Browser checks (dark and light, desktop) with a Meren deck: 38 cards shows add-only gap filling and only black and green colour rows; basics appear as two grouped tiles; add-only and uneven plans apply and undo correctly; 105 cards asks for five cuts. Narrow viewports were not checked.
+- All 168 tests, lint, typecheck, and production build pass.
+
 ## [B7] Show API request activity
 
 **Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Both providers share a request scheduler; deferred retries are reported separately.
