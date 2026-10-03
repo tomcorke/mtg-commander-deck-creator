@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, and B8.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, and A8.
 
 ## Suggested order
 
@@ -26,18 +26,17 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | Order | ID  | TODO                                            | Complexity | Value  | Delivery risk | Reason                                                                                                 |
 | ----- | --- | ----------------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------ |
 | 1     | A7  | Keep recommendation progress on settings change | Low        | High   | Low           | Behaves like a bug: tuning discards Later choices and batch progress. Every tuning item depends on it. |
-| 2     | A8  | Plain-language recommendation reasons           | Low        | Medium | Low           | Small change on the most-used screen; players learn why each card fits.                                |
-| 3     | A12 | Defer basic-land fill                           | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
-| 4     | A10 | Clearer set selection                           | Low        | Medium | Low           | Self-contained; uses Scryfall set fields already available.                                            |
-| 5     | A2  | Play-style step, resume, and intro guide        | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
-| 6     | A9  | Commander discovery on the start screen         | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
-| 7     | A6  | Signature-card recommendations                  | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
-| 8     | B9  | One deck-review workflow                        | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                |
-| 9     | B10 | Finding-driven swap suggestions                 | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
-| 10    | A11 | Richer recommendation tuning                    | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
-| 11    | B11 | Builder UI consistency pass                     | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
-| 12    | A13 | Collection import investigation                 | Medium     | Medium | High          | Valuable for collectors, but export formats and matching quality are unproven.                         |
-| 13    | B4  | Finish builder-view module ownership            | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
+| 2     | A12 | Defer basic-land fill                           | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                            |
+| 3     | A10 | Clearer set selection                           | Low        | Medium | Low           | Self-contained; uses Scryfall set fields already available.                                            |
+| 4     | A2  | Play-style step, resume, and intro guide        | Medium     | High   | Medium        | Sets recommendation intent before the first batch; tour compatibility still needs validation.          |
+| 5     | A9  | Commander discovery on the start screen         | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                           |
+| 6     | A6  | Signature-card recommendations                  | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.   |
+| 7     | B9  | One deck-review workflow                        | Medium     | Medium | Low           | Naming, real steps, and layout cleanup; B8 is complete.                                                |
+| 8     | B10 | Finding-driven swap suggestions                 | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                              |
+| 9     | A11 | Richer recommendation tuning                    | Medium     | Medium | Medium        | Ignore reasons, price cap, and role shortcuts build on A7 and existing preference scoring.             |
+| 10    | B11 | Builder UI consistency pass                     | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                 |
+| 11    | A13 | Collection import investigation                 | Medium     | Medium | High          | Valuable for collectors, but export formats and matching quality are unproven.                         |
+| 12    | B4  | Finish builder-view module ownership            | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views. |
 
 ## [A7] Keep recommendation progress when settings change
 
@@ -58,24 +57,6 @@ Acceptance checks:
 - Likes and Add decisions made in the batch visible during the change are recorded.
 - A pool-changing setting (Only mode with a set) yields candidates that respect existing ignores and deferrals.
 - Tests cover ranking-only and pool-changing paths.
-
-## [A8] Explain recommendations in plain language
-
-**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Uses existing score and evidence data; the work is wording and placement.
-
-Large card images and small batches are intentional: the player sees a few cards at full size and is not overwhelmed. The supporting text is the weak part. Reasons are category labels ("RAMP", "DEATH TRIGGERS THEME", "SELECTED COLLECTION CARD") and the score breakdown shows internal numbers ("Evidence 12/20"), so the player cannot tell why a card suits this deck.
-
-- Write one sentence per recommendation from existing evidence, for example "In 41% of Meren decks on EDHREC", "Fills ramp: you have 2 of 10", or "Seen with Skullclamp". Keep category labels as secondary text at most.
-- Place the reason directly under the card name so it reads with the image before the details.
-- Give the heart button a visible label such as "More like this".
-- Keep card image size and batch size unchanged.
-
-Current context: reasons come from `cardReason` and `recommendationReason` in `src/features/builder/BuilderView.tsx`; `ScoreBreakdown` in `src/features/score/ScoreBreakdown.tsx` holds the factor data.
-
-Acceptance checks:
-
-- Every recommendation shows a readable sentence explaining the pick; the score breakdown remains available.
-- The heart control's purpose is clear without hovering.
 
 ## [A12] Defer basic-land fill
 

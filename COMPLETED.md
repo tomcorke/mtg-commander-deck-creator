@@ -2,6 +2,23 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [A8] Explain recommendations in plain language
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Uses existing score and evidence data; the work is wording and placement.
+
+**Status:** Complete — merged in `6347a22`; not yet released.
+
+### Completed behavior
+
+Each recommendation shows a short label and one plain-language sentence under the card name, built from existing evidence: the share of EDHREC decks where known, the deck role it fills, theme matches, and "Played with <card>, which is in your deck" for signature-card results. The heart button reads "More like this". Large card images and four-card batches are unchanged. The action row wraps at the 521–800px layout so the label never overlaps the image.
+
+Implementation: `explainRecommendation` and `recommendationReason` in `src/features/builder/BuilderView.tsx`, with evidence fields in `src/domain/recommendation-sources.ts` and `src/domain/recommendation-types.ts`.
+
+### Acceptance checks
+
+- Browser checks before the final rebase: light and dark at desktop width, plus 760px and 380px in iframes; nothing overflows. The "Played with <card>" sentence is type-checked but was not seen in the browser.
+- All 169 tests, lint, typecheck, and production build pass.
+
 ## [B8] Fit deck review to the deck's state
 
 **Complexity:** Medium · **Value:** High · **Delivery risk:** Low — Existing analysis and candidate data are sufficient; changes are presentation and swap rules.
