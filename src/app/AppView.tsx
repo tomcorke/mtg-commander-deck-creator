@@ -331,7 +331,9 @@ function DeckReviewScreen({
 }) {
   const closePage = () => {
     state.setBuilderModeReturn(null)
-    actions.navigateView('builder', null, true)
+    const depth = readAppRoute()?.reviewDepth
+    if (depth) window.history.go(-depth)
+    else actions.navigateView('builder', null, true)
   }
   return (
     <>

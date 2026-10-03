@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -267,10 +268,34 @@ export function DeckDoctorView({
     setCandidatePage(0)
   }, [recommendationQueryKey])
 
+  const hasPendingChanges = selectedCutIndexes.length + selectedAdditionNames.length > 0
+  const confirmExit = useCallback(
+    () =>
+      !hasPendingChanges || window.confirm('Discard pending changes and return to the builder?'),
+    [hasPendingChanges],
+  )
   const stepHeading = useRef<HTMLHeadingElement>(null)
+  const comparisonDialog = useRef<HTMLElement>(null)
   useEffect(() => {
-    if (active) stepHeading.current?.focus()
-  }, [active, step])
+    if (!active) return
+    if (exploreCommanders)
+      comparisonDialog.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
+    else stepHeading.current?.focus()
+  }, [active, step, exploreCommanders])
+
+  useEffect(() => {
+    if (!active) return
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      event.preventDefault()
+      if (exploreCommanders) setExploreCommanders(false)
+      else if (step === 'Diagnose') {
+        if (confirmExit()) back()
+      } else back()
+    }
+    document.addEventListener('keydown', escape)
+    return () => document.removeEventListener('keydown', escape)
+  }, [active, back, confirmExit, exploreCommanders, step])
 
   useEffect(() => {
     if (previousBoards.current !== boardKey) {
@@ -437,12 +462,6 @@ export function DeckDoctorView({
       id="deck-doctor-page"
       aria-labelledby="deck-review-title"
       className={`${darkMode ? 'dark ' : ''}deck-doctor-shell${commanderStyling ? ' commander-themed' : ''}`}
-      onKeyDown={(event) => {
-        if (event.key !== 'Escape' || !active) return
-        event.preventDefault()
-        if (exploreCommanders) setExploreCommanders(false)
-        else back()
-      }}
     >
       {commanderStyling && commanderDetails?.art.length ? (
         <div className="commander-backdrop" aria-hidden="true">
@@ -497,13 +516,21 @@ export function DeckDoctorView({
             <button className="export" type="button" onClick={openHistory}>
               Change history ({history.length})
             </button>
-            <button className="primary" type="button" onClick={closePage}>
+            <button
+              className="primary"
+              type="button"
+              onClick={() => {
+                if (confirmExit()) closePage()
+              }}
+            >
               Back to builder
             </button>
           </div>
         </div>
       </section>
-      <div className={`doctor-page${step !== 'Diagnose' ? ' has-pending-summary' : ''}`}>
+      <div
+        className={`doctor-page${step !== 'Diagnose' || hasPendingChanges ? ' has-pending-summary' : ''}`}
+      >
         <nav className="doctor-navigation" aria-label="Deck review steps">
           <ol>
             {reviewSteps.map((label, index) => (
@@ -517,7 +544,13 @@ export function DeckDoctorView({
           <h2 ref={stepHeading} tabIndex={-1}>
             {step}
           </h2>
-          <button className="export" type="button" onClick={back}>
+          <button
+            className="export"
+            type="button"
+            onClick={() => {
+              if (step !== 'Diagnose' || confirmExit()) back()
+            }}
+          >
             {step === 'Confirm'
               ? 'Back to Choose changes'
               : step === 'Choose changes'
@@ -627,8 +660,12 @@ export function DeckDoctorView({
                 deckTargets={deckTargets}
                 setDeckTargets={setDeckTargets}
                 displayedTypeCounts={displayedTypeCounts}
-                selectManaValue={selectManaValue}
-                selectCards={selectCards}
+                selectManaValue={(value) => {
+                  if (confirmExit()) selectManaValue(value)
+                }}
+                selectCards={(label, names) => {
+                  if (confirmExit()) selectCards(label, names)
+                }}
               />
             </div>
             <section
@@ -987,6 +1024,7 @@ export function DeckDoctorView({
           }}
         >
           <section
+            ref={comparisonDialog}
             className="export-modal doctor-commander"
             role="dialog"
             aria-modal="true"
@@ -1069,7 +1107,7 @@ export function DeckDoctorView({
           </section>
         </div>
       )}
-      {step !== 'Diagnose' && (
+      {(step !== 'Diagnose' || hasPendingChanges) && (
         <div className="doctor-apply-bar" role="region" aria-label="Pending changes">
           <div aria-live="polite">
             <strong>
@@ -1079,7 +1117,11 @@ export function DeckDoctorView({
               Deck: {deck.length} → {projectedSize} / 100 · Not applied yet
             </span>
           </div>
-          {step === 'Choose changes' ? (
+          {step === 'Diagnose' ? (
+            <button className="primary" type="button" onClick={() => changeStep('Choose changes')}>
+              Continue choosing changes
+            </button>
+          ) : step === 'Choose changes' ? (
             <button
               className="primary"
               type="button"

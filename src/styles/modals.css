@@ -770,9 +770,8 @@
   .doctor-page {
     padding: 18px 6vw 32px;
   }
-  .doctor-navigation ol {
-    flex-direction: column;
-    gap: 8px;
+  .doctor-navigation li {
+    justify-content: flex-start;
   }
   .doctor-goal-settings {
     align-items: flex-start;
@@ -1427,6 +1426,11 @@ main > .commander-header {
   list-style: none;
   color: var(--doctor-muted);
   font-size: 14px;
+}
+.doctor-navigation li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .doctor-navigation li[aria-current='step'] {
   color: var(--doctor-text);

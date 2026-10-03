@@ -359,7 +359,8 @@ export function resetRecommendationState(
   } = deps
   const activeCollectionSets = preserveDeck ? collectionSets : []
   const activeCollectionMode = preserveDeck ? collectionMode : 'none'
-  navigateView('builder', null, activeModal !== null)
+  // A settings refresh keeps the current builder workflow and its pending choices open.
+  if (!progress) navigateView('builder', null, activeModal !== null)
   const cycle = progress ?? deps.freshRecommendationCycle()
   setDeferredCards(cycle.deferredCards)
   setBatchNumber(cycle.batchNumber)

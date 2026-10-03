@@ -111,6 +111,20 @@ test('partner retry preserves commander sources and Scryfall rate-limit guidance
   assert.equal(result, true)
   assert.deepEqual(fallbackQueries, [])
 
+  assert.equal(
+    await start(
+      {
+        ...deps,
+        activeModal: 'review-changes',
+        navigateView: () => assert.fail('Refreshing settings must keep the current workflow open'),
+      },
+      'Kraum & Tymna',
+      true,
+      { batchNumber: 4, deferredCards: [], preferenceScores: {} },
+    ),
+    true,
+  )
+
   let message = ''
   const rateLimited = t.mock.fn(
     async () => new Response('', { status: 429, headers: { 'Retry-After': '120' } }),

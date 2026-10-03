@@ -17,6 +17,7 @@ export type AppHistoryState = {
   view: AppView
   modal: AppModal | null
   entry: boolean
+  reviewDepth?: number
 }
 
 export const appHistoryKey = 'commander-deck-creator'
@@ -49,6 +50,18 @@ export function reviewBackModal(step: DeckReviewStep): AppModal | null {
   return step === 'Confirm' ? 'review-changes' : step === 'Choose changes' ? 'review' : null
 }
 
+/** Track only review entries pushed from the builder, never guess a direct link's history. */
+export function reviewRouteDepth(
+  current: AppHistoryState | null,
+  modal: AppModal | null,
+  replace: boolean,
+) {
+  if (!reviewStepForModal(modal)) return undefined
+  if (current?.reviewDepth) return current.reviewDepth + (replace ? 0 : 1)
+  if (!replace && current?.view === 'builder' && current.modal === null) return 1
+  return undefined
+}
+
 export function routeHash(view: AppView, modal: AppModal | null) {
   return `#${view === 'builder' ? 'build' : 'start'}${modal ? `/${modal}` : ''}`
 }
@@ -63,6 +76,13 @@ export function parseAppRoute(hashValue: string, stateValue: unknown): AppHistor
       app: appHistoryKey,
       view,
       modal,
+      ...(state?.app === appHistoryKey &&
+      state.view === view &&
+      state.modal === modal &&
+      Number.isInteger(state.reviewDepth) &&
+      Number(state.reviewDepth) > 0
+        ? { reviewDepth: state.reviewDepth }
+        : {}),
       entry:
         state?.app === appHistoryKey &&
         state.view === view &&

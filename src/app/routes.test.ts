@@ -6,6 +6,7 @@ import {
   routeHash,
   reviewBackModal,
   reviewStepForModal,
+  reviewRouteDepth,
   reviewRoutes,
   reviewSteps,
 } from './routes.ts'
@@ -30,6 +31,27 @@ test('review steps have distinct routes and predictable predecessors, including 
   assert.equal(reviewStepForModal('doctor-history'), null)
   assert.equal(reviewStepForModal('card'), null)
   assert.equal(reviewStepForModal(null), null)
+})
+
+test('review history depth exits an app-started workflow without guessing direct-link history', () => {
+  const builder = parseAppRoute('#build', null)!
+  assert.equal(reviewRouteDepth(builder, 'review', false), 1)
+  const diagnose = { ...builder, modal: 'review' as const, entry: true, reviewDepth: 1 }
+  assert.equal(reviewRouteDepth(diagnose, 'review-changes', false), 2)
+  const confirm = { ...diagnose, modal: 'review-confirm' as const, reviewDepth: 3 }
+  assert.equal(reviewRouteDepth(confirm, 'review', true), 3)
+  assert.equal(reviewRouteDepth(confirm, null, true), undefined)
+  assert.equal(reviewRouteDepth(confirm, 'card', false), undefined)
+  assert.equal(
+    reviewRouteDepth(parseAppRoute('#build/review-changes', null), 'review-confirm', false),
+    undefined,
+  )
+  assert.equal(parseAppRoute('#build/review-confirm', confirm)?.reviewDepth, 3)
+  assert.equal(parseAppRoute('#build/review', confirm)?.reviewDepth, undefined)
+  assert.equal(
+    parseAppRoute('#build/review-confirm', { ...confirm, reviewDepth: -1 })?.reviewDepth,
+    undefined,
+  )
 })
 
 test('parseAppRoute ignores unknown hashes and validates history state', () => {

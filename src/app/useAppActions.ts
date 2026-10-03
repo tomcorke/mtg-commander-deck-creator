@@ -42,6 +42,7 @@ import type { ControllerState } from './useControllerState.ts'
 import {
   appHistoryKey,
   readAppRoute,
+  reviewRouteDepth,
   writeAppRoute,
   type AppHistoryState,
   type AppModal,
@@ -61,6 +62,7 @@ function useRoutingActions(state: AppState) {
       view,
       modal,
       entry: Boolean(modal && !replace),
+      reviewDepth: reviewRouteDepth(current, modal, replace),
     } satisfies AppHistoryState
     state.setShowBuilder(view === 'builder')
     state.setActiveModal(modal)
