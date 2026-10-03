@@ -383,7 +383,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="collection-browser-heading">
               <div>
                 <p className="eyebrow">Discovery</p>
-                <h2 id="collection-browser-title">Browse selected collection</h2>
+                <h2 id="collection-browser-title">Cards from your chosen sets</h2>
                 <p>
                   {collectionPoolSize ?? collectionBrowserCards.length} legal unique cards, shown in
                   random order.

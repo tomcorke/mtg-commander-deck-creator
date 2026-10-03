@@ -272,12 +272,12 @@ function recommendationExplainer(
       return { label: `${theme} theme`, sentence: `Fits your ${theme} theme.` }
     if (collectionMode !== 'none' && card.collectionMatch)
       return {
-        label: 'Selected collection card',
+        label: 'From your chosen sets',
         sentence: 'Comes from a set you chose to build with.',
       }
     if (collectionMode !== 'none' && collectionSets.includes(card.set))
       return {
-        label: 'Selected collection printing',
+        label: 'Printing from your chosen sets',
         sentence: 'This printing comes from a set you chose to build with.',
       }
     const missingRole = rolesForCard(card).find(

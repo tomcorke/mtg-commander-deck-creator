@@ -672,7 +672,7 @@ export function rankInitialRecommendations(
   if (offeredCards.length < 4)
     throw new Error(
       activeCollectionMode === 'only'
-        ? 'Selected collection has too few legal cards.'
+        ? 'Your chosen sets have too few legal cards.'
         : 'Too few recommendation cards',
     )
   if (progress) {
