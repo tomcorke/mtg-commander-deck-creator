@@ -1,5 +1,3 @@
-import type { MouseEvent } from 'react'
-
 import type {
   Card,
   DeckCard,
@@ -41,10 +39,6 @@ export function createActionHandlers(deps: ActionDeps) {
     addManualCard: () => deckActions.addManualCard(deps),
     addSearchCards: (cards: ScryfallCard[]) => deckActions.addSearchCards(deps, cards),
     addOneBasic: (name: string) => deckActions.addOneBasic(deps, name),
-    positionDeckPreview: (
-      rowOrEvent: HTMLLIElement | MouseEvent<HTMLLIElement>,
-      pointerX?: number,
-    ) => deckActions.positionDeckPreview(deps, rowOrEvent, pointerX),
     openDeckCard: (card: DeckCard, location: DeckCardLocation) =>
       deckActions.openDeckCard(deps, card, location),
     openCommanderCard: (index: number) => deckActions.openCommanderCard(deps, index),

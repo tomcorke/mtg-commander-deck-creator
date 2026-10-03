@@ -56,30 +56,18 @@
   padding: 7px 10px;
   font-size: 12px;
 }
-.deck-board .manual-card-button {
-  width: auto;
-  margin: 0;
-  padding-inline: 14px;
-  font-family: 'DM Sans', sans-serif;
-}
 .deck-board .meter {
   margin: 16px 0 24px;
 }
 .deck-board .deck-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0 40px;
+  grid-template-columns: 1fr;
+  gap: 20px;
   max-width: 1940px;
   align-items: start;
 }
-.deck-board .deck-list.has-sideboard {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
 .deck-board .deck-column {
-  min-width: 0;
-}
-.deck-board .deck-column .deck-group + .deck-group {
-  padding-top: 16px;
+  display: contents;
 }
 .deck-board .deck-group {
   break-inside: avoid;
@@ -106,7 +94,7 @@
   font-size: 25px;
 }
 .section-title h2:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, white);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
 }
 .section-title > span {
@@ -120,7 +108,7 @@
   align-items: center;
   margin-top: 18px;
   color: #68657c;
-  font-size: 13px;
+  font-size: var(--decision-text);
 }
 .recommendation-settings-summary {
   display: flex;
@@ -133,11 +121,8 @@
   min-width: 0;
   flex: 1 1 360px;
   margin: 0;
-  overflow: hidden;
   color: #69667d;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: var(--decision-text);
 }
 .recommendation-settings-modal {
   width: min(900px, 100%);
@@ -178,7 +163,7 @@
 .settings-help {
   margin: 5px 0 0;
   color: #69667d;
-  font-size: 12px;
+  font-size: var(--decision-text);
 }
 .recommendation-settings-form {
   margin-top: 22px;
@@ -235,7 +220,7 @@
   min-width: 0;
   flex: 1 1 260px;
   color: #69667d;
-  font-size: 12px;
+  font-size: var(--decision-text);
 }
 .recommendation-options label {
   display: flex;
@@ -312,7 +297,7 @@
   color: #36327f;
 }
 .recommendation-options .setting-help-button:focus-visible {
-  outline: 2px solid #8d88bd;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .setting-help-wrap {
@@ -340,7 +325,7 @@
   background: #201c3c;
   color: white;
   box-shadow: 0 12px 30px #201c3c55;
-  font-size: 12px;
+  font-size: var(--decision-text);
   line-height: 1.4;
   opacity: 0;
   pointer-events: none;
@@ -359,7 +344,7 @@
   flex-basis: 100%;
   margin: 0;
   color: #69667d;
-  font-size: 12px;
+  font-size: var(--decision-text);
 }
 .collection-set-controls {
   display: grid;
@@ -412,7 +397,7 @@
   color: #403e58;
 }
 .collection-set-input .clear-deck-name:focus-visible {
-  outline: 2px solid #8d88bd;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
 .dark.commander-themed .recommendation-options .collection-set-input .clear-deck-name {
@@ -818,7 +803,7 @@
 }
 .health-card-reason {
   color: #69409a;
-  font-size: 10px;
+  font-size: var(--decision-text);
   text-transform: uppercase;
 }
 .health-lane article b {

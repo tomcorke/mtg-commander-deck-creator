@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Alegreya:wght@600&family=Bitter:wght@600&family=Cormorant+Garamond:wght@600&family=DM+Sans:wght@400;500;600&family=Libre+Baskerville:wght@700&family=Lora:wght@600&family=Merriweather:wght@700&family=Source+Serif+4:wght@600&family=Space+Grotesk:wght@500;600&family=Spectral:wght@600&display=swap');
 
 :root {
+  --decision-text: 14px;
+  --focus-ring: #642b84;
   color: #25243a;
   background: #f2f3fb;
   font-family: 'DM Sans', sans-serif;
@@ -36,6 +38,7 @@ main {
   color: #25243a;
 }
 main.dark {
+  --focus-ring: #d6b8ff;
   color-scheme: dark;
   background: #111123;
   color: #d8d8ea;
@@ -188,7 +191,7 @@ header {
   background: color-mix(in srgb, var(--commander-accent, #36327f) 9%, transparent);
 }
 .export:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, white);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .export:disabled {
@@ -206,16 +209,30 @@ header {
   filter: brightness(1.12);
 }
 .primary:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, white);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .primary:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
+.header-destructive {
+  margin-left: 4px;
+  padding-left: 14px;
+  border-left: 1px solid #d7d4e3;
+}
 .start-over {
-  padding: 9px 6px;
-  border: 0;
-  background: transparent;
-  color: #68667c;
+  padding: 8px 11px;
+  border: 1px solid #a94840;
+  border-radius: 7px;
+  background: #fff7f6;
+  color: #9a392f;
+  font-weight: 600;
+}
+.start-over:hover {
+  background: #f4e4e3;
+}
+.start-over:focus-visible {
+  outline: 3px solid #8c3131;
+  outline-offset: 2px;
 }

@@ -1,4 +1,3 @@
-import type { MouseEvent } from 'react'
 import { migrateRecommendationPriority } from '../domain/recommendation-tuning.ts'
 import {
   fetchScryfallCard,
@@ -623,41 +622,6 @@ export function clearAddedDecision(deps: ActionDeps, name: string) {
     delete next[name]
     return next
   })
-}
-
-export function positionDeckPreview(
-  deps: ActionDeps,
-  rowOrEvent: HTMLLIElement | MouseEvent<HTMLLIElement>,
-  pointerX = window.innerWidth * 0.5,
-) {
-  void deps
-  const row = 'currentTarget' in rowOrEvent ? rowOrEvent.currentTarget : rowOrEvent
-  if (!row || typeof row.getBoundingClientRect !== 'function') return
-  const bounds = row.getBoundingClientRect()
-  const edge = 16
-  const gap = 12
-  const previewWidth = Math.min(320, window.innerWidth * 0.25)
-  const previewHeight = Math.min(window.innerHeight - edge * 2, (previewWidth * 680) / 488 + 48)
-  const maxTop = Math.max(edge, window.innerHeight - previewHeight - edge)
-  const top = Math.min(maxTop, Math.max(edge, bounds.top + (bounds.height - previewHeight) / 2))
-  const rightPosition = bounds.right + gap
-  const leftPosition = window.innerWidth - bounds.left + gap
-  const rightFits = rightPosition + previewWidth <= window.innerWidth - edge
-  const leftFits = leftPosition + previewWidth <= window.innerWidth - edge
-  const showRight = rightFits && (pointerX < window.innerWidth * 0.6 || !leftFits)
-  row.style.setProperty('--preview-top', `${top}px`)
-  row.style.setProperty(
-    '--preview-left',
-    showRight
-      ? `${Math.max(edge, Math.min(rightPosition, window.innerWidth - previewWidth - edge))}px`
-      : 'auto',
-  )
-  row.style.setProperty(
-    '--preview-right',
-    showRight
-      ? 'auto'
-      : `${Math.max(edge, Math.min(leftPosition, window.innerWidth - previewWidth - edge))}px`,
-  )
 }
 
 export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {

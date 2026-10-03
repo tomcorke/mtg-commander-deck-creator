@@ -216,7 +216,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     commander,
     commanderDetails,
     cycleCommanderPrinting,
-    cycleDeckPrinting,
     cyclePrinting,
     deckReviewFilter,
     decide,
@@ -260,7 +259,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     promoteToCommander,
     openModal,
     pendingRemoval,
-    positionDeckPreview,
     queue,
     recommendationLoadingStep,
     recommendationLoadingTitle,
@@ -769,6 +767,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="toolbar-actions">
               <button
                 className="manual-card-button"
+                ref={cardSearchButton}
                 type="button"
                 onClick={() => openModal('search')}
               >
@@ -776,7 +775,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               </button>
               {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && (
                 <div className="batch-controls">
-                  <button className="primary" onClick={() => void nextBatch()}>
+                  <button className="primary" type="button" onClick={() => void nextBatch()}>
                     Next recommendations →
                   </button>
                 </div>
@@ -1356,14 +1355,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </div>
             <div>
               <span>{deck.length}% complete</span>
-              <button
-                className="manual-card-button"
-                ref={cardSearchButton}
-                type="button"
-                onClick={() => openModal('search')}
-              >
-                + Search & add cards
-              </button>
             </div>
           </div>
           {activeHighlightLabel && (
@@ -1387,7 +1378,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="meter">
             <span style={{ width: `${deck.length}%` }} />
           </div>
-          <div className={`deck-list ${sideboard.length ? 'has-sideboard' : ''}`}>
+          <div className="deck-list">
             {groupedDeckColumns.map((column, columnIndex) => (
               <div className="deck-column" key={`deck-column-${columnIndex}`}>
                 {column.map(({ section, cards, count }) => (
@@ -1404,24 +1395,15 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           (highlightedManaValue === null || highlightedManaValue === curveValue)
                         return (
                           <li
-                            className={highlighted ? '' : 'deck-highlight-dimmed'}
+                            className={`deck-card-tile ${highlighted ? '' : 'deck-highlight-dimmed'}`}
                             key={`${card.name}-${index}`}
-                            tabIndex={0}
-                            onMouseEnter={(event) =>
-                              positionDeckPreview(event.currentTarget, event.clientX)
-                            }
-                            onFocus={(event) => positionDeckPreview(event.currentTarget)}
                           >
                             {activeHighlightLabel && highlighted && (
                               <span className="sr-only">
                                 Matches active deck highlight filter.{' '}
                               </span>
                             )}
-                            <button
-                              type="button"
-                              className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                              onClick={() => openDeckCard(card, { board: 'deck', index })}
-                            >
+                            <span className="deck-card-reference">
                               {(card.printing ?? 0) > 0 && (
                                 <span
                                   className="alternate-printing"
@@ -1429,11 +1411,16 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                   aria-label="Alternate printing selected"
                                 />
                               )}
-                              {card.name}
+                              <CardReference
+                                card={card}
+                                thumbnail
+                                className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                                onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                              />
                               {card.finish && card.finish !== 'nonfoil' && (
                                 <small className="finish-label">{card.finish}</small>
                               )}
-                            </button>
+                            </span>
                             <span className="deck-card-meta">
                               <span className="deck-mana">
                                 {card.typeLine.includes('Land') && card.producedMana.length ? (
@@ -1468,27 +1455,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 </span>
                               )}
                             </span>
-                            {card.image && (
-                              <span className="deck-card-popover">
-                                <FinishedCardImage
-                                  image={card.image}
-                                  backImage={card.backImage}
-                                  alt={`${card.name} card`}
-                                  cardName={card.name}
-                                  finish={card.finish}
-                                  className="deck-card-preview"
-                                  showFlipButton
-                                  printing={{
-                                    count: card.printings?.length ?? 0,
-                                    index: card.printing ?? 0,
-                                    loading: Boolean(loadingArt),
-                                    name: card.name,
-                                    onClick: () => void cycleDeckPrinting(index),
-                                  }}
-                                />
-                                <ArtLoading active={loadingArt === card.name} />
-                              </span>
-                            )}
                           </li>
                         )
                       })}
@@ -1497,14 +1463,16 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           {groupedBasics.map(({ name, cards: basics }) => {
                             const { card, index } = basics[0]
                             return (
-                              <li className="basic-land-row" key={name}>
-                                <button
-                                  type="button"
-                                  className="deck-card-name"
-                                  onClick={() => openDeckCard(card, { board: 'deck', index })}
-                                >
-                                  <b className="card-quantity">{basics.length}x</b> {card.name}
-                                </button>
+                              <li className="basic-land-row deck-card-tile" key={name}>
+                                <span className="deck-card-reference">
+                                  <b className="card-quantity">{basics.length}×</b>
+                                  <CardReference
+                                    card={card}
+                                    thumbnail
+                                    className="deck-card-name"
+                                    onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                  />
+                                </span>
                                 <span className="deck-card-meta">
                                   <span className="deck-mana">
                                     <ManaSymbols symbols={card.producedMana} />
@@ -1533,7 +1501,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           {legalBasicNames
                             .filter((name) => !groupedBasics.some((group) => group.name === name))
                             .map((name) => (
-                              <li className="basic-placeholder" key={name}>
+                              <li className="basic-placeholder deck-card-tile" key={name}>
                                 <button
                                   type="button"
                                   disabled={deck.length >= 100}
@@ -1552,30 +1520,24 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               </div>
             ))}
             {sideboard.length > 0 && (
-              <section className="deck-column deck-group sideboard-column">
+              <section className="deck-group sideboard-column">
                 <h3>
                   Sideboard<span>{sideboard.length}</span>
                 </h3>
                 <ol>
                   {sideboard.map((card, index) => (
-                    <li
-                      key={`${card.name}-${index}`}
-                      tabIndex={0}
-                      onMouseEnter={(event) =>
-                        positionDeckPreview(event.currentTarget, event.clientX)
-                      }
-                      onFocus={(event) => positionDeckPreview(event.currentTarget)}
-                    >
-                      <button
-                        type="button"
-                        className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                        onClick={() => openDeckCard(card, { board: 'sideboard', index })}
-                      >
-                        {card.name}
+                    <li className="deck-card-tile" key={`${card.name}-${index}`}>
+                      <span className="deck-card-reference">
+                        <CardReference
+                          card={card}
+                          thumbnail
+                          className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                          onOpen={() => openDeckCard(card, { board: 'sideboard', index })}
+                        />
                         {card.finish && card.finish !== 'nonfoil' && (
                           <small className="finish-label">{card.finish}</small>
                         )}
-                      </button>
+                      </span>
                       <span className="deck-card-meta">
                         <button
                           className="sideboard-move"
@@ -1594,19 +1556,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           ×
                         </button>
                       </span>
-                      {card.image && (
-                        <span className="deck-card-popover">
-                          <FinishedCardImage
-                            image={card.image}
-                            backImage={card.backImage}
-                            alt={`${card.name} card`}
-                            cardName={card.name}
-                            finish={card.finish}
-                            className="deck-card-preview"
-                            showFlipButton
-                          />
-                        </span>
-                      )}
                     </li>
                   ))}
                 </ol>

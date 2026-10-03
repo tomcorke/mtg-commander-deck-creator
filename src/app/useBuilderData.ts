@@ -407,7 +407,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
   ].filter((value): value is string => Boolean(value))
   const collectionSummary =
     collectionSets.length && collectionMode !== 'none'
-      ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} ${collectionSets.length} set${collectionSets.length === 1 ? '' : 's'}`
+      ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} selected sets`
       : 'All sets'
   const recommendationSettingsSummary = [
     recommendationStyleLabel,

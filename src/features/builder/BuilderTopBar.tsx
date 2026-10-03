@@ -32,9 +32,9 @@ export function BuilderTopBar({
 
   return (
     <header>
-      <button className="brand reset" type="button" onClick={startOver}>
+      <span className="brand">
         Commander Deck Creator <small>v{__APP_VERSION__}</small>
-      </button>
+      </span>
       <div className="deck-status">
         {activeSavedDeck && (
           <div className="saved-status">
@@ -83,9 +83,11 @@ export function BuilderTopBar({
         >
           {darkMode ? '◐ Dark' : '☀ Light'}
         </button>
-        <button className="start-over" type="button" onClick={startOver}>
-          Start over
-        </button>
+        <div className="header-destructive">
+          <button className="start-over" type="button" onClick={startOver}>
+            Start over
+          </button>
+        </div>
         <button className="export" type="button" onClick={onImport}>
           Import
         </button>

@@ -7,9 +7,16 @@ type Props = {
   onOpen: () => void
   thumbnail?: boolean
   disabled?: boolean
+  className?: string
 }
 
-export function CardReference({ card, onOpen, thumbnail = false, disabled = false }: Props) {
+export function CardReference({
+  card,
+  onOpen,
+  thumbnail = false,
+  disabled = false,
+  className = '',
+}: Props) {
   return (
     <span
       className="card-reference"
@@ -20,7 +27,7 @@ export function CardReference({ card, onOpen, thumbnail = false, disabled = fals
     >
       <button
         type="button"
-        className="card-reference-name"
+        className={`card-reference-name ${className}`}
         aria-label={`Show details for ${card.name}`}
         aria-haspopup="dialog"
         disabled={disabled}
