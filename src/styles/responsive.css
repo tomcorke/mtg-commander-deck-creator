@@ -110,6 +110,9 @@
 .dark .theme-option {
   color: #aaa8c2;
 }
+.dark .card-copy > .offer-reason {
+  color: #e4e1fa;
+}
 .dark .recommendation-settings-summary p,
 .dark .settings-help,
 .dark .recommendation-settings-actions > span {

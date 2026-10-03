@@ -58,6 +58,7 @@ const cardBase = {
     )
     .optional(),
   collectionMatch: z.boolean().optional(),
+  inclusion: z.number().optional(),
   printings: z.array(printingSchema).optional(),
   printing: z.number().int().nonnegative().optional(),
   printingManuallySelected: z.boolean().optional(),

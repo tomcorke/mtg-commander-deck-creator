@@ -15,7 +15,11 @@ import type {
 } from './recommendation-types.ts'
 
 export function parseEdhrecEntries(
-  lists: { header: string; tag: string; cardviews: { name: string }[] }[],
+  lists: {
+    header: string
+    tag: string
+    cardviews: { name: string; num_decks?: number; potential_decks?: number }[]
+  }[],
 ) {
   const entries: EdhrecEntry[] = []
   const seen = new Set<string>()
@@ -23,7 +27,13 @@ export function parseEdhrecEntries(
     for (const card of list.cardviews)
       if (!seen.has(card.name)) {
         seen.add(card.name)
-        entries.push({ name: card.name, tag: list.tag.toLowerCase(), header: list.header })
+        const { num_decks: decks, potential_decks: potential } = card
+        entries.push({
+          name: card.name,
+          tag: list.tag.toLowerCase(),
+          header: list.header,
+          ...(decks !== undefined && potential ? { inclusion: (decks / potential) * 100 } : {}),
+        })
       }
   return entries
 }
@@ -95,6 +105,7 @@ export function buildEdhrecRecommendations(
           `${entry.tag} ${entry.header}`,
         ),
         source: 'edhrec' as const,
+        ...(entry.inclusion !== undefined ? { inclusion: entry.inclusion } : {}),
       }
     }),
     options.includeCreature,

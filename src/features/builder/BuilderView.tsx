@@ -139,19 +139,25 @@ type BuilderViewModel = {
 
 function recommendationReason(
   card: Card,
-  fallback: string,
+  explanation: { label: string; sentence: string },
   selected: DeckCard[],
   onOpen: (card: DeckCard) => void,
 ) {
   const evidence = card.seedEvidence?.[0]
-  if (!evidence || !card.reason.startsWith('Seen with ')) return fallback
+  if (!evidence || !card.reason.startsWith('Seen with ')) return explanation
   const seed = selected.find(({ name }) => name === evidence.seed)
-  if (!seed) return 'Seen with an earlier deck engine'
-  return (
-    <>
-      Seen with <CardReference card={seed} onOpen={() => onOpen(seed)} />
-    </>
-  )
+  const decks = evidence.decks ? ` in ${evidence.decks.toLocaleString('en')} decks on EDHREC` : ''
+  return {
+    label: 'Deck engine',
+    sentence: seed ? (
+      <>
+        Played with <CardReference card={seed} onOpen={() => onOpen(seed)} />
+        {decks}, which is in your deck.
+      </>
+    ) : (
+      'Often played with a card you picked earlier.'
+    ),
+  }
 }
 
 export function BuilderView({ model }: { model: BuilderViewModel }) {
@@ -171,7 +177,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     batchAnnouncement,
     batchNumber,
     calculatedLandTarget,
-    cardReason,
+    explainRecommendation,
     cardSearchButton,
     chooseSubTheme,
     clickCardImage,
@@ -691,175 +697,181 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               onMouseMove={cardEffects ? fanCards : undefined}
               onMouseLeave={cardEffects ? resetFan : undefined}
             >
-              {scoredBatch.map(({ card, score }, index) => (
-                <article
-                  className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`}
-                  style={
-                    {
-                      '--fan-position': index - (scoredBatch.length - 1) / 2,
-                      '--fan-drop': `${Math.abs(index - (scoredBatch.length - 1) / 2) * 7}px`,
-                    } as CSSProperties
-                  }
-                  onClick={(event) => clickCardImage(event, card)}
-                  key={card.name}
-                >
-                  {decisions[card.name] && (
-                    <span className="decision-badge">
-                      {decisions[card.name] === 'add'
-                        ? sideboard.some((item) => item.name === card.name)
-                          ? 'Added to sideboard'
-                          : 'Added to deck'
-                        : decisions[card.name] === 'later'
-                          ? 'Later'
-                          : 'Ignored'}
-                    </span>
-                  )}
-                  <div className="offer-heading">
-                    <h3 className="suggestion-type">
-                      {recommendationReason(
-                        card,
-                        cardReason(card),
-                        [...deck, ...sideboard],
-                        model.openCardReference,
-                      )}
-                    </h3>
-                    {recommendedCard.card === card && (
-                      <span className="recommended-badge">Recommended</span>
-                    )}
-                  </div>
-                  <div className={`actions ${deck.length >= 100 ? 'sideboard-actions' : ''}`}>
-                    <div>
-                      <button
-                        className="primary"
-                        aria-pressed={decisions[card.name] === 'add'}
-                        onClick={() => decide(card, 'add')}
-                      >
-                        {deck.length >= 100 && decisions[card.name] !== 'add' ? 'Sideboard' : 'Add'}
-                      </button>
-                      <span className="action-help-wrap">
-                        <button
-                          aria-pressed={decisions[card.name] === 'later'}
-                          onClick={() => decide(card, 'later')}
-                          aria-describedby={`later-${card.name}`}
-                        >
-                          Later
-                        </button>
-                        <span className="action-help" id={`later-${card.name}`} role="tooltip">
-                          Skip for now. This card may return in a later batch.
-                        </span>
+              {scoredBatch.map(({ card, score }, index) => {
+                const reason = recommendationReason(
+                  card,
+                  explainRecommendation(card),
+                  [...deck, ...sideboard],
+                  model.openCardReference,
+                )
+                return (
+                  <article
+                    className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`}
+                    style={
+                      {
+                        '--fan-position': index - (scoredBatch.length - 1) / 2,
+                        '--fan-drop': `${Math.abs(index - (scoredBatch.length - 1) / 2) * 7}px`,
+                      } as CSSProperties
+                    }
+                    onClick={(event) => clickCardImage(event, card)}
+                    key={card.name}
+                  >
+                    {decisions[card.name] && (
+                      <span className="decision-badge">
+                        {decisions[card.name] === 'add'
+                          ? sideboard.some((item) => item.name === card.name)
+                            ? 'Added to sideboard'
+                            : 'Added to deck'
+                          : decisions[card.name] === 'later'
+                            ? 'Later'
+                            : 'Ignored'}
                       </span>
-                      <span className="action-help-wrap">
+                    )}
+                    <div className="offer-heading">
+                      <p className="suggestion-type">{reason.label}</p>
+                      {recommendedCard.card === card && (
+                        <span className="recommended-badge">Recommended</span>
+                      )}
+                    </div>
+                    <div className={`actions ${deck.length >= 100 ? 'sideboard-actions' : ''}`}>
+                      <div>
                         <button
-                          className="quiet"
-                          aria-pressed={decisions[card.name] === 'ignore'}
-                          onClick={() => decide(card, 'ignore')}
-                          aria-describedby={`ignore-${card.name}`}
+                          className="primary"
+                          aria-pressed={decisions[card.name] === 'add'}
+                          onClick={() => decide(card, 'add')}
                         >
-                          Ignore
+                          {deck.length >= 100 && decisions[card.name] !== 'add'
+                            ? 'Sideboard'
+                            : 'Add'}
                         </button>
-                        <span className="action-help" id={`ignore-${card.name}`} role="tooltip">
-                          Remove this card from all future recommendations.
+                        <span className="action-help-wrap">
+                          <button
+                            aria-pressed={decisions[card.name] === 'later'}
+                            onClick={() => decide(card, 'later')}
+                            aria-describedby={`later-${card.name}`}
+                          >
+                            Later
+                          </button>
+                          <span className="action-help" id={`later-${card.name}`} role="tooltip">
+                            Skip for now. This card may return in a later batch.
+                          </span>
+                        </span>
+                        <span className="action-help-wrap">
+                          <button
+                            className="quiet"
+                            aria-pressed={decisions[card.name] === 'ignore'}
+                            onClick={() => decide(card, 'ignore')}
+                            aria-describedby={`ignore-${card.name}`}
+                          >
+                            Ignore
+                          </button>
+                          <span className="action-help" id={`ignore-${card.name}`} role="tooltip">
+                            Remove this card from all future recommendations.
+                          </span>
+                        </span>
+                      </div>
+                      <span className="similar-wrap">
+                        <button
+                          className={`similar ${liked.includes(card.name) ? 'selected' : ''}`}
+                          type="button"
+                          disabled={decisions[card.name] === 'ignore'}
+                          aria-pressed={liked.includes(card.name)}
+                          onClick={() =>
+                            setLiked((current) =>
+                              current.includes(card.name)
+                                ? current.filter((name) => name !== card.name)
+                                : [...current, card.name],
+                            )
+                          }
+                          aria-describedby={`similar-${card.name}`}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+                          </svg>
+                          More like this
+                        </button>
+                        <span className="similar-help" id={`similar-${card.name}`} role="tooltip">
+                          Prioritise similar cards in future recommendations.
                         </span>
                       </span>
                     </div>
-                    <span className="similar-wrap">
-                      <button
-                        className={`similar ${liked.includes(card.name) ? 'selected' : ''}`}
-                        type="button"
-                        disabled={decisions[card.name] === 'ignore'}
-                        aria-pressed={liked.includes(card.name)}
-                        onClick={() =>
-                          setLiked((current) =>
-                            current.includes(card.name)
-                              ? current.filter((name) => name !== card.name)
-                              : [...current, card.name],
-                          )
-                        }
-                        aria-label={`Find more cards like ${card.name}`}
-                        aria-describedby={`similar-${card.name}`}
-                      >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
-                        </svg>
-                      </button>
-                      <span className="similar-help" id={`similar-${card.name}`} role="tooltip">
-                        Prioritise similar cards in future recommendations.
-                      </span>
-                    </span>
-                  </div>
-                  <div className="offered-image">
-                    <FinishedCardImage
-                      image={card.image}
-                      backImage={card.backImage}
-                      alt={`${card.name} card`}
-                      cardName={card.name}
-                      finish={card.finish}
-                      hasSynergyGlow={pairCards.includes(card)}
-                      className="card-face-image"
-                      showFlipButton
-                      printing={{
-                        count: card.printings?.length ?? 0,
-                        index: card.printing ?? 0,
-                        loading: Boolean(loadingArt),
-                        name: card.name,
-                        onClick: () => void cyclePrinting(card),
-                      }}
-                    />
-                    {pairCards.includes(card) && synergyPair && (
-                      <span className="synergy-info">
-                        <button type="button" aria-describedby={`synergy-${card.name}`}>
-                          ⓘ Synergy
-                        </button>
-                        <span
-                          className="synergy-popover"
-                          id={`synergy-${card.name}`}
-                          role="tooltip"
-                        >
-                          <strong>
-                            {card.name} + {pairCards.find((item) => item !== card)?.name}
-                          </strong>
-                          <span>{synergyPair.explanation}.</span>
+                    <div className="offered-image">
+                      <FinishedCardImage
+                        image={card.image}
+                        backImage={card.backImage}
+                        alt={`${card.name} card`}
+                        cardName={card.name}
+                        finish={card.finish}
+                        hasSynergyGlow={pairCards.includes(card)}
+                        className="card-face-image"
+                        showFlipButton
+                        printing={{
+                          count: card.printings?.length ?? 0,
+                          index: card.printing ?? 0,
+                          loading: Boolean(loadingArt),
+                          name: card.name,
+                          onClick: () => void cyclePrinting(card),
+                        }}
+                      />
+                      {pairCards.includes(card) && synergyPair && (
+                        <span className="synergy-info">
+                          <button type="button" aria-describedby={`synergy-${card.name}`}>
+                            ⓘ Synergy
+                          </button>
+                          <span
+                            className="synergy-popover"
+                            id={`synergy-${card.name}`}
+                            role="tooltip"
+                          >
+                            <strong>
+                              {card.name} + {pairCards.find((item) => item !== card)?.name}
+                            </strong>
+                            <span>{synergyPair.explanation}.</span>
+                          </span>
                         </span>
-                      </span>
+                      )}
+                      <ArtLoading active={loadingArt === card.name} />
+                    </div>
+                    <div className="card-copy">
+                      <h3>{card.name}</h3>
+                      <p className="offer-reason">{reason.sentence}</p>
+                      <p>
+                        <OracleText text={card.detail} />
+                      </p>
+                      <CardDetails
+                        card={card}
+                        source={
+                          limitedRecommendations ||
+                          card.source === 'scryfall' ||
+                          card.collectionMatch
+                            ? { label: 'Scryfall', uri: cardScryfallUri(card) }
+                            : {
+                                label: 'EDHREC',
+                                uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}`,
+                              }
+                        }
+                        onToggleSet={() => toggleCollectionSet(card.set)}
+                        collectionSelected={
+                          collectionMode !== 'none' && collectionSets.includes(card.set)
+                        }
+                      />
+                      <ScoreBreakdown
+                        score={score}
+                        showPopularityPenalty={recommendationStyle === 'thematic'}
+                        showCollection={collectionMode !== 'none' && collectionSets.length > 0}
+                        showTheme={Boolean(theme)}
+                        showSubThemes={activeSubThemes.length > 0}
+                      />
+                    </div>
+                    {commanderPromotionInfo(card, deck, commanderDetails?.colours ?? []) && (
+                      <CommanderPromotion
+                        info={commanderPromotionInfo(card, deck, commanderDetails?.colours ?? [])!}
+                        onPromote={() => void promoteToCommander(card)}
+                      />
                     )}
-                    <ArtLoading active={loadingArt === card.name} />
-                  </div>
-                  <div className="card-copy">
-                    <h3>{card.name}</h3>
-                    <p>
-                      <OracleText text={card.detail} />
-                    </p>
-                    <CardDetails
-                      card={card}
-                      source={
-                        limitedRecommendations || card.source === 'scryfall' || card.collectionMatch
-                          ? { label: 'Scryfall', uri: cardScryfallUri(card) }
-                          : {
-                              label: 'EDHREC',
-                              uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}`,
-                            }
-                      }
-                      onToggleSet={() => toggleCollectionSet(card.set)}
-                      collectionSelected={
-                        collectionMode !== 'none' && collectionSets.includes(card.set)
-                      }
-                    />
-                    <ScoreBreakdown
-                      score={score}
-                      showPopularityPenalty={recommendationStyle === 'thematic'}
-                      showCollection={collectionMode !== 'none' && collectionSets.length > 0}
-                      showTheme={Boolean(theme)}
-                      showSubThemes={activeSubThemes.length > 0}
-                    />
-                  </div>
-                  {commanderPromotionInfo(card, deck, commanderDetails?.colours ?? []) && (
-                    <CommanderPromotion
-                      info={commanderPromotionInfo(card, deck, commanderDetails?.colours ?? [])!}
-                      onPromote={() => void promoteToCommander(card)}
-                    />
-                  )}
-                </article>
-              ))}
+                  </article>
+                )
+              })}
             </div>
           ) : (
             <div className="empty">

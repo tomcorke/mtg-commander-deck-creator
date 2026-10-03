@@ -25,6 +25,7 @@ const pageSchema = z.object({
                   lift: z.number().optional(),
                   synergy: z.number().optional(),
                   num_decks: z.number().optional(),
+                  potential_decks: z.number().optional(),
                 }),
               )
               .max(3000),

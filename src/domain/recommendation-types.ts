@@ -21,7 +21,13 @@ export const curatedCollections: CuratedCollection[] = [
   { id: 'middle-earth', name: 'Middle-earth', setCodes: ['ltr', 'ltc'] },
   { id: 'marvel', name: 'Marvel', setCodes: ['spm'] },
 ]
-export type EdhrecEntry = { name: string; tag: string; header: string }
+export type EdhrecEntry = {
+  name: string
+  tag: string
+  header: string
+  /** Percentage of the commander's EDHREC decks that play this card. */
+  inclusion?: number
+}
 export type SeedEvidence = {
   name: string
   seed: string
@@ -46,6 +52,7 @@ export type RecommendationCard = {
   reason: string
   source?: RecommendationSource
   seedEvidence?: SeedEvidence[]
+  inclusion?: number
   image: string
   backImage?: string
   set: string

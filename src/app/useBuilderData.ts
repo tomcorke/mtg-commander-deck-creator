@@ -223,19 +223,104 @@ function buildDeckData(deps: BuilderDataDeps) {
   }
 }
 
+const roleNouns: Record<string, string> = {
+  ramp: 'ramp',
+  draw: 'card draw',
+  removal: 'removal',
+  wipes: 'a board wipe',
+}
+
+function deckShare(inclusion: number) {
+  return inclusion < 1 ? 'under 1%' : `${Math.round(inclusion)}%`
+}
+
+function evidenceSentence(card: Card, commander: string) {
+  const share = card.inclusion === undefined ? '' : deckShare(card.inclusion)
+  if (card.source === 'edhrec') {
+    if (card.reason === 'Commander synergy')
+      return share
+        ? `High synergy with ${commander}; in ${share} of its decks on EDHREC.`
+        : `EDHREC rates it a high-synergy card for ${commander}.`
+    if (card.reason === 'Interesting new pick')
+      return share
+        ? `A new card already in ${share} of ${commander} decks on EDHREC.`
+        : `A new card ${commander} players have started trying.`
+    return share
+      ? `In ${share} of ${commander} decks on EDHREC.`
+      : `Commonly played in ${commander} decks on EDHREC.`
+  }
+  const sentences: Record<string, string> = {
+    'Interesting new pick': 'A less common card that fits your deck’s themes.',
+    'Land or mana': 'A popular land or mana source in your colours.',
+    'Popular inclusion': 'A popular Commander card in your colours.',
+    'Collection match': 'Comes from a set you chose to build with.',
+    'Theme-compatible commander': 'A commander that shares your deck’s theme.',
+  }
+  return sentences[card.reason] ?? `${card.reason}.`
+}
+
+function recommendationExplainer(
+  deps: BuilderDataDeps,
+  deckData: ReturnType<typeof buildDeckData>,
+  pickedTags: Set<string>,
+) {
+  const { theme, activeSubThemes, collectionMode, collectionSets, preferenceScores, deckTargets } =
+    deps
+  const commanderName = commanderNames(deps.commander)
+    .map((name) => name.split(',')[0])
+    .join(' and ')
+  const deckReason = (card: Card) => {
+    const subThemes = activeSubThemes.filter((tag: string) => card.tags.includes(tag))
+    if (subThemes.length)
+      return {
+        label: `${subThemes.join(' + ')} sub-theme`,
+        sentence: `Supports your ${subThemes.join(' and ')} sub-theme${subThemes.length > 1 ? 's' : ''}.`,
+      }
+    if (theme && card.tags.includes(theme))
+      return { label: `${theme} theme`, sentence: `Fits your ${theme} theme.` }
+    if (collectionMode !== 'none' && card.collectionMatch)
+      return {
+        label: 'Selected collection card',
+        sentence: 'Comes from a set you chose to build with.',
+      }
+    if (collectionMode !== 'none' && collectionSets.includes(card.set))
+      return {
+        label: 'Selected collection printing',
+        sentence: 'This printing comes from a set you chose to build with.',
+      }
+    const missingRole = rolesForCard(card).find(
+      (role) => role !== 'lands' && deckData.analysis.counts[role] < deckTargets[role],
+    )
+    if (missingRole)
+      return {
+        label: targetLabels[missingRole],
+        sentence: `Adds ${roleNouns[missingRole]} your deck needs (${deckData.analysis.counts[missingRole]} of ${deckTargets[missingRole]} so far).`,
+      }
+    const preference = card.tags
+      .filter((tag: string) => pickedTags.has(tag) && (preferenceScores[tag] ?? 0) > 0)
+      .sort((a: string, b: string) => (preferenceScores[b] ?? 0) - (preferenceScores[a] ?? 0))[0]
+    if (preference)
+      return {
+        label: `Matches your ${preference} picks`,
+        sentence: `Like the ${preference} cards you have chosen so far.`,
+      }
+    return null
+  }
+  const explainRecommendation = (card: Card) => {
+    const reason = deckReason(card)
+    if (!reason) return { label: card.reason, sentence: evidenceSentence(card, commanderName) }
+    if (card.source !== 'edhrec' || card.inclusion === undefined) return reason
+    const share = `, and appears in ${deckShare(card.inclusion)} of ${commanderName} decks on EDHREC.`
+    return { ...reason, sentence: reason.sentence.replace(/\.$/, share) }
+  }
+  return explainRecommendation
+}
+
 function buildRecommendationData(
   deps: BuilderDataDeps,
   deckData: ReturnType<typeof buildDeckData>,
 ) {
-  const {
-    queue,
-    theme,
-    activeSubThemes,
-    collectionMode,
-    collectionSets,
-    preferenceScores,
-    deckTargets,
-  } = deps
+  const { queue } = deps
   const rawBatch: Card[] = queue.slice(0, 4)
   const synergyPair = findSynergyPair(
     rawBatch.filter((card: Card) => card.reason !== 'Land or mana'),
@@ -246,22 +331,7 @@ function buildRecommendationData(
     : rawBatch
   const context = buildRecommendationContext(deps, queue)
   const { pickedTags, neededRoles, roleSupply: recommendationRoleSupply } = context
-  const cardReason = (card: Card) => {
-    const subThemes = activeSubThemes.filter((tag: string) => card.tags.includes(tag))
-    if (subThemes.length) return `${subThemes.join(' + ')} sub-theme`
-    if (theme && card.tags.includes(theme)) return `${theme} theme`
-    if (collectionMode !== 'none' && card.collectionMatch) return 'Selected collection card'
-    if (collectionMode !== 'none' && collectionSets.includes(card.set))
-      return 'Selected collection printing'
-    const missingRole = rolesForCard(card).find(
-      (role) => role !== 'lands' && deckData.analysis.counts[role] < deckTargets[role],
-    )
-    if (missingRole) return targetLabels[missingRole]
-    const preference = card.tags
-      .filter((tag: string) => pickedTags.has(tag) && (preferenceScores[tag] ?? 0) > 0)
-      .sort((a: string, b: string) => (preferenceScores[b] ?? 0) - (preferenceScores[a] ?? 0))[0]
-    return preference ? `Matches your ${preference} picks` : card.reason
-  }
+  const explainRecommendation = recommendationExplainer(deps, deckData, pickedTags)
   const scoreCandidate = (card: Card) =>
     recommendationScoreBreakdown(card, { ...context, cardRoles: rolesForCard(card) })
   const scoreReplacements = (pool: Card[], remainingDeck: DeckCard[]) => {
@@ -288,7 +358,7 @@ function buildRecommendationData(
     pairCards,
     visibleBatch,
     pickedTags,
-    cardReason,
+    explainRecommendation,
     neededRoles,
     recommendationRoleSupply,
     scoreCandidate,

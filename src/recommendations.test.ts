@@ -222,12 +222,12 @@ test('EDHREC parser keeps first category for each unique card', () => {
       {
         header: 'High Synergy Cards',
         tag: 'highsynergycards',
-        cardviews: [{ name: 'Shared' }, { name: 'First' }],
+        cardviews: [{ name: 'Shared', num_decks: 41, potential_decks: 100 }, { name: 'First' }],
       },
       { header: 'Top Cards', tag: 'topcards', cardviews: [{ name: 'Shared' }, { name: 'Second' }] },
     ]),
     [
-      { name: 'Shared', tag: 'highsynergycards', header: 'High Synergy Cards' },
+      { name: 'Shared', tag: 'highsynergycards', header: 'High Synergy Cards', inclusion: 41 },
       { name: 'First', tag: 'highsynergycards', header: 'High Synergy Cards' },
       { name: 'Second', tag: 'topcards', header: 'Top Cards' },
     ],
@@ -287,6 +287,7 @@ test('production EDHREC builder applies safety filters and batches every card on
     name: card.name,
     tag: card.name === 'Creature' ? 'highsynergycards' : 'topcards',
     header: 'Top Cards',
+    ...(card.name === 'Creature' ? { inclusion: 12 } : {}),
   }))
   const result = buildEdhrecRecommendations(entries, cards, {
     includeCreature: true,
@@ -301,6 +302,8 @@ test('production EDHREC builder applies safety filters and batches every card on
     ['Creature', 'Spell', 'Rock'],
   )
   assert.equal(result[0].reason, 'Commander synergy')
+  assert.equal(result[0].inclusion, 12)
+  assert.equal(result[1].inclusion, undefined)
   assert.equal(result[2].reason, 'Land or mana')
 })
 
