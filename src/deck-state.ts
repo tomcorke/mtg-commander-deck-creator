@@ -142,8 +142,14 @@ export const deckPageTitle = (cardCount: number, name: string, modified = false)
   `${modified ? '*' : ''}${cardCount}/100 ${name} - Commander Deck Creator`
 
 export function deckStateChanged(saved: PersistedDeckState, current: PersistedDeckState) {
-  const withoutSavedDeckId = ({ savedDeckId: _savedDeckId, ...state }: PersistedDeckState) => state
-  return JSON.stringify(withoutSavedDeckId(saved)) !== JSON.stringify(withoutSavedDeckId(current))
+  // Sort keys: in-memory cards and schema-parsed saves order the same fields differently.
+  const sortKeys = (_key: string, value: unknown) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1)))
+      : value
+  const comparable = ({ savedDeckId: _savedDeckId, ...state }: PersistedDeckState) =>
+    JSON.stringify(state, sortKeys)
+  return comparable(saved) !== comparable(current)
 }
 
 export const suggestedDeckName = (commander: string, theme: string, subThemes: string[]) =>

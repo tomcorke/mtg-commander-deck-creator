@@ -140,6 +140,10 @@ test('formats deck page titles and detects unsaved changes', () => {
   )
   assert.equal(deckStateChanged(state, { ...state, savedDeckId: 'deck-1' }), false)
   assert.equal(deckStateChanged(state, { ...state, theme: 'Constellations' }), true)
+  const { commander, ...rest } = state
+  assert.equal(deckStateChanged(state, { ...rest, commander }), false)
+  const reordered = state.deck.map((card) => Object.fromEntries(Object.entries(card).reverse()))
+  assert.equal(deckStateChanged(state, { ...state, deck: reordered as typeof state.deck }), false)
 })
 
 test('saved decks can be created, renamed, updated, and deleted', () => {
