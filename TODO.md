@@ -17,7 +17,7 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, and B9.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, B9, and B14.
 
 ## Suggested order
 
@@ -30,12 +30,11 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | 3     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                                          |
 | 4     | A6  | Signature-card recommendations           | High       | High   | Medium        | Expanded engine families and bounded requests are implemented; representative player review remains.                  |
 | 5     | B10 | Finding-driven swap suggestions          | High       | High   | Medium        | Highest-value review change but needs pairing logic; builds on B8 and B9.                                             |
-| 6     | B14 | Keep deck-review drafts                  | Low        | Medium | Low           | Browser Back and settings refreshes can silently drop pending review choices.                                         |
-| 7     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
-| 8     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
-| 9     | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
-| 10    | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
-| 11    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
+| 6     | B11 | Builder UI consistency pass              | Medium     | Medium | Low           | Type scale, duplicate controls, and deck rail; verify light, dark, and narrow layouts.                                |
+| 7     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
+| 8     | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
+| 9     | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
+| 10    | B13 | Analysis and simulation mana semantics   | Medium     | Medium | Low           | Local, verified rule fixes improve Deck Doctor estimates.                                                             |
 
 ## [A14] Support multiple tabs and safer autosaves
 
@@ -127,23 +126,6 @@ Acceptance checks:
 - Known decks demonstrate useful signature-card selection and additional candidates beyond the commander pool; non-legendary theme engines can be considered without selecting every staple.
 - Late results appear in later batches with the same scoring rules, without duplicates, resurrected ignored/deferred cards, or changed current choices.
 - Measured request counts, rolling-hour boundaries, repeated deck edits, backoff, rate limits, failures, hidden tabs, and deck switches demonstrate bounded work and safe recovery. Successful work is reused; permanent failures do not retry.
-
-## [B14] Keep deck-review drafts across navigation and settings changes
-
-**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Draft choices already survive in-review step changes; the gaps are browser history and settings refreshes.
-
-Pending cuts and additions in Deck review can disappear without warning.
-
-- Browser Back (popstate or hashchange) out of Diagnose discards pending choices without the warning that the explicit exit shows. Either intercept the route change before it applies, ask to discard, and restore the history entry if cancelled, or keep the draft outside `DeckDoctorView` so navigation cannot lose it.
-- Changing a recommendation setting while reviewing clears additions already picked, without telling the player. Keep picked additions that still pass the new settings, and say which were removed.
-
-Current context: `src/features/builder/DeckDoctorView.tsx` owns the draft; routes are applied in `useRouteEffects`. Found during the B9 browser review.
-
-Acceptance checks:
-
-- With pending choices, browser Back asks before discarding; cancelling keeps the player on the page with choices intact.
-- Changing a setting from review keeps compatible picked additions and names any removed ones.
-- Tests cover both paths.
 
 ## [B10] Suggest swaps from review findings
 

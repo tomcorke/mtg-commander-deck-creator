@@ -2,6 +2,24 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [B14] Keep deck-review drafts across navigation and settings changes
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Draft choices already survive in-review step changes; the gaps are browser history and settings refreshes.
+
+**Status:** Complete — merged in `6580817`; not yet released.
+
+### Completed behavior
+
+Leaving Deck review with pending choices (browser Back, a typed or changed hash, or the explicit Back to builder) shows one in-app prompt: Keep choices or Discard and leave. Keep restores the review route and choices; Escape and the shared close button keep choices. Changing a recommendation setting from review keeps picked additions that still pass and names the ones removed.
+
+Implemented by Pi (gpt-6-luna); Opus browser review with fixes (typed hash exits now prompt instead of stalling routing, dark-mode prompt contrast, shared close button).
+
+### Acceptance checks
+
+- Tests cover draft retention through settings changes and the explicit-exit prompt; the hash-exit fix lives in a browser event handler and has no unit test.
+- Chrome review: Back Keep/Discard, settings change keeps the allowed pick and names the removed one, hash edits, Back to builder, light, dark, 390px (iframe), Tab wrap, Escape. Not verified: focus returning to the review heading after dismissing the prompt.
+- All 212 tests, lint, typecheck, and production build pass.
+
 ## [A11] Richer recommendation tuning
 
 **Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — Mapping reasons to scoring changes needs validation so feedback visibly improves later batches.
