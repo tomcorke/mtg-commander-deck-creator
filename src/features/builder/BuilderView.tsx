@@ -1075,7 +1075,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 {focusedRole
                   ? hasReturningFocusedCards
                     ? 'Advance recommendations to see returning cards, or clear focus to see other roles.'
-                    : 'No more suggestions for this role. Clear focus to see other roles.'
+                    : 'Clear focus to see other roles.'
                   : deferredCards.length
                     ? 'Advance recommendations to keep their waiting period, then bring them back.'
                     : maxPrice !== null
