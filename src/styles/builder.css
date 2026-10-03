@@ -145,6 +145,7 @@
   font-size: 14px;
 }
 .recommendation-disclosure summary {
+  width: fit-content;
   cursor: pointer;
 }
 .price-limit-input {
@@ -557,10 +558,24 @@
 .role-focus {
   margin-top: 10px;
 }
+/* Overlay the dimmed card art so the ignored card stays aligned with its batch. */
 .ignore-feedback {
+  position: absolute;
+  z-index: 30;
+  right: 10px;
+  left: 10px;
   display: grid;
   gap: 8px;
-  margin: 8px 0;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid #c9c5e6;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 6px 18px #24203e2e;
+}
+.dark .ignore-feedback {
+  border-color: #4b4867;
+  background: #19182d;
 }
 .ignore-feedback > button {
   justify-self: start;
