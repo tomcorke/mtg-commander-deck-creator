@@ -42,6 +42,18 @@ const sampleDeck = (landCount: number, landColour: string, spell: DeckCard) => [
   ...Array.from({ length: 98 - landCount }, (_, index) => card(`Blank ${index}`, 'Sorcery')),
 ]
 
+test('draws a fixed-seed spell on turn one in multiplayer', () => {
+  const result = simulateManaAccess({
+    deck: sampleDeck(35, 'G', card('Zero-cost spell', 'Sorcery', [], '{0}', 0)),
+    commanderCount: 1,
+    trials: 1,
+    random: seededRandom(142),
+  })
+  const spell = result.spellCastability.find(({ name }) => name === 'Zero-cost spell')!
+  assert.equal(spell.drawnByTurn[0], 1)
+  assert.equal(spell.whenDrawnByTurn[0], 1)
+})
+
 test('estimates land drops and simple spell castability when drawn', () => {
   const result = simulateManaAccess({
     deck: sampleDeck(35, 'G', card('Three-mana spell', 'Sorcery', [], '{2}{G}', 3)),

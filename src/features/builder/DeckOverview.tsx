@@ -6,12 +6,14 @@ import { deckTagCoverage } from '../../deck-review.ts'
 import {
   analyseDeck,
   curveBucket,
+  isSnowManaSource,
+  manaGuidanceSymbols,
   requiredPipsForCard,
   rolesForCard,
   targetKeys,
   targetLabels,
   type DeckTargets,
-  type ManaColour,
+  type ManaGuidanceSymbol,
 } from '../../deck-analysis.ts'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { ManaCurve } from './ManaCurve.tsx'
@@ -70,6 +72,8 @@ function FilterButton({
 }
 
 const cardNames = (cards: DeckCard[]) => [...new Set(cards.map((card) => card.name))]
+const manaGuidanceName = (symbol: ManaGuidanceSymbol) =>
+  symbol === 'C' ? 'Colourless' : symbol === 'S' ? 'Snow' : colourNames[symbol]
 
 export function DeckOverview({
   deck,
@@ -103,13 +107,15 @@ export function DeckOverview({
   const identity = (['W', 'U', 'B', 'R', 'G'] as const).filter((colour) =>
     commanderColours.includes(colour),
   )
-  const colourStats = identity.map((colour: ManaColour) => {
-    const sourceCards = deck.filter((card) => card.producedMana.includes(colour))
+  const colourStats = manaGuidanceSymbols(identity).map((colour: ManaGuidanceSymbol) => {
+    const sourceCards = deck.filter((card) =>
+      colour === 'S' ? isSnowManaSource(card) : card.producedMana.includes(colour),
+    )
     const requiredCardNames = new Set(
       deck.filter((card) => requiredPipsForCard(card, colour) > 0).map((card) => card.name),
     )
     const matchingCards = deck.filter(
-      (card) => card.producedMana.includes(colour) || requiredCardNames.has(card.name),
+      (card) => sourceCards.includes(card) || requiredCardNames.has(card.name),
     )
     const pips = analysis.required[colour]
     return { colour, pips, sourceCards, matchingCards }
@@ -279,60 +285,57 @@ export function DeckOverview({
         </section>
 
         <section className="deck-review-section">
-          <h3>Coloured mana</h3>
+          <h3>Mana costs</h3>
           <p>
-            Pips are coloured symbols in card costs; sources are cards that can produce that colour.
-            Select a colour to highlight its costs and sources.
+            Counts include coloured, colourless, and snow symbols. Sources use reported mana output
+            and snow type lines; they are clues, not draw odds. Select a row to highlight matching
+            cards.
           </p>
-          {colourStats.length ? (
-            <div className="deck-review-colours">
-              {colourStats.map(({ colour, pips, sourceCards, matchingCards }) => (
-                <FilterButton
-                  key={colour}
-                  label={`${colourNames[colour]} mana demand and sources`}
-                  count={matchingCards.length}
-                  className="deck-review-colour-filter"
-                  onClick={() =>
-                    selectCards(
-                      `${colourNames[colour]} mana demand and sources`,
-                      cardNames(matchingCards),
-                    )
-                  }
-                >
-                  <span className="deck-review-colour-heading">
-                    <ManaSymbols symbols={[colour]} />
-                    <b>{colourNames[colour]}</b>
-                    <ReviewStatus
-                      kind={
-                        pips > 0 && sourceCards.length === 0
-                          ? 'attention'
-                          : pips > 0
-                            ? 'good'
-                            : 'neutral'
-                      }
-                      label={
-                        pips > 0 && sourceCards.length === 0
-                          ? 'No mana source'
-                          : pips > 0
-                            ? 'Mana sources found'
-                            : 'No coloured costs'
-                      }
-                    />
+          <div className="deck-review-colours">
+            {colourStats.map(({ colour, pips, sourceCards, matchingCards }) => (
+              <FilterButton
+                key={colour}
+                label={`${manaGuidanceName(colour)} mana demand and sources`}
+                count={matchingCards.length}
+                className="deck-review-colour-filter"
+                onClick={() =>
+                  selectCards(
+                    `${manaGuidanceName(colour)} mana demand and sources`,
+                    cardNames(matchingCards),
+                  )
+                }
+              >
+                <span className="deck-review-colour-heading">
+                  <ManaSymbols symbols={[colour]} />
+                  <b>{manaGuidanceName(colour)}</b>
+                  <ReviewStatus
+                    kind={
+                      pips > 0 && sourceCards.length === 0
+                        ? 'attention'
+                        : pips > 0
+                          ? 'good'
+                          : 'neutral'
+                    }
+                    label={
+                      pips > 0 && sourceCards.length === 0
+                        ? 'No mana source'
+                        : pips > 0
+                          ? 'Mana sources found'
+                          : 'No cost symbols'
+                    }
+                  />
+                </span>
+                <span className="deck-review-colour-counts">
+                  <span>
+                    <b>{pips}</b> symbols
                   </span>
-                  <span className="deck-review-colour-counts">
-                    <span>
-                      <b>{pips}</b> pips
-                    </span>
-                    <span>
-                      <b>{sourceCards.length}</b> source cards
-                    </span>
+                  <span>
+                    <b>{sourceCards.length}</b> source cards
                   </span>
-                </FilterButton>
-              ))}
-            </div>
-          ) : (
-            <p className="deck-review-empty">Colourless commander: no coloured mana to check.</p>
-          )}
+                </span>
+              </FilterButton>
+            ))}
+          </div>
         </section>
 
         <section className="deck-review-section">

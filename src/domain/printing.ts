@@ -1,4 +1,29 @@
-import type { CardFinish, ScryfallCard } from './card-model.ts'
+import {
+  scryfallBackImage,
+  type CardFinish,
+  type DeckCard,
+  type Printing,
+  type ScryfallCard,
+} from './card-model.ts'
+import { hasBackFace } from './card-layout.ts'
+
+type PrintingRepairCard = Pick<DeckCard, 'layout' | 'backImage' | 'setName' | 'scryfallUri'> & {
+  printings?: Pick<Printing, 'finish' | 'setName' | 'scryfallUri' | 'backImage'>[]
+}
+
+export const needsPrintingRepair = (card: PrintingRepairCard) =>
+  !card.setName ||
+  !card.scryfallUri ||
+  (hasBackFace(card.layout) && !card.backImage) ||
+  Boolean(
+    card.printings?.some(
+      (printing) =>
+        !printing.finish ||
+        !printing.setName ||
+        !printing.scryfallUri ||
+        (hasBackFace(card.layout) && !printing.backImage),
+    ),
+  )
 
 export const defaultFinish = (finishes?: CardFinish[]) =>
   finishes?.includes('nonfoil') ? 'nonfoil' : finishes?.[0]
@@ -9,7 +34,7 @@ export const commanderPrintingOptions = (cards: ScryfallCard[]) =>
       return image
         ? (printing.finishes ?? ['nonfoil']).map((finish) => ({
             image,
-            backImage: printing.card_faces?.[1]?.image_uris?.normal,
+            backImage: scryfallBackImage(printing),
             art: printing.image_uris?.art_crop ?? printing.card_faces?.[0]?.image_uris?.art_crop,
             set: printing.set,
             setName: printing.set_name,
@@ -39,7 +64,7 @@ export const cardPrintingOptions = (cards: ScryfallCard[]) =>
       return image
         ? (printing.finishes ?? ['nonfoil']).map((finish) => ({
             image,
-            backImage: printing.card_faces?.[1]?.image_uris?.normal,
+            backImage: scryfallBackImage(printing),
             set: printing.set,
             setName: printing.set_name,
             collectorNumber: printing.collector_number,

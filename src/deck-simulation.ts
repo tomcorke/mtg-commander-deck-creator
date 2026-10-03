@@ -122,7 +122,7 @@ function simulateTrial(
   const hand = shuffled.splice(0, 7)
   const playedLands: DeckCard[] = []
   for (let turn = 0; turn < turnsToSimulate; turn += 1) {
-    if (turn > 0 && nextCard < shuffled.length) {
+    if (nextCard < shuffled.length) {
       const drawn = shuffled[nextCard++]
       hand.push(drawn)
     }

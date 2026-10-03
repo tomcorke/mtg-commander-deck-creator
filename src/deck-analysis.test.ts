@@ -13,6 +13,7 @@ import {
   deckSection,
   defaultDeckTargets,
   requiredPipsForCard,
+  manaGuidanceSymbols,
   type AnalysisCard,
 } from './deck-analysis.ts'
 
@@ -68,7 +69,7 @@ test('analyses curve, coloured requirements, production, roles, and land range',
   ])
   assert.deepEqual(analysis.curve[2], { manaValue: 2, permanents: 0, nonPermanents: 1 })
   assert.equal(analysis.required.G, 5)
-  assert.deepEqual(analysis.produced, { W: 1, U: 0, B: 0, R: 0, G: 1 })
+  assert.deepEqual(analysis.produced, { W: 1, U: 0, B: 0, R: 0, G: 1, C: 0, S: 0 })
   assert.deepEqual(analysis.counts, { lands: 1, ramp: 1, draw: 1, removal: 1, wipes: 1 })
   assert.deepEqual(analysis.typeCounts, {
     Creature: 2,
@@ -115,7 +116,7 @@ test('recognises common ramp and board-wipe wording', () => {
   assert.equal(analysis.counts.wipes, 4)
 })
 
-test('modal spell-land counts as a land source and front spell in curve', () => {
+test('modal spell-land counts as an optional land drop, not a spell in curve or type counts', () => {
   const analysis = analyseDeck([
     card({
       layout: 'modal_dfc',
@@ -130,7 +131,8 @@ test('modal spell-land counts as a land source and front spell in curve', () => 
     }),
   ])
   assert.equal(analysis.counts.lands, 1)
-  assert.deepEqual(analysis.curve[2], { manaValue: 2, permanents: 0, nonPermanents: 1 })
+  assert.deepEqual(analysis.curve[2], { manaValue: 2, permanents: 0, nonPermanents: 0 })
+  assert.equal(analysis.typeCounts.Sorcery, 0)
   assert.equal(analysis.required.U, 1)
   assert.equal(analysis.produced.U, 1)
 })
@@ -151,7 +153,7 @@ test('counts castable multiface colour pips', () => {
   assert.equal(requiredPipsForCard(splitCard, 'U'), 1)
 })
 
-test('uses front face for adventure curve and excludes all-land modal cards', () => {
+test('uses front face for transforming lands and excludes land-back transforming cards', () => {
   const adventure = card({
     layout: 'adventure',
     typeLine: 'Creature // Instant',
@@ -171,9 +173,40 @@ test('uses front face for adventure curve and excludes all-land modal cards', ()
       { typeLine: 'Land', manaCost: '' },
     ],
   })
-  const analysis = analyseDeck([adventure, pathway])
-  assert.deepEqual(analysis.curve[3], { manaValue: 3, permanents: 1, nonPermanents: 0 })
+  const frontLand = card({
+    name: 'Westvale Abbey',
+    layout: 'transform',
+    typeLine: 'Land // Creature',
+    manaCost: '',
+    manaValue: 0,
+    faces: [
+      { typeLine: 'Land', manaCost: '' },
+      { typeLine: 'Creature', manaCost: '' },
+    ],
+  })
+  const backLand = card({
+    layout: 'transform',
+    typeLine: 'Creature // Land',
+  })
+  const analysis = analyseDeck([adventure, pathway, frontLand, backLand])
+  assert.deepEqual(analysis.curve[3], { manaValue: 3, permanents: 2, nonPermanents: 0 })
+  assert.equal(analysis.counts.lands, 2)
   assert.equal(curveBucket(pathway), null)
+  assert.equal(curveBucket(frontLand), null)
+  assert.equal(curveBucket(backLand), 3)
+})
+
+test('includes colourless and snow costs and sources in mana guidance', () => {
+  const analysis = analyseDeck([
+    card({ typeLine: 'Snow Land', manaCost: '', producedMana: ['C'] }),
+    card({ typeLine: 'Artifact', manaCost: '{C/W}{S}' }),
+  ])
+  assert.equal(analysis.required.C, 1)
+  assert.equal(analysis.required.W, 1)
+  assert.equal(analysis.required.S, 1)
+  assert.equal(analysis.produced.C, 1)
+  assert.equal(analysis.produced.S, 1)
+  assert.deepEqual(manaGuidanceSymbols([]), ['C', 'S'])
 })
 
 test('groups deck cards by requested type order', () => {

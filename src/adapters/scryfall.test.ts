@@ -8,6 +8,7 @@ import {
   fetchScryfallPrintings,
   fetchScryfallCollectionCards,
   fetchScryfallSets,
+  fetchScryfallSymbology,
   searchScryfall,
   searchScryfallPage,
 } from './scryfall.ts'
@@ -47,6 +48,33 @@ test('card search exposes page counts, sorting, warnings, and the cancellation s
     await searchScryfall('test', async () => response({ data: [{ name: 'Sol Ring' }] })),
     [{ name: 'Sol Ring' }],
   )
+})
+
+test('fetches and caches Scryfall mana-symbol SVG URIs', async () => {
+  let calls = 0
+  const fetcher = async (input: string | URL | Request) => {
+    calls++
+    assert.equal(String(input), 'https://api.scryfall.com/symbology')
+    return response({
+      data: [
+        {
+          symbol: '{W/U/P}',
+          english: 'One white or blue Phyrexian mana',
+          svg_uri: 'https://svgs.scryfall.io/card-symbols/WUP.svg',
+        },
+        {
+          symbol: '{C/W}',
+          english: 'One colourless or white mana',
+          svg_uri: 'https://svgs.scryfall.io/card-symbols/CW.svg',
+        },
+      ],
+    })
+  }
+  const first = await fetchScryfallSymbology(fetcher)
+  const second = await fetchScryfallSymbology(fetcher)
+  assert.equal(first.get('{W/U/P}')?.svg_uri, 'https://svgs.scryfall.io/card-symbols/WUP.svg')
+  assert.equal(second.get('{C/W}')?.svg_uri, 'https://svgs.scryfall.io/card-symbols/CW.svg')
+  assert.equal(calls, 1)
 })
 
 test('card search treats no matches separately from service failures', async () => {

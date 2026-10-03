@@ -1,4 +1,5 @@
 import type { ScryfallCard } from './card-model.ts'
+import { hasBackFace } from './card-layout.ts'
 import {
   cardText,
   isManaCard,
@@ -66,7 +67,7 @@ export function toRecommendationCard(
     toughness: card.toughness ?? card.card_faces?.[0]?.toughness,
     reason,
     image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '',
-    backImage: card.card_faces?.[1]?.image_uris?.normal,
+    backImage: hasBackFace(card.layout) ? card.card_faces?.[1]?.image_uris?.normal : undefined,
     set: card.set,
     setName: card.set_name,
     collectorNumber: card.collector_number,

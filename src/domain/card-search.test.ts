@@ -76,11 +76,17 @@ test('mana colour terms match hybrid and Phyrexian symbols, not only single-colo
   assert.ok(pattern.test('{G/W}'))
   assert.ok(pattern.test('{W}'))
   assert.ok(!pattern.test('{2}{G}'))
+  assert.equal(
+    cardSearchManaOptions([]).find(({ label }) => label === 'Phyrexian costs')!.symbol,
+    '{H}',
+  )
   const hybrid = cardSearchManaOptions([]).find(({ label }) => label === 'Hybrid costs')!.query
   const hybridPattern = new RegExp(hybrid.slice('mana:/'.length, -1))
   assert.ok(hybridPattern.test('{2/W}'))
   assert.ok(hybridPattern.test('{G/U}'))
   assert.ok(hybridPattern.test('{G/U/P}'))
+  assert.ok(hybridPattern.test('{C/W}'))
+  assert.ok(hybridPattern.test('{2/C}'))
   assert.ok(!hybridPattern.test('{W/P}'))
   assert.ok(
     query({ matches: { 'Colourless cards': 'need', 'Colourless payment': 'exclude' } }).includes(

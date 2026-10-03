@@ -9,7 +9,7 @@ import {
 } from '../../domain/commander-catalog.ts'
 import type { AppModal, AppView } from '../../app/routes.ts'
 import { FinishedCardImage } from '../../shared/CardArt.tsx'
-import { OracleText } from '../../shared/ManaSymbols.tsx'
+import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 
@@ -172,7 +172,7 @@ export function StartView({
                   onClick={() => toggleColour(symbol)}
                   aria-label={name}
                 >
-                  <img src={`https://svgs.scryfall.io/card-symbols/${symbol}.svg`} alt="" />
+                  <ManaSymbols symbols={[symbol]} decorative />
                 </button>
               ))}
             </div>

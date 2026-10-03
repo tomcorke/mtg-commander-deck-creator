@@ -4,6 +4,7 @@ import {
   type ScryfallCard,
   type ScryfallSet,
 } from '../domain/card-model.ts'
+import type { ScryfallManaSymbol } from '../domain/mana-symbols.ts'
 import {
   ProviderRequestError,
   retryTime,
@@ -153,10 +154,15 @@ type SessionCache = {
 
 export const scryfallCacheLifetime = 15 * 60_000
 const sessions = new WeakMap<ScryfallFetcher, SessionCache>()
+const symbologyRequests = new WeakMap<
+  ScryfallFetcher,
+  Promise<ReadonlyMap<string, ScryfallManaSymbol>>
+>()
 
 // Clearing data does not clear the provider cooldown or interrupt existing consumers.
 export function clearScryfallCache(fetcher: ScryfallFetcher = fetch) {
   sessions.delete(fetcher)
+  symbologyRequests.delete(fetcher)
 }
 
 function sessionCache(fetcher: ScryfallFetcher) {
@@ -347,6 +353,36 @@ export async function fetchScryfallCard<T extends ScryfallCard = ScryfallCard>(
   signal?.throwIfAborted()
   if (!card) throw new Error('Scryfall card unavailable')
   return card as T
+}
+
+function isScryfallManaSymbol(value: unknown): value is ScryfallManaSymbol {
+  if (typeof value !== 'object' || value === null) return false
+  const symbol = value as Record<string, unknown>
+  return (
+    typeof symbol.symbol === 'string' &&
+    typeof symbol.english === 'string' &&
+    typeof symbol.svg_uri === 'string'
+  )
+}
+
+export function fetchScryfallSymbology(fetcher: ScryfallFetcher = fetch) {
+  let pending = symbologyRequests.get(fetcher)
+  if (!pending) {
+    pending = requestScryfall('https://api.scryfall.com/symbology', fetcher).then(
+      async (response) => {
+        if (!response.ok) throw new Error('Scryfall symbology unavailable')
+        const result = (await response.json()) as { data?: unknown[] }
+        if (!Array.isArray(result.data) || !result.data.every(isScryfallManaSymbol))
+          throw new Error('Invalid Scryfall symbology response')
+        return new Map(result.data.map((symbol) => [symbol.symbol, symbol]))
+      },
+    )
+    symbologyRequests.set(fetcher, pending)
+    void pending.catch(() => {
+      if (symbologyRequests.get(fetcher) === pending) symbologyRequests.delete(fetcher)
+    })
+  }
+  return pending
 }
 
 function matchingCard(identifier: ScryfallIdentifier, cards: ScryfallCard[]) {

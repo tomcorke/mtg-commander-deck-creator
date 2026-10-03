@@ -1,4 +1,5 @@
 import { colourNames } from '../../domain/commander-catalog.ts'
+import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 
 type Props = {
   commander: string
@@ -35,21 +36,9 @@ export function CommanderSummary({
       </Heading>
       <div className="identity" aria-label={`Colour identity: ${identityLabel}`}>
         <span>Colour identity</span>
-        {colours?.length === 0 && (
-          <img
-            className="colour"
-            src="https://svgs.scryfall.io/card-symbols/C.svg"
-            alt="Colourless"
-          />
+        {colours !== null && (
+          <ManaSymbols symbols={colours.length ? colours : ['C']} className="colour" decorative />
         )}
-        {colours?.map((colour) => (
-          <img
-            className="colour"
-            src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`}
-            alt={colourNames[colour]}
-            key={colour}
-          />
-        ))}
       </div>
       <div className="commander-summary-actions">
         <button className="change" type="button" onClick={onChangeCommander}>

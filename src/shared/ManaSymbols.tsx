@@ -1,41 +1,79 @@
-const symbolNames: Record<string, string> = {
-  W: 'white',
-  U: 'blue',
-  B: 'black',
-  R: 'red',
-  G: 'green',
-  C: 'colourless',
-  X: 'X mana',
-  T: 'tap',
-  Q: 'untap',
-  P: 'Phyrexian',
+import { useEffect, useState } from 'react'
+
+import { fetchScryfallSymbology } from '../adapters/scryfall.ts'
+import {
+  fallbackManaSymbolName,
+  manaSymbolDetails,
+  type ScryfallManaSymbol,
+} from '../domain/mana-symbols.ts'
+
+function useSymbology() {
+  const [symbols, setSymbols] = useState<ReadonlyMap<string, ScryfallManaSymbol> | null>(null)
+  useEffect(() => {
+    let active = true
+    void fetchScryfallSymbology()
+      .then((result) => {
+        if (active) setSymbols(result)
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [])
+  return symbols
 }
 
-function symbolName(symbol: string) {
-  if (/^\d+$/.test(symbol)) return `${symbol} generic mana`
-  return symbol
-    .split('/')
-    .map((part) => symbolNames[part] ?? part)
-    .join(' or ')
+function ManaSymbolImage({
+  symbol,
+  symbols,
+  className = 'mana-symbol',
+  decorative = false,
+}: {
+  symbol: string
+  symbols: ReadonlyMap<string, ScryfallManaSymbol> | null
+  className?: string
+  decorative?: boolean
+}) {
+  const details = manaSymbolDetails(symbol, symbols)
+  if (!details)
+    return (
+      <span
+        className={className}
+        role={decorative ? undefined : 'img'}
+        aria-label={decorative ? undefined : fallbackManaSymbolName(symbol)}
+        aria-hidden={decorative || undefined}
+      >
+        {symbol}
+      </span>
+    )
+  return (
+    <img
+      className={className}
+      src={details.svg_uri}
+      alt={decorative ? '' : details.english || fallbackManaSymbolName(symbol)}
+      aria-hidden={decorative || undefined}
+    />
+  )
 }
 
-const colourNames: Record<string, string> = {
-  W: 'White',
-  U: 'Blue',
-  B: 'Black',
-  R: 'Red',
-  G: 'Green',
-  C: 'Colourless',
-}
-
-export function ManaSymbols({ symbols }: { symbols: string[] }) {
+export function ManaSymbols({
+  symbols,
+  className,
+  decorative,
+}: {
+  symbols: string[]
+  className?: string
+  decorative?: boolean
+}) {
+  const symbology = useSymbology()
   return (
     <>
       {symbols.map((symbol) => (
-        <img
-          className="mana-symbol"
-          src={`https://svgs.scryfall.io/card-symbols/${symbol}.svg`}
-          alt={colourNames[symbol] ?? 'Colourless'}
+        <ManaSymbolImage
+          symbol={symbol}
+          symbols={symbology}
+          className={className}
+          decorative={decorative}
           key={symbol}
         />
       ))}
@@ -44,6 +82,7 @@ export function ManaSymbols({ symbols }: { symbols: string[] }) {
 }
 
 export function OracleText({ text }: { text: string }) {
+  const symbology = useSymbology()
   const lines = text.split(/\r?\n/)
   return (
     <>
@@ -52,16 +91,7 @@ export function OracleText({ text }: { text: string }) {
           {line.split(/(\{[^}]+\})/g).map((part, index) => {
             const symbol = part.match(/^\{(.+)\}$/)?.[1]
             if (!symbol) return part
-            const file = symbol.replace('/', '')
-            const label = symbolName(symbol)
-            return (
-              <img
-                className="mana-symbol"
-                src={`https://svgs.scryfall.io/card-symbols/${file}.svg`}
-                alt={label}
-                key={`${part}-${index}`}
-              />
-            )
+            return <ManaSymbolImage symbol={symbol} symbols={symbology} key={`${part}-${index}`} />
           })}
         </span>
       ))}

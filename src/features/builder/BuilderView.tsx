@@ -56,6 +56,9 @@ import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 
 type AnyFunction = (...args: any[]) => any
 
+const manaGuidanceName = (symbol: string) =>
+  colourNames[symbol] ?? (symbol === 'C' ? 'Colourless' : 'Snow')
+
 type BuilderViewModel = {
   [key: string]: any
   appHeader: ReactNode
@@ -304,6 +307,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   const basicLandDialog = useRef<HTMLElement>(null)
   const batchHeading = useRef<HTMLHeadingElement>(null)
   const landFillTrigger = useRef<HTMLButtonElement>(null)
+  const manaSymbols = [...manaColours, 'C', 'S'] as const
   const reviewFilterNames = new Set(deckReviewFilter?.cardNames ?? [])
   const activeHighlightLabel =
     deckReviewFilter?.label ??
@@ -1197,29 +1201,26 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <h4>Colour balance</h4>
               {(
                 [
-                  ['Pips', analysis.required],
+                  ['Cost symbols', analysis.required],
                   ['Sources', analysis.produced],
                 ] as const
               ).map(([label, values]) => (
                 <div className="mana-balance-row" key={label}>
                   <span>{label}</span>
                   <div className="colour-bar">
-                    {manaColours.some((colour) => values[colour] > 0) ? (
-                      manaColours
+                    {manaSymbols.some((colour) => values[colour] > 0) ? (
+                      manaSymbols
                         .filter((colour) => values[colour] > 0)
                         .map((colour) => (
                           <span
                             className={`colour-segment colour-${colour.toLowerCase()}`}
                             style={{ flexGrow: values[colour] }}
-                            title={`${colourNames[colour]}: ${values[colour]} ${label.toLowerCase()}`}
+                            title={`${manaGuidanceName(colour)}: ${values[colour]} ${label.toLowerCase()}`}
                             key={colour}
                           >
-                            <img
-                              src={`https://svgs.scryfall.io/card-symbols/${colour}.svg`}
-                              alt=""
-                            />
+                            <ManaSymbols symbols={[colour]} decorative />
                             <b>
-                              <span className="sr-only">{colourNames[colour]}: </span>
+                              <span className="sr-only">{manaGuidanceName(colour)}: </span>
                               {values[colour]}
                             </b>
                           </span>

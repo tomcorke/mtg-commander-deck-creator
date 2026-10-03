@@ -65,8 +65,8 @@ export function cardSearchManaOptions(colours: string[]) {
     { label: 'Colourless cards', symbol: '{C}', query: 'c:c' },
     { label: 'X costs', symbol: '{X}', query: 'mana:{X}' },
     { label: 'Colourless payment', symbol: '{C}', query: 'mana:{C}' },
-    { label: 'Hybrid costs', symbol: '', query: 'mana:/\\{[2WUBRG]\\/[WUBRG](\\/P)?\\}/' },
-    { label: 'Phyrexian costs', symbol: '{P}', query: 'mana:/\\{[^}]*\\/P\\}/' },
+    { label: 'Hybrid costs', symbol: '', query: 'mana:/\\{[2WUBRGC]\\/[WUBRGC](\\/P)?\\}/' },
+    { label: 'Phyrexian costs', symbol: '{H}', query: 'mana:/\\{[^}]*\\/P\\}/' },
   ]
 }
 

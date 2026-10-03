@@ -4,7 +4,8 @@ import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import type { Card } from '../domain/card-model.ts'
 import { basicLandNames, rolesForCard, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
 import { commanderNames, randomThree } from '../domain/commander-catalog.ts'
-import { commanderPrintingOptions } from '../domain/printing.ts'
+import { scryfallBackImage } from '../domain/card-model.ts'
+import { commanderPrintingOptions, needsPrintingRepair } from '../domain/printing.ts'
 import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
 
 export type AppEffectsDeps = Record<string, any>
@@ -339,7 +340,7 @@ export function useCommanderImagesEffect(deps: AppEffectsDeps) {
           }
           costs.push(card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '')
           const image = card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal
-          if (image) images.push({ image, backImage: card.card_faces?.[1]?.image_uris?.normal })
+          if (image) images.push({ image, backImage: scryfallBackImage(card) })
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
         setCommanderCosts((current: Record<string, string>) => ({
@@ -374,22 +375,7 @@ export function usePrintingRepairEffect(deps: AppEffectsDeps) {
     const cards = focusedRecommendations<Card>(queue, focusedRole, rolesForCard)
       .slice(0, 8)
       .filter((card: any, index: number) => index < 4 || !card.seedEvidence?.length)
-    if (
-      !cards.some(
-        (card: any) =>
-          !card.setName ||
-          !card.scryfallUri ||
-          (card.faces.length > 1 && !card.backImage) ||
-          card.printings?.some(
-            (printing: any) =>
-              !printing.finish ||
-              !printing.setName ||
-              !printing.scryfallUri ||
-              (card.faces.length > 1 && !printing.backImage),
-          ),
-      )
-    )
-      return
+    if (!cards.some(needsPrintingRepair)) return
     const repairKey = `${activeSavedDeckId}:${batchNumber}:${commander}:${cards.map((card: any) => card.name).join('|')}`
     if (repairedPrintingBatches.current.has(repairKey)) return
     repairedPrintingBatches.current.add(repairKey)

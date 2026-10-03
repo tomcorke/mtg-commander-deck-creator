@@ -7,7 +7,7 @@ import {
   preferredPrintingIndex,
   recommendationScore,
 } from '../recommendations.ts'
-import type { Card, ScryfallCard } from '../domain/card-model.ts'
+import { scryfallBackImage, type Card, type ScryfallCard } from '../domain/card-model.ts'
 import { recommendedScoreThreshold, type CollectionMode } from '../recommendations.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
 
@@ -47,7 +47,7 @@ function buildPrintings(card: Card, result: ScryfallCard[]) {
       return image
         ? (printing.finishes ?? ['nonfoil']).map((finish) => ({
             image,
-            backImage: printing.card_faces?.[1]?.image_uris?.normal,
+            backImage: scryfallBackImage(printing),
             set: printing.set,
             setName: printing.set_name,
             collectorNumber: printing.collector_number,

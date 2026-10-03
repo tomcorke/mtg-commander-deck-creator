@@ -366,6 +366,12 @@
 .colour-g {
   background: #8bc795;
 }
+.colour-c {
+  background: #c5c6cf;
+}
+.colour-s {
+  background: #d6e6f3;
+}
 .target-heading {
   display: flex;
   justify-content: space-between;

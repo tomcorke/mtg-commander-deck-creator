@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { hasBackFace } from './card-layout.ts'
 import { cardText } from './recommendation-scoring.ts'
 import { tagsFor } from './recommendation-themes.ts'
 import { toRecommendationCard } from './recommendation-sources.ts'
@@ -156,7 +157,8 @@ export const cardNameKey = (name: string) =>
 export const scryfallImage = (card: ScryfallCard) =>
   card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? ''
 
-export const scryfallBackImage = (card: ScryfallCard) => card.card_faces?.[1]?.image_uris?.normal
+export const scryfallBackImage = (card: ScryfallCard) =>
+  hasBackFace(card.layout) ? card.card_faces?.[1]?.image_uris?.normal : undefined
 
 export const cardTags = (card: ScryfallCard, category = '') =>
   tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)

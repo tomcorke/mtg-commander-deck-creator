@@ -21,7 +21,13 @@ import type {
   ExportFormat,
   ScryfallCard,
 } from '../domain/card-model.ts'
-import { scryfallImage, toDeckCard, toDeckCardFromRecommendation } from '../domain/card-model.ts'
+import {
+  scryfallBackImage,
+  scryfallImage,
+  toDeckCard,
+  toDeckCardFromRecommendation,
+} from '../domain/card-model.ts'
+import { hasBackFace } from '../domain/card-layout.ts'
 import { orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
 import {
   clearDeckState,
@@ -662,7 +668,7 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       !card.setName ||
       !card.scryfallUri ||
       !card.printsUri ||
-      (card.faces.length > 1 && !card.backImage) ||
+      (hasBackFace(card.layout) && !card.backImage) ||
       (cardCanHavePowerToughness(card) && (!card.power || !card.toughness))
     ) {
       const result = await resolveScryfallIdentifiers([
@@ -676,7 +682,7 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
     if (
       (!printings ||
         printings.length < 2 ||
-        (card.faces.length > 1 && printings.some((printing) => !printing.backImage))) &&
+        (hasBackFace(card.layout) && printings.some((printing) => !printing.backImage))) &&
       printsUri
     ) {
       const options = cardPrintingOptions(await fetchScryfallPrintings(printsUri))
@@ -705,7 +711,7 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       price: selected?.price ?? fetched?.prices?.usd ?? card.price,
       priceUri: selected?.priceUri ?? fetched?.purchase_uris?.tcgplayer ?? card.priceUri,
       backImage:
-        selected?.backImage ?? fetched?.card_faces?.[1]?.image_uris?.normal ?? card.backImage,
+        selected?.backImage ?? (fetched ? scryfallBackImage(fetched) : undefined) ?? card.backImage,
       printings,
       printing: selectedIndex >= 0 ? selectedIndex : card.printing,
       finish: selected?.finish ?? card.finish,
@@ -765,7 +771,7 @@ export function openDeckCard(deps: ActionDeps, card: DeckCard, location: DeckCar
     !card.scryfallUri ||
     !card.printings ||
     card.printings.length < 2 ||
-    (card.faces.length > 1 &&
+    (hasBackFace(card.layout) &&
       (!card.backImage || card.printings?.some((printing) => !printing.backImage))) ||
     (cardCanHavePowerToughness(card) && (!card.power || !card.toughness))
   )

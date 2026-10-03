@@ -16,7 +16,22 @@ const doubleFacedCard: ScryfallCard = {
   ],
 }
 
-test('keeps reverse face image when converting a double-faced card', () => {
-  assert.equal(scryfallBackImage(doubleFacedCard), 'back-image')
-  assert.equal(toDeckCard(doubleFacedCard).backImage, 'back-image')
+test('keeps reverse face image and face mana cost when converting a DFC', () => {
+  const dfc = {
+    ...doubleFacedCard,
+    layout: 'transform',
+    card_faces: [
+      { ...doubleFacedCard.card_faces![0], mana_cost: '{2}{G}' },
+      doubleFacedCard.card_faces![1],
+    ],
+  }
+  assert.equal(scryfallBackImage(dfc), 'back-image')
+  assert.equal(toDeckCard(dfc).backImage, 'back-image')
+  assert.equal(toDeckCard(dfc).manaCost, '{2}{G}')
+})
+
+test('does not treat split-card faces as back images', () => {
+  const split = { ...doubleFacedCard, layout: 'split' }
+  assert.equal(scryfallBackImage(split), undefined)
+  assert.equal(toDeckCard(split).backImage, undefined)
 })

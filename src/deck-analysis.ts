@@ -44,7 +44,9 @@ export const cardTypes = [
   'Battle',
 ] as const
 const colours = ['W', 'U', 'B', 'R', 'G'] as const
+const manaSymbols = [...colours, 'C', 'S'] as const
 export type ManaColour = (typeof colours)[number]
+export type ManaGuidanceSymbol = (typeof manaSymbols)[number]
 export const basicLandNames: Record<ManaColour, string> = {
   W: 'Plains',
   U: 'Island',
@@ -55,16 +57,22 @@ export const basicLandNames: Record<ManaColour, string> = {
 export const isBasicLandName = (name: string) =>
   name === 'Wastes' || Object.values(basicLandNames).includes(name)
 
+const isLandLine = (typeLine: string) => typeLine.includes('Land')
+const frontTypeLine = (card: AnalysisCard) =>
+  card.faces[0]?.typeLine || card.typeLine.split(' // ', 1)[0]
 const isLand = (card: AnalysisCard) =>
-  card.typeLine.includes('Land') || card.faces.some((face) => face.typeLine.includes('Land'))
+  card.layout === 'modal_dfc'
+    ? card.faces.length
+      ? card.faces.some((face) => isLandLine(face.typeLine))
+      : isLandLine(card.typeLine)
+    : isLandLine(frontTypeLine(card))
+const isOptionalLandMdfc = (card: AnalysisCard) => card.layout === 'modal_dfc' && isLand(card)
 const curveType = (card: AnalysisCard) =>
   card.layout === 'modal_dfc'
-    ? card.faces.find((face) => !face.typeLine.includes('Land'))?.typeLine
-    : (card.faces[0]?.typeLine ?? card.typeLine)
+    ? card.faces.find((face) => !isLandLine(face.typeLine))?.typeLine
+    : frontTypeLine(card)
 export const curveBucket = (card: AnalysisCard) =>
-  curveType(card) === undefined || (isLand(card) && card.layout !== 'modal_dfc')
-    ? null
-    : Math.min(Math.floor(card.manaValue), 7)
+  curveType(card) === undefined || isLand(card) ? null : Math.min(Math.floor(card.manaValue), 7)
 const isPermanent = (card: AnalysisCard) => !/\b(?:Instant|Sorcery)\b/.test(curveType(card) ?? '')
 const isWipe = (text: string) =>
   /(?:destroy|exile|return) (?:all|each) (?:nonland )?(?:creature|artifact|enchantment|permanent)|each (?:creature|artifact|enchantment|player) (?:sacrifices|exiles) (?:all|any number)|deals? \d+ damage to each creature|all creatures get -[x\d]+\/-[x\d]+/i.test(
@@ -97,10 +105,19 @@ const manaCosts = (card: AnalysisCard) =>
   card.faces.length
     ? card.faces.filter((face) => !face.typeLine.includes('Land')).map((face) => face.manaCost)
     : [card.manaCost]
-export const requiredPipsForCard = (card: AnalysisCard, colour: ManaColour) =>
+export const requiredPipsForCard = (card: AnalysisCard, symbol: ManaGuidanceSymbol) =>
   manaCosts(card)
     .flatMap((cost) => [...cost.matchAll(/\{([^}]+)\}/g)])
-    .filter(([, symbol]) => symbol.split('/').includes(colour)).length
+    .filter(([, costSymbol]) => costSymbol.split('/').includes(symbol)).length
+
+export const isSnowManaSource = (card: AnalysisCard) =>
+  /\bSnow\b/.test(frontTypeLine(card)) && card.producedMana.length > 0
+
+export const manaGuidanceSymbols = (identity: string[]): ManaGuidanceSymbol[] => [
+  ...colours.filter((colour) => identity.includes(colour)),
+  'C',
+  'S',
+]
 
 export function analyseDeck(cards: AnalysisCard[]) {
   const spells = cards.filter((card) => curveBucket(card) !== null)
@@ -112,28 +129,35 @@ export function analyseDeck(cards: AnalysisCard[]) {
       .length,
   }))
   const required = Object.fromEntries(
-    colours.map((colour) => [
-      colour,
-      cards.reduce((count, card) => count + requiredPipsForCard(card, colour), 0),
+    manaSymbols.map((symbol) => [
+      symbol,
+      cards.reduce((count, card) => count + requiredPipsForCard(card, symbol), 0),
     ]),
-  ) as Record<(typeof colours)[number], number>
+  ) as Record<ManaGuidanceSymbol, number>
   const produced = Object.fromEntries(
-    colours.map((colour) => [
-      colour,
-      cards.filter((card) => card.producedMana.includes(colour)).length,
+    manaSymbols.map((symbol) => [
+      symbol,
+      cards.filter((card) =>
+        symbol === 'S' ? isSnowManaSource(card) : card.producedMana.includes(symbol),
+      ).length,
     ]),
-  ) as Record<(typeof colours)[number], number>
+  ) as Record<ManaGuidanceSymbol, number>
   const counts = Object.fromEntries(
     targetKeys.map((key) => [key, cards.filter((card) => rolesForCard(card).includes(key)).length]),
   ) as DeckTargets
   const typeCounts = Object.fromEntries(
     cardTypes.map((type) => [
       type,
-      cards.filter((card) =>
-        [card.typeLine, ...card.faces.map((face) => face.typeLine)].some((line) =>
-          new RegExp(`\\b${type}\\b`).test(line),
-        ),
-      ).length,
+      cards.filter((card) => {
+        const lines = isOptionalLandMdfc(card)
+          ? card.faces.length
+            ? card.faces.filter((face) => isLandLine(face.typeLine)).map((face) => face.typeLine)
+            : ['Land']
+          : card.layout === 'transform'
+            ? [frontTypeLine(card)]
+            : [card.typeLine, ...card.faces.map((face) => face.typeLine)]
+        return lines.some((line) => new RegExp(`\\b${type}\\b`).test(line))
+      }).length,
     ]),
   ) as Record<(typeof cardTypes)[number], number>
   const averageManaValue = spells.length
