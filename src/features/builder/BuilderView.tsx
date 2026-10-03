@@ -537,7 +537,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <ModalCloseButton
                 disabled={basicLandState === 'loading'}
                 onClick={() => closeModal()}
-                label="Close basic land review"
+                label="Close land choices"
               />
             </div>
             <p aria-live="polite" aria-atomic="true">
