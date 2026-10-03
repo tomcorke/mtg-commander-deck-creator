@@ -25,7 +25,7 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 
 | Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                                |
 | ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 1     | A14 | Multi-tab drafts and autosaves           | High       | High   | High          | Top priority: prevent cross-tab draft loss.                                                                              |
+| 1     | A14 | Multi-tab drafts and autosaves           | High       | High   | High          | Top priority: prevent cross-tab draft loss.                                                                           |
 | 2     | A12 | Defer basic-land fill                    | Low        | Medium | Low           | Small change that stops a premature 35-basic mana base distorting analysis.                                           |
 | 3     | A2  | Play-style step, resume, and intro guide | Medium     | High   | Medium        | Sets intent before the first batch; waits for A11's Priority control. Tour compatibility needs validation.            |
 | 4     | A9  | Commander discovery on the start screen  | Medium     | Medium | Medium        | Better first impression; the query-backed commander source needs validation.                                          |
