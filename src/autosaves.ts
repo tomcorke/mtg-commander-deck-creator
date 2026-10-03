@@ -4,6 +4,7 @@ import {
   deckStateKey,
   deckStateVersion,
   loadDeckState,
+  loadSavedDecks,
   persistedDeckStateSchema,
   suggestedDeckName,
   type PersistedDeckState,
@@ -12,6 +13,8 @@ import {
 export const autosavePrefix = 'commander-autosave:'
 export const workspaceSessionKey = 'commander-workspace'
 export const workspaceRecoveryKey = 'commander-workspace-recovery'
+const pendingCopyKey = 'commander-workspace-pending-copy'
+const noticeSeenKey = 'commander-workspace-notice-seen'
 export const retentionKey = 'commander-autosave-retention'
 const migrationLock = 'commander-autosave-migration'
 const retentionSchema = z.object({
@@ -28,6 +31,45 @@ const autosaveSchema = z.object({
   state: persistedDeckStateSchema,
 })
 export type AutosavedDraft = z.infer<typeof autosaveSchema>
+// Store queue field names once, without dropping scoring inputs, art, or selected printings.
+const compactQueueSchema = z
+  .object({ fields: z.array(z.string()), rows: z.array(z.array(z.unknown())) })
+  .refine(({ fields, rows }) => rows.every((row) => row.length === fields.length))
+  .transform(({ fields, rows }) =>
+    rows.map((row) =>
+      Object.fromEntries(
+        fields.flatMap((field, index) => (row[index] === null ? [] : [[field, row[index]]])),
+      ),
+    ),
+  )
+  .pipe(persistedDeckStateSchema.shape.queue)
+const storedAutosaveSchema = autosaveSchema.extend({
+  state: persistedDeckStateSchema.extend({
+    queue: z.union([persistedDeckStateSchema.shape.queue, compactQueueSchema]),
+  }),
+})
+
+function serializeDraft(value: AutosavedDraft) {
+  const draft = autosaveSchema.parse(value)
+  const queue = draft.state.queue
+  if (!queue.length) return JSON.stringify(draft)
+  const fields = [
+    ...new Set(
+      queue.flatMap((card) =>
+        Object.keys(card).filter((key) => card[key as keyof typeof card] !== undefined),
+      ),
+    ),
+  ] as (keyof (typeof queue)[number])[]
+  const rows = queue.map((card) => fields.map((field) => card[field] ?? null))
+  return JSON.stringify({ ...draft, state: { ...draft.state, queue: { fields, rows } } })
+}
+
+function isQuotaError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+  )
+}
 type DraftStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>
 type SessionStorage = Pick<Storage, 'getItem' | 'setItem'>
 type Channel = Pick<BroadcastChannel, 'postMessage' | 'close' | 'onmessage'>
@@ -42,7 +84,7 @@ type WorkspaceOptions = {
 
 function parseDraft(raw: string | null, id: string) {
   try {
-    const parsed = autosaveSchema.safeParse(JSON.parse(raw ?? 'null'))
+    const parsed = storedAutosaveSchema.safeParse(JSON.parse(raw ?? 'null'))
     return parsed.success && parsed.data.id === id ? parsed.data : null
   } catch {
     return null
@@ -68,6 +110,8 @@ class Workspace {
   private release: (() => void) | undefined
   private closed = false
   private sessionError = ''
+  private baseline: AutosavedDraft | null = null
+  private pendingSave = Promise.resolve()
   private snapshot = {
     id: '',
     drafts: [] as AutosavedDraft[],
@@ -118,15 +162,22 @@ class Workspace {
     })
   }
   private write(draft: AutosavedDraft) {
-    this.options.storage.setItem(
-      autosavePrefix + draft.id,
-      JSON.stringify(autosaveSchema.parse(draft)),
-    )
+    this.options.storage.setItem(autosavePrefix + draft.id, serializeDraft(draft))
   }
-  private remember(id: string, draft: AutosavedDraft | null) {
+  private async persist(draft: AutosavedDraft) {
+    try {
+      this.write(draft)
+    } catch (error) {
+      if (!isQuotaError(error) || !this.options.locks) throw error
+      await this.cleanup(this.loadRetention(), draft)
+    }
+  }
+  private remember(id: string, draft: AutosavedDraft | null, pendingCopy = false) {
     // Protect reload recovery during the lock handover, when another tab may prune this key.
-    this.options.session.setItem(workspaceRecoveryKey, JSON.stringify(draft))
+    this.options.session.setItem(workspaceRecoveryKey, draft ? serializeDraft(draft) : 'null')
     this.options.session.setItem(workspaceSessionKey, id)
+    this.options.session.setItem(pendingCopyKey, pendingCopy ? id : '')
+    this.options.session.setItem(noticeSeenKey, draft ? id : '')
   }
   private loadRetention() {
     const raw = this.options.storage.getItem(retentionKey)
@@ -153,15 +204,17 @@ class Workspace {
     }
   }
 
-  private migrate = () => {
+  private migrate = async () => {
     const { storage } = this.options
     const legacy = loadDeckState(storage)
     if (!legacy) return
     if (!readDraft(storage, 'legacy'))
-      this.write({
+      await this.persist({
         version: deckStateVersion,
         id: 'legacy',
-        name: suggestedDeckName(legacy.commander, legacy.theme, legacy.activeSubThemes),
+        name:
+          loadSavedDecks(storage).find(({ id }) => id === legacy.savedDeckId)?.name ??
+          suggestedDeckName(legacy.commander, legacy.theme, legacy.activeSubThemes),
         updatedAt: this.now().toISOString(),
         state: legacy,
       })
@@ -193,74 +246,148 @@ class Workspace {
     return { inheritedId, restored }
   }
 
-  async initialize() {
-    const { locks, channel } = this.options
+  private async restoreDraft(restored: AutosavedDraft | null, copied: boolean, latest: boolean) {
+    const id = this.snapshot.id
+    if (copied && restored)
+      restored = { ...restored, id, state: { ...restored.state, savedDeckId: '' } }
+    let pendingCopy = copied && Boolean(restored)
     try {
-      // Serialize migration so simultaneous startups cannot stamp different migration times.
-      if (locks) await locks.request(migrationLock, this.migrate)
-      else this.migrate()
+      pendingCopy ||= this.options.session.getItem(pendingCopyKey) === id
+      // Unedited forks live in session recovery only; reload must not materialize them either.
+      if (restored && !pendingCopy && !readDraft(this.options.storage, id))
+        await this.persist(restored)
     } catch {
       this.storageError()
     }
-    let { inheritedId, restored } = this.readInitialDraft()
-    // Without Web Locks always fork, and disable pruning: a suspended tab cannot prove liveness.
-    const inheritedRelease = inheritedId && locks ? await this.claim(inheritedId) : null
-    const copied = !inheritedRelease
-    const id = inheritedRelease ? inheritedId! : this.uuid()
-    this.release = inheritedRelease ?? (await this.claim(id)) ?? undefined
-    if (!this.release)
-      throw new Error('Could not create an isolated deck workspace. Reload to try again.')
-    this.publish({ id })
-    if (restored) {
-      if (copied) restored = { ...restored, id, state: { ...restored.state, savedDeckId: '' } }
-      try {
-        this.write(restored)
-      } catch {
-        this.storageError()
-      }
-      this.initialState = restored.state
-      this.initialName = restored.name
-      this.publish({ notice: { draft: restored, copied, latest: !inheritedId } })
-    }
+    this.baseline = restored
+    this.initialState = restored?.state ?? null
+    this.initialName = restored?.name ?? ''
     try {
-      this.remember(id, restored)
+      if (restored && this.options.session.getItem(noticeSeenKey) !== id)
+        this.publish({ notice: { draft: restored, copied, latest } })
+      this.remember(id, restored, pendingCopy)
     } catch {
       this.sessionError =
         'This tab cannot remember its workspace. Export your deck before reloading.'
       this.publish({ error: this.sessionError })
     }
+  }
+
+  async initialize() {
+    const { locks, channel } = this.options
+    try {
+      // Serialize migration so simultaneous startups cannot stamp different migration times.
+      if (locks) await locks.request(migrationLock, this.migrate)
+      else await this.migrate()
+    } catch {
+      this.storageError()
+    }
+    let { inheritedId, restored } = this.readInitialDraft()
+    // Resume an inactive source atomically; live sources and duplicate tabs get lazy copies.
+    // Without Web Locks always fork and disable pruning: suspended owners cannot prove liveness.
+    const sourceId = inheritedId ?? restored?.id
+    const sourceRelease = sourceId && locks ? await this.claim(sourceId) : null
+    const copied = !sourceRelease
+    const id = sourceRelease ? sourceId! : this.uuid()
+    this.release = sourceRelease ?? (await this.claim(id)) ?? undefined
+    if (!this.release)
+      throw new Error('Could not create an isolated deck workspace. Reload to try again.')
+    this.publish({ id })
+    if (sourceRelease) restored = readDraft(this.options.storage, id) ?? restored
+    await this.restoreDraft(restored, copied, !inheritedId)
     await this.refresh()
     if (channel) channel.onmessage = () => void this.refresh()
     this.notify()
     await this.prune()
   }
 
-  prune = async () => {
+  private async cleanup(retention: AutosaveRetention, retry?: AutosavedDraft) {
     const { locks, storage } = this.options
-    if (!locks || this.closed) return
-    try {
-      await locks.request('commander-autosave-cleanup', async () => {
-        const retention = this.loadRetention()
-        const drafts = listAutosaves(storage)
-        let remaining = drafts.length
-        const cutoff = this.now().getTime() - retention.maxAgeDays * 86_400_000
-        for (const draft of [...drafts].reverse()) {
-          if (this.closed) break
-          if (draft.id === this.snapshot.id) continue
-          if (remaining <= retention.maxCount && Date.parse(draft.updatedAt) >= cutoff) continue
-          // Atomic try-lock protects even hidden/frozen owners, not just recent heartbeats.
-          await locks.request(autosavePrefix + draft.id, { ifAvailable: true }, (lock) => {
-            if (!lock) return
-            const current = readDraft(storage, draft.id)
-            if (!current || current.updatedAt !== draft.updatedAt) return
-            storage.removeItem(autosavePrefix + draft.id)
-            remaining--
-            this.notify()
-          })
+    if (!locks || this.closed) return 0
+    return locks.request('commander-autosave-cleanup', async () => {
+      const tryWrite = () => {
+        if (!retry) return false
+        if (this.closed) throw new Error('Workspace closed before autosave retry')
+        try {
+          this.write(retry)
+          return true
+        } catch (error) {
+          if (!isQuotaError(error)) throw error
+          return false
         }
-      })
+      }
+      if (tryWrite()) return 0
+      const drafts = listAutosaves(storage)
+      let removed = 0
+      const cutoff = this.now().getTime() - retention.maxAgeDays * 86_400_000
+      for (const draft of [...drafts].reverse()) {
+        if (this.closed) break
+        if (draft.id === this.snapshot.id || draft.id === retry?.id) continue
+        if (
+          !retry &&
+          drafts.length - removed <= retention.maxCount &&
+          Date.parse(draft.updatedAt) >= cutoff
+        )
+          continue
+        // Atomic try-lock protects hidden/frozen owners and races with new owners.
+        await locks.request(autosavePrefix + draft.id, { ifAvailable: true }, (lock) => {
+          if (!lock) return
+          const current = readDraft(storage, draft.id)
+          if (this.closed || !current || JSON.stringify(current) !== JSON.stringify(draft)) return
+          storage.removeItem(autosavePrefix + draft.id)
+          removed++
+          this.notify()
+        })
+        // On quota pressure, remove only as many oldest inactive drafts as this write needs.
+        if (tryWrite()) return removed
+      }
+      if (retry) throw new DOMException('Storage full', 'QuotaExceededError')
+      return removed
+    })
+  }
+  prune = async () => {
+    try {
+      return await this.cleanup(this.loadRetention())
     } catch {
       this.storageError()
+      return 0
+    } finally {
+      await this.refresh()
+    }
+  }
+  previewRetention = async (value: AutosaveRetention) => {
+    const retention = retentionSchema.parse(value)
+    await this.refresh()
+    let remaining = this.snapshot.drafts.length
+    const cutoff = this.now().getTime() - retention.maxAgeDays * 86_400_000
+    return [...this.snapshot.drafts].reverse().filter((draft) => {
+      if (draft.id === this.snapshot.id || this.snapshot.activeIds.includes(draft.id)) return false
+      if (remaining <= retention.maxCount && Date.parse(draft.updatedAt) >= cutoff) return false
+      remaining--
+      return true
+    }).length
+  }
+  deleteDraft = async (draft: AutosavedDraft) => {
+    const { locks, storage } = this.options
+    if (!locks || this.closed || draft.id === this.snapshot.id) return false
+    try {
+      const deleted = await locks.request(
+        autosavePrefix + draft.id,
+        { ifAvailable: true },
+        (lock) => {
+          if (!lock) return false
+          const current = readDraft(storage, draft.id)
+          if (this.closed || !current || JSON.stringify(current) !== JSON.stringify(draft))
+            return false
+          storage.removeItem(autosavePrefix + draft.id)
+          return true
+        },
+      )
+      if (deleted) this.notify()
+      return deleted
+    } catch {
+      this.storageError()
+      return false
     } finally {
       await this.refresh()
     }
@@ -270,7 +397,7 @@ class Workspace {
       this.options.storage.setItem(retentionKey, JSON.stringify(retentionSchema.parse(value)))
       await this.refresh()
       this.notify()
-      await this.prune()
+      return await this.prune()
     } catch {
       this.publish({
         error: 'Could not save autosave limits. Use a count from 1–200 and an age from 1–365 days.',
@@ -279,36 +406,48 @@ class Workspace {
   }
 
   save = (state: PersistedDeckState, name: string) => {
-    if (this.closed || this.snapshot.busy) return
-    try {
-      const previous = readDraft(this.options.storage, this.snapshot.id)
-      const draft: AutosavedDraft = {
-        version: deckStateVersion,
-        id: this.snapshot.id,
-        name: name.trim() || suggestedDeckName(state.commander, state.theme, state.activeSubThemes),
-        updatedAt: this.now().toISOString(),
-        state,
-      }
-      if (previous?.name === draft.name && JSON.stringify(previous.state) === JSON.stringify(state))
-        return
-      this.write(draft)
+    if (this.closed || this.snapshot.busy) return this.pendingSave
+    const id = this.snapshot.id
+    // Serialize quota retries so an older edit cannot overwrite a newer one after awaiting cleanup.
+    this.pendingSave = this.pendingSave.then(async () => {
+      if (this.closed || id !== this.snapshot.id) return
       try {
-        this.remember(draft.id, draft)
+        state = persistedDeckStateSchema.parse(state)
+        const previous = readDraft(this.options.storage, id) ?? this.baseline
+        const draft: AutosavedDraft = {
+          version: deckStateVersion,
+          id,
+          name:
+            name.trim() || suggestedDeckName(state.commander, state.theme, state.activeSubThemes),
+          updatedAt: this.now().toISOString(),
+          state,
+        }
+        if (
+          previous?.name === draft.name &&
+          JSON.stringify(previous.state) === JSON.stringify(state)
+        )
+          return
+        await this.persist(draft)
+        this.baseline = draft
+        try {
+          this.remember(draft.id, draft)
+        } catch {
+          this.sessionError =
+            'This tab cannot remember its workspace. Export your deck before reloading.'
+        }
+        this.publish({ error: this.sessionError })
+        this.notify()
+        await this.prune()
       } catch {
-        this.sessionError =
-          'This tab cannot remember its workspace. Export your deck before reloading.'
+        this.storageError()
       }
-      this.publish({ error: this.sessionError })
-      void this.refresh()
-      this.notify()
-      void this.prune()
-    } catch {
-      this.storageError()
-    }
+    })
+    return this.pendingSave
   }
   begin = async (draft?: AutosavedDraft) => {
     if (this.closed || this.snapshot.busy) return false
     this.publish({ busy: true })
+    await this.pendingSave
     const nextId = this.uuid()
     let nextRelease: (() => void) | null = null
     try {
@@ -316,9 +455,11 @@ class Workspace {
       if (!nextRelease) throw new Error('Workspace already in use')
       if (draft) {
         draft = { ...draft, id: nextId, state: { ...draft.state, savedDeckId: '' } }
-        this.write(draft)
+        await this.persist(draft)
       }
+      if (this.closed) throw new Error('Workspace closed before switching decks')
       this.remember(nextId, draft ?? null)
+      this.baseline = draft ?? null
       this.release?.()
       this.release = nextRelease
       this.publish({ id: nextId, notice: draft ? { draft, copied: true, latest: false } : null })

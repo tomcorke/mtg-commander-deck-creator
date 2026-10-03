@@ -79,6 +79,27 @@ header {
   border-bottom: 1px solid #dad8e6;
   background: #f8f8ff;
 }
+main > .workspace-alert {
+  position: fixed;
+  z-index: 51;
+  right: 16px;
+  bottom: 16px;
+  max-width: min(420px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid #a13e4c;
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: #fff0ef;
+  color: #842b38;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dark > .workspace-alert {
+  border-color: #d68c95;
+  background: #35232e;
+  color: #ffd3d9;
+}
 .workspace-notice {
   position: relative;
   padding: 14px 60px 14px 5vw;

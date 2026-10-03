@@ -12,13 +12,14 @@ import {
 } from './autosaves.ts'
 import {
   deckStateKey,
+  loadSavedDecks,
   persistedDeckStateSchema,
   saveDeckState,
   saveSavedDeck,
   savedDecksKey,
 } from './deck-state.ts'
 import { toDeckCard } from './domain/card-model.ts'
-import { loadSavedDeck } from './app/deck-actions.ts'
+import { loadSavedDeck, storeDeck } from './app/deck-actions.ts'
 import type { ActionDeps } from './app/recommendation-actions.ts'
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -139,7 +140,7 @@ test('go/no-go: concurrent decks, reloads, duplicate tabs and manual saves stay 
   const env = environment()
   const firstSession = memoryStorage()
   let first = await env.tab(firstSession)
-  first.save({ ...state, savedDeckId: 'manual-1' }, 'First deck')
+  await first.save({ ...state, savedDeckId: 'manual-1' }, 'First deck')
   saveSavedDeck(
     { id: 'manual-1', name: 'Manual save', updatedAt: env.options.now().toISOString(), state },
     env.storage,
@@ -151,7 +152,7 @@ test('go/no-go: concurrent decks, reloads, duplicate tabs and manual saves stay 
   assert.equal(second.initialState?.savedDeckId, '')
   assert.equal(second.getSnapshot().notice?.latest, true)
   assert.notEqual(first.getSnapshot().id, second.getSnapshot().id)
-  second.save(
+  await second.save(
     { ...state, commander: 'Second commander', deck: [...state.deck, state.deck[0]] },
     'Second deck',
   )
@@ -174,7 +175,7 @@ test('go/no-go: concurrent decks, reloads, duplicate tabs and manual saves stay 
   assert.notEqual(duplicate.getSnapshot().id, firstId)
   assert.equal(duplicate.initialState?.commander, state.commander)
   assert.equal(duplicate.getSnapshot().notice?.copied, true)
-  duplicate.save({ ...state, theme: 'Duplicate edit' }, 'Duplicate')
+  await duplicate.save({ ...state, theme: 'Duplicate edit' }, 'Duplicate')
   assert.equal(
     listAutosaves(env.storage).find(({ id }) => id === firstId)?.state.theme,
     state.theme,
@@ -198,8 +199,8 @@ test('simultaneous duplicate startup has one owner and forks the other before an
   const sessionB = memoryStorage({ [workspaceSessionKey]: 'inherited' })
   const [a, b] = await Promise.all([env.tab(sessionA), env.tab(sessionB)])
   assert.notEqual(a.getSnapshot().id, b.getSnapshot().id)
-  a.save(state, 'A')
-  b.save({ ...state, commander: 'Other' }, 'B')
+  await a.save(state, 'A')
+  await b.save({ ...state, commander: 'Other' }, 'B')
   assert.equal(listAutosaves(env.storage).length, 2)
   assert.ok(a.getSnapshot().id === 'inherited' || b.getSnapshot().id === 'inherited')
   a.close()
@@ -211,7 +212,7 @@ test('legacy migration writes a validated recovery point before removing the leg
   saveDeckState(state, env.storage)
   const [a, b] = await Promise.all([env.tab(), env.tab()])
   assert.equal(env.storage.getItem(deckStateKey), null)
-  assert.equal(listAutosaves(env.storage).filter(({ id }) => id === 'legacy').length, 1)
+  assert.equal(listAutosaves(env.storage).length, 1)
   assert.equal(a.initialState?.commander, state.commander)
   assert.equal(b.initialState?.commander, state.commander)
   a.close()
@@ -235,7 +236,7 @@ test('starting a new deck preserves old recovery; empty workspaces stay empty on
   const env = environment()
   const session = memoryStorage()
   const workspace = await env.tab(session)
-  workspace.save(state, 'Original')
+  await workspace.save(state, 'Original')
   const oldId = workspace.getSnapshot().id
   await workspace.begin()
   const newId = workspace.getSnapshot().id
@@ -252,13 +253,13 @@ test('unchanged reload saves do not make the last-edited time look newer', async
   const env = environment()
   const session = memoryStorage()
   const workspace = await env.tab(session)
-  workspace.save(state, 'Original')
+  await workspace.save(state, 'Original')
   const timestamp = listAutosaves(env.storage)[0].updatedAt
   workspace.close()
   await Promise.resolve()
   env.setTime('2026-10-04T12:00:00Z')
   const reloaded = await env.tab(session)
-  reloaded.save(reloaded.initialState!, 'Original')
+  await reloaded.save(reloaded.initialState!, 'Original')
   assert.equal(listAutosaves(env.storage)[0].updatedAt, timestamp)
   reloaded.close()
 })
@@ -266,7 +267,7 @@ test('unchanged reload saves do not make the last-edited time look newer', async
 test('damaged drafts do not hide valid autosaves', async () => {
   const env = environment()
   const workspace = await env.tab()
-  workspace.save(state, 'Valid')
+  await workspace.save(state, 'Valid')
   env.storage.setItem(autosavePrefix + 'corrupt', 'not json')
   env.storage.setItem(autosavePrefix + 'wrong-version', JSON.stringify({ version: 999 }))
   assert.equal(listAutosaves(env.storage).length, 1)
@@ -283,9 +284,9 @@ function seed(env: ReturnType<typeof environment>, id: string, updatedAt: string
 test('count and age retention protect live and suspended workspaces and manual saves', async () => {
   const env = environment()
   const a = await env.tab()
-  a.save(state, 'A')
+  await a.save(state, 'A')
   const b = await env.tab()
-  b.save({ ...state, commander: 'Other' }, 'B')
+  await b.save({ ...state, commander: 'Other' }, 'B')
   saveSavedDeck(
     { id: 'manual', name: 'Manual', updatedAt: env.options.now().toISOString(), state },
     env.storage,
@@ -339,13 +340,13 @@ test('age cutoff retains the exact boundary and count cleanup removes the oldest
 test('opening an inactive draft also forks it and leaves its recovery point unchanged', async () => {
   const env = environment()
   const a = await env.tab()
-  a.save(state, 'Original')
+  await a.save(state, 'Original')
   const original = listAutosaves(env.storage)[0]
   a.close()
   await Promise.resolve()
   const b = await env.tab()
   await b.begin(original)
-  b.save({ ...state, theme: 'Changed' }, 'Copy')
+  await b.save({ ...state, theme: 'Changed' }, 'Copy')
   assert.deepEqual(
     listAutosaves(env.storage).find(({ id }) => id === original.id),
     original,
@@ -357,7 +358,7 @@ test('failed workspace switches keep the previous identity, session and recovery
   const env = environment()
   const session = memoryStorage()
   const workspace = await env.tab(session)
-  workspace.save(state, 'Original')
+  await workspace.save(state, 'Original')
   const original = listAutosaves(env.storage)[0]
   env.storage.setItem = () => {
     throw new Error('quota exceeded')
@@ -374,7 +375,7 @@ test('without Web Locks reload always copies, never shares writes, and never pru
   const env = environment()
   const session = memoryStorage()
   const a = await createWorkspace({ ...env.options, locks: undefined, session })
-  a.save(state, 'Original')
+  await a.save(state, 'Original')
   const original = listAutosaves(env.storage)[0]
   const b = await createWorkspace({
     ...env.options,
@@ -384,6 +385,7 @@ test('without Web Locks reload always copies, never shares writes, and never pru
   assert.notEqual(a.getSnapshot().id, b.getSnapshot().id)
   assert.equal(b.initialState?.commander, state.commander)
   assert.equal(b.getSnapshot().cleanupAvailable, false)
+  await b.save({ ...b.initialState!, theme: 'Independent edit' }, 'Copy')
   env.setTime('2026-11-03T12:00:00Z')
   await b.setRetention({ maxCount: 1, maxAgeDays: 1 })
   assert.equal(listAutosaves(env.storage).length, 2)
@@ -395,7 +397,7 @@ test('BroadcastChannel notifications refresh another tab’s picker without repl
   const env = environment()
   const a = await env.tab()
   const b = await env.tab()
-  a.save(state, 'New autosave')
+  await a.save(state, 'New autosave')
   await new Promise((resolve) => setImmediate(resolve))
   assert.ok(b.getSnapshot().drafts.some(({ name }) => name === 'New autosave'))
   assert.equal(b.initialState, null)
@@ -407,10 +409,10 @@ test('reload recovers its own session backup if retention prunes during lock han
   const env = environment()
   const session = memoryStorage()
   const a = await env.tab(session)
-  a.save({ ...state, commander: 'Own commander' }, 'Own draft')
+  await a.save({ ...state, commander: 'Own commander' }, 'Own draft')
   const id = a.getSnapshot().id
   const b = await env.tab()
-  b.save({ ...state, commander: 'Other commander' }, 'Other draft')
+  await b.save({ ...state, commander: 'Other commander' }, 'Other draft')
   a.close()
   await new Promise((resolve) => setImmediate(resolve))
   await b.setRetention({ maxCount: 1, maxAgeDays: 7 })
@@ -470,7 +472,7 @@ test('manual saves and autosaved copies both restore an idle, persistable editin
 test('damaged retention settings fall back to defaults without hiding recovery points', async () => {
   const env = environment()
   const workspace = await env.tab()
-  workspace.save(state, 'Valid')
+  await workspace.save(state, 'Valid')
   env.storage.setItem(retentionKey, 'not json')
   await workspace.refresh()
   assert.deepEqual(workspace.getSnapshot().retention, { maxCount: 10, maxAgeDays: 7 })
@@ -481,7 +483,7 @@ test('damaged retention settings fall back to defaults without hiding recovery p
 test('opening the current draft makes a recoverable copy and applies count retention', async () => {
   const env = environment()
   const workspace = await env.tab()
-  workspace.save(state, 'Original')
+  await workspace.save(state, 'Original')
   const original = listAutosaves(env.storage)[0]
   await workspace.setRetention({ maxCount: 1, maxAgeDays: 7 })
   assert.equal(await workspace.begin(original), true)
@@ -491,6 +493,228 @@ test('opening the current draft makes a recoverable copy and applies count reten
   assert.equal(listAutosaves(env.storage).length, 1)
   assert.deepEqual(listAutosaves(env.storage)[0].state, original.state)
   workspace.close()
+})
+
+test('fresh and duplicated tabs do not write copies until their first edit, even after reload', async () => {
+  const env = environment()
+  const original = await env.tab()
+  await original.save(state, 'Original')
+  const saved = listAutosaves(env.storage)[0]
+  const duplicate = await env.tab(memoryStorage({ [workspaceSessionKey]: saved.id }))
+  assert.equal(duplicate.getSnapshot().notice?.copied, true)
+  await duplicate.save(duplicate.initialState!, duplicate.initialName)
+  assert.deepEqual(listAutosaves(env.storage), [saved])
+  duplicate.close()
+  const session = memoryStorage()
+  let copy = await env.tab(session)
+  await copy.save(copy.initialState!, copy.initialName)
+  assert.deepEqual(listAutosaves(env.storage), [saved])
+  copy.close()
+  await new Promise((resolve) => setImmediate(resolve))
+  copy = await env.tab(session)
+  await copy.save(copy.initialState!, copy.initialName)
+  assert.deepEqual(listAutosaves(env.storage), [saved])
+  await copy.save({ ...copy.initialState!, theme: 'First edit' }, copy.initialName)
+  assert.equal(listAutosaves(env.storage).length, 2)
+  assert.equal(readOwnDraft(env, copy)?.state.theme, 'First edit')
+  original.close()
+  copy.close()
+})
+
+function readOwnDraft(
+  env: ReturnType<typeof environment>,
+  workspace: Awaited<ReturnType<typeof env.tab>>,
+) {
+  return listAutosaves(env.storage).find(({ id }) => id === workspace.getSnapshot().id)
+}
+
+test('an inactive autosave resumes its manual-save link; a live copy remains unlinked', async () => {
+  const env = environment()
+  const original = await env.tab()
+  await original.save({ ...state, savedDeckId: 'manual' }, 'Named save')
+  const liveCopy = await env.tab()
+  assert.equal(liveCopy.initialState?.savedDeckId, '')
+  liveCopy.close()
+  original.close()
+  await new Promise((resolve) => setImmediate(resolve))
+  const resumed = await env.tab()
+  assert.equal(resumed.initialState?.savedDeckId, 'manual')
+  assert.equal(resumed.initialName, 'Named save')
+  assert.equal(listAutosaves(env.storage).length, 1)
+  resumed.close()
+})
+
+test('migration retains the manual-save link and name without creating extra drafts', async () => {
+  const env = environment()
+  const linked = { ...state, savedDeckId: 'manual' }
+  saveSavedDeck(
+    { id: 'manual', name: 'Named save', updatedAt: env.options.now().toISOString(), state: linked },
+    env.storage,
+  )
+  saveDeckState(linked, env.storage)
+  const workspace = await env.tab()
+  assert.equal(workspace.initialState?.savedDeckId, 'manual')
+  assert.equal(workspace.initialName, 'Named save')
+  assert.equal(listAutosaves(env.storage).length, 1)
+  workspace.close()
+})
+
+test('a taken manual-save name requires explicit overwrite and reuses the existing save id', () => {
+  const storage = memoryStorage()
+  saveSavedDeck(
+    { id: 'manual', name: 'Named save', updatedAt: '2026-10-03T12:00:00Z', state },
+    storage,
+  )
+  const original = storage.getItem(savedDecksKey)
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage })
+  try {
+    const deps: Record<string, any> = {
+      activeSavedDeckId: '',
+      deckName: 'named SAVE',
+      savedDecks: loadSavedDecks(storage),
+      currentDeckState: { ...state, theme: 'Changed deck' },
+      setSavedDecks: (value: unknown) => {
+        deps.savedDecks = value
+      },
+      setActiveSavedDeckId: (value: string) => {
+        deps.activeSavedDeckId = value
+      },
+    }
+    storeDeck(deps as ActionDeps)
+    assert.equal(storage.getItem(savedDecksKey), original)
+    storeDeck(deps as ActionDeps, true)
+    assert.equal(loadSavedDecks(storage).length, 1)
+    assert.equal(loadSavedDecks(storage)[0].id, 'manual')
+    assert.equal(loadSavedDecks(storage)[0].state.theme, 'Changed deck')
+    assert.equal(deps.activeSavedDeckId, 'manual')
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, 'localStorage', descriptor)
+    else Reflect.deleteProperty(globalThis, 'localStorage')
+  }
+})
+
+test('quota failures prune oldest inactive drafts and retry without touching live drafts or manual saves', async () => {
+  const env = environment()
+  const a = await env.tab()
+  await a.save(state, 'A')
+  const b = await env.tab()
+  await b.save({ ...state, commander: 'Other' }, 'B')
+  seed(env, 'oldest', '2026-10-02T12:00:00Z')
+  seed(env, 'recent', '2026-10-03T11:00:00Z')
+  saveSavedDeck(
+    { id: 'manual', name: 'Manual', updatedAt: env.options.now().toISOString(), state },
+    env.storage,
+  )
+  const manual = env.storage.getItem(savedDecksKey)
+  const live = readOwnDraft(env, b)
+  env.storage.setItem('junk', 'unrelated data')
+  const used = () =>
+    Array.from(
+      { length: env.storage.length },
+      (_, index) => env.storage.getItem(env.storage.key(index)!)!.length,
+    ).reduce((sum, length) => sum + length, 0)
+  const quota = used()
+  const setItem = env.storage.setItem
+  env.storage.setItem = (key, value) => {
+    if (used() - (env.storage.getItem(key)?.length ?? 0) + value.length > quota)
+      throw new DOMException('Storage full', 'QuotaExceededError')
+    setItem(key, value)
+  }
+  await a.save({ ...state, theme: 'Latest edit' }, 'A')
+  assert.equal(readOwnDraft(env, a)?.state.theme, 'Latest edit')
+  assert.equal(a.getSnapshot().error, '')
+  assert.equal(env.storage.getItem(autosavePrefix + 'oldest'), null)
+  assert.ok(env.storage.getItem(autosavePrefix + 'recent'))
+  assert.deepEqual(readOwnDraft(env, b), live)
+  assert.equal(env.storage.getItem(savedDecksKey), manual)
+  assert.equal(env.storage.getItem('junk'), 'unrelated data')
+  a.close()
+  b.close()
+})
+
+test('autosaves store the recommendation queue compactly and restore every scoring and printing field', async () => {
+  const env = environment()
+  const workspace = await env.tab()
+  const queue = Array.from({ length: 100 }, (_, index) => ({
+    ...state.deck[0],
+    name: `Candidate ${index}`,
+    reason: 'Test reason',
+    printsUri: '',
+    source: 'edhrec' as const,
+    inclusion: index / 100,
+    collectionMatch: index % 2 === 0,
+    printings:
+      index === 0
+        ? [{ image: 'chosen', set: 'tst', collectorNumber: '2', finish: 'foil' as const }]
+        : undefined,
+  }))
+  const full = persistedDeckStateSchema.parse({ ...state, queue })
+  await workspace.save(full, 'Queue')
+  const raw = env.storage.getItem(autosavePrefix + workspace.getSnapshot().id)!
+  assert.ok(raw.length < JSON.stringify(listAutosaves(env.storage)[0]).length * 0.8)
+  assert.deepEqual(readOwnDraft(env, workspace)?.state, JSON.parse(JSON.stringify(full)))
+  workspace.close()
+})
+
+test('quota retries serialize rapid edits, and non-quota failures never authorize deletion', async () => {
+  const env = environment()
+  const workspace = await env.tab()
+  await workspace.save(state, 'Original')
+  seed(env, 'inactive', '2026-10-02T12:00:00Z')
+  const setItem = env.storage.setItem
+  env.storage.setItem = (key, value) => {
+    if (env.storage.getItem(autosavePrefix + 'inactive'))
+      throw new DOMException('Full', 'QuotaExceededError')
+    setItem(key, value)
+  }
+  await Promise.all([
+    workspace.save({ ...state, theme: 'First' }, 'Original'),
+    workspace.save({ ...state, theme: 'Second' }, 'Original'),
+  ])
+  assert.equal(readOwnDraft(env, workspace)?.state.theme, 'Second')
+  seed(env, 'keep', '2026-10-02T12:00:00Z')
+  env.storage.setItem = () => {
+    throw new DOMException('Denied', 'SecurityError')
+  }
+  await workspace.save({ ...state, theme: 'Denied edit' }, 'Original')
+  assert.ok(env.storage.getItem(autosavePrefix + 'keep'))
+  assert.equal(readOwnDraft(env, workspace)?.state.theme, 'Second')
+  assert.match(workspace.getSnapshot().error, /Autosave unavailable/)
+  workspace.close()
+})
+
+test('individual deletion and retention previews protect current and live drafts', async () => {
+  const env = environment()
+  const a = await env.tab()
+  await a.save(state, 'A')
+  const b = await env.tab()
+  await b.save({ ...state, commander: 'B' }, 'B')
+  seed(env, 'inactive', '2026-10-02T12:00:00Z')
+  assert.equal(await a.previewRetention({ maxCount: 1, maxAgeDays: 7 }), 1)
+  assert.equal(await a.deleteDraft(readOwnDraft(env, a)!), false)
+  assert.equal(await a.deleteDraft(readOwnDraft(env, b)!), false)
+  assert.equal(
+    await a.deleteDraft(listAutosaves(env.storage).find(({ id }) => id === 'inactive')!),
+    true,
+  )
+  assert.equal(listAutosaves(env.storage).length, 2)
+  a.close()
+  b.close()
+})
+
+test('the restored notice is shown once per tab session, including when not dismissed', async () => {
+  const env = environment()
+  seed(env, 'restore', env.options.now().toISOString())
+  const session = memoryStorage()
+  const first = await env.tab(session)
+  assert.ok(first.getSnapshot().notice)
+  first.close()
+  await new Promise((resolve) => setImmediate(resolve))
+  const reload = await env.tab(session)
+  assert.equal(reload.getSnapshot().notice, null)
+  assert.equal(reload.initialState?.commander, state.commander)
+  reload.close()
 })
 
 test('relative age handles fresh, future, minute, hour and day timestamps', () => {

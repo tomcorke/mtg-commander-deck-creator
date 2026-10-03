@@ -1,4 +1,4 @@
-import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 import type { SavedDeck } from '../../deck-state.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
@@ -17,7 +17,7 @@ type SavedDecksModalProps = {
   commander: string
   deckName: string
   setDeckName: (value: string) => void
-  storeDeck: () => void
+  storeDeck: (overwrite?: boolean) => void
   deckNameDuplicate: boolean
   activeSavedDeck: SavedDeck | undefined
   activeDeckDelta: { added: number; removed: number } | null
@@ -51,6 +51,26 @@ export function SavedDecksModal({
   closeModal,
 }: SavedDecksModalProps) {
   const dialog = useRef<HTMLElement>(null)
+  const [retentionResult, setRetentionResult] = useState('')
+  async function applyLimits(values: FormData) {
+    const limits = {
+      maxCount: Number(values.get('maxCount')),
+      maxAgeDays: Number(values.get('maxAgeDays')),
+    }
+    const count = await workspace.previewRetention(limits)
+    if (
+      count &&
+      !window.confirm(
+        `Apply limits and delete ${count} inactive draft${count === 1 ? '' : 's'}? Manual saves and decks open in tabs are kept.`,
+      )
+    )
+      return
+    const removed = await workspace.setRetention(limits)
+    if (removed !== undefined)
+      setRetentionResult(
+        `Limits applied. Deleted ${removed} inactive draft${removed === 1 ? '' : 's'}.`,
+      )
+  }
   useEffect(() => {
     if (!show) return
     const opener = document.activeElement as HTMLElement | null
@@ -104,7 +124,6 @@ export function SavedDecksModal({
           </div>
           <ModalCloseButton onClick={() => closeModal()} label="Close saved decks" />
         </div>
-        {autosave.error && <p role="alert">{autosave.error}</p>}
         <h3 className="draft-section-title">Autosaved drafts</h3>
         <p className="draft-help">
           Opening a draft makes a separate copy in this tab; edits do not change the original.
@@ -113,7 +132,7 @@ export function SavedDecksModal({
           {autosave.drafts.map((draft) => (
             <article key={draft.id}>
               <div className="saved-deck-details">
-                <b>{draft.name || draft.state.commander}</b>
+                {draft.name && draft.name !== draft.state.commander && <b>{draft.name}</b>}
                 <CardReference
                   card={draft.state.deck[0]}
                   thumbnail
@@ -139,6 +158,39 @@ export function SavedDecksModal({
               >
                 Open in this tab
               </button>
+              <span className="saved-deck-delete-wrap">
+                <button
+                  type="button"
+                  className={`saved-deck-delete ${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'confirm' : ''}`}
+                  disabled={
+                    !autosave.cleanupAvailable ||
+                    autosave.busy ||
+                    draft.id === autosave.id ||
+                    autosave.activeIds.includes(draft.id)
+                  }
+                  title={
+                    draft.id === autosave.id || autosave.activeIds.includes(draft.id)
+                      ? 'Decks open in a tab cannot be deleted'
+                      : undefined
+                  }
+                  onClick={() => {
+                    if (pendingSavedDeckRemoval !== `draft:${draft.id}`) {
+                      setPendingSavedDeckRemoval(`draft:${draft.id}`)
+                      return
+                    }
+                    setPendingSavedDeckRemoval('')
+                    void workspace.deleteDraft(draft)
+                  }}
+                  aria-label={`${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm deletion of' : 'Delete'} draft ${draft.name || draft.state.commander}`}
+                >
+                  {pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm' : 'Delete'}
+                </button>
+                {pendingSavedDeckRemoval === `draft:${draft.id}` && (
+                  <span className="saved-delete-confirm" role="tooltip">
+                    Click again to delete
+                  </span>
+                )}
+              </span>
             </article>
           ))}
         </div>
@@ -149,10 +201,7 @@ export function SavedDecksModal({
           onSubmit={(event) => {
             event.preventDefault()
             const values = new FormData(event.currentTarget)
-            void workspace.setRetention({
-              maxCount: Number(values.get('maxCount')),
-              maxAgeDays: Number(values.get('maxAgeDays')),
-            })
+            void applyLimits(values)
           }}
         >
           <h4>Keep autosaves</h4>
@@ -196,6 +245,11 @@ export function SavedDecksModal({
             Limits remove only inactive drafts. Decks open in any tab and manual saves are kept,
             even above the maximum.
           </p>
+          {retentionResult && (
+            <p className="draft-help" role="status">
+              {retentionResult}
+            </p>
+          )}
           {!autosave.cleanupAvailable && (
             <p className="draft-help">
               Automatic cleanup is off because this browser cannot detect live workspaces safely.
@@ -209,7 +263,14 @@ export function SavedDecksModal({
               className="save-deck-form"
               onSubmit={(event) => {
                 event.preventDefault()
-                storeDeck()
+                if (
+                  deckNameDuplicate &&
+                  !window.confirm(
+                    `Overwrite the manual save named "${deckName.trim()}"? This replaces its saved deck.`,
+                  )
+                )
+                  return
+                storeDeck(deckNameDuplicate)
               }}
             >
               <label>
@@ -219,7 +280,6 @@ export function SavedDecksModal({
                   value={deckName}
                   onChange={(event) => setDeckName(event.target.value)}
                   aria-label="Deck name"
-                  aria-invalid={deckNameDuplicate}
                   aria-describedby={deckNameDuplicate ? 'deck-name-warning' : undefined}
                 />
                 <button
@@ -232,15 +292,15 @@ export function SavedDecksModal({
                 </button>
                 {deckNameDuplicate && (
                   <small id="deck-name-warning" className="deck-name-warning">
-                    Name already used
+                    A save already uses this name. Overwrite it to replace its deck.
                   </small>
                 )}
               </label>
-              <button className="primary" disabled={!deckName.trim() || deckNameDuplicate}>
-                {activeSavedDeck ? 'Overwrite save' : 'Save deck'}
+              <button className="primary" disabled={!deckName.trim()}>
+                {activeSavedDeck || deckNameDuplicate ? 'Overwrite save' : 'Save deck'}
               </button>
             </form>
-            {activeSavedDeck && (
+            {activeSavedDeck && !deckNameDuplicate && (
               <p className="overwrite-notice">
                 This will overwrite <b>{activeSavedDeck.name}</b> with{' '}
                 <span className="delta-added">+{activeDeckDelta?.added} added</span> and{' '}
@@ -253,10 +313,13 @@ export function SavedDecksModal({
           {savedDecks.map((saved) => (
             <article key={saved.id}>
               <div className="saved-deck-details">
-                <b>{saved.name}</b>
-                <span>
-                  {saved.state.commander} · {saved.state.deck.length}/100 cards
-                </span>
+                {saved.name !== saved.state.commander && <b>{saved.name}</b>}
+                <CardReference
+                  card={saved.state.deck[0]}
+                  thumbnail
+                  onOpen={() => openCard(saved.state.deck[0])}
+                />
+                <span>{saved.state.deck.length}/100 cards</span>
                 <small>Updated {new Date(saved.updatedAt).toLocaleString()}</small>
               </div>
               <button

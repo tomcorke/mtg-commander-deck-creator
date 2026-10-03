@@ -23,10 +23,14 @@ export function WorkspaceNotice({
   const { notice, error, busy } = autosave
   if (!notice && !error) return null
   return (
-    <section className="workspace-notice" aria-label="Draft recovery">
-      {error && <p role="alert">{error}</p>}
+    <>
+      {error && (
+        <p className="workspace-alert" role="alert">
+          {error}
+        </p>
+      )}
       {notice && (
-        <>
+        <section className="workspace-notice" aria-label="Draft recovery">
           <p role="status">
             {notice.latest ? 'Automatically restored your latest draft' : 'Restored your draft'}:{' '}
             <b>{notice.draft.state.commander}</b> ({notice.draft.state.deck.length} cards, saved{' '}
@@ -46,8 +50,8 @@ export function WorkspaceNotice({
             label="Dismiss draft recovery notice"
             onClick={workspace.dismissNotice}
           />
-        </>
+        </section>
       )}
-    </section>
+    </>
   )
 }

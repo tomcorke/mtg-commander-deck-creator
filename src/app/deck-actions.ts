@@ -31,7 +31,6 @@ import { hasBackFace } from '../domain/card-layout.ts'
 import { orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
 import {
   deleteSavedDeck,
-  duplicateDeckName,
   restoredRecommendationDecisions,
   saveSavedDeck,
   suggestedDeckName,
@@ -897,12 +896,16 @@ export function openSavedDecks(deps: ActionDeps) {
   openModal(deps, 'saved')
 }
 
-export function storeDeck(deps: ActionDeps) {
+export function storeDeck(deps: ActionDeps, overwrite = false) {
   const { activeSavedDeckId, deckName, savedDecks, setActiveSavedDeckId, setSavedDecks } = deps
   const state = currentState(deps)
   const name = deckName.trim()
-  if (!state || !name || duplicateDeckName(savedDecks, name, activeSavedDeckId)) return
-  const id = activeSavedDeckId || crypto.randomUUID()
+  const duplicate = savedDecks.find(
+    (saved: SavedDeck) =>
+      saved.id !== activeSavedDeckId && saved.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+  )
+  if (!state || !name || (duplicate && !overwrite)) return
+  const id = duplicate?.id || activeSavedDeckId || crypto.randomUUID()
   setSavedDecks(
     saveSavedDeck({
       id,
