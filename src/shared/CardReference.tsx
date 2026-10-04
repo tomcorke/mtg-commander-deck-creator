@@ -1,9 +1,10 @@
-import type { Card } from '../domain/card-model.ts'
+import type { Card, CardFinish } from '../domain/card-model.ts'
+import { FinishedCardImage } from './CardArt.tsx'
 import { CardImagePreview } from './CardImagePreview.tsx'
 import { showCardPreview, hideCardPreview } from './card-preview.ts'
 
 type Props = {
-  card: Pick<Card, 'name' | 'image'>
+  card: Pick<Card, 'name' | 'image'> & Partial<Pick<Card, 'backImage' | 'finish'>>
   onOpen: () => void
   thumbnail?: boolean
   disabled?: boolean
@@ -38,7 +39,18 @@ export function CardReference({
         )}
         {card.name}
       </button>
-      <CardImagePreview image={card.image} placement="reference" />
+      <CardImagePreview image={card.image} placement="reference">
+        {card.image && (
+          <FinishedCardImage
+            image={card.image}
+            backImage={card.backImage}
+            finish={card.finish as CardFinish | undefined}
+            alt={card.name}
+            cardName={card.name}
+            className=""
+          />
+        )}
+      </CardImagePreview>
     </span>
   )
 }
