@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Joyride, type TooltipRenderProps, type Step } from 'react-joyride'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
@@ -51,11 +52,6 @@ function GuideTooltip({
       role="dialog"
       aria-labelledby="intro-guide-title"
       aria-describedby="intro-guide-content"
-      onKeyDownCapture={(event) => {
-        if (event.key !== 'Escape') return
-        event.stopPropagation()
-        controls.skip()
-      }}
     >
       <div className="export-heading">
         <h2 id="intro-guide-title">{step.title}</h2>
@@ -81,6 +77,16 @@ function GuideTooltip({
 }
 
 export function IntroGuide({ close }: { close: () => void }) {
+  useEffect(() => {
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      close()
+    }
+    document.addEventListener('keydown', dismiss, true)
+    return () => document.removeEventListener('keydown', dismiss, true)
+  }, [close])
   return (
     <Joyride
       run
