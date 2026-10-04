@@ -331,7 +331,7 @@
   position: absolute;
   z-index: 10;
   top: 50%;
-  right: 8px;
+  left: calc(100% + 8px);
   display: block;
   width: min(280px, calc(100vw - 48px));
   padding: 9px 11px;
