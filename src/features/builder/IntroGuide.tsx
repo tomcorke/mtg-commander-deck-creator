@@ -51,6 +51,11 @@ function GuideTooltip({
       role="dialog"
       aria-labelledby="intro-guide-title"
       aria-describedby="intro-guide-content"
+      onKeyDownCapture={(event) => {
+        if (event.key !== 'Escape') return
+        event.stopPropagation()
+        controls.skip()
+      }}
     >
       <div className="export-heading">
         <h2 id="intro-guide-title">{step.title}</h2>

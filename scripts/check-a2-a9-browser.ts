@@ -239,6 +239,8 @@ async function checkGuide(page: Page) {
   await second.waitFor()
   await press(page, second.getByRole('button', { name: 'Back', exact: true }))
   await guide.waitFor()
+  await press(page, guide.getByRole('button', { name: 'Next', exact: true }))
+  await second.waitFor()
   await page.keyboard.press('Escape')
   await page.locator('.intro-guide').waitFor({ state: 'hidden' })
   assert.equal(await page.evaluate(() => document.activeElement?.id), 'recommendation-batch-title')
