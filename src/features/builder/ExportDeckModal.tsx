@@ -72,12 +72,13 @@ export function ExportDeckModal({
             CSV
           </button>
         </div>
+        {/* Unverified: whether Moxfield's text import accepts commanders with the mainboard.
+            Rechecked 2026-10-04 in Chrome; moxfield.com/help never finished loading. */}
         {exportFormat === 'moxfield' && (
           <p className="moxfield-instructions">
-            <b>Commander must be selected manually in Moxfield.</b> Moxfield does not support
-            importing a deck with its commander included. Choose Commander format, set{' '}
-            {names.length > 1 ? 'commanders' : 'commander'} to <b>{names.join(' and ')}</b>, then
-            paste this {deckCount - names.length}-card mainboard list.
+            This {deckCount - names.length}-card mainboard list omits your{' '}
+            {names.length > 1 ? 'commanders' : 'commander'}. In Moxfield, set{' '}
+            <b>{names.join(' and ')}</b> as your {names.length > 1 ? 'commanders' : 'commander'}.
           </p>
         )}
         <textarea

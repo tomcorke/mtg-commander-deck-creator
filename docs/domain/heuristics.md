@@ -33,7 +33,7 @@ Checked 2026-10-03. Exact weights, formulas, quotas, and timings belong in the o
 
 Sub-theme inference uses **3 matches among the last 12** noncommander selections. `src/app/useBuilderData.ts` owns suggestions; dismissals wait for increased support. `src/domain/recommendation-queue.ts` owns active-selection limits. Recency exaggerates incidental packages or overlooks older ones. Never call the trigger sufficient support or a construction restriction.
 
-`src/domain/commander-catalog.ts` and `src/app/recommendation-actions.ts` own curated commander/pair shortcuts and narrow theme searches. They omit valid commanders, pairs, and implicit themes; `-is:commander` removes useful cards from the 99. Random-comparator sorting is not uniform. Never call these exhaustive eligibility, general pairing validation, or unbiased recommendations.
+`src/domain/commander-catalog.ts` and `src/app/recommendation-actions.ts` own curated commander/pair shortcuts and narrow theme searches. They omit valid commanders, pairs, and implicit themes. Scryfall theme search is one page ordered by EDHREC popularity, not commander synergy; its fallback uses a random comparator, which is not uniform. Never call these exhaustive eligibility, general pairing validation, or unbiased recommendations.
 
 Pair clues match blink/ETB, tokens/payoffs, counters, sacrifice/death, graveyard/recursion, or artifact-token/payoff wording. They ignore ownership, targets, costs, timing, once-per-turn limits, and resources; setup may be missing or the beneficiary wrong. Other interactions are missed. Never present a pair as a proven interaction, infinite combo, or bracket-combo detector.
 
@@ -55,7 +55,7 @@ Incoming Energy/token checks require tagged peers and can count commanders, unli
 
 `src/domain/recommendation-queue.ts` learns from Add/Ignore/like choices, not intrinsic quality. Generic shared tags spread preferences to unrelated cards; unexpressed reasons are missed. Never present learned values as verified intent or quality.
 
-The queue balances creature/mana picks, novelty, reason variety, and theme coverage; Thematic preserves identity, while Competitive omits ordinary diversity quotas. Supply and fallbacks can relax quotas or restore mana-penalized creatures. Quotas displace higher scores and fail with sparse pools. Never present them as optimal composition or casting bans. `Land or mana` labels use root land type or literal mana-addition text, missing land faces/indirect output and admitting conditional production; they are neither ramp roles nor available mana.
+The queue balances creature/mana picks, novelty, reason variety, and theme coverage; Theme first preserves identity, while Deck needs first omits ordinary diversity quotas. Supply and fallbacks can relax quotas or restore mana-penalized creatures. Quotas displace higher scores and fail with sparse pools. Never present them as optimal composition or casting bans. `Land or mana` labels use root land type or literal mana-addition text, missing land faces/indirect output and admitting conditional production; they are neither ramp roles nor available mana.
 
 The same module owns Later/undecided cooldowns and can advance to deferred cards when unseen cards run out. These are queue delays, never turns, elapsed-time waits, or usefulness judgments.
 

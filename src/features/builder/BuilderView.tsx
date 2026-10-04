@@ -53,6 +53,7 @@ import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { ManaCurve } from './ManaCurve.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
+import { openSectionsWithHighlights } from './deck-section-highlight.ts'
 
 import { recommendationDataError } from '../../domain/deck-data-status.ts'
 
@@ -218,7 +219,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     commander,
     commanderDetails,
     cycleCommanderPrinting,
-    cycleDeckPrinting,
     cyclePrinting,
     deckReviewFilter,
     decide,
@@ -262,7 +262,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     promoteToCommander,
     openModal,
     pendingRemoval,
-    positionDeckPreview,
     queue,
     recommendationLoadingStep,
     recommendationLoadingTitle,
@@ -330,6 +329,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     batchNumber,
     rolesForCard,
   )
+  function openHighlightedDeckSections() {
+    openSectionsWithHighlights(document.querySelectorAll<HTMLDetailsElement>('.deck-group-details'))
+  }
+
   async function clearRoleFocus(role: TargetKey) {
     await chooseRoleFocus(null)
     const target = document.getElementById(`deck-target-${role}`)
@@ -343,6 +346,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
       .getElementById('deck-list-title')
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [activeHighlightLabel, activeModal])
+
+  useEffect(() => {
+    if (activeHighlightLabel) openHighlightedDeckSections()
+  }, [activeHighlightLabel])
 
   useEffect(() => {
     const dialog = basicLandDialog.current
@@ -771,6 +778,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="toolbar-actions">
               <button
                 className="manual-card-button"
+                ref={cardSearchButton}
                 type="button"
                 onClick={() => openModal('search')}
               >
@@ -778,7 +786,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               </button>
               {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && (
                 <div className="batch-controls">
-                  <button className="primary" onClick={() => void nextBatch()}>
+                  <button className="primary" type="button" onClick={() => void nextBatch()}>
                     Next recommendations →
                   </button>
                 </div>
@@ -1374,14 +1382,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 {deck.length}/100 cards
                 {deck.length === 100 && !model.deckComplete ? ' · Needs validation' : ''}
               </span>
-              <button
-                className="manual-card-button"
-                ref={cardSearchButton}
-                type="button"
-                onClick={() => openModal('search')}
-              >
-                + Search & add cards
-              </button>
             </div>
           </div>
           {activeHighlightLabel && (
@@ -1405,229 +1405,196 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="meter">
             <span style={{ width: `${deck.length}%` }} />
           </div>
-          <div className={`deck-list ${sideboard.length ? 'has-sideboard' : ''}`}>
+          <div className="deck-list">
             {groupedDeckColumns.map((column, columnIndex) => (
               <div className="deck-column" key={`deck-column-${columnIndex}`}>
                 {column.map(({ section, cards, count }) => (
                   <section className="deck-group" key={section}>
-                    <h3>
-                      {section}
-                      <span>{count}</span>
-                    </h3>
-                    <ol>
-                      {cards.map(({ card, index }) => {
-                        const curveValue = curveBucket(card)
-                        const highlighted =
-                          (!deckReviewFilter || reviewFilterNames.has(card.name)) &&
-                          (highlightedManaValue === null || highlightedManaValue === curveValue)
-                        return (
-                          <li
-                            className={highlighted ? '' : 'deck-highlight-dimmed'}
-                            key={`${card.name}-${index}`}
-                            tabIndex={0}
-                            onMouseEnter={(event) =>
-                              positionDeckPreview(event.currentTarget, event.clientX)
-                            }
-                            onFocus={(event) => positionDeckPreview(event.currentTarget)}
-                          >
-                            {activeHighlightLabel && highlighted && (
-                              <span className="sr-only">
-                                Matches active deck highlight filter.{' '}
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                              onClick={() => openDeckCard(card, { board: 'deck', index })}
+                    <details className="deck-group-details" open>
+                      <summary>
+                        <h3>
+                          {section}
+                          <span>{count}</span>
+                        </h3>
+                      </summary>
+                      <ol>
+                        {cards.map(({ card, index }) => {
+                          const curveValue = curveBucket(card)
+                          const highlighted =
+                            (!deckReviewFilter || reviewFilterNames.has(card.name)) &&
+                            (highlightedManaValue === null || highlightedManaValue === curveValue)
+                          return (
+                            <li
+                              data-highlighted={highlighted || undefined}
+                              className={`deck-card-tile ${highlighted ? '' : 'deck-highlight-dimmed'}`}
+                              key={`${card.name}-${index}`}
                             >
-                              {(card.printing ?? 0) > 0 && (
-                                <span
-                                  className="alternate-printing"
-                                  title="Alternate printing selected"
-                                  aria-label="Alternate printing selected"
+                              {activeHighlightLabel && highlighted && (
+                                <span className="sr-only">
+                                  Matches active deck highlight filter.{' '}
+                                </span>
+                              )}
+                              <span className="deck-card-reference">
+                                {(card.printing ?? 0) > 0 && (
+                                  <span
+                                    className="alternate-printing"
+                                    title="Alternate printing selected"
+                                    aria-label="Alternate printing selected"
+                                  />
+                                )}
+                                <CardReference
+                                  card={card}
+                                  thumbnail
+                                  className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                                  onOpen={() => openDeckCard(card, { board: 'deck', index })}
                                 />
-                              )}
-                              {card.name}
-                              {card.finish && card.finish !== 'nonfoil' && (
-                                <small className="finish-label">{card.finish}</small>
-                              )}
-                            </button>
-                            <span className="deck-card-meta">
-                              <span className="deck-mana">
-                                {card.typeLine.includes('Land') && card.producedMana.length ? (
-                                  <ManaSymbols symbols={card.producedMana} />
-                                ) : (
-                                  <OracleText text={card.manaCost} />
+                                {card.finish && card.finish !== 'nonfoil' && (
+                                  <small className="finish-label">{card.finish}</small>
                                 )}
                               </span>
-                              {index >= commanderNames(commander).length && (
-                                <span className="deck-remove-wrap">
-                                  <button
-                                    className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
-                                    type="button"
-                                    onClick={() =>
-                                      pendingRemoval === index
-                                        ? removeDeckCard(index)
-                                        : setPendingRemoval(index)
-                                    }
-                                    aria-label={
-                                      pendingRemoval === index
-                                        ? `Confirm removal of ${card.name}`
-                                        : `Remove ${card.name}`
-                                    }
-                                  >
-                                    {pendingRemoval === index ? '✓' : '×'}
-                                  </button>
-                                  {pendingRemoval === index && (
-                                    <span className="remove-confirm" role="tooltip">
-                                      Click again to confirm removal
-                                    </span>
+                              <span className="deck-card-meta">
+                                <span className="deck-mana">
+                                  {card.typeLine.includes('Land') && card.producedMana.length ? (
+                                    <ManaSymbols symbols={card.producedMana} />
+                                  ) : (
+                                    <OracleText text={card.manaCost} />
                                   )}
                                 </span>
-                              )}
-                            </span>
-                            {card.image && (
-                              <span className="deck-card-popover">
-                                <FinishedCardImage
-                                  image={card.image}
-                                  backImage={card.backImage}
-                                  alt={`${card.name} card`}
-                                  cardName={card.name}
-                                  finish={card.finish}
-                                  className="deck-card-preview"
-                                  showFlipButton
-                                  printing={{
-                                    count: card.printings?.length ?? 0,
-                                    index: card.printing ?? 0,
-                                    loading: Boolean(loadingArt),
-                                    name: card.name,
-                                    onClick: () => void cycleDeckPrinting(index),
-                                  }}
-                                />
-                                <ArtLoading active={loadingArt === card.name} />
-                              </span>
-                            )}
-                          </li>
-                        )
-                      })}
-                      {section === 'Lands' && (
-                        <>
-                          {groupedBasics.map(({ name, cards: basics }) => {
-                            const { card, index } = basics[0]
-                            return (
-                              <li className="basic-land-row" key={name}>
-                                <button
-                                  type="button"
-                                  className="deck-card-name"
-                                  onClick={() => openDeckCard(card, { board: 'deck', index })}
-                                >
-                                  <b className="card-quantity">{basics.length}x</b> {card.name}
-                                </button>
-                                <span className="deck-card-meta">
-                                  <span className="deck-mana">
-                                    <ManaSymbols symbols={card.producedMana} />
+                                {index >= commanderNames(commander).length && (
+                                  <span className="deck-remove-wrap">
+                                    <button
+                                      className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
+                                      type="button"
+                                      onClick={() =>
+                                        pendingRemoval === index
+                                          ? removeDeckCard(index)
+                                          : setPendingRemoval(index)
+                                      }
+                                      aria-label={
+                                        pendingRemoval === index
+                                          ? `Confirm removal of ${card.name}`
+                                          : `Remove ${card.name}`
+                                      }
+                                    >
+                                      {pendingRemoval === index ? '✓' : '×'}
+                                    </button>
+                                    {pendingRemoval === index && (
+                                      <span className="remove-confirm" role="tooltip">
+                                        Click again to confirm removal
+                                      </span>
+                                    )}
                                   </span>
+                                )}
+                              </span>
+                            </li>
+                          )
+                        })}
+                        {section === 'Lands' && (
+                          <>
+                            {groupedBasics.map(({ name, cards: basics }) => {
+                              const { card, index } = basics[0]
+                              return (
+                                <li className="basic-land-row deck-card-tile" key={name}>
+                                  <span className="deck-card-reference">
+                                    <b className="card-quantity">{basics.length}×</b>
+                                    <CardReference
+                                      card={card}
+                                      thumbnail
+                                      className="deck-card-name"
+                                      onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                    />
+                                  </span>
+                                  <span className="deck-card-meta">
+                                    <span className="deck-mana">
+                                      <ManaSymbols symbols={card.producedMana} />
+                                    </span>
+                                    <button
+                                      className="deck-add"
+                                      type="button"
+                                      disabled={deck.length >= 100}
+                                      onClick={() => void addOneBasic(card.name)}
+                                      aria-label={`Add another ${card.name}`}
+                                    >
+                                      +
+                                    </button>
+                                    <button
+                                      className="deck-remove"
+                                      type="button"
+                                      onClick={() => removeDeckCard(index)}
+                                      aria-label={`Remove one ${card.name}`}
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                </li>
+                              )
+                            })}
+                            {legalBasicNames
+                              .filter((name) => !groupedBasics.some((group) => group.name === name))
+                              .map((name) => (
+                                <li className="basic-placeholder deck-card-tile" key={name}>
                                   <button
-                                    className="deck-add"
                                     type="button"
                                     disabled={deck.length >= 100}
-                                    onClick={() => void addOneBasic(card.name)}
-                                    aria-label={`Add another ${card.name}`}
+                                    onClick={() => void addOneBasic(name)}
                                   >
-                                    +
+                                    <span>Add {name}</span>
+                                    <b>+</b>
                                   </button>
-                                  <button
-                                    className="deck-remove"
-                                    type="button"
-                                    onClick={() => removeDeckCard(index)}
-                                    aria-label={`Remove one ${card.name}`}
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              </li>
-                            )
-                          })}
-                          {legalBasicNames
-                            .filter((name) => !groupedBasics.some((group) => group.name === name))
-                            .map((name) => (
-                              <li className="basic-placeholder" key={name}>
-                                <button
-                                  type="button"
-                                  disabled={deck.length >= 100}
-                                  onClick={() => void addOneBasic(name)}
-                                >
-                                  <span>Add {name}</span>
-                                  <b>+</b>
-                                </button>
-                              </li>
-                            ))}
-                        </>
-                      )}
-                    </ol>
+                                </li>
+                              ))}
+                          </>
+                        )}
+                      </ol>
+                    </details>
                   </section>
                 ))}
               </div>
             ))}
             {sideboard.length > 0 && (
-              <section className="deck-column deck-group sideboard-column">
-                <h3>
-                  Sideboard<span>{sideboard.length}</span>
-                </h3>
-                <ol>
-                  {sideboard.map((card, index) => (
-                    <li
-                      key={`${card.name}-${index}`}
-                      tabIndex={0}
-                      onMouseEnter={(event) =>
-                        positionDeckPreview(event.currentTarget, event.clientX)
-                      }
-                      onFocus={(event) => positionDeckPreview(event.currentTarget)}
-                    >
-                      <button
-                        type="button"
-                        className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                        onClick={() => openDeckCard(card, { board: 'sideboard', index })}
-                      >
-                        {card.name}
-                        {card.finish && card.finish !== 'nonfoil' && (
-                          <small className="finish-label">{card.finish}</small>
-                        )}
-                      </button>
-                      <span className="deck-card-meta">
-                        <button
-                          className="sideboard-move"
-                          type="button"
-                          disabled={deck.length >= 100}
-                          onClick={() => moveSideboardCard(index)}
-                        >
-                          Move to deck
-                        </button>
-                        <button
-                          className="deck-remove"
-                          type="button"
-                          onClick={() => removeSideboardCard(index)}
-                          aria-label={`Remove ${card.name} from sideboard`}
-                        >
-                          ×
-                        </button>
-                      </span>
-                      {card.image && (
-                        <span className="deck-card-popover">
-                          <FinishedCardImage
-                            image={card.image}
-                            backImage={card.backImage}
-                            alt={`${card.name} card`}
-                            cardName={card.name}
-                            finish={card.finish}
-                            className="deck-card-preview"
-                            showFlipButton
+              <section className="deck-group sideboard-column">
+                <details className="deck-group-details" open>
+                  <summary>
+                    <h3>
+                      Sideboard<span>{sideboard.length}</span>
+                    </h3>
+                  </summary>
+                  <ol>
+                    {sideboard.map((card, index) => (
+                      <li className="deck-card-tile" key={`${card.name}-${index}`}>
+                        <span className="deck-card-reference">
+                          <CardReference
+                            card={card}
+                            thumbnail
+                            className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                            onOpen={() => openDeckCard(card, { board: 'sideboard', index })}
                           />
+                          {card.finish && card.finish !== 'nonfoil' && (
+                            <small className="finish-label">{card.finish}</small>
+                          )}
                         </span>
-                      )}
-                    </li>
-                  ))}
-                </ol>
+                        <span className="deck-card-meta">
+                          <button
+                            className="sideboard-move"
+                            type="button"
+                            disabled={deck.length >= 100}
+                            onClick={() => moveSideboardCard(index)}
+                          >
+                            Move to deck
+                          </button>
+                          <button
+                            className="deck-remove"
+                            type="button"
+                            onClick={() => removeSideboardCard(index)}
+                            aria-label={`Remove ${card.name} from sideboard`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </details>
               </section>
             )}
           </div>

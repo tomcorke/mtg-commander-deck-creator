@@ -554,7 +554,7 @@ function collectionQuery(
     .filter(Boolean)
     .join(' ')
   const setQuery = selectedSets.map((code) => `set:${code}`).join(' or ')
-  return `id<=${identity} legal:commander -is:commander (${setQuery}) ${bracketFilters}`
+  return `id<=${identity} legal:commander (${setQuery}) ${bracketFilters}`
 }
 
 export async function fetchScryfallCollectionCount(
