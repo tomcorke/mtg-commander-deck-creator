@@ -21,7 +21,7 @@ Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5
 
 ## Suggested order
 
-Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change. Items A7–A13 and B8–B11 come from the [design and UX review](docs/ux-review.md).
+Suggested sequence balances user value, delivery risk, and dependencies. Revisit it as estimates change. Items A7–A13 and B8–B11 come from the [design and UX review](docs/ux-review.md). Items A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `chore/todo-shipping@64efe8f`.
 
 | Order | ID  | TODO                                     | Complexity | Value  | Delivery risk | Reason                                                                                                                |
 | ----- | --- | ---------------------------------------- | ---------- | ------ | ------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -34,6 +34,13 @@ Suggested sequence balances user value, delivery risk, and dependencies. Revisit
 | 7     | B4  | Finish builder-view module ownership     | High       | Medium | Medium        | Complete remaining refactor seams after the higher-value product work; B8 and B9 touch the same views.                |
 | 8     | B12 | Commander construction rules             | High       | High   | Medium        | Several paths accept illegal decks or reject legal ones; from the domain audit, so reprioritize against the UX items. |
 | 9     | A15 | Current policy and provider fixes        | Medium     | Medium | Low           | Outdated bracket wording and the EDHREC list rename mislead players and weaken reasons.                               |
+| 10    | A16 | Clear batch decisions and tile states    | Low        | High   | Low           | Selected Later and Ignore states are invisible or look disabled; cheap fix on the most-used screen.                   |
+| 11    | B15 | Actionable review progress and results   | Medium     | High   | Low           | Empty panels, a stepper that cannot be clicked, silent Apply, and no gap finding for incomplete decks.                |
+| 12    | B16 | Role-tag and cut-flag accuracy           | High       | High   | Medium        | Wrong roles now drive swap deltas and cut suggestions; needs labelled fixtures first.                                 |
+| 13    | B17 | Consistent mana and land guidance        | Low        | Medium | Low           | The land target and land suggestion disagree, and off-identity sources clutter the analysis.                          |
+| 14    | A17 | Forgiving, transparent import            | Medium     | Medium | Low           | One double-faced card name blocks a whole import; replacing a deck happens silently.                                  |
+| 15    | A18 | Narrow-screen layout                     | Medium     | Medium | Low           | Horizontal overflow, a hidden card count, and targets 5,700px down on phones.                                         |
+| 16    | A19 | Start-screen keyboard and SR state       | Low        | Medium | Low           | Missing pressed state and focus handoff; coordinate with the A2/A9 branch.                                            |
 
 ## [A14] Support multiple tabs and safer autosaves
 
@@ -235,6 +242,130 @@ Acceptance checks:
 - A live EDHREC fixture with `highliftcards` produces Commander-synergy reasons.
 - An off-identity EDHREC card cannot be added from a batch.
 - The audit script cannot dispatch Scryfall collection requests less than 500 ms apart.
+
+## [B15] Make review progress and results easier to act on
+
+**Complexity:** Medium · **Value:** High · **Delivery risk:** Low — Layout and feedback changes inside the existing three-step review.
+
+The 2026-10-04 interaction review (Chrome, `chore/todo-shipping@64efe8f`, 97-card Teysa Karlov import) found that Deck review hides its key actions and results.
+
+- Stop the overview grid from stretching every panel to the height of Role coverage. At 1440px, "At a glance" and "Mana-value curve" left about 600px of empty boxes.
+- The 1 Diagnose / 2 Choose changes / 3 Confirm stepper looks like tabs, but its steps are plain list items. Make them links, or keep a "Choose changes" action in the sticky footer. Today the only way forward is a button at the end of a 5,300px page.
+- After "Apply", show a confirmation such as "Added Orzhov Enforcer · Undo", and offer the next step. Today the page jumps back to the top of Diagnose and only the "Change history (1)" count changes.
+- When the deck is below 100 cards, open with a finding that names the gap (for example, "3 slots open") and suggests additions to fill it. The 97-card deck got only one-for-one swaps, so no suggested swap could complete it.
+- Make the star ratings on additions readable. Filled and empty stars are almost the same colour, so every row looks like five stars. Add a text rating or raise the contrast.
+- Hide "Move cut cards to the sideboard" when there are no cuts.
+- Give "No theme selected — Choose a theme to check its cards" an action that opens the theme picker.
+
+Current context: `src/features/builder/DeckDoctorView.tsx` and `DeckReviewCard.tsx` render the review; `docs/agents/ui.md` covers full-page workflows.
+
+Acceptance checks:
+
+- At 1440px, no overview panel is more than about 100px taller than its content.
+- A player can move between steps without scrolling to the end of Diagnose.
+- Applying changes shows what changed and offers an undo, and the deck and change history agree.
+- A 97-card deck shows a fill-the-gap finding with add-only suggestions.
+
+## [B16] Check role tags and cut flags against real decks
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Role detection feeds labels, targets, findings, and swaps; any fix needs fixtures that players agree with.
+
+Wrong role tags now show up in the most visible parts of the app. Seen with Teysa Karlov:
+
+- Rally the Ancestors is labelled "Interaction · Fills a needed role", and a swap that adds it claims "Board wipes 2 → 3". Cutting Sun Titan claims "Targeted removal 11 → 10".
+- Fountainport (a land) shows the "Card draw" label in the batch, and Carrier Thrall shows "Land or mana".
+- Liesa, Shroud of Dusk is flagged as having "no detected theme, role, or synergy link", although she is a death-trigger payoff in a sacrifice deck, and the top swap cuts her.
+- "May be difficult to cast" flags Requiem Angel, Butcher of Malakir, and Sun Titan only for being "well above the deck average". Six-drops are normal top end in a deck averaging 2.9.
+
+Investigate first: collect five or six representative decks, label each card's roles by hand, and compare them with the detector. Go/no-go: fix detection where the labelled set shows a clear rule. Otherwise, show lower-confidence roles more cautiously instead of stating them as facts in swap deltas.
+
+Current context: role detection lives in `src/deck-analysis.ts` and the scoring/context modules; findings and swaps come from `src/deck-doctor.ts` (B10). Read `CONTEXT.md` before changing role heuristics.
+
+Acceptance checks:
+
+- The labelled fixtures pass for the roles shown in batch labels, sidebar targets, and swap deltas.
+- Rally the Ancestors is not counted as a board wipe, Sun Titan is not counted as targeted removal, and a death-trigger payoff in a sacrifice deck is not flagged as unlinked.
+- Curve findings flag cards relative to a normal Commander top end, not only to the deck average.
+
+## [B17] Make mana and land guidance agree
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Presentation and one target rule; the analysis data already exists.
+
+- The sidebar shows "Suggested lands 39-41" next to a fixed Lands target of 35 (`landRange` in `src/deck-analysis.ts` versus the `lands: 35` default). Use one number, or make the target follow the suggestion until the player edits it.
+- The sidebar Sources bar shows blue, red, and green sources (7 each) for a white-black deck, because Command Tower, Exotic Orchard, and Fellwar Stone count as any colour. Show only colours inside the commander's identity, plus colourless.
+- The review's Mana costs panel lists Colourless and Snow rows with 0 symbols. Hide rows that have no demand.
+
+Acceptance checks:
+
+- On the same deck, the sidebar and review agree on the land target.
+- A two-colour deck shows no off-identity source counts.
+
+## [A16] Make batch decisions and card tiles unambiguous
+
+**Complexity:** Low · **Value:** High · **Delivery risk:** Low — Styling and copy on the existing recommendation tile.
+
+- A selected Later has `aria-pressed="true"` but looks the same as an unselected button; only the tile dims. Add, Later, and Ignore each need a clearly selected state in light and dark mode.
+- In light mode, Ignore has a transparent border and grey text, so it looks disabled.
+- One tile per batch can show a "Recommended" badge with no explanation, although every tile is a recommendation. Explain it or remove it.
+- The "Added to deck" status label crowds the role label above the decision buttons.
+- Pressing "Next recommendations" quietly treats undecided cards as Later. Say so, for example "1 undecided card will come back later".
+- A recommended legendary card can show a red alert listing about 45 deck cards ("Cannot use as commander: colour identity omits Black, required by …") before the player has done anything. Show a short reason and keep the full list behind a disclosure, or hide the action when promotion is impossible.
+
+Current context: recommendation tiles render in `src/features/builder/`; the promotion check is in `src/domain/commander-promotion.ts`.
+
+Acceptance checks:
+
+- A screenshot of a batch with one card set to each of Add, Later, and Ignore shows every choice without hover, in light and dark mode.
+- No recommendation tile shows a multi-line error before the player interacts with it.
+
+## [A17] Make import forgiving and transparent
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Uses the existing Scryfall collection lookup and autosave drafts.
+
+- "Brightclimb Pathway" returned "Not found", and that one miss blocked the whole 97-card import. Match double-faced cards by their front-face name, and let the player import the cards that matched while listing the misses.
+- Importing over a deck in progress replaced it without asking. The earlier deck was kept as a separate autosave, but nothing said so. Confirm before replacing, and say where the previous draft went.
+- The Cancel button in the import dialog has an unthemed grey fill (`rgb(107,107,107)`). Use the shared secondary button style.
+
+Current context: `src/deck-import.ts` parses lists; A14 autosaves in `src/deck-state.ts` keep earlier drafts.
+
+Acceptance checks:
+
+- A list with Pathway, modal double-faced, and split-card front names imports them.
+- A list with one unknown card offers "Import 96 found cards" and names the miss.
+- Importing over an active deck asks first and names the draft that keeps the previous deck.
+
+## [A18] Fix narrow-screen layout on the start and builder screens
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — CSS and layout order; checked in a 390px frame.
+
+Checked at 390px wide in a same-origin frame, because the test browser ignores window resizing.
+
+- The start screen panels overflow by about 10px (`article.start-panel` right edge at 385px with a 375px viewport), which causes horizontal scrolling.
+- The header wraps into four rows (about 240px). The deck-progress status shrinks to 9px wide, so "98 / 100 cards" disappears.
+- On the builder, Deck overview starts about 5,770px down and the deck list about 6,650px down an 11,700px page, so targets and progress are out of sight while the player decides on cards. Add a compact progress and targets summary near the batch, or a sticky deck bar.
+- The restored-draft banner adds about 200px above the commander before any content.
+
+Acceptance checks:
+
+- At 390px, no screen scrolls horizontally.
+- The header stays at two rows or fewer and keeps the card count visible.
+- While viewing a batch at 390px, the player can see the card count and the shortest target without scrolling more than one screen.
+
+## [A19] Start-screen keyboard and screen-reader state
+
+**Complexity:** Low · **Value:** Medium · **Delivery risk:** Low — Attribute and focus changes; coordinate with the in-progress A2/A9 branch.
+
+- Theme chips and colour buttons show their selected state only through a CSS class. Add `aria-pressed`. The colour buttons also lack `type="button"`.
+- Pressing "Choose" with an empty search does nothing and gives no feedback.
+- Arrow keys do not move through commander search results. Use the combobox/listbox pattern or say how many results appeared.
+- After a commander is chosen, focus falls to `<body>`. Move it to the builder's main heading, as Deck review already does with its step headings.
+
+Current context: `src/features/start/StartView.tsx`. The `feat/a2-a9-first-use` worktree has uncommitted start-screen changes, so land this after or alongside A2/A9.
+
+Acceptance checks:
+
+- A screen reader announces which theme and colours are selected.
+- A keyboard-only player can search, pick a commander with arrow keys and Enter, and land on the builder heading.
 
 ## Migrated GitHub issues
 
