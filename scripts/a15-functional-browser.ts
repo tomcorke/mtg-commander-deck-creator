@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { setDisplayPreferences } from './browser-display.ts'
 import childProcess from 'node:child_process'
 import { chromium } from 'playwright-core'
 import { toCard, toDeckCard, type ScryfallCard } from '../src/domain/card-model.ts'
@@ -95,8 +96,7 @@ try {
   const opener = page.getByRole('button', { name: 'Recommendation settings', exact: true })
   const checkHelpGeometry = async (width: number, dark: boolean) => {
     await page.setViewportSize({ width, height: 950 })
-    const themeButton = page.getByRole('button', { name: dark ? /Light/ : /Dark/ })
-    if (await themeButton.count()) await themeButton.click()
+    await setDisplayPreferences(page, { 'Dark mode': dark })
     await opener.click()
     const settings = page.getByRole('dialog', { name: 'Recommendation settings' })
     const triggers = settings.locator('.setting-help-button')
@@ -167,7 +167,7 @@ try {
     await checkHelpGeometry(width, false)
     await checkHelpGeometry(width, true)
   }
-  await page.getByRole('button', { name: /Dark/ }).click()
+  await setDisplayPreferences(page, { 'Dark mode': false })
   await page.setViewportSize({ width: 390, height: 844 })
   await opener.click()
   const dialog = page.getByRole('dialog', { name: 'Recommendation settings' })
@@ -226,7 +226,7 @@ try {
     true,
     'Escape restores opener focus',
   )
-  await page.getByRole('button', { name: /Light/ }).click()
+  await setDisplayPreferences(page, { 'Dark mode': true })
   const darkOpener = page.getByRole('button', { name: 'Recommendation settings', exact: true })
   await darkOpener.click()
   const darkDialog = page.getByRole('dialog', { name: 'Recommendation settings' })

@@ -11,6 +11,7 @@ import {
   type Route,
 } from 'playwright-core'
 import { createServer } from 'vite'
+import { setDisplayPreferences } from './browser-display.ts'
 import { toCard, toDeckCard, type ScryfallCard } from '../src/domain/card-model.ts'
 import { storedDeckStateSchema, type PersistedDeckState } from '../src/deck-state.ts'
 import { autosavePrefix, workspaceRecoveryKey, workspaceSessionKey } from '../src/autosaves.ts'
@@ -130,16 +131,18 @@ async function mockScryfall(route: Route, provider: Provider) {
   if (url.pathname === '/cards/collection') {
     const identifiers = route.request().postDataJSON().identifiers as {
       name?: string
+      oracle_id?: string
       set?: string
       collector_number?: string
     }[]
     const data = identifiers.map((identifier) =>
       identifier.name
         ? recordFor(provider, identifier.name)
-        : [...provider.records, ...allRecords].find(
-            (record) =>
-              record.set === identifier.set &&
-              record.collector_number === identifier.collector_number,
+        : [...provider.records, ...allRecords].find((record) =>
+            identifier.oracle_id
+              ? record.oracle_id === identifier.oracle_id
+              : record.set === identifier.set &&
+                record.collector_number === identifier.collector_number,
           ),
     )
     // Unmodelled basics requested by the manual chooser remain explicit provider misses.
@@ -230,6 +233,7 @@ async function openScenario(
   }, state)
   await page.goto(`${base}#build`)
   await button(page, 'Deck review').waitFor()
+  await page.locator('[aria-label="Current card data"][role="status"]').waitFor({ state: 'hidden' })
   return scenario
 }
 
@@ -607,11 +611,7 @@ async function landImpactAndContrast({ page }: Scenario) {
       [true, false],
       [true, true],
     ]) {
-      const darkToggle = page.locator('.theme-toggle[aria-pressed]')
-      if ((await darkToggle.getAttribute('aria-pressed')) !== String(dark))
-        await darkToggle.press('Enter')
-      const commanderToggle = page.getByRole('checkbox', { name: 'Commander art and colours' })
-      if ((await commanderToggle.isChecked()) !== themed) await commanderToggle.press('Space')
+      await setDisplayPreferences(page, { 'Dark mode': dark, 'Commander art and colours': themed })
       const art = row.locator('.doctor-card-art').first()
       await art.focus()
       await page.keyboard.press('Tab')

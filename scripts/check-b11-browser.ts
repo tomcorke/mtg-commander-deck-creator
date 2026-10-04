@@ -1,5 +1,6 @@
 // Start `pnpm dev --host 127.0.0.1 --port 5231`, then run `pnpm check:b11:browser`.
 import assert from 'node:assert/strict'
+import { setDisplayPreferences } from './browser-display.ts'
 import childProcess from 'node:child_process'
 import { chromium } from 'playwright-core'
 import { toCard, toDeckCard, type ScryfallCard } from '../src/domain/card-model.ts'
@@ -25,6 +26,7 @@ const card = (
   mana_cost: cmc ? `{${cmc}}` : '',
   color_identity: [],
   legalities: { commander: 'legal' },
+  game_changer: false,
   set: 'tst',
   collector_number: '1',
   prints_search_uri: `https://api.scryfall.com/cards/search?q=${encodeURIComponent(name)}`,
@@ -128,7 +130,30 @@ try {
       })
     if (url.hostname === 'api.scryfall.com') {
       if (url.pathname === '/sets') return route.fulfill({ json: { data: [] } })
-      if (url.pathname === '/cards/collection') return route.fulfill({ json: { data: [] } })
+      if (url.pathname === '/cards/collection') {
+        const identifiers = route.request().postDataJSON().identifiers as {
+          name?: string
+          oracle_id?: string
+        }[]
+        const known = [...state.deck, ...state.queue, ...state.sideboard]
+        const data = identifiers.flatMap((id) => {
+          const found = known.find((entry) =>
+            id.oracle_id ? entry.oracleId === id.oracle_id : entry.name === id.name,
+          )
+          if (!found) return []
+          if (found.name === doubleFaced.name) return [doubleFaced]
+          return [
+            card(found.name, found.typeLine, found.manaValue, {
+              oracle_id: found.oracleId,
+              color_identity: found.colorIdentity,
+              oracle_text: found.detail,
+              mana_cost: found.manaCost,
+              produced_mana: found.producedMana,
+            }),
+          ]
+        })
+        return route.fulfill({ json: { data } })
+      }
       if (url.pathname === '/cards/search')
         return route.fulfill({ json: { data: [], has_more: false } })
       return route.fulfill({ json: commander })
@@ -187,9 +212,21 @@ try {
       summaryCenter: summaryBox.top + summaryBox.height / 2,
       markerDisplay: marker.display,
       markerContent: marker.content,
+      headingWidth: headingBox.width,
+      summaryWidth: summaryBox.width,
+      countRight: summary.querySelector('h3 span')!.getBoundingClientRect().right,
+      headingRight: headingBox.right,
     }
   })
   assert.ok(disclosureGeometry.summaryHeight >= 44)
+  assert.ok(
+    disclosureGeometry.headingWidth > disclosureGeometry.summaryWidth * 0.8,
+    'section rule fills the heading row',
+  )
+  assert.ok(
+    Math.abs(disclosureGeometry.countRight - disclosureGeometry.headingRight) < 2,
+    'section count stays at the right edge',
+  )
   assert.notEqual(disclosureGeometry.markerDisplay, 'none')
   assert.notEqual(disclosureGeometry.markerContent, 'none')
   assert.ok(
@@ -207,14 +244,14 @@ try {
     'rgba(0, 0, 0, 0)',
     'light summary hover has a visible tint',
   )
-  await page.getByRole('button', { name: /Light/ }).click()
+  await setDisplayPreferences(page, { 'Dark mode': true })
   await artifactSummary.hover()
   assert.notEqual(
     await artifactSummary.evaluate((node) => getComputedStyle(node).backgroundColor),
     'rgba(0, 0, 0, 0)',
     'dark summary hover has a visible tint',
   )
-  await page.getByRole('button', { name: /Dark/ }).click()
+  await setDisplayPreferences(page, { 'Dark mode': false })
   await artifactSummary.focus()
   await page.keyboard.press('Enter')
   assert.equal(await artifactDetails.evaluate((node) => (node as HTMLDetailsElement).open), false)
@@ -237,10 +274,9 @@ try {
   assert.equal(await landsDetails.evaluate((node) => (node as HTMLDetailsElement).open), false)
   const manaTwo = page.getByRole('button', { name: /^Mana value 2:/ }).first()
   await manaTwo.click()
-  await page.waitForFunction(() =>
-    [...document.querySelectorAll<HTMLElement>('[data-highlighted]')].some((node) =>
-      node.closest('details')?.matches('[open]'),
-    ),
+  await page.waitForFunction(
+    (node) => (node as HTMLDetailsElement).open,
+    await artifactDetails.elementHandle(),
   )
   assert.equal(await artifactDetails.evaluate((node) => (node as HTMLDetailsElement).open), true)
   assert.equal(await landsDetails.evaluate((node) => (node as HTMLDetailsElement).open), false)
@@ -322,7 +358,6 @@ try {
     'etched effect appears in hovered preview',
   )
 
-  const motionPreference = page.getByRole('checkbox', { name: 'Motion and finishes' })
   const sideboardFoil = page.getByRole('button', { name: 'Show details for Sideboard Foil' })
   const sideboardEtched = page.getByRole('button', { name: 'Show details for Sideboard Etched' })
   for (const [reference, finish, effect] of [
@@ -338,7 +373,7 @@ try {
       `${finish} sideboard preview uses its finish`,
     )
   }
-  await motionPreference.uncheck()
+  await setDisplayPreferences(page, { 'Motion and finishes': false })
   assert.equal(await page.evaluate(() => localStorage.getItem('option:cardEffects')), 'false')
   for (const [reference, finish] of [
     [sideboardFoil, 'foil'],
@@ -364,7 +399,7 @@ try {
       `${finish} remains selected with effects off`,
     )
   }
-  await motionPreference.check()
+  await setDisplayPreferences(page, { 'Motion and finishes': true })
 
   await page.setViewportSize({ width: 390, height: 844 })
   const mobileNameLayout = await foilReference.evaluate((button) => {

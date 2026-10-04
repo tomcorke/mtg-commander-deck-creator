@@ -350,8 +350,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   }, [activeHighlightLabel, activeModal])
 
   useEffect(() => {
+    // A current-data refresh can populate mana values without changing the selected filter.
     if (activeHighlightLabel) openHighlightedDeckSections()
-  }, [activeHighlightLabel])
+  }, [activeHighlightLabel, deck])
 
   return (
     <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`}>

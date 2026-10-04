@@ -631,6 +631,7 @@ li.deck-highlight-dimmed {
 }
 .deck-group-details > summary h3 {
   display: inline-flex;
+  width: calc(100% - 22px);
   margin: 0;
   vertical-align: middle;
 }

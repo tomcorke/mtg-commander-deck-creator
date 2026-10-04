@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
 import childProcess from 'node:child_process'
 import { createServer } from 'vite'
+import { setDisplayPreferences } from './browser-display.ts'
 import react from '@vitejs/plugin-react'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
 
 import { a14BaseState, printingHeavyFixture } from './fixtures/a14.ts'
+import { currentCardData } from '../src/domain/current-card-data.ts'
+import type { ScryfallCard } from '../src/domain/card-model.ts'
 import {
   deckStateVersion,
   loadSavedDecks,
@@ -25,8 +28,41 @@ import {
 
 assert.ok(!process.argv[2] || /^[1-6]$/.test(process.argv[2]), 'Optional case must be 1–6')
 const fixture = printingHeavyFixture().state
-for (const card of [...fixture.deck, ...fixture.queue])
-  Object.assign(card, { commanderLegality: 'legal', manaValue: 2, manaValueKnown: true })
+function providerCard(name: string): ScryfallCard {
+  const source = [
+    ...fixture.deck,
+    ...fixture.queue,
+    ...fixture.deferredCards.map(({ card }) => card),
+  ].find((card) => card.name === name)
+  return {
+    name,
+    type_line: name === fixture.commander ? 'Legendary Creature' : (source?.typeLine ?? 'Creature'),
+    color_identity: name === fixture.commander ? ['G'] : (source?.colorIdentity ?? []),
+    cmc: 2,
+    mana_cost: '{2}',
+    oracle_text: source?.detail ?? 'Test card',
+    set: 'tst',
+    set_name: 'Test Commander Set',
+    collector_number: '0',
+    legalities: { commander: 'legal' },
+    game_changer: false,
+    finishes: ['nonfoil'],
+    prints_search_uri: source?.printsUri ?? '',
+    scryfall_uri: 'https://scryfall.com/card/tst/0/test-card',
+    image_uris: { normal: fixture.deck[0].image },
+    prices: { usd: '2.50' },
+  }
+}
+const current = <T extends (typeof fixture.deck)[number]>(card: T): T => ({
+  ...currentCardData(card, providerCard(card.name)),
+  dataWarnings: [],
+})
+fixture.deck = fixture.deck.map(current)
+fixture.queue = fixture.queue.map(current)
+fixture.deferredCards = fixture.deferredCards.map((entry) => ({
+  ...entry,
+  card: current(entry.card),
+}))
 const updatedAt = new Date().toISOString()
 const manual = { id: 'manual', name: 'Legacy manual', updatedAt, state: fixture }
 const draft = { version: deckStateVersion, id: 'seed', name: 'Draft A', updatedAt, state: fixture }
@@ -49,23 +85,7 @@ async function mockProviders(context: BrowserContext) {
       })
     if (url.hostname === 'api.scryfall.com') {
       if (url.pathname === '/sets') return route.fulfill({ json: { data: [] } })
-      const card = (name: string) => ({
-        name,
-        type_line: 'Creature',
-        color_identity: [],
-        cmc: 1,
-        mana_cost: '{1}',
-        oracle_text: 'Test card',
-        set: 'tst',
-        set_name: 'Test Commander Set',
-        collector_number: '0',
-        legalities: { commander: 'legal' },
-        finishes: ['nonfoil'],
-        prints_search_uri: `https://api.scryfall.com/cards/search?q=${encodeURIComponent(name)}`,
-        scryfall_uri: 'https://scryfall.com/card/tst/0/test-card',
-        image_uris: { normal: fixture.deck[0].image },
-        prices: { usd: '2.50' },
-      })
+      const card = providerCard
       if (url.pathname === '/cards/collection') {
         const identifiers = route.request().postDataJSON().identifiers as { name?: string }[]
         return route.fulfill({
@@ -462,8 +482,15 @@ async function quotaSafety(page: Page, context: BrowserContext) {
       ),
   )
   assert.match(await page.locator('.workspace-alert').innerText(), /Deleted 1 inactive draft/)
-  await page.getByRole('button', { name: 'Dismiss autosave cleanup message', exact: true }).click()
+  const dismiss = page.getByRole('button', {
+    name: 'Dismiss autosave cleanup message',
+    exact: true,
+  })
+  const dismissBox = await dismiss.boundingBox()
+  assert.ok(dismissBox && dismissBox.width >= 24 && dismissBox.height >= 24)
+  await dismiss.click()
   assert.equal(await page.locator('.workspace-alert').count(), 0)
+  await assertFocusInside(page, 'main')
   await peer.reload()
   await waitForName(peer, 'Live B')
   console.log(
@@ -487,14 +514,14 @@ async function unchangedCopies(page: Page, context: BrowserContext) {
         { values: inherited, origin: new URL(page.url()).origin },
       )
     await peer.goto(page.url())
-    await peer.locator('.workspace-notice').waitFor()
+    await peer.locator('[aria-label="Draft recovery"]').waitFor()
     const copy = await currentDraft(peer)
     assert.notEqual(copy.id, (await currentDraft(page)).id)
     assert.equal(copy.state.savedDeckId, '')
     await peer.reload()
     await peer.getByRole('button', { name: 'Save / load', exact: true }).waitFor()
     assert.equal(
-      await peer.locator('.workspace-notice').count(),
+      await peer.locator('[aria-label="Draft recovery"]').count(),
       0,
       'Undismissed copy notices must stay hidden on reload',
     )
@@ -532,7 +559,7 @@ async function legacyLinks(page: Page, context: BrowserContext) {
     'Concurrent migration must leave one origin draft',
   )
   await owner.keyboard.press('Escape')
-  await copy.locator('.workspace-notice').waitFor()
+  await copy.locator('[aria-label="Draft recovery"]').waitFor()
   assert.equal((await currentDraft(copy)).state.savedDeckId, '')
   await openPicker(copy)
   const overwrite = copy.getByRole('button', { name: 'Overwrite save', exact: true })
@@ -713,7 +740,7 @@ async function trapKeyboard(page: Page, selector: string) {
 }
 
 async function noticeAndKeyboard(page: Page) {
-  await page.locator('.workspace-notice').waitFor()
+  await page.locator('[aria-label="Draft recovery"]').waitFor()
   const recovery = await page.evaluate((key) => sessionStorage.getItem(key), workspaceRecoveryKey)
   await page.getByRole('button', { name: 'Dismiss draft recovery notice', exact: true }).click()
   assert.equal(
@@ -722,7 +749,7 @@ async function noticeAndKeyboard(page: Page) {
   )
   await page.reload()
   await page.getByRole('button', { name: 'Save / load', exact: true }).waitFor()
-  assert.equal(await page.locator('.workspace-notice').count(), 0)
+  assert.equal(await page.locator('[aria-label="Draft recovery"]').count(), 0)
   await openPicker(page)
   const currentRow = page
     .locator('.autosaved-draft-list article')
@@ -735,11 +762,10 @@ async function noticeAndKeyboard(page: Page) {
   await page.keyboard.press('Escape')
   for (const mode of ['dark', 'light', 'commander', 'narrow', 'tablet']) {
     if (mode === 'light') {
-      await page.getByRole('button', { name: /Dark/, exact: false }).click()
-      await page.getByRole('checkbox', { name: 'Commander art and colours', exact: true }).uncheck()
+      await setDisplayPreferences(page, { 'Dark mode': false, 'Commander art and colours': false })
     }
     if (mode === 'commander')
-      await page.getByRole('checkbox', { name: 'Commander art and colours', exact: true }).check()
+      await setDisplayPreferences(page, { 'Commander art and colours': true })
     if (mode === 'narrow') await page.setViewportSize({ width: 390, height: 844 })
     if (mode === 'tablet') await page.setViewportSize({ width: 760, height: 1024 })
     await dialogFocus(page)

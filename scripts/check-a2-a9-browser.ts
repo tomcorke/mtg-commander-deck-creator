@@ -63,10 +63,17 @@ async function mockProviders(context: BrowserContext) {
         },
       })
     if (url.pathname === '/cards/collection') {
-      const identifiers = route.request().postDataJSON().identifiers as { name: string }[]
+      const identifiers = route.request().postDataJSON().identifiers as {
+        name?: string
+        oracle_id?: string
+      }[]
       const cards = identifiers.flatMap(
-        ({ name }) =>
-          firstUseCards.find((card) => cardNameKey(card.name) === cardNameKey(name)) ?? [],
+        ({ name, oracle_id }) =>
+          firstUseCards.find((card) =>
+            oracle_id
+              ? card.oracle_id === oracle_id
+              : name && cardNameKey(card.name) === cardNameKey(name),
+          ) ?? [],
       )
       return route.fulfill({ json: { data: cards } })
     }
@@ -295,9 +302,24 @@ async function styleAndResume(page: Page, requests: string[], label: string) {
   const stored = await currentDraft(page)
   await page.goto('http://127.0.0.1:5282/#start')
   await page.getByRole('heading', { name: 'Continue building' }).waitFor()
+  await page.locator('[aria-label="Current card data"]').waitFor({ state: 'hidden' })
   assert.equal(await page.locator('.workspace-notice').count(), 0)
   assert.ok(!(await guideOption.isChecked()))
-  assert.equal((await currentDraft(page)).raw, stored.raw)
+  const resumed = (await currentDraft(page)).state
+  for (const key of [
+    'decisions',
+    'liked',
+    'preferenceScores',
+    'collectionSets',
+    'deckTargets',
+    'batchNumber',
+  ] as const)
+    assert.deepEqual(resumed[key], stored.state[key], `Resume preserves ${key}`)
+  for (const key of ['deck', 'queue', 'sideboard'] as const)
+    assert.deepEqual(
+      resumed[key].map(({ name, image, finish }) => [name, image, finish]),
+      stored.state[key].map(({ name, image, finish }) => [name, image, finish]),
+    )
   await press(page, page.getByRole('button', { name: 'Choose another draft', exact: true }))
   await page.getByRole('dialog', { name: 'Drafts and saved decks' }).waitFor()
   await page.keyboard.press('Escape')

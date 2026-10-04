@@ -32,7 +32,14 @@ export function WorkspaceNotice({
           {cleanupMessage && (
             <ModalCloseButton
               label="Dismiss autosave cleanup message"
-              onClick={workspace.dismissCleanupMessage}
+              onClick={() => {
+                workspace.dismissCleanupMessage()
+                const main = document.querySelector<HTMLElement>('main')
+                if (main) {
+                  main.tabIndex = -1
+                  main.focus()
+                }
+              }}
             />
           )}
         </div>
