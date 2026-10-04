@@ -15,11 +15,9 @@ On the live site, localStorage was full at about 5.0M characters. Saved decks us
 - Other tabs update their copy from a `BroadcastChannel` message sent once each write is durable. This replaces the `storage` event in `useWorkspaceState.ts`.
 - A write that fails after the copy has updated shows the existing "Autosave unavailable" warning. Manual saves now trigger it too.
 - The app calls `navigator.storage.persist()`. Showing usage stays with B29.
-- Stored decks are smaller. Deck and sideboard cards keep only their chosen printing, as queue cards already did; alternate printings are fetched again when a card is opened. Deck, sideboard, and queue are stored as field tables. A 100-card deck of popular cards with 120 queued recommendations went from 4.56M to 222K characters. Card text and gameplay fields are still stored, so a saved deck opens correctly even when Scryfall is unavailable. Dropping them would save about another half but would leave decks without types or mana values offline.
+- Stored decks are smaller. Deck and sideboard cards keep only their chosen printing, as queue cards already did; alternate printings are fetched again when a card is opened. Card text, faces, type line, mana cost, power/toughness, produced mana, tags, and layout are not stored, because every saved deck or draft is refreshed from Scryfall on load. The legality, colour identity, mana value, and Game Changer fields stay, because loading compares them to warn about changes. Deck, sideboard, and queue are stored as field tables. A 100-card deck of popular cards with 120 queued recommendations went from 4.56M to 174K characters.
 
-Acceptance evidence: `pnpm check:b18:browser` seeds 4.9M characters of pre-B18 data in Chrome. It confirms that every saved deck and autosave reopens unchanged, the legacy keys are removed, 20 complete decks and 10 autosaves save without quota errors, two tabs see each other's saves and autosaves, and an aborted IndexedDB write shows the warning.
-
-Follow-up: the earlier browser scripts (`check-a14`, `check-a2-a9`, `check-b10`, `check-b12`, `check-deck-review`) read deck data directly from localStorage after load and need updating before they are run again. A14's localStorage quota check no longer applies.
+Acceptance evidence: `pnpm check:b18:browser` seeds 4.9M characters of pre-B18 data in Chrome. It confirms that every saved deck and autosave reopens unchanged, the legacy keys are removed, 20 complete decks and 10 autosaves save without quota errors, the open deck regains its card types after reload, two tabs see each other's saves and autosaves, and an aborted IndexedDB write shows the warning.
 
 ## [A6] Expand recommendations using signature cards in the deck
 

@@ -213,7 +213,15 @@ async function check(context: BrowserContext, url: string) {
   )
   assert.deepEqual(legacyKeys, [])
   assert.equal(await page.evaluate(() => localStorage.getItem('option:darkMode')), 'true')
-  console.log('PASS migration: every saved deck and autosave reopens unchanged')
+  // Card text is not stored; the open deck regains types from Scryfall, so lands group again.
+  await page
+    .locator('.deck-list h3')
+    .filter({ hasText: /^Lands/ })
+    .locator('span', { hasText: /^35$/ })
+    .waitFor({ timeout: 15_000 })
+  console.log(
+    'PASS migration: every saved deck and autosave reopens unchanged; card data refreshes',
+  )
 
   // 2. Twenty complete decks and ten autosaves with full printing lists fit without quota errors.
   const bulk = Object.fromEntries(
