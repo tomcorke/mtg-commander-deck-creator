@@ -335,6 +335,9 @@ async function pairingApplyUndo({ page }: Scenario) {
   )
   await enterReview(page)
   assert.equal(await rows(page).count(), 3)
+  const manaRows = page.locator('.deck-review-colour-filter')
+  assert.equal(await manaRows.filter({ hasText: 'Colourless' }).count(), 0)
+  assert.equal(await manaRows.filter({ hasText: 'Snow' }).count(), 0)
   const protectedNames = new Set([
     'B10 Commander',
     'B10 Basic',
@@ -386,6 +389,22 @@ async function pairingApplyUndo({ page }: Scenario) {
     .locator('.card-offer .offered-image')
     .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().width))
   assert.deepEqual(afterSizes, beforeSizes, 'review did not shrink builder art')
+}
+
+async function snowManaDemand({ page }: Scenario) {
+  await enterReview(page)
+  const row = page.locator('.deck-review-colour-filter').filter({ hasText: 'Snow' })
+  assert.equal(await row.count(), 1)
+  assert.match(await row.innerText(), /1 symbols/)
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 844 })
+    for (const darkMode of [false, true]) {
+      await setDisplayPreferences(page, { 'Dark mode': darkMode })
+      assert.equal(await row.isVisible(), true)
+    }
+    if (width === 390)
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  }
 }
 
 async function resolvingFinding({ page }: Scenario) {
@@ -878,6 +897,7 @@ try {
   console.log(
     `Chrome ${browser.version()}: headless, sandbox enabled; no screenshots or native-dialog answers`,
   )
+  const snowCost = fixtureCard('B10 Snow cost', { mana_cost: '{S}' })
   const cases: [
     string,
     PersistedDeckState,
@@ -888,6 +908,14 @@ try {
       'safe pairing, impact, previews/details, apply/findings/focus/history/undo, four large offers',
       makeState(),
       pairingApplyUndo,
+    ],
+    [
+      'snow mana demand appears only when a deck includes a snow cost',
+      makeState({
+        deck: [...deckRecords.slice(0, -1), snowCost].map(toDeckCard),
+      }),
+      snowManaDemand,
+      [snowCost],
     ],
     [
       'lands and last-role protection below target',

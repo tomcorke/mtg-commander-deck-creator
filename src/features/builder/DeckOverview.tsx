@@ -143,6 +143,7 @@ export function DeckOverview({
     target: deckTargets[key],
   }))
   const roleTargetsMet = roleStats.filter(({ count, target }) => count >= target).length
+  const demandedColourStats = colourStats.filter(({ pips }) => pips > 0)
   const unsupportedColours = colourStats.filter(
     ({ pips, sourceCards }) => pips > 0 && sourceCards.length === 0,
   ).length
@@ -293,7 +294,7 @@ export function DeckOverview({
             cards.
           </p>
           <div className="deck-review-colours">
-            {colourStats.map(({ colour, pips, sourceCards, matchingCards }) => (
+            {demandedColourStats.map(({ colour, pips, sourceCards, matchingCards }) => (
               <FilterButton
                 key={colour}
                 label={`${manaGuidanceName(colour)} mana demand and sources`}
