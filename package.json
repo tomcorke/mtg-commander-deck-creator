@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test",
     "audit:recommendations": "node --experimental-strip-types scripts/recommendation-audit.ts",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "check:b10:browser": "node --experimental-strip-types scripts/check-b10-browser.ts"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -28,6 +29,7 @@
     "eslint": "^10.11.0",
     "eslint-plugin-sonarjs": "^4.2.1",
     "oxlint": "^1.81.0",
+    "playwright-core": "^1.63.0",
     "prettier": "^3.9.8",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
