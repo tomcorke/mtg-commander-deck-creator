@@ -468,6 +468,7 @@ function DeckReviewScreen({
         }}
         candidates={state.queue}
         scoreReplacements={builderData.scoreReplacements}
+        suggestFindingChanges={builderData.suggestFindingChanges}
         history={state.deckDoctorHistory}
         error={state.deckDoctorError}
         fetchCandidates={() => actions.fetchDeckDoctorCandidates()}

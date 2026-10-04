@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
+import { toCard, toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
+import { defaultDeckTargets } from '../deck-analysis.ts'
+import { analyzeDeckDoctor } from '../deck-doctor.ts'
+import { suggestDeckDoctorChanges } from '../deck-doctor-suggestions.ts'
 import { fetchScryfallCard, fetchScryfallPrintings } from '../adapters/scryfall.ts'
 import {
   addBasicLands,
   addManualCard,
   addSearchCards,
+  applyDeckDoctorSwapPlan,
+  undoDeckDoctorSwap,
   hydrateDeckCardDetails,
   openCardReference,
   selectManualCard,
@@ -60,6 +65,53 @@ function searchDeps() {
   }
   return deps as ActionDeps
 }
+
+test('applying a finding suggestion updates deck and history once, refreshes findings and supports undo', () => {
+  const deps = searchDeps()
+  deps.commander = 'Existing 0'
+  deps.deck.push(toDeckCard(card('Existing 99')))
+  deps.deckDoctorHistory = []
+  deps.deckDoctorError = ''
+  let historyWrites = 0
+  deps.setDeckDoctorHistory = (update: any) => {
+    historyWrites += 1
+    deps.deckDoctorHistory = update(deps.deckDoctorHistory)
+  }
+  deps.setDeckDoctorError = (error: string) => {
+    deps.deckDoctorError = error
+  }
+  const deckTargets = { ...defaultDeckTargets, ramp: 1 }
+  const doctorInput = {
+    deck: deps.deck,
+    sideboard: [],
+    commanderCount: 1,
+    theme: '',
+    activeSubThemes: [],
+    deckTargets,
+  }
+  const findings = analyzeDeckDoctor(doctorInput)
+  const replacement = toCard({ ...card('New ramp'), produced_mana: ['G'] }, 'Commander synergy')
+  const suggestion = suggestDeckDoctorChanges({
+    ...doctorInput,
+    commanderColours: ['G'],
+    findings,
+    ratedCuts: deps.deck.slice(1).map((card: any) => ({ card, fit: 20 })),
+    rankedCandidates: [{ card: replacement, fit: 50 }],
+  })['role-gap:ramp'][0]
+  const before = deps.deck
+  assert.equal(applyDeckDoctorSwapPlan(deps, [suggestion.cut!], [suggestion.addCard], false), true)
+  assert.equal(deps.deck.length, 100)
+  assert.equal(historyWrites, 1)
+  assert.equal(deps.deckDoctorHistory.length, 1)
+  assert(
+    !analyzeDeckDoctor({ ...doctorInput, deck: deps.deck }).some(
+      ({ id }) => id === 'role-gap:ramp',
+    ),
+  )
+  assert.equal(undoDeckDoctorSwap(deps, deps.deckDoctorHistory[0].id), true)
+  assert.deepEqual(deps.deck, before)
+  assert.deepEqual(deps.deckDoctorHistory, [])
+})
 
 test('search additions keep the workspace open, suppress completion review, and update the queue', () => {
   const deps = searchDeps()

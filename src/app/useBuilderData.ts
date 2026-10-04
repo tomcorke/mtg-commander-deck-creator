@@ -32,6 +32,8 @@ import {
 } from '../domain/recommendation-tuning.ts'
 import { setPickerRows } from '../domain/set-picker.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
+import type { DeckDoctorFinding } from '../deck-doctor.ts'
+import { suggestDeckDoctorChanges } from '../deck-doctor-suggestions.ts'
 
 export type BuilderDataDeps = Record<string, any>
 
@@ -345,10 +347,22 @@ function buildRecommendationData(
   const explainRecommendation = recommendationExplainer(deps, deckData, pickedTags)
   const scoreCandidate = (card: Card) =>
     recommendationScoreBreakdown(card, { ...context, cardRoles: rolesForCard(card) })
+  const blockedReplacements = new Set([
+    ...(deps.ignoredCards ?? []),
+    ...deps.sideboard.map((card: DeckCard) => card.name),
+    ...Object.keys(deps.decisions ?? {}).filter((name) => deps.decisions[name] === 'ignore'),
+  ])
   const scoreReplacements = (pool: Card[], remainingDeck: DeckCard[]) => {
     const replacementContext = buildRecommendationContext(deps, pool, remainingDeck)
     return pool
-      .filter((card) => withinPriceCap(card, deps.maxPrice))
+      .filter(
+        (card) =>
+          withinPriceCap(card, deps.maxPrice) &&
+          !blockedReplacements.has(card.name) &&
+          (deps.collectionMode !== 'only' ||
+            card.collectionMatch ||
+            deps.collectionSets.includes(card.set)),
+      )
       .map((card) => ({
         card,
         score: recommendationScoreBreakdown(card, {
@@ -357,6 +371,28 @@ function buildRecommendationData(
         }),
       }))
   }
+  const suggestFindingChanges = (findings: DeckDoctorFinding[], pool: Card[]) =>
+    suggestDeckDoctorChanges({
+      deck: deps.deck,
+      commanderCount: commanderNames(deps.commander).length,
+      commanderColours: deps.commanderDetails?.colours ?? [],
+      deckTargets: deps.deckTargets,
+      theme: deps.theme,
+      activeSubThemes: deps.activeSubThemes,
+      findings,
+      rankedCandidates: scoreReplacements(pool, deps.deck)
+        .sort((left, right) => compareRecommendationScores(left.score, right.score))
+        .map(({ card, score }) => ({ card, fit: score.total })),
+      // Existing deck cards have no comparable provider evidence. Use one neutral reason;
+      // do not apply addition preferences (price, sets, ignores) to potential cuts.
+      ratedCuts: deps.deck.slice(commanderNames(deps.commander).length).map((card: DeckCard) => ({
+        card,
+        fit: recommendationScoreBreakdown(
+          { ...card, reason: 'Interesting new pick' },
+          { ...context, cardRoles: rolesForCard(card) },
+        ).total,
+      })),
+    })
   const scoredBatch = visibleBatch.map((card: Card) => ({ card, score: scoreCandidate(card) }))
   const best = [...scoredBatch].sort((left, right) =>
     compareRecommendationScores(left.score, right.score),
@@ -376,6 +412,7 @@ function buildRecommendationData(
     recommendationRoleSupply,
     scoreCandidate,
     scoreReplacements,
+    suggestFindingChanges,
     scoredBatch,
     recommendedCard,
   }

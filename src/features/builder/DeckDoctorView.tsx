@@ -34,6 +34,7 @@ import {
   type DeckDoctorSwapRecord,
 } from '../../deck-doctor.ts'
 import { simulateManaAccess } from '../../deck-simulation.ts'
+import { addDoctorSuggestionToPlan, type DoctorSuggestion } from '../../deck-doctor-suggestions.ts'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
@@ -79,6 +80,10 @@ type Props = {
     cards: Card[],
     remainingDeck: DeckCard[],
   ) => { card: Card; score: RecommendationScoreBreakdown }[]
+  suggestFindingChanges: (
+    findings: DeckDoctorFinding[],
+    candidates: Card[],
+  ) => Record<string, DoctorSuggestion[]>
   history: DeckDoctorSwapRecord[]
   error: string
   fetchCandidates: () => Promise<Card[]>
@@ -95,6 +100,7 @@ type Props = {
 }
 
 const doctorCandidatePageSize = 12
+const emptyDoctorCandidates: Card[] = []
 const typeFilters = ['Land', ...cardTypes] as const
 
 function cardTypeLines(card: DoctorCard) {
@@ -143,6 +149,7 @@ export function DeckDoctorView({
   openRecommendationSettings,
   candidates,
   scoreReplacements,
+  suggestFindingChanges,
   history,
   error,
   fetchCandidates,
@@ -163,7 +170,7 @@ export function DeckDoctorView({
   const candidateRequest = useRef(0)
   const previousQueryKey = useRef(recommendationQueryKey)
   const currentFetch = candidateFetch.key === recommendationQueryKey
-  const extraCandidates = currentFetch ? candidateFetch.cards : []
+  const extraCandidates = currentFetch ? candidateFetch.cards : emptyDoctorCandidates
   const candidateState = currentFetch ? candidateFetch.state : 'idle'
   const candidateError = currentFetch ? candidateFetch.error : ''
   const [candidatePage, setCandidatePage] = useState(0)
@@ -173,6 +180,9 @@ export function DeckDoctorView({
   const [settingsRefreshPending, setSettingsRefreshPending] = useState(false)
   const [removedAdditionNames, setRemovedAdditionNames] = useState<string[]>([])
   const [moveCutToSideboard, setMoveCutToSideboard] = useState(false)
+  const [suggestionAnnouncement, setSuggestionAnnouncement] = useState('')
+  const findingNodes = useRef(new Map<string, HTMLElement>())
+  const suggestionFocus = useRef<{ id: string; index: number } | null>(null)
   const [otherCutFilter, setOtherCutFilter] = useState('')
   const [candidateFilter, setCandidateFilter] = useState('all')
   const boardKey = JSON.stringify([deck.map(({ name }) => name), sideboard.map(({ name }) => name)])
@@ -200,14 +210,21 @@ export function DeckDoctorView({
       }),
     [activeSubThemes, commanderCount, deck, deckTargets, sideboard, simulation, theme],
   )
-  const candidatePool = [
-    ...new Map(
-      [...(recommendationOptionsChanged ? [] : candidates), ...extraCandidates].map((card) => [
-        card.name,
-        card,
-      ]),
-    ).values(),
-  ]
+  const candidatePool = useMemo(
+    () => [
+      ...new Map(
+        [...(recommendationOptionsChanged ? [] : candidates), ...extraCandidates].map((card) => [
+          card.name,
+          card,
+        ]),
+      ).values(),
+    ],
+    [candidates, extraCandidates, recommendationOptionsChanged],
+  )
+  const findingSuggestions = useMemo(
+    () => (step === 'Diagnose' ? suggestFindingChanges(findings, candidatePool) : {}),
+    [candidatePool, findings, step, suggestFindingChanges],
+  )
   const availableCandidates = candidatePool.filter(
     (card) => !hasCardError(card, deck, commanderColours),
   )
@@ -314,6 +331,15 @@ export function DeckDoctorView({
   }, [hasPendingChanges, setPendingReviewChanges])
   const stepHeading = useRef<HTMLHeadingElement>(null)
   const comparisonDialog = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const pending = suggestionFocus.current
+    if (!pending) return
+    suggestionFocus.current = null
+    const nextId = findings[Math.min(pending.index, findings.length - 1)]?.id
+    const node =
+      findingNodes.current.get(pending.id) ?? (nextId ? findingNodes.current.get(nextId) : null)
+    ;(node ?? stepHeading.current)?.focus()
+  }, [deck, findings])
   useEffect(() => {
     if (!active) return
     if (exploreCommanders)
@@ -452,9 +478,61 @@ export function DeckDoctorView({
       setSelectedCutIndexes([])
       setSelectedAdditionNames([])
       setSelectedAdditionCards([])
+      setSuggestionAnnouncement('')
       changeStep('Diagnose', true)
     }
   }
+
+  function addSuggestionToPlan(suggestion: DoctorSuggestion) {
+    const draft = { cutIndexes: selectedCutIndexes, additionNames: selectedAdditionNames }
+    const next = addDoctorSuggestionToPlan(draft, suggestion)
+    if (next === draft) return
+    setSelectedCutIndexes(next.cutIndexes)
+    setSelectedAdditionNames(next.additionNames)
+    setSelectedAdditionCards((cards) => [...cards, suggestion.addCard])
+    setRemovedAdditionNames([])
+    setSuggestionAnnouncement(
+      `${suggestion.addCard.name} added to the pending plan. Not applied yet.`,
+    )
+  }
+
+  function applySuggestion(findingId: string, suggestion: DoctorSuggestion) {
+    // A direct edit would clear the B14 draft through board reconciliation. Never discard it.
+    if (hasPendingChanges || settingsRefreshPending || recommendationOptionsChanged) return
+    if (applySwapPlan(suggestion.cut ? [suggestion.cut] : [], [suggestion.addCard], false)) {
+      suggestionFocus.current = {
+        id: findingId,
+        index: findings.findIndex(({ id }) => id === findingId),
+      }
+      setSuggestionAnnouncement(
+        suggestion.cut
+          ? `Swapped ${suggestion.cut.cutCard.name} for ${suggestion.addCard.name}. Undo in Change history.`
+          : `Added ${suggestion.addCard.name}. Undo in Change history.`,
+      )
+    }
+  }
+
+  const moreCandidates = (
+    <div className="doctor-more">
+      <button
+        className="export"
+        type="button"
+        disabled={candidateState === 'loading'}
+        onClick={() => void findMoreCandidates()}
+      >
+        {candidateState === 'loading'
+          ? 'Searching Scryfall and EDHREC…'
+          : candidateState === 'done'
+            ? 'Refresh legal recommendations'
+            : 'Find more legal replacements'}
+      </button>
+      {candidateError && (
+        <p className="doctor-error" role="status">
+          {candidateError}
+        </p>
+      )}
+    </div>
+  )
 
   const cutSection = (
     <section className="doctor-selection-section" aria-labelledby="doctor-cuts-title">
@@ -608,8 +686,9 @@ export function DeckDoctorView({
             detected support; amber marks a possible gap. Findings are prompts, not cut decisions.
             Mana estimates simulate one drawn spell and one land drop per turn; they omit ramp,
             tapped-land timing, mulligans, and card effects. They are not win-rate or full-game
-            predictions. Choose cuts and additions, then confirm them before anything changes.
-            Escape goes back one step; at Diagnose it returns to the builder.
+            predictions. Apply a suggestion immediately, or add it to a plan and confirm your
+            changes together. Choose changes lets you select cuts and additions by hand. Escape goes
+            back one step; at Diagnose it returns to the builder.
           </p>
         </details>
         <div className="doctor-goal-settings">
@@ -627,6 +706,16 @@ export function DeckDoctorView({
             Adjust goals and filters
           </button>
         </div>
+        {suggestionAnnouncement && (
+          <p className="doctor-muted" role="status">
+            {suggestionAnnouncement}
+          </p>
+        )}
+        {step === 'Diagnose' && error && (
+          <p className="doctor-error" role="status">
+            {error}
+          </p>
+        )}
         {removedAdditionNames.length > 0 && (
           <p className="doctor-muted" role="status">
             Removed from picked additions after settings changed: {removedAdditionNames.join(', ')}.
@@ -733,7 +822,16 @@ export function DeckDoctorView({
               </div>
               {findings.length ? (
                 findings.map((finding) => (
-                  <article className="doctor-finding" key={finding.id}>
+                  <article
+                    className="doctor-finding"
+                    key={finding.id}
+                    tabIndex={-1}
+                    aria-label={finding.title}
+                    ref={(node) => {
+                      if (node) findingNodes.current.set(finding.id, node)
+                      else findingNodes.current.delete(finding.id)
+                    }}
+                  >
                     <h3>{finding.title}</h3>
                     <p>{finding.summary}</p>
                     {finding.evidence.length > 0 && (
@@ -790,6 +888,74 @@ export function DeckDoctorView({
                         })}
                       </div>
                     )}
+                    <div className="doctor-suggestions">
+                      <h4>{mode === 'build' ? 'Suggested additions' : 'Suggested swaps'}</h4>
+                      {findingSuggestions[finding.id]?.length ? (
+                        findingSuggestions[finding.id].map((suggestion) => {
+                          const picked =
+                            selectedAdditionNames.includes(suggestion.addCard.name) ||
+                            (suggestion.cut && selectedCutIndexes.includes(suggestion.cut.cutIndex))
+                          return (
+                            <div className="doctor-suggestion" key={suggestion.addCard.name}>
+                              <div className="doctor-suggestion-pair">
+                                {suggestion.cut && (
+                                  <>
+                                    <CardTile
+                                      card={suggestion.cut.cutCard}
+                                      status="In deck · cut"
+                                      openCard={openCard}
+                                    />
+                                    <span className="doctor-pair-arrow" aria-hidden="true">
+                                      →
+                                    </span>
+                                  </>
+                                )}
+                                <CardTile
+                                  card={suggestion.addCard}
+                                  status="Addition"
+                                  openCard={openCard}
+                                />
+                              </div>
+                              <div className="doctor-suggestion-copy">
+                                <p>{suggestion.impact}</p>
+                                <div className="doctor-suggestion-actions">
+                                  <button
+                                    className="primary"
+                                    type="button"
+                                    disabled={
+                                      hasPendingChanges ||
+                                      settingsRefreshPending ||
+                                      recommendationOptionsChanged
+                                    }
+                                    onClick={() => applySuggestion(finding.id, suggestion)}
+                                  >
+                                    {suggestion.cut ? 'Apply swap' : 'Add card'}
+                                  </button>
+                                  <button
+                                    className="export"
+                                    type="button"
+                                    disabled={
+                                      Boolean(picked) ||
+                                      settingsRefreshPending ||
+                                      recommendationOptionsChanged
+                                    }
+                                    onClick={() => addSuggestionToPlan(suggestion)}
+                                  >
+                                    {picked ? 'Already picked' : 'Add to plan'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })
+                      ) : (
+                        <p className="doctor-muted">
+                          {mode === 'build'
+                            ? 'No suitable addition found for this finding in the current candidates.'
+                            : 'No safe swap found for this finding in the current candidates.'}
+                        </p>
+                      )}
+                    </div>
                   </article>
                 ))
               ) : (
@@ -798,6 +964,13 @@ export function DeckDoctorView({
                   interaction.
                 </p>
               )}
+              {hasPendingChanges && (
+                <p className="doctor-muted">
+                  Apply or discard your pending plan before applying suggestions directly. You can
+                  still add other suggestions to the plan.
+                </p>
+              )}
+              {findings.length > 0 && moreCandidates}
             </section>
             <button className="primary" type="button" onClick={() => changeStep('Choose changes')}>
               Choose changes
@@ -929,25 +1102,7 @@ export function DeckDoctorView({
                     : 'No legal candidates match this filter. Choose another or find more below.'}
                 </p>
               )}
-              <div className="doctor-more">
-                <button
-                  className="export"
-                  type="button"
-                  disabled={candidateState === 'loading'}
-                  onClick={() => void findMoreCandidates()}
-                >
-                  {candidateState === 'loading'
-                    ? 'Searching Scryfall and EDHREC…'
-                    : candidateState === 'done'
-                      ? 'Refresh legal recommendations'
-                      : 'Find more legal replacements'}
-                </button>
-                {candidateError && (
-                  <p className="doctor-error" role="status">
-                    {candidateError}
-                  </p>
-                )}
-              </div>
+              {moreCandidates}
             </section>
           </div>
         )}
