@@ -91,7 +91,7 @@
 .card-search-shell input:focus-visible,
 .card-search-shell select:focus-visible,
 .search-card-art:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--commander-accent, #36327f) 45%, white);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .search-filter-actions {
