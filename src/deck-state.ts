@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { appStorage } from './app-storage.ts'
 import { ignoreReasons } from './domain/recommendation-tuning.ts'
 import { normalizeRecommendationStyle } from './domain/recommendation-types.ts'
 
@@ -128,8 +129,8 @@ export const persistedDeckStateSchema = z.object({
   }),
 })
 
-// Existing full-object queues and the compact field table are both valid on disk.
-const compactQueueSchema = z
+// Full-object card lists and compact field tables are both valid on disk.
+const cardTable = z
   .object({ fields: z.array(z.string()), rows: z.array(z.array(z.unknown())) })
   .refine(({ fields, rows }) => rows.every((row) => row.length === fields.length))
   .transform(({ fields, rows }) =>
@@ -139,17 +140,19 @@ const compactQueueSchema = z
       ),
     ),
   )
-  .pipe(persistedDeckStateSchema.shape.queue)
+const { deck, sideboard, queue } = persistedDeckStateSchema.shape
 export const storedDeckStateSchema = persistedDeckStateSchema.extend({
-  queue: z.union([persistedDeckStateSchema.shape.queue, compactQueueSchema]),
+  queue: z.union([queue, cardTable.pipe(queue)]),
+  deck: z.union([deck, cardTable.pipe(deck)]),
+  sideboard: z.union([sideboard, cardTable.pipe(sideboard.unwrap())]),
 })
 
 export type PersistedDeckState = z.infer<typeof persistedDeckStateSchema>
 export type SavedDeck = { id: string; name: string; updatedAt: string; state: PersistedDeckState }
 
 export function deckStateForStorage(state: PersistedDeckState): PersistedDeckState {
-  // Queue alternatives can be fetched again; retain only the current printing, including finish.
-  const compactCard = (card: PersistedDeckState['queue'][number]) =>
+  // Alternate printings are fetched again when needed; keep only the current one, with finish.
+  const compactCard = <T extends PersistedDeckState['deck'][number]>(card: T): T =>
     card.printings?.length
       ? {
           ...card,
@@ -159,6 +162,8 @@ export function deckStateForStorage(state: PersistedDeckState): PersistedDeckSta
       : card
   return {
     ...state,
+    deck: state.deck.map(compactCard),
+    sideboard: state.sideboard.map(compactCard),
     queue: state.queue.map(compactCard),
     deferredCards: state.deferredCards.map((entry) => ({
       ...entry,
@@ -167,19 +172,26 @@ export function deckStateForStorage(state: PersistedDeckState): PersistedDeckSta
   }
 }
 
-export function encodeDeckState(value: PersistedDeckState) {
-  const state = deckStateForStorage(value)
-  const queue = state.queue
-  if (!queue.length) return state
+// Field tables store each key once per list instead of once per card.
+function cardTableOf<T extends object>(cards: T[]) {
   const fields = [
     ...new Set(
-      queue.flatMap((card) =>
-        Object.keys(card).filter((key) => card[key as keyof typeof card] !== undefined),
+      cards.flatMap((card) =>
+        Object.keys(card).filter((key) => card[key as keyof T] !== undefined),
       ),
     ),
-  ] as (keyof (typeof queue)[number])[]
-  const rows = queue.map((card) => fields.map((field) => card[field] ?? null))
-  return { ...state, queue: { fields, rows } }
+  ] as (keyof T)[]
+  return { fields, rows: cards.map((card) => fields.map((field) => card[field] ?? null)) }
+}
+
+export function encodeDeckState(value: PersistedDeckState) {
+  const state = deckStateForStorage(value)
+  return {
+    ...state,
+    deck: cardTableOf(state.deck),
+    sideboard: cardTableOf(state.sideboard),
+    queue: cardTableOf(state.queue),
+  }
 }
 
 export function restoredRecommendationDecisions(state: PersistedDeckState | null) {
@@ -248,7 +260,7 @@ const serializeSavedDecks = (decks: SavedDeck[]) =>
     decks: decks.map((saved) => ({ ...saved, state: encodeDeckState(saved.state) })),
   })
 
-export function loadDeckState(storage: StorageLike = localStorage): PersistedDeckState | null {
+export function loadDeckState(storage: StorageLike = appStorage()): PersistedDeckState | null {
   try {
     const parsed = z
       .object({ version: z.literal(deckStateVersion), state: storedDeckStateSchema })
@@ -259,7 +271,7 @@ export function loadDeckState(storage: StorageLike = localStorage): PersistedDec
   }
 }
 
-export function saveDeckState(state: PersistedDeckState, storage: StorageLike = localStorage) {
+export function saveDeckState(state: PersistedDeckState, storage: StorageLike = appStorage()) {
   try {
     storage.setItem(
       deckStateKey,
@@ -273,7 +285,7 @@ export function saveDeckState(state: PersistedDeckState, storage: StorageLike = 
   }
 }
 
-export function clearDeckState(storage: StorageLike = localStorage) {
+export function clearDeckState(storage: StorageLike = appStorage()) {
   try {
     storage.removeItem(deckStateKey)
   } catch {
@@ -281,7 +293,7 @@ export function clearDeckState(storage: StorageLike = localStorage) {
   }
 }
 
-export function loadSavedDecks(storage: StorageLike = localStorage): SavedDeck[] {
+export function loadSavedDecks(storage: StorageLike = appStorage()): SavedDeck[] {
   try {
     const parsed = z
       .object({ version: z.literal(deckStateVersion), decks: z.array(savedDeckSchema) })
@@ -292,7 +304,7 @@ export function loadSavedDecks(storage: StorageLike = localStorage): SavedDeck[]
   }
 }
 
-export function saveSavedDeck(deck: SavedDeck, storage: StorageLike = localStorage): SavedDeck[] {
+export function saveSavedDeck(deck: SavedDeck, storage: StorageLike = appStorage()): SavedDeck[] {
   const decks = loadSavedDecks(storage)
   const next = [savedDeckSchema.parse(deck), ...decks.filter(({ id }) => id !== deck.id)]
   try {
@@ -303,7 +315,7 @@ export function saveSavedDeck(deck: SavedDeck, storage: StorageLike = localStora
   }
 }
 
-export function deleteSavedDeck(id: string, storage: StorageLike = localStorage): SavedDeck[] {
+export function deleteSavedDeck(id: string, storage: StorageLike = appStorage()): SavedDeck[] {
   const next = loadSavedDecks(storage).filter((deck) => deck.id !== id)
   try {
     storage.setItem(savedDecksKey, serializeSavedDecks(next))

@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 
+import { appStorage } from '../app-storage.ts'
 import { loadSavedDecks } from '../deck-state.ts'
 import type { DeckWorkspace } from '../autosaves.ts'
 
@@ -13,10 +14,10 @@ export function useWorkspaceState(
       void workspace.refresh()
       setSavedDecks(loadSavedDecks())
     }
-    window.addEventListener('storage', refresh)
+    const unsubscribe = appStorage().onChange(refresh)
     window.addEventListener('focus', refresh)
     return () => {
-      window.removeEventListener('storage', refresh)
+      unsubscribe()
       window.removeEventListener('focus', refresh)
     }
   }, [workspace, setSavedDecks])

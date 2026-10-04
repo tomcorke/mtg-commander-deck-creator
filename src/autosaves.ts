@@ -62,7 +62,9 @@ function isQuotaError(error: unknown) {
     (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
   )
 }
-type DraftStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>
+type DraftStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'> & {
+  onError?: (listener: () => void) => void
+}
 type SessionStorage = Pick<Storage, 'getItem' | 'setItem'>
 type Channel = Pick<BroadcastChannel, 'postMessage' | 'close' | 'onmessage'>
 type WorkspaceOptions = {
@@ -122,6 +124,8 @@ class Workspace {
   constructor(options: WorkspaceOptions) {
     this.options = options
     this.snapshot.cleanupAvailable = Boolean(options.locks)
+    // IndexedDB writes fail after setItem returns; manual saves share the warning.
+    options.storage.onError?.(() => this.storageError())
   }
 
   private uuid = () => this.options.uuid?.() ?? crypto.randomUUID()

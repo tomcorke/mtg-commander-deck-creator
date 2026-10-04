@@ -87,6 +87,36 @@ test('deck state round-trips and clears', () => {
   assert.equal(loadDeckState(storage), null)
 })
 
+test('saved decks keep only the chosen printing and store card lists as field tables', () => {
+  const storage = memoryStorage()
+  const printing = (collectorNumber: string) => ({
+    image: collectorNumber,
+    set: 'cmm',
+    collectorNumber,
+  })
+  const card = {
+    ...state.deck[0],
+    ...printing('2'),
+    printings: [printing('1'), printing('2'), printing('3')],
+    printing: 1,
+    printingManuallySelected: true,
+  }
+  const saved = { ...state, deck: [card], sideboard: [{ ...card, name: 'Spare' }] }
+  saveSavedDeck(
+    { id: 'deck', name: 'Deck', updatedAt: '2026-10-04T12:00:00Z', state: saved },
+    storage,
+  )
+  const raw = JSON.parse(storage.getItem(savedDecksKey)!).decks[0].state
+  assert.ok(Array.isArray(raw.deck.rows) && Array.isArray(raw.sideboard.rows))
+  const loaded = loadSavedDecks(storage)[0].state
+  for (const board of [loaded.deck, loaded.sideboard]) {
+    assert.deepEqual(board[0].printings, [printing('2')])
+    assert.equal(board[0].printing, 0)
+    assert.equal(board[0].printingManuallySelected, true)
+  }
+  assert.equal(deckStateChanged(loaded, saved), false)
+})
+
 test('preserves finishes for cards and their printing choices', () => {
   const storage = memoryStorage()
   const foilPrinting = {

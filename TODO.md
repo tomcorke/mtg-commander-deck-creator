@@ -17,53 +17,52 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, B9, B13, B14, A14, A2, A9, B10, B11, B4, B12, and A6.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, B9, B13, B14, A14, A2, A9, B10, B11, B4, B12, A6, and B18.
 
 ## Suggested order
 
 Ship the completed-feature batch before starting A16–A19 or B15–B17. A15's Moxfield verification remains open; its technical work does not establish that outcome. A6 closed at the user's request without representative-player review.
 
-A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `chore/todo-shipping@64efe8f`. A20–A33 and B18–B32 come from the 2026-10-04 visual design and UX review of the live site (`main@0ccbaed`); B18 comes first because it can lose decks. Release evidence and nonblocking follow-ups are in [the acceptance record](docs/completed-features-acceptance-2026-10-04.md).
+A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `chore/todo-shipping@64efe8f`. A20–A33 and B18–B32 come from the 2026-10-04 visual design and UX review of the live site (`main@0ccbaed`). B18 shipped first because it could lose decks. Release evidence and nonblocking follow-ups are in [the acceptance record](docs/completed-features-acceptance-2026-10-04.md).
 
 | Order | ID  | TODO                                   | Complexity | Value  | Delivery risk | Reason                                                                          |
 | ----- | --- | -------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------- |
-| 1     | B18 | Saved decks out of localStorage        | High       | High   | Medium        | Storage is full on the live site; autosaves fail and decks can be lost.         |
-| 2     | A15 | Remaining Moxfield verification        | Medium     | Medium | Medium        | Policy/provider fixes are implemented; browser access blocked the import check. |
-| 3     | A16 | Clear batch decisions and tile states  | Low        | High   | Low           | Most-used screen; selected Later and Ignore need distinct states.               |
-| 4     | B17 | Consistent mana and land guidance      | Low        | Medium | Low           | Align existing targets and identity-based presentation.                         |
-| 5     | B15 | Actionable review progress and results | Medium     | High   | Low           | Review navigation, feedback and incomplete-deck guidance.                       |
-| 6     | B19 | Consistent card tiles; text deck list  | Medium     | High   | Low           | Five tile styles today; condensed deck list requested.                          |
-| 7     | B31 | Better layout for review additions     | Medium     | High   | Low           | 13 pages of small tiles; builds on B19.                                         |
-| 8     | A22 | Start screen as a full page            | Medium     | High   | Low           | Commander choice is a key step squeezed into a narrow column.                   |
-| 9     | B20 | Replace the 0-100 score display        | Low        | Medium | Low           | Low absolute scores make good picks look poor.                                  |
-| 10    | A28 | Calm card-data check status            | Low        | Medium | Low           | Red banner, layout shift and empty curve on every reload.                       |
-| 11    | A30 | Card art clear of tile controls        | Low        | Medium | Low           | Art covers a decision control.                                                  |
-| 12    | A31 | Card details from recommendation names | Low        | Medium | Low           | Reuse CardReference as ui.md requires.                                          |
-| 13    | B28 | Deck review on small decks             | Low        | Medium | Low           | Early review looks broken and shows false success checks.                       |
-| 14    | B30 | Plain labels for review additions      | Low        | Medium | Low           | Copy only.                                                                      |
-| 15    | A21 | Simpler commander Choose button        | Low        | Medium | Low           | Removes three-line wrapping and misalignment.                                   |
-| 16    | A20 | Clearer commander tile captions        | Low        | Medium | Low           | Copy and layout only.                                                           |
-| 17    | A24 | Builder starts at the top              | Low        | Medium | Low           | Header is cut off after choosing a commander.                                   |
-| 18    | A26 | Clearer play-style cards               | Low        | Medium | Low           | First choice after picking a commander.                                         |
-| 19    | B27 | Clearer search results and actions     | Low        | Medium | Low           | Copy and action styling.                                                        |
-| 20    | B22 | Investigation: button hierarchy        | Medium     | Medium | Low           | Spike and prototype before any change.                                          |
-| 21    | B24 | Document repeated role-target figures  | Low        | Medium | Low           | Doc for a layout decision.                                                      |
-| 22    | B25 | Confirmation dialog consistency        | Low        | Medium | Low           | Replace window.confirm after agreeing a pattern.                                |
-| 23    | B16 | Role-tag and cut-flag accuracy         | High       | High   | Medium        | Investigate labelled real decks before changing heuristics.                     |
-| 24    | A17 | Forgiving, transparent import          | Medium     | Medium | Low           | Front-face matching, partial imports and replacement confirmation.              |
-| 25    | A18 | Narrow-screen layout                   | Medium     | Medium | Low           | Keep progress visible and remove overflow.                                      |
-| 26    | A19 | Start-screen keyboard and SR state     | Low        | Medium | Low           | Finish result navigation and focus handoff on the new discovery flow.           |
-| 27    | B26 | Readable search filters                | Medium     | Medium | Low           | Narrow nested-scroll panel and unclear labels.                                  |
-| 28    | B29 | Remaining dialog issues                | Medium     | Medium | Low           | Save/load, export and settings fixes; storage usage after B18.                  |
-| 29    | B23 | Consistent content widths              | Medium     | Medium | Low           | Shared page widths; A22 and B19 benefit.                                        |
-| 30    | B21 | Shared text components                 | High       | Medium | Medium        | Agree a type scale first; touches most screens.                                 |
-| 31    | A23 | Consistent header labels               | Low        | Low    | Low           | Copy only.                                                                      |
-| 32    | A25 | Correct card-count wording             | Low        | Low    | Low           | Copy only.                                                                      |
-| 33    | A27 | Accurate setup and loading headings    | Low        | Low    | Low           | Copy by state.                                                                  |
-| 34    | A29 | Less prominent Start over              | Low        | Low    | Low           | Button style.                                                                   |
-| 35    | A32 | Intro guide placement                  | Low        | Low    | Low           | Popover positioning.                                                            |
-| 36    | A33 | Move the API request indicator         | Low        | Low    | Low           | Move one control.                                                               |
-| 37    | B32 | Step-heading focus style               | Low        | Low    | Low           | CSS.                                                                            |
+| 1     | A15 | Remaining Moxfield verification        | Medium     | Medium | Medium        | Policy/provider fixes are implemented; browser access blocked the import check. |
+| 2     | A16 | Clear batch decisions and tile states  | Low        | High   | Low           | Most-used screen; selected Later and Ignore need distinct states.               |
+| 3     | B17 | Consistent mana and land guidance      | Low        | Medium | Low           | Align existing targets and identity-based presentation.                         |
+| 4     | B15 | Actionable review progress and results | Medium     | High   | Low           | Review navigation, feedback and incomplete-deck guidance.                       |
+| 5     | B19 | Consistent card tiles; text deck list  | Medium     | High   | Low           | Five tile styles today; condensed deck list requested.                          |
+| 6     | B31 | Better layout for review additions     | Medium     | High   | Low           | 13 pages of small tiles; builds on B19.                                         |
+| 7     | A22 | Start screen as a full page            | Medium     | High   | Low           | Commander choice is a key step squeezed into a narrow column.                   |
+| 8     | B20 | Replace the 0-100 score display        | Low        | Medium | Low           | Low absolute scores make good picks look poor.                                  |
+| 9     | A28 | Calm card-data check status            | Low        | Medium | Low           | Red banner, layout shift and empty curve on every reload.                       |
+| 10    | A30 | Card art clear of tile controls        | Low        | Medium | Low           | Art covers a decision control.                                                  |
+| 11    | A31 | Card details from recommendation names | Low        | Medium | Low           | Reuse CardReference as ui.md requires.                                          |
+| 12    | B28 | Deck review on small decks             | Low        | Medium | Low           | Early review looks broken and shows false success checks.                       |
+| 13    | B30 | Plain labels for review additions      | Low        | Medium | Low           | Copy only.                                                                      |
+| 14    | A21 | Simpler commander Choose button        | Low        | Medium | Low           | Removes three-line wrapping and misalignment.                                   |
+| 15    | A20 | Clearer commander tile captions        | Low        | Medium | Low           | Copy and layout only.                                                           |
+| 16    | A24 | Builder starts at the top              | Low        | Medium | Low           | Header is cut off after choosing a commander.                                   |
+| 17    | A26 | Clearer play-style cards               | Low        | Medium | Low           | First choice after picking a commander.                                         |
+| 18    | B27 | Clearer search results and actions     | Low        | Medium | Low           | Copy and action styling.                                                        |
+| 19    | B22 | Investigation: button hierarchy        | Medium     | Medium | Low           | Spike and prototype before any change.                                          |
+| 20    | B24 | Document repeated role-target figures  | Low        | Medium | Low           | Doc for a layout decision.                                                      |
+| 21    | B25 | Confirmation dialog consistency        | Low        | Medium | Low           | Replace window.confirm after agreeing a pattern.                                |
+| 22    | B16 | Role-tag and cut-flag accuracy         | High       | High   | Medium        | Investigate labelled real decks before changing heuristics.                     |
+| 23    | A17 | Forgiving, transparent import          | Medium     | Medium | Low           | Front-face matching, partial imports and replacement confirmation.              |
+| 24    | A18 | Narrow-screen layout                   | Medium     | Medium | Low           | Keep progress visible and remove overflow.                                      |
+| 25    | A19 | Start-screen keyboard and SR state     | Low        | Medium | Low           | Finish result navigation and focus handoff on the new discovery flow.           |
+| 26    | B26 | Readable search filters                | Medium     | Medium | Low           | Narrow nested-scroll panel and unclear labels.                                  |
+| 27    | B29 | Remaining dialog issues                | Medium     | Medium | Low           | Save/load, export and settings fixes; storage usage after B18.                  |
+| 28    | B23 | Consistent content widths              | Medium     | Medium | Low           | Shared page widths; A22 and B19 benefit.                                        |
+| 29    | B21 | Shared text components                 | High       | Medium | Medium        | Agree a type scale first; touches most screens.                                 |
+| 30    | A23 | Consistent header labels               | Low        | Low    | Low           | Copy only.                                                                      |
+| 31    | A25 | Correct card-count wording             | Low        | Low    | Low           | Copy only.                                                                      |
+| 32    | A27 | Accurate setup and loading headings    | Low        | Low    | Low           | Copy by state.                                                                  |
+| 33    | A29 | Less prominent Start over              | Low        | Low    | Low           | Button style.                                                                   |
+| 34    | A32 | Intro guide placement                  | Low        | Low    | Low           | Popover positioning.                                                            |
+| 35    | A33 | Move the API request indicator         | Low        | Low    | Low           | Move one control.                                                               |
+| 36    | B32 | Step-heading focus style               | Low        | Low    | Low           | CSS.                                                                            |
 
 ## [A15] Verify remaining Moxfield guidance after policy/provider fixes
 
@@ -202,31 +201,6 @@ Acceptance checks:
 
 - A screen reader announces which theme and colours are selected.
 - A keyboard-only player can search, pick a commander with arrow keys and Enter, and land on the builder heading.
-
-## [B18] Move saved decks and autosaves out of localStorage
-
-**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Persistence, migration, and cross-tab sync change together; an error loses player decks.
-
-On the live site, localStorage held about 5.0M characters, which is the browser's limit. Saved decks used 3.66M, the current deck state 948K, and each autosave about 200K. The app then showed "Autosave unavailable. Export your deck before closing this tab." The stored deck state held a 100-card deck while the page showed a 3-card draft, so recent saves may have failed silently.
-
-Two causes add up: localStorage is capped at about 5MB per origin, and each saved card stores its full Scryfall data (about 4.8K per card), plus a recommendation queue of up to about 300 cards.
-
-- Move saved decks, autosaves, and the current deck state to IndexedDB. Its quota is a share of free disk space, usually hundreds of megabytes or more, and it stores structured objects without JSON string limits. Keep small display preferences (`theme`, `option:*`) in localStorage.
-- Store compact deck state: card identity (Scryfall ID or name plus printing and finish), counts, and player decisions. Rehydrate card details through the existing Scryfall cache instead of persisting full card objects. Decide whether the recommendation queue is persisted or rebuilt.
-- Use a small wrapper over the native IndexedDB API; avoid a new dependency unless it clearly saves code.
-- Migrate existing localStorage data once, verify the copy, then remove the old keys. Keep the original data if migration fails.
-- Replace the `storage` event in `src/app/useWorkspaceState.ts` with `BroadcastChannel` notifications; `src/autosaves.ts` already uses a channel.
-- Request persistent storage with `navigator.storage.persist()`, and show usage from `navigator.storage.estimate()` in Save/load (see B29).
-- Keep the quota-error path: the "Autosave unavailable" message must still appear if a write fails.
-
-Current context: `src/deck-state.ts` (`saveDeckState`, `loadSavedDecks`, `deckStateForStorage`) and `src/autosaves.ts` (workspace autosaves, retention, quota retries) both use the synchronous `StorageLike` interface. Moving to async storage changes every caller.
-
-Acceptance checks:
-
-- A browser profile with the current 5M-character data migrates without loss: every saved deck and autosave opens with the same cards, printings, and decisions.
-- Saving 20 complete decks and 10 autosaves succeeds with no quota error.
-- Two open tabs see each other's saves and autosaves.
-- A failed IndexedDB write shows the existing autosave warning.
 
 ## [B19] Consistent card tiles; return the deck list to a condensed text list
 

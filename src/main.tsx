@@ -2,13 +2,14 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { openAppStorage } from './app-storage.ts'
 import { createWorkspace } from './autosaves.ts'
 
 const root = createRoot(document.getElementById('root')!)
-void Promise.resolve()
-  .then(() =>
+void openAppStorage(localStorage)
+  .then((storage) =>
     createWorkspace({
-      storage: localStorage,
+      storage,
       session: sessionStorage,
       locks: navigator.locks,
       channel:
