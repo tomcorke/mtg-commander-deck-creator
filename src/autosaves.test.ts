@@ -632,7 +632,8 @@ test('autosaves store the recommendation queue compactly and restore every scori
   await workspace.save(full, 'Queue')
   const raw = env.storage.getItem(autosavePrefix + workspace.getSnapshot().id)!
   assert.ok(raw.length < JSON.stringify(listAutosaves(env.storage)[0]).length * 0.8)
-  assert.deepEqual(readOwnDraft(env, workspace)?.state, JSON.parse(JSON.stringify(full)))
+  const stored = persistedDeckStateSchema.parse(deckStateForStorage(full))
+  assert.deepEqual(readOwnDraft(env, workspace)?.state, JSON.parse(JSON.stringify(stored)))
   workspace.close()
 })
 
@@ -772,7 +773,8 @@ test('autosaves, session recovery and manual saves stay below 60K characters wit
     assert.equal(loaded.queue[0].printing, 0)
     assert.deepEqual(loaded.queue[0].printings?.[0], printings[17])
     assert.deepEqual(loaded.deferredCards[0].card, loaded.queue[0])
-    assert.deepEqual(loaded.deck, JSON.parse(JSON.stringify(deckStateForStorage(full).deck)))
+    const stored = persistedDeckStateSchema.parse(deckStateForStorage(full))
+    assert.deepEqual(loaded.deck, JSON.parse(JSON.stringify(stored.deck)))
     assert.equal(deckStateChanged(loaded, full), false)
     const changed = {
       ...loaded,

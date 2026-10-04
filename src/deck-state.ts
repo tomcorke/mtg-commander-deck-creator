@@ -25,8 +25,9 @@ const printingSchema = z.object({
 })
 const cardBase = {
   name: z.string(),
-  layout: z.string(),
-  typeLine: z.string(),
+  // Card text is not stored; loading refreshes it from Scryfall (pendingDeckData).
+  layout: z.string().default('normal'),
+  typeLine: z.string().default(''),
   colorIdentity: z.array(z.string()).optional(),
   oracleId: z.string().optional(),
   commanderLegality: z.string().optional(),
@@ -34,15 +35,15 @@ const cardBase = {
   gameChanger: z.boolean().optional(),
   dataStatus: z.enum(['pending', 'unavailable']).optional(),
   dataWarnings: z.array(z.string()).optional(),
-  manaCost: z.string(),
+  manaCost: z.string().default(''),
   manaValue: z.number(),
   power: z.string().optional(),
   toughness: z.string().optional(),
-  detail: z.string(),
-  producedMana: z.array(z.string()),
-  faces: z.array(
-    z.object({ typeLine: z.string(), manaCost: z.string(), detail: z.string().optional() }),
-  ),
+  detail: z.string().default(''),
+  producedMana: z.array(z.string()).default([]),
+  faces: z
+    .array(z.object({ typeLine: z.string(), manaCost: z.string(), detail: z.string().optional() }))
+    .default([]),
   image: z.string(),
   backImage: z.string().optional(),
   set: z.string(),
@@ -52,7 +53,7 @@ const cardBase = {
   printsUri: z.string().optional(),
   price: z.string().optional(),
   priceUri: z.string().optional(),
-  tags: z.array(z.string()),
+  tags: z.array(z.string()).default([]),
   source: z.enum(['edhrec', 'scryfall']).optional(),
   seedEvidence: z
     .array(
@@ -151,15 +152,31 @@ export type PersistedDeckState = z.infer<typeof persistedDeckStateSchema>
 export type SavedDeck = { id: string; name: string; updatedAt: string; state: PersistedDeckState }
 
 export function deckStateForStorage(state: PersistedDeckState): PersistedDeckState {
-  // Alternate printings are fetched again when needed; keep only the current one, with finish.
-  const compactCard = <T extends PersistedDeckState['deck'][number]>(card: T): T =>
-    card.printings?.length
-      ? {
-          ...card,
-          printings: [{ ...card.printings[card.printing ?? 0], ...printingSchema.parse(card) }],
-          printing: 0,
-        }
-      : card
+  // Scryfall data is fetched again on load: keep identity, the chosen printing, and the
+  // gameplay fields that loading compares to warn about changes (currentCardData).
+  const compactCard = <T extends PersistedDeckState['deck'][number]>(card: T): T => {
+    const {
+      layout: _layout,
+      typeLine: _typeLine,
+      manaCost: _manaCost,
+      detail: _detail,
+      faces: _faces,
+      power: _power,
+      toughness: _toughness,
+      producedMana: _producedMana,
+      tags: _tags,
+      ...kept
+    } = card
+    return (
+      card.printings?.length
+        ? {
+            ...kept,
+            printings: [{ ...card.printings[card.printing ?? 0], ...printingSchema.parse(card) }],
+            printing: 0,
+          }
+        : kept
+    ) as T
+  }
   return {
     ...state,
     deck: state.deck.map(compactCard),

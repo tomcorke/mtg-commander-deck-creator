@@ -79,10 +79,11 @@ const state: PersistedDeckState = {
   deckTargets: { lands: 35, ramp: 10, draw: 10, removal: 8, wipes: 3 },
 }
 
-test('deck state round-trips and clears', () => {
+test('deck state round-trips without card text, which loading refreshes from Scryfall', () => {
   const storage = memoryStorage()
   saveDeckState(state, storage)
-  assert.deepEqual(loadDeckState(storage), state)
+  const card = { ...state.deck[0], typeLine: '', manaCost: '', detail: '', tags: [] }
+  assert.deepEqual(loadDeckState(storage), { ...state, deck: [card] })
   clearDeckState(storage)
   assert.equal(loadDeckState(storage), null)
 })
