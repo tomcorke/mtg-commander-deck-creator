@@ -430,7 +430,10 @@ async function stageAndCheckPairToggles(page: Page) {
     await remove.press('Space')
     await focusIs(button(row, 'Add to plan'))
     assert.match(
-      await page.getByRole('status').first().innerText(),
+      await page
+        .getByRole('status')
+        .filter({ hasText: 'removed from the pending plan' })
+        .innerText(),
       /removed from the pending plan/,
     )
     await page.keyboard.press('Enter')
