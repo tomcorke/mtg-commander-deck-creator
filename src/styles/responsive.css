@@ -712,6 +712,9 @@
   }
 }
 @media (max-width: 620px) {
+  .setting-help-wrap {
+    position: static;
+  }
   .setting-help-popover {
     top: auto;
     right: 0;

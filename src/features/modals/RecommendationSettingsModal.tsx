@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction } from 'react'
+import { type Dispatch, type SetStateAction, useLayoutEffect, useRef } from 'react'
 
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import type { ScryfallSet } from '../../domain/card-model.ts'
@@ -121,6 +121,13 @@ export function RecommendationSettingsModal({
   recommendationSettingsSummary,
   closeModal,
 }: RecommendationSettingsModalProps) {
+  const dialog = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    if (!show) return
+    return () => {
+      document.querySelector<HTMLElement>('.recommendation-settings-summary button')?.focus()
+    }
+  }, [show])
   if (!show) return null
   const searching = collectionSearch.trim().length >= 2
   const smallOnlyPool =
@@ -141,10 +148,25 @@ export function RecommendationSettingsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="recommendation-settings-title"
+        ref={dialog}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault()
             closeModal()
+          } else if (event.key === 'Tab') {
+            const focusable = dialog.current?.querySelectorAll<HTMLElement>(
+              'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary',
+            )
+            if (!focusable?.length) return
+            const first = focusable[0]
+            const last = focusable[focusable.length - 1]
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault()
+              last.focus()
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault()
+              first.focus()
+            }
           }
         }}
       >
