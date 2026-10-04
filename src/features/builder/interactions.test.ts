@@ -27,6 +27,7 @@ const raw = (name: string, set = 'tst') => ({
   type_line: name === 'Commander' ? 'Legendary Creature' : 'Artifact',
   cmc: 2,
   legalities: { commander: 'legal' },
+  game_changer: false,
   color_identity: [],
   set,
   collector_number: '1',

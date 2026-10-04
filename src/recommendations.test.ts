@@ -275,7 +275,12 @@ test('production EDHREC builder applies safety filters and batches every card on
   }))
   const result = buildEdhrecRecommendations(
     entries,
-    cards.map((card) => ({ ...card, cmc: 2, legalities: { commander: 'legal' } })),
+    cards.map((card) => ({
+      ...card,
+      cmc: 2,
+      game_changer: false,
+      legalities: { commander: 'legal' },
+    })),
     {
       includeCreature: true,
       excludeGameChangers: true,

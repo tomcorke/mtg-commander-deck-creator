@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef } from 'react'
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef } from 'react'
 import { type TargetKey } from '../deck-analysis.ts'
 
 import {
@@ -42,6 +42,7 @@ import {
 } from './recommendation-actions.ts'
 import { useAppEffects, usePrintingRepairEffect } from './useAppEffects.ts'
 import { useSignatureRecommendations } from './useSignatureRecommendations.ts'
+import { useCurrentCardData } from './useCurrentCardData.ts'
 import type { ControllerState } from './useControllerState.ts'
 import {
   appHistoryKey,
@@ -137,6 +138,8 @@ async function startInWorkspace(
 }
 
 function useRemoteActions(state: AppState, routing: RoutingActions) {
+  const recommendationRequest = useRef(0)
+  useCurrentCardData(state)
   useSignatureRecommendations(state)
   const loadPrintings = (
     cards: Card[],
@@ -210,6 +213,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
   usePrintingRepairEffect({ ...state, workspaceId: state.autosave.id, loadPrintings })
   const recommendationDeps = {
     ...state,
+    recommendationRequest,
     ...routing,
     activeModal: state.activeModal,
     freshRecommendationCycle,
@@ -388,6 +392,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     }
   }
   const actions = createActionHandlers({
+    ...remote.recommendationDeps,
     ...state,
     openModal: (_deps: unknown, modal: AppModal) => routing.openModal(modal),
     closeModal: (replace = false) => routing.closeModal(replace),
@@ -429,11 +434,17 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
 }
 
 export function useAppActions(state: AppState) {
-  const routing = useRoutingActions(state)
+  const latest = useRef(state)
+  useLayoutEffect(() => {
+    latest.current = state
+  }, [state])
+  const getCurrentState = useCallback(() => latest.current, [])
+  const appState = { ...state, getCurrentState }
+  const routing = useRoutingActions(appState)
   const poolKey = useRef(recommendationPoolKey(state))
-  const remote = useRemoteActions({ ...state, recommendationPoolKey: poolKey }, routing)
+  const remote = useRemoteActions({ ...appState, recommendationPoolKey: poolKey }, routing)
   return {
-    ...useStartActions(state, routing, remote),
-    ...useBuilderActions(state, routing, remote),
+    ...useStartActions(appState, routing, remote),
+    ...useBuilderActions(appState, routing, remote),
   }
 }

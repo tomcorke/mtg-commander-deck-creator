@@ -3,9 +3,10 @@ import { useEffect, type ReactNode } from 'react'
 import { duplicateDeckName } from '../deck-state.ts'
 import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
-import { toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
+import { toDeckCard, type DeckCard, type ScryfallCard } from '../domain/card-model.ts'
 import { cardSearchError } from '../domain/card-search.ts'
 import { defaultFinish } from '../domain/printing.ts'
+import { CardReference } from '../shared/CardReference.tsx'
 import { CardSearchView } from '../features/builder/CardSearchView.tsx'
 import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
@@ -490,16 +491,50 @@ function DeckReviewScreen({
   )
 }
 
+function CurrentCardDataNotice({ state, actions, builderData }: AppViewProps) {
+  return (
+    <>
+      {builderData.cardDataNotices.length > 0 && (
+        <section className="workspace-notice" role="alert" aria-label="Current card data">
+          <p className="form-error">
+            {builderData.cardDataPending
+              ? 'Checking current card data. Cards and choices are kept.'
+              : 'Card data warnings. Cards and choices have been kept. Reload to retry unavailable data.'}
+            {state.deck.length === 100 &&
+              !builderData.deckComplete &&
+              ' This deck needs validation; it is not verified complete.'}
+          </p>
+          {!builderData.cardDataPending &&
+            builderData.cardDataNotices
+              .slice(0, 5)
+              .map(({ card, message }: { card: DeckCard; message: string }, index: number) => (
+                <p key={index}>
+                  <CardReference card={card} onOpen={() => actions.openCardReference(card)} />:{' '}
+                  {message}
+                </p>
+              ))}
+          {!builderData.cardDataPending && builderData.cardDataNotices.length > 5 && (
+            <p>{builderData.cardDataNotices.length - 5} more card data warnings.</p>
+          )}
+        </section>
+      )}
+    </>
+  )
+}
+
 export function AppView({ state, actions, builderData }: AppViewProps) {
   const { modeReturn, rememberMode } = useBuilderMode(state)
   const modals = renderModals({ state, actions, builderData })
   const workspaceNotice = (
-    <WorkspaceNotice
-      workspace={state.workspace}
-      autosave={state.autosave}
-      startNew={actions.startOver}
-      chooseDraft={actions.openSavedDecks}
-    />
+    <>
+      <WorkspaceNotice
+        workspace={state.workspace}
+        autosave={state.autosave}
+        startNew={actions.startOver}
+        chooseDraft={actions.openSavedDecks}
+      />
+      <CurrentCardDataNotice state={state} actions={actions} builderData={builderData} />
+    </>
   )
   if (!state.showBuilder)
     return (

@@ -22,6 +22,7 @@ import {
 } from './deck-state.ts'
 import { loadSavedDeck, storeDeck } from './app/deck-actions.ts'
 import type { ActionDeps } from './app/recommendation-actions.ts'
+import { pendingDeckData } from './domain/current-card-data.ts'
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial))
@@ -438,7 +439,7 @@ test('manual saves and autosaved copies both restore an idle, persistable editin
     assert.equal(deps.recommendationOptionsChanged, false)
     assert.equal(deps.collectionError, '')
     assert.equal(deps.activeSavedDeckId, id)
-    assert.deepEqual(deps.deck, state.deck)
+    assert.deepEqual(deps.deck, pendingDeckData(state).deck)
   }
 })
 

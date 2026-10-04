@@ -46,6 +46,8 @@ export type RecommendationCard = {
   commanderLegality?: string
   manaValueKnown?: boolean
   gameChanger?: boolean
+  dataStatus?: 'pending' | 'unavailable'
+  dataWarnings?: string[]
   manaCost: string
   manaValue: number
   detail: string

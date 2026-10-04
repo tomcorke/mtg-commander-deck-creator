@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 
+import { deckDataStatus } from '../domain/deck-data-status.ts'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import type { Card } from '../domain/card-model.ts'
 import { basicLandNames, rolesForCard, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
@@ -90,20 +91,32 @@ export function useRouteEffects(deps: AppEffectsDeps) {
 }
 
 export function useCompletionReviewEffect(deps: AppEffectsDeps) {
-  const { deck, openModal, showBuilder, skipCompletionReviewDecks } = deps
+  const { deck, commander, openModal, showBuilder, skipCompletionReviewDecks } = deps
   const previousCount = useRef(deck.length)
   useEffect(() => {
     const importedDeck = skipCompletionReviewDecks.current.has(deck)
-    if (showBuilder && shouldAutoOpenDeckReview(previousCount.current, deck.length, importedDeck))
+    if (
+      showBuilder &&
+      deckDataStatus(deck, commander, [], [], []).deckComplete &&
+      shouldAutoOpenDeckReview(previousCount.current, deck.length, importedDeck)
+    )
       openModal('review')
     previousCount.current = deck.length
-  }, [deck, deck.length, openModal, showBuilder, skipCompletionReviewDecks])
+  }, [deck, commander, deck.length, openModal, showBuilder, skipCompletionReviewDecks])
 }
 
 export function usePersistenceEffect(deps: AppEffectsDeps) {
   const { recommendationState, currentDeckState, deckName, workspace } = deps
   useEffect(() => {
     if (recommendationState !== 'idle' || !currentDeckState) return
+    const cards = [
+      ...currentDeckState.deck,
+      ...currentDeckState.sideboard,
+      ...currentDeckState.queue,
+      ...currentDeckState.deferredCards.map(({ card }: { card: Card }) => card),
+    ]
+    // Do not replace the recovery snapshot with an in-flight migration.
+    if (cards.some((card: Card) => card.dataStatus === 'pending')) return
     workspace.save(currentDeckState, deckName)
   }, [currentDeckState, recommendationState, deckName, workspace])
 }
@@ -174,8 +187,11 @@ export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
     setDeck,
     fetchCard,
     fetchPrintings,
+    workspace,
   } = deps
+  const workspaceId = workspace?.getSnapshot().id
   useEffect(() => {
+    let cancelled = false
     const names = commanderNames(commander)
     if (
       !commanderDetails ||
@@ -197,11 +213,15 @@ export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
       }),
     )
       .then((printings) => {
+        if (cancelled || (workspace && workspace.getSnapshot().id !== workspaceId)) return
         setCommanderDetails((current: any) => updatedCommanderDetails(current, printings))
         setDeck((current: any[]) => updatedDeckPrintings(current, printings, names))
       })
       .catch(() => undefined)
-  }, [commander, commanderDetails, deck])
+    return () => {
+      cancelled = true
+    }
+  }, [commander, commanderDetails, deck, workspaceId])
 }
 
 export function useBasicCardPrefetchEffect(deps: AppEffectsDeps) {

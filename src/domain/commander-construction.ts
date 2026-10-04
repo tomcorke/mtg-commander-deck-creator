@@ -28,6 +28,8 @@ export function cardCopyLimit(card: DeckCard) {
 }
 
 export function cardConstructionError(card: DeckCard, deck: DeckCard[], colours: string[]) {
+  if (card.dataStatus === 'pending') return 'Current card data is being checked.'
+  if (card.dataStatus === 'unavailable') return 'Current card data is unavailable. Reload to retry.'
   if (card.commanderLegality !== 'legal') return 'Card is not verified legal in Commander.'
   if (!card.colorIdentity) return 'Card colour identity is unknown. Refresh its card data.'
   if (card.manaValueKnown === false || !Number.isFinite(card.manaValue))

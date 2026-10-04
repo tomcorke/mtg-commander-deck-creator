@@ -5,7 +5,7 @@ import { defaultDeckTargets, rolesForCard } from '../deck-analysis.ts'
 import { rankRecommendationCards, recommendationScore } from '../recommendations.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import { fetchScryfallCardsByIdentifiers, fetchScryfallPrintings } from '../adapters/scryfall.ts'
-import { toCard, type Card } from '../domain/card-model.ts'
+import { toDeckCard, toCard, type Card } from '../domain/card-model.ts'
 import { cyclePrinting } from './deck-actions.ts'
 import { loadPrintings } from './printing-actions.ts'
 import {
@@ -25,6 +25,7 @@ const card = (name: string, typeLine = 'Artifact', colourIdentity: string[] = []
   type_line: typeLine,
   cmc: 2,
   legalities: { commander: 'legal' },
+  game_changer: false,
   oracle_text: 'Partner',
   color_identity: colourIdentity,
   set: 'tst',
@@ -409,7 +410,8 @@ test('recommendation refresh and printing enrichment preserve manual printing se
     printings: [[{ finish: 'foil' }]],
     selections: [0],
   }
-  let details = commanderDetails
+  let details = { ...commanderDetails, colours: ['G'] }
+  let refreshedDeck = [toDeckCard(card('Commander'))]
   addCommanderCards(
     {
       commanderDetails,
@@ -417,7 +419,9 @@ test('recommendation refresh and printing enrichment preserve manual printing se
       setCommanderDetails: (value: typeof details) => {
         details = value
       },
-      setDeck: () => assert.fail('Refresh must not replace deck cards'),
+      setDeck: (update) => {
+        refreshedDeck = update(refreshedDeck)
+      },
     },
     {
       commanders: [card('Commander')],
@@ -428,7 +432,10 @@ test('recommendation refresh and printing enrichment preserve manual printing se
     },
     true,
   )
-  assert.equal(details, commanderDetails)
+  assert.equal(details.images, commanderDetails.images)
+  assert.equal(details.printings, commanderDetails.printings)
+  assert.deepEqual(details.colours, [])
+  assert.equal(refreshedDeck[0].commanderLegality, 'legal')
   let queued = {
     ...toCard(card('Manual'), 'Popular inclusion'),
     image: 'chosen-art',

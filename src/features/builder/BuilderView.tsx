@@ -54,6 +54,8 @@ import { ManaCurve } from './ManaCurve.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 
+import { recommendationDataError } from '../../domain/deck-data-status.ts'
+
 type AnyFunction = (...args: any[]) => any
 
 const manaGuidanceName = (symbol: string) =>
@@ -802,7 +804,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           )}
           {deck.length >= 100 && (
             <div className="completion sideboard-completion">
-              <p className="eyebrow">Main deck complete</p>
+              <p className="eyebrow">
+                {model.deckComplete ? 'Main deck complete' : 'Main deck needs validation'}
+              </p>
               <h2>Build your sideboard</h2>
               <p>Further picks go to sideboard. Move cards into main deck after removing a card.</p>
             </div>
@@ -884,6 +888,17 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           className="primary"
                           type="button"
                           aria-pressed={decisions[card.name] === 'add'}
+                          disabled={
+                            decisions[card.name] !== 'add' &&
+                            Boolean(
+                              recommendationDataError(
+                                card,
+                                deck.length < 100 ? deck : sideboard,
+                                commanderDetails?.colours ?? [],
+                                model.excludeGameChangers,
+                              ),
+                            )
+                          }
                           onClick={() => decide(card, 'add')}
                         >
                           {deck.length >= 100 && decisions[card.name] !== 'add'
@@ -1355,7 +1370,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <h2 id="deck-list-title">{deck.length} cards</h2>
             </div>
             <div>
-              <span>{deck.length}% complete</span>
+              <span>
+                {deck.length}/100 cards
+                {deck.length === 100 && !model.deckComplete ? ' · Needs validation' : ''}
+              </span>
               <button
                 className="manual-card-button"
                 ref={cardSearchButton}

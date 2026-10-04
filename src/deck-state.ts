@@ -31,6 +31,8 @@ const cardBase = {
   commanderLegality: z.string().optional(),
   manaValueKnown: z.boolean().optional(),
   gameChanger: z.boolean().optional(),
+  dataStatus: z.enum(['pending', 'unavailable']).optional(),
+  dataWarnings: z.array(z.string()).optional(),
   manaCost: z.string(),
   manaValue: z.number(),
   power: z.string().optional(),

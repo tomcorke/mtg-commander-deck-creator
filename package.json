@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test",
     "test:browser:a14": "node --experimental-strip-types scripts/check-a14-browser.ts",
+    "test:browser:b12": "node --experimental-strip-types scripts/check-b12-browser.ts",
     "audit:recommendations": "node --experimental-strip-types scripts/recommendation-audit.ts",
     "typecheck": "tsc -b --noEmit"
   },
