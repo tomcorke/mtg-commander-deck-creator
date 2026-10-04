@@ -2,6 +2,25 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [B18] Move saved decks and autosaves out of localStorage
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Persistence, migration, and cross-tab sync change together; an error loses player decks.
+
+**Status:** Complete (2026-10-04).
+
+On the live site, localStorage was full at about 5.0M characters. Saved decks used 3.66M, so autosaves failed and recent changes could be lost.
+
+- Saved decks, autosaves, and autosave limits now live in IndexedDB (`src/app-storage.ts`). An in-memory copy, loaded once at startup, keeps the synchronous storage interface that `deck-state.ts` and `autosaves.ts` use, so their callers did not change. Each write goes through to IndexedDB in its own transaction. Display preferences (`theme`, `option:*`) stay in localStorage.
+- On first load, every `commander-*` localStorage key that IndexedDB lacks is copied. Each copy is read back, and only exact matches are removed from localStorage. If IndexedDB cannot open or the copy fails, the app keeps using localStorage.
+- Other tabs update their copy from a `BroadcastChannel` message sent once each write is durable. This replaces the `storage` event in `useWorkspaceState.ts`.
+- A write that fails after the copy has updated shows the existing "Autosave unavailable" warning. Manual saves now trigger it too.
+- The app calls `navigator.storage.persist()`. Showing usage stays with B29.
+- Stored decks are smaller. Deck and sideboard cards keep only their chosen printing, as queue cards already did; alternate printings are fetched again when a card is opened. Deck, sideboard, and queue are stored as field tables. A 100-card deck of popular cards with 120 queued recommendations went from 4.56M to 222K characters. Card text and gameplay fields are still stored, so a saved deck opens correctly even when Scryfall is unavailable. Dropping them would save about another half but would leave decks without types or mana values offline.
+
+Acceptance evidence: `pnpm check:b18:browser` seeds 4.9M characters of pre-B18 data in Chrome. It confirms that every saved deck and autosave reopens unchanged, the legacy keys are removed, 20 complete decks and 10 autosaves save without quota errors, two tabs see each other's saves and autosaves, and an aborted IndexedDB write shows the warning.
+
+Follow-up: the earlier browser scripts (`check-a14`, `check-a2-a9`, `check-b10`, `check-b12`, `check-deck-review`) read deck data directly from localStorage after load and need updating before they are run again. A14's localStorage quota check no longer applies.
+
 ## [A6] Expand recommendations using signature cards in the deck
 
 **Complexity:** High · **Value:** High · **Delivery risk:** Medium — The bounded integration is tested; heuristic relevance and undocumented provider sources still need player review.

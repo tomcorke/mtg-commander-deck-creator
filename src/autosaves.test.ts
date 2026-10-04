@@ -13,6 +13,7 @@ import {
 } from './autosaves.ts'
 import {
   deckStateChanged,
+  deckStateForStorage,
   deckStateKey,
   loadSavedDecks,
   persistedDeckStateSchema,
@@ -771,7 +772,7 @@ test('autosaves, session recovery and manual saves stay below 60K characters wit
     assert.equal(loaded.queue[0].printing, 0)
     assert.deepEqual(loaded.queue[0].printings?.[0], printings[17])
     assert.deepEqual(loaded.deferredCards[0].card, loaded.queue[0])
-    assert.deepEqual(loaded.deck, JSON.parse(JSON.stringify(full.deck)))
+    assert.deepEqual(loaded.deck, JSON.parse(JSON.stringify(deckStateForStorage(full).deck)))
     assert.equal(deckStateChanged(loaded, full), false)
     const changed = {
       ...loaded,

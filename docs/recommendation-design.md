@@ -120,7 +120,7 @@ Before 70 cards, show analysis without warnings. At 70 cards, show quiet gap gui
 
 ## Deck lifecycle
 
-- Persist commander or partner pair, deck, filters, targets, active sub-themes, ignored cards, and recommendation history in `localStorage`.
+- Persist commander or partner pair, deck, filters, targets, active sub-themes, ignored cards, and recommendation history in IndexedDB (see `src/app-storage.ts`).
 - Parse stored data through Zod before use. Stored envelope includes a numeric version.
 - Keep schema changes forwards compatible where practical: add optional fields with defaults, preserve unknown future fields when migrating, and add explicit migrations before changing or removing existing fields. Never treat unvalidated storage as app state.
 - `Start over` requires confirmation.
