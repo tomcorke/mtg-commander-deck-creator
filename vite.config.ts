@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 const publishCount = Number(
-  execFileSync('git', ['rev-list', '--count', 'origin/publish'], { encoding: 'utf8' }).trim(),
+  execFileSync('git', ['rev-list', '--count', 'origin/publish'], {
+    encoding: 'utf8',
+    windowsHide: true,
+  }).trim(),
 )
 const version = `0.1.${publishCount}`
 

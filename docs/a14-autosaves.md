@@ -23,9 +23,32 @@ Retention defaults to 10 drafts and seven days. Limits are shared across tabs an
 
 `src/autosaves.test.ts` uses independent session stores, shared origin storage, an atomic Web Locks stub, and BroadcastChannel stubs. Its go/no-go check passed before retention was added. Tests cover concurrent edits and reloads, simultaneous duplicate startup, active and inactive draft copies, migration and failed writes, retention boundaries, suspended owners, reload/prune handover, manual-save separation, picker notifications, and recovery after a previous recommendation error. Follow-up tests cover retention-bound quota cleanup and rapid-edit retries, cleanup notices after successful and failed retries, storage-full limit failures, compact queue round trips, printing enrichment and switching after restoration, unchanged startup and reload without copies, a single migrated draft, inactive-source manual-save links, explicit named-save overwrites, protected draft deletion and failure status, deletion-count previews, and notice suppression after reload. A synthetic printing-heavy fixture with 12 deck cards, 19 queued cards with 40 printing options each, and one deferred card must serialize below 60,000 characters for each save type. It currently uses 54,341 characters for the autosave and session recovery, and 54,335 for the manual save. This is a fixture budget, not a maximum for every possible deck.
 
-Opus reported that isolation, duplicate-tab forking, live-draft copies, restored notices, migration recovery, Back/Forward cache, and picker keyboard handling passed in Chrome. Pi did not run interactive browser checks or verify rendered appearance. The follow-up Chrome checks below remain required before merge.
+Opus previously reported that isolation, duplicate-tab forking, live-draft copies, restored notices, migration recovery, Back/Forward cache, and picker keyboard handling passed in Chrome. Pi has now run the functional gate below. Opus's appearance gate remains required before merge.
 
 Existing out-of-scope boundary: the commander-printing effect does not cancel its foreground requests when decks change. This branch disables picker deck opens during recommendation loading but does not add general foreground-request cancellation.
+
+## Real-browser functional gate
+
+Run `pnpm test:browser:a14`. An optional number selects one case, for example `pnpm test:browser:a14 2`. `scripts/check-a14-browser.ts` starts its own Vite server on port 5264 (`A14_PORT` overrides it), launches installed Chrome through `playwright-core`, and closes only its own server, browser, and disposable contexts. It keeps sandboxing enabled, hides Windows subprocesses, mocks providers and card images, and uses real DOM clicks and keyboard input with `node:assert`. No browser bundle, test framework, user profile, or screenshots are used. Fixtures come from `scripts/fixtures/a14.ts`, shared with the unit gate; storage fixtures are checked against the existing schemas.
+
+All six cases passed in headless Chrome 154.0.8037.93:
+
+1. **Compact saves and printing restoration:** autosave and manual-save size budgets; queue order, deck additions, Add/Later/Ignore choices, preferences, and deferred-card round trips; selected images, manually selected foil, and working printing/finish switches after autosave reload and manual-save reopening without a page reload. Browser records measured 54,875 autosave characters and 54,895 manual-save characters before adding cards. This fixture adds construction-valid test metadata to the shared printing-heavy fixture.
+2. **Real quota and retries:** fill Chrome's localStorage until its native quota rejects writes; type rapid edits; remove only expired inactive drafts; retain live drafts, within-limit drafts, manual saves, and junk data. Also check deletion feedback when freed space is insufficient, storage-full limit errors, recovery after freeing space, and cleanup-message dismissal.
+3. **Unedited copies:** two fresh tabs and one inherited-session duplicate reload without creating origin drafts or evicting a distinct draft under a low limit. Editing one copy creates exactly one additional draft and leaves the others unchanged.
+4. **Legacy and manual-save links:** two concurrent startups migrate one origin draft. A schema-valid older full-object manual save, with defaulted fields omitted, appears before and after reload. Live copies stay unlinked; cancelling a named overwrite preserves the save; confirming reuses its id. A fresh tab resumes an inactive linked draft with its name, unchanged title marker, and working explicit overwrite after editing.
+5. **Deletion and limits:** current/live Delete controls are disabled; held-lock and changed-record confirmations fail visibly; an individual inactive draft can be deleted without changing protected records. Limits show the confirmation count, preserve storage on cancellation, report actual deletion counts, and enforce native count/age bounds. Focus remains in the picker after failed or completed deletion. Manual-save and draft card-count text sizes match.
+6. **Notices and dialogs:** dismissed and undismissed recovery notices stay hidden on reload; new copies identify themselves. Picker and card-details Tab/Shift+Tab, Escape, focus entry/return, start-screen opening, and thumbnail hover/focus previews pass. Functional preview/keyboard checks also run in dark, commander-themed, and 390-pixel-wide layouts.
+
+### Findings
+
+- The reported older-save disappearance was not reproduced with a valid old-format fixture. No legacy-storage behavior was changed.
+- Opening card details from the picker left focus on the page because the outgoing picker restored focus after the details close button's commit-time autofocus. Shared `useDialogFocus` now runs after dialog cleanup and provides entry, trapping, Escape, and connected-opener restoration for both dialogs. It also recovers focus when a control is disabled or removed during deletion.
+- Rotated card images put printing controls beneath card titles in the stacking order, so headings intercepted real clicks. Images with controls now sit above titles; spacing and layout are unchanged.
+
+### Remaining review
+
+This gate does not approve appearance. Opus must still review alert placement, card/control layering, text wrapping, themes, narrow layouts, and preview appearance with real card images. The gate simulates inherited session storage rather than Chrome's Duplicate command. It does not rerun frozen-tab, Back/Forward-cache, no-Web-Locks, or live-provider scenarios; the existing unit gate and earlier Opus report are separate evidence for those paths.
 
 ## Follow-up Chrome checks
 

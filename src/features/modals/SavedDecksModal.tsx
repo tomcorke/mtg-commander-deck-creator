@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import { useDialogFocus } from '../../shared/hooks.ts'
 
 import type { SavedDeck } from '../../deck-state.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
@@ -50,7 +51,7 @@ export function SavedDecksModal({
   removeSavedDeck,
   closeModal,
 }: SavedDecksModalProps) {
-  const dialog = useRef<HTMLElement>(null)
+  const dialog = useDialogFocus(show, closeModal)
   const [retentionResult, setRetentionResult] = useState('')
   async function applyLimits(values: FormData) {
     setRetentionResult('')
@@ -74,12 +75,7 @@ export function SavedDecksModal({
   }
   useEffect(() => {
     if (!show) return
-    const opener = document.activeElement as HTMLElement | null
-    dialog.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
     void workspace.refresh()
-    return () => {
-      if (opener?.isConnected) opener.focus()
-    }
   }, [show, workspace])
   if (!show) return null
 
@@ -92,28 +88,7 @@ export function SavedDecksModal({
     >
       <section
         className="export-modal saved-decks-modal"
-        ref={dialog}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation()
-            closeModal()
-          }
-          if (event.key !== 'Tab') return
-          const controls = [
-            ...event.currentTarget.querySelectorAll<HTMLElement>(
-              'button:not(:disabled), input:not(:disabled), a[href]',
-            ),
-          ]
-          const first = controls[0]
-          const last = controls.at(-1)
-          if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault()
-            last?.focus()
-          } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault()
-            first?.focus()
-          }
-        }}
+        {...dialog}
         role="dialog"
         aria-modal="true"
         aria-labelledby="saved-decks-title"
