@@ -17,84 +17,53 @@ Rate each dimension Low / Medium / High:
 - **Value:** Low benefits a narrow case; Medium meaningfully helps a subset of players; High improves a core workflow or deck quality.
 - **Delivery risk:** Low means a clear path and existing patterns; Medium means material assumptions need validation; High means uncertain feasibility or data quality could consume substantial effort and still produce little value.
 
-Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, B9, B13, B14, A14, A2, A9, B10, B11, B4, and B12.
+Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5, B6, B7, B8, A7, A8, A10, A12, A11, A13, B9, B13, B14, A14, A2, A9, B10, B11, B4, B12, and A6.
 
 ## Suggested order
 
-Ship the completed-feature batch before starting A16–A19 or B15–B17. A6's representative-player gate and A15's Moxfield verification remain open; their technical work does not establish those outcomes.
+Ship the completed-feature batch before starting A16–A19 or B15–B17. A15's Moxfield verification remains open; its technical work does not establish that outcome. A6 closed at the user's request without representative-player review.
 
 A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `chore/todo-shipping@64efe8f`. A20–A33 and B18–B32 come from the 2026-10-04 visual design and UX review of the live site (`main@0ccbaed`); B18 comes first because it can lose decks. Release evidence and nonblocking follow-ups are in [the acceptance record](docs/completed-features-acceptance-2026-10-04.md).
 
-| Order | ID  | TODO                                   | Complexity | Value  | Delivery risk | Reason                                                                             |
-| ----- | --- | -------------------------------------- | ---------- | ------ | ------------- | ---------------------------------------------------------------------------------- |
-| 1     | B18 | Saved decks out of localStorage        | High       | High   | Medium        | Storage is full on the live site; autosaves fail and decks can be lost.            |
-| 2     | A6  | Signature-card player review           | High       | High   | Medium        | Technical validation is complete; representative-player relevance is not verified. |
-| 3     | A15 | Remaining Moxfield verification        | Medium     | Medium | Medium        | Policy/provider fixes are implemented; browser access blocked the import check.    |
-| 4     | A16 | Clear batch decisions and tile states  | Low        | High   | Low           | Most-used screen; selected Later and Ignore need distinct states.                  |
-| 5     | B17 | Consistent mana and land guidance      | Low        | Medium | Low           | Align existing targets and identity-based presentation.                            |
-| 6     | B15 | Actionable review progress and results | Medium     | High   | Low           | Review navigation, feedback and incomplete-deck guidance.                          |
-| 7     | B19 | Consistent card tiles; text deck list  | Medium     | High   | Low           | Five tile styles today; condensed deck list requested.                             |
-| 8     | B31 | Better layout for review additions     | Medium     | High   | Low           | 13 pages of small tiles; builds on B19.                                            |
-| 9     | A22 | Start screen as a full page            | Medium     | High   | Low           | Commander choice is a key step squeezed into a narrow column.                      |
-| 10    | B20 | Replace the 0-100 score display        | Low        | Medium | Low           | Low absolute scores make good picks look poor.                                     |
-| 11    | A28 | Calm card-data check status            | Low        | Medium | Low           | Red banner, layout shift and empty curve on every reload.                          |
-| 12    | A30 | Card art clear of tile controls        | Low        | Medium | Low           | Art covers a decision control.                                                     |
-| 13    | A31 | Card details from recommendation names | Low        | Medium | Low           | Reuse CardReference as ui.md requires.                                             |
-| 14    | B28 | Deck review on small decks             | Low        | Medium | Low           | Early review looks broken and shows false success checks.                          |
-| 15    | B30 | Plain labels for review additions      | Low        | Medium | Low           | Copy only.                                                                         |
-| 16    | A21 | Simpler commander Choose button        | Low        | Medium | Low           | Removes three-line wrapping and misalignment.                                      |
-| 17    | A20 | Clearer commander tile captions        | Low        | Medium | Low           | Copy and layout only.                                                              |
-| 18    | A24 | Builder starts at the top              | Low        | Medium | Low           | Header is cut off after choosing a commander.                                      |
-| 19    | A26 | Clearer play-style cards               | Low        | Medium | Low           | First choice after picking a commander.                                            |
-| 20    | B27 | Clearer search results and actions     | Low        | Medium | Low           | Copy and action styling.                                                           |
-| 21    | B22 | Investigation: button hierarchy        | Medium     | Medium | Low           | Spike and prototype before any change.                                             |
-| 22    | B24 | Document repeated role-target figures  | Low        | Medium | Low           | Doc for a layout decision.                                                         |
-| 23    | B25 | Confirmation dialog consistency        | Low        | Medium | Low           | Replace window.confirm after agreeing a pattern.                                   |
-| 24    | B16 | Role-tag and cut-flag accuracy         | High       | High   | Medium        | Investigate labelled real decks before changing heuristics.                        |
-| 25    | A17 | Forgiving, transparent import          | Medium     | Medium | Low           | Front-face matching, partial imports and replacement confirmation.                 |
-| 26    | A18 | Narrow-screen layout                   | Medium     | Medium | Low           | Keep progress visible and remove overflow.                                         |
-| 27    | A19 | Start-screen keyboard and SR state     | Low        | Medium | Low           | Finish result navigation and focus handoff on the new discovery flow.              |
-| 28    | B26 | Readable search filters                | Medium     | Medium | Low           | Narrow nested-scroll panel and unclear labels.                                     |
-| 29    | B29 | Remaining dialog issues                | Medium     | Medium | Low           | Save/load, export and settings fixes; storage usage after B18.                     |
-| 30    | B23 | Consistent content widths              | Medium     | Medium | Low           | Shared page widths; A22 and B19 benefit.                                           |
-| 31    | B21 | Shared text components                 | High       | Medium | Medium        | Agree a type scale first; touches most screens.                                    |
-| 32    | A23 | Consistent header labels               | Low        | Low    | Low           | Copy only.                                                                         |
-| 33    | A25 | Correct card-count wording             | Low        | Low    | Low           | Copy only.                                                                         |
-| 34    | A27 | Accurate setup and loading headings    | Low        | Low    | Low           | Copy by state.                                                                     |
-| 35    | A29 | Less prominent Start over              | Low        | Low    | Low           | Button style.                                                                      |
-| 36    | A32 | Intro guide placement                  | Low        | Low    | Low           | Popover positioning.                                                               |
-| 37    | A33 | Move the API request indicator         | Low        | Low    | Low           | Move one control.                                                                  |
-| 38    | B32 | Step-heading focus style               | Low        | Low    | Low           | CSS.                                                                               |
-
-## [A6] Expand recommendations using signature cards in the deck
-
-**Complexity:** High · **Value:** High · **Delivery risk:** Medium — The bounded integration is tested; heuristic relevance and undocumented provider sources still need player review.
-
-Commander-based EDHREC lists can miss cards that support engines already chosen for the deck. Keep the commander as the initial source, then supplement it from selected main-deck engines.
-
-**Released baseline (2026-09-30): `47dab89`.** The [investigation and validation report](docs/a6-signature-card-investigation.md#implemented-trial) records the counters, blink/ETB, and sacrifice trial. It selects at most two supported engines after a two-second pause, reads one page per seed, and hydrates at most 48 names through the shared cache. Provider pacing, cooldowns, request ceilings, eligibility rechecks, persisted seed evidence, partner exclusions, and stale saved-deck responses are covered. Browser checks preserve current choices and later-batch behavior. The supplied Anikthea deck produced four eligible additions beyond its commander pool when tested as an 86-card partial deck; its complete 100-card main deck correctly pauses enrichment. Unsupported mechanics do not trigger fetching. Requests remain user-driven; permission is not an investigation gate. Player acceptance remains unproven.
-
-**Released expansion: mechanics `d18fc56` and rolling-hour recovery `f928509`.** Added tokens/populate, enchantments, artifacts, lifegain, graveyard/recursion, spellslinger, landfall, and equipment profiles with labeled positive/negative checks. Limits are three seeds and at most 72 hydration names per pass, eight background source attempts/four POSTs per deck per rolling hour, and 24/12 per tab per rolling hour. The user approved rolling replenishment and automatic recovery of transient failures. Retries use 10s/20s/40s exponential backoff with jitter, capped at five minutes, and never precede provider cooldowns. Each actual background retry consumes allowance; cached, queued-cancelled, and foreground-promoted work does not consume an extra request. Pending source and hydration work resumes only in the visible, idle partial-deck builder. Shared transport still permits one EDHREC request and two Scryfall requests at a time, including response bodies, with unchanged pacing and foreground priority. The expanded Anikthea pass used three source GETs and one collection POST, adding 18 names absent from its complete commander pool. Novelty does not establish player relevance; the [report](docs/a6-signature-card-investigation.md#expanded-mechanics-and-limits) records that distinction.
-
-**Released seed precision fix: `5829d80`.** Equipped/enchanted death and combat triggers (Skullclamp, Swords) no longer count as Equipment or Sacrifice engines, and opponent-triggered sentences (Smothering Tithe) are ignored when testing engine wording. A staples-only deck now selects no incidental seeds. A hardcoded staple list was rejected: lift ≥ 1.5 already filters staple results, and some staples (Phyrexian Altar) are real engines. Completed results now merge into the queue once.
-
-- Keep seed selection tied to repeatable engine wording and at least two other main-deck participants. Legendary or planeswalker status earns no bonus; commanders, sideboard cards, lands, and ordinary staples are not seeds.
-- Use card-page co-occurrence or a suitable blink commander's page. Skip an unavailable source without trying a second route. Do not use the Recs endpoint or add a proxy for this trial.
-- The user approved the expanded profiles, rolling-hour request allowances, and transient-failure retries. Keep further increases subject to explicit approval, and review the supported families with players. Broader coverage must produce useful additions without selecting every card on every deck change.
-- Build on A5's cache and deduplication. Bound concurrency, request frequency, and total work for both EDHREC and Scryfall; foreground requests take priority, and background work respects provider cooldowns.
-- Quietly merge completed results into the pending recommendation pool. Keep the visible batch and Add/Later/Ignore/like choices stable; new cards should naturally enter subsequent batches through the same goal-aware scoring and ranking as all other candidates.
-- Deduplicate results, retain source/seed evidence for explanations, and respect commander identity, legality, exclusions, collection constraints, ignored cards, and deferred-card cooldowns.
-- Cancel or discard stale jobs when the deck or recommendation context changes. Background failures must not clear the queue, block local batches, or replace the main workflow with an error screen.
-
-Current context: `edhrecRecommendations` in `src/app/recommendation-actions.ts` uses the commander or partner pair and hydrates names through Scryfall. `src/domain/recommendation-queue.ts` owns batching and deferrals; the shared scoring/context modules should also evaluate added candidates.
-
-Go/no-go: the released baseline and approved expansion have source, transport, queue, and browser evidence. Representative player review remains necessary before claiming improved relevance; the current approval does not authorize unrestricted scans or future cap increases. If a mechanic cannot produce useful additions within the current budget, retain commander-first behavior rather than inventing unsupported recommendations.
-
-Acceptance checks:
-
-- Known decks demonstrate useful signature-card selection and additional candidates beyond the commander pool; non-legendary theme engines can be considered without selecting every staple.
-- Late results appear in later batches with the same scoring rules, without duplicates, resurrected ignored/deferred cards, or changed current choices.
-- Measured request counts, rolling-hour boundaries, repeated deck edits, backoff, rate limits, failures, hidden tabs, and deck switches demonstrate bounded work and safe recovery. Successful work is reused; permanent failures do not retry.
+| Order | ID  | TODO                                   | Complexity | Value  | Delivery risk | Reason                                                                          |
+| ----- | --- | -------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------- |
+| 1     | B18 | Saved decks out of localStorage        | High       | High   | Medium        | Storage is full on the live site; autosaves fail and decks can be lost.         |
+| 2     | A15 | Remaining Moxfield verification        | Medium     | Medium | Medium        | Policy/provider fixes are implemented; browser access blocked the import check. |
+| 3     | A16 | Clear batch decisions and tile states  | Low        | High   | Low           | Most-used screen; selected Later and Ignore need distinct states.               |
+| 4     | B17 | Consistent mana and land guidance      | Low        | Medium | Low           | Align existing targets and identity-based presentation.                         |
+| 5     | B15 | Actionable review progress and results | Medium     | High   | Low           | Review navigation, feedback and incomplete-deck guidance.                       |
+| 6     | B19 | Consistent card tiles; text deck list  | Medium     | High   | Low           | Five tile styles today; condensed deck list requested.                          |
+| 7     | B31 | Better layout for review additions     | Medium     | High   | Low           | 13 pages of small tiles; builds on B19.                                         |
+| 8     | A22 | Start screen as a full page            | Medium     | High   | Low           | Commander choice is a key step squeezed into a narrow column.                   |
+| 9     | B20 | Replace the 0-100 score display        | Low        | Medium | Low           | Low absolute scores make good picks look poor.                                  |
+| 10    | A28 | Calm card-data check status            | Low        | Medium | Low           | Red banner, layout shift and empty curve on every reload.                       |
+| 11    | A30 | Card art clear of tile controls        | Low        | Medium | Low           | Art covers a decision control.                                                  |
+| 12    | A31 | Card details from recommendation names | Low        | Medium | Low           | Reuse CardReference as ui.md requires.                                          |
+| 13    | B28 | Deck review on small decks             | Low        | Medium | Low           | Early review looks broken and shows false success checks.                       |
+| 14    | B30 | Plain labels for review additions      | Low        | Medium | Low           | Copy only.                                                                      |
+| 15    | A21 | Simpler commander Choose button        | Low        | Medium | Low           | Removes three-line wrapping and misalignment.                                   |
+| 16    | A20 | Clearer commander tile captions        | Low        | Medium | Low           | Copy and layout only.                                                           |
+| 17    | A24 | Builder starts at the top              | Low        | Medium | Low           | Header is cut off after choosing a commander.                                   |
+| 18    | A26 | Clearer play-style cards               | Low        | Medium | Low           | First choice after picking a commander.                                         |
+| 19    | B27 | Clearer search results and actions     | Low        | Medium | Low           | Copy and action styling.                                                        |
+| 20    | B22 | Investigation: button hierarchy        | Medium     | Medium | Low           | Spike and prototype before any change.                                          |
+| 21    | B24 | Document repeated role-target figures  | Low        | Medium | Low           | Doc for a layout decision.                                                      |
+| 22    | B25 | Confirmation dialog consistency        | Low        | Medium | Low           | Replace window.confirm after agreeing a pattern.                                |
+| 23    | B16 | Role-tag and cut-flag accuracy         | High       | High   | Medium        | Investigate labelled real decks before changing heuristics.                     |
+| 24    | A17 | Forgiving, transparent import          | Medium     | Medium | Low           | Front-face matching, partial imports and replacement confirmation.              |
+| 25    | A18 | Narrow-screen layout                   | Medium     | Medium | Low           | Keep progress visible and remove overflow.                                      |
+| 26    | A19 | Start-screen keyboard and SR state     | Low        | Medium | Low           | Finish result navigation and focus handoff on the new discovery flow.           |
+| 27    | B26 | Readable search filters                | Medium     | Medium | Low           | Narrow nested-scroll panel and unclear labels.                                  |
+| 28    | B29 | Remaining dialog issues                | Medium     | Medium | Low           | Save/load, export and settings fixes; storage usage after B18.                  |
+| 29    | B23 | Consistent content widths              | Medium     | Medium | Low           | Shared page widths; A22 and B19 benefit.                                        |
+| 30    | B21 | Shared text components                 | High       | Medium | Medium        | Agree a type scale first; touches most screens.                                 |
+| 31    | A23 | Consistent header labels               | Low        | Low    | Low           | Copy only.                                                                      |
+| 32    | A25 | Correct card-count wording             | Low        | Low    | Low           | Copy only.                                                                      |
+| 33    | A27 | Accurate setup and loading headings    | Low        | Low    | Low           | Copy by state.                                                                  |
+| 34    | A29 | Less prominent Start over              | Low        | Low    | Low           | Button style.                                                                   |
+| 35    | A32 | Intro guide placement                  | Low        | Low    | Low           | Popover positioning.                                                            |
+| 36    | A33 | Move the API request indicator         | Low        | Low    | Low           | Move one control.                                                               |
+| 37    | B32 | Step-heading focus style               | Low        | Low    | Low           | CSS.                                                                            |
 
 ## [A15] Verify remaining Moxfield guidance after policy/provider fixes
 
