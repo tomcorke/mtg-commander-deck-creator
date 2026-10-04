@@ -93,6 +93,82 @@ try {
   await page.goto(`${process.env.A15_URL ?? 'http://127.0.0.1:5235/'}#build`)
   await page.getByRole('heading', { name: 'Deck overview', exact: true }).waitFor()
   const opener = page.getByRole('button', { name: 'Recommendation settings', exact: true })
+  const checkHelpGeometry = async (width: number, dark: boolean) => {
+    await page.setViewportSize({ width, height: 950 })
+    const themeButton = page.getByRole('button', { name: dark ? /Light/ : /Dark/ })
+    if (await themeButton.count()) await themeButton.click()
+    await opener.click()
+    const settings = page.getByRole('dialog', { name: 'Recommendation settings' })
+    const triggers = settings.locator('.setting-help-button')
+    assert.equal(await triggers.count(), 10, 'all ten setting help triggers render')
+    const focusable = settings.locator(
+      'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary',
+    )
+    await settings.getByRole('button', { name: 'Close recommendation settings' }).focus()
+    for (let index = 0; index < (await triggers.count()); index++) {
+      const trigger = triggers.nth(index)
+      const limit = await focusable.count()
+      for (let tab = 0; tab < limit; tab++) {
+        if (await trigger.evaluate((el) => el === document.activeElement)) break
+        await page.keyboard.press('Tab')
+      }
+      assert.equal(
+        await trigger.evaluate((el) => el === document.activeElement),
+        true,
+        `Tab reaches help ${await trigger.getAttribute('aria-label')} at ${width}px`,
+      )
+      const id = await trigger.getAttribute('aria-describedby')
+      assert.ok(id)
+      const tip = settings.locator(`#${id}`)
+      assert.equal(await tip.evaluate((el) => getComputedStyle(el).visibility), 'visible')
+      const [tipBox, triggerBox, modalBox] = await Promise.all([
+        tip.boundingBox(),
+        trigger.boundingBox(),
+        settings.boundingBox(),
+      ])
+      const labelBox = await trigger.evaluate((el) => {
+        const group = el.closest(
+          '.recommendation-setting, .recommendation-setting-toggle, .collection-mode-setting, legend',
+        )
+        const label = group?.querySelector('label, legend > span:not(.setting-help-wrap)')
+        return label?.getBoundingClientRect().toJSON() ?? null
+      })
+      assert.ok(
+        tipBox && triggerBox && modalBox && labelBox,
+        `measured tooltip, label and trigger: ${await trigger.getAttribute('aria-label')}`,
+      )
+      assert.ok(
+        tipBox.x >= modalBox.x &&
+          tipBox.y >= modalBox.y &&
+          tipBox.x + tipBox.width <= modalBox.x + modalBox.width &&
+          tipBox.y + tipBox.height <= modalBox.y + modalBox.height,
+        `tooltip inside ${width}px ${dark ? 'dark' : 'light'} modal: ${await trigger.getAttribute('aria-label')} ${JSON.stringify({ tipBox, modalBox })}`,
+      )
+      const overlaps = (
+        a: { x: number; y: number; width: number; height: number },
+        b: { x: number; y: number; width: number; height: number },
+      ) =>
+        a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+      assert.equal(
+        overlaps(tipBox, labelBox),
+        false,
+        `tooltip does not cover setting label: ${await trigger.getAttribute('aria-label')}`,
+      )
+      assert.equal(
+        overlaps(tipBox, triggerBox),
+        false,
+        `tooltip does not cover help trigger: ${await trigger.getAttribute('aria-label')}`,
+      )
+    }
+    await page.keyboard.press('Escape')
+    await settings.waitFor({ state: 'detached' })
+  }
+  for (const width of [1440, 1024, 768, 390]) {
+    await checkHelpGeometry(width, false)
+    await checkHelpGeometry(width, true)
+  }
+  await page.getByRole('button', { name: /Dark/ }).click()
+  await page.setViewportSize({ width: 390, height: 844 })
   await opener.click()
   const dialog = page.getByRole('dialog', { name: 'Recommendation settings' })
   const help = dialog.getByRole('button', { name: 'Explain Priority' })
@@ -183,7 +259,7 @@ try {
   assert.doesNotMatch(await exportDialog.innerText(), /Moxfield cannot import/i)
   assert.deepEqual(errors, [])
   console.log(
-    `A15 functional browser gate passed: Chrome ${browser.version()}, sandbox enabled; 390px keyboard, focus, tooltip geometry/ARIA, preference labels, export copy, Escape and focus restoration.`,
+    `A15 browser gate passed: Chrome ${browser.version()}, sandbox enabled; all 10 help triggers keyboard-checked at 1440/1024/768/390px in light/dark, plus preference/export copy and dialog focus behavior.`,
   )
   await context.close()
 } finally {
