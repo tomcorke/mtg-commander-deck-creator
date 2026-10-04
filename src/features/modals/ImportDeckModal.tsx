@@ -15,6 +15,7 @@ type ImportDeckModalProps = {
   closeModal: () => void
 }
 
+// eslint-disable-next-line max-lines-per-function -- The import flow markup stays together.
 export function ImportDeckModal({
   show,
   importState,

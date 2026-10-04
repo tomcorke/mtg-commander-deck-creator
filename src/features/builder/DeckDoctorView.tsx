@@ -113,6 +113,7 @@ function hasCardError(card: Card, deck: DeckCard[], commanderColours: string[]) 
   return Boolean(cardConstructionError(card, deck, commanderColours))
 }
 
+// eslint-disable-next-line max-lines-per-function, sonarjs/cognitive-complexity -- The doctor workflow markup stays intact; its standalone helpers remain checked.
 export function DeckDoctorView({
   appHeader,
   step,

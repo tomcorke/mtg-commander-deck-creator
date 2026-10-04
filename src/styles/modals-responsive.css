@@ -1,0 +1,166 @@
+.dark .export-modal {
+  background: #19182d;
+}
+.dark .recommendation-options {
+  color: #aaa8c2;
+}
+.dark .recommendation-settings-summary p,
+.dark .settings-help,
+.dark .recommendation-settings-actions > span {
+  color: #aaa8c2;
+}
+.dark .recommendation-options .setting-help-button {
+  border-color: #4b4867;
+  color: #ccc9df;
+}
+.dark .recommendation-options .setting-help-button:hover,
+.dark .recommendation-options .setting-help-button:focus-visible {
+  border-color: #7169ca;
+  background: transparent;
+  color: #d4d0ed;
+}
+.dark .setting-help-popover {
+  border-color: #8d83df;
+  background: #24203a;
+  color: #dedaff;
+}
+.dark .deck-card-modal-image {
+  box-shadow: 0 14px 35px #0009;
+}
+.dark .deck-card-modal-remove {
+  border-color: #9a6868;
+  color: #f0aaa4;
+}
+.dark .deck-card-modal-remove:hover,
+.dark .deck-card-modal-remove:focus-visible {
+  background: #3b252c;
+}
+.dark .export-actions a {
+  color: #b786f2;
+}
+.dark .export-actions a:hover {
+  color: #d1b0ff;
+}
+.dark .recommendation-options fieldset,
+.dark .recommendation-options select {
+  border-color: #4b4867;
+  color: #ccc9df;
+}
+.dark .recommendation-options select {
+  background: #121121;
+  color-scheme: dark;
+}
+.dark .recommendation-options select option {
+  background: #121121;
+  color: #e5e3f0;
+}
+.dark .export-actions .primary {
+  border-color: #7169ca;
+  background: #5851a6;
+  color: white;
+}
+.dark .export-modal textarea {
+  color: #e5e3f0;
+  background: #121121;
+}
+.dark .modal-close {
+  color: #c4c1d5;
+}
+.dark.commander-themed .export-modal {
+  background: color-mix(in srgb, var(--commander-accent) 18%, #111419);
+}
+.dark.commander-themed .recommendation-options fieldset {
+  border-color: color-mix(in srgb, var(--commander-highlight) 28%, #252931);
+}
+.dark.commander-themed .export-actions a {
+  color: var(--commander-highlight);
+}
+.dark.commander-themed .export-actions a:hover {
+  color: color-mix(in srgb, var(--commander-highlight) 72%, white);
+}
+.dark.commander-themed .export-actions .primary {
+  border-color: var(--commander-accent);
+  background: var(--commander-accent);
+}
+.dark.commander-themed .recommendation-options legend,
+.dark.commander-themed .recommendation-options button {
+  color: var(--commander-highlight);
+}
+.dark.commander-themed .recommendation-options button {
+  border-color: var(--commander-highlight);
+}
+.dark.commander-themed .recommendation-options button:hover {
+  background: var(--commander-accent);
+  color: white;
+}
+.dark.commander-themed .recommendation-options .setting-help-button:hover,
+.dark.commander-themed .recommendation-options .setting-help-button:focus-visible {
+  background: transparent;
+  color: var(--commander-highlight);
+}
+.dark.commander-themed .recommendation-options input {
+  accent-color: var(--commander-accent);
+}
+@media (max-width: 620px) {
+  .setting-help-wrap {
+    position: static;
+  }
+  .setting-help-popover {
+    top: auto;
+    right: 0;
+    left: auto;
+    bottom: calc(100% + 8px);
+    width: min(240px, calc(100vw - 48px));
+    transform: none;
+  }
+  .deck-card-modal-content {
+    grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+    gap: 18px;
+  }
+  .doctor-navigation ol {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .doctor-navigation li {
+    min-width: 0;
+    justify-content: center;
+    padding: 4px 0;
+    border: 0;
+    font-size: 12px;
+    text-align: center;
+  }
+}
+@media (max-width: 520px) {
+  .modal-backdrop {
+    align-items: start;
+    padding: 16px;
+  }
+  .export-modal {
+    max-height: calc(100vh - 32px);
+    padding: 20px;
+  }
+  .recommendation-options fieldset {
+    min-width: 0;
+    width: 100%;
+  }
+  .deck-card-modal-content {
+    grid-template-columns: 1fr;
+  }
+  .deck-card-modal-art {
+    max-width: 220px;
+    margin: auto;
+  }
+  .deck-card-modal-copy {
+    align-self: start;
+  }
+}
+.dark .format-tabs button {
+  border-color: #4b4867;
+  color: #ccc9df;
+}
+.dark .format-tabs button.selected {
+  border-color: #7169ca;
+  background: #5851a6;
+  color: white;
+}

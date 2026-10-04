@@ -40,6 +40,7 @@ type StartViewProps = {
   setSuggestions: Dispatch<SetStateAction<string[]>>
 }
 
+// eslint-disable-next-line max-lines-per-function -- The start workflow markup stays together.
 export function StartView({
   navigateView,
   openModal,
