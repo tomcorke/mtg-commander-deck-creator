@@ -290,3 +290,41 @@ main > .workspace-alert {
   outline: 3px solid #8c3131;
   outline-offset: 2px;
 }
+
+.display-settings {
+  position: relative;
+  z-index: 30;
+}
+.display-settings-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(285px, calc(100vw - 48px));
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid #bbb9cd;
+  border-radius: 7px;
+  background: #f8f8ff;
+  color: #34324a;
+  box-shadow: 0 8px 24px #0003;
+}
+.display-settings-panel label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  white-space: normal;
+}
+.display-settings-panel input {
+  accent-color: var(--commander-accent, #36327f);
+}
+.dark .display-settings-panel {
+  background: #19182d;
+  color: #d8d8ea;
+  border-color: #514b69;
+}
+
+main > header:has(.display-settings-panel) {
+  z-index: 35;
+}

@@ -78,6 +78,7 @@ const decisionSchema = z.enum(['add', 'later', 'ignore'])
 export const persistedDeckStateSchema = z.object({
   savedDeckId: z.string().default(''),
   commander: z.string().min(1),
+  firstBatchPending: z.boolean().optional(),
   commanderDetails: z.object({
     images: z.array(z.string()),
     art: z.array(z.string()),

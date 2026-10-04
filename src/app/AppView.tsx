@@ -26,6 +26,8 @@ import { RecommendationSettingsModal } from '../features/modals/RecommendationSe
 import { SavedDecksModal } from '../features/modals/SavedDecksModal.tsx'
 import { WorkspaceNotice } from '../features/modals/WorkspaceNotice.tsx'
 import { StartView } from '../features/start/StartView.tsx'
+import { PlayStyleStep } from '../features/builder/PlayStyleStep.tsx'
+import { IntroGuide } from '../features/builder/IntroGuide.tsx'
 import { ModalCloseButton } from '../shared/CardDetails.tsx'
 
 export type AppViewProps = {
@@ -153,6 +155,7 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
   return (
     <RecommendationSettingsModal
       show={state.showRecommendationSettings}
+      focusSets={state.awaitingPlayStyle}
       recommendationStyle={state.recommendationStyle}
       chooseRecommendationStyle={actions.chooseRecommendationStyle}
       powerTarget={state.powerTarget}
@@ -490,6 +493,27 @@ function DeckReviewScreen({
   )
 }
 
+function renderIntroGuide(state: AppViewProps['state']) {
+  return (
+    state.showIntroGuide &&
+    !state.activeModal && <IntroGuide close={() => state.setShowIntroGuide(false)} />
+  )
+}
+
+function renderPlayStyleStep({ state, actions }: Pick<AppViewProps, 'state' | 'actions'>) {
+  return (
+    state.awaitingPlayStyle &&
+    state.commanderDetails &&
+    state.recommendationState === 'idle' && (
+      <PlayStyleStep
+        settings={state as any}
+        choose={(style) => void actions.beginFirstBatch(style)}
+        chooseSets={() => actions.openModal('recommendation-settings')}
+      />
+    )
+  )
+}
+
 export function AppView({ state, actions, builderData }: AppViewProps) {
   const { modeReturn, rememberMode } = useBuilderMode(state)
   const modals = renderModals({ state, actions, builderData })
@@ -499,6 +523,7 @@ export function AppView({ state, actions, builderData }: AppViewProps) {
       autosave={state.autosave}
       startNew={actions.startOver}
       chooseDraft={actions.openSavedDecks}
+      hideRecovery={!state.showBuilder && Boolean(state.commander && state.deck.length)}
     />
   )
   if (!state.showBuilder)
@@ -571,7 +596,19 @@ export function AppView({ state, actions, builderData }: AppViewProps) {
     )
   return (
     <>
-      <BuilderView model={{ ...state, ...actions, ...builderData, ...modals, appHeader } as any} />
+      <BuilderView
+        model={
+          {
+            ...state,
+            ...actions,
+            ...builderData,
+            ...modals,
+            appHeader,
+            playStyleStep: renderPlayStyleStep({ state, actions }),
+          } as any
+        }
+      />
+      {renderIntroGuide(state)}
       {historyModal}
     </>
   )

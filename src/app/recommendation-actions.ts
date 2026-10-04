@@ -729,6 +729,11 @@ export async function start(
   try {
     const loaded = await loadCommanderCards(deps, chosen)
     addCommanderCards(deps, loaded, preserveDeck)
+    if (deps.prepareFirstBatch) {
+      deps.setRecommendationState('idle')
+      deps.setRecommendationOptionsChanged?.(false)
+      return true
+    }
     const offeredCards = await collectOfferedCards(
       deps,
       loaded,
@@ -747,6 +752,7 @@ export async function start(
     )
     if (deps.recommendationPoolKey) deps.recommendationPoolKey.current = poolKey
     deps.setRecommendationOptionsChanged?.(false)
+    deps.setFirstBatchPending?.(false)
     return true
   } catch (error) {
     deps.setCollectionError(error instanceof Error ? error.message : 'Suggestions unavailable')

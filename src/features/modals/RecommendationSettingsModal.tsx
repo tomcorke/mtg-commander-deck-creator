@@ -1,4 +1,5 @@
-import { type Dispatch, type SetStateAction, useLayoutEffect, useRef } from 'react'
+import { type Dispatch, type SetStateAction, useEffect } from 'react'
+import { useDialogFocus } from '../../shared/hooks.ts'
 
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import type { ScryfallSet } from '../../domain/card-model.ts'
@@ -46,6 +47,7 @@ function SettingHelp({ id, label, description }: SettingHelpProps) {
 
 type RecommendationSettingsModalProps = {
   show: boolean
+  focusSets?: boolean
   recommendationStyle: RecommendationStyle
   chooseRecommendationStyle: (value: RecommendationStyle) => void
   powerTarget: PowerTarget
@@ -85,6 +87,7 @@ type RecommendationSettingsModalProps = {
 
 export function RecommendationSettingsModal({
   show,
+  focusSets = false,
   recommendationStyle,
   chooseRecommendationStyle,
   powerTarget,
@@ -121,13 +124,13 @@ export function RecommendationSettingsModal({
   recommendationSettingsSummary,
   closeModal,
 }: RecommendationSettingsModalProps) {
-  const dialog = useRef<HTMLElement>(null)
-  useLayoutEffect(() => {
-    if (!show) return
-    return () => {
-      document.querySelector<HTMLElement>('.recommendation-settings-summary button')?.focus()
-    }
-  }, [show])
+  const dialog = useDialogFocus(show, closeModal)
+  useEffect(() => {
+    if (!show || !focusSets) return
+    const sets = document.getElementById('recommendation-sets')
+    sets?.scrollIntoView({ block: 'start' })
+    sets?.focus()
+  }, [show, focusSets])
   if (!show) return null
   const searching = collectionSearch.trim().length >= 2
   const smallOnlyPool =
@@ -148,27 +151,8 @@ export function RecommendationSettingsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="recommendation-settings-title"
-        ref={dialog}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.preventDefault()
-            closeModal()
-          } else if (event.key === 'Tab') {
-            const focusable = dialog.current?.querySelectorAll<HTMLElement>(
-              'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary',
-            )
-            if (!focusable?.length) return
-            const first = focusable[0]
-            const last = focusable[focusable.length - 1]
-            if (event.shiftKey && document.activeElement === first) {
-              event.preventDefault()
-              last.focus()
-            } else if (!event.shiftKey && document.activeElement === last) {
-              event.preventDefault()
-              first.focus()
-            }
-          }
-        }}
+        ref={dialog.ref}
+        onKeyDown={dialog.onKeyDown}
       >
         <div className="export-heading">
           <div>
@@ -182,11 +166,7 @@ export function RecommendationSettingsModal({
               </p>
             </details>
           </div>
-          <ModalCloseButton
-            autoFocus
-            onClick={() => closeModal()}
-            label="Close recommendation settings"
-          />
+          <ModalCloseButton onClick={() => closeModal()} label="Close recommendation settings" />
         </div>
         <div className="recommendation-options recommendation-settings-form">
           <div className="recommendation-setting">
@@ -271,7 +251,7 @@ export function RecommendationSettingsModal({
               description="Keeps a creature in each recommendation batch when one is available. Turn it off for a deck that does not need creatures."
             />
           </div>
-          <fieldset className="collection-picker">
+          <fieldset id="recommendation-sets" className="collection-picker" tabIndex={-1}>
             <legend>
               <span>Sets to build from</span>
               <SettingHelp

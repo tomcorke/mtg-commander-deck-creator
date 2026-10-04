@@ -14,11 +14,13 @@ export function WorkspaceNotice({
   autosave,
   startNew,
   chooseDraft,
+  hideRecovery = false,
 }: {
   workspace: DeckWorkspace
   autosave: ReturnType<DeckWorkspace['getSnapshot']>
   startNew: () => void
   chooseDraft: () => void
+  hideRecovery?: boolean
 }) {
   const { notice, error, cleanupMessage, busy } = autosave
   if (!notice && !error && !cleanupMessage) return null
@@ -35,7 +37,7 @@ export function WorkspaceNotice({
           )}
         </div>
       )}
-      {notice && (
+      {notice && !hideRecovery && (
         <section className="workspace-notice" aria-label="Draft recovery">
           <p role="status">
             {notice.latest ? 'Automatically restored your latest draft' : 'Restored your draft'}:{' '}
