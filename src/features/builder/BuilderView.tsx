@@ -10,8 +10,6 @@ import {
 import {
   cardScryfallUri,
   edhrecSlug,
-  scryfallImage,
-  toDeckCard,
   type Card,
   type CommanderDetails,
   type DeckCard,
@@ -19,7 +17,6 @@ import {
 } from '../../domain/card-model.ts'
 import { commanderNames, colourNames } from '../../domain/commander-catalog.ts'
 import { commanderPromotionInfo } from '../../domain/commander-promotion.ts'
-import { cardConstructionError } from '../../domain/commander-construction.ts'
 import { type CollectionMode, type RecommendationStyle } from '../../recommendations.ts'
 import {
   analyseDeck,
@@ -43,15 +40,16 @@ import type {
 } from '../../domain/recommendation-types.ts'
 import type { DeckReviewFilter } from '../../deck-review.ts'
 import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
-import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { CardDetails } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
-import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
 import { ScoreBreakdown } from '../score/ScoreBreakdown.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { ManaCurve } from './ManaCurve.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
+import { BasicLandDialog } from './BasicLandDialog.tsx'
+import { CollectionBrowserDialog } from './CollectionBrowserDialog.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { openSectionsWithHighlights } from './deck-section-highlight.ts'
 
@@ -179,6 +177,7 @@ function recommendationReason(
   }
 }
 
+// eslint-disable-next-line max-lines-per-function, sonarjs/cognitive-complexity -- Keep the established builder composition intact; extracted dialogs own their interactions, and callback rules stay active.
 export function BuilderView({ model }: { model: BuilderViewModel }) {
   const { cardEffects, commanderStyling, darkMode } = useVisualPreferences()
   const {
@@ -303,7 +302,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     theme,
     toggleCollectionSet,
   } = model
-  const basicLandDialog = useRef<HTMLElement>(null)
   const batchHeading = useRef<HTMLHeadingElement>(null)
   const landFillTrigger = useRef<HTMLButtonElement>(null)
   const manaSymbols = [...manaColours, 'C', 'S'] as const
@@ -327,6 +325,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     batchNumber,
     rolesForCard,
   )
+  const unrepresentedBasicNames = legalBasicNames.filter(
+    (name) => !groupedBasics.some((group) => group.name === name),
+  )
   function openHighlightedDeckSections() {
     openSectionsWithHighlights(document.querySelectorAll<HTMLDetailsElement>('.deck-group-details'))
   }
@@ -348,18 +349,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   useEffect(() => {
     if (activeHighlightLabel) openHighlightedDeckSections()
   }, [activeHighlightLabel])
-
-  useEffect(() => {
-    const dialog = basicLandDialog.current
-    if (!showBasicLands || !dialog) return
-    const opener = landFillTrigger.current
-    const searchButton = cardSearchButton.current
-    dialog.querySelector<HTMLButtonElement>('.modal-close')?.focus()
-    return () => {
-      if (dialog.contains(document.activeElement) || document.activeElement === document.body)
-        (opener?.isConnected ? opener : searchButton)?.focus()
-    }
-  }, [cardSearchButton, showBasicLands])
 
   return (
     <main className={`${darkMode ? 'dark ' : ''}${commanderStyling ? 'commander-themed' : ''}`}>
@@ -440,248 +429,39 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
         </div>
       </section>
       {showCollectionBrowser && (
-        <div
-          className="modal-backdrop collection-browser-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setShowCollectionBrowser(false)
-          }}
-        >
-          <section
-            className="collection-browser collection-browser-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="collection-browser-title"
-            tabIndex={-1}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                event.preventDefault()
-                setShowCollectionBrowser(false)
-              }
-            }}
-          >
-            <div className="collection-browser-heading">
-              <div>
-                <p className="eyebrow">Discovery</p>
-                <h2 id="collection-browser-title">Cards from your chosen sets</h2>
-                <p>
-                  {collectionPoolSize ?? collectionBrowserCards.length} legal unique cards, shown in
-                  random order.
-                </p>
-              </div>
-              <ModalCloseButton
-                autoFocus
-                onClick={() => setShowCollectionBrowser(false)}
-                label="Close collection browser"
-              />
-            </div>
-            <div className="collection-browser-filters">
-              <label>
-                Card type{' '}
-                <select
-                  value={collectionBrowserType}
-                  onChange={(event) => setCollectionBrowserType(event.target.value)}
-                >
-                  <option value="all">All types</option>
-                  <option value="creature">Creatures</option>
-                  <option value="artifact">Artifacts</option>
-                  <option value="enchantment">Enchantments</option>
-                  <option value="instant">Instants</option>
-                  <option value="sorcery">Sorceries</option>
-                  <option value="land">Lands</option>
-                </select>
-              </label>
-              <label>
-                Mana value{' '}
-                <input
-                  type="number"
-                  min="0"
-                  max="16"
-                  value={collectionBrowserMana}
-                  onChange={(event) => setCollectionBrowserMana(event.target.value)}
-                  placeholder="Any"
-                />
-              </label>
-            </div>
-            {collectionBrowserState === 'loading' && (
-              <p role="status">Loading legal collection cards…</p>
-            )}
-            {collectionBrowserState === 'error' && (
-              <p className="form-error" role="alert">
-                {collectionBrowserError}
-              </p>
-            )}
-            {collectionBrowserState === 'idle' && (
-              <div className="collection-browser-grid">
-                {filteredCollectionCards.map((card) => (
-                  <article key={`${card.name}-${card.set}-${card.collector_number}`}>
-                    <button
-                      type="button"
-                      className="collection-card-open"
-                      onClick={() => openCollectionCard(card)}
-                    >
-                      <div>
-                        <SmallCardImage image={scryfallImage(card)} />
-                      </div>
-                      <h3>{card.name}</h3>
-                      <p>{card.type_line}</p>
-                      <span>
-                        {card.cmc ?? 0} mana · {card.set.toUpperCase()}
-                      </span>
-                      <small>View details</small>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={Boolean(
-                        cardConstructionError(
-                          toDeckCard(card),
-                          deck.length < 100 ? deck : sideboard,
-                          commanderDetails?.colours ?? [],
-                        ),
-                      )}
-                      onClick={() => addCollectionCard(card)}
-                    >
-                      Add to deck
-                    </button>
-                  </article>
-                ))}
-              </div>
-            )}
-            {collectionBrowserState === 'idle' && !filteredCollectionCards.length && (
-              <p>No cards match those filters.</p>
-            )}
-          </section>
-        </div>
+        <CollectionBrowserDialog
+          cards={collectionBrowserCards}
+          error={collectionBrowserError}
+          state={collectionBrowserState}
+          poolSize={collectionPoolSize}
+          filteredCards={filteredCollectionCards}
+          type={collectionBrowserType}
+          mana={collectionBrowserMana}
+          setType={setCollectionBrowserType}
+          setMana={setCollectionBrowserMana}
+          deck={deck}
+          sideboard={sideboard}
+          commanderDetails={commanderDetails}
+          onClose={() => setShowCollectionBrowser(false)}
+          onOpenCard={openCollectionCard}
+          onAddCard={addCollectionCard}
+        />
       )}
       {deckCardModal}
       {showBasicLands && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && basicLandState !== 'loading') closeModal()
-          }}
-        >
-          <section
-            ref={basicLandDialog}
-            className="export-modal basic-land-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="basic-land-title"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                event.preventDefault()
-                if (basicLandState !== 'loading') closeModal()
-              }
-              if (event.key !== 'Tab') return
-              const buttons =
-                event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
-              const first = buttons[0]
-              const last = buttons[buttons.length - 1]
-              if (!first || !last) event.preventDefault()
-              else if (
-                (event.shiftKey && document.activeElement === first) ||
-                (!event.shiftKey && document.activeElement === last)
-              ) {
-                event.preventDefault()
-                const target = event.shiftKey ? last : first
-                target.focus()
-              }
-            }}
-          >
-            <div className="export-heading">
-              <div>
-                <p className="eyebrow">Complete mana base</p>
-                <h2 id="basic-land-title">Choose lands</h2>
-              </div>
-              <ModalCloseButton
-                disabled={basicLandState === 'loading'}
-                onClick={() => closeModal()}
-                label="Close land choices"
-              />
-            </div>
-            <p aria-live="polite" aria-atomic="true">
-              Room for {landGap} more lands toward your {calculatedLandTarget}-land target. Existing
-              cards stay unchanged.
-            </p>
-            {nonbasicLands.length > 0 && (
-              <section className="land-fill-step" aria-labelledby="nonbasic-land-title">
-                <h3 id="nonbasic-land-title">Start with nonbasic lands</h3>
-                <p>Recommended for this commander. Each one you add replaces a basic.</p>
-                <ul className="nonbasic-land-list">
-                  {nonbasicLands.map((card) => (
-                    <li key={card.name}>
-                      <CardReference
-                        card={card}
-                        onOpen={() => openGuidanceCard(card)}
-                        thumbnail
-                        disabled={basicLandState === 'loading'}
-                      />
-                      <button
-                        type="button"
-                        className="compact-action"
-                        aria-label={`Add ${card.name} to deck`}
-                        disabled={basicLandState === 'loading'}
-                        onClick={(event) => {
-                          const next =
-                            event.currentTarget
-                              .closest('li')
-                              ?.nextElementSibling?.querySelector<HTMLButtonElement>(
-                                '.compact-action',
-                              ) ??
-                            basicLandDialog.current?.querySelector<HTMLButtonElement>(
-                              '.modal-close',
-                            )
-                          addRecommendationCard(card)
-                          next?.focus()
-                        }}
-                      >
-                        Add
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-            <section className="land-fill-step" aria-labelledby="basic-land-split-title">
-              <h3 id="basic-land-split-title">
-                {nonbasicLands.length > 0 ? 'Then fill the rest with basics' : 'Basic land split'}
-              </h3>
-              <p>Split by the coloured mana symbols in your deck.</p>
-              <ul className="basic-land-plan">
-                {basicLands.map((land) => (
-                  <li key={land.name}>
-                    <span>{land.name}</span>
-                    <b>{land.count}</b>
-                  </li>
-                ))}
-              </ul>
-            </section>
-            {basicLandState === 'error' && (
-              <p className="form-error" role="alert">
-                Could not load basic lands. Try again.
-              </p>
-            )}
-            <div className="export-actions">
-              <button
-                type="button"
-                className="export"
-                onClick={() => closeModal()}
-                disabled={basicLandState === 'loading'}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="primary"
-                disabled={basicLandState === 'loading' || landGap === 0}
-                onClick={() => void addBasicLands(basicLands)}
-              >
-                {basicLandState === 'loading'
-                  ? 'Adding…'
-                  : `Add ${landGap} basic${landGap === 1 ? '' : 's'}`}
-              </button>
-            </div>
-          </section>
-        </div>
+        <BasicLandDialog
+          basicLandState={basicLandState}
+          basicLands={basicLands}
+          landGap={landGap}
+          calculatedLandTarget={calculatedLandTarget}
+          nonbasicLands={nonbasicLands}
+          cardSearchButton={cardSearchButton}
+          opener={landFillTrigger}
+          onClose={closeModal}
+          onAddBasicLands={(lands) => void addBasicLands(lands)}
+          onAddRecommendation={addRecommendationCard}
+          onOpenCard={openGuidanceCard}
+        />
       )}
       <div className="workspace">
         <section className="recommendations">
@@ -849,6 +629,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               onMouseMove={cardEffects ? fanCards : undefined}
               onMouseLeave={cardEffects ? resetFan : undefined}
             >
+              {/* eslint-disable-next-line max-lines-per-function -- The offer card remains inline; extracting its established markup has no useful seam. */}
               {scoredBatch.map(({ card, score }, index) => {
                 const reason = recommendationReason(
                   card,
@@ -1388,8 +1169,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <span style={{ width: `${deck.length}%` }} />
           </div>
           <div className="deck-list">
+            {/* eslint-disable-next-line max-lines-per-function -- Each map renders existing deck section markup; no independent behavior is being extracted here. */}
             {groupedDeckColumns.map((column, columnIndex) => (
               <div className="deck-column" key={`deck-column-${columnIndex}`}>
+                {/* eslint-disable-next-line max-lines-per-function -- Section markup stays with its grouping; nested renderers remain checked. */}
                 {column.map(({ section, cards, count }) => {
                   const heading = (
                     <h3>
@@ -1510,20 +1293,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                               </li>
                             )
                           })}
-                          {legalBasicNames
-                            .filter((name) => !groupedBasics.some((group) => group.name === name))
-                            .map((name) => (
-                              <li className="basic-placeholder deck-card-tile" key={name}>
-                                <button
-                                  type="button"
-                                  disabled={deck.length >= 100}
-                                  onClick={() => void addOneBasic(name)}
-                                >
-                                  <span>Add {name}</span>
-                                  <b>+</b>
-                                </button>
-                              </li>
-                            ))}
+                          {unrepresentedBasicNames.map((name) => (
+                            <li className="basic-placeholder deck-card-tile" key={name}>
+                              <button
+                                type="button"
+                                disabled={deck.length >= 100}
+                                onClick={() => void addOneBasic(name)}
+                              >
+                                <span>Add {name}</span>
+                                <b>+</b>
+                              </button>
+                            </li>
+                          ))}
                         </>
                       )}
                     </ol>

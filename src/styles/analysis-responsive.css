@@ -1,0 +1,32 @@
+.dark .meter {
+  background: #35334a;
+}
+.dark .meter span {
+  background-color: #756dda;
+}
+.dark .mana-curve button.selected {
+  background: #ffffff0d;
+}
+.dark .curve-legend,
+.dark .target-heading span {
+  color: #aaa8c2;
+}
+.dark .colour-empty {
+  background: #35334a;
+  color: #aaa8c2;
+}
+.dark .deck-targets input {
+  border-color: #4b4867;
+}
+.dark .ratio-bar {
+  background: #35334a;
+}
+.dark.commander-themed .meter span {
+  background: linear-gradient(90deg, var(--commander-accent), var(--commander-highlight));
+}
+@media (max-width: 800px) {
+  .analysis-panel {
+    border-left: 0;
+    border-top: 1px solid #dad8e6;
+  }
+}

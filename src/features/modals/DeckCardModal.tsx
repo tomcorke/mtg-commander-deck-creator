@@ -31,6 +31,7 @@ type DeckCardModalProps = {
   addAction?: { label: string; disabled: boolean; error: string; onAdd: () => void }
 }
 
+// eslint-disable-next-line max-lines-per-function -- The focused modal markup stays together.
 export function DeckCardModal({
   show,
   selectedDeckCard,

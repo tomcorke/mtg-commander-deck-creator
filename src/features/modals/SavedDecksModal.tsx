@@ -30,6 +30,7 @@ type SavedDecksModalProps = {
   closeModal: () => void
 }
 
+// eslint-disable-next-line max-lines-per-function -- The saved-decks workflow markup stays together.
 export function SavedDecksModal({
   show,
   workspace,

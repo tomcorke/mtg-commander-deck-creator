@@ -75,6 +75,7 @@ const cardNames = (cards: DeckCard[]) => [...new Set(cards.map((card) => card.na
 const manaGuidanceName = (symbol: ManaGuidanceSymbol) =>
   symbol === 'C' ? 'Colourless' : symbol === 'S' ? 'Snow' : colourNames[symbol]
 
+// eslint-disable-next-line max-lines-per-function, sonarjs/cognitive-complexity -- The overview markup remains one screen component; helpers remain checked.
 export function DeckOverview({
   deck,
   sideboardCount,

@@ -119,6 +119,66 @@ function hasCardError(card: Card, deck: DeckCard[], commanderColours: string[]) 
   return Boolean(cardConstructionError(card, deck, commanderColours))
 }
 
+function FindingCardReferences({
+  finding,
+  deck,
+  flaggedNames,
+  openCard,
+  trials,
+}: {
+  finding: DeckDoctorFinding
+  deck: DeckCard[]
+  flaggedNames: Set<string>
+  openCard: Props['openCard']
+  trials: number
+}) {
+  if (!finding.cardNames.length) return null
+  return (
+    <div className="doctor-reference-grid">
+      {finding.cardNames.map((name) => {
+        const card = deck.find((item) => item.name === name)
+        if (!card) return null
+        const signal = finding.cardSignals?.find((item) => item.cardName === card.name)
+        return (
+          <div className="doctor-reference-card" key={card.name}>
+            <span className={`doctor-card-status${flaggedNames.has(card.name) ? ' in-deck' : ''}`}>
+              {flaggedNames.has(card.name) ? 'In deck · flagged' : 'In deck'}
+            </span>
+            <CardReference card={card} onOpen={() => openCard(card)} />
+            {card.manaCost && (
+              <small className="doctor-card-cost">
+                <OracleText text={card.manaCost} />
+              </small>
+            )}
+            {signal && (
+              <details className="doctor-signal-details">
+                <summary>{signal.summary}</summary>
+                <ul>
+                  {signal.colourGaps.map(({ colour, required, sources }) => (
+                    <li key={colour}>
+                      <ManaSymbols symbols={[colour]} /> {required} pip
+                      {required === 1 ? '' : 's'}; {sources} mana source
+                      {sources === 1 ? '' : 's'}.
+                    </li>
+                  ))}
+                  {signal.simulation && (
+                    <li>
+                      When drawn, it was payable by turn {signal.simulation.turn} in{' '}
+                      {Math.round(signal.simulation.castableChance * 100)}% of simulated hands (
+                      {trials} trials).
+                    </li>
+                  )}
+                </ul>
+              </details>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// eslint-disable-next-line max-lines-per-function, sonarjs/cognitive-complexity -- The doctor workflow markup stays intact; its standalone helpers remain checked.
 export function DeckDoctorView({
   appHeader,
   step,
@@ -841,53 +901,13 @@ export function DeckDoctorView({
                         ))}
                       </ul>
                     )}
-                    {finding.cardNames.length > 0 && (
-                      <div className="doctor-reference-grid">
-                        {finding.cardNames.map((name) => {
-                          const card = deck.find((item) => item.name === name)
-                          if (!card) return null
-                          const signal = finding.cardSignals?.find(
-                            (item) => item.cardName === card.name,
-                          )
-                          return (
-                            <div className="doctor-reference-card" key={card.name}>
-                              <span
-                                className={`doctor-card-status${flaggedNames.has(card.name) ? ' in-deck' : ''}`}
-                              >
-                                {flaggedNames.has(card.name) ? 'In deck · flagged' : 'In deck'}
-                              </span>
-                              <CardReference card={card} onOpen={() => openCard(card)} />
-                              {card.manaCost && (
-                                <small className="doctor-card-cost">
-                                  <OracleText text={card.manaCost} />
-                                </small>
-                              )}
-                              {signal && (
-                                <details className="doctor-signal-details">
-                                  <summary>{signal.summary}</summary>
-                                  <ul>
-                                    {signal.colourGaps.map(({ colour, required, sources }) => (
-                                      <li key={colour}>
-                                        <ManaSymbols symbols={[colour]} /> {required} pip
-                                        {required === 1 ? '' : 's'}; {sources} mana source
-                                        {sources === 1 ? '' : 's'}.
-                                      </li>
-                                    ))}
-                                    {signal.simulation && (
-                                      <li>
-                                        When drawn, it was payable by turn {signal.simulation.turn}{' '}
-                                        in {Math.round(signal.simulation.castableChance * 100)}% of
-                                        simulated hands ({simulation.trials} trials).
-                                      </li>
-                                    )}
-                                  </ul>
-                                </details>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                    <FindingCardReferences
+                      finding={finding}
+                      deck={deck}
+                      flaggedNames={flaggedNames}
+                      openCard={openCard}
+                      trials={simulation.trials}
+                    />
                     <div className="doctor-suggestions">
                       <h4>{mode === 'build' ? 'Suggested additions' : 'Suggested swaps'}</h4>
                       {findingSuggestions[finding.id]?.length ? (

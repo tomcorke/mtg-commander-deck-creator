@@ -7,7 +7,7 @@ import {
   recommendationPoolKey,
   type RecommendationProgress,
 } from '../../app/recommendation-actions.ts'
-import type { Card } from '../../domain/card-model.ts'
+import type { Card, ScryfallCard } from '../../domain/card-model.ts'
 import {
   advanceRecommendationQueue,
   deferBatch,
@@ -16,6 +16,18 @@ import {
   type CollectionMode,
   type RecommendationStyle,
 } from '../../recommendations.ts'
+export function mergeSearchCards(
+  current: ScryfallCard[],
+  incoming: ScryfallCard[],
+  replace: boolean,
+) {
+  return [
+    ...new Map(
+      [...(replace ? [] : current), ...incoming].map((card) => [card.name, card]),
+    ).values(),
+  ]
+}
+
 export type BuilderInteractionDeps = Record<string, any> & {
   start: (
     name: string,

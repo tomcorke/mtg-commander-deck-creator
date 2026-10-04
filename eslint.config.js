@@ -23,13 +23,4 @@ export default [
       'sonarjs/cognitive-complexity': ['error', 15],
     },
   },
-  {
-    // JSX layout length is driven by markup; keep complexity rules for its hooks and helpers.
-    files: ['src/features/**/*.tsx'],
-    rules: {
-      'max-lines-per-function': 'off',
-      'max-nested-callbacks': 'off',
-      'sonarjs/cognitive-complexity': 'off',
-    },
-  },
 ]

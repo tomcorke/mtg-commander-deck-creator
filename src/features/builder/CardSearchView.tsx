@@ -30,6 +30,7 @@ import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
+import { mergeSearchCards } from './interactions.ts'
 
 const pageSize = 12
 
@@ -74,6 +75,7 @@ function MatchSelect({
   )
 }
 
+// eslint-disable-next-line max-lines-per-function -- Filter controls remain together as one existing UI section.
 function SearchFilters({
   filters,
   setFilters,
@@ -303,6 +305,7 @@ function cardLocation(name: string, deck: DeckCard[], sideboard: DeckCard[]) {
     .join(' · ')
 }
 
+// eslint-disable-next-line max-lines-per-function -- The existing search workflow markup stays intact.
 export function CardSearchView({
   active,
   appHeader,
@@ -362,14 +365,7 @@ export function CardSearchView({
     void searchScryfallPage(request.query, fetch, controller.signal, request.order, request.page)
       .then((result) => {
         if (controller.signal.aborted) return
-        setCards((current) => [
-          ...new Map(
-            [...(request.page === 1 ? [] : current), ...result.data].map((card) => [
-              card.name,
-              card,
-            ]),
-          ).values(),
-        ])
+        setCards((current) => mergeSearchCards(current, result.data, request.page === 1))
         setTotal(result.total_cards ?? result.data.length)
         setHasMore(Boolean(result.has_more))
         setWarnings(result.warnings ?? [])

@@ -83,6 +83,7 @@ type RecommendationSettingsModalProps = {
   closeModal: () => void
 }
 
+// eslint-disable-next-line max-lines-per-function -- The settings form markup stays together.
 export function RecommendationSettingsModal({
   show,
   recommendationStyle,

@@ -1,0 +1,119 @@
+.dark .start-panel {
+  background: #19182d;
+}
+.dark .start-panel {
+  border-color: #36344f;
+}
+.dark .brand {
+  color: #d9d8ff;
+}
+.dark .lead,
+.dark .start-panel > p {
+  color: #aaa8c2;
+}
+.dark .themes button {
+  border-color: #4b4867;
+  color: #ccc9df;
+}
+.dark .themes button:hover,
+.dark .themes button.selected {
+  border-color: #7169ca;
+  background: #5851a6;
+  color: white;
+}
+.dark .suggestions,
+.dark .suggestion-select {
+  border-color: #39374f;
+}
+.dark .suggestions {
+  overflow: visible;
+  border: 1px solid #39374f;
+  border-radius: 7px;
+}
+.dark .suggestion-select {
+  padding: 14px 16px;
+}
+.dark .suggestion-select,
+.dark .start-panel input {
+  color: #e5e3f0;
+  background: #121121;
+}
+.dark .moxfield-instructions,
+.dark .import-help {
+  color: #aaa8c2;
+}
+.dark .import-note {
+  background: #ffffff0d;
+  color: #d4bd8b;
+}
+.dark .import-review-checkbox {
+  color: #e5e3f0;
+}
+.dark .import-review-opt-out {
+  color: #aaa8c2;
+}
+.dark .manual-card-button {
+  border-color: #615b96;
+  color: #d4d0ed;
+}
+.dark .header-destructive {
+  border-color: #4a3442;
+}
+.dark .start-over {
+  border-color: #9e5d61;
+  background: #302127;
+  color: #f0aaa4;
+}
+.dark .start-over:hover {
+  background: #3b252c;
+}
+.dark .start-over:focus-visible {
+  outline-color: #f0aaa4;
+}
+.dark .subthemes button {
+  border-color: #615b96;
+  color: #d4d0ed;
+}
+.dark .subthemes button {
+  background: #2b2949;
+}
+.dark .subthemes .add-subtheme {
+  background: transparent;
+}
+.dark.commander-themed .suggestions,
+.dark.commander-themed .suggestion-select {
+  border-color: color-mix(in srgb, var(--commander-highlight) 28%, #252931);
+}
+.dark.commander-themed .suggestion-type {
+  color: var(--commander-highlight);
+}
+@media (max-width: 800px) {
+  .start-grid {
+    grid-template-columns: 1fr;
+  }
+  .suggestion-type {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 520px) {
+  .suggestion-type {
+    grid-column: auto;
+  }
+}
+.dark .reroll {
+  color: #b786f2;
+}
+.dark .reroll:hover {
+  color: #d1b0ff;
+}
+.dark.commander-themed .reroll {
+  color: var(--commander-highlight);
+}
+.dark.commander-themed .reroll:hover {
+  color: color-mix(in srgb, var(--commander-highlight) 72%, white);
+}
+@media (max-width: 1350px) {
+  .suggestion-preview {
+    display: none;
+  }
+}
