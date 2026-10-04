@@ -93,17 +93,7 @@
     min-width: 0;
     line-height: 1.25;
   }
-  .deck-status {
-    min-width: 0;
-    flex: 1 1 auto;
-  }
   .progress {
-    display: none;
-  }
-  .saved-status {
-    text-align: left;
-  }
-  .saved-status small {
     display: none;
   }
 }

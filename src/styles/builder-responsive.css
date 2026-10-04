@@ -443,6 +443,16 @@
   .recommendations {
     padding: 30px 6vw;
   }
+  .deck-status {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .saved-status {
+    text-align: left;
+  }
+  .saved-status small {
+    display: none;
+  }
 }
 @media (max-width: 620px) {
   .deck-review-filter-status {
