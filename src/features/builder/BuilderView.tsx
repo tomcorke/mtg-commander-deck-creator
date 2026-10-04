@@ -1390,147 +1390,160 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="deck-list">
             {groupedDeckColumns.map((column, columnIndex) => (
               <div className="deck-column" key={`deck-column-${columnIndex}`}>
-                {column.map(({ section, cards, count }) => (
-                  <section className="deck-group" key={section}>
-                    <details className="deck-group-details" open>
-                      <summary>
-                        <h3>
-                          {section}
-                          <span>{count}</span>
-                        </h3>
-                      </summary>
-                      <ol>
-                        {cards.map(({ card, index }) => {
-                          const curveValue = curveBucket(card)
-                          const highlighted =
-                            (!deckReviewFilter || reviewFilterNames.has(card.name)) &&
-                            (highlightedManaValue === null || highlightedManaValue === curveValue)
-                          return (
-                            <li
-                              data-highlighted={highlighted || undefined}
-                              className={`deck-card-tile ${highlighted ? '' : 'deck-highlight-dimmed'}`}
-                              key={`${card.name}-${index}`}
-                            >
-                              {activeHighlightLabel && highlighted && (
-                                <span className="sr-only">
-                                  Matches active deck highlight filter.{' '}
-                                </span>
-                              )}
-                              <span className="deck-card-reference">
-                                {(card.printing ?? 0) > 0 && (
-                                  <span
-                                    className="alternate-printing"
-                                    title="Alternate printing selected"
-                                    aria-label="Alternate printing selected"
-                                  />
-                                )}
-                                <CardReference
-                                  card={card}
-                                  thumbnail
-                                  className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                                  onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                {column.map(({ section, cards, count }) => {
+                  const heading = (
+                    <h3>
+                      {section}
+                      <span>{count}</span>
+                    </h3>
+                  )
+                  const cardList = (
+                    <ol>
+                      {cards.map(({ card, index }) => {
+                        const curveValue = curveBucket(card)
+                        const highlighted =
+                          (!deckReviewFilter || reviewFilterNames.has(card.name)) &&
+                          (highlightedManaValue === null || highlightedManaValue === curveValue)
+                        return (
+                          <li
+                            data-highlighted={highlighted || undefined}
+                            className={`deck-card-tile ${highlighted ? '' : 'deck-highlight-dimmed'}`}
+                            key={`${card.name}-${index}`}
+                          >
+                            {activeHighlightLabel && highlighted && (
+                              <span className="sr-only">
+                                Matches active deck highlight filter.{' '}
+                              </span>
+                            )}
+                            <span className="deck-card-reference">
+                              {(card.printing ?? 0) > 0 && (
+                                <span
+                                  className="alternate-printing"
+                                  title="Alternate printing selected"
+                                  aria-label="Alternate printing selected"
                                 />
+                              )}
+                              <CardReference
+                                card={card}
+                                thumbnail
+                                className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                                onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                              />
+                            </span>
+                            <span className="deck-card-meta">
+                              <span className="deck-mana">
+                                {card.typeLine.includes('Land') && card.producedMana.length ? (
+                                  <ManaSymbols symbols={card.producedMana} />
+                                ) : (
+                                  <OracleText text={card.manaCost} />
+                                )}
                                 {card.finish && card.finish !== 'nonfoil' && (
                                   <small className="finish-label">{card.finish}</small>
                                 )}
                               </span>
-                              <span className="deck-card-meta">
-                                <span className="deck-mana">
-                                  {card.typeLine.includes('Land') && card.producedMana.length ? (
-                                    <ManaSymbols symbols={card.producedMana} />
-                                  ) : (
-                                    <OracleText text={card.manaCost} />
+                              {index >= commanderNames(commander).length && (
+                                <span className="deck-remove-wrap">
+                                  <button
+                                    className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
+                                    type="button"
+                                    onClick={() =>
+                                      pendingRemoval === index
+                                        ? removeDeckCard(index)
+                                        : setPendingRemoval(index)
+                                    }
+                                    aria-label={
+                                      pendingRemoval === index
+                                        ? `Confirm removal of ${card.name}`
+                                        : `Remove ${card.name}`
+                                    }
+                                  >
+                                    {pendingRemoval === index ? '✓' : '×'}
+                                  </button>
+                                  {pendingRemoval === index && (
+                                    <span className="remove-confirm" role="tooltip">
+                                      Click again to confirm removal
+                                    </span>
                                   )}
                                 </span>
-                                {index >= commanderNames(commander).length && (
-                                  <span className="deck-remove-wrap">
-                                    <button
-                                      className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
-                                      type="button"
-                                      onClick={() =>
-                                        pendingRemoval === index
-                                          ? removeDeckCard(index)
-                                          : setPendingRemoval(index)
-                                      }
-                                      aria-label={
-                                        pendingRemoval === index
-                                          ? `Confirm removal of ${card.name}`
-                                          : `Remove ${card.name}`
-                                      }
-                                    >
-                                      {pendingRemoval === index ? '✓' : '×'}
-                                    </button>
-                                    {pendingRemoval === index && (
-                                      <span className="remove-confirm" role="tooltip">
-                                        Click again to confirm removal
-                                      </span>
-                                    )}
+                              )}
+                            </span>
+                          </li>
+                        )
+                      })}
+                      {section === 'Lands' && (
+                        <>
+                          {groupedBasics.map(({ name, cards: basics }) => {
+                            const { card, index } = basics[0]
+                            return (
+                              <li className="basic-land-row deck-card-tile" key={name}>
+                                <span className="deck-card-reference">
+                                  <b className="card-quantity">{basics.length}×</b>
+                                  <CardReference
+                                    card={card}
+                                    thumbnail
+                                    className="deck-card-name"
+                                    onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                  />
+                                </span>
+                                <span className="deck-card-meta">
+                                  <span className="deck-mana">
+                                    <ManaSymbols symbols={card.producedMana} />
                                   </span>
-                                )}
-                              </span>
-                            </li>
-                          )
-                        })}
-                        {section === 'Lands' && (
-                          <>
-                            {groupedBasics.map(({ name, cards: basics }) => {
-                              const { card, index } = basics[0]
-                              return (
-                                <li className="basic-land-row deck-card-tile" key={name}>
-                                  <span className="deck-card-reference">
-                                    <b className="card-quantity">{basics.length}×</b>
-                                    <CardReference
-                                      card={card}
-                                      thumbnail
-                                      className="deck-card-name"
-                                      onOpen={() => openDeckCard(card, { board: 'deck', index })}
-                                    />
-                                  </span>
-                                  <span className="deck-card-meta">
-                                    <span className="deck-mana">
-                                      <ManaSymbols symbols={card.producedMana} />
-                                    </span>
-                                    <button
-                                      className="deck-add"
-                                      type="button"
-                                      disabled={deck.length >= 100}
-                                      onClick={() => void addOneBasic(card.name)}
-                                      aria-label={`Add another ${card.name}`}
-                                    >
-                                      +
-                                    </button>
-                                    <button
-                                      className="deck-remove"
-                                      type="button"
-                                      onClick={() => removeDeckCard(index)}
-                                      aria-label={`Remove one ${card.name}`}
-                                    >
-                                      ×
-                                    </button>
-                                  </span>
-                                </li>
-                              )
-                            })}
-                            {legalBasicNames
-                              .filter((name) => !groupedBasics.some((group) => group.name === name))
-                              .map((name) => (
-                                <li className="basic-placeholder deck-card-tile" key={name}>
                                   <button
+                                    className="deck-add"
                                     type="button"
                                     disabled={deck.length >= 100}
-                                    onClick={() => void addOneBasic(name)}
+                                    onClick={() => void addOneBasic(card.name)}
+                                    aria-label={`Add another ${card.name}`}
                                   >
-                                    <span>Add {name}</span>
-                                    <b>+</b>
+                                    +
                                   </button>
-                                </li>
-                              ))}
-                          </>
-                        )}
-                      </ol>
-                    </details>
-                  </section>
-                ))}
+                                  <button
+                                    className="deck-remove"
+                                    type="button"
+                                    onClick={() => removeDeckCard(index)}
+                                    aria-label={`Remove one ${card.name}`}
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              </li>
+                            )
+                          })}
+                          {legalBasicNames
+                            .filter((name) => !groupedBasics.some((group) => group.name === name))
+                            .map((name) => (
+                              <li className="basic-placeholder deck-card-tile" key={name}>
+                                <button
+                                  type="button"
+                                  disabled={deck.length >= 100}
+                                  onClick={() => void addOneBasic(name)}
+                                >
+                                  <span>Add {name}</span>
+                                  <b>+</b>
+                                </button>
+                              </li>
+                            ))}
+                        </>
+                      )}
+                    </ol>
+                  )
+                  return (
+                    <section className="deck-group" key={section}>
+                      {section === 'Commander' ? (
+                        <>
+                          {heading}
+                          {cardList}
+                        </>
+                      ) : (
+                        <details className="deck-group-details" open>
+                          <summary>{heading}</summary>
+                          {cardList}
+                        </details>
+                      )}
+                    </section>
+                  )
+                })}
               </div>
             ))}
             {sideboard.length > 0 && (
@@ -1551,11 +1564,14 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
                             onOpen={() => openDeckCard(card, { board: 'sideboard', index })}
                           />
-                          {card.finish && card.finish !== 'nonfoil' && (
-                            <small className="finish-label">{card.finish}</small>
-                          )}
                         </span>
                         <span className="deck-card-meta">
+                          <span className="deck-mana">
+                            <OracleText text={card.manaCost} />
+                            {card.finish && card.finish !== 'nonfoil' && (
+                              <small className="finish-label">{card.finish}</small>
+                            )}
+                          </span>
                           <button
                             className="sideboard-move"
                             type="button"

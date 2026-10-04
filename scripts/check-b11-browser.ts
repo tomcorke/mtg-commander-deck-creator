@@ -149,10 +149,18 @@ try {
   await page.getByRole('heading', { name: 'Deck overview', exact: true }).waitFor()
   const sections = page.locator('.deck-group-details')
   assert.ok((await sections.count()) >= 2, 'type sections render as native details')
+  const commanderGroup = page.locator('.deck-list .deck-group').first()
+  assert.match(await commanderGroup.locator(':scope > h3').innerText(), /COMMANDER/i)
   assert.equal(
-    await page.locator('.commander-header summary').count(),
+    await commanderGroup.locator('details').count(),
     0,
-    'Commander heading is not collapsible',
+    'deck-list Commander stays plain',
+  )
+  assert.equal(
+    await commanderGroup
+      .getByRole('button', { name: 'Show details for Browser Commander' })
+      .count(),
+    1,
   )
   const lands = page.locator('.deck-group').filter({ has: page.locator('.basic-land-row') })
   assert.match(await lands.locator('summary').innerText(), /LANDS/i)
@@ -168,8 +176,45 @@ try {
   )
 
   const foilReference = page.getByRole('button', { name: 'Show details for Foil Artifact' })
-  const artifactDetails = sections.nth(2)
+  const artifactDetails = sections.nth(1)
+  const disclosureGeometry = await artifactDetails.locator('summary').evaluate((summary) => {
+    const summaryBox = summary.getBoundingClientRect()
+    const headingBox = summary.querySelector('h3')!.getBoundingClientRect()
+    const marker = getComputedStyle(summary, '::marker')
+    return {
+      summaryHeight: summaryBox.height,
+      headingCenter: headingBox.top + headingBox.height / 2,
+      summaryCenter: summaryBox.top + summaryBox.height / 2,
+      markerDisplay: marker.display,
+      markerContent: marker.content,
+    }
+  })
+  assert.ok(disclosureGeometry.summaryHeight >= 44)
+  assert.notEqual(disclosureGeometry.markerDisplay, 'none')
+  assert.notEqual(disclosureGeometry.markerContent, 'none')
+  assert.ok(
+    Math.abs(disclosureGeometry.headingCenter - disclosureGeometry.summaryCenter) < 10,
+    'native marker and heading share one row',
+  )
   const artifactSummary = artifactDetails.locator('summary')
+  assert.equal(
+    await artifactSummary.evaluate((node) => getComputedStyle(node).display),
+    'list-item',
+  )
+  await artifactSummary.hover()
+  assert.notEqual(
+    await artifactSummary.evaluate((node) => getComputedStyle(node).backgroundColor),
+    'rgba(0, 0, 0, 0)',
+    'light summary hover has a visible tint',
+  )
+  await page.getByRole('button', { name: /Light/ }).click()
+  await artifactSummary.hover()
+  assert.notEqual(
+    await artifactSummary.evaluate((node) => getComputedStyle(node).backgroundColor),
+    'rgba(0, 0, 0, 0)',
+    'dark summary hover has a visible tint',
+  )
+  await page.getByRole('button', { name: /Dark/ }).click()
   await artifactSummary.focus()
   await page.keyboard.press('Enter')
   assert.equal(await artifactDetails.evaluate((node) => (node as HTMLDetailsElement).open), false)
@@ -186,7 +231,7 @@ try {
     'toggle survives unrelated render',
   )
 
-  const landsDetails = sections.nth(3)
+  const landsDetails = page.locator('.deck-group-details:has(.basic-land-row)')
   await landsDetails.locator('summary').focus()
   await page.keyboard.press('Space')
   assert.equal(await landsDetails.evaluate((node) => (node as HTMLDetailsElement).open), false)
@@ -222,7 +267,7 @@ try {
     ),
   )
   const roleMatchGroup = page
-    .locator('[data-highlighted]')
+    .locator('.deck-group-details [data-highlighted]')
     .first()
     .locator('xpath=ancestor::details[1]')
   assert.equal(await roleMatchGroup.evaluate((node) => (node as HTMLDetailsElement).open), true)
@@ -311,7 +356,8 @@ try {
     assert.equal(
       (
         await reference
-          .locator('xpath=../following-sibling::small[contains(@class,"finish-label")]')
+          .locator('xpath=ancestor::li[1]')
+          .locator('.deck-mana .finish-label')
           .innerText()
       ).toLowerCase(),
       finish,
@@ -320,6 +366,27 @@ try {
   }
   await motionPreference.check()
 
+  await page.setViewportSize({ width: 390, height: 844 })
+  const mobileNameLayout = await foilReference.evaluate((button) => {
+    const reference = button.closest('.deck-card-reference')!
+    const metadata = button.closest('li')!.querySelector('.deck-card-meta')!
+    const finish = metadata.querySelector('.deck-mana .finish-label')!
+    const nameBox = button.getBoundingClientRect()
+    const finishBox = finish.getBoundingClientRect()
+    return {
+      overflowWrap: getComputedStyle(button).overflowWrap,
+      nameBottom: nameBox.bottom,
+      finishTop: finishBox.top,
+      finishInManaRow: finish.parentElement === metadata.querySelector('.deck-mana'),
+      nameRowBottom: reference.getBoundingClientRect().bottom,
+    }
+  })
+  assert.equal(mobileNameLayout.overflowWrap, 'break-word')
+  assert.equal(mobileNameLayout.finishInManaRow, true)
+  assert.ok(
+    mobileNameLayout.finishTop >= mobileNameLayout.nameRowBottom - 1,
+    'finish is in lower metadata row',
+  )
   await page.getByRole('button', { name: 'Show details for Browser DFC' }).click()
   const details = page.getByRole('dialog')
   const flip = details.getByRole('button', { name: 'Show back of Browser DFC' })
