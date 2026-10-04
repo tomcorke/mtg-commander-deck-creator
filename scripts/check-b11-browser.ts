@@ -60,7 +60,10 @@ const deck = [
 ]
 const makeCandidate = (index: number) =>
   toCard(
-    card(`Candidate ${index}`, 'Artifact', 2, { oracle_id: `candidate-${index}` }),
+    card(`Candidate ${index}`, 'Artifact', 2, {
+      oracle_id: `candidate-${index}`,
+      finishes: [index % 2 ? 'foil' : 'etched'],
+    }),
     'Test fixture',
   )
 const state = persistedDeckStateSchema.parse({
@@ -86,7 +89,10 @@ const state = persistedDeckStateSchema.parse({
   deferredCards: [],
   batchNumber: 1,
   deck,
-  sideboard: [],
+  sideboard: [
+    { ...toDeckCard(card('Sideboard Foil', 'Artifact', 2)), finish: 'foil' as const },
+    { ...toDeckCard(card('Sideboard Etched', 'Artifact', 3)), finish: 'etched' as const },
+  ],
   preferredPrintSet: '',
   deckTargets: defaultDeckTargets,
 })
@@ -95,8 +101,19 @@ const browser = await chromium.launch({
   executablePath:
     process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   headless: true,
+  chromiumSandbox: true,
+  args: ['--enable-automation'],
 })
 try {
+  const processInfo = await (
+    await browser.newBrowserCDPSession()
+  ).send('Browser.getBrowserCommandLine')
+  assert.equal(
+    processInfo.arguments.includes('--no-sandbox'),
+    false,
+    'Chrome sandbox stays enabled',
+  )
+  console.log(`Chrome ${browser.version()} (headless, sandbox enabled)`)
   const context = await browser.newContext({ viewport: { width: 1365, height: 950 } })
   const page = await context.newPage()
   const errors: string[] = []
@@ -260,6 +277,49 @@ try {
     'etched effect appears in hovered preview',
   )
 
+  const motionPreference = page.getByRole('checkbox', { name: 'Motion and finishes' })
+  const sideboardFoil = page.getByRole('button', { name: 'Show details for Sideboard Foil' })
+  const sideboardEtched = page.getByRole('button', { name: 'Show details for Sideboard Etched' })
+  for (const [reference, finish, effect] of [
+    [sideboardFoil, 'foil', '.holo-card'],
+    [sideboardEtched, 'etched', '.etched-card'],
+  ] as const) {
+    await reference.hover()
+    const preview = reference.locator('xpath=..').locator('.card-image-preview')
+    await preview.waitFor({ state: 'visible' })
+    assert.equal(
+      await preview.locator(effect).count(),
+      1,
+      `${finish} sideboard preview uses its finish`,
+    )
+  }
+  await motionPreference.uncheck()
+  assert.equal(await page.evaluate(() => localStorage.getItem('option:cardEffects')), 'false')
+  for (const [reference, finish] of [
+    [sideboardFoil, 'foil'],
+    [sideboardEtched, 'etched'],
+  ] as const) {
+    await reference.hover()
+    const preview = reference.locator('xpath=..').locator('.card-image-preview')
+    await preview.waitFor({ state: 'visible' })
+    assert.equal(await preview.locator('.finished-card img').count(), 1)
+    assert.equal(
+      await preview.locator('.holo-card, .etched-card, .tilting-card, .finish-edges').count(),
+      0,
+      `${finish} preview stays static with effects off`,
+    )
+    assert.equal(
+      (
+        await reference
+          .locator('xpath=../following-sibling::small[contains(@class,"finish-label")]')
+          .innerText()
+      ).toLowerCase(),
+      finish,
+      `${finish} remains selected with effects off`,
+    )
+  }
+  await motionPreference.check()
+
   await page.getByRole('button', { name: 'Show details for Browser DFC' }).click()
   const details = page.getByRole('dialog')
   const flip = details.getByRole('button', { name: 'Show back of Browser DFC' })
@@ -270,6 +330,25 @@ try {
   )
   await page.getByRole('button', { name: 'Close Browser DFC details' }).click()
 
+  await page.waitForLoadState('networkidle')
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll<HTMLImageElement>('.card-offer img')].every(
+      (img) => img.complete,
+    ),
+  )
+  await page.waitForTimeout(500)
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  )
+  assert.equal(await page.locator('.card-offer').count(), 4)
+  assert.ok(
+    (await page.locator('.card-offer .finished-card.holo-card').count()) > 0,
+    'foil offer in perf sample',
+  )
+  assert.ok(
+    (await page.locator('.card-offer .finished-card.etched-card').count()) > 0,
+    'etched offer in perf sample',
+  )
   const perf = await page.evaluate(async () => {
     const entries: number[] = []
     const observer = new PerformanceObserver((list) =>
@@ -284,10 +363,14 @@ try {
       totalMs: entries.reduce((a, b) => a + b, 0).toFixed(1),
     }
   })
-  assert.ok(Number(perf.maxMs) < 150, `steady-state longest task ${perf.maxMs} ms is below 150 ms`)
+  assert.equal(
+    perf.count,
+    0,
+    `no >=50ms main-thread long tasks in steady-state sample; observed ${perf.maxMs}ms max / ${perf.totalMs}ms total`,
+  )
   assert.deepEqual(errors, [], `no page errors: ${errors.join('; ')}`)
   console.log(
-    `B11 browser OK: keyboard/details, highlight, previews, DFC details, 4 offers; long tasks=${perf.count}, max=${perf.maxMs}ms, total=${perf.totalMs}ms`,
+    `B11 browser OK: keyboard/details, highlight, deck/sideboard previews on/off, DFC details, foil+etched in four offers. Chrome ${browser.version()}; post-networkidle + 500ms settle, mocked providers; >=50ms tasks=${perf.count}, max=${perf.maxMs}ms, total=${perf.totalMs}ms.`,
   )
   await context.close()
 } finally {
