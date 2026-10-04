@@ -123,6 +123,22 @@ test('unknown current fields never reuse old legality, identity, mana value or G
   assert.equal(analyseDeck([updated, invalid]).curve[1].permanents, 0)
 })
 
+test('saves without stored gameplay fields refresh silently and stale warnings clear', async () => {
+  const {
+    commanderLegality: _legality,
+    gameChanger: _gameChanger,
+    manaValueKnown: _known,
+    ...old
+  } = toDeckCard(raw('Old'))
+  const fetcher: typeof fetch = async () => Response.json({ data: [raw('Old', { cmc: 2 })] })
+  const results = await refreshCardData([old], new AbortController().signal, fetcher)
+  const updated = applyCurrentCardData({ ...old, dataWarnings: ['Mana value changed.'] }, results)
+  assert.deepEqual(updated.dataWarnings, [])
+  assert.deepEqual(applyCurrentCardData(toDeckCard(raw('Old')), results).dataWarnings, [
+    'Mana value: 1 → 2.',
+  ])
+})
+
 test('pending and failed migrations keep 100-card decks incomplete; a current legal deck can complete', async () => {
   const commander = toDeckCard(raw('Commander'))
   const forest = toDeckCard(raw('Forest', { type_line: 'Basic Land — Forest', cmc: 0 }))

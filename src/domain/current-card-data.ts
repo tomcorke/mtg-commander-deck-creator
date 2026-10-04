@@ -24,17 +24,32 @@ export function pendingDeckData(state: PersistedDeckState): PersistedDeckState {
 
 export function currentCardData<T extends DeckCard>(card: T, fetched: ScryfallCard): T {
   const fresh = toDeckCard(fetched)
-  const changes = [
-    ['Commander legality', card.commanderLegality, fresh.commanderLegality],
-    ['Colour identity', card.colorIdentity, fresh.colorIdentity],
+  const show = (value: unknown) =>
+    value === undefined
+      ? 'unknown'
+      : typeof value === 'boolean'
+        ? value
+          ? 'yes'
+          : 'no'
+        : Array.isArray(value)
+          ? value.join('') || 'colourless'
+          : String(value).replace('_', ' ')
+  // Saves from before a field was stored have no old value; filling it in is not a change.
+  const changes = (
     [
-      'Mana value',
-      card.manaValueKnown ? card.manaValue : undefined,
-      fresh.manaValueKnown ? fresh.manaValue : undefined,
-    ],
-    ['Game Changer status', card.gameChanger, fresh.gameChanger],
-  ].flatMap(([label, before, after]) =>
-    JSON.stringify(before) === JSON.stringify(after) ? [] : [`${label} changed.`],
+      ['Commander legality', card.commanderLegality, fresh.commanderLegality],
+      ['Colour identity', card.colorIdentity?.toSorted(), fresh.colorIdentity?.toSorted()],
+      [
+        'Mana value',
+        card.manaValueKnown ? card.manaValue : undefined,
+        fresh.manaValueKnown ? fresh.manaValue : undefined,
+      ],
+      ['Game Changer', card.gameChanger, fresh.gameChanger],
+    ] as const
+  ).flatMap(([label, before, after]) =>
+    before === undefined || JSON.stringify(before) === JSON.stringify(after)
+      ? []
+      : [`${label}: ${show(before)} → ${show(after)}.`],
   )
   // Gameplay data is current; printing, finish, evidence and player selections stay local.
   return {
@@ -55,7 +70,8 @@ export function currentCardData<T extends DeckCard>(card: T, fetched: ScryfallCa
     producedMana: fresh.producedMana,
     tags: fresh.tags,
     dataStatus: undefined,
-    dataWarnings: [...new Set([...(card.dataWarnings ?? []), ...changes])],
+    // Changes since the last save only; the refreshed values are saved, so old warnings clear.
+    dataWarnings: changes,
   }
 }
 

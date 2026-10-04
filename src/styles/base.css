@@ -128,6 +128,18 @@ main > .workspace-alert .modal-close {
   font-size: 14px;
   line-height: 1.5;
 }
+.workspace-notice-details {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.workspace-notice-details > summary {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.workspace-notice-details[open] {
+  max-height: 40vh;
+  overflow-y: auto;
+}
 .workspace-notice-actions {
   display: flex;
   flex-wrap: wrap;
