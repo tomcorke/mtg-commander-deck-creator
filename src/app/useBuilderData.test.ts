@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { defaultDeckTargets } from '../deck-analysis.ts'
+import { analyzeDeckDoctor } from '../deck-doctor.ts'
+import { buildEdhrecRecommendations } from '../domain/recommendation-sources.ts'
+import { toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
 import { buildBuilderData, displayDeckSection } from './useBuilderData.ts'
 
 function builderDeps(queue: unknown[], overrides: Record<string, unknown> = {}) {
@@ -49,6 +52,105 @@ function builderDeps(queue: unknown[], overrides: Record<string, unknown> = {}) 
     ...overrides,
   }
 }
+
+test('finding suggestions reuse provider exclusions, power, goal, price, set preferences and ignore filters', () => {
+  const raw = (name: string, overrides: Partial<ScryfallCard> = {}): ScryfallCard => ({
+    name,
+    type_line: 'Artifact',
+    cmc: 2,
+    mana_cost: '{1}{G}',
+    produced_mana: ['G'],
+    color_identity: ['G'],
+    legalities: { commander: 'legal' },
+    set: 'tst',
+    collector_number: '1',
+    prints_search_uri: '',
+    game_changer: false,
+    released_at: '2020-01-01',
+    ...overrides,
+  })
+  const options = {
+    includeCreature: true,
+    powerTarget: 'precon' as const,
+    excludeGameChangers: true,
+    excludeTutors: true,
+    excludeExtraTurns: true,
+    excludeUnreleased: true,
+  }
+  const fetched = [
+    raw('Allowed'),
+    raw('Price cap', { prices: { usd: '25' } }),
+    raw('Ignored'),
+    raw('Pending ignore'),
+    raw('Sideboard'),
+    raw('Other set', { set: 'other' }),
+    raw('Game Changer', { game_changer: true }),
+    raw('Tutor', { oracle_text: 'Search your library for a card.' }),
+    raw('Extra turn', { oracle_text: 'Take an extra turn after this one.' }),
+    raw('Future', { released_at: '2999-01-01' }),
+    raw('Lotus Petal'),
+    raw('Banned', { legalities: { commander: 'banned' } }),
+  ]
+  const pool = buildEdhrecRecommendations(
+    fetched.map(({ name }) => ({ name, tag: 'highsynergycards', header: 'High Synergy Cards' })),
+    fetched,
+    options,
+  )
+  const deck = Array.from({ length: 100 }, (_, index) =>
+    toDeckCard(
+      raw(`Deck ${index}`, {
+        type_line: 'Creature',
+        produced_mana: [],
+        oracle_text: index > 1 ? 'Create a token creature.' : '',
+      }),
+    ),
+  )
+  const deps = builderDeps(pool, {
+    ...options,
+    commander: 'Deck 0',
+    deck,
+    theme: 'Tokens',
+    maxPrice: 5,
+    ignoredCards: ['Ignored'],
+    decisions: { 'Pending ignore': 'ignore' },
+    sideboard: [toDeckCard(raw('Sideboard'))],
+    collectionMode: 'only',
+    collectionSets: ['tst'],
+  })
+  const data = buildBuilderData(deps)
+  const findings = analyzeDeckDoctor({
+    deck,
+    sideboard: deps.sideboard,
+    commanderCount: 1,
+    theme: 'Tokens',
+    activeSubThemes: [],
+    deckTargets: defaultDeckTargets,
+  })
+  const suggestions = data.suggestFindingChanges(findings, pool)['role-gap:ramp']
+  assert.equal(suggestions.length, 1)
+  assert.equal(suggestions[0].addCard.name, 'Allowed')
+  assert.equal(suggestions[0].cut?.cutCard.name, 'Deck 1')
+  assert(data.recommendationSettingsSummary.includes('Balanced'))
+
+  const preferencePool = [
+    { ...pool.find(({ name }) => name === 'Allowed')!, name: 'Off-theme', tags: [], set: 'other' },
+    {
+      ...pool.find(({ name }) => name === 'Allowed')!,
+      name: 'Theme match',
+      tags: ['Tokens'],
+      set: 'tst',
+    },
+  ]
+  const thematic = buildBuilderData({
+    ...deps,
+    collectionMode: 'prefer',
+    recommendationStyle: 'thematic',
+  })
+  assert.equal(
+    thematic.suggestFindingChanges(findings, preferencePool)['role-gap:ramp'][0].addCard.name,
+    'Theme match',
+  )
+})
 
 test('priority and price summary reflect tuning, and the visible batch filters only the requested role', () => {
   const cards = Array.from({ length: 8 }, (_, i) => ({

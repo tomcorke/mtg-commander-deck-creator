@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { defaultDeckTargets, rolesForCard } from '../../deck-analysis.ts'
 import { persistedDeckStateSchema } from '../../deck-state.ts'
-import { toCard, toDeckCard, type Card } from '../../domain/card-model.ts'
+import { toCard, toDeckCard, type Card, type ScryfallCard } from '../../domain/card-model.ts'
 import { focusedRecommendations } from '../../domain/recommendation-tuning.ts'
 import { rankRecommendationCards, releaseNextDeferred } from '../../recommendations.ts'
 import { decide } from '../../app/deck-actions.ts'
@@ -17,6 +17,7 @@ import {
 import {
   chooseRoleFocus,
   clearCompletedRoleFocus,
+  mergeSearchCards,
   nextBatch,
   refreshRecommendationSettings,
   type BuilderInteractionDeps,
@@ -27,6 +28,7 @@ const raw = (name: string, set = 'tst') => ({
   type_line: name === 'Commander' ? 'Legendary Creature' : 'Artifact',
   cmc: 2,
   legalities: { commander: 'legal' },
+  game_changer: false,
   color_identity: [],
   set,
   collector_number: '1',
@@ -131,6 +133,15 @@ function chooseBatch(deps: BuilderInteractionDeps & ActionDeps) {
 }
 
 const hasCard = (cards: Card[], name: string) => cards.some((card) => card.name === name)
+
+test('search pages replace duplicates and reset results for a new query', () => {
+  const first = { ...raw('First'), set_name: 'First set' } as ScryfallCard
+  const duplicate = { ...raw('First', 'new'), set_name: 'New set' } as ScryfallCard
+  const second = { ...raw('Second'), set_name: 'Second set' } as ScryfallCard
+
+  assert.deepEqual(mergeSearchCards([first], [duplicate, second], false), [duplicate, second])
+  assert.deepEqual(mergeSearchCards([first], [second], true), [second])
+})
 
 test('ranking refresh records decisions and likes without spending undecided cards or the batch', async () => {
   const deps = fixture()

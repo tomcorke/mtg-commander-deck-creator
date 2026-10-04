@@ -10,7 +10,7 @@ The [card object contract](https://scryfall.com/docs/api/cards) distinguishes ga
 - **`id`** identifies a Scryfall printing object, not an individual owned copy. Set, string-valued `collector_number`, and language describe the edition. A printing object can support several finishes; finish is a separate selection.
 - **Exception:** `reversible_card` has no root `oracle_id`; each face has its own. These are unrelated cards printed on opposite sides, not one transforming card. See [layouts](https://scryfall.com/docs/api/layouts).
 
-Oracle identity helps with singleton checks; it does not encode basic-land or allowed-copy exceptions. New normalized cards retain `oracle_id` as `oracleId`, along with Commander legality, Game Changer membership, and whether mana value is known. Construction checks compare Oracle identities when both records have them; legacy snapshots fall back to names until refreshed. Saved-deck and queue refresh on load remains open under B12 in `TODO.md`. Relevant code: `src/domain/card-model.ts`, `src/domain/printing.ts`, and `src/adapters/scryfall.ts`.
+Oracle identity helps with singleton checks; it does not encode basic-land or allowed-copy exceptions. New normalized cards retain `oracle_id` as `oracleId`, along with Commander legality, Game Changer membership, and whether mana value is known. Construction checks compare Oracle identities when both records have them; legacy snapshots fall back to names until refreshed. Saved-deck and queue refresh on load is implemented under B12 in `COMPLETED.md`; failed or oversized refreshes retain cards with unverified-data warnings. Relevant code: `src/domain/card-model.ts`, `src/domain/printing.ts`, and `src/adapters/scryfall.ts`.
 
 ## Scryfall fields we use
 

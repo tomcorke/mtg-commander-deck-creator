@@ -1,5 +1,5 @@
 import type { SavedDeck } from '../../deck-state.ts'
-import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
+import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 
 export type BuilderTopBarProps = {
@@ -21,20 +21,11 @@ export function BuilderTopBar({
   onSaveLoad,
   startOver,
 }: BuilderTopBarProps) {
-  const {
-    cardEffects,
-    commanderStyling,
-    darkMode,
-    setCardEffects,
-    setCommanderStyling,
-    setDarkMode,
-  } = useVisualPreferences()
-
   return (
     <header>
-      <button className="brand reset" type="button" onClick={startOver}>
+      <span className="brand">
         Commander Deck Creator <small>v{__APP_VERSION__}</small>
-      </button>
+      </span>
       <div className="deck-status">
         {activeSavedDeck && (
           <div className="saved-status">
@@ -56,36 +47,12 @@ export function BuilderTopBar({
         </div>
       </div>
       <div className="header-actions">
-        <label className="theme-option">
-          <input
-            type="checkbox"
-            checked={commanderStyling}
-            onChange={(event) => setCommanderStyling(event.target.checked)}
-          />{' '}
-          Commander art and colours
-        </label>
-        <label
-          className="theme-option"
-          title="Enable card movement and foil or etched finish effects"
-        >
-          <input
-            type="checkbox"
-            checked={cardEffects}
-            onChange={(event) => setCardEffects(event.target.checked)}
-          />{' '}
-          Motion and finishes
-        </label>
-        <button
-          className="theme-toggle"
-          type="button"
-          aria-pressed={darkMode}
-          onClick={() => setDarkMode((current) => !current)}
-        >
-          {darkMode ? '◐ Dark' : '☀ Light'}
-        </button>
-        <button className="start-over" type="button" onClick={startOver}>
-          Start over
-        </button>
+        <DisplaySettingsMenu />
+        <div className="header-destructive">
+          <button className="start-over" type="button" onClick={startOver}>
+            Start over
+          </button>
+        </div>
         <button className="export" type="button" onClick={onImport}>
           Import
         </button>

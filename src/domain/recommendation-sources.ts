@@ -52,7 +52,7 @@ export function toRecommendationCard(
     oracleId: card.oracle_id,
     commanderLegality: card.legalities?.commander,
     manaValueKnown: Number.isFinite(card.cmc),
-    gameChanger: card.game_changer,
+    gameChanger: card.game_changer ?? undefined,
     manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '',
     manaValue: card.cmc ?? 0,
     detail: cardText(card),
@@ -92,7 +92,10 @@ export function buildEdhrecRecommendations(
     return (
       card &&
       card.legalities?.commander === 'legal' &&
-      !(options.excludeGameChangers && (entry.tag === 'gamechangers' || card.game_changer)) &&
+      !(
+        options.excludeGameChangers &&
+        (entry.tag === 'gamechangers' || card.game_changer !== false)
+      ) &&
       !(options.excludeTutors && /search your library/i.test(text)) &&
       !(options.excludeExtraTurns && /extra turn/i.test(text)) &&
       !(options.excludeUnreleased && !isReleased(card)) &&

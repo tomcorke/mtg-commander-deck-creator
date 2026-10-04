@@ -201,7 +201,8 @@
   border-radius: 4.75%;
 }
 .offered-image:has(.card-image-actions) {
-  margin-bottom: 28px;
+  z-index: 3;
+  margin-bottom: 52px;
 }
 .card-face,
 .offered-image > .finished-card {
@@ -500,7 +501,7 @@ button:disabled {
   min-height: 0;
   margin: -4px 0 12px;
   color: #36327f;
-  font-size: 14px;
+  font-size: var(--decision-text);
   font-weight: 500;
   line-height: 1.45;
   white-space: normal;
@@ -577,7 +578,7 @@ button:disabled {
   margin: 0;
   color: #514e66;
   font:
-    600 11px 'DM Sans',
+    600 var(--decision-text) 'DM Sans',
     sans-serif;
   letter-spacing: 0.7px;
   text-transform: uppercase;
@@ -617,8 +618,8 @@ button:disabled {
   display: grid;
   gap: 4px;
   margin: 0;
-  font-size: 11px;
-  line-height: 1.2;
+  font-size: var(--decision-text);
+  line-height: 1.35;
 }
 .score-factor-row {
   position: relative;
@@ -633,7 +634,7 @@ button:disabled {
   background: #ffffff55;
 }
 .score-factor-row:focus-visible {
-  outline: 2px solid #8d88bd;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 .score-factors dt {
@@ -655,7 +656,7 @@ button:disabled {
   border-radius: 6px;
   background: #201c3c;
   color: white;
-  font-size: 12px;
+  font-size: var(--decision-text);
   line-height: 1.35;
   opacity: 0;
   pointer-events: none;
@@ -677,6 +678,6 @@ button:disabled {
   min-height: 0;
   margin: 8px 0 0;
   color: #8a8799;
-  font-size: 10px;
+  font-size: var(--decision-text);
   line-height: 1.3;
 }

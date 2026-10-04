@@ -32,6 +32,9 @@ import {
 } from '../domain/recommendation-tuning.ts'
 import { setPickerRows } from '../domain/set-picker.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
+import type { DeckDoctorFinding } from '../deck-doctor.ts'
+import { suggestDeckDoctorChanges } from '../deck-doctor-suggestions.ts'
+import { deckDataStatus, recommendationDataError } from '../domain/deck-data-status.ts'
 
 export type BuilderDataDeps = Record<string, any>
 
@@ -133,23 +136,35 @@ function buildCollectionData(deps: BuilderDataDeps) {
   return { filteredCollectionCards, setRows, collectionSetLabel }
 }
 
-function buildDeckData(deps: BuilderDataDeps) {
-  const { deck, commander, commanderDetails, deckTargets } = deps
-  const analysis = analyseDeck(deck)
-  const manaSupport = manaSupportFromAnalysis(analysis, deckTargets)
-  const missingHealthRoles = targetKeys.filter((key) => analysis.counts[key] < deckTargets[key])
-  const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
+function healthSuggestionCards(deps: BuilderDataDeps, missingHealthRoles: string[]): Card[] {
+  const { deck, commanderDetails } = deps
   const healthSuggestions =
     deps.recommendationStyle === 'thematic' && !deps.prioritizeDeckHealth
       ? deps.queue
           .slice(4)
           .filter(
             (card: Card, index: number, cards: Card[]) =>
+              !recommendationDataError(
+                card,
+                deck,
+                commanderDetails?.colours ?? [],
+                deps.excludeGameChangers,
+              ) &&
               rolesForCard(card).some((role) => missingHealthRoles.includes(role)) &&
               cards.findIndex((item) => item.name === card.name) === index,
           )
           .slice(0, 3)
       : []
+  return healthSuggestions
+}
+
+function buildDeckData(deps: BuilderDataDeps) {
+  const { deck, commander, commanderDetails, deckTargets } = deps
+  const analysis = analyseDeck(deck)
+  const manaSupport = manaSupportFromAnalysis(analysis, deckTargets)
+  const missingHealthRoles = targetKeys.filter((key) => analysis.counts[key] < deckTargets[key])
+  const guidance = deckGuidance(deck.length, analysis.counts, deckTargets)
+  const healthSuggestions = healthSuggestionCards(deps, missingHealthRoles)
   const calculatedLandTarget = deckTargets.lands
   const basicLands = basicLandPlan(
     commanderDetails?.colours ?? [],
@@ -345,10 +360,22 @@ function buildRecommendationData(
   const explainRecommendation = recommendationExplainer(deps, deckData, pickedTags)
   const scoreCandidate = (card: Card) =>
     recommendationScoreBreakdown(card, { ...context, cardRoles: rolesForCard(card) })
+  const blockedReplacements = new Set([
+    ...(deps.ignoredCards ?? []),
+    ...deps.sideboard.map((card: DeckCard) => card.name),
+    ...Object.keys(deps.decisions ?? {}).filter((name) => deps.decisions[name] === 'ignore'),
+  ])
   const scoreReplacements = (pool: Card[], remainingDeck: DeckCard[]) => {
     const replacementContext = buildRecommendationContext(deps, pool, remainingDeck)
     return pool
-      .filter((card) => withinPriceCap(card, deps.maxPrice))
+      .filter(
+        (card) =>
+          withinPriceCap(card, deps.maxPrice) &&
+          !blockedReplacements.has(card.name) &&
+          (deps.collectionMode !== 'only' ||
+            card.collectionMatch ||
+            deps.collectionSets.includes(card.set)),
+      )
       .map((card) => ({
         card,
         score: recommendationScoreBreakdown(card, {
@@ -357,10 +384,40 @@ function buildRecommendationData(
         }),
       }))
   }
+  const suggestFindingChanges = (findings: DeckDoctorFinding[], pool: Card[]) =>
+    suggestDeckDoctorChanges({
+      deck: deps.deck,
+      commanderCount: commanderNames(deps.commander).length,
+      commanderColours: deps.commanderDetails?.colours ?? [],
+      deckTargets: deps.deckTargets,
+      theme: deps.theme,
+      activeSubThemes: deps.activeSubThemes,
+      findings,
+      rankedCandidates: scoreReplacements(pool, deps.deck)
+        .sort((left, right) => compareRecommendationScores(left.score, right.score))
+        .map(({ card, score }) => ({ card, fit: score.total })),
+      // Existing deck cards have no comparable provider evidence. Use one neutral reason;
+      // do not apply addition preferences (price, sets, ignores) to potential cuts.
+      ratedCuts: deps.deck.slice(commanderNames(deps.commander).length).map((card: DeckCard) => ({
+        card,
+        fit: recommendationScoreBreakdown(
+          { ...card, reason: 'Interesting new pick' },
+          { ...context, cardRoles: rolesForCard(card) },
+        ).total,
+      })),
+    })
   const scoredBatch = visibleBatch.map((card: Card) => ({ card, score: scoreCandidate(card) }))
-  const best = [...scoredBatch].sort((left, right) =>
-    compareRecommendationScores(left.score, right.score),
-  )[0]
+  const best = scoredBatch
+    .filter(
+      ({ card }) =>
+        !recommendationDataError(
+          card,
+          deps.deck,
+          deps.commanderDetails?.colours ?? [],
+          deps.excludeGameChangers,
+        ),
+    )
+    .sort((left, right) => compareRecommendationScores(left.score, right.score))[0]
   const recommendedCard = {
     card: best && best.score.total >= recommendedScoreThreshold ? best.card : null,
     score: best?.score.total ?? recommendedScoreThreshold - 1,
@@ -376,6 +433,7 @@ function buildRecommendationData(
     recommendationRoleSupply,
     scoreCandidate,
     scoreReplacements,
+    suggestFindingChanges,
     scoredBatch,
     recommendedCard,
   }
@@ -407,7 +465,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
   ].filter((value): value is string => Boolean(value))
   const collectionSummary =
     collectionSets.length && collectionMode !== 'none'
-      ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} ${collectionSets.length} set${collectionSets.length === 1 ? '' : 's'}`
+      ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} selected sets`
       : 'All sets'
   const recommendationSettingsSummary = [
     recommendationStyleLabel,
@@ -444,6 +502,13 @@ export function buildBuilderData(deps: BuilderDataDeps) {
     ...themeData,
     ...collectionData,
     ...deckData,
+    ...deckDataStatus(
+      deps.deck,
+      deps.commander,
+      deps.queue,
+      deps.sideboard,
+      deps.deferredCards ?? [],
+    ),
     ...buildRecommendationData(deps, deckData),
     ...buildSettingsSummary(deps),
   }

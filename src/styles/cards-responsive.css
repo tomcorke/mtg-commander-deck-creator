@@ -1,0 +1,95 @@
+.dark .card-type-line,
+.dark .deck-card-description {
+  color: #aaa8c2;
+}
+.dark .card-details {
+  border-color: #39374f;
+  color: #aaa8c2;
+}
+.dark .card-details dt,
+.dark .card-details dd strong {
+  color: #ccc9df;
+}
+.dark .card-details a {
+  color: #b786f2;
+}
+.dark .card-details a:hover {
+  color: #d1b0ff;
+}
+.dark .score-breakdown {
+  border-color: #39374f;
+}
+.dark .score-breakdown-heading h4,
+.dark .score-factors dd {
+  color: #ccc9df;
+}
+.dark .score-radar-grid,
+.dark .score-radar-axis {
+  stroke: #39374f;
+}
+.dark .score-factors dt,
+.dark .score-breakdown .score-note {
+  color: #aaa8c2;
+}
+.dark .card-offer {
+  --card-title-shadow: #17162a;
+}
+.dark .card-offer.add {
+  --offer-border: #7169ca;
+  --offer-fill: #282646;
+}
+.dark .tilting-card {
+  --card-lift-shadow: 0 10px 25px -20px white;
+}
+.dark .offered-image > .finished-card:not(.image-ready),
+.dark .commander-placeholder {
+  background-image: linear-gradient(110deg, #29273d 30%, #3b3852 45%, #29273d 60%);
+}
+.dark .offered-image > img,
+.dark .card-face > img {
+  outline: 2px solid #696681;
+  outline-offset: 2px;
+  box-shadow: 0 14px 35px #0009;
+}
+.dark .synergy-info > button {
+  border-color: #8d83df;
+  background: #302a4b;
+  color: #dedaff;
+}
+.dark .synergy-popover {
+  border-color: #8d83df;
+  background: #24203a;
+  color: #dedaff;
+}
+.dark .card-offer.synergy-1::after {
+  border-color: #8d83df;
+}
+.dark.commander-themed .card-offer.add {
+  --offer-border: var(--commander-highlight);
+  --offer-fill: color-mix(in srgb, var(--commander-accent) 28%, #111419);
+}
+@media (max-width: 800px) {
+  .card-offer {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 0 22px;
+    align-items: start;
+  }
+  .card-offer > .card-copy,
+  .card-offer > .commander-promotion {
+    grid-column: 1 / -1;
+  }
+  .connector-glow .synergy-pair .offered-image > .finished-card > .synergy-connector {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  .card-offer {
+    grid-template-columns: 1fr;
+  }
+  .offered-image {
+    width: min(250px, 100%);
+    max-width: 250px;
+    margin: auto;
+  }
+}

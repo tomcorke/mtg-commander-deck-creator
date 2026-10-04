@@ -190,7 +190,7 @@ test('seeds use known mechanics, primary intent, partners, and real Anikthea cou
   )
   assert.equal(
     supportsSignature(
-      toCard(raw('Landfall', 'Whenever a land enters, create a Treasure token.')),
+      toCard(raw('Landfall', 'Whenever a land enters, create a Treasure token.'), ''),
       { ...seed, theme: 'ETB', card: blink[1] },
       blink,
     ),

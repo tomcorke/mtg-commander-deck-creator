@@ -1,6 +1,8 @@
 import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
+import { deckJob } from './deck-job.ts'
+import { currentCardData } from '../domain/current-card-data.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import { resetSignatureContext } from './signature-actions.ts'
 import { commanderNames, themeSearchTerms } from '../domain/commander-catalog.ts'
@@ -18,6 +20,7 @@ import {
 } from '../recommendations.ts'
 import {
   toDeckCard,
+  type DeckCard,
   edhrecSlug,
   scryfallBackImage,
   toCard,
@@ -140,7 +143,7 @@ export async function fallbackRecommendations(deps: ActionDeps, identityColours:
   ]
     .filter(Boolean)
     .join(' ')
-  const baseQuery = `id<=${identity} legal:commander -is:commander ${bracketFilters}`
+  const baseQuery = `id<=${identity} legal:commander ${bracketFilters}`
   const [mainCards, manaCards] = await Promise.all([
     searchCards(`${baseQuery} -t:land -o:"add {"`, undefined, 'edhrec'),
     searchCards(`${baseQuery} (t:land or o:"add {")`, undefined, 'edhrec'),
@@ -230,8 +233,8 @@ export async function themeRecommendations(
   ]
     .filter(Boolean)
     .join(' ')
-  const query = `id<=${identity} legal:commander -is:commander (${terms.join(' or ')}) ${bracketFilters}`
-  const cards = await searchCards(query, undefined, 'random')
+  const query = `id<=${identity} legal:commander (${terms.join(' or ')}) ${bracketFilters}`
+  const cards = await searchCards(query, undefined, 'edhrec')
   return cards
     .filter((card: ScryfallCard) => powerTarget !== 'precon' || !preconFastMana.has(card.name))
     .map((card: ScryfallCard) => toCard(card, 'Interesting new pick', `theme ${themes.join(' ')}`))
@@ -240,6 +243,7 @@ export async function themeRecommendations(
 export async function edhrecRecommendations(
   deps: ActionDeps,
   slug: string,
+  identityColours: string[],
   excludedNames: string[] = [],
 ) {
   const {
@@ -261,7 +265,11 @@ export async function edhrecRecommendations(
   const excluded = new Set(excludedNames.map((name) => name.toLowerCase()))
   const entries = allEntries.filter(({ name }) => !excluded.has(name.toLowerCase()))
   const responseCards: ScryfallCard[] = await fetchCards(entries.map(({ name }) => ({ name })))
-  return buildEdhrecRecommendations(entries, responseCards, {
+  const identity = new Set(identityColours)
+  const legalIdentityCards = responseCards.filter(({ color_identity }) =>
+    color_identity?.every((colour) => identity.has(colour)),
+  )
+  return buildEdhrecRecommendations(entries, legalIdentityCards, {
     includeCreature,
     excludeGameChangers,
     excludeTutors,
@@ -407,7 +415,7 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
     deps.commanderDetails &&
     commanders.every((card: CommanderCard, index: number) => deps.deck[index]?.name === card.name)
   )
-    setCommanderDetails(deps.commanderDetails)
+    setCommanderDetails({ ...deps.commanderDetails, colours: identityColours })
   else if (images.length)
     setCommanderDetails({
       images,
@@ -416,7 +424,17 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
       printings,
       selections: commanders.map(() => 0),
     })
-  if (!preserveDeck) {
+  if (
+    preserveDeck &&
+    setDeck &&
+    commanders.every((card: CommanderCard, index: number) => deps.deck[index]?.name === card.name)
+  ) {
+    setDeck((current: DeckCard[]) =>
+      current.map((card, index) =>
+        index < commanders.length ? currentCardData(card, commanders[index]) : card,
+      ),
+    )
+  } else if (!preserveDeck) {
     setDeck(
       commanders.map((card: CommanderCard, index: number) => ({
         ...toDeckCard(card),
@@ -448,7 +466,7 @@ async function coreRecommendations(
             .concat(deps.ignoredCards ?? [])
         : []),
     ]
-    offeredCards = await edhrecRecommendations(deps, slug, excludedNames)
+    offeredCards = await edhrecRecommendations(deps, slug, identityColours, excludedNames)
     offeredCards = offeredCards.filter((card) => !cardConstructionError(card, [], identityColours))
     if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
   } catch (error) {
@@ -704,6 +722,10 @@ export async function start(
   preserveDeck = false,
   progress?: RecommendationProgress,
 ) {
+  const request = deps.recommendationRequest
+  const token = request ? ++request.current : undefined
+  const job = deckJob(deps, () => !request || request.current === token)
+  deps = job.deps
   const chosen = name.trim()
   if (!chosen) return false
   if (preserveDeck)
@@ -723,7 +745,13 @@ export async function start(
   })
   try {
     const loaded = await loadCommanderCards(deps, chosen)
+    if (!job.isCurrent()) return false
     addCommanderCards(deps, loaded, preserveDeck)
+    if (deps.prepareFirstBatch) {
+      deps.setRecommendationState('idle')
+      deps.setRecommendationOptionsChanged?.(false)
+      return true
+    }
     const offeredCards = await collectOfferedCards(
       deps,
       loaded,
@@ -731,8 +759,9 @@ export async function start(
       reset.activeCollectionSets,
       reset.activeCollectionMode,
     )
+    if (!job.isCurrent()) return false
     rankInitialRecommendations(
-      deps,
+      { ...deps, commanderDetails: { ...deps.commanderDetails, colours: loaded.identityColours } },
       offeredCards,
       chosen,
       preserveDeck,
@@ -742,8 +771,10 @@ export async function start(
     )
     if (deps.recommendationPoolKey) deps.recommendationPoolKey.current = poolKey
     deps.setRecommendationOptionsChanged?.(false)
+    deps.setFirstBatchPending?.(false)
     return true
   } catch (error) {
+    if (!job.isCurrent()) return false
     deps.setCollectionError(error instanceof Error ? error.message : 'Suggestions unavailable')
     deps.setRecommendationState('error')
     return false

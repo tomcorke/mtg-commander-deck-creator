@@ -52,7 +52,7 @@ export type ScryfallCard = {
   purchase_uris?: { tcgplayer?: string; cardmarket?: string; cardhoarder?: string }
   finishes?: CardFinish[]
   released_at?: string
-  game_changer?: boolean
+  game_changer?: boolean | null
   prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null }
   image_uris?: { normal: string; art_crop?: string }
   card_faces?: ScryfallCardFace[]
@@ -83,7 +83,7 @@ const scryfallCardSchema = z.object({
   produced_mana: z.array(z.string()).optional(),
   card_faces: z.array(faceSchema).optional(),
   legalities: z.object({ commander: z.string().optional() }).optional(),
-  game_changer: z.boolean().optional(),
+  game_changer: z.boolean().nullable().optional(),
   released_at: z.iso.date().optional(),
   set_name: z.string().optional(),
   scryfall_uri: z.string().optional(),
@@ -178,6 +178,8 @@ export const toDeckCardFromRecommendation = (card: Card): DeckCard => ({
   commanderLegality: card.commanderLegality,
   manaValueKnown: card.manaValueKnown,
   gameChanger: card.gameChanger,
+  dataStatus: card.dataStatus,
+  dataWarnings: card.dataWarnings,
   manaCost: card.manaCost,
   manaValue: card.manaValue,
   detail: card.detail,
@@ -209,7 +211,7 @@ export const toDeckCard = (card: ScryfallCard): DeckCard => ({
   oracleId: card.oracle_id,
   commanderLegality: card.legalities?.commander,
   manaValueKnown: Number.isFinite(card.cmc),
-  gameChanger: card.game_changer,
+  gameChanger: card.game_changer ?? undefined,
   manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '',
   manaValue: card.cmc ?? 0,
   detail: cardText(card),

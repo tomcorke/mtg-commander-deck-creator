@@ -2,6 +2,68 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## Completed-feature batch — 2026-10-04
+
+Implemented on the feature branches and integrated through [PR #11](https://github.com/tomcorke/mtg-commander-deck-creator/pull/11). All 297 tests, lint, typecheck and production build pass. Functional browser checks and frozen Opus acceptance are separate evidence; see [the acceptance record](docs/completed-features-acceptance-2026-10-04.md).
+
+## [A14] Support multiple tabs and safer autosaves
+
+**Complexity:** High · **Value:** High · **Delivery risk:** High — Tab isolation, recovery choices, and safe retention span startup, persistence, and saved-deck flows.
+
+**Status:** Complete. Each tab owns a workspace; inherited or resumed drafts fork rather than sharing writes. The recovery notice and shared picker distinguish autosaves from manual saves, show identity/count/age, and offer another draft or a new deck. Count/age retention protects live workspaces and manual saves. Quota failures keep recovery points and show retryable status; compact storage retains chosen printings, finishes and decisions.
+
+Six sandboxed installed-Chrome scenarios cover concurrent/inherited tabs, reload, legacy migration, real quota exhaustion, retention, deletion failures, dialog focus and previews. Opus checked the composed picker and notice, including deletion focus and the 24px dismissal target. Design: [A14 autosaves](docs/a14-autosaves.md).
+
+## [A2] Add a play-style step, resume, and optional intro guide
+
+**Complexity:** Medium · **Value:** High · **Delivery risk:** Medium — Settings can be preselected with existing state; guide compatibility was validated.
+
+**Status:** Complete. New commanders get Casual, Upgraded, High power or Skip before their first batch, mapped to existing editable settings. Imports/resumes bypass the step. Continue building reuses A14 recovery, Display settings are shared, and the persisted optional guide runs only after the first batch. React Joyride 3.2.0 was checked with React 19. Escape dismisses the guide after step changes and returns focus to the batch heading.
+
+Light/dark/390px functional flows cover presets, sets, Skip, display preferences, guide keyboard/Escape, resume and prepared-draft reload. Opus inspected first use and rechecked later-step Escape on the final frozen code. Resume heading focus remains a nonblocking A19 follow-up.
+
+## [A9] Improve commander discovery on the start screen
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — Live query relevance needed a bounded investigation.
+
+**Status:** Complete. Name, theme and exact colour identity compose on one art grid, with shared card/DFC previews, full mana costs and source-labelled reasons. Reviewed curated choices are extended; live Equipment, Landfall and Goad searches retain the narrower text-match claim. Empty combinations remain empty with Clear filters available.
+
+The source trial sampled 390 cards across 35 themes; it is heuristic evidence, not comprehensive coverage or player acceptance. Functional checks and Opus confirmed Tokens plus green/white filtering, art without hover, previews and truthful empty/source states. Report: [first-use investigation](docs/a2-a9-first-use-investigation.md). DFC flip/name overlap remains nonblocking.
+
+## [B10] Suggest swaps from review findings
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Pairing cuts and additions uses heuristic ranking.
+
+**Status:** Complete. Actionable findings propose up to three ranked changes with both images, an in-deck cut label, role/curve impact, direct Apply and exact-pair Add/Remove from plan. Manual selection remains available. Current goal, power, exclusions, price, sets and ignored cards govern candidates. Apply updates findings/history once; undo refreshes legacy cut data and retains history on failure.
+
+Fourteen sandboxed Chrome scenarios cover filtering, readiness boundaries, plan reconciliation, apply/history/undo, focus, previews, contrast and narrow actions. Opus passed the frozen combined workflow and final details/history delta. Existing role-tag limitations are tracked in B16.
+
+## [B11] Builder UI consistency pass
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — Changes reuse existing components and native disclosures.
+
+**Status:** Complete. Decision-driving text is at least 14px, working headings are smaller, the builder has one Search & add action, and Start over is separated with destructive styling and confirmation. Deck/sideboard cards use compact rails and native disclosures with full-row headings and right-aligned counts. Highlighted sections reopen when pending mana data resolves; unrelated renders preserve manually closed sections.
+
+Chrome checks cover keyboard disclosures, preview preferences, DFC details, four large offers and foil/etched effects. The post-load mocked-provider profile recorded no tasks of 50ms or more. Opus checked the composed light/dark/narrow UI. This bounded profile is not a claim about all real-provider load times.
+
+## [B4] Finish builder-view module ownership
+
+**Complexity:** High · **Value:** Medium · **Delivery risk:** Medium — Ownership and lint boundaries span connected views/styles.
+
+**Status:** Complete. Collection-browser and basic-land dialogs have focused components, feature-responsive/theme rules live with their owners, and shared rules remain shared. Feature helpers and callbacks retain length/nesting/complexity checks; view-markup exceptions are narrow and documented, not blanket feature exclusions.
+
+Integrated tests, lint, typecheck, build and composed browser/Opus checks pass. No new abstraction or behavior was added for the refactor.
+
+## [B12] Enforce Commander construction rules at one boundary
+
+**Complexity:** High · **Value:** High · **Delivery risk:** Medium — Validation, migration and async writes span mutation paths.
+
+**Status:** Complete. Shared construction validation covers start/import, all additions and moves, promotion, review swaps and undo. Startup/named/autosaved decks, queued cards and deferrals refresh current gameplay metadata while retaining player choices, printing/finish and source recovery data. Pending/changed/unknown data has persistent status, previewable references, Review and retry. Unknown construction facts fail closed; unknown Game Changer membership warns but alone does not make construction incomplete.
+
+Workspace guards protect asynchronous writers; held responses cannot replace newer same-index art/cards. Detail hydration cannot revert a newer finish, and promotion recomputes from the latest deck/sideboard. Failed undo keeps deck and history. Refresh is bounded to 20 paced collection requests; oversized or failed data stays unverified rather than being deleted.
+
+Rules/mutation tests cover copy exceptions, Oracle identity, eligibility, partners and missing/banned data. Browser checks pass in light/dark/390px/offline with preserved printing/choices and an invalid 100-card snapshot. Opus checked real banned-card/Game Changer correction and persistent warnings. Engineering caught two printing races; both new regressions failed before the fixes and passed afterward. Duplicate warning lines remain nonblocking.
+
 ## [B13] Correct deck-analysis and simulation mana semantics
 
 **Complexity:** Medium · **Value:** Medium · **Delivery risk:** Low — The fixes are local to analysis, simulation, and card conversion, and the rules are verified.

@@ -5,6 +5,7 @@ import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
 import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { OracleText } from '../../shared/ManaSymbols.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
+import { useDialogFocus } from '../../shared/hooks.ts'
 
 type DeckCardModalProps = {
   show: boolean
@@ -30,6 +31,7 @@ type DeckCardModalProps = {
   addAction?: { label: string; disabled: boolean; error: string; onAdd: () => void }
 }
 
+// eslint-disable-next-line max-lines-per-function -- The focused modal markup stays together.
 export function DeckCardModal({
   show,
   selectedDeckCard,
@@ -53,6 +55,7 @@ export function DeckCardModal({
   notice,
   addAction,
 }: DeckCardModalProps) {
+  const dialog = useDialogFocus(show && Boolean(selectedDeckCard), closeDeckCard)
   if (!show || !selectedDeckCard) return null
 
   return (
@@ -64,15 +67,10 @@ export function DeckCardModal({
     >
       <section
         className="export-modal deck-card-modal"
+        {...dialog}
         role="dialog"
         aria-modal="true"
         aria-labelledby="deck-card-title"
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.preventDefault()
-            closeDeckCard()
-          }
-        }}
       >
         <div className="export-heading">
           <p className="eyebrow">
@@ -85,7 +83,6 @@ export function DeckCardModal({
                   : 'Deck card'}
           </p>
           <ModalCloseButton
-            autoFocus
             onClick={closeDeckCard}
             label={`Close ${selectedDeckCard.name} details`}
           />

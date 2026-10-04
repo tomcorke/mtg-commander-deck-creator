@@ -256,6 +256,7 @@ export function recommendationScoreRating(score: number): RecommendationScoreRat
 }
 
 export const recommendationReasons: Record<string, string> = {
+  highliftcards: 'Commander synergy',
   highsynergycards: 'Commander synergy',
   topcards: 'Commander favourite',
   newcards: 'Interesting new pick',

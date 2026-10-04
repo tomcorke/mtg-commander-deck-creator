@@ -9,6 +9,7 @@ import {
   resolveScryfallIdentifiers,
   scryfallCacheLifetime,
   searchScryfall,
+  searchScryfallCached,
   type ScryfallIdentifier,
 } from './scryfall.ts'
 
@@ -360,4 +361,42 @@ test('an old search cannot repopulate a cleared cache, and warm lookups still ho
   const warm = fetchScryfallCard('A', fetcher, controller.signal)
   controller.abort()
   await assert.rejects(warm, { name: 'AbortError' })
+})
+
+test('one-page discovery searches share/cache requests, warm printing records, and isolate consumers', async () => {
+  const pending = Promise.withResolvers<Response>()
+  let calls = 0
+  const fetcher: typeof fetch = async () => {
+    calls++
+    return pending.promise
+  }
+  const cancelled = new AbortController()
+  const a = searchScryfallCached(
+    'is:commander legal:commander',
+    fetcher,
+    cancelled.signal,
+    'edhrec',
+  )
+  const b = searchScryfallCached('is:commander legal:commander', fetcher, undefined, 'edhrec')
+  cancelled.abort()
+  await assert.rejects(a, { name: 'AbortError' })
+  pending.resolve(response({ data: [card('Commander')], has_more: true }))
+  const result = await b
+  assert.equal(calls, 1)
+  result[0].name = 'Changed'
+  assert.equal(
+    (await searchScryfallCached('is:commander legal:commander', fetcher, undefined, 'edhrec'))[0]
+      .name,
+    'Commander',
+  )
+  assert.equal(
+    (
+      await fetchScryfallCardsByIdentifiers(
+        [{ set: 'new', collector_number: 'Commander' }],
+        fetcher,
+      )
+    )[0].name,
+    'Commander',
+  )
+  assert.equal(calls, 1)
 })

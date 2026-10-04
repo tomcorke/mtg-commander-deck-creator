@@ -3,9 +3,10 @@ import { useEffect, type ReactNode } from 'react'
 import { duplicateDeckName } from '../deck-state.ts'
 import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
-import { toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
+import { toDeckCard, type DeckCard, type ScryfallCard } from '../domain/card-model.ts'
 import { cardSearchError } from '../domain/card-search.ts'
 import { defaultFinish } from '../domain/printing.ts'
+import { CardReference } from '../shared/CardReference.tsx'
 import { CardSearchView } from '../features/builder/CardSearchView.tsx'
 import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
@@ -24,7 +25,10 @@ import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
 import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
 import { SavedDecksModal } from '../features/modals/SavedDecksModal.tsx'
+import { WorkspaceNotice } from '../features/modals/WorkspaceNotice.tsx'
 import { StartView } from '../features/start/StartView.tsx'
+import { PlayStyleStep } from '../features/builder/PlayStyleStep.tsx'
+import { IntroGuide } from '../features/builder/IntroGuide.tsx'
 import { ModalCloseButton } from '../shared/CardDetails.tsx'
 
 export type AppViewProps = {
@@ -54,6 +58,12 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
   return (
     <SavedDecksModal
       show={state.showSavedDecks}
+      showBuilder={state.showBuilder}
+      workspace={state.workspace}
+      autosave={state.autosave}
+      loadAutosave={actions.loadAutosave}
+      openCard={actions.openCardReference}
+      loading={state.recommendationState === 'loading'}
       commander={state.commander}
       deckName={state.deckName}
       setDeckName={state.setDeckName}
@@ -65,6 +75,7 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
       )}
       activeSavedDeck={state.activeSavedDeck}
       activeDeckDelta={state.activeDeckDelta}
+      savedDeckChanged={state.savedDeckChanged}
       savedDecks={state.savedDecks}
       pendingSavedDeckRemoval={state.pendingSavedDeckRemoval}
       setPendingSavedDeckRemoval={state.setPendingSavedDeckRemoval}
@@ -147,6 +158,7 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
   return (
     <RecommendationSettingsModal
       show={state.showRecommendationSettings}
+      focusSets={state.awaitingPlayStyle}
       recommendationStyle={state.recommendationStyle}
       chooseRecommendationStyle={actions.chooseRecommendationStyle}
       powerTarget={state.powerTarget}
@@ -261,19 +273,25 @@ function StartScreen({
   state,
   actions,
   modals,
+  workspaceNotice,
 }: {
   state: Record<string, any>
   actions: Record<string, any>
   modals: Record<string, any>
+  workspaceNotice: ReactNode
 }) {
   return (
-    <StartView
-      {...({ ...state, ...actions } as any)}
-      savedDecks={state.savedDecks.length}
-      savedDecksModal={modals.savedDecksModal}
-      importModal={modals.importModal}
-      commanderNames={commanderNames}
-    />
+    <>
+      <StartView
+        {...({ ...state, ...actions } as any)}
+        savedDecks={state.savedDecks.length}
+        workspaceNotice={workspaceNotice}
+        savedDecksModal={modals.savedDecksModal}
+        importModal={modals.importModal}
+        commanderNames={commanderNames}
+      />
+      {modals.deckCardModal}
+    </>
   )
 }
 
@@ -456,6 +474,7 @@ function DeckReviewScreen({
         }}
         candidates={state.queue}
         scoreReplacements={builderData.scoreReplacements}
+        suggestFindingChanges={builderData.suggestFindingChanges}
         history={state.deckDoctorHistory}
         error={state.deckDoctorError}
         fetchCandidates={() => actions.fetchDeckDoctorCandidates()}
@@ -478,29 +497,132 @@ function DeckReviewScreen({
   )
 }
 
+function CurrentCardDataNotice({ state, actions, builderData }: AppViewProps) {
+  return (
+    <>
+      {builderData.cardDataNotices.length > 0 && (
+        <section
+          className="workspace-notice"
+          role={builderData.cardDataPending ? 'status' : 'alert'}
+          aria-label="Current card data"
+        >
+          <p className="form-error">
+            {builderData.cardDataPending
+              ? 'Checking current card data. Cards and choices are kept.'
+              : 'Card data warnings. Cards and choices have been kept.'}
+            {state.deck.length === 100 &&
+              !builderData.deckComplete &&
+              ' This deck needs validation; it is not verified complete.'}
+          </p>
+          {!builderData.cardDataPending &&
+            builderData.cardDataNotices
+              .slice(0, 3)
+              .map(({ card, message }: { card: DeckCard; message: string }, index: number) => (
+                <p key={index}>
+                  <CardReference card={card} onOpen={() => actions.openCardReference(card)} />:{' '}
+                  {message}
+                </p>
+              ))}
+          {!builderData.cardDataPending && builderData.cardDataNotices.length > 3 && (
+            <p>{builderData.cardDataNotices.length - 3} more card data warnings.</p>
+          )}
+          {!builderData.cardDataPending && (
+            <div className="workspace-notice-actions">
+              {builderData.cardDataNotices.some(
+                ({ card }: { card: DeckCard }) =>
+                  card.dataStatus === 'unavailable' ||
+                  card.gameChanger === undefined ||
+                  card.commanderLegality === undefined ||
+                  card.colorIdentity === undefined ||
+                  !card.manaValueKnown,
+              ) && (
+                <button className="export" type="button" onClick={actions.retryCurrentCardData}>
+                  Retry current card data
+                </button>
+              )}
+              <button
+                className="export"
+                type="button"
+                onClick={() => actions.navigateView('builder', 'review')}
+              >
+                Review deck
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+    </>
+  )
+}
+
+function renderIntroGuide(state: AppViewProps['state']) {
+  return (
+    state.showIntroGuide &&
+    !state.activeModal && <IntroGuide close={() => state.setShowIntroGuide(false)} />
+  )
+}
+
+function renderPlayStyleStep({ state, actions }: Pick<AppViewProps, 'state' | 'actions'>) {
+  return (
+    state.awaitingPlayStyle &&
+    state.commanderDetails &&
+    state.recommendationState === 'idle' && (
+      <PlayStyleStep
+        settings={state as any}
+        choose={(style) => void actions.beginFirstBatch(style)}
+        chooseSets={() => actions.openModal('recommendation-settings')}
+      />
+    )
+  )
+}
+
+// eslint-disable-next-line max-lines-per-function -- Root route composition keeps each screen beside its modal outlets; callbacks remain checked.
 export function AppView({ state, actions, builderData }: AppViewProps) {
   const { modeReturn, rememberMode } = useBuilderMode(state)
   const modals = renderModals({ state, actions, builderData })
-  if (!state.showBuilder) return <StartScreen state={state} actions={actions} modals={modals} />
+  const workspaceNotice = (
+    <>
+      <WorkspaceNotice
+        workspace={state.workspace}
+        autosave={state.autosave}
+        startNew={actions.startOver}
+        chooseDraft={actions.openSavedDecks}
+        hideRecovery={!state.showBuilder && Boolean(state.commander && state.deck.length)}
+      />
+      <CurrentCardDataNotice state={state} actions={actions} builderData={builderData} />
+    </>
+  )
+  if (!state.showBuilder)
+    return (
+      <StartScreen
+        state={state}
+        actions={actions}
+        modals={modals}
+        workspaceNotice={workspaceNotice}
+      />
+    )
   const appHeader = (
-    <BuilderTopBar
-      activeDeckDelta={state.activeDeckDelta}
-      activeSavedDeck={state.activeSavedDeck}
-      deckCount={state.deck.length}
-      startOver={actions.startOver}
-      onImport={() => {
-        rememberMode()
-        actions.openModal('import')
-      }}
-      onSaveLoad={() => {
-        rememberMode()
-        actions.openSavedDecks()
-      }}
-      onExport={() => {
-        rememberMode()
-        actions.openModal('export')
-      }}
-    />
+    <>
+      <BuilderTopBar
+        activeDeckDelta={state.activeDeckDelta}
+        activeSavedDeck={state.activeSavedDeck}
+        deckCount={state.deck.length}
+        startOver={actions.startOver}
+        onImport={() => {
+          rememberMode()
+          actions.openModal('import')
+        }}
+        onSaveLoad={() => {
+          rememberMode()
+          actions.openSavedDecks()
+        }}
+        onExport={() => {
+          rememberMode()
+          actions.openModal('export')
+        }}
+      />
+      {workspaceNotice}
+    </>
   )
   if (state.showCardSearch || modeReturn === 'search')
     return (
@@ -540,7 +662,19 @@ export function AppView({ state, actions, builderData }: AppViewProps) {
     )
   return (
     <>
-      <BuilderView model={{ ...state, ...actions, ...builderData, ...modals, appHeader } as any} />
+      <BuilderView
+        model={
+          {
+            ...state,
+            ...actions,
+            ...builderData,
+            ...modals,
+            appHeader,
+            playStyleStep: renderPlayStyleStep({ state, actions }),
+          } as any
+        }
+      />
+      {renderIntroGuide(state)}
       {historyModal}
     </>
   )

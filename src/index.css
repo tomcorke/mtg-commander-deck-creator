@@ -1,5 +1,5 @@
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid #c98054;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }

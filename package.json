@@ -11,12 +11,19 @@
     "lint": "pnpm format:check && oxlint && eslint src scripts --max-warnings=0",
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test",
+    "test:browser:a2-a9": "node --experimental-strip-types scripts/check-a2-a9-browser.ts",
+    "test:browser:a14": "node --experimental-strip-types scripts/check-a14-browser.ts",
+    "test:browser:b12": "node --experimental-strip-types scripts/check-b12-browser.ts",
+    "check:b11:browser": "node --experimental-strip-types scripts/check-b11-browser.ts",
     "audit:recommendations": "node --experimental-strip-types scripts/recommendation-audit.ts",
-    "typecheck": "tsc -b --noEmit"
+    "check:a15:browser": "node --experimental-strip-types scripts/a15-functional-browser.ts",
+    "typecheck": "tsc -b --noEmit",
+    "check:b10:browser": "node --experimental-strip-types scripts/check-b10-browser.ts"
   },
   "dependencies": {
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-joyride": "3.2.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -28,6 +35,7 @@
     "eslint": "^10.11.0",
     "eslint-plugin-sonarjs": "^4.2.1",
     "oxlint": "^1.81.0",
+    "playwright-core": "^1.63.0",
     "prettier": "^3.9.8",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"

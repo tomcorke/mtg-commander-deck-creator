@@ -6,3 +6,8 @@
 @import './styles/analysis.css';
 @import './styles/card-search.css';
 @import './styles/responsive.css';
+@import './styles/start-responsive.css';
+@import './styles/builder-responsive.css';
+@import './styles/modals-responsive.css';
+@import './styles/cards-responsive.css';
+@import './styles/analysis-responsive.css';
