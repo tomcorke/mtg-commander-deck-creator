@@ -191,11 +191,12 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
 }
 
 export async function promoteToCommander(deps: ActionDeps, candidate: Card | DeckCard) {
+  const job = deckJob(deps)
+  deps = job.deps
   const {
     commander,
     commanderDetails,
     deck,
-    sideboard,
     setBatchAnnouncement,
     setDeck,
     setQueue,
@@ -210,11 +211,14 @@ export async function promoteToCommander(deps: ActionDeps, candidate: Card | Dec
     setBatchAnnouncement(error)
     return
   }
-  const existing = [...deck, ...sideboard].find((card: DeckCard) => card.name === candidate.name)
-  const promoted = existing ?? toDeckCardFromRecommendation(candidate as Card)
-  const next = promoteDeckCard(deck, sideboard, promoted)
   const loaded = await start(candidate.name, true)
-  if (!loaded) return
+  if (!loaded || !job.isCurrent()) return
+  const current = deps.getCurrentState?.() ?? deps
+  const existing = [...current.deck, ...current.sideboard].find(
+    (card: DeckCard) => card.name === candidate.name,
+  )
+  const promoted = existing ?? toDeckCardFromRecommendation(candidate as Card)
+  const next = promoteDeckCard(current.deck, current.sideboard, promoted)
   setDeck(next.deck)
   setSideboard(next.sideboard)
   setQueue((current: Card[]) => current.filter((card) => card.name !== candidate.name))
@@ -720,15 +724,12 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       printing: selectedIndex >= 0 ? selectedIndex : card.printing,
       finish: selected?.finish ?? card.finish,
     }
-    const isSamePrinting = (item: DeckCard) =>
-      item.name === card.name &&
-      item.set === card.set &&
-      item.collectorNumber === card.collectorNumber
+    // Enrich only the captured card; newer printing choices and gameplay refreshes win.
     setDeck((current: any) =>
-      current.map((item: any) => (isSamePrinting(item) ? { ...item, ...metadata } : item)),
+      current.map((item: any) => (item === card ? { ...item, ...metadata } : item)),
     )
     setSideboard((current: any) =>
-      current.map((item: any) => (isSamePrinting(item) ? { ...item, ...metadata } : item)),
+      current.map((item: any) => (item === card ? { ...item, ...metadata } : item)),
     )
   } catch {
     // The modal still shows the locally stored card details when Scryfall is unavailable.

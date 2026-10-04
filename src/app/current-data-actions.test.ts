@@ -9,7 +9,9 @@ import {
   applyImportedDeck,
   cycleDeckPrinting,
   decide,
+  hydrateDeckCardDetails,
   loadSavedDeck,
+  promoteToCommander,
   undoDeckDoctorSwap,
 } from './deck-actions.ts'
 import { loadPrintings } from './printing-actions.ts'
@@ -339,6 +341,88 @@ test('both basic-land writers discard a held result after a workspace change', a
       assert.equal(deps.activeModal, 'basics', mode)
     } finally {
       globalThis.fetch = originalFetch
+    }
+  }
+})
+
+test('held detail hydration never resets a newer printing or finish choice', async (context) => {
+  const dispatched = Promise.withResolvers<void>()
+  const response = Promise.withResolvers<Response>()
+  context.mock.method(globalThis, 'fetch', async () => {
+    dispatched.resolve()
+    return response.promise
+  })
+  const source = {
+    ...raw('Held detail finish'),
+    set_name: 'Test Set',
+    scryfall_uri: 'https://scryfall.com/card/tst/held-detail',
+    prints_search_uri: 'https://api.scryfall.com/held-detail-printings',
+    finishes: ['nonfoil', 'foil'] as const,
+    prices: { usd: '1', usd_foil: '3' },
+  }
+  const deps = fixture()
+  const card = { ...toDeckCard(source), finish: 'nonfoil' as const, price: '1' }
+  deps.deck = [deps.deck[0], card]
+  const request = hydrateDeckCardDetails(deps, card)
+  await dispatched.promise
+  deps.deck = [
+    deps.deck[0],
+    {
+      ...card,
+      image: 'chosen-foil-art',
+      finish: 'foil',
+      printing: 1,
+      price: '3',
+      printingManuallySelected: true,
+    },
+  ]
+  const before = deps.deck
+  response.resolve(Response.json({ data: [source] }))
+  await request
+  assert.equal(deps.deck[1], before[1])
+  assert.equal(deps.deck[1].finish, 'foil')
+  assert.equal(deps.deck[1].printing, 1)
+  assert.equal(deps.deck[1].image, 'chosen-foil-art')
+  assert.equal(deps.deck[1].price, '3')
+})
+
+test('held promotion keeps newer deck and sideboard choices and discards a workspace switch', async () => {
+  for (const mode of ['newer-choices', 'other-workspace']) {
+    const deps = fixture()
+    const promoted = toCard(
+      { ...raw('Promoted'), type_line: 'Legendary Creature' },
+      'Popular inclusion',
+    )
+    deps.sideboard = [toDeckCard(raw('Held sideboard'))]
+    const response = Promise.withResolvers<boolean>()
+    deps.start = async () => response.promise
+    const request = promoteToCommander(deps, promoted)
+    deps.deck = [
+      deps.deck[0],
+      { ...deps.deck[1], image: 'newer-art', set: 'newer-set', finish: 'foil', printing: 1 },
+      toDeckCard(raw('Newer addition')),
+    ]
+    deps.sideboard = [{ ...deps.sideboard[0], image: 'newer-sideboard-art', finish: 'etched' }]
+    if (mode === 'other-workspace') deps.switchWorkspace()
+    const before = {
+      deck: deps.deck,
+      sideboard: deps.sideboard,
+      queue: deps.queue,
+      announcement: deps.batchAnnouncement,
+    }
+    response.resolve(true)
+    await request
+    if (mode === 'other-workspace') {
+      assert.equal(deps.deck, before.deck)
+      assert.equal(deps.sideboard, before.sideboard)
+      assert.equal(deps.queue, before.queue)
+      assert.equal(deps.batchAnnouncement, before.announcement)
+    } else {
+      assert.equal(deps.deck[0].name, promoted.name)
+      assert.deepEqual(deps.deck.slice(1), before.deck)
+      assert.deepEqual(deps.sideboard, before.sideboard)
+      assert.equal(deps.deck[2].finish, 'foil')
+      assert.equal(deps.deck[2].image, 'newer-art')
     }
   }
 })
