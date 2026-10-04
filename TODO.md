@@ -31,7 +31,7 @@ A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `c
 | 2     | A6  | Signature-card player review           | High       | High   | Medium        | Technical validation is complete; representative-player relevance is not verified. |
 | 3     | A15 | Remaining Moxfield verification        | Medium     | Medium | Medium        | Policy/provider fixes are implemented; browser access blocked the import check.    |
 | 4     | A16 | Clear batch decisions and tile states  | Low        | High   | Low           | Most-used screen; selected Later and Ignore need distinct states.                  |
-| 5     | B17 | Consistent mana and land guidance      | Low        | Medium | Low           | Includes releasing the finished unused-mana-row fix.                               |
+| 5     | B17 | Consistent mana and land guidance      | Low        | Medium | Low           | Align existing targets and identity-based presentation.                            |
 | 6     | B15 | Actionable review progress and results | Medium     | High   | Low           | Review navigation, feedback and incomplete-deck guidance.                          |
 | 7     | B19 | Consistent card tiles; text deck list  | Medium     | High   | Low           | Five tile styles today; condensed deck list requested.                             |
 | 8     | B31 | Better layout for review additions     | Medium     | High   | Low           | 13 pages of small tiles; builds on B19.                                            |
@@ -160,13 +160,12 @@ Acceptance checks:
 
 - The sidebar shows "Suggested lands 39-41" next to a fixed Lands target of 35 (`landRange` in `src/deck-analysis.ts` versus the `lands: 35` default). Use one number, or make the target follow the suggestion until the player edits it.
 - The sidebar Sources bar shows blue, red, and green sources (7 each) for a white-black deck, because Command Tower, Exotic Orchard, and Fellwar Stone count as any colour. Show only colours inside the commander's identity, plus colourless.
-- The review's Mana costs panel lists Colourless and Snow rows with 0 symbols. Hide rows that have no demand. Fixed on `main` in `a7d1a4d`, but the live site (`main@0ccbaed`) still shows the rows: verify the fix in the rendered review and include it in the next release.
+- The review's Mana costs panel lists Colourless and Snow rows with 0 symbols. Hide rows that have no demand. Done: released in `main@2e9f7c0` and verified on the live review.
 
 Acceptance checks:
 
 - On the same deck, the sidebar and review agree on the land target.
 - A two-colour deck shows no off-identity source counts.
-- The live site hides Colourless and Snow rows when the deck has no such symbols.
 
 ## [A16] Make batch decisions and card tiles unambiguous
 
