@@ -38,7 +38,7 @@ export function currentCardData<T extends DeckCard>(card: T, fetched: ScryfallCa
   const changes = (
     [
       ['Commander legality', card.commanderLegality, fresh.commanderLegality],
-      ['Colour identity', card.colorIdentity, fresh.colorIdentity],
+      ['Colour identity', card.colorIdentity?.toSorted(), fresh.colorIdentity?.toSorted()],
       [
         'Mana value',
         card.manaValueKnown ? card.manaValue : undefined,
