@@ -11,6 +11,7 @@ import type { ActionDeps } from './recommendation-actions.ts'
 
 export function createActionHandlers(deps: ActionDeps) {
   return {
+    retryCurrentCardData: () => deckActions.retryCurrentCardData(deps),
     addRecommendationCard: (card: Card) => deckActions.addRecommendationCard(deps, card),
     applyDeckDoctorSwapPlan: (
       cuts: { cutIndex: number; cutCard: DeckCard }[],

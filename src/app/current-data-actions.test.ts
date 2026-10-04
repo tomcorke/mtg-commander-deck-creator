@@ -3,7 +3,15 @@ import test from 'node:test'
 import { a14BaseState } from '../../scripts/fixtures/a14.ts'
 import { toCard, toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
 import type { ImportedDeck } from '../deck-import.ts'
-import { applyImportedDeck, decide, loadSavedDeck, undoDeckDoctorSwap } from './deck-actions.ts'
+import {
+  addBasicLands,
+  addOneBasic,
+  applyImportedDeck,
+  cycleDeckPrinting,
+  decide,
+  loadSavedDeck,
+  undoDeckDoctorSwap,
+} from './deck-actions.ts'
 import { loadPrintings } from './printing-actions.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
 
@@ -43,6 +51,8 @@ function fixture() {
     excludeExtraTurns: false,
     excludeUnreleased: false,
     collectionError: '',
+    basicLandState: 'idle',
+    loadingArt: '',
     deckDoctorError: '',
     importSource: 'recovery data',
     liked: ['Queued'],
@@ -294,4 +304,84 @@ test('printing enrichment and invalid recommendation decisions preserve another 
   decide(deps, { ...deps.queue[0], gameChanger: true }, 'add')
   assert.equal(deps.decisions.Queued, 'later')
   assert.equal(deps.deck.length, 2)
+})
+
+test('both basic-land writers discard a held result after a workspace change', async () => {
+  for (const mode of ['plan', 'one']) {
+    const dispatched = Promise.withResolvers<void>()
+    const response = Promise.withResolvers<Response>()
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () => {
+      dispatched.resolve()
+      return response.promise
+    }
+    try {
+      const deps = fixture()
+      deps.closeModal = () => {
+        deps.activeModal = null
+      }
+      deps.activeModal = 'basics'
+      deps.basicLandState = 'idle'
+      const request =
+        mode === 'plan'
+          ? addBasicLands(deps, [{ name: 'Forest', count: 2 }])
+          : addOneBasic(deps, 'Forest')
+      await dispatched.promise
+      deps.switchWorkspace()
+      deps.deck = [toDeckCard({ ...raw('Blue commander'), color_identity: ['U'] })]
+      deps.commanderDetails = { colours: ['U'] }
+      deps.basicLandState = 'idle'
+      const before = deps.deck
+      response.resolve(Response.json({ ...raw('Forest'), type_line: 'Basic Land — Forest' }))
+      await request
+      assert.equal(deps.deck, before, mode)
+      assert.equal(deps.basicLandState, 'idle', mode)
+      assert.equal(deps.activeModal, 'basics', mode)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  }
+})
+
+test('held art never changes a replacement card at the same index or a different workspace', async (context) => {
+  const originalImage = Object.getOwnPropertyDescriptor(globalThis, 'Image')
+  context.after(() => {
+    if (originalImage) Object.defineProperty(globalThis, 'Image', originalImage)
+    else Reflect.deleteProperty(globalThis, 'Image')
+  })
+  for (const switchWorkspace of [false, true]) {
+    const dispatched = Promise.withResolvers<void>()
+    let finish!: () => void
+    Reflect.set(
+      globalThis,
+      'Image',
+      class {
+        onload: () => void = () => undefined
+        onerror: () => void = () => undefined
+        set src(_value: string) {
+          finish = () => this.onload()
+          dispatched.resolve()
+        }
+      },
+    )
+    const deps = fixture()
+    deps.loadingArt = ''
+    deps.deck[1] = {
+      ...deps.deck[1],
+      printings: [
+        { image: 'old', set: 'old', collectorNumber: '1' },
+        { image: 'new', set: 'new', collectorNumber: '2' },
+      ],
+    }
+    const request = cycleDeckPrinting(deps, 1)
+    await dispatched.promise
+    if (switchWorkspace) deps.switchWorkspace()
+    deps.deck = [deps.deck[0], toDeckCard(raw('Replacement'))]
+    deps.loadingArt = ''
+    const before = deps.deck
+    finish()
+    await request
+    assert.equal(deps.deck, before)
+    assert.equal(deps.loadingArt, '')
+  }
 })

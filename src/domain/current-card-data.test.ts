@@ -143,6 +143,18 @@ test('pending and failed migrations keep 100-card decks incomplete; a current le
   assert.equal(roundtrip.deck[0].dataStatus, 'unavailable')
 })
 
+test('unknown Game Changer membership warns without invalidating a legal 100-card deck', () => {
+  const commander = toDeckCard(raw('Commander'))
+  const forest = toDeckCard(raw('Forest', { type_line: 'Basic Land — Forest', cmc: 0 }))
+  const deck = [
+    commander,
+    ...Array.from({ length: 99 }, () => ({ ...forest, gameChanger: undefined })),
+  ]
+  const status = deckDataStatus(deck, 'Commander', [], [], [])
+  assert.equal(status.deckComplete, true)
+  assert.match(status.cardDataNotices[0].message, /Game Changer status is unknown/)
+})
+
 test('refresh is deduplicated, capped at 20 paced batches of 75, and abortable', async () => {
   const cards = Array.from({ length: 1501 }, (_, index) => toDeckCard(raw(String(index))))
   let requests = 0

@@ -215,17 +215,20 @@ async function reviewLayout(page: Page, path: string) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
   const reference = page
     .getByRole('alert', { name: 'Current card data' })
-    .getByRole('button', { name: 'Show details for Changed' })
+    .locator('.card-reference-name')
     .first()
+  const name = (await reference.innerText()).trim()
+  assert.ok(name)
+  assert.ok(await page.getByRole('button', { name: 'Review deck', exact: true }).isVisible())
   await reference.focus()
   await reference.hover()
   await page.screenshot({ path, fullPage: true })
   await reference.click()
   await page
     .getByRole('dialog')
-    .filter({ has: page.getByRole('heading', { name: 'Changed', exact: true }) })
+    .filter({ has: page.getByRole('heading', { name, exact: true }) })
     .waitFor()
-  await page.getByRole('button', { name: 'Close Changed details' }).click()
+  await page.getByRole('button', { name: `Close ${name} details` }).click()
 }
 
 async function loadOtherSnapshots(page: Page, url: string) {
@@ -276,6 +279,10 @@ async function checkBrowser(context: BrowserContext, url: string, mode: string, 
   await reviewLayout(page, join(artifacts, `b12-${mode}.png`))
   if (mode === 'offline') {
     assert.equal(stored.state.deck[0].dataStatus, 'unavailable')
+    await page.getByRole('button', { name: 'Retry current card data', exact: true }).click()
+    await settled(page)
+    assert.equal((await current(page)).state.deck.length, 100)
+    assert.equal((await current(page)).state.deck[0].dataStatus, 'unavailable')
     await page.reload()
     await settled(page)
     assert.equal((await current(page)).state.deck.length, 100)

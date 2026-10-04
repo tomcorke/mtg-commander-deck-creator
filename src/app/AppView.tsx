@@ -495,26 +495,53 @@ function CurrentCardDataNotice({ state, actions, builderData }: AppViewProps) {
   return (
     <>
       {builderData.cardDataNotices.length > 0 && (
-        <section className="workspace-notice" role="alert" aria-label="Current card data">
+        <section
+          className="workspace-notice"
+          role={builderData.cardDataPending ? 'status' : 'alert'}
+          aria-label="Current card data"
+        >
           <p className="form-error">
             {builderData.cardDataPending
               ? 'Checking current card data. Cards and choices are kept.'
-              : 'Card data warnings. Cards and choices have been kept. Reload to retry unavailable data.'}
+              : 'Card data warnings. Cards and choices have been kept.'}
             {state.deck.length === 100 &&
               !builderData.deckComplete &&
               ' This deck needs validation; it is not verified complete.'}
           </p>
           {!builderData.cardDataPending &&
             builderData.cardDataNotices
-              .slice(0, 5)
+              .slice(0, 3)
               .map(({ card, message }: { card: DeckCard; message: string }, index: number) => (
                 <p key={index}>
                   <CardReference card={card} onOpen={() => actions.openCardReference(card)} />:{' '}
                   {message}
                 </p>
               ))}
-          {!builderData.cardDataPending && builderData.cardDataNotices.length > 5 && (
-            <p>{builderData.cardDataNotices.length - 5} more card data warnings.</p>
+          {!builderData.cardDataPending && builderData.cardDataNotices.length > 3 && (
+            <p>{builderData.cardDataNotices.length - 3} more card data warnings.</p>
+          )}
+          {!builderData.cardDataPending && (
+            <div className="workspace-notice-actions">
+              {builderData.cardDataNotices.some(
+                ({ card }: { card: DeckCard }) =>
+                  card.dataStatus === 'unavailable' ||
+                  card.gameChanger === undefined ||
+                  card.commanderLegality === undefined ||
+                  card.colorIdentity === undefined ||
+                  !card.manaValueKnown,
+              ) && (
+                <button className="export" type="button" onClick={actions.retryCurrentCardData}>
+                  Retry current card data
+                </button>
+              )}
+              <button
+                className="export"
+                type="button"
+                onClick={() => actions.navigateView('builder', 'review')}
+              >
+                Review deck
+              </button>
+            </div>
           )}
         </section>
       )}

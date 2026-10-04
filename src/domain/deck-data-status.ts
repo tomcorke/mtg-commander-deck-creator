@@ -48,11 +48,7 @@ export function deckDataStatus(
       ) === index,
   )
   return {
-    deckComplete:
-      deck.length === 100 &&
-      !commanderError &&
-      !errors.length &&
-      deck.every((card) => card.gameChanger !== undefined),
+    deckComplete: deck.length === 100 && !commanderError && !errors.length,
     cardDataNotices: notices,
     cardDataPending: cards.some((card) => card.dataStatus === 'pending'),
   }

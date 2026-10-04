@@ -76,6 +76,23 @@ function preloadArt(sources: (string | undefined)[]) {
 const cardCanHavePowerToughness = (card: Pick<DeckCard, 'typeLine'>) =>
   /Creature|Vehicle/.test(card.typeLine)
 
+export function retryCurrentCardData(deps: ActionDeps) {
+  const retry = <T extends DeckCard>(card: T): T =>
+    card.dataStatus === 'unavailable' ||
+    card.commanderLegality === undefined ||
+    card.colorIdentity === undefined ||
+    !card.manaValueKnown ||
+    card.gameChanger === undefined
+      ? { ...card, dataStatus: 'pending' }
+      : card
+  deps.setDeck((cards: DeckCard[]) => cards.map(retry))
+  deps.setSideboard((cards: DeckCard[]) => cards.map(retry))
+  deps.setQueue((cards: Card[]) => cards.map(retry))
+  deps.setDeferredCards((entries: { card: Card }[]) =>
+    entries.map((entry) => ({ ...entry, card: retry(entry.card) })),
+  )
+}
+
 export function addRecommendationCard(deps: ActionDeps, card: Card) {
   const { deck, setBatchAnnouncement, setDeck, setQueue, setSideboard } = deps
   const added = toDeckCardFromRecommendation(card)
@@ -210,12 +227,22 @@ export async function changeArt(
   sources: (string | undefined)[],
   apply: () => void,
 ) {
-  const { setLoadingArt } = deps
+  const job = deckJob(deps)
+  const { setLoadingArt } = job.deps
+  const { deck, sideboard, queue, selectedManualCard } = deps
   setLoadingArt(`pending:${name}`)
   const loadingTimer = setTimeout(() => setLoadingArt(name), 50)
   await preloadArt(sources)
   clearTimeout(loadingTimer)
-  apply()
+  const current = deps.getCurrentState?.() ?? deps
+  if (
+    job.isCurrent() &&
+    current.deck === deck &&
+    current.sideboard === sideboard &&
+    current.queue === queue &&
+    current.selectedManualCard === selectedManualCard
+  )
+    apply()
   setLoadingArt('')
 }
 
@@ -503,7 +530,9 @@ export async function fetchBasic(name: string) {
 }
 
 export async function addBasicLands(deps: ActionDeps, plan: { name: string; count: number }[]) {
-  const { closeModal, setBasicLandState, setDeck } = deps
+  const job = deckJob(deps)
+  const { closeModal, setBasicLandState, setDeck } = job.deps
+  const expectedDeck = deps.deck
   setBasicLandState('loading')
   try {
     const cards = await Promise.all(
@@ -512,6 +541,11 @@ export async function addBasicLands(deps: ActionDeps, plan: { name: string; coun
         count,
       })),
     )
+    if (!job.isCurrent()) return
+    if ((deps.getCurrentState?.() ?? deps).deck !== expectedDeck) {
+      setBasicLandState('idle')
+      return
+    }
     for (const { card, count } of cards) {
       if (!Number.isInteger(count) || count < 0 || count > 100)
         throw new Error('Invalid basic-land count.')
@@ -610,10 +644,12 @@ export function addManualCard(deps: ActionDeps) {
 }
 
 export async function addOneBasic(deps: ActionDeps, name: string) {
-  const { deck, setBasicLandState, setDeck } = deps
+  const job = deckJob(deps)
+  const { deck, setBasicLandState, setDeck } = job.deps
   if (deck.length >= 100) return
   try {
     const added = await fetchBasic(name)
+    if (!job.isCurrent() || (deps.getCurrentState?.() ?? deps).deck !== deck) return
     if (cardConstructionError(added, deps.deck, deps.commanderDetails?.colours ?? []))
       throw new Error('Cannot add this basic land.')
     setDeck((current: any) => (current.length < 100 ? [...current, added] : current))
