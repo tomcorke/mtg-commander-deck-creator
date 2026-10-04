@@ -46,11 +46,11 @@ Prefer reading rules and policy from Scryfall fields at runtime over hard-coding
 
 **Card and printing** — a card is the gameplay object, identified by Scryfall `oracle_id`. A printing is one physical version, identified by set and collector number. Art, finish, and price belong to printings and have no gameplay effect. Singleton applies to cards.
 
-**Deck goal** — Balanced, Thematic, Fun & varied, or Competitive. It changes recommendation scoring and batch composition, never construction rules.
+**Priority** — Theme first, Balanced, Deck needs first, or Surprise me. It changes recommendation ranking and batch composition, never construction rules.
 
-**Power target** — Core, Upgraded, or High. It maps loosely to Brackets 2, 3, and 4 and sets default exclusions. It does not verify a bracket.
+**Power** — Core, Upgraded, or High power. It selects app-specific recommendation filters; Core excludes a short list of fast-mana cards. It is not a bracket verdict, and Core is not a preconstructed-deck power claim.
 
-**Exclusions** — optional filters for Game Changers, tutors, extra turns, unreleased cards, and fast mana. They are player preferences that approximate bracket guidance. Brackets limit Game Changers and extra turns; tutors are no longer a bracket restriction.
+**Exclusions** — independent recommendation filters for Game Changers, tutors, extra turns, and unreleased cards. Tutor, extra-turn, and release filters are player preferences, not bracket limits. Game Changer counts have official bracket limits; see [format policy](docs/domain/format-policy.md). These filters do not verify a bracket.
 
 **Bracket** — one of Wizards' five Commander Brackets, describing intended game experience. The app may say which bracket guidelines a deck appears to meet. It must not assign a bracket.
 

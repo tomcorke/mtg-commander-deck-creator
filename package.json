@@ -13,6 +13,7 @@
     "test": "node --experimental-strip-types --test",
     "test:browser:a14": "node --experimental-strip-types scripts/check-a14-browser.ts",
     "audit:recommendations": "node --experimental-strip-types scripts/recommendation-audit.ts",
+    "check:a15:browser": "node --experimental-strip-types scripts/a15-functional-browser.ts",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {

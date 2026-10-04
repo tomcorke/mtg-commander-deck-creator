@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction } from 'react'
+import { type Dispatch, type SetStateAction, useLayoutEffect, useRef } from 'react'
 
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import type { ScryfallSet } from '../../domain/card-model.ts'
@@ -121,6 +121,13 @@ export function RecommendationSettingsModal({
   recommendationSettingsSummary,
   closeModal,
 }: RecommendationSettingsModalProps) {
+  const dialog = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    if (!show) return
+    return () => {
+      document.querySelector<HTMLElement>('.recommendation-settings-summary button')?.focus()
+    }
+  }, [show])
   if (!show) return null
   const searching = collectionSearch.trim().length >= 2
   const smallOnlyPool =
@@ -141,10 +148,25 @@ export function RecommendationSettingsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="recommendation-settings-title"
+        ref={dialog}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault()
             closeModal()
+          } else if (event.key === 'Tab') {
+            const focusable = dialog.current?.querySelectorAll<HTMLElement>(
+              'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary',
+            )
+            if (!focusable?.length) return
+            const first = focusable[0]
+            const last = focusable[focusable.length - 1]
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault()
+              last.focus()
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault()
+              first.focus()
+            }
           }
         }}
       >
@@ -190,7 +212,7 @@ export function RecommendationSettingsModal({
             <p className="settings-help">{priorityHelp[recommendationStyle]}</p>
           </div>
           <div className="recommendation-setting">
-            <label htmlFor="power-target">Power target</label>
+            <label htmlFor="power-target">Power</label>
             <select
               id="power-target"
               value={powerTarget}
@@ -202,8 +224,8 @@ export function RecommendationSettingsModal({
             </select>
             <SettingHelp
               id="power-target-help"
-              label="Power target"
-              description="Core blocks listed fast-mana cards. Upgraded and High power allow them. Exclusions stay as you choose them below. These filters do not verify a bracket."
+              label="Power"
+              description="Core excludes a short list of fast-mana cards as an app preference. Upgraded and High power allow them. These settings do not verify a bracket."
             />
           </div>
           <div className="recommendation-setting">
@@ -403,7 +425,7 @@ export function RecommendationSettingsModal({
             )}
           </fieldset>
           <fieldset>
-            <legend>Exclude from recommendations</legend>
+            <legend>Optional recommendation filters</legend>
             <div className="recommendation-setting-toggle">
               <label htmlFor="exclude-game-changers">
                 <input
@@ -420,7 +442,7 @@ export function RecommendationSettingsModal({
               <SettingHelp
                 id="exclude-game-changers-help"
                 label="Exclude Game Changers"
-                description="Removes cards marked as Game Changers from recommendations."
+                description="Wizards' bracket guidance allows zero in Brackets 1–2 (Bracket 1 exceptions need pregame agreement), up to three in Bracket 3, and no limit in Brackets 4–5. This optional filter removes all Game Changers."
               />
             </div>
             <div className="recommendation-setting-toggle">
@@ -434,12 +456,12 @@ export function RecommendationSettingsModal({
                     setRecommendationOptionsChanged(true)
                   }}
                 />{' '}
-                Exclude tutors
+                Exclude tutors (preference)
               </label>
               <SettingHelp
                 id="exclude-tutors-help"
-                label="Exclude tutors"
-                description="Removes cards that search your library for specific cards."
+                label="Exclude tutors (preference)"
+                description="Personal preference, not a Commander Bracket restriction. Wizards removed tutor restrictions in October 2025. This filter uses card tags and text."
               />
             </div>
             <div className="recommendation-setting-toggle">
@@ -453,12 +475,12 @@ export function RecommendationSettingsModal({
                     setRecommendationOptionsChanged(true)
                   }}
                 />{' '}
-                Exclude extra turns
+                Exclude extra turns (preference)
               </label>
               <SettingHelp
                 id="exclude-extra-turns-help"
-                label="Exclude extra turns"
-                description="Removes cards that grant extra turns."
+                label="Exclude extra turns (preference)"
+                description="Personal preference. Removes cards identified as granting extra turns; this does not analyse quantity, chaining, loops, or intent."
               />
             </div>
             <div className="recommendation-setting-toggle">
@@ -472,11 +494,11 @@ export function RecommendationSettingsModal({
                     setRecommendationOptionsChanged(true)
                   }}
                 />{' '}
-                Exclude unreleased cards
+                Exclude unreleased cards (preference)
               </label>
               <SettingHelp
                 id="exclude-unreleased-help"
-                label="Exclude unreleased cards"
+                label="Exclude unreleased cards (preference)"
                 description="Removes cards that are not released yet."
               />
             </div>

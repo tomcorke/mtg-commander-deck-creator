@@ -140,7 +140,7 @@ export async function fallbackRecommendations(deps: ActionDeps, identityColours:
   ]
     .filter(Boolean)
     .join(' ')
-  const baseQuery = `id<=${identity} legal:commander -is:commander ${bracketFilters}`
+  const baseQuery = `id<=${identity} legal:commander ${bracketFilters}`
   const [mainCards, manaCards] = await Promise.all([
     searchCards(`${baseQuery} -t:land -o:"add {"`, undefined, 'edhrec'),
     searchCards(`${baseQuery} (t:land or o:"add {")`, undefined, 'edhrec'),
@@ -230,8 +230,8 @@ export async function themeRecommendations(
   ]
     .filter(Boolean)
     .join(' ')
-  const query = `id<=${identity} legal:commander -is:commander (${terms.join(' or ')}) ${bracketFilters}`
-  const cards = await searchCards(query, undefined, 'random')
+  const query = `id<=${identity} legal:commander (${terms.join(' or ')}) ${bracketFilters}`
+  const cards = await searchCards(query, undefined, 'edhrec')
   return cards
     .filter((card: ScryfallCard) => powerTarget !== 'precon' || !preconFastMana.has(card.name))
     .map((card: ScryfallCard) => toCard(card, 'Interesting new pick', `theme ${themes.join(' ')}`))
@@ -240,6 +240,7 @@ export async function themeRecommendations(
 export async function edhrecRecommendations(
   deps: ActionDeps,
   slug: string,
+  identityColours: string[],
   excludedNames: string[] = [],
 ) {
   const {
@@ -261,7 +262,11 @@ export async function edhrecRecommendations(
   const excluded = new Set(excludedNames.map((name) => name.toLowerCase()))
   const entries = allEntries.filter(({ name }) => !excluded.has(name.toLowerCase()))
   const responseCards: ScryfallCard[] = await fetchCards(entries.map(({ name }) => ({ name })))
-  return buildEdhrecRecommendations(entries, responseCards, {
+  const identity = new Set(identityColours)
+  const legalIdentityCards = responseCards.filter(({ color_identity }) =>
+    color_identity?.every((colour) => identity.has(colour)),
+  )
+  return buildEdhrecRecommendations(entries, legalIdentityCards, {
     includeCreature,
     excludeGameChangers,
     excludeTutors,
@@ -448,7 +453,7 @@ async function coreRecommendations(
             .concat(deps.ignoredCards ?? [])
         : []),
     ]
-    offeredCards = await edhrecRecommendations(deps, slug, excludedNames)
+    offeredCards = await edhrecRecommendations(deps, slug, identityColours, excludedNames)
     offeredCards = offeredCards.filter((card) => !cardConstructionError(card, [], identityColours))
     if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
   } catch (error) {
