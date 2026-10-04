@@ -8,7 +8,12 @@ import {
   undoDeckDoctorSwap,
   type DeckDoctorFinding,
 } from './deck-doctor.ts'
-import { addDoctorSuggestionToPlan, suggestDeckDoctorChanges } from './deck-doctor-suggestions.ts'
+import {
+  addDoctorSuggestionToPlan,
+  doctorSuggestionIsInPlan,
+  suggestDeckDoctorChanges,
+  toggleDoctorSuggestionInPlan,
+} from './deck-doctor-suggestions.ts'
 import type { Card, DeckCard } from './domain/card-model.ts'
 
 const card = (name: string, overrides: Partial<DeckCard> = {}): DeckCard => ({
@@ -163,7 +168,10 @@ test('lands at or below their target are protected, but surplus lands can be cut
     assert.deepEqual(rampSuggestions(options), [])
   }
   options.deckTargets = { ...defaultDeckTargets, lands: 0 }
-  assert.equal(rampSuggestions(options)[0].impact, 'Lands 1 → 0 · Ramp 0 → 1 · Curve land → 2')
+  assert.equal(
+    rampSuggestions(options)[0].impact,
+    'Lands 1 → 0 · Ramp 0 → 1 · Mana value: land → 2',
+  )
 })
 
 test('the last scarce role is protected even when the addition would replace that role', () => {
@@ -207,12 +215,12 @@ test('curve impact uses fixed buckets, omits same-bucket changes, and groups 7+ 
   const options = input([card('Fractional', { manaValue: 2.5 })])
   assert.equal(rampSuggestions(options)[0].impact, 'Ramp 0 → 1')
   options.rankedCandidates[0].card.manaValue = 3
-  assert.match(rampSuggestions(options)[0].impact, /Curve 2 → 3/)
+  assert.match(rampSuggestions(options)[0].impact, /Mana value: 2 → 3/)
   options.deck[1].manaValue = 9
   options.rankedCandidates[0].card.manaValue = 8
   assert.equal(rampSuggestions(options)[0].impact, 'Ramp 0 → 1')
   options.rankedCandidates[0].card.manaValue = 2
-  assert.match(rampSuggestions(options)[0].impact, /Curve 7\+ → 2/)
+  assert.match(rampSuggestions(options)[0].impact, /Mana value: 7\+ → 2/)
 })
 
 test('construction rejects wrong identity, bans, duplicates by oracle ID, unknown mana, and typed lands', () => {
@@ -350,4 +358,32 @@ test('plan staging keeps manual pairs, inserts both halves together, and rejects
     ),
     { cutIndexes: [], additionNames: ['Manual', 'Build add'] },
   )
+})
+
+test('suggestion toggles remove only the exact pair, including additions-only plans', () => {
+  const suggestion = rampSuggestions(input([card('Cut')]))[0]
+  const draft = { cutIndexes: [5, 6, 7], additionNames: ['Manual'] }
+  const picked = toggleDoctorSuggestionInPlan(draft, suggestion)
+  assert(doctorSuggestionIsInPlan(picked, suggestion))
+  assert.deepEqual(toggleDoctorSuggestionInPlan(picked, suggestion), draft)
+  assert.deepEqual(picked, { cutIndexes: [5, 1, 6, 7], additionNames: ['Manual', 'Ramp'] })
+  for (const overlap of [
+    { cutIndexes: [1], additionNames: ['Other'] },
+    { cutIndexes: [5], additionNames: ['Ramp'] },
+    { cutIndexes: [5, 1], additionNames: ['Ramp', 'Other'] },
+    { cutIndexes: [1], additionNames: [] },
+  ]) {
+    assert(!doctorSuggestionIsInPlan(overlap, suggestion))
+    assert.equal(toggleDoctorSuggestionInPlan(overlap, suggestion), overlap)
+  }
+  const build = { addCard: addition('Build add'), impact: '' }
+  const unpaired = { cutIndexes: [5], additionNames: ['Manual', 'Build add'] }
+  assert(doctorSuggestionIsInPlan(unpaired, build))
+  assert.deepEqual(toggleDoctorSuggestionInPlan(unpaired, build), {
+    cutIndexes: [5],
+    additionNames: ['Manual'],
+  })
+  const paired = { cutIndexes: [5], additionNames: ['Build add'] }
+  assert(!doctorSuggestionIsInPlan(paired, build))
+  assert.equal(toggleDoctorSuggestionInPlan(paired, build), paired)
 })

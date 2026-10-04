@@ -225,7 +225,7 @@
 }
 .doctor-card-art:focus-visible,
 .doctor-card-select input:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--commander-accent, #7546a8) 48%, white);
+  outline: 3px solid var(--focus-ring, var(--doctor-text));
   outline-offset: 2px;
 }
 .deck-doctor-shell,
@@ -769,7 +769,7 @@
   font-weight: 700;
 }
 .doctor-pair-arrow {
-  color: var(--commander-accent, #7546a8);
+  color: var(--doctor-text);
   font-size: 20px;
   font-weight: 700;
 }

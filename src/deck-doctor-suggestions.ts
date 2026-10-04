@@ -65,7 +65,7 @@ function suggestionImpact(pair: CandidatePair, context: FindingContext) {
   const beforeBucket = cut ? curveBucket(cut) : null
   const afterBucket = curveBucket(pair.addCard)
   if (cut && beforeBucket !== afterBucket)
-    changes.push(`Curve ${bucketLabel(beforeBucket)} → ${bucketLabel(afterBucket)}`)
+    changes.push(`Mana value: ${bucketLabel(beforeBucket)} → ${bucketLabel(afterBucket)}`)
   else if (!cut) changes.push(`Curve: +1 at ${bucketLabel(afterBucket)}`)
   return changes.length ? changes.join(' · ') : 'Roles and curve bucket unchanged'
 }
@@ -255,4 +255,28 @@ export function addDoctorSuggestionToPlan(
   if (suggestion.cut) cutIndexes.splice(position, 0, suggestion.cut.cutIndex)
   additionNames.splice(position, 0, suggestion.addCard.name)
   return { cutIndexes, additionNames }
+}
+
+export function doctorSuggestionIsInPlan(draft: DoctorDraft, suggestion: DoctorSuggestion) {
+  const position = draft.additionNames.indexOf(suggestion.addCard.name)
+  return (
+    position >= 0 &&
+    (suggestion.cut
+      ? draft.cutIndexes[position] === suggestion.cut.cutIndex
+      : position >= draft.cutIndexes.length)
+  )
+}
+
+/** Remove only the displayed pair, never another choice sharing its cut or addition. */
+export function toggleDoctorSuggestionInPlan(
+  draft: DoctorDraft,
+  suggestion: DoctorSuggestion,
+): DoctorDraft {
+  if (!doctorSuggestionIsInPlan(draft, suggestion))
+    return addDoctorSuggestionToPlan(draft, suggestion)
+  const position = draft.additionNames.indexOf(suggestion.addCard.name)
+  return {
+    cutIndexes: draft.cutIndexes.filter((_, index) => !suggestion.cut || index !== position),
+    additionNames: draft.additionNames.filter((_, index) => index !== position),
+  }
 }
