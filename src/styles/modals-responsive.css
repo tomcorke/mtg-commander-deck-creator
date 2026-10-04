@@ -102,6 +102,12 @@
   accent-color: var(--commander-accent);
 }
 @media (max-width: 620px) {
+  .collection-picker {
+    position: relative;
+  }
+  .collection-picker > legend {
+    position: static;
+  }
   .setting-help-wrap {
     position: static;
   }
