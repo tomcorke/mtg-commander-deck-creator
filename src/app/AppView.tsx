@@ -55,6 +55,7 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
   return (
     <SavedDecksModal
       show={state.showSavedDecks}
+      showBuilder={state.showBuilder}
       workspace={state.workspace}
       autosave={state.autosave}
       loadAutosave={actions.loadAutosave}
@@ -71,6 +72,7 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
       )}
       activeSavedDeck={state.activeSavedDeck}
       activeDeckDelta={state.activeDeckDelta}
+      savedDeckChanged={state.savedDeckChanged}
       savedDecks={state.savedDecks}
       pendingSavedDeckRemoval={state.pendingSavedDeckRemoval}
       setPendingSavedDeckRemoval={state.setPendingSavedDeckRemoval}

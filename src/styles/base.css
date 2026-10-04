@@ -98,6 +98,12 @@ main > .workspace-alert {
   font-size: 13px;
   line-height: 1.5;
 }
+@media (max-width: 600px) {
+  main > .workspace-alert {
+    left: 16px;
+    max-width: none;
+  }
+}
 .dark > .workspace-alert {
   border-color: #d68c95;
   background: #35232e;

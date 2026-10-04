@@ -10,6 +10,7 @@ import { DraftSavedTime } from './WorkspaceNotice.tsx'
 
 type SavedDecksModalProps = {
   show: boolean
+  showBuilder: boolean
   workspace: DeckWorkspace
   autosave: ReturnType<DeckWorkspace['getSnapshot']>
   loadAutosave: (draft: AutosavedDraft) => void
@@ -21,6 +22,7 @@ type SavedDecksModalProps = {
   storeDeck: (overwrite?: boolean) => void
   deckNameDuplicate: boolean
   activeSavedDeck: SavedDeck | undefined
+  savedDeckChanged: boolean
   activeDeckDelta: { added: number; removed: number } | null
   savedDecks: SavedDeck[]
   pendingSavedDeckRemoval: string
@@ -32,6 +34,7 @@ type SavedDecksModalProps = {
 
 export function SavedDecksModal({
   show,
+  showBuilder,
   workspace,
   autosave,
   loadAutosave,
@@ -43,6 +46,7 @@ export function SavedDecksModal({
   storeDeck,
   deckNameDuplicate,
   activeSavedDeck,
+  savedDeckChanged,
   activeDeckDelta,
   savedDecks,
   pendingSavedDeckRemoval,
@@ -126,14 +130,16 @@ export function SavedDecksModal({
                   )
                 )}
               </div>
-              <button
-                className="saved-deck-load"
-                type="button"
-                disabled={loading || autosave.busy}
-                onClick={() => loadAutosave(draft)}
-              >
-                Open in this tab
-              </button>
+              {(!showBuilder || draft.id !== autosave.id) && (
+                <button
+                  className="saved-deck-load"
+                  type="button"
+                  disabled={loading || autosave.busy}
+                  onClick={() => loadAutosave(draft)}
+                >
+                  Open in this tab
+                </button>
+              )}
               <span className="saved-deck-delete-wrap">
                 <button
                   type="button"
@@ -155,6 +161,8 @@ export function SavedDecksModal({
                       return
                     }
                     setPendingSavedDeckRemoval('')
+                    // The asynchronous delete disables this button; focus a stable control first.
+                    dialog.ref.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
                     void workspace.deleteDraft(draft)
                   }}
                   aria-label={`${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm deletion of' : 'Delete'} draft ${draft.name || draft.state.commander}`}
@@ -281,7 +289,7 @@ export function SavedDecksModal({
                 {activeSavedDeck || deckNameDuplicate ? 'Overwrite save' : 'Save deck'}
               </button>
             </form>
-            {activeSavedDeck && !deckNameDuplicate && (
+            {activeSavedDeck && savedDeckChanged && !deckNameDuplicate && (
               <p className="overwrite-notice">
                 This will overwrite <b>{activeSavedDeck.name}</b> with{' '}
                 <span className="delta-added">+{activeDeckDelta?.added} added</span> and{' '}
@@ -301,7 +309,9 @@ export function SavedDecksModal({
                   onOpen={() => openCard(saved.state.deck[0])}
                 />
                 <small>{saved.state.deck.length}/100 cards</small>
-                <small>Updated {new Date(saved.updatedAt).toLocaleString()}</small>
+                <small>
+                  Updated <DraftSavedTime updatedAt={saved.updatedAt} />
+                </small>
               </div>
               <button
                 className="saved-deck-load"
@@ -315,11 +325,14 @@ export function SavedDecksModal({
                 <button
                   type="button"
                   className={`saved-deck-delete ${pendingSavedDeckRemoval === saved.id ? 'confirm' : ''}`}
-                  onClick={() =>
-                    pendingSavedDeckRemoval === saved.id
-                      ? removeSavedDeck(saved)
-                      : setPendingSavedDeckRemoval(saved.id)
-                  }
+                  onClick={() => {
+                    if (pendingSavedDeckRemoval !== saved.id) {
+                      setPendingSavedDeckRemoval(saved.id)
+                      return
+                    }
+                    dialog.ref.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
+                    removeSavedDeck(saved)
+                  }}
                   aria-label={
                     pendingSavedDeckRemoval === saved.id
                       ? `Confirm deletion of ${saved.name}`

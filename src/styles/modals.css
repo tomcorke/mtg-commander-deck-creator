@@ -1182,16 +1182,15 @@
 }
 .dark .draft-help,
 .dark .saved-deck-details small,
-.dark .saved-deck-details span,
 .dark .saved-decks-empty,
 .dark .overwrite-notice {
   color: #bab6cc;
 }
 @media (max-width: 600px) {
-  .autosaved-draft-list article {
+  .saved-deck-list article {
     flex-wrap: wrap;
   }
-  .autosaved-draft-list .saved-deck-details {
+  .saved-deck-list .saved-deck-details {
     flex-basis: 100%;
   }
 }
@@ -1271,7 +1270,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.saved-deck-details span,
 .saved-deck-details small,
 .saved-decks-empty {
   color: #706d82;
