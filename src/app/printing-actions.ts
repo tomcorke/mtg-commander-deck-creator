@@ -11,6 +11,7 @@ import {
 import type { Card, ScryfallCard } from '../domain/card-model.ts'
 import { recommendedScoreThreshold, type CollectionMode } from '../recommendations.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
+import { deckJob } from './deck-job.ts'
 
 function scoringContext(
   deps: ActionDeps,
@@ -130,6 +131,8 @@ export async function loadPrintings(
   selectedCollectionSets: string[] = deps.collectionSets,
   selectedCollectionMode: CollectionMode = deps.collectionMode,
 ) {
+  const job = deckJob(deps)
+  deps = job.deps
   const { fetchPrintings } = deps
   const { specialCards } = scoringContext(
     deps,
@@ -138,6 +141,7 @@ export async function loadPrintings(
     selectedCollectionMode,
   )
   for (const offered of cards.slice(0, 8)) {
+    if (!job.isCurrent()) return
     if (
       offered.printings &&
       offered.printings.length > 1 &&

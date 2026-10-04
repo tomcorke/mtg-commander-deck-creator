@@ -27,12 +27,20 @@ import {
   toDeckCardFromRecommendation,
 } from '../domain/card-model.ts'
 import { hasBackFace } from '../domain/card-layout.ts'
+import {
+  applyCurrentCardData,
+  pendingDeckData,
+  refreshCardData,
+} from '../domain/current-card-data.ts'
+import { deckJob } from './deck-job.ts'
+import { recommendationDataError } from '../domain/deck-data-status.ts'
 import { orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
 import {
   deleteSavedDeck,
   restoredRecommendationDecisions,
   saveSavedDeck,
   suggestedDeckName,
+  persistedDeckStateSchema,
   type PersistedDeckState,
   type SavedDeck,
 } from '../deck-state.ts'
@@ -45,7 +53,7 @@ import {
   type ImportedDeck,
 } from '../deck-import.ts'
 import { commanderPromotionInfo, promoteDeckCard } from '../domain/commander-promotion.ts'
-import type { ActionDeps } from './recommendation-actions.ts'
+import { start as startRecommendations, type ActionDeps } from './recommendation-actions.ts'
 import { bindSignatureBudget, resetSignatureContext } from './signature-actions.ts'
 import {
   cardConstructionError,
@@ -68,13 +76,31 @@ function preloadArt(sources: (string | undefined)[]) {
 const cardCanHavePowerToughness = (card: Pick<DeckCard, 'typeLine'>) =>
   /Creature|Vehicle/.test(card.typeLine)
 
+export function retryCurrentCardData(deps: ActionDeps) {
+  const retry = <T extends DeckCard>(card: T): T =>
+    card.dataStatus === 'unavailable' ||
+    card.commanderLegality === undefined ||
+    card.colorIdentity === undefined ||
+    !card.manaValueKnown ||
+    card.gameChanger === undefined
+      ? { ...card, dataStatus: 'pending' }
+      : card
+  deps.setDeck((cards: DeckCard[]) => cards.map(retry))
+  deps.setSideboard((cards: DeckCard[]) => cards.map(retry))
+  deps.setQueue((cards: Card[]) => cards.map(retry))
+  deps.setDeferredCards((entries: { card: Card }[]) =>
+    entries.map((entry) => ({ ...entry, card: retry(entry.card) })),
+  )
+}
+
 export function addRecommendationCard(deps: ActionDeps, card: Card) {
   const { deck, setBatchAnnouncement, setDeck, setQueue, setSideboard } = deps
   const added = toDeckCardFromRecommendation(card)
-  const error = cardConstructionError(
+  const error = recommendationDataError(
     added,
     deck.length < 100 ? deck : deps.sideboard,
     deps.commanderDetails?.colours ?? [],
+    deps.excludeGameChangers,
   )
   if (error) {
     setBatchAnnouncement(`${card.name}: ${error}`)
@@ -113,23 +139,25 @@ export function addCollectionCard(deps: ActionDeps, card: ScryfallCard) {
 }
 
 function additionError(deps: ActionDeps, card: Card | DeckCard) {
-  const error = cardConstructionError(
+  const error = recommendationDataError(
     card,
     deps.deck.length < 100 ? deps.deck : deps.sideboard,
     deps.commanderDetails?.colours ?? [],
+    deps.excludeGameChangers,
   )
   if (error) deps.setBatchAnnouncement(`${card.name}: ${error}`)
   return error
 }
 
 export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | 'ignore') {
+  const previous = deps.decisions[card.name]
+  if (previous !== 'add' && action === 'add' && additionError(deps, card)) return
   deps.setIgnoreReasons?.((current: Record<string, unknown>) => {
     const next = { ...current }
     delete next[card.name]
     return next
   })
-  const { decisions, deck, setDecisions, setDeck, setIgnoredCards, setLiked, setSideboard } = deps
-  const previous = decisions[card.name]
+  const { deck, setDecisions, setDeck, setIgnoredCards, setLiked, setSideboard } = deps
   if (previous === action) {
     if (action === 'add') {
       setDeck((list: any) => list.filter((item: any) => item.name !== card.name))
@@ -144,7 +172,6 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
     })
     return
   }
-  if (previous !== 'add' && action === 'add' && additionError(deps, card)) return
   if (previous === 'add') {
     setDeck((list: any) => list.filter((item: any) => item.name !== card.name))
     setSideboard((list: any) => list.filter((item: any) => item.name !== card.name))
@@ -200,12 +227,22 @@ export async function changeArt(
   sources: (string | undefined)[],
   apply: () => void,
 ) {
-  const { setLoadingArt } = deps
+  const job = deckJob(deps)
+  const { setLoadingArt } = job.deps
+  const { deck, sideboard, queue, selectedManualCard } = deps
   setLoadingArt(`pending:${name}`)
   const loadingTimer = setTimeout(() => setLoadingArt(name), 50)
   await preloadArt(sources)
   clearTimeout(loadingTimer)
-  apply()
+  const current = deps.getCurrentState?.() ?? deps
+  if (
+    job.isCurrent() &&
+    current.deck === deck &&
+    current.sideboard === sideboard &&
+    current.queue === queue &&
+    current.selectedManualCard === selectedManualCard
+  )
+    apply()
   setLoadingArt('')
 }
 
@@ -493,7 +530,9 @@ export async function fetchBasic(name: string) {
 }
 
 export async function addBasicLands(deps: ActionDeps, plan: { name: string; count: number }[]) {
-  const { closeModal, setBasicLandState, setDeck } = deps
+  const job = deckJob(deps)
+  const { closeModal, setBasicLandState, setDeck } = job.deps
+  const expectedDeck = deps.deck
   setBasicLandState('loading')
   try {
     const cards = await Promise.all(
@@ -502,6 +541,11 @@ export async function addBasicLands(deps: ActionDeps, plan: { name: string; coun
         count,
       })),
     )
+    if (!job.isCurrent()) return
+    if ((deps.getCurrentState?.() ?? deps).deck !== expectedDeck) {
+      setBasicLandState('idle')
+      return
+    }
     for (const { card, count } of cards) {
       if (!Number.isInteger(count) || count < 0 || count > 100)
         throw new Error('Invalid basic-land count.')
@@ -600,10 +644,12 @@ export function addManualCard(deps: ActionDeps) {
 }
 
 export async function addOneBasic(deps: ActionDeps, name: string) {
-  const { deck, setBasicLandState, setDeck } = deps
+  const job = deckJob(deps)
+  const { deck, setBasicLandState, setDeck } = job.deps
   if (deck.length >= 100) return
   try {
     const added = await fetchBasic(name)
+    if (!job.isCurrent() || (deps.getCurrentState?.() ?? deps).deck !== deck) return
     if (cardConstructionError(added, deps.deck, deps.commanderDetails?.colours ?? []))
       throw new Error('Cannot add this basic land.')
     setDeck((current: any) => (current.length < 100 ? [...current, added] : current))
@@ -623,7 +669,8 @@ export function clearAddedDecision(deps: ActionDeps, name: string) {
 }
 
 export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
-  const { setDeck, setSideboard } = deps
+  const job = deckJob(deps)
+  const { setDeck, setSideboard } = job.deps
   try {
     let fetched: ScryfallCard | undefined
     if (
@@ -664,11 +711,6 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       scryfallUri: selected?.scryfallUri ?? fetched?.scryfall_uri ?? card.scryfallUri,
       power: fetched?.power ?? fetched?.card_faces?.[0]?.power ?? card.power,
       toughness: fetched?.toughness ?? fetched?.card_faces?.[0]?.toughness ?? card.toughness,
-      colorIdentity: fetched?.color_identity ?? card.colorIdentity,
-      oracleId: fetched?.oracle_id ?? card.oracleId,
-      commanderLegality: fetched?.legalities?.commander ?? card.commanderLegality,
-      manaValueKnown: fetched ? Number.isFinite(fetched.cmc) : card.manaValueKnown,
-      gameChanger: fetched?.game_changer ?? card.gameChanger,
       printsUri,
       price: selected?.price ?? fetched?.prices?.usd ?? card.price,
       priceUri: selected?.priceUri ?? fetched?.purchase_uris?.tcgplayer ?? card.priceUri,
@@ -883,7 +925,7 @@ export function storeDeck(deps: ActionDeps, overwrite = false) {
   setActiveSavedDeckId(id)
 }
 
-export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
+export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck, checkCurrentData = true) {
   const {
     navigateView,
     setActiveSavedDeckId,
@@ -912,7 +954,7 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck) {
     setSideboard,
     setTheme,
   } = deps
-  const state = saved.state
+  const state = checkCurrentData ? pendingDeckData(saved.state) : saved.state
   resetSignatureContext(deps, state.savedDeckId || saved.id || crypto.randomUUID())
   setCommander(state.commander)
   setCommanderDetails(state.commanderDetails)
@@ -978,6 +1020,7 @@ function closeImportAndMaybeReview(
 }
 
 export async function importDeck(deps: ActionDeps, openReviewAfterImport = true) {
+  const job = deckJob(deps)
   const { importSource, setImportError, setImportSource, setImportState } = deps
   setImportState('loading')
   setImportError('')
@@ -988,20 +1031,13 @@ export async function importDeck(deps: ActionDeps, openReviewAfterImport = true)
     setImportSource('')
     setImportState('idle')
   } catch (error) {
+    if (!job.isCurrent()) return
     setImportError(error instanceof Error ? error.message : 'Could not import deck.')
     setImportState('error')
   }
 }
 
-export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck) {
-  const {
-    setActiveSavedDeckId,
-    setDeck,
-    setDeckName,
-    setQueue,
-    setSideboard,
-    skipCompletionReviewDecks,
-  } = deps
+async function resolveImportedCards(imported: ImportedDeck, signal: AbortSignal) {
   const commanderEntries = imported.cards.filter(({ board }: any) => board === 'commander')
   if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
   if (commanderEntries.reduce((sum: any, card: any) => sum + card.quantity, 0) > 2)
@@ -1018,12 +1054,20 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
   const unresolved: typeof imported.cards = []
   for (let index = 0; index < identifiers.length; index += 75) {
     const entries = imported.cards.slice(index, index + 75)
-    const result = await resolveScryfallIdentifiers(identifiers.slice(index, index + 75))
+    const result = await resolveScryfallIdentifiers(
+      identifiers.slice(index, index + 75),
+      fetch,
+      signal,
+    )
     fetched.push(...result.data)
     unresolved.push(...entries.filter((entry: any) => !matchImportedCard(entry, result.data)))
   }
   if (unresolved.length) {
-    const result = await resolveScryfallIdentifiers(unresolved.map(({ name }: any) => ({ name })))
+    const result = await resolveScryfallIdentifiers(
+      unresolved.map(({ name }: any) => ({ name })),
+      fetch,
+      signal,
+    )
     fetched.push(...result.data)
     if (result.not_found?.length)
       throw new Error(
@@ -1055,31 +1099,78 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
     checked.push(converted)
   }
 
+  return { expanded, commanderCards }
+}
+
+async function importedRecommendationState(deps: ActionDeps, name: string) {
+  const staged: ActionDeps = {
+    ...deps,
+    navigateView: () => undefined,
+    loadPrintings: async () => undefined,
+    recommendationPoolKey: { current: '' },
+    recommendationRequest: { current: 0 },
+  }
+  for (const key of Object.keys(deps).filter((key) => /^set[A-Z]/.test(key))) {
+    const field = key[3].toLowerCase() + key.slice(4)
+    staged[key] = (value: unknown) => {
+      staged[field] = typeof value === 'function' ? value(staged[field]) : value
+    }
+  }
+  const loaded = await startRecommendations(staged, name)
+  if (!loaded)
+    throw new Error(staged.collectionError || 'Could not load commander recommendations.')
+  return persistedDeckStateSchema.parse({ ...staged, savedDeckId: '' })
+}
+
+export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck) {
+  const job = deckJob(deps)
+  const signal = AbortSignal.timeout(30_000)
+  const { expanded, commanderCards } = await resolveImportedCards(imported, signal)
+  if (!job.isCurrent()) throw new Error('The workspace changed; import was not applied.')
   const name = commanderCards.map(({ card }: any) => card.name).join(' & ')
-  const loaded = await deps.start(name)
-  if (!loaded) throw new Error('Could not load commander recommendations.')
-  const toImportedCard = ({ card }: (typeof expanded)[number]) => toDeckCard(card)
+  const prepared = await importedRecommendationState(deps, name)
+  if (!job.isCurrent()) throw new Error('The workspace changed; import was not applied.')
   const importedMain = expanded
     .filter(({ entry }: any) => entry.board !== 'sideboard')
     .sort(
       (a: any, b: any) =>
         Number(b.entry.board === 'commander') - Number(a.entry.board === 'commander'),
     )
-    .map(toImportedCard)
+    .map(({ card }) => toDeckCard(card))
   const importedSideboard = expanded
     .filter(({ entry }: any) => entry.board === 'sideboard')
-    .map(toImportedCard)
-  skipCompletionReviewDecks.current.add(importedMain)
-  setDeck(importedMain)
-  setSideboard(importedSideboard)
-  deps.setDeckDoctorHistory([])
-  setQueue((current: any) =>
-    current.filter(
-      (card: any) => !expanded.some(({ card: importedCard }) => importedCard.name === card.name),
+    .map(({ card }) => toDeckCard(card))
+  const printings = commanderCards.map(({ card }) => cardPrintingOptions([card]))
+  const state: PersistedDeckState = {
+    ...prepared,
+    deck: importedMain,
+    sideboard: importedSideboard,
+    commanderDetails: {
+      ...prepared.commanderDetails,
+      images: commanderCards.map(({ card }) => scryfallImage(card)),
+      art: commanderCards.map(
+        ({ card }) => card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop ?? '',
+      ),
+      printings,
+      selections: printings.map(() => 0),
+    },
+    queue: prepared.queue.filter(
+      (card) => !expanded.some(({ card: added }) => added.name === card.name),
     ),
+  }
+  if (deps.beginWorkspace && !(await deps.beginWorkspace()))
+    throw new Error('Could not create an import workspace.')
+  deps.skipCompletionReviewDecks.current.add(importedMain)
+  loadSavedDeck(
+    deps,
+    {
+      id: '',
+      name: imported.name ?? '',
+      updatedAt: new Date().toISOString(),
+      state,
+    },
+    false,
   )
-  setDeckName(imported.name ?? '')
-  setActiveSavedDeckId('')
 }
 
 export async function startOver(deps: ActionDeps) {
@@ -1154,6 +1245,15 @@ export function applyDeckDoctorSwapPlan(
   moveCutToSideboard: boolean,
 ) {
   try {
+    for (const card of additions) {
+      const error = recommendationDataError(
+        card,
+        [],
+        deps.commanderDetails?.colours ?? [],
+        deps.excludeGameChangers,
+      )
+      if (error) throw new Error(error)
+    }
     const result = applyDoctorSwapPlan({
       id: crypto.randomUUID(),
       deck: deps.deck,
@@ -1175,16 +1275,30 @@ export function applyDeckDoctorSwapPlan(
   }
 }
 
-export function undoDeckDoctorSwap(deps: ActionDeps, id: string) {
+export async function undoDeckDoctorSwap(deps: ActionDeps, id: string) {
+  const job = deckJob(deps)
   const record = deps.deckDoctorHistory.find((swap: any) => swap.id === id)
   if (!record) return false
   try {
+    const refreshed = record.cutCard
+      ? applyCurrentCardData(
+          record.cutCard,
+          await refreshCardData(
+            [record.cutCard],
+            AbortSignal.timeout(30_000),
+            deps.cardDataFetcher,
+          ),
+        )
+      : undefined
+    if (!job.isCurrent()) return false
+    const current = deps.getCurrentState?.() ?? deps
+    if (!current.deckDoctorHistory.includes(record)) return false
     const result = undoDoctorSwap({
-      deck: deps.deck,
-      sideboard: deps.sideboard,
-      commanderCount: commanderNames(deps.commander).length,
-      commanderColours: deps.commanderDetails?.colours ?? [],
-      record,
+      deck: current.deck,
+      sideboard: current.sideboard,
+      commanderCount: commanderNames(current.commander).length,
+      commanderColours: current.commanderDetails?.colours ?? [],
+      record: { ...record, cutCard: refreshed },
     })
     deps.setDeck(result.deck)
     deps.setSideboard(result.sideboard)
@@ -1192,7 +1306,7 @@ export function undoDeckDoctorSwap(deps: ActionDeps, id: string) {
     deps.setDeckDoctorError('')
     return true
   } catch (error) {
-    deps.setDeckDoctorHistory((current: any[]) => current.filter((swap: any) => swap.id !== id))
+    if (!job.isCurrent()) return false
     deps.setDeckDoctorError(error instanceof Error ? error.message : 'Could not undo swap safely.')
     return false
   }

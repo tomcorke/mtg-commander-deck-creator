@@ -10,7 +10,7 @@ type Props = {
   history: DeckDoctorSwapRecord[]
   error: string
   openCard: (card: Card | DeckCard) => void
-  undoSwap: (id: string) => boolean
+  undoSwap: (id: string) => Promise<boolean>
   closeModal: () => void
 }
 
@@ -85,9 +85,9 @@ export function DeckReviewHistoryModal({
                 <button
                   className="export"
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     // The undone item's button unmounts; keep focus in the dialog for Escape.
-                    if (undoSwap(swap.id)) list.current?.focus()
+                    if (await undoSwap(swap.id)) list.current?.focus()
                   }}
                   aria-label={
                     swap.cutCard && swap.addedCard

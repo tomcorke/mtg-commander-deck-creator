@@ -1,6 +1,7 @@
 import '../App.css'
 
-import type { CSSProperties } from 'react'
+import { useMemo, type CSSProperties } from 'react'
+import { pendingDeckData } from '../domain/current-card-data.ts'
 import type { DeckWorkspace } from '../autosaves.ts'
 import { AppView } from './AppView.tsx'
 import { readAppRoute } from './routes.ts'
@@ -12,7 +13,10 @@ import { VisualPreferencesContext } from '../shared/VisualPreferencesContext.tsx
 const initialAppRoute = typeof window === 'undefined' ? null : readAppRoute()
 
 function App({ workspace }: { workspace: DeckWorkspace }) {
-  const savedDeckState = workspace.initialState
+  const savedDeckState = useMemo(
+    () => (workspace.initialState ? pendingDeckData(workspace.initialState) : null),
+    [workspace],
+  )
   const usableInitialRoute =
     initialAppRoute?.view === 'builder' && !savedDeckState?.commander ? null : initialAppRoute
   const state = useControllerState(savedDeckState, usableInitialRoute, workspace)

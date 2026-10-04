@@ -1,6 +1,8 @@
 import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
+import { deckJob } from './deck-job.ts'
+import { currentCardData } from '../domain/current-card-data.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import { resetSignatureContext } from './signature-actions.ts'
 import { commanderNames, themeSearchTerms } from '../domain/commander-catalog.ts'
@@ -18,6 +20,7 @@ import {
 } from '../recommendations.ts'
 import {
   toDeckCard,
+  type DeckCard,
   edhrecSlug,
   scryfallBackImage,
   toCard,
@@ -412,7 +415,7 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
     deps.commanderDetails &&
     commanders.every((card: CommanderCard, index: number) => deps.deck[index]?.name === card.name)
   )
-    setCommanderDetails(deps.commanderDetails)
+    setCommanderDetails({ ...deps.commanderDetails, colours: identityColours })
   else if (images.length)
     setCommanderDetails({
       images,
@@ -421,7 +424,17 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
       printings,
       selections: commanders.map(() => 0),
     })
-  if (!preserveDeck) {
+  if (
+    preserveDeck &&
+    setDeck &&
+    commanders.every((card: CommanderCard, index: number) => deps.deck[index]?.name === card.name)
+  ) {
+    setDeck((current: DeckCard[]) =>
+      current.map((card, index) =>
+        index < commanders.length ? currentCardData(card, commanders[index]) : card,
+      ),
+    )
+  } else if (!preserveDeck) {
     setDeck(
       commanders.map((card: CommanderCard, index: number) => ({
         ...toDeckCard(card),
@@ -709,6 +722,10 @@ export async function start(
   preserveDeck = false,
   progress?: RecommendationProgress,
 ) {
+  const request = deps.recommendationRequest
+  const token = request ? ++request.current : undefined
+  const job = deckJob(deps, () => !request || request.current === token)
+  deps = job.deps
   const chosen = name.trim()
   if (!chosen) return false
   if (preserveDeck)
@@ -728,6 +745,7 @@ export async function start(
   })
   try {
     const loaded = await loadCommanderCards(deps, chosen)
+    if (!job.isCurrent()) return false
     addCommanderCards(deps, loaded, preserveDeck)
     const offeredCards = await collectOfferedCards(
       deps,
@@ -736,8 +754,9 @@ export async function start(
       reset.activeCollectionSets,
       reset.activeCollectionMode,
     )
+    if (!job.isCurrent()) return false
     rankInitialRecommendations(
-      deps,
+      { ...deps, commanderDetails: { ...deps.commanderDetails, colours: loaded.identityColours } },
       offeredCards,
       chosen,
       preserveDeck,
@@ -749,6 +768,7 @@ export async function start(
     deps.setRecommendationOptionsChanged?.(false)
     return true
   } catch (error) {
+    if (!job.isCurrent()) return false
     deps.setCollectionError(error instanceof Error ? error.message : 'Suggestions unavailable')
     deps.setRecommendationState('error')
     return false

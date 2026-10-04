@@ -13,7 +13,12 @@ import {
   type RequestPolicy,
 } from './request-scheduler.ts'
 
-export type ScryfallIdentifier = { name?: string; set?: string; collector_number?: string }
+export type ScryfallIdentifier = {
+  name?: string
+  oracle_id?: string
+  set?: string
+  collector_number?: string
+}
 export type ScryfallFetcher = typeof fetch
 export type CollectionFilters = {
   excludeGameChangers: boolean
@@ -174,10 +179,12 @@ function sessionCache(fetcher: ScryfallFetcher) {
   return cache
 }
 
-const identifierKey = ({ name, set, collector_number }: ScryfallIdentifier) =>
-  set && collector_number
-    ? `printing:${set.toLowerCase()}:${collector_number}`
-    : `name:${cardNameKey(name ?? '')}`
+const identifierKey = ({ name, oracle_id, set, collector_number }: ScryfallIdentifier) =>
+  oracle_id
+    ? `oracle:${oracle_id}`
+    : set && collector_number
+      ? `printing:${set.toLowerCase()}:${collector_number}`
+      : `name:${cardNameKey(name ?? '')}`
 
 function cachedValue(cache: SessionCache, key: string) {
   const entry = cache.values.get(key)
@@ -197,7 +204,12 @@ function rememberValue(cache: SessionCache, key: string, value: CacheValue) {
 
 function rememberPrintings(cache: SessionCache, cards: ScryfallCard[]) {
   for (const card of cards)
-    if (isScryfallCard(card)) rememberValue(cache, identifierKey(card), card)
+    if (isScryfallCard(card))
+      rememberValue(
+        cache,
+        identifierKey({ set: card.set, collector_number: card.collector_number }),
+        card,
+      )
 }
 
 function rememberResult(cache: SessionCache, key: string, value: CacheValue) {
@@ -388,9 +400,11 @@ export function fetchScryfallSymbology(fetcher: ScryfallFetcher = fetch) {
 function matchingCard(identifier: ScryfallIdentifier, cards: ScryfallCard[]) {
   const key = identifierKey(identifier)
   return cards.find((card) =>
-    identifier.set && identifier.collector_number
-      ? identifierKey(card) === key
-      : identifierKey({ name: card.name }) === key,
+    identifier.oracle_id
+      ? card.oracle_id === identifier.oracle_id
+      : identifier.set && identifier.collector_number
+        ? identifierKey({ set: card.set, collector_number: card.collector_number }) === key
+        : identifierKey({ name: card.name }) === key,
   )
 }
 

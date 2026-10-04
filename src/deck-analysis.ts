@@ -15,6 +15,8 @@ export type AnalysisCard = {
   typeLine: string
   manaCost: string
   manaValue: number
+  manaValueKnown?: boolean
+  dataStatus?: 'pending' | 'unavailable'
   detail: string
   producedMana: string[]
   faces: { typeLine: string; manaCost: string }[]
@@ -72,7 +74,13 @@ const curveType = (card: AnalysisCard) =>
     ? card.faces.find((face) => !isLandLine(face.typeLine))?.typeLine
     : frontTypeLine(card)
 export const curveBucket = (card: AnalysisCard) =>
-  curveType(card) === undefined || isLand(card) ? null : Math.min(Math.floor(card.manaValue), 7)
+  card.manaValueKnown === false ||
+  card.dataStatus ||
+  !Number.isFinite(card.manaValue) ||
+  curveType(card) === undefined ||
+  isLand(card)
+    ? null
+    : Math.min(Math.floor(card.manaValue), 7)
 const isPermanent = (card: AnalysisCard) => !/\b(?:Instant|Sorcery)\b/.test(curveType(card) ?? '')
 const isWipe = (text: string) =>
   /(?:destroy|exile|return) (?:all|each) (?:nonland )?(?:creature|artifact|enchantment|permanent)|each (?:creature|artifact|enchantment|player) (?:sacrifices|exiles) (?:all|any number)|deals? \d+ damage to each creature|all creatures get -[x\d]+\/-[x\d]+/i.test(
