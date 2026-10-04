@@ -689,9 +689,13 @@
   }
   .card-offer {
     display: grid;
-    grid-template-columns: minmax(120px, 0.5fr) minmax(220px, 1fr);
+    grid-template-columns: 130px 1fr;
     gap: 0 22px;
     align-items: start;
+  }
+  .card-offer > .card-copy,
+  .card-offer > .commander-promotion {
+    grid-column: 1 / -1;
   }
   .recommendation-toolbar {
     align-items: flex-start;
@@ -781,6 +785,9 @@
   }
 }
 @media (max-width: 520px) {
+  .deck-board .deck-group ol {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
   .modal-backdrop {
     align-items: start;
     padding: 16px;

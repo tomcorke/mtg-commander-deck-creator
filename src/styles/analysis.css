@@ -977,6 +977,7 @@ li b {
 }
 .deck-board .deck-group ol > li.deck-card-tile {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   align-content: start;
   gap: 8px;

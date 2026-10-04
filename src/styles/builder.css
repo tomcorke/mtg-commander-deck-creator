@@ -477,7 +477,7 @@
   border: 1px dashed #bbb9cd;
   border-radius: 6px;
   color: #706d82;
-  font-size: 12px;
+  font-size: var(--decision-text);
 }
 .collection-chips {
   display: flex;
