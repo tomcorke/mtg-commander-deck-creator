@@ -509,22 +509,23 @@ function CurrentCardDataNotice({ state, actions, builderData }: AppViewProps) {
           <p className="form-error">
             {builderData.cardDataPending
               ? 'Checking current card data. Cards and choices are kept.'
-              : 'Card data warnings. Cards and choices have been kept.'}
+              : `Card data warnings for ${builderData.cardDataNotices.length} ${builderData.cardDataNotices.length === 1 ? 'card' : 'cards'}. Cards and choices have been kept.`}
             {state.deck.length === 100 &&
               !builderData.deckComplete &&
               ' This deck needs validation; it is not verified complete.'}
           </p>
-          {!builderData.cardDataPending &&
-            builderData.cardDataNotices
-              .slice(0, 3)
-              .map(({ card, message }: { card: DeckCard; message: string }, index: number) => (
-                <p key={index}>
-                  <CardReference card={card} onOpen={() => actions.openCardReference(card)} />:{' '}
-                  {message}
-                </p>
-              ))}
-          {!builderData.cardDataPending && builderData.cardDataNotices.length > 3 && (
-            <p>{builderData.cardDataNotices.length - 3} more card data warnings.</p>
+          {!builderData.cardDataPending && (
+            <details className="workspace-notice-details">
+              <summary>Show cards</summary>
+              {builderData.cardDataNotices.map(
+                ({ card, message }: { card: DeckCard; message: string }, index: number) => (
+                  <p key={index}>
+                    <CardReference card={card} onOpen={() => actions.openCardReference(card)} />:{' '}
+                    {message}
+                  </p>
+                ),
+              )}
+            </details>
           )}
           {!builderData.cardDataPending && (
             <div className="workspace-notice-actions">
@@ -540,13 +541,15 @@ function CurrentCardDataNotice({ state, actions, builderData }: AppViewProps) {
                   Retry current card data
                 </button>
               )}
-              <button
-                className="export"
-                type="button"
-                onClick={() => actions.navigateView('builder', 'review')}
-              >
-                Review deck
-              </button>
+              {!builderData.deckComplete && (
+                <button
+                  className="export"
+                  type="button"
+                  onClick={() => actions.navigateView('builder', 'review')}
+                >
+                  Review deck
+                </button>
+              )}
             </div>
           )}
         </section>
