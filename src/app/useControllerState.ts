@@ -9,6 +9,8 @@ import { useDeckState } from './useDeckState.ts'
 import { useRecommendationState } from './useRecommendationState.ts'
 import { useUiState } from './useUiState.ts'
 import type { AppHistoryState } from './routes.ts'
+import type { DeckWorkspace } from '../autosaves.ts'
+import { useWorkspaceState } from './useWorkspaceState.ts'
 
 function useCurrentDeckState(state: Record<string, any>) {
   const {
@@ -105,13 +107,22 @@ function useCurrentDeckState(state: Record<string, any>) {
 export function useControllerState(
   saved: PersistedDeckState | null,
   initialRoute: Pick<AppHistoryState, 'view' | 'modal'> | null,
+  workspace: DeckWorkspace,
 ) {
   const commander = useCommanderState(saved)
   const collection = useCollectionState(saved)
   const recommendation = useRecommendationState(saved)
   const deck = useDeckState(saved)
-  const ui = useUiState(saved, initialRoute)
-  const state = { ...commander, ...collection, ...recommendation, ...deck, ...ui }
+  const ui = useUiState(saved, initialRoute, workspace.initialName)
+  const workspaceState = useWorkspaceState(workspace, ui.setSavedDecks)
+  const state = {
+    ...commander,
+    ...collection,
+    ...recommendation,
+    ...deck,
+    ...ui,
+    ...workspaceState,
+  }
   const currentDeckState = useCurrentDeckState(state)
   const activeSavedDeck = state.savedDecks.find(({ id }: any) => id === state.activeSavedDeckId)
   const savedDeckChanged = Boolean(

@@ -125,8 +125,59 @@ export const persistedDeckStateSchema = z.object({
   }),
 })
 
+// Existing full-object queues and the compact field table are both valid on disk.
+const compactQueueSchema = z
+  .object({ fields: z.array(z.string()), rows: z.array(z.array(z.unknown())) })
+  .refine(({ fields, rows }) => rows.every((row) => row.length === fields.length))
+  .transform(({ fields, rows }) =>
+    rows.map((row) =>
+      Object.fromEntries(
+        fields.flatMap((field, index) => (row[index] === null ? [] : [[field, row[index]]])),
+      ),
+    ),
+  )
+  .pipe(persistedDeckStateSchema.shape.queue)
+export const storedDeckStateSchema = persistedDeckStateSchema.extend({
+  queue: z.union([persistedDeckStateSchema.shape.queue, compactQueueSchema]),
+})
+
 export type PersistedDeckState = z.infer<typeof persistedDeckStateSchema>
 export type SavedDeck = { id: string; name: string; updatedAt: string; state: PersistedDeckState }
+
+export function deckStateForStorage(state: PersistedDeckState): PersistedDeckState {
+  // Queue alternatives can be fetched again; retain only the current printing, including finish.
+  const compactCard = (card: PersistedDeckState['queue'][number]) =>
+    card.printings?.length
+      ? {
+          ...card,
+          printings: [{ ...card.printings[card.printing ?? 0], ...printingSchema.parse(card) }],
+          printing: 0,
+        }
+      : card
+  return {
+    ...state,
+    queue: state.queue.map(compactCard),
+    deferredCards: state.deferredCards.map((entry) => ({
+      ...entry,
+      card: compactCard(entry.card),
+    })),
+  }
+}
+
+export function encodeDeckState(value: PersistedDeckState) {
+  const state = deckStateForStorage(value)
+  const queue = state.queue
+  if (!queue.length) return state
+  const fields = [
+    ...new Set(
+      queue.flatMap((card) =>
+        Object.keys(card).filter((key) => card[key as keyof typeof card] !== undefined),
+      ),
+    ),
+  ] as (keyof (typeof queue)[number])[]
+  const rows = queue.map((card) => fields.map((field) => card[field] ?? null))
+  return { ...state, queue: { fields, rows } }
+}
 
 export function restoredRecommendationDecisions(state: PersistedDeckState | null) {
   const decisions = { ...state?.decisions }
@@ -142,8 +193,16 @@ export const deckPageTitle = (cardCount: number, name: string, modified = false)
   `${modified ? '*' : ''}${cardCount}/100 ${name} - Commander Deck Creator`
 
 export function deckStateChanged(saved: PersistedDeckState, current: PersistedDeckState) {
-  const withoutSavedDeckId = ({ savedDeckId: _savedDeckId, ...state }: PersistedDeckState) => state
-  return JSON.stringify(withoutSavedDeckId(saved)) !== JSON.stringify(withoutSavedDeckId(current))
+  // Sort keys: in-memory cards and schema-parsed saves order the same fields differently.
+  const sortKeys = (_key: string, value: unknown) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1)))
+      : value
+  const comparable = (state: PersistedDeckState) => {
+    const { savedDeckId: _savedDeckId, ...fields } = deckStateForStorage(state)
+    return JSON.stringify(fields, sortKeys)
+  }
+  return comparable(saved) !== comparable(current)
 }
 
 export const suggestedDeckName = (commander: string, theme: string, subThemes: string[]) =>
@@ -178,13 +237,18 @@ const savedDeckSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   updatedAt: z.string(),
-  state: persistedDeckStateSchema,
+  state: storedDeckStateSchema,
 })
+const serializeSavedDecks = (decks: SavedDeck[]) =>
+  JSON.stringify({
+    version: deckStateVersion,
+    decks: decks.map((saved) => ({ ...saved, state: encodeDeckState(saved.state) })),
+  })
 
 export function loadDeckState(storage: StorageLike = localStorage): PersistedDeckState | null {
   try {
     const parsed = z
-      .object({ version: z.literal(deckStateVersion), state: persistedDeckStateSchema })
+      .object({ version: z.literal(deckStateVersion), state: storedDeckStateSchema })
       .safeParse(JSON.parse(storage.getItem(deckStateKey) ?? 'null'))
     return parsed.success ? parsed.data.state : null
   } catch {
@@ -196,7 +260,10 @@ export function saveDeckState(state: PersistedDeckState, storage: StorageLike = 
   try {
     storage.setItem(
       deckStateKey,
-      JSON.stringify({ version: deckStateVersion, state: persistedDeckStateSchema.parse(state) }),
+      JSON.stringify({
+        version: deckStateVersion,
+        state: encodeDeckState(persistedDeckStateSchema.parse(state)),
+      }),
     )
   } catch {
     // Keep deck building usable when state or storage is invalid or unavailable.
@@ -226,7 +293,7 @@ export function saveSavedDeck(deck: SavedDeck, storage: StorageLike = localStora
   const decks = loadSavedDecks(storage)
   const next = [savedDeckSchema.parse(deck), ...decks.filter(({ id }) => id !== deck.id)]
   try {
-    storage.setItem(savedDecksKey, JSON.stringify({ version: deckStateVersion, decks: next }))
+    storage.setItem(savedDecksKey, serializeSavedDecks(next))
     return next
   } catch {
     return decks
@@ -236,7 +303,7 @@ export function saveSavedDeck(deck: SavedDeck, storage: StorageLike = localStora
 export function deleteSavedDeck(id: string, storage: StorageLike = localStorage): SavedDeck[] {
   const next = loadSavedDecks(storage).filter((deck) => deck.id !== id)
   try {
-    storage.setItem(savedDecksKey, JSON.stringify({ version: deckStateVersion, decks: next }))
+    storage.setItem(savedDecksKey, serializeSavedDecks(next))
     return next
   } catch {
     return loadSavedDecks(storage)

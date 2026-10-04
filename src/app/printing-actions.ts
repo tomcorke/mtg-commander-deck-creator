@@ -1,13 +1,14 @@
 import { withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
+import { cardPrintingOptions } from '../domain/printing.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import {
   orderedPrintings,
   preferredPrintingIndex,
   recommendationScore,
 } from '../recommendations.ts'
-import { scryfallBackImage, type Card, type ScryfallCard } from '../domain/card-model.ts'
+import type { Card, ScryfallCard } from '../domain/card-model.ts'
 import { recommendedScoreThreshold, type CollectionMode } from '../recommendations.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
 
@@ -40,30 +41,10 @@ function scoringContext(
 }
 
 function buildPrintings(card: Card, result: ScryfallCard[]) {
-  return orderedPrintings(
-    card,
-    result.flatMap((printing) => {
-      const image = printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal
-      return image
-        ? (printing.finishes ?? ['nonfoil']).map((finish) => ({
-            image,
-            backImage: scryfallBackImage(printing),
-            set: printing.set,
-            setName: printing.set_name,
-            collectorNumber: printing.collector_number,
-            scryfallUri: printing.scryfall_uri,
-            price:
-              (finish === 'etched'
-                ? printing.prices?.usd_etched
-                : finish === 'foil'
-                  ? printing.prices?.usd_foil
-                  : printing.prices?.usd) ?? undefined,
-            priceUri: printing.purchase_uris?.tcgplayer,
-            finish,
-          }))
-        : []
-    }),
-  )
+  return orderedPrintings(card, [
+    ...(card.printings?.length === 1 ? card.printings : []),
+    ...cardPrintingOptions(result),
+  ])
 }
 
 function selectedPrintingIndex(
@@ -76,6 +57,10 @@ function selectedPrintingIndex(
   maxPrice?: number | null,
 ) {
   if (!printings.length) return -1
+  if (card.printingManuallySelected || card.printings?.length === 1)
+    return printings.findIndex(
+      (printing) => printing.image === card.image && printing.finish === card.finish,
+    )
   const specialOptions = printings
     .map((printing, index) =>
       (printing.finish === 'foil' || printing.finish === 'etched') &&
@@ -116,7 +101,9 @@ function updateQueuedCard(
   if (!selected) return
   setQueue((current: Card[]) =>
     current.map((item) =>
-      item.name === offered.name && !item.printingManuallySelected
+      item.name === offered.name &&
+      (!item.printingManuallySelected ||
+        (item.image === selected.image && item.finish === selected.finish))
         ? {
             ...item,
             printings,
@@ -152,7 +139,8 @@ export async function loadPrintings(
   )
   for (const offered of cards.slice(0, 8)) {
     if (
-      offered.printings?.length &&
+      offered.printings &&
+      offered.printings.length > 1 &&
       offered.printings.every(
         (printing) =>
           printing.finish &&

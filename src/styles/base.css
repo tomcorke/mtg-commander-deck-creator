@@ -79,6 +79,57 @@ header {
   border-bottom: 1px solid #dad8e6;
   background: #f8f8ff;
 }
+main > .workspace-alert {
+  position: fixed;
+  z-index: 51;
+  right: 16px;
+  bottom: 16px;
+  max-width: min(420px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #a13e4c;
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: #fff0ef;
+  color: #842b38;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.dark > .workspace-alert {
+  border-color: #d68c95;
+  background: #35232e;
+  color: #ffd3d9;
+}
+.workspace-notice {
+  position: relative;
+  padding: 14px 60px 14px 5vw;
+  border-bottom: 1px solid #dad8e6;
+  background: #f8f8ff;
+  color: #25243a;
+}
+.workspace-notice p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.workspace-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workspace-notice .modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+}
+.dark .workspace-notice {
+  border-color: #36344f;
+  background: #19182d;
+  color: #d8d8ea;
+}
 .brand {
   flex: 0 0 auto;
   max-width: 100%;

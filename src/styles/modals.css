@@ -1123,7 +1123,77 @@
   line-height: 1.4;
 }
 .saved-decks-modal {
-  width: min(620px, 100%);
+  width: min(720px, 100%);
+}
+.saved-decks-modal .saved-deck-list {
+  flex-shrink: 0;
+  overflow: visible;
+}
+.draft-section-title {
+  margin: 24px 0 8px;
+}
+.draft-help {
+  margin: 8px 0;
+  color: #625f76;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.autosaved-draft-list {
+  margin-top: 8px;
+}
+.autosaved-draft-list .saved-deck-load {
+  flex: 0 0 auto;
+}
+.autosave-retention {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #dad8e6;
+}
+.autosave-retention h4 {
+  margin: 0 0 10px;
+}
+.autosave-retention > div {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.autosave-retention label {
+  display: grid;
+  flex: 1 1 140px;
+  gap: 6px;
+  font-size: 13px;
+}
+.autosave-retention .clearable-input {
+  padding: 10px;
+}
+.saved-decks-modal button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.dark .saved-decks-modal .clearable-input {
+  border-color: #565271;
+  background: #25233e;
+  color: #e9e8f5;
+}
+.dark .saved-deck-list article,
+.dark .autosave-retention {
+  border-color: #45415c;
+}
+.dark .draft-help,
+.dark .saved-deck-details small,
+.dark .saved-deck-details span,
+.dark .saved-decks-empty,
+.dark .overwrite-notice {
+  color: #bab6cc;
+}
+@media (max-width: 600px) {
+  .autosaved-draft-list article {
+    flex-wrap: wrap;
+  }
+  .autosaved-draft-list .saved-deck-details {
+    flex-basis: 100%;
+  }
 }
 .save-deck-form {
   display: flex;
