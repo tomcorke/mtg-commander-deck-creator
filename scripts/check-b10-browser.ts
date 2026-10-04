@@ -12,7 +12,8 @@ import {
 } from 'playwright-core'
 import { createServer } from 'vite'
 import { toCard, toDeckCard, type ScryfallCard } from '../src/domain/card-model.ts'
-import type { PersistedDeckState } from '../src/deck-state.ts'
+import { storedDeckStateSchema, type PersistedDeckState } from '../src/deck-state.ts'
+import { autosavePrefix, workspaceRecoveryKey, workspaceSessionKey } from '../src/autosaves.ts'
 import type { EdhrecCommanderPage } from '../src/adapters/edhrec.ts'
 import {
   allRecords,
@@ -232,15 +233,37 @@ async function openScenario(
 }
 
 async function savedState(page: Page): Promise<PersistedDeckState> {
-  return page.evaluate(() => JSON.parse(localStorage.getItem('commander-deck-state')!).state)
+  const raw = await page.evaluate(
+    ({ prefix, sessionKey, recoveryKey }) =>
+      localStorage.getItem(prefix + sessionStorage.getItem(sessionKey)) ??
+      sessionStorage.getItem(recoveryKey),
+    { prefix: autosavePrefix, sessionKey: workspaceSessionKey, recoveryKey: workspaceRecoveryKey },
+  )
+  assert.ok(raw, 'Current tab must have an autosave or recovery snapshot')
+  return storedDeckStateSchema.parse(JSON.parse(raw).state)
 }
 async function waitForCard(page: Page, name: string, present = true) {
   await page.waitForFunction(
-    ({ name, present }) =>
-      JSON.parse(localStorage.getItem('commander-deck-state')!).state.deck.some(
-        (card: { name: string }) => card.name === name,
-      ) === present,
-    { name, present },
+    ({ prefix, sessionKey, recoveryKey, name, present }) => {
+      const raw =
+        localStorage.getItem(prefix + sessionStorage.getItem(sessionKey)) ??
+        sessionStorage.getItem(recoveryKey)
+      return (
+        raw !== null &&
+        JSON.parse(raw).state.deck.some((card: { name: string }) => card.name === name) === present
+      )
+    },
+    {
+      prefix: autosavePrefix,
+      sessionKey: workspaceSessionKey,
+      recoveryKey: workspaceRecoveryKey,
+      name,
+      present,
+    },
+  )
+  assert.equal(
+    (await savedState(page)).deck.some((card) => card.name === name),
+    present,
   )
 }
 async function enterReview(page: Page) {
@@ -549,7 +572,7 @@ async function pricePowerExclusions({ page, provider }: Scenario) {
   assert(!available.includes('B10 Expensive'))
   assert(available.includes('Lotus Petal'))
   await adjustSettings(page, async (dialog) => {
-    await dialog.getByLabel('Power target', { exact: true }).selectOption('precon')
+    await dialog.locator('#power-target').selectOption('precon')
     for (const id of [
       'exclude-game-changers',
       'exclude-tutors',
@@ -616,11 +639,16 @@ async function setPreferences({ page, provider }: Scenario) {
 async function ignoredUpdates({ page }: Scenario) {
   const offer = page.locator('.card-offer').filter({ has: heading(page, 'B10 Ramp draw') })
   await button(offer, 'Ignore').press('Enter')
-  await page.waitForFunction(() =>
-    JSON.parse(localStorage.getItem('commander-deck-state')!).state.ignoredCards.includes(
-      'B10 Ramp draw',
-    ),
+  await page.waitForFunction(
+    ({ prefix, sessionKey, recoveryKey }) => {
+      const raw =
+        localStorage.getItem(prefix + sessionStorage.getItem(sessionKey)) ??
+        sessionStorage.getItem(recoveryKey)
+      return raw && JSON.parse(raw).state.ignoredCards.includes('B10 Ramp draw')
+    },
+    { prefix: autosavePrefix, sessionKey: workspaceSessionKey, recoveryKey: workspaceRecoveryKey },
   )
+  assert((await savedState(page)).ignoredCards.includes('B10 Ramp draw'))
   await enterReview(page)
   assert(!(await rows(page).allTextContents()).some((text) => text.includes('B10 Ramp draw')))
   assert(!(await manualNames(page)).includes('B10 Ramp draw'))
