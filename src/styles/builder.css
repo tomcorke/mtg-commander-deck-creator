@@ -72,7 +72,8 @@
 .deck-board .deck-group {
   break-inside: avoid;
 }
-.deck-board .deck-group > h3 {
+.deck-board .deck-group > h3,
+.deck-board .deck-group-details > summary h3 {
   padding-bottom: 7px;
   border-bottom: 2px solid color-mix(in srgb, var(--commander-accent, #7546a8) 55%, #dad8e6);
 }

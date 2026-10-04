@@ -600,22 +600,25 @@ li.deck-highlight-dimmed {
 }
 .deck-group-details > summary {
   min-height: 44px;
+  padding: 12px 6px;
+  border-radius: 4px;
+  background: transparent;
   cursor: pointer;
 }
 .deck-group-details > summary:hover {
-  filter: brightness(0.97);
+  background: #ecebf5;
 }
 .dark .deck-group-details > summary:hover {
-  filter: brightness(1.15);
+  background: #2a293d;
 }
 .deck-group-details > summary:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
+.deck-group > h3,
 .deck-group-details > summary h3 {
   display: flex;
   justify-content: space-between;
-  margin: 20px 0 3px;
   color: #706d82;
   font:
     600 12px 'DM Sans',
@@ -623,6 +626,15 @@ li.deck-highlight-dimmed {
   letter-spacing: 0.7px;
   text-transform: uppercase;
 }
+.deck-group > h3 {
+  margin: 20px 0 3px;
+}
+.deck-group-details > summary h3 {
+  display: inline-flex;
+  margin: 0;
+  vertical-align: middle;
+}
+.deck-group > h3 span,
 .deck-group-details > summary h3 span {
   font: inherit;
 }
@@ -1021,6 +1033,9 @@ li b {
   font-size: var(--decision-text);
   line-height: 1.25;
 }
+.deck-board .deck-card-reference .card-reference-name {
+  overflow-wrap: break-word;
+}
 .deck-board .deck-card-reference .card-reference-thumbnail {
   width: 36px;
 }
@@ -1029,9 +1044,10 @@ li b {
   flex: none;
   transform: none;
 }
-.deck-board .deck-card-reference > .finish-label {
+.deck-board .deck-mana > .finish-label {
   flex: none;
-  margin: 0;
+  margin: 0 0 0 6px;
+  font-size: 11px;
 }
 .deck-board .deck-card-meta {
   width: 100%;

@@ -457,7 +457,8 @@
   background: var(--commander-accent, #5851a6);
   color: white;
 }
-.dark .deck-group > h3 {
+.dark .deck-group > h3,
+.dark .deck-group-details > summary h3 {
   color: #aaa8c2;
 }
 .dark .deck-board .deck-group ol > li {
