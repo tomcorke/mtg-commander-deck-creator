@@ -19,6 +19,7 @@ import {
   retentionKey,
   workspaceSessionKey,
   workspaceRecoveryKey,
+  savedDraftAge,
   type AutosavedDraft,
 } from '../src/autosaves.ts'
 
@@ -185,6 +186,64 @@ async function switchPrinting(page: Page) {
   return selected
 }
 
+async function pickerPresentation(page: Page) {
+  const result = await page.locator('.saved-deck-list article').evaluateAll(
+    (rows, narrow) => {
+      const errors: string[] = []
+      const times: { text: string; stamp: string; exact: boolean }[] = []
+      for (const row of rows) {
+        const details = row.querySelector<HTMLElement>('.saved-deck-details')!
+        const primary = getComputedStyle(details).color
+        if (
+          [...details.querySelectorAll('b, .card-reference-name')].some(
+            (name) => getComputedStyle(name).color !== primary,
+          )
+        )
+          errors.push('deck/card names must use primary text colour')
+        if (narrow) {
+          const bounds = details.getBoundingClientRect()
+          const actions = row.querySelectorAll(':scope > button, :scope > .saved-deck-delete-wrap')
+          if (
+            bounds.width < row.getBoundingClientRect().width - 1 ||
+            [...actions].some((action) => action.getBoundingClientRect().top < bounds.bottom)
+          )
+            errors.push('narrow row actions must sit below full-width details')
+        }
+        if (!row.closest('.autosaved-draft-list')) {
+          const time = details.querySelector('time')
+          if (!time) errors.push('manual saves need relative time and exact tooltip')
+          else
+            times.push({
+              text: time.textContent!,
+              stamp: time.dateTime,
+              exact: time.title === new Date(time.dateTime).toLocaleString(),
+            })
+        }
+      }
+      return { errors, times }
+    },
+    (page.viewportSize()?.width ?? 1280) <= 600,
+  )
+  assert.deepEqual(result.errors, [], `Picker presentation: ${result.errors.join('; ')}`)
+  for (const time of result.times) {
+    assert.equal(
+      time.text,
+      savedDraftAge(time.stamp),
+      'Manual timestamp must reuse draft relative time',
+    )
+    assert.equal(time.exact, true, 'Manual timestamp must retain exact-time tooltip')
+  }
+}
+
+async function unchangedSaveNotice(page: Page) {
+  await page.locator('.saved-deck-list:not(.autosaved-draft-list) article').first().waitFor()
+  assert.equal(
+    await page.locator('.overwrite-notice').count(),
+    0,
+    'An unchanged manual save must not show a zero-delta overwrite notice',
+  )
+}
+
 async function compactSaves(page: Page) {
   await rename(page, 'Compact save')
   await openPicker(page)
@@ -203,11 +262,18 @@ async function compactSaves(page: Page) {
   )
   console.log(`  storage characters: autosave=${sizes.autosave}, manual=${sizes.manual}`)
   const saved = (await storedManuals(page))[0]
+  await page.setViewportSize({ width: 390, height: 844 })
+  await pickerPresentation(page)
+  await unchangedSaveNotice(page)
+  await page.setViewportSize({ width: 1280, height: 900 })
   assert.equal(saved.state.queue[0].printings?.length, 1)
   assert.equal(saved.state.deferredCards[0].card.printings?.length, 1)
   await page.keyboard.press('Escape')
   const firstPrinting = await switchPrinting(page)
   assert.equal(firstPrinting.finish, 'nonfoil')
+  await openPicker(page)
+  await page.locator('.overwrite-notice').waitFor()
+  await page.keyboard.press('Escape')
   const offer = (index: number) =>
     page
       .locator('.card-offer')
@@ -254,7 +320,9 @@ async function compactSaves(page: Page) {
   )
   assert.equal((await switchPrinting(page)).finish, 'foil')
   await openPicker(page)
+  await page.locator('.overwrite-notice').waitFor()
   await page.getByRole('button', { name: 'Overwrite save', exact: true }).click()
+  await unchangedSaveNotice(page)
   const manualRow = page
     .locator('.saved-deck-list article')
     .filter({ hasText: 'Compact save' })
@@ -265,6 +333,9 @@ async function compactSaves(page: Page) {
   const manualState = (await storedManuals(page))[0].state
   assert.equal(await image.getAttribute('src'), manualState.queue[0].image)
   assert.equal(manualState.queue[0].finish, 'foil')
+  await openPicker(page)
+  await unchangedSaveNotice(page)
+  await page.keyboard.press('Escape')
   assert.equal((await switchPrinting(page)).finish, 'nonfoil')
 }
 
@@ -346,8 +417,29 @@ async function quotaSafety(page: Page, context: BrowserContext) {
   await seedDraft(peer, 'tiny-expired', 8, a14BaseState)
   await fillQuota(page)
   const fullBefore = await protectedBytes(page, ['recent', peerId])
+  await page.setViewportSize({ width: 390, height: 844 })
+  const headingBefore = await page
+    .locator('.saved-decks-modal h2')
+    .evaluate((heading) => (heading as HTMLElement).offsetTop)
   await name.fill('An edit too large to save without deleting a retained draft ' + 'x'.repeat(4096))
   await page.locator('.workspace-alert').filter({ hasText: 'Autosave unavailable' }).waitFor()
+  const alert = await page.locator('.workspace-alert').evaluate((element) => ({
+    position: getComputedStyle(element).position,
+    left: element.getBoundingClientRect().left,
+    right: document.documentElement.clientWidth - element.getBoundingClientRect().right,
+  }))
+  assert.equal(alert.position, 'fixed')
+  assert.ok(
+    Math.abs(alert.left - 16) < 1 && Math.abs(alert.right - 16) < 1,
+    `Narrow quota alert needs 16px gutters, got ${alert.left}/${alert.right}`,
+  )
+  assert.deepEqual(
+    await page
+      .locator('.saved-decks-modal h2')
+      .evaluate((heading) => (heading as HTMLElement).offsetTop),
+    headingBefore,
+    'Quota alert must not shift picker content',
+  )
   await page.locator('.workspace-alert').filter({ hasText: 'Deleted 1 inactive draft' }).waitFor()
   assert.equal(
     await page.evaluate((key) => localStorage.getItem(key), autosavePrefix + 'tiny-expired'),
@@ -468,6 +560,9 @@ async function legacyLinks(page: Page, context: BrowserContext) {
     /^\*/,
     'An untouched linked legacy draft must not look modified',
   )
+  await openPicker(restored)
+  await unchangedSaveNotice(restored)
+  await restored.keyboard.press('Escape')
   await restored
     .locator('.card-offer')
     .first()
@@ -496,6 +591,11 @@ async function deletionSafety(page: Page, context: BrowserContext) {
     true,
   )
   await page.getByRole('button', { name: 'Delete draft closed', exact: true }).click()
+  await page
+    .locator('.autosaved-draft-list article')
+    .filter({ hasText: 'closed' })
+    .getByRole('tooltip')
+    .waitFor()
   await peer.evaluate((key) => {
     const hold = new Promise<void>((release) => Reflect.set(window, 'a14Release', release))
     return new Promise<void>((ready) => {
@@ -519,6 +619,7 @@ async function deletionSafety(page: Page, context: BrowserContext) {
     .getByRole('button', { name: 'Delete draft closed', exact: true })
     .waitFor({ state: 'visible' })
   await page.keyboard.press('Escape')
+  await page.locator('.saved-decks-modal').waitFor({ state: 'hidden' })
   await openPicker(page)
   await page.getByRole('button', { name: 'Delete draft closed', exact: true }).click()
   await seedDraft(page, 'closed')
@@ -622,10 +723,27 @@ async function noticeAndKeyboard(page: Page) {
   await page.reload()
   await page.getByRole('button', { name: 'Save / load', exact: true }).waitFor()
   assert.equal(await page.locator('.workspace-notice').count(), 0)
-  for (const mode of ['dark', 'light', 'narrow']) {
-    if (mode === 'light') await page.getByRole('button', { name: /Dark/, exact: false }).click()
-    if (mode === 'narrow') await page.setViewportSize({ width: 375, height: 812 })
+  await openPicker(page)
+  const currentRow = page
+    .locator('.autosaved-draft-list article')
+    .filter({ hasText: 'Current workspace' })
+  assert.equal(
+    await currentRow.getByRole('button', { name: 'Open in this tab', exact: true }).count(),
+    0,
+    'Current workspace must not offer redundant Open in the builder',
+  )
+  await page.keyboard.press('Escape')
+  for (const mode of ['dark', 'light', 'commander', 'narrow', 'tablet']) {
+    if (mode === 'light') {
+      await page.getByRole('button', { name: /Dark/, exact: false }).click()
+      await page.getByRole('checkbox', { name: 'Commander art and colours', exact: true }).uncheck()
+    }
+    if (mode === 'commander')
+      await page.getByRole('checkbox', { name: 'Commander art and colours', exact: true }).check()
+    if (mode === 'narrow') await page.setViewportSize({ width: 390, height: 844 })
+    if (mode === 'tablet') await page.setViewportSize({ width: 760, height: 1024 })
     await dialogFocus(page)
+    await pickerPresentation(page)
     await trapKeyboard(page, '.saved-decks-modal')
     await page.keyboard.press('Escape')
     await page.locator('.saved-decks-modal').waitFor({ state: 'hidden' })
@@ -657,6 +775,18 @@ async function noticeAndKeyboard(page: Page) {
     await source.evaluate((button) => document.activeElement === button),
     true,
     'Builder card details must return focus to its opener',
+  )
+  const before = (await currentDraft(page)).state
+  await page.evaluate(() => {
+    window.location.hash = '#start'
+  })
+  await openPicker(page)
+  await currentRow.getByRole('button', { name: 'Open in this tab', exact: true }).click()
+  await page.getByRole('button', { name: 'Save / load', exact: true }).waitFor()
+  assert.deepEqual(
+    (await currentDraft(page)).state,
+    before,
+    'Start-screen resume must preserve all deck state',
   )
 }
 
@@ -766,6 +896,7 @@ try {
     channel: 'chrome',
     headless: true,
     chromiumSandbox: true,
+    ignoreDefaultArgs: ['--hide-scrollbars'],
     args: ['--enable-automation'],
   })
   const processInfo = await (
