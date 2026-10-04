@@ -18,6 +18,7 @@ import type { EdhrecCommanderPage } from '../src/adapters/edhrec.ts'
 import {
   allRecords,
   baseCandidates,
+  basic,
   deckRecords,
   fixtureCard,
   goalCandidates,
@@ -274,13 +275,11 @@ async function rowNames(row: Locator) {
   return row.locator('.card-reference-name').allTextContents()
 }
 async function focusIs(locator: Locator) {
-  await locator.page().waitForFunction(
-    (selector) => document.activeElement?.matches(selector),
-    await locator.evaluate((element) => {
-      if (element.id) return `#${element.id}`
-      return `.doctor-finding[aria-label=${JSON.stringify(element.getAttribute('aria-label'))}]`
-    }),
-  )
+  await locator
+    .page()
+    .waitForFunction((node) => document.activeElement === node, await locator.elementHandle(), {
+      timeout: 3_000,
+    })
 }
 async function checkPreviews(page: Page, row: Locator) {
   for (const tile of await row.locator('.doctor-card-tile').all()) {
@@ -360,13 +359,22 @@ async function pairingApplyUndo({ page }: Scenario) {
   assert(!(await savedState(page)).deck.some((card) => card.name === cut))
   assert.match(await rampFinding(page).innerText(), /3 cards detected against a target of 10/)
   assert(!(await rows(page).allTextContents()).some((text) => text.includes(add)))
-  await button(page, 'Change history (1)').click()
+  const announcement = `Swapped ${cut} for ${add}. Undo in Change history.`
+  assert.equal(await page.getByRole('status').filter({ hasText: announcement }).count(), 1)
+  await button(page, 'Change history (1)').press('Enter')
   const history = page.getByRole('dialog', { name: 'Change history' })
+  await button(history, 'Close change history').press('Escape')
+  await focusIs(button(page, 'Change history (1)'))
+  assert.equal(await page.getByRole('status').filter({ hasText: announcement }).count(), 1)
+  await button(page, 'Change history (1)').press('Enter')
   assert.equal(await history.locator('.doctor-history-item').count(), 1)
   await button(history, `Undo ${add} for ${cut}`).press('Enter')
   await waitForCard(page, cut)
   assert.deepEqual((await savedState(page)).deck, before)
+  assert.equal(await page.getByRole('status').filter({ hasText: announcement }).count(), 0)
   await button(history, 'Close change history').press('Escape')
+  await focusIs(button(page, 'Change history (0)'))
+  assert.equal(await page.getByRole('status').filter({ hasText: announcement }).count(), 0)
   await button(page, 'Back to builder').click()
   await button(page, 'Deck review').waitFor()
   assert.equal(await page.locator('.card-offer').count(), 4)
@@ -401,18 +409,68 @@ async function resolvingFinding({ page }: Scenario) {
   await button(page, 'Change history (1)').click()
   await button(page, `Undo ${add} for ${cut}`).click()
   await button(page, 'Close change history').press('Escape')
+  await focusIs(button(page, 'Change history (0)'))
+  assert.equal(
+    await page.getByRole('status').filter({ hasText: 'Undo in Change history' }).count(),
+    0,
+  )
   await rampFinding(page).waitFor()
 }
 
-async function stagedPlansAndExits({ page }: Scenario) {
-  await enterReview(page)
+async function stageAndCheckPairToggles(page: Page) {
+  const originalDeck = (await savedState(page)).deck
   const expectedPairs = [] as string[][]
   for (const index of [0, 1]) {
     const row = rows(page).nth(index)
     expectedPairs.push(await rowNames(row))
     await button(row, 'Add to plan').press('Enter')
+    const remove = button(row, 'Remove from plan')
+    assert.equal(await remove.isEnabled(), true)
+    await focusIs(remove)
+    await remove.press('Space')
+    await focusIs(button(row, 'Add to plan'))
+    assert.match(
+      await page.getByRole('status').first().innerText(),
+      /removed from the pending plan/,
+    )
+    await page.keyboard.press('Enter')
+    await focusIs(remove)
     assert.equal(await button(row, 'Apply swap').isDisabled(), true)
+    assert.match(
+      await row.innerText(),
+      /Finish or discard your pending plan before applying directly/,
+    )
+    assert.deepEqual((await savedState(page)).deck, originalDeck)
   }
+  // Re-pair the first addition with the second cut. Neither old row may remove this pair.
+  await button(page, 'Continue choosing changes').press('Enter')
+  await page
+    .getByRole('checkbox', { name: `Cut ${expectedPairs[0][0]}`, exact: true })
+    .press('Space')
+  await button(page, 'Back to Diagnose').press('Enter')
+  for (const index of [0, 1]) {
+    const row = rows(page).nth(index)
+    assert.equal(await button(row, 'Remove from plan').count(), 0)
+    assert.equal(await button(row, 'Used in another choice').isDisabled(), true)
+  }
+  assert.match(
+    await page.getByRole('region', { name: 'Pending changes' }).innerText(),
+    /Cutting 1 · Adding 2/,
+  )
+  await button(page, 'Continue choosing changes').press('Enter')
+  await page
+    .getByRole('checkbox', { name: `Cut ${expectedPairs[1][0]}`, exact: true })
+    .press('Space')
+  for (const [, add] of expectedPairs)
+    await page.getByRole('checkbox', { name: `Add ${add}`, exact: true }).press('Space')
+  await button(page, 'Back to Diagnose').press('Enter')
+  for (const index of [0, 1]) await button(rows(page).nth(index), 'Add to plan').press('Enter')
+  return expectedPairs
+}
+
+async function stagedPlansAndExits({ page }: Scenario) {
+  await enterReview(page)
+  const expectedPairs = await stageAndCheckPairToggles(page)
   const tray = page.getByRole('region', { name: 'Pending changes' })
   assert.match(await tray.innerText(), /Cutting 2 · Adding 2/)
   const before = (await savedState(page)).deck
@@ -427,14 +485,23 @@ async function stagedPlansAndExits({ page }: Scenario) {
   }
   await button(page, 'Continue choosing changes').click()
   await heading(page, 'Choose changes').waitFor()
+  assert.equal(
+    await page.getByRole('status').filter({ hasText: 'added to the pending plan' }).count(),
+    0,
+  )
   await button(page, 'Confirm changes').click()
   await heading(page, 'Confirm').waitFor()
+  assert.equal(
+    await page.getByRole('status').filter({ hasText: 'added to the pending plan' }).count(),
+    0,
+  )
   const pairs = page.locator('.doctor-plan-pair')
   assert.equal(await pairs.count(), 2)
   for (const index of [0, 1])
     assert.deepEqual(await rowNames(pairs.nth(index)), expectedPairs[index])
   await button(page, 'Change history (0)').click()
   await button(page, 'Close change history').press('Escape')
+  await focusIs(button(page, 'Change history (0)'))
   await heading(page, 'Confirm').waitFor()
   await page.goBack()
   await heading(page, 'Choose changes').waitFor()
@@ -474,20 +541,110 @@ async function readinessAndCurve({ page }: Scenario) {
     assert.equal(await row.locator('.doctor-pair-arrow').count(), 0)
     assert.match(await row.innerText(), /Curve: \+1 at 3/)
     const [add] = await rowNames(row)
+    await button(row, 'Add to plan').press('Enter')
+    await focusIs(button(row, 'Remove from plan'))
+    assert.equal(await button(row, 'Add card').isDisabled(), true)
+    assert.match(await row.innerText(), /Finish or discard your pending plan/)
+    await page.keyboard.press('Space')
+    await focusIs(button(row, 'Add to plan'))
+    assert.equal(await page.locator('.doctor-apply-bar').count(), 0)
     await button(row, 'Add card').press('Enter')
     await waitForCard(page, add)
     assert.equal((await savedState(page)).deck.length, 90)
     await button(page, 'Change history (1)').click()
-    await button(page, `Undo adding ${add}`).click()
+    await button(page, `Undo adding ${add}`).press('Enter')
+    await waitForCard(page, add, false)
     assert.equal((await savedState(page)).deck.length, 89)
+    await button(page, 'Close change history').press('Escape')
+    await focusIs(button(page, 'Change history (0)'))
+    assert.equal(
+      await page.getByRole('status').filter({ hasText: 'Undo in Change history' }).count(),
+      0,
+    )
   } else {
     assert.equal(state.deck.length, 90)
     assert.equal(await row.locator('.doctor-card-tile').count(), 2)
-    assert.match(await row.innerText(), /Ramp 2 → 3 · Curve 2 → 3/)
+    assert.match(await row.innerText(), /Ramp 2 → 3 · Mana value: 2 → 3/)
     const [, add] = await rowNames(row)
     await button(row, 'Apply swap').click()
     await waitForCard(page, add)
     assert.equal((await savedState(page)).deck.length, 90)
+  }
+}
+
+async function landImpactAndContrast({ page }: Scenario) {
+  await enterReview(page)
+  const row = rows(page).first()
+  assert.match(await row.innerText(), /Mana value: land → 2/)
+  assert.doesNotMatch(await row.innerText(), /Curve land/)
+  const contrast = (foreground: string, background: string) => {
+    const luminance = (colour: string) => {
+      const rgb = colour
+        .match(/[\d.]+/g)!
+        .slice(0, 3)
+        .map(Number)
+      return rgb.reduce((sum, channel, index) => {
+        const value = channel / 255
+        return (
+          sum +
+          (value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4) *
+            [0.2126, 0.7152, 0.0722][index]
+        )
+      }, 0)
+    }
+    const a = luminance(foreground)
+    const b = luminance(background)
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+  }
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 })
+    for (const [dark, themed] of [
+      [false, false],
+      [false, true],
+      [true, false],
+      [true, true],
+    ]) {
+      const darkToggle = page.locator('.theme-toggle[aria-pressed]')
+      if ((await darkToggle.getAttribute('aria-pressed')) !== String(dark))
+        await darkToggle.press('Enter')
+      const commanderToggle = page.getByRole('checkbox', { name: 'Commander art and colours' })
+      if ((await commanderToggle.isChecked()) !== themed) await commanderToggle.press('Space')
+      const art = row.locator('.doctor-card-art').first()
+      await art.focus()
+      await page.keyboard.press('Tab')
+      await page.keyboard.press('Shift+Tab')
+      await focusIs(art)
+      const colours = await art.evaluate((node) => {
+        const pair = node.closest('.doctor-suggestion')!
+        const outline = getComputedStyle(node)
+        return {
+          background: getComputedStyle(pair).backgroundColor,
+          arrow: getComputedStyle(pair.querySelector('.doctor-pair-arrow')!).color,
+          outline: outline.outlineColor,
+          width: outline.outlineWidth,
+          style: outline.outlineStyle,
+          visible: node.matches(':focus-visible'),
+        }
+      })
+      assert.equal(colours.visible, true)
+      assert.equal(colours.width, '3px')
+      assert.equal(colours.style, 'solid')
+      assert(contrast(colours.arrow, colours.background) >= 3, 'pair arrow contrast at least 3:1')
+      assert(contrast(colours.outline, colours.background) >= 3, 'art focus contrast at least 3:1')
+      await button(row, 'Add to plan').press('Enter')
+      await focusIs(button(row, 'Remove from plan'))
+      const bounds = (await row.boundingBox())!
+      assert(bounds.x >= 0 && bounds.x + bounds.width <= width, 'suggestion fits viewport')
+      for (const action of await row.getByRole('button').all()) {
+        const box = (await action.boundingBox())!
+        assert(
+          box.x >= bounds.x && box.x + box.width <= bounds.x + bounds.width + 1,
+          'actions fit suggestion',
+        )
+      }
+      await page.keyboard.press('Space')
+      await focusIs(button(row, 'Add to plan'))
+    }
   }
 }
 
@@ -752,6 +909,14 @@ try {
       }),
       readinessAndCurve,
     ]),
+    [
+      'land mana-value label, light/dark/commander arrow and keyboard-focus contrast, narrow actions',
+      makeState({
+        deck: [deckRecords[0], ...Array.from({ length: 99 }, () => basic)].map(toDeckCard),
+        queue: [toCard(baseCandidates[0], 'Commander synergy')],
+      }),
+      landImpactAndContrast,
+    ],
     [
       'loading, provider error, empty state and recovery',
       makeState({ queue: [] }),

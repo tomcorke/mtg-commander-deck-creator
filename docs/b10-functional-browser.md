@@ -4,10 +4,10 @@ Run from `E:\working\worktrees\mtg-b10`:
 
 ```sh
 pnpm install
-pnpm check:b10:browser
+B10_PORT=5250 pnpm check:b10:browser
 ```
 
-The gate starts Vite on `127.0.0.1:5240`, launches disposable installed headless Chrome with `chromiumSandbox: true`, and closes both on completion or failure. Windows child processes are hidden. It asserts that Chrome has no `--no-sandbox` argument. No screenshots, native-dialog answers, browser downloads, or live provider requests are used.
+The command above starts Vite on `127.0.0.1:5250`; the default without an override is `5240`. Port `5240` belongs to the integration gate. The script launches disposable installed headless Chrome with `chromiumSandbox: true`, and closes both on completion or failure. Windows child processes are hidden. It asserts that Chrome has no `--no-sandbox` argument. No screenshots, native-dialog answers, browser downloads, or live provider requests are used.
 
 Overrides: `B10_PORT` selects another unused port; `B10_URL` uses an existing server without stopping it; `CHROME_PATH` selects another installed Chrome executable.
 
@@ -17,18 +17,19 @@ The script prints one compact result per scenario. Synthetic Scryfall fixtures p
 
 - Ramp findings offer three distinct role-filling pairs. Commanders, existing ramp, lands at or below target, and the last scarce draw card are not cuts.
 - Role counts and same/different curve-bucket impacts appear before applying.
-- Applying updates the saved deck, finding evidence, candidates, and one history record. Undo restores the original deck. Surviving findings retain focus; resolved findings disappear with a focus fallback.
+- Applying updates the saved deck, finding evidence, candidates, and one history record. Undo restores the original deck and clears stale success messages. Surviving findings retain focus; resolved findings disappear with a focus fallback. History Escape returns to its connected opener, including after undo and from Confirm.
 - Both images and card names preview on keyboard focus or hover. Image buttons open details; Escape returns to Diagnose. Recommendation batches remain four cards with unchanged large image widths.
-- Two staged swaps remain paired through Choose changes, Confirm, history, and browser Back. They do not change the deck until Apply. Direct Apply is disabled while a draft exists.
+- Two staged swaps remain paired through Choose changes, Confirm, history, and browser Back. They do not change the deck until Apply. Enter adds a pair; Space removes that exact pair from the same enabled button without losing focus. Overlapping or manually re-paired choices cannot remove another pair. Each disabled direct-Apply button explains the pending-plan restriction inline. Step transitions clear staging announcements.
 - B14 exit protection covers explicit exits, browser Back, Keep choices, Escape, the close control, and deliberate discard. Cancelling returns focus to the review title without losing picks.
 - At 89 cards, suggestions add without cuts and can be undone. At 90, suggestions swap without changing size.
 - Goal changes re-rank pairs. Price, Core power, all four exclusions, Prefer/Only sets, and ignored-card updates affect replacements and suggestions. A price refresh removes an ineligible staged addition, names it, retains the cut, and leaves the deck unchanged.
 - Empty, loading, provider-error, recovery, and construction-rejection paths are exercised. Wrong identity, banned cards, unknown mana value, and an existing Oracle identity never become swaps.
-- Every scenario checks for page errors and unexpected native dialogs.
+- The land impact label uses “Mana value: land → 2”. Arrow and keyboard art-focus contrast meet 3:1 in light, dark, and commander-themed states at 1440px and 390px. Suggestion actions fit both widths.
+- All 13 original scenarios remain, plus the land-label and contrast scenario. Every scenario checks for page errors and unexpected native dialogs.
 
 ## Remaining gate: Opus appearance review
 
-No functional failure remains. Appearance is not approved by this script: light/dark/commander-themed contrast, typography, narrow reflow, visible focus, preview appearance, and real card-art presentation remain queued. Live-provider availability and recommendation quality are not assertions in the mocked gate.
+No functional failure remains. The script checks the changed arrow and art-focus colors and suggestion action bounds, but does not approve appearance. Full theme contrast, typography, narrow reflow, visible focus, preview appearance, and real card-art presentation still require Opus review. Live-provider availability and recommendation quality are not assertions in the mocked gate.
 
 For appearance review, use a new test origin. The following optional helper reuses the real cards from `scripts/check-deck-review.ts`, fetching current Scryfall records and image URLs. It writes temporary JSON, not downloaded art:
 

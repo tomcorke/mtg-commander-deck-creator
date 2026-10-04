@@ -34,7 +34,11 @@ import {
   type DeckDoctorSwapRecord,
 } from '../../deck-doctor.ts'
 import { simulateManaAccess } from '../../deck-simulation.ts'
-import { addDoctorSuggestionToPlan, type DoctorSuggestion } from '../../deck-doctor-suggestions.ts'
+import {
+  doctorSuggestionIsInPlan,
+  toggleDoctorSuggestionInPlan,
+  type DoctorSuggestion,
+} from '../../deck-doctor-suggestions.ts'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
@@ -117,6 +121,92 @@ function matchesCardFilter(card: DoctorCard, filter: string) {
 }
 function hasCardError(card: Card, deck: DeckCard[], commanderColours: string[]) {
   return Boolean(cardConstructionError(card, deck, commanderColours))
+}
+
+type SuggestionRowProps = {
+  suggestion: DoctorSuggestion
+  findingId: string
+  selectedCutIndexes: number[]
+  selectedAdditionNames: string[]
+  hasPendingChanges: boolean
+  settingsRefreshPending: boolean
+  recommendationOptionsChanged: boolean
+  openCard: Props['openCard']
+  applySuggestion: (findingId: string, suggestion: DoctorSuggestion) => void
+  toggleSuggestionInPlan: (suggestion: DoctorSuggestion) => void
+}
+
+function DoctorSuggestionRow(props: SuggestionRowProps) {
+  const {
+    suggestion,
+    findingId,
+    selectedCutIndexes,
+    selectedAdditionNames,
+    hasPendingChanges,
+    settingsRefreshPending,
+    recommendationOptionsChanged,
+    openCard,
+    applySuggestion,
+    toggleSuggestionInPlan,
+  } = props
+
+  const picked = doctorSuggestionIsInPlan(
+    {
+      cutIndexes: selectedCutIndexes,
+      additionNames: selectedAdditionNames,
+    },
+    suggestion,
+  )
+  const conflict =
+    !picked &&
+    (selectedAdditionNames.includes(suggestion.addCard.name) ||
+      (suggestion.cut && selectedCutIndexes.includes(suggestion.cut.cutIndex)))
+  const applyHelpId = `doctor-apply-${findingId}-${encodeURIComponent(suggestion.addCard.name)}`
+  return (
+    <div className="doctor-suggestion" key={suggestion.addCard.name}>
+      <div className="doctor-suggestion-pair">
+        {suggestion.cut && (
+          <>
+            <CardTile card={suggestion.cut.cutCard} status="In deck · cut" openCard={openCard} />
+            <span className="doctor-pair-arrow" aria-hidden="true">
+              →
+            </span>
+          </>
+        )}
+        <CardTile card={suggestion.addCard} status="Addition" openCard={openCard} />
+      </div>
+      <div className="doctor-suggestion-copy">
+        <p>{suggestion.impact}</p>
+        <div className="doctor-suggestion-actions">
+          <button
+            className="primary"
+            type="button"
+            disabled={hasPendingChanges || settingsRefreshPending || recommendationOptionsChanged}
+            aria-describedby={hasPendingChanges ? applyHelpId : undefined}
+            onClick={() => applySuggestion(findingId, suggestion)}
+          >
+            {suggestion.cut ? 'Apply swap' : 'Add card'}
+          </button>
+          <button
+            className="export"
+            type="button"
+            disabled={
+              Boolean(conflict) ||
+              (!picked && (settingsRefreshPending || recommendationOptionsChanged))
+            }
+            onClick={() => toggleSuggestionInPlan(suggestion)}
+          >
+            {picked ? 'Remove from plan' : conflict ? 'Used in another choice' : 'Add to plan'}
+          </button>
+        </div>
+        {hasPendingChanges && (
+          <p id={applyHelpId} className="doctor-muted">
+            Finish or discard your pending plan before applying directly.
+          </p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function FindingCardReferences({
@@ -241,6 +331,8 @@ export function DeckDoctorView({
   const [removedAdditionNames, setRemovedAdditionNames] = useState<string[]>([])
   const [moveCutToSideboard, setMoveCutToSideboard] = useState(false)
   const [suggestionAnnouncement, setSuggestionAnnouncement] = useState('')
+  const previousAnnouncementContext = useRef({ step, historyCount: history.length })
+  const historyOpener = useRef<HTMLButtonElement | null>(null)
   const findingNodes = useRef(new Map<string, HTMLElement>())
   const suggestionFocus = useRef<{ id: string; index: number } | null>(null)
   const [otherCutFilter, setOtherCutFilter] = useState('')
@@ -391,17 +483,31 @@ export function DeckDoctorView({
   }, [hasPendingChanges, setPendingReviewChanges])
   const stepHeading = useRef<HTMLHeadingElement>(null)
   const comparisonDialog = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const previous = previousAnnouncementContext.current
+    if (step !== previous.step || history.length < previous.historyCount)
+      setSuggestionAnnouncement('')
+    previousAnnouncementContext.current = { step, historyCount: history.length }
+  }, [history.length, step])
   useLayoutEffect(() => {
     const pending = suggestionFocus.current
     if (!pending) return
     suggestionFocus.current = null
+    // A dialog or its restored opener owns focus; only repair focus lost with the applied row.
+    if (!active || document.activeElement !== document.body) return
     const nextId = findings[Math.min(pending.index, findings.length - 1)]?.id
     const node =
       findingNodes.current.get(pending.id) ?? (nextId ? findingNodes.current.get(nextId) : null)
     ;(node ?? stepHeading.current)?.focus()
-  }, [deck, findings])
+  }, [active, deck, findings])
   useEffect(() => {
     if (!active) return
+    const opener = historyOpener.current
+    historyOpener.current = null
+    if (opener?.isConnected) {
+      if (document.activeElement === document.body) opener.focus()
+      return
+    }
     if (exploreCommanders)
       comparisonDialog.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
     else stepHeading.current?.focus()
@@ -543,16 +649,21 @@ export function DeckDoctorView({
     }
   }
 
-  function addSuggestionToPlan(suggestion: DoctorSuggestion) {
+  function toggleSuggestionInPlan(suggestion: DoctorSuggestion) {
     const draft = { cutIndexes: selectedCutIndexes, additionNames: selectedAdditionNames }
-    const next = addDoctorSuggestionToPlan(draft, suggestion)
+    const picked = doctorSuggestionIsInPlan(draft, suggestion)
+    const next = toggleDoctorSuggestionInPlan(draft, suggestion)
     if (next === draft) return
     setSelectedCutIndexes(next.cutIndexes)
     setSelectedAdditionNames(next.additionNames)
-    setSelectedAdditionCards((cards) => [...cards, suggestion.addCard])
+    setSelectedAdditionCards((cards) =>
+      picked
+        ? cards.filter(({ name }) => name !== suggestion.addCard.name)
+        : [...cards, suggestion.addCard],
+    )
     setRemovedAdditionNames([])
     setSuggestionAnnouncement(
-      `${suggestion.addCard.name} added to the pending plan. Not applied yet.`,
+      `${suggestion.addCard.name} ${picked ? 'removed from' : 'added to'} the pending plan. Not applied yet.`,
     )
   }
 
@@ -702,7 +813,14 @@ export function DeckDoctorView({
             )}
           </div>
           <div className="doctor-page-actions">
-            <button className="export" type="button" onClick={openHistory}>
+            <button
+              className="export"
+              type="button"
+              onClick={(event) => {
+                historyOpener.current = event.currentTarget
+                openHistory()
+              }}
+            >
               Change history ({history.length})
             </button>
             <button
@@ -911,63 +1029,21 @@ export function DeckDoctorView({
                     <div className="doctor-suggestions">
                       <h4>{mode === 'build' ? 'Suggested additions' : 'Suggested swaps'}</h4>
                       {findingSuggestions[finding.id]?.length ? (
-                        findingSuggestions[finding.id].map((suggestion) => {
-                          const picked =
-                            selectedAdditionNames.includes(suggestion.addCard.name) ||
-                            (suggestion.cut && selectedCutIndexes.includes(suggestion.cut.cutIndex))
-                          return (
-                            <div className="doctor-suggestion" key={suggestion.addCard.name}>
-                              <div className="doctor-suggestion-pair">
-                                {suggestion.cut && (
-                                  <>
-                                    <CardTile
-                                      card={suggestion.cut.cutCard}
-                                      status="In deck · cut"
-                                      openCard={openCard}
-                                    />
-                                    <span className="doctor-pair-arrow" aria-hidden="true">
-                                      →
-                                    </span>
-                                  </>
-                                )}
-                                <CardTile
-                                  card={suggestion.addCard}
-                                  status="Addition"
-                                  openCard={openCard}
-                                />
-                              </div>
-                              <div className="doctor-suggestion-copy">
-                                <p>{suggestion.impact}</p>
-                                <div className="doctor-suggestion-actions">
-                                  <button
-                                    className="primary"
-                                    type="button"
-                                    disabled={
-                                      hasPendingChanges ||
-                                      settingsRefreshPending ||
-                                      recommendationOptionsChanged
-                                    }
-                                    onClick={() => applySuggestion(finding.id, suggestion)}
-                                  >
-                                    {suggestion.cut ? 'Apply swap' : 'Add card'}
-                                  </button>
-                                  <button
-                                    className="export"
-                                    type="button"
-                                    disabled={
-                                      Boolean(picked) ||
-                                      settingsRefreshPending ||
-                                      recommendationOptionsChanged
-                                    }
-                                    onClick={() => addSuggestionToPlan(suggestion)}
-                                  >
-                                    {picked ? 'Already picked' : 'Add to plan'}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })
+                        findingSuggestions[finding.id].map((suggestion) => (
+                          <DoctorSuggestionRow
+                            key={suggestion.addCard.name}
+                            suggestion={suggestion}
+                            findingId={finding.id}
+                            selectedCutIndexes={selectedCutIndexes}
+                            selectedAdditionNames={selectedAdditionNames}
+                            hasPendingChanges={hasPendingChanges}
+                            settingsRefreshPending={settingsRefreshPending}
+                            recommendationOptionsChanged={recommendationOptionsChanged}
+                            openCard={openCard}
+                            applySuggestion={applySuggestion}
+                            toggleSuggestionInPlan={toggleSuggestionInPlan}
+                          />
+                        ))
                       ) : (
                         <p className="doctor-muted">
                           {mode === 'build'
