@@ -66,7 +66,7 @@ function searchDeps() {
   return deps as ActionDeps
 }
 
-test('applying a finding suggestion updates deck and history once, refreshes findings and supports undo', () => {
+test('applying a finding suggestion updates deck and history once, refreshes findings and supports undo', async () => {
   const deps = searchDeps()
   deps.commander = 'Existing 0'
   deps.deck.push(toDeckCard(card('Existing 99')))
@@ -108,8 +108,16 @@ test('applying a finding suggestion updates deck and history once, refreshes fin
       ({ id }) => id === 'role-gap:ramp',
     ),
   )
-  assert.equal(undoDeckDoctorSwap(deps, deps.deckDoctorHistory[0].id), true)
-  assert.deepEqual(deps.deck, before)
+  deps.cardDataFetcher = async () => Response.json({ data: [card(suggestion.cut!.cutCard.name)] })
+  assert.equal(await undoDeckDoctorSwap(deps, deps.deckDoctorHistory[0].id), true)
+  assert.deepEqual(
+    deps.deck,
+    before.map((entry: any, index: number) =>
+      index === suggestion.cut!.cutIndex
+        ? { ...entry, dataStatus: undefined, dataWarnings: [] }
+        : entry,
+    ),
+  )
   assert.deepEqual(deps.deckDoctorHistory, [])
 })
 
