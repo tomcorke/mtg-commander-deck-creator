@@ -18,6 +18,23 @@ export function useUiState(
   )
   const [commanderStyling, setCommanderStyling] = useStoredOption('commanderStyling', () => true)
   const [cardEffects, setCardEffects] = useStoredOption('cardEffects', () => true)
+  const [awaitingPlayStyle, setAwaitingPlayStyle] = useState(false)
+  const [firstBatchPending, setFirstBatchPending] = useState(saved?.firstBatchPending ?? false)
+  const [showIntroGuide, setShowIntroGuide] = useState(false)
+  const [introGuideRequested, setIntroGuideRequested] = useStoredOption(
+    'introGuideRequested',
+    () => true,
+    (value) => value === true,
+  )
+  const [newDeckGuidePending, setNewDeckGuidePending] = useState(false)
+  const [firstBatchFocusPending, setFirstBatchFocusPending] = useState(false)
+  const resetFirstUse = useCallback(() => {
+    setAwaitingPlayStyle(false)
+    setShowIntroGuide(false)
+    setNewDeckGuidePending(false)
+    setFirstBatchFocusPending(false)
+    setFirstBatchPending(false)
+  }, [])
   const [recommendationOptionsChanged, setRecommendationOptionsChanged] = useState(false)
   const pendingReviewChanges = useRef(false)
   const setPendingReviewChanges = useCallback((pending: boolean) => {
@@ -49,6 +66,19 @@ export function useUiState(
     setCommanderStyling,
     cardEffects,
     setCardEffects,
+    awaitingPlayStyle,
+    setAwaitingPlayStyle,
+    resetFirstUse,
+    firstBatchPending,
+    setFirstBatchPending,
+    showIntroGuide,
+    setShowIntroGuide,
+    introGuideRequested,
+    setIntroGuideRequested,
+    newDeckGuidePending,
+    setNewDeckGuidePending,
+    firstBatchFocusPending,
+    setFirstBatchFocusPending,
     recommendationOptionsChanged,
     setRecommendationOptionsChanged,
     pendingReviewChanges,

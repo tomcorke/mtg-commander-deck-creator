@@ -1617,3 +1617,32 @@ main > .commander-header {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+
+.intro-guide.export-modal {
+  width: min(380px, calc(100vw - 24px));
+  padding: 20px;
+  color: #25243a;
+  background: #f8f8ff;
+  --focus-ring: #642b84;
+}
+.intro-guide h2 {
+  font-size: 22px;
+  margin: 0;
+}
+.intro-guide p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.intro-guide .export-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.intro-guide.dark {
+  background: #19182d;
+  color: #d8d8ea;
+  --focus-ring: #d6b8ff;
+}
+.intro-guide.dark .primary {
+  background: #684695;
+  color: #fff;
+}

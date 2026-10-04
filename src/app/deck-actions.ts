@@ -955,6 +955,8 @@ export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck, checkCurrentDa
     setTheme,
   } = deps
   const state = checkCurrentData ? pendingDeckData(saved.state) : saved.state
+  deps.setFirstBatchPending?.(state.firstBatchPending ?? false)
+
   resetSignatureContext(deps, state.savedDeckId || saved.id || crypto.randomUUID())
   setCommander(state.commander)
   setCommanderDetails(state.commanderDetails)
@@ -1207,6 +1209,7 @@ export async function startOver(deps: ActionDeps) {
   )
     return
   if (deps.beginWorkspace && !(await deps.beginWorkspace())) return
+  deps.resetFirstUse?.()
   resetSignatureContext(deps, crypto.randomUUID())
   setCommander('')
   setCommanderDetails(null)

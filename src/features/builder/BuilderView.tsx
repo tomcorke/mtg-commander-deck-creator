@@ -327,6 +327,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     batchNumber,
     rolesForCard,
   )
+  const recommendationBoard = deck.length < 100 ? deck : sideboard
   const unrepresentedBasicNames = legalBasicNames.filter(
     (name) => !groupedBasics.some((group) => group.name === name),
   )
@@ -384,11 +385,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="section-title">
             <div>
               <p className="eyebrow">Next pick</p>
-              <h2 ref={batchHeading} tabIndex={-1}>
+              <h2 id="recommendation-batch-title" ref={batchHeading} tabIndex={-1}>
                 Add to your deck
               </h2>
             </div>
-            <span>Batch {batchNumber}</span>
+            {!model.awaitingPlayStyle && <span>Batch {batchNumber}</span>}
           </div>
           {focusedRole && (
             <div className="builder-set-chips role-focus" role="status">
@@ -406,6 +407,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <button
               type="button"
               className="export"
+              data-guide="settings"
               onClick={() => openModal('recommendation-settings')}
             >
               Recommendation settings
@@ -599,7 +601,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <p>Further picks go to sideboard. Move cards into main deck after removing a card.</p>
             </div>
           )}
-          {recommendationState === 'loading' ? (
+          {model.playStyleStep ? (
+            model.playStyleStep
+          ) : recommendationState === 'loading' ? (
             <div className="recommendation-loading" role="status" aria-live="polite">
               <span className="loading-orb" aria-hidden="true" />
               <div>
@@ -623,7 +627,15 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="empty">
               <h3>Suggestions unavailable</h3>
               <p>{collectionError || 'Scryfall is busy. Try this commander again shortly.'}</p>
-              <button className="primary" type="button" onClick={() => void start(commander, true)}>
+              <button
+                className="primary"
+                type="button"
+                onClick={() =>
+                  void (model.awaitingPlayStyle
+                    ? model.chooseCommander(commander)
+                    : start(commander, true))
+                }
+              >
                 Retry
               </button>
             </div>
@@ -642,6 +654,12 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   model.openCardReference,
                 )
                 const priceCap = suggestedPriceCap(card)
+                const blocked = recommendationDataError(
+                  card,
+                  recommendationBoard,
+                  commanderDetails?.colours ?? [],
+                  model.excludeGameChangers,
+                )
                 return (
                   <article
                     className={`card-offer ${decisions[card.name] ?? ''} ${pairCards.includes(card) ? `synergy-pair synergy-${pairCards.indexOf(card) + 1}` : ''}`}
@@ -671,23 +689,16 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         <span className="recommended-badge">Recommended</span>
                       )}
                     </div>
-                    <div className={`actions ${deck.length >= 100 ? 'sideboard-actions' : ''}`}>
+                    <div
+                      data-guide={index === 0 ? 'decisions' : undefined}
+                      className={`actions ${deck.length >= 100 ? 'sideboard-actions' : ''}`}
+                    >
                       <div>
                         <button
                           className="primary"
                           type="button"
                           aria-pressed={decisions[card.name] === 'add'}
-                          disabled={
-                            decisions[card.name] !== 'add' &&
-                            Boolean(
-                              recommendationDataError(
-                                card,
-                                deck.length < 100 ? deck : sideboard,
-                                commanderDetails?.colours ?? [],
-                                model.excludeGameChangers,
-                              ),
-                            )
-                          }
+                          disabled={decisions[card.name] !== 'add' && Boolean(blocked)}
                           onClick={() => decide(card, 'add')}
                         >
                           {deck.length >= 100 && decisions[card.name] !== 'add'
@@ -722,7 +733,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           </span>
                         </span>
                       </div>
-                      <span className="similar-wrap">
+                      <span
+                        data-guide={index === 0 ? 'more-like-this' : undefined}
+                        className="similar-wrap"
+                      >
                         <button
                           className={`similar ${liked.includes(card.name) ? 'selected' : ''}`}
                           type="button"
@@ -977,6 +991,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   </button>
                 )}
                 <button
+                  data-guide="review"
                   className={deck.length >= 90 ? 'primary' : 'export'}
                   type="button"
                   onClick={() => {
@@ -1072,7 +1087,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   </button>
                 </p>
               ))}
-            <div className="deck-targets">
+            <div data-guide="targets" className="deck-targets">
               {targetKeys.map((key) => (
                 <div className="bar-label deck-target-row" key={key}>
                   {analysis.counts[key] < deckTargets[key] ? (

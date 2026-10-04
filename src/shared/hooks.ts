@@ -25,7 +25,7 @@ export function useDialogFocus(open: boolean, onClose: () => void) {
     if (event.key !== 'Tab') return
     const controls = [
       ...event.currentTarget.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex]:not([tabindex="-1"])',
       ),
     ].filter((control) => control.getClientRects().length)
     const first = controls[0]

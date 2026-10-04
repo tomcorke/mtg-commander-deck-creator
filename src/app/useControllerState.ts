@@ -15,6 +15,7 @@ import { useWorkspaceState } from './useWorkspaceState.ts'
 function useCurrentDeckState(state: Record<string, any>) {
   const {
     activeSavedDeckId,
+    firstBatchPending,
     commander,
     commanderDetails,
     theme,
@@ -46,6 +47,7 @@ function useCurrentDeckState(state: Record<string, any>) {
       commander && commanderDetails && deck.length
         ? {
             savedDeckId: activeSavedDeckId,
+            firstBatchPending: firstBatchPending || undefined,
             commander,
             commanderDetails,
             theme,
@@ -75,6 +77,7 @@ function useCurrentDeckState(state: Record<string, any>) {
         : null,
     [
       activeSavedDeckId,
+      firstBatchPending,
       commander,
       commanderDetails,
       theme,

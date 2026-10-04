@@ -4,8 +4,7 @@ import { deckDataStatus } from '../domain/deck-data-status.ts'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import type { Card } from '../domain/card-model.ts'
 import { basicLandNames, rolesForCard, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
-import { commanderNames, randomThree } from '../domain/commander-catalog.ts'
-import { scryfallBackImage } from '../domain/card-model.ts'
+import { commanderNames } from '../domain/commander-catalog.ts'
 import { commanderPrintingOptions, needsPrintingRepair } from '../domain/printing.ts'
 import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
 
@@ -172,12 +171,6 @@ function updatedDeckPrintings(current: any[], printings: any[][], names: string[
   })
 }
 
-function commanderCosts(cards: any[]) {
-  return Object.fromEntries(
-    cards.map((card) => [card.name, card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '']),
-  )
-}
-
 export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
   const {
     commander,
@@ -279,105 +272,6 @@ export function useCollectionCountEffect(deps: AppEffectsDeps) {
   ])
 }
 
-export function useCommanderSearchEffect(deps: AppEffectsDeps) {
-  const { search, setMatches, setCommanderCosts, fetchSearch } = deps
-  useEffect(() => {
-    if (search.trim().length < 2) return
-    const controller = new AbortController()
-    const timer = setTimeout(async () => {
-      try {
-        const cards = await fetchSearch(`is:commander name:${search.trim()}`, controller.signal)
-        setMatches([...new Set(cards.map((card: any) => card.name))].slice(0, 6))
-        setCommanderCosts((current: Record<string, string>) => ({
-          ...current,
-          ...commanderCosts(cards),
-        }))
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) setMatches([])
-      }
-    }, 250)
-
-    return () => {
-      clearTimeout(timer)
-      controller.abort()
-    }
-  }, [search])
-}
-
-export function useColourSuggestionsEffect(deps: AppEffectsDeps) {
-  const { colours, setSuggestionPool, setSuggestions, setCommanderCosts, fetchSearch } = deps
-  useEffect(() => {
-    if (!colours.length) return
-    const controller = new AbortController()
-    const load = async () => {
-      try {
-        const identity = colours.join('').toLowerCase()
-        const cards = await fetchSearch(`is:commander id=${identity}`, controller.signal, 'edhrec')
-        const names = cards.map((card: any) => card.name)
-        setSuggestionPool(names)
-        setSuggestions(randomThree(names))
-        setCommanderCosts((current: Record<string, string>) => ({
-          ...current,
-          ...commanderCosts(cards),
-        }))
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) setSuggestions([])
-      }
-    }
-    void load()
-    return () => controller.abort()
-  }, [colours])
-}
-
-export function useCommanderImagesEffect(deps: AppEffectsDeps) {
-  const {
-    search,
-    matches,
-    suggestions,
-    commanderCosts,
-    commanderImages,
-    setCommanderCosts,
-    setCommanderImages,
-    fetchCard,
-  } = deps
-  useEffect(() => {
-    const shown = search.trim().length >= 2 ? matches : suggestions
-    const missing = shown.filter(
-      (name: string) => commanderCosts[name] === undefined || commanderImages[name] === undefined,
-    )
-    if (!missing.length) return
-    const controller = new AbortController()
-    const load = async () => {
-      for (const name of missing) {
-        const costs: string[] = []
-        const images: { image: string; backImage?: string }[] = []
-        for (const cardName of commanderNames(name)) {
-          let card: any
-          try {
-            card = await fetchCard(cardName, controller.signal)
-          } catch {
-            continue
-          }
-          costs.push(card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '')
-          const image = card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal
-          if (image) images.push({ image, backImage: scryfallBackImage(card) })
-          await new Promise((resolve) => setTimeout(resolve, 100))
-        }
-        setCommanderCosts((current: Record<string, string>) => ({
-          ...current,
-          [name]: costs.join(' '),
-        }))
-        setCommanderImages((current: Record<string, { image: string; backImage?: string }[]>) => ({
-          ...current,
-          [name]: images,
-        }))
-      }
-    }
-    void load().catch(() => undefined)
-    return () => controller.abort()
-  }, [suggestions, matches, search])
-}
-
 export function usePrintingRepairEffect(deps: AppEffectsDeps) {
   const {
     queue,
@@ -428,7 +322,4 @@ export function useAppEffects(deps: AppEffectsDeps) {
   useBasicCardPrefetchEffect(deps)
   useSetCatalogEffect(deps)
   useCollectionCountEffect(deps)
-  useCommanderSearchEffect(deps)
-  useColourSuggestionsEffect(deps)
-  useCommanderImagesEffect(deps)
 }

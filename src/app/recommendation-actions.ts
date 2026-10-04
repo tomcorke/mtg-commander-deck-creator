@@ -747,6 +747,11 @@ export async function start(
     const loaded = await loadCommanderCards(deps, chosen)
     if (!job.isCurrent()) return false
     addCommanderCards(deps, loaded, preserveDeck)
+    if (deps.prepareFirstBatch) {
+      deps.setRecommendationState('idle')
+      deps.setRecommendationOptionsChanged?.(false)
+      return true
+    }
     const offeredCards = await collectOfferedCards(
       deps,
       loaded,
@@ -766,6 +771,7 @@ export async function start(
     )
     if (deps.recommendationPoolKey) deps.recommendationPoolKey.current = poolKey
     deps.setRecommendationOptionsChanged?.(false)
+    deps.setFirstBatchPending?.(false)
     return true
   } catch (error) {
     if (!job.isCurrent()) return false

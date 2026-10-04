@@ -508,6 +508,23 @@ export async function searchScryfall(
   return (await searchScryfallPage(query, fetcher, signal, order)).data
 }
 
+/** One-page discovery searches share the existing card cache, pending jobs, and scheduler. */
+export async function searchScryfallCached(
+  query: string,
+  fetcher: ScryfallFetcher = fetch,
+  signal?: AbortSignal,
+  order = 'name',
+) {
+  const cards = await cachedRequest(
+    sessionCache(fetcher),
+    `search:${order}:${query}`,
+    async (sharedSignal) => searchScryfall(query, fetcher, sharedSignal, order),
+    signal,
+  )
+  signal?.throwIfAborted()
+  return (cards ?? []) as ScryfallCard[]
+}
+
 export async function searchScryfallPage(
   query: string,
   fetcher: ScryfallFetcher = fetch,

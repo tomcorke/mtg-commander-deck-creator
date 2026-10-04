@@ -8,7 +8,8 @@ import {
   selectSubTheme,
   type RecommendationStyle,
 } from '../recommendations.ts'
-import { randomItems, randomThree, themeCommanders } from '../domain/commander-catalog.ts'
+import { randomItems } from '../domain/commander-catalog.ts'
+import { playStyleSettings, type PlayStyle } from '../domain/play-style.ts'
 import type { Card } from '../domain/card-model.ts'
 import { fetchEdhrecCommander } from '../adapters/edhrec.ts'
 import { deckPageTitle, type SavedDeck } from '../deck-state.ts'
@@ -133,6 +134,7 @@ async function startInWorkspace(
     if (!(await state.workspace.begin())) return false
     state.setActiveSavedDeckId('')
     state.setDeckName('')
+    if (!deps.prepareFirstBatch) state.resetFirstUse()
   }
   return startRecommendations(deps, name, preserveDeck, progress)
 }
@@ -183,17 +185,6 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     commanderDetails: state.commanderDetails,
     setCommanderDetails: state.setCommanderDetails,
     setDeck: state.setDeck,
-    search: state.search,
-    setMatches: state.setMatches,
-    setCommanderCosts: state.setCommanderCosts,
-    colours: state.colours,
-    setSuggestionPool: state.setSuggestionPool,
-    setSuggestions: state.setSuggestions,
-    suggestions: state.suggestions,
-    matches: state.matches,
-    commanderCosts: state.commanderCosts,
-    commanderImages: state.commanderImages,
-    setCommanderImages: state.setCommanderImages,
     fetchCard: (name: string, signal?: AbortSignal) => fetchScryfallCard(name, fetch, signal),
     fetchPrintings: fetchScryfallPrintings,
     fetchCards: fetchScryfallCardsByIdentifiers,
@@ -230,25 +221,56 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
   }
   const start = (name: string, preserveDeck = false, progress?: RecommendationProgress) =>
     startInWorkspace(state, recommendationDeps, name, preserveDeck, progress)
-  return { loadPrintings, recommendationDeps, start }
+  return {
+    loadPrintings,
+    recommendationDeps,
+    start,
+    prepareCommander: (name: string) =>
+      startInWorkspace(state, { ...recommendationDeps, prepareFirstBatch: true }, name, false),
+    firstBatch: (settings: ReturnType<typeof playStyleSettings>) =>
+      startRecommendations({ ...recommendationDeps, ...settings }, state.commander, true),
+  }
 }
 
 function useStartActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
   function chooseTheme(name: string) {
-    state.setTheme(name)
-    state.setColours([])
-    state.setSearch('')
-    state.setSuggestionPool(themeCommanders[name])
-    state.setSuggestions(randomThree(themeCommanders[name]))
+    state.setTheme(state.theme === name ? '' : name)
   }
   function toggleColour(colour: string) {
-    state.setTheme('')
-    state.setSearch('')
     state.setColours((selected: string[]) =>
       selected.includes(colour)
         ? selected.filter((item) => item !== colour)
         : [...selected, colour],
     )
+  }
+  async function chooseCommander(name: string) {
+    if (state.recommendationState === 'loading' || !name.trim()) return false
+    state.resetFirstUse()
+    state.setAwaitingPlayStyle(true)
+    const prepared = await remote.prepareCommander(name)
+    state.setFirstBatchPending(prepared)
+    return prepared
+  }
+  async function beginFirstBatch(style?: PlayStyle) {
+    const current = {
+      powerTarget: state.powerTarget,
+      recommendationStyle: state.recommendationStyle,
+      excludeGameChangers: state.excludeGameChangers,
+      excludeTutors: state.excludeTutors,
+      excludeExtraTurns: state.excludeExtraTurns,
+    }
+    const settings = style ? playStyleSettings(current, style) : current
+    if (style) {
+      state.setPowerTarget(settings.powerTarget)
+      state.setRecommendationStyle(settings.recommendationStyle)
+      state.setExcludeGameChangers(settings.excludeGameChangers)
+      state.setExcludeTutors(settings.excludeTutors)
+      state.setExcludeExtraTurns(settings.excludeExtraTurns)
+    }
+    state.setAwaitingPlayStyle(false)
+    state.setNewDeckGuidePending(true)
+    state.setFirstBatchFocusPending(true)
+    return remote.firstBatch(settings)
   }
   function choosePowerTarget(target: 'precon' | 'upgraded' | 'high') {
     state.setPowerTarget(target)
@@ -275,6 +297,8 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
     ...remote,
     chooseTheme,
     toggleColour,
+    chooseCommander,
+    beginFirstBatch,
     choosePowerTarget,
     retryEdhrec,
   }
@@ -301,6 +325,7 @@ function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
   useEffect(() => {
     if (
       state.showBuilder &&
+      !state.awaitingPlayStyle &&
       state.activeModal !== 'recommendation-settings' &&
       state.recommendationOptionsChanged &&
       state.recommendationState === 'idle'
@@ -308,6 +333,7 @@ function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
       void applySettings()
   }, [
     state.activeModal,
+    state.awaitingPlayStyle,
     state.recommendationOptionsChanged,
     state.recommendationState,
     state.showBuilder,
@@ -404,6 +430,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
   const loadWorkspaceDeck = async (saved: SavedDeck | AutosavedDraft) => {
     const draft = 'version' in saved ? saved : undefined
     if (!(await state.workspace.begin(draft))) return
+    state.resetFirstUse()
     actions.loadSavedDeck(
       draft ? { ...draft, id: '', state: { ...draft.state, savedDeckId: '' } } : saved,
     )
@@ -443,6 +470,55 @@ export function useAppActions(state: AppState) {
   const routing = useRoutingActions(appState)
   const poolKey = useRef(recommendationPoolKey(state))
   const remote = useRemoteActions({ ...appState, recommendationPoolKey: poolKey }, routing)
+  const resumeFirstBatch = useEffectEvent(() => remote.start(state.commander, true))
+  useEffect(() => {
+    // A14 restores a prepared draft without showing a new-deck play-style step again.
+    if (
+      state.showBuilder &&
+      state.firstBatchPending &&
+      !state.awaitingPlayStyle &&
+      state.recommendationState === 'idle'
+    )
+      void resumeFirstBatch()
+  }, [
+    state.showBuilder,
+    state.firstBatchPending,
+    state.awaitingPlayStyle,
+    state.recommendationState,
+  ])
+  useEffect(() => {
+    if (
+      !state.showBuilder ||
+      state.activeModal ||
+      state.recommendationState !== 'idle' ||
+      !state.queue.length
+    )
+      return
+    if (state.firstBatchFocusPending) {
+      document.getElementById('recommendation-batch-title')?.focus()
+      state.setFirstBatchFocusPending(false)
+    }
+    if (state.newDeckGuidePending) {
+      state.setNewDeckGuidePending(false)
+      if (state.introGuideRequested) {
+        state.setIntroGuideRequested(false)
+        state.setShowIntroGuide(true)
+      }
+    }
+  }, [
+    state.showBuilder,
+    state.activeModal,
+    state.recommendationState,
+    state.queue.length,
+    state.firstBatchFocusPending,
+    state.newDeckGuidePending,
+    state.introGuideRequested,
+    state.setFirstBatchFocusPending,
+    state.setNewDeckGuidePending,
+    state.setIntroGuideRequested,
+    state.setShowIntroGuide,
+  ])
+
   return {
     ...useStartActions(appState, routing, remote),
     ...useBuilderActions(appState, routing, remote),
