@@ -18,6 +18,7 @@ export const foilShaderTypes = {
   neonink: 12,
   dragonscalefoil: 13,
   singularityfoil: 16,
+  oilslick: 15,
 } as const
 
 const vertexSource = `
@@ -443,6 +444,23 @@ void main() {
       + vec3(0.07, 0.09, 0.11) * sheen
       - 0.13 * (1.0 - glare) * (1.0 - chromeInk);
     colour = hardLight(metal, clamp(light, 0.0, 1.0));
+  }
+  if (uType == 15) {
+    // Oil slick (ONE Compleat Edition): a deep, glossy near-black card. Light ink turns to dark
+    // chrome carrying a thin oil film: broad, smooth bands of copper, magenta, violet and blue
+    // that swirl gently and slide with the tilt. Strongest in a broad sweep near the light;
+    // elsewhere the card stays dark and glossy.
+    vec2 q = p * 1.6 + (vec2(fbm(p * 2.0 + 3.0), fbm(p * 2.0 + 9.0)) - 0.5) * 0.9;
+    float film = fbm(q) * 2.2 + dot(vUv, vec2(0.35, 0.6)) + dot(tilt, vec2(2.2, 1.4));
+    vec3 hue = rainbow(film);
+    // Pull the hues towards an oily palette: green muted into teal and blue, part silver.
+    hue = mix(vec3(hue.r, hue.g * 0.5, max(hue.b, hue.g * 0.7)), vec3(0.62, 0.62, 0.68), 0.35);
+    float along = dot(vUv - uPointer, vec2(0.95, 0.3));
+    float sweep = 0.3 + 0.7 * exp(-pow(along / 0.28, 2.0));
+    float amount = foilMask * sweep * onAxis;
+    // The stock darkens the print a little everywhere, as the black oil-slick base does.
+    vec3 dark = base * (0.82 - 0.12 * (1.0 - glare));
+    colour = hardLight(dark, clamp(0.5 + (hue - 0.5) * amount * 0.9 + 0.06 * amount, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);
