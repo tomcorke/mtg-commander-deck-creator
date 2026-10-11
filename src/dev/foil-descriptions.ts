@@ -145,6 +145,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Contour lines of a gently warped diagonal field (about 70 across the card) act as tiny ridges. Each ridge is shaded by its slope towards the light, so the lines shimmer and move as the card tilts, and its crests pick up a rainbow over a light traditional foil sweep. Both fade sharply away from the light. The whole card is textured, including DMU name and text boxes. The preview uses the regular-foil stained-glass Aron (DMU #292), because the textured scans have some of the texture printed in.',
   },
+  firstplacefoil: {
+    expected:
+      'First-place foil (Aetherdrift box toppers, DFT #427-553, two per box-topper pack; also ten Special Guests, SPG #94-103): the Wizards "Collecting Aetherdrift" article describes "a shimmering layer of gold-like foil that extends across their border". mtg.wiki says the cards have "a yellow frame" with that gold-like foil layer. The mtg.wiki photo of Chandra, Spark Hunter (DFT #456) shows the frame as polished champagne-to-amber gold metal with a soft gradient, a warm gold cast over the art, and black text boxes. Scryfall scans print the frame as flat yellow ink, so the sources disagree only in that the scan and mtg.wiki say "yellow" where the photo and Wizards show gold metal.',
+    css: standardCss,
+    webgl:
+      'Yellow and gold ink (warm, bright and saturated, with green close to red) becomes gold metal: deep amber away from the light and pale champagne where a broad diagonal reflection band, which follows the light, crosses it, with soft mottling that drifts with the tilt. Red and orange ink keep their colour. The rest of the card gets a warm gold hard-light sheen instead of a rainbow, and fades off-axis. The preview uses the first-place Chandra (DFT #456), whose scan shows the frame as flat yellow with no foil printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

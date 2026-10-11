@@ -23,6 +23,7 @@ export const foilShaderTypes = {
   gilded: 14,
   embossed: 25,
   textured: 26,
+  firstplacefoil: 27,
 } as const
 
 const vertexSource = `
@@ -585,6 +586,25 @@ void main() {
     vec3 light = 0.5 + vec3(ridge * 0.13 * (0.1 + 0.9 * glare))
       + (rainbow(hue) - 0.5) * (0.1 + 0.6 * crest) * foilMask * sweep * (0.1 + 0.9 * glare);
     colour = hardLight(base, clamp(light, 0.0, 1.0));
+  }
+
+  if (uType == 27) {
+    // First-place (DFT box toppers, SPG): a gold-like foil layer over the whole card, including the
+    // border. The yellow frame ink becomes polished gold: deep amber away from the light, pale
+    // champagne where a broad reflection band, following the light, crosses it. The art takes a
+    // warm gold sheen rather than a rainbow; dark ink and text boxes stay dark. Fades off-axis.
+    // Yellow and gold ink only: red and orange ink keep their colour.
+    float frame = warmMetal(base) * smoothstep(0.55, 0.75, base.g / max(base.r, 0.01));
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float band = exp(-pow(along / 0.25, 2.0));
+    float reflection = clamp(band * 0.75 + glare * 0.45, 0.0, 1.0);
+    vec3 gold = mix(vec3(0.55, 0.36, 0.08), vec3(1.0, 0.93, 0.7), reflection);
+    // Soft mottling that drifts with the tilt, so the gold shimmers instead of a flat gradient.
+    gold *= 0.9 + 0.2 * fbm(p * 6.0 + tilt * 2.0);
+    vec3 metal = clamp(gold * (0.7 + 0.5 * luminance(base)), 0.0, 1.0);
+    vec3 warm = vec3(1.0, 0.82, 0.45);
+    vec3 sheen = hardLight(base, clamp(0.5 + (warm - 0.5) * 0.35 * foilMask * onAxis + 0.12 * band * foilMask * onAxis, 0.0, 1.0));
+    colour = mix(sheen, metal, frame);
   }
 
   gl_FragColor = vec4(colour, 1.0);
