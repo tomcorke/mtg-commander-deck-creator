@@ -1,0 +1,230 @@
+// Dev prototype: WebGL foil renderer. One fragment shader draws the card scan and the foil
+// effect for the hovered card, so foil can respond per pixel to the image and the tilt.
+
+export const foilShaderTypes = {
+  nonfoil: 0,
+  foil: 1,
+  etched: 2,
+  surgefoil: 3,
+  ripplefoil: 4,
+  halofoil: 5,
+  galaxyfoil: 6,
+  silverfoil: 7,
+  rainbowfoil: 8,
+  doublerainbow: 8,
+} as const
+
+const vertexSource = `
+attribute vec2 aPosition;
+varying vec2 vUv;
+void main() {
+  vUv = vec2(aPosition.x * 0.5 + 0.5, 0.5 - aPosition.y * 0.5);
+  gl_Position = vec4(aPosition, 0.0, 1.0);
+}`
+
+const fragmentSource = `
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D uImage;
+uniform vec2 uPointer;   // 0..1 across the card; (0.5, 0.5) is flat
+uniform vec2 uTexel;     // 1 / image size
+uniform float uTime;
+uniform float uAspect;   // height / width
+uniform int uType;
+
+const float TAU = 6.28318530718;
+
+vec3 rainbow(float t) {
+  return 0.5 + 0.5 * cos(TAU * (t + vec3(0.0, 0.33, 0.67)));
+}
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+             mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+float fbm(vec2 p) {
+  float total = 0.0;
+  float amplitude = 0.5;
+  for (int i = 0; i < 5; i++) {
+    total += amplitude * noise(p);
+    p *= 2.03;
+    amplitude *= 0.5;
+  }
+  return total;
+}
+float luminance(vec3 c) {
+  return dot(c, vec3(0.299, 0.587, 0.114));
+}
+// Screen blend: foil adds light without hiding the ink beneath it.
+vec3 screen(vec3 base, vec3 light) {
+  return 1.0 - (1.0 - base) * (1.0 - light);
+}
+
+// Hard light: foil colour tints light and dark areas alike, as reflected foil colour does.
+// Mid-grey (0.5) leaves the base unchanged, so effects are built as offsets from 0.5.
+vec3 hardLight(vec3 base, vec3 light) {
+  return mix(2.0 * base * light, 1.0 - 2.0 * (1.0 - base) * (1.0 - light), step(0.5, light));
+}
+
+void main() {
+  vec3 base = texture2D(uImage, vUv).rgb;
+  vec2 tilt = uPointer - 0.5;
+  // Card-space coordinates with square units, so circles stay round.
+  vec2 p = vec2(vUv.x, vUv.y * uAspect);
+  float lum = luminance(base);
+  // Real foil shines through light ink and is blocked by dark ink.
+  float foilMask = 0.25 + 0.75 * smoothstep(0.05, 0.75, lum);
+  // Broad specular highlight that follows the pointer.
+  float glare = exp(-pow(length((vUv - uPointer) * vec2(1.0, uAspect)) / 0.45, 2.0));
+  vec3 colour = base;
+
+  if (uType == 1 || uType == 8) {
+    // Traditional or rainbow foil: diagonal holographic sheen.
+    float strength = uType == 8 ? 0.55 : 0.35;
+    float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    vec3 holo = rainbow(hue) * (0.35 + 0.65 * glare);
+    colour = hardLight(base, 0.5 + (holo - 0.5) * strength * foilMask);
+  } else if (uType == 2) {
+    // Etched: metallic gold on edges in light areas, strongest near the light.
+    float l = luminance(texture2D(uImage, vUv - vec2(uTexel.x, 0.0)).rgb);
+    float r = luminance(texture2D(uImage, vUv + vec2(uTexel.x, 0.0)).rgb);
+    float u = luminance(texture2D(uImage, vUv - vec2(0.0, uTexel.y)).rgb);
+    float d = luminance(texture2D(uImage, vUv + vec2(0.0, uTexel.y)).rgb);
+    float edges = clamp(length(vec2(r - l, d - u)) * 4.0, 0.0, 1.0);
+    float grain = hash(floor(vUv / uTexel));
+    vec3 gold = vec3(1.0, 0.86, 0.55) * (0.6 + 0.4 * grain);
+    colour = screen(base, gold * edges * (0.25 + 0.9 * glare));
+  } else if (uType == 3) {
+    // Surge: fine streaks rising to the right, warped into broad waves, in saturated rainbow.
+    vec2 q = mat2(0.82, -0.57, 0.57, 0.82) * p;
+    q += (vec2(fbm(p * 1.6), fbm(p * 1.6 + 7.3)) - 0.5) * 0.35;
+    float line = q.y * 480.0;
+    float streak = pow(0.5 + 0.5 * sin(line), 2.0);
+    float segment = smoothstep(0.25, 0.6, noise(vec2(q.x * 9.0, floor(line / TAU) * 1.7)));
+    float reveal = smoothstep(0.25, 0.55, fbm(p * 1.3 + tilt * 1.6));
+    vec3 hue = rainbow(q.y * 1.6 + tilt.x * 2.0 + tilt.y);
+    float amount = streak * segment * reveal * (0.6 + 0.8 * glare);
+    colour = hardLight(base, 0.5 + (hue - 0.5) * clamp(amount, 0.0, 1.0) * 0.9);
+  } else if (uType == 4) {
+    // Ripple: soft rainbow rings on a 4x4 grid; the checkerboard sets grow and shrink in turn.
+    float t = clamp(uPointer.x * 0.5 + uPointer.y * 0.5, 0.0, 1.0);
+    vec3 rings = vec3(0.0); // offsets from neutral grey
+    for (int row = 0; row < 6; row++) {
+      for (int col = 0; col < 4; col++) {
+        vec2 centre = vec2((float(col) + 0.5) * 0.25, (float(row) + 0.5) * 0.25);
+        bool even = mod(float(row + col), 2.0) < 0.5;
+        float radius = mix(0.06, 0.3, even ? t : 1.0 - t);
+        float offset = (length(p - centre) - radius) / 0.022;
+        float band = exp(-offset * offset);
+        rings += (rainbow(offset * 0.12 + float(row * 4 + col) * 0.13) - 0.5) * band;
+      }
+    }
+    colour = hardLight(base, clamp(0.5 + rings * 0.55, 0.0, 1.0));
+  } else if (uType == 5) {
+    // Halo: domain-warped marbling, mostly silver with rainbow and dark veins,
+    // revealed in patches by large noise that shifts with the tilt.
+    vec2 q = p * 2.2;
+    vec2 warp = vec2(fbm(q + vec2(0.0, uTime * 0.02)), fbm(q + vec2(5.2, 1.3)));
+    float marble = fbm(q + warp * 3.0);
+    float bands = 0.5 + 0.5 * sin(marble * 22.0 + tilt.x * 4.0);
+    vec3 silver = vec3(0.86, 0.9, 0.96);
+    vec3 tint = mix(silver, rainbow(marble * 2.5 + tilt.y * 2.0), 0.55);
+    // Thin, soft dark veins between silver and tinted bands.
+    vec3 halo = mix(vec3(0.38), mix(silver, tint, smoothstep(0.55, 0.95, bands)), smoothstep(0.04, 0.2, bands));
+    float reveal = smoothstep(0.38, 0.62, fbm(p * 1.1 - tilt * 1.4 + 3.0));
+    colour = hardLight(base, 0.5 + (halo - 0.5) * 0.5 * reveal);
+  } else if (uType == 6) {
+    // Galaxy: fine rainbow glitter and larger stars that twinkle as the card tilts.
+    vec2 cell = floor(vUv / (uTexel * 3.0));
+    float seed = hash(cell);
+    float twinkle = pow(max(0.0, cos(dot(tilt, vec2(seed, hash(cell + 3.1)) * 2.0 - 1.0) * 18.0 + seed * TAU)), 6.0);
+    float glitter = step(0.78, seed) * twinkle;
+    vec2 starGrid = p * 14.0;
+    vec2 starCell = floor(starGrid);
+    float starSeed = hash(starCell + 17.0);
+    vec2 local = fract(starGrid) - 0.5 + (vec2(hash(starCell + 2.0), hash(starCell + 5.0)) - 0.5) * 0.5;
+    float star = step(0.82, starSeed) * smoothstep(0.012, 0.0, abs(local.x * local.y)) * smoothstep(0.32, 0.0, length(local));
+    float starTwinkle = 0.4 + 0.6 * pow(max(0.0, cos(dot(tilt, vec2(starSeed, 1.0 - starSeed)) * 9.0 + starSeed * TAU)), 3.0);
+    vec3 sparkle = rainbow(seed * 3.0 + tilt.x) * glitter + rainbow(starSeed * 5.0 + tilt.y) * star * starTwinkle * 1.6;
+    vec3 holo = rainbow(dot(vUv, vec2(0.9, 0.6)) + tilt.x * 1.5) * 0.18 * glare;
+    colour = screen(base, sparkle * (0.5 + 0.9 * glare) + holo * foilMask);
+  } else if (uType == 7) {
+    // Silverscreen: monochrome print under a broad metallic silver sheen.
+    float grey = luminance(base);
+    vec3 mono = vec3(grey);
+    float band = exp(-pow((dot(vUv - uPointer, vec2(0.8, 0.6))) / 0.22, 2.0));
+    colour = screen(mix(base, mono, 0.6), vec3(0.85, 0.9, 0.98) * band * 0.55 * foilMask);
+  }
+
+  gl_FragColor = vec4(colour, 1.0);
+}`
+
+function compile(gl: WebGLRenderingContext, type: number, source: string) {
+  const shader = gl.createShader(type)!
+  gl.shaderSource(shader, source)
+  gl.compileShader(shader)
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+    throw new Error(gl.getShaderInfoLog(shader) ?? 'Shader compile failed')
+  return shader
+}
+
+export function createFoilRenderer(canvas: HTMLCanvasElement) {
+  const gl = canvas.getContext('webgl', { premultipliedAlpha: false })
+  if (!gl) return null
+  const program = gl.createProgram()!
+  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, vertexSource))
+  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragmentSource))
+  gl.linkProgram(program)
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+    throw new Error(gl.getProgramInfoLog(program) ?? 'Shader link failed')
+  gl.useProgram(program)
+
+  const buffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
+  const position = gl.getAttribLocation(program, 'aPosition')
+  gl.enableVertexAttribArray(position)
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0)
+
+  const texture = gl.createTexture()
+  gl.bindTexture(gl.TEXTURE_2D, texture)
+  // Card scans are not power-of-two sized, so WebGL 1 needs clamped, unmipmapped textures.
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+  const uniform = (name: string) => gl.getUniformLocation(program, name)
+  const uniforms = {
+    pointer: uniform('uPointer'),
+    texel: uniform('uTexel'),
+    time: uniform('uTime'),
+    aspect: uniform('uAspect'),
+    type: uniform('uType'),
+  }
+  let imageSize = { width: 488, height: 680 }
+
+  return {
+    setImage(image: HTMLImageElement) {
+      gl.bindTexture(gl.TEXTURE_2D, texture)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+      imageSize = { width: image.naturalWidth, height: image.naturalHeight }
+    },
+    render(type: number, pointer: { x: number; y: number }, time: number) {
+      gl.viewport(0, 0, canvas.width, canvas.height)
+      gl.uniform2f(uniforms.pointer, pointer.x, pointer.y)
+      gl.uniform2f(uniforms.texel, 1 / imageSize.width, 1 / imageSize.height)
+      gl.uniform1f(uniforms.time, time)
+      gl.uniform1f(uniforms.aspect, imageSize.height / imageSize.width)
+      gl.uniform1i(uniforms.type, type)
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    },
+  }
+}

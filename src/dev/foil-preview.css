@@ -44,7 +44,7 @@
   aspect-ratio: 488 / 680;
 }
 /* Enlarge the hovered card for a closer look; keeps the tilt transform. */
-.foil-preview .finished-card:hover {
+.foil-preview ul .finished-card:hover {
   z-index: 10;
   transform: scale(2) perspective(800px) rotateX(var(--foil-rotate-x)) rotateY(var(--foil-rotate-y));
 }
@@ -62,4 +62,27 @@
 }
 .static-effects .foil-halofoil::before {
   opacity: 0.7;
+}
+.foil-stage {
+  margin: 0 0 32px;
+}
+.foil-stage-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 12px;
+}
+.foil-stage figure {
+  width: min(400px, 100%);
+  margin: 0;
+}
+.foil-stage-webgl {
+  border-radius: 4.75%;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -20px black;
+}
+.foil-stage canvas {
+  display: block;
+  width: 100%;
+  height: auto;
 }

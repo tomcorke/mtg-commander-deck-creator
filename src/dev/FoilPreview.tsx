@@ -5,6 +5,7 @@ import type { ScryfallCard } from '../domain/card-model.ts'
 import { finishLabel, foilTypeNames, printingOptions } from '../domain/printing.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { FinishFilters } from '../shared/FinishFilters.tsx'
+import { FoilStage } from './FoilStage.tsx'
 import { VisualPreferencesContext } from '../shared/VisualPreferencesContext.tsx'
 
 type Sample = ReturnType<typeof printingOptions>[number] & { name: string }
@@ -65,12 +66,43 @@ function Toggle({
   )
 }
 
+function SampleCard({
+  sample,
+  image,
+  onCompare,
+}: {
+  sample: Sample
+  image: string
+  onCompare: () => void
+}) {
+  return (
+    <li>
+      <FinishedCardImage
+        image={image}
+        alt={`${sample.name} card`}
+        finish={sample.finish}
+        foilType={sample.foilType}
+      />
+      <b>{finishLabel(sample) ?? 'Nonfoil'}</b>
+      <small>
+        {sample.name} · {sample.set.toUpperCase()} #{sample.collectorNumber}
+        {sample.foilType ? ` · ${sample.foilType}` : ''}
+      </small>
+      <button type="button" onClick={onCompare}>
+        Compare CSS and WebGL
+      </button>
+    </li>
+  )
+}
+
 export function FoilPreview() {
   const [samples, setSamples] = useState<(Sample | string)[]>([])
   const [darkMode, setDarkMode] = useState(false)
   const [cardEffects, setCardEffects] = useState(true)
   const [staticEffects, setStaticEffects] = useState(true)
   const [plainCard, setPlainCard] = useState('')
+  const [compared, setCompared] = useState<Sample>()
+  const imageFor = (sample: Sample) => (plainCard ? plainCardImage(plainCard) : sample.image)
 
   useEffect(() => {
     let cancelled = false
@@ -124,24 +156,18 @@ export function FoilPreview() {
               </select>
             </label>
           </p>
+          {compared && <FoilStage card={{ ...compared, image: imageFor(compared) }} />}
           <ul>
             {samples.map((sample) =>
               typeof sample === 'string' ? (
                 <li key={sample}>{sample}</li>
               ) : (
-                <li key={`${sample.set}-${sample.collectorNumber}-${sample.finish}`}>
-                  <FinishedCardImage
-                    image={plainCard ? plainCardImage(plainCard) : sample.image}
-                    alt={`${sample.name} card`}
-                    finish={sample.finish}
-                    foilType={sample.foilType}
-                  />
-                  <b>{finishLabel(sample) ?? 'Nonfoil'}</b>
-                  <small>
-                    {sample.name} · {sample.set.toUpperCase()} #{sample.collectorNumber}
-                    {sample.foilType ? ` · ${sample.foilType}` : ''}
-                  </small>
-                </li>
+                <SampleCard
+                  key={`${sample.set}-${sample.collectorNumber}-${sample.finish}`}
+                  sample={sample}
+                  image={imageFor(sample)}
+                  onCompare={() => setCompared(sample)}
+                />
               ),
             )}
           </ul>
