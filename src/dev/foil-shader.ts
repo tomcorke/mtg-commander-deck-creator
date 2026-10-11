@@ -16,6 +16,7 @@ export const foilShaderTypes = {
   fracturefoil: 10,
   raisedfoil: 11,
   neonink: 12,
+  dragonscalefoil: 13,
 } as const
 
 const vertexSource = `
@@ -271,6 +272,27 @@ void main() {
     colour = hardLight(mix(base, mono, 0.6), vec3(metal, metal + 0.01, metal + 0.02));
   }
 
+  if (uType == 13) {
+    // Dragonscale: a staggered grid of rounded scales (about 13 across) with dark seams. Each scale
+    // is a shallow dome lit from a direction set by the tilt, so it catches its own highlight; the
+    // surface is silvery with a faint rainbow tint per scale. Fades off-axis.
+    vec2 size = vec2(1.0 / 13.0, 0.062);
+    float row = floor(p.y / size.y);
+    vec2 shifted = vec2(p.x + mod(row, 2.0) * size.x * 0.5, p.y);
+    vec2 cell = floor(shifted / size);
+    vec2 l = (fract(shifted / size) - 0.5) * size;
+    vec2 halfSize = size * 0.5 - vec2(0.0035);
+    float radius = 0.012;
+    float d = length(max(abs(l) - halfSize + radius, 0.0)) - radius;
+    float inside = smoothstep(0.0015, -0.0015, d);
+    vec3 normal = normalize(vec3(l / halfSize * 0.55, 1.0));
+    vec3 lightDir = normalize(vec3(tilt * 2.2 + (hash(cell) - 0.5) * 0.3, 0.8));
+    float specular = pow(max(0.0, dot(reflect(-lightDir, normal), vec3(0.0, 0.0, 1.0))), 8.0);
+    vec3 silver = mix(vec3(0.85, 0.9, 0.98), rainbow(hash(cell + 3.0) + dot(tilt, vec2(1.5, 1.0))), 0.25);
+    float seam = (1.0 - inside) * 0.14;
+    vec3 light = 0.5 + (inside * ((silver - 0.5) * 0.6 + specular * 0.55) - seam) * onAxis;
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
+  }
   if (uType == 12) {
     // Neon ink: a flat fluorescent spot ink over a foil card. The ink pops (slightly brighter and
     // more saturated) and glows softly into its surroundings; it doesn't change with angle. The

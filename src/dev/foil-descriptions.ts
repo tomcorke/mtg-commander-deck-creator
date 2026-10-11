@@ -96,6 +96,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Detects the neon ink as very saturated, bright pixels in the scan. The ink is made slightly brighter and more saturated, and a soft glow spreads from it, sampled from a 24-point ring around each pixel. The rest of the card gets the traditional foil sweep, fading off-axis. The ink and glow do not depend on angle. The preview uses Hidetsugu (Kamigawa: Neon Dynasty), whose scan shows the printed ink.',
   },
+  dragonscalefoil: {
+    expected:
+      'Dragonscale foil (Tarkir: Dragonstorm Special Guests fetch lands): a textured pattern of rounded, overlapping scales (about 13 across) over the whole card. Each scale has a bright, silvery, slightly iridescent surface, with dark seams between scales. The scales catch the light as a band that moves with the tilt.',
+    css: standardCss,
+    webgl:
+      'A staggered grid of rounded scales (about 13 across) with dark seams. Each scale is shaded as a shallow dome lit from a direction set by the tilt (with a slight random wobble per scale), so it catches its own specular highlight. Silvery surface with a faint rainbow tint per scale; strongest near the light and fading off-axis. The preview uses a Special Guests fetch land, whose scan has no scales printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
