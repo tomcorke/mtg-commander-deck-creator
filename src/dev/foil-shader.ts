@@ -22,6 +22,7 @@ export const foilShaderTypes = {
   confettifoil: 17,
   gilded: 14,
   cosmicfoil: 19,
+  facetfoil: 20,
 } as const
 
 const vertexSource = `
@@ -142,6 +143,15 @@ float phyrexianSymbol(vec2 l) {
   vec2 stem = abs(l) - vec2(0.0052, 0.042);
   float bar = length(max(stem, 0.0)) + min(max(stem.x, stem.y), 0.0);
   return min(ring, bar);
+}
+
+// How strongly a pixel looks like the pale cyan-blue glass shards of FRA Shattered Mirror art.
+float glassShard(vec3 c) {
+  float high = max(c.r, max(c.g, c.b));
+  float low = min(c.r, min(c.g, c.b));
+  float saturation = high > 0.0 ? (high - low) / high : 0.0;
+  float cyan = smoothstep(0.02, 0.12, c.b - c.r) * smoothstep(-0.15, 0.0, c.g - c.r) * step(c.r, c.g + 0.3);
+  return cyan * smoothstep(0.85, 0.5, saturation) * smoothstep(0.25, 0.5, luminance(c));
 }
 
 void main() {
@@ -534,6 +544,39 @@ void main() {
     vec3 light = 0.5 + (ringHue - 0.5) * rings * ringBand * foilMask * onAxis * 0.42
       + (rainbow(seed * 4.0 + tilt.x) * 0.5 + 0.35) * speck * glint * onAxis * 0.7;
     colour = hardLight(base, clamp(light, 0.0, 1.0));
+  }
+
+  if (uType == 20) {
+    // Facet, from the FRA Shattered Mirror cards: foil only on the glass shards in the art. Shards
+    // are found by colour (pale cyan-blue); each facet (a Voronoi cell about an eighth of the card
+    // wide) shimmers its own rainbow colour and flashes at its own angle, and the shard rims glow
+    // in bright rainbow. The rest of the card stays bare. Fades off-axis.
+    float shard = glassShard(base);
+    vec2 o = uTexel * 2.5;
+    float around = (glassShard(texture2D(uImage, vUv + vec2(o.x, 0.0)).rgb) + glassShard(texture2D(uImage, vUv - vec2(o.x, 0.0)).rgb)
+      + glassShard(texture2D(uImage, vUv + vec2(0.0, o.y)).rgb) + glassShard(texture2D(uImage, vUv - vec2(0.0, o.y)).rgb)) * 0.25;
+    float rim = clamp(abs(shard - around) * 7.0, 0.0, 1.0) * max(shard, around);
+    vec2 grid = p * 8.0;
+    vec2 cellBase = floor(grid);
+    float nearest = 8.0;
+    vec2 facet = vec2(0.0);
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec2 cell = cellBase + vec2(float(x), float(y));
+        float d = length(grid - cell - vec2(hash(cell), hash(cell + 4.1)));
+        if (d < nearest) {
+          nearest = d;
+          facet = cell;
+        }
+      }
+    }
+    vec2 facing = vec2(hash(facet + 7.3), hash(facet + 2.9)) * 2.0 - 1.0;
+    float flash = pow(max(0.0, cos(dot(tilt, facing) * 6.0 + hash(facet + 1.7) * TAU)), 4.0);
+    vec3 facetHue = rainbow(hash(facet + 5.5) + dot(vUv, vec2(0.6, 0.4)) + dot(tilt, facing) * 1.5);
+    vec3 rimHue = rainbow(dot(vUv, vec2(2.0, 1.4)) + dot(tilt, vec2(2.0, 1.3)));
+    vec3 light = 0.5 + (facetHue - 0.5) * shard * (0.35 + 0.65 * flash) * onAxis * 0.8;
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
+    colour = screen(colour, rimHue * rim * (0.5 + 0.7 * onAxis));
   }
 
   gl_FragColor = vec4(colour, 1.0);

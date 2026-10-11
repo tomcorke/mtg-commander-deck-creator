@@ -138,6 +138,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Very fine concentric rings (about 70 per card width) centred just above the middle, slightly wobbled by noise, in a rainbow that runs outwards and shifts with the tilt. Broad bands of the rings brighten and dim as the card tilts. A sparse grid of tiny specks glints, each at its own angle. Strongest on light ink, hard-light blend, faded off-axis. The preview uses the regular Mind Stone (MSH #21), because both cosmic foil scans have the rings printed in.',
   },
+  facetfoil: {
+    expected:
+      'Facet foil: only the 13 Reality Fracture Shattered Mirror cards (FRA #449–461), in Collector Boosters (mtg.wiki "Foil"; Scryfall). mtg.wiki and Wizards ("Collecting Reality Fracture") agree the foil is restricted to the splintering glass shards in the art, a "shimmering treatment that makes the shards of broken reality truly stand out"; the rest of the card is not foiled. The official render (mtg.wiki gallery and Scryfall FRA #457) shows the shards with bright rainbow rims and an iridescent glassy fill. No in-hand photo was found, so the strength of the real shimmer is unconfirmed.',
+    css: standardCss,
+    webgl:
+      'Finds the glass shards by colour (pale cyan-blue, low to medium saturation). Inside them, Voronoi facets about an eighth of the card wide each shimmer their own rainbow colour and flash at their own angle (hard light). The shard rims, found by comparing the shard mask with its neighbours, glow in a bright rainbow that shifts with the tilt (screen). The rest of the card is untouched; everything fades off-axis. Shards in other colours (the lilac ones on Return to the Light Realms) are only partly found. The preview uses the nonfoil Shattered Mirror Stingcaster Mage (FRA #329), because the facet scans have the rainbow rims printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
