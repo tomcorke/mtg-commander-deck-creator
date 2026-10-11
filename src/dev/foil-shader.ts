@@ -175,14 +175,35 @@ void main() {
     vec2 spot = fract(grid) - 0.5 - (vec2(hash(cell + 1.3), hash(cell + 4.7)) - 0.5) * 0.6;
     float point = smoothstep(0.2, 0.06, length(spot)) * step(0.5, seed);
     float twinkle = pow(max(0.0, cos(dot(tilt, vec2(hash(cell + 2.1), hash(cell + 8.4)) * 2.0 - 1.0) * 16.0 + seed * TAU)), 3.0);
-    vec2 starGrid = p * 14.0;
+    // Larger shapes, each with its own kind, size, rotation and colour: four-, five- and
+    // six-point stars, dots, rings and small swirls. Each lights up only within its own narrow
+    // range of viewing angles, so a few appear at a time and change as the card tilts.
+    vec2 starGrid = p * 16.0;
     vec2 starCell = floor(starGrid);
     float starSeed = hash(starCell + 17.0);
-    vec2 local = fract(starGrid) - 0.5 + (vec2(hash(starCell + 2.0), hash(starCell + 5.0)) - 0.5) * 0.5;
-    float star = step(0.82, starSeed) * smoothstep(0.012, 0.0, abs(local.x * local.y)) * smoothstep(0.32, 0.0, length(local));
-    float starTwinkle = pow(max(0.0, cos(dot(tilt, vec2(starSeed, 1.0 - starSeed) * 2.0 - 1.0) * 9.0 + starSeed * TAU)), 3.0);
+    vec2 local = fract(starGrid) - 0.5 + (vec2(hash(starCell + 2.0), hash(starCell + 5.0)) - 0.5) * 0.4;
+    float size = 0.12 + 0.22 * hash(starCell + 9.0);
+    float kind = floor(hash(starCell + 13.0) * 6.0);
+    float r = length(local) / size;
+    float a = atan(local.y, local.x) + hash(starCell + 21.0) * TAU;
+    float shape;
+    if (kind < 3.0) {
+      float points = kind + 4.0;
+      float spike = pow(abs(cos(a * points * 0.5)), 6.0);
+      shape = smoothstep(0.1, 0.0, r - mix(0.22, 1.0, spike));
+    } else if (kind < 4.0) {
+      shape = smoothstep(0.55, 0.35, r);
+    } else if (kind < 5.0) {
+      shape = smoothstep(0.14, 0.0, abs(r - 0.75));
+    } else {
+      float swirl = fract((a / TAU) + r * 1.4);
+      shape = smoothstep(0.18, 0.0, abs(swirl - 0.5)) * smoothstep(1.0, 0.7, r);
+    }
+    vec2 starFacing = vec2(hash(starCell + 31.0), hash(starCell + 37.0)) * 2.0 - 1.0;
+    float starTwinkle = pow(max(0.0, cos(dot(tilt, starFacing) * 14.0 + starSeed * TAU)), 10.0);
+    float star = step(0.7, starSeed) * shape;
     vec3 glitter = (rainbow(seed * 3.0 + tilt.x) - 0.5) * point * twinkle;
-    vec3 stars = (rainbow(starSeed * 5.0 + tilt.y) - 0.5) * star * starTwinkle * 1.4;
+    vec3 stars = (rainbow(starSeed * 5.0 + dot(tilt, starFacing) * 2.0) - 0.5) * star * starTwinkle * 1.6;
     float light = reveal * (0.55 + 0.9 * glare);
     colour = hardLight(base, clamp(0.5 + (glitter + stars) * light * 2.2, 0.0, 1.0));
   } else if (uType == 7) {
@@ -190,8 +211,10 @@ void main() {
     float grey = luminance(base);
     vec3 mono = vec3(grey);
     float band = exp(-pow((dot(vUv - uPointer, vec2(0.8, 0.6))) / 0.22, 2.0));
-    float metal = 0.5 + band * 0.42 - 0.07 * (1.0 - band) * glare;
-    colour = hardLight(mix(base, mono, 0.6), vec3(metal, metal + 0.01, metal + 0.03));
+    // Shine is limited, and fades out on dark ink, so text and the darkest blacks stay readable.
+    float inkKeep = smoothstep(0.08, 0.45, grey);
+    float metal = 0.5 + band * 0.34 * inkKeep - 0.05 * (1.0 - band) * glare;
+    colour = hardLight(mix(base, mono, 0.6), vec3(metal, metal + 0.01, metal + 0.02));
   }
 
   gl_FragColor = vec4(colour, 1.0);
