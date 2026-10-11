@@ -47,6 +47,7 @@ const sampleOverrides: Record<string, string> = {
   neonink: 'is:neonink set:neo',
   oilslick: 'set:one cn:357',
   confettifoil: '!"Rhystic Study" set:wot cn:71',
+  gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the

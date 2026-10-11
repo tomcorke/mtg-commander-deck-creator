@@ -20,6 +20,7 @@ export const foilShaderTypes = {
   singularityfoil: 16,
   oilslick: 15,
   confettifoil: 17,
+  gilded: 14,
 } as const
 
 const vertexSource = `
@@ -484,6 +485,28 @@ void main() {
     float amount = fleck * (0.3 + 0.7 * flash) * (0.3 + 0.7 * onAxis);
     vec3 tinted = hardLight(base, clamp(0.5 + (hue - 0.5) * amount * (0.8 + 1.0 * foilMask) + 0.12 * amount, 0.0, 1.0));
     colour = screen(tinted, hue * amount * flash * 0.5 * (1.0 - foilMask));
+  }
+  if (uType == 14) {
+    // Gilded (SNC Golden Age): the gold frame is an embossed, mirror-polished hot stamp over a
+    // traditional foil card. Warm gold ink in the scan marks the stamp; it is replaced by metal that
+    // is dull bronze away from the light and saturated bright gold where a broad reflection band,
+    // which sweeps with the tilt, crosses it. Height edges get shading and glints. The rest of the
+    // card gets a gentle traditional foil sweep that fades off-axis.
+    vec2 step2 = uTexel * 1.5;
+    float h = warmMetal(base);
+    float hx = warmMetal(texture2D(uImage, vUv + vec2(step2.x, 0.0)).rgb) - warmMetal(texture2D(uImage, vUv - vec2(step2.x, 0.0)).rgb);
+    float hy = warmMetal(texture2D(uImage, vUv + vec2(0.0, step2.y)).rgb) - warmMetal(texture2D(uImage, vUv - vec2(0.0, step2.y)).rgb);
+    vec3 normal = normalize(vec3(-hx * 5.0, -hy * 5.0, 1.0));
+    vec3 lightDir = normalize(vec3(tilt * 2.2, 0.8));
+    float diffuse = dot(normal, lightDir) - lightDir.z;
+    float specular = pow(max(0.0, dot(reflect(-lightDir, normal), vec3(0.0, 0.0, 1.0))), 8.0);
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float reflection = clamp(exp(-pow(along / 0.22, 2.0)) * 0.8 + glare * 0.5, 0.0, 1.0);
+    vec3 metal = mix(vec3(0.26, 0.16, 0.05), vec3(1.0, 0.72, 0.18), reflection);
+    metal = clamp(metal * (0.75 + 0.5 * luminance(base)) + diffuse * 0.5, 0.0, 1.0);
+    float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    vec3 foiled = hardLight(base, 0.5 + (rainbow(hue) - 0.5) * 0.22 * foilMask * onAxis);
+    colour = screen(mix(foiled, metal, h), vec3(1.0, 0.88, 0.6) * specular * h * 0.8);
   }
 
   gl_FragColor = vec4(colour, 1.0);
