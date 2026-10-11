@@ -517,13 +517,18 @@ void main() {
   }
 
   if (uType == 18) {
-    // Gleaming gold (HOB Smaug headliner): the gold frame covering most of the card is mirror gold
-    // foil with a hammered, stippled texture. Gold ink in the scan marks it; it is dark bronze away
+    // Gleaming gold (HOB Smaug headliner): mirror gold foil shows wherever the print leaves it
+    // bare, so light, unsaturated ink (frame, banners, text box) becomes hammered gold with fine
+    // dark pits, while saturated art and dark ink keep their colour. The gold is dark bronze away
     // from the light and bright warm gold where a broad reflection band, which sweeps with the tilt,
-    // crosses it. Tiny facets of the hammered surface each glint at their own angle near the light.
-    // The dark stipple and lettering stay dark. The art gets a faint warm foil sweep, off-axis faded.
-    // Frame gold is yellow-gold; warm browns and oranges in the art (Smaug himself) are not.
-    float gold = warmMetal(base) * smoothstep(0.7, 0.8, base.g / max(base.r, 0.01));
+    // crosses it. Tiny facets each glint at their own angle near the light. The rest of the card
+    // gets a faint warm foil sweep; everything fades off-axis.
+    float high = max(base.r, max(base.g, base.b));
+    float saturation = high > 0.0 ? (high - min(base.r, min(base.g, base.b))) / high : 0.0;
+    float gold = smoothstep(0.25, 0.7, lum) * (1.0 - 0.75 * smoothstep(0.3, 0.8, saturation));
+    float pits = smoothstep(0.7, 0.85, noise(p * 320.0)) * 0.3;
+    vec3 gilt = vec3(0.86, 0.68, 0.32) * (0.55 + 0.6 * lum) * (1.0 - pits);
+    vec3 coated = mix(base, gilt, gold * 0.85);
     float along = dot(vUv - uPointer, vec2(0.8, 0.6));
     float reflection = clamp(exp(-pow(along / 0.25, 2.0)) * 0.75 + glare * 0.45, 0.0, 1.0);
     vec3 metal = mix(vec3(0.3, 0.25, 0.17), vec3(0.95, 0.8, 0.45), reflection);
@@ -535,7 +540,7 @@ void main() {
     float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
     vec3 sheen = 0.5 + (mix(rainbow(hue), vec3(0.9, 0.75, 0.4), 0.6) - 0.5) * 0.3 * foilMask * onAxis;
     vec3 light = mix(sheen, metal, gold);
-    colour = screen(hardLight(base, light), vec3(1.0, 0.9, 0.6) * glint * speck * gold * glare * 0.9);
+    colour = screen(hardLight(coated, light), vec3(1.0, 0.9, 0.6) * glint * speck * gold * (1.0 - pits) * glare * 0.9);
   }
 
   gl_FragColor = vec4(colour, 1.0);
