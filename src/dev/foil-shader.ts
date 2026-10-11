@@ -101,21 +101,21 @@ void main() {
     float u = luminance(texture2D(uImage, vUv - vec2(0.0, uTexel.y)).rgb);
     float d = luminance(texture2D(uImage, vUv + vec2(0.0, uTexel.y)).rgb);
     float edges = clamp(length(vec2(r - l, d - u)) * 4.0, 0.0, 1.0);
-    // Smooth fine grain rather than per-texel noise, so the metal sparkles without pixelation.
-    float grain = noise(p * 260.0);
+    float grain = hash(floor(vUv / uTexel));
     vec3 gold = vec3(1.0, 0.86, 0.55) * (0.6 + 0.4 * grain);
     colour = screen(base, gold * edges * (0.25 + 0.9 * glare));
   } else if (uType == 3) {
-    // Surge: thick streaks rising to the right, warped into broad waves, in saturated rainbow.
-    vec2 q = mat2(0.82, -0.57, 0.57, 0.82) * p;
-    q += (vec2(fbm(p * 1.6), fbm(p * 1.6 + 7.3)) - 0.5) * 0.35;
-    float line = q.y * 190.0;
-    float streak = smoothstep(-0.2, 0.55, sin(line));
-    float segment = smoothstep(0.25, 0.6, noise(vec2(q.x * 7.0, floor(line / TAU) * 1.7)));
+    // Surge: noise stretched along steep streaks rising to the right and thresholded into
+    // bands of varied width, like brushed flames; saturated rainbow that shifts with the tilt.
+    vec2 q = mat2(0.5, -0.87, 0.87, 0.5) * p;
+    q += (vec2(fbm(p * 1.4), fbm(p * 1.4 + 7.3)) - 0.5) * 0.25;
+    vec2 stretched = vec2(q.x * 2.2, q.y * 26.0) + tilt * vec2(1.5, 6.0);
+    float streaks = fbm(stretched);
+    float bands = smoothstep(0.5, 0.68, streaks) * (0.6 + 0.4 * noise(vec2(q.x * 5.0, q.y * 60.0)));
     float reveal = smoothstep(0.18, 0.48, fbm(p * 1.3 + tilt * 1.6));
-    vec3 hue = rainbow(q.y * 1.6 + tilt.x * 2.0 + tilt.y);
-    float amount = streak * segment * reveal * (0.75 + 0.7 * glare);
-    colour = hardLight(base, 0.5 + (hue - 0.5) * clamp(amount, 0.0, 1.0) * 0.9);
+    vec3 hue = rainbow(q.y * 2.4 + streaks * 1.5 + tilt.x * 2.0 + tilt.y);
+    float amount = bands * reveal * (0.75 + 0.7 * glare);
+    colour = hardLight(base, 0.5 + (hue - 0.5) * clamp(amount * 1.3, 0.0, 1.0));
   } else if (uType == 4) {
     // Ripple: soft rainbow rings on a 4x4 grid; the checkerboard sets grow and shrink in turn.
     // Each ring's colour shifts with the tilt, and each only lights up at some viewing angles.
@@ -125,7 +125,7 @@ void main() {
       for (int col = 0; col < 4; col++) {
         vec2 centre = vec2((float(col) + 0.5) * 0.25, (float(row) + 0.5) * 0.25);
         bool even = mod(float(row + col), 2.0) < 0.5;
-        float radius = mix(0.06, 0.3, even ? t : 1.0 - t);
+        float radius = mix(0.1, 0.42, even ? t : 1.0 - t);
         float offset = (length(p - centre) - radius) / 0.022;
         float band = exp(-offset * offset);
         float phase = hash(vec2(float(row), float(col)) + 0.37) * TAU;
