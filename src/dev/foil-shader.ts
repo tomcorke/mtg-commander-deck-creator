@@ -133,25 +133,28 @@ void main() {
     float amount = bands * reveal * (0.75 + 0.7 * glare);
     colour = hardLight(base, 0.5 + (hue - 0.5) * clamp(amount, 0.0, 0.65));
   } else if (uType == 4) {
-    // Ripple: soft rainbow rings on a 4x4 grid; the checkerboard sets grow and shrink in turn.
-    // Each ring's colour shifts with the tilt, and each only lights up at some viewing angles.
+    // Ripple: rings on a 4x4 grid; the checkerboard sets grow from zero and shrink back in turn.
+    // Each ring only shows the arc facing the light, so where four rings meet near the light
+    // their arcs converge into a star-like shape. Colour shifts with the angle around the ring.
     float t = clamp(uPointer.x * 0.5 + uPointer.y * 0.5, 0.0, 1.0);
+    vec2 light = vec2(uPointer.x, uPointer.y * uAspect);
     vec3 rings = vec3(0.0); // offsets from neutral grey
     for (int row = 0; row < 6; row++) {
       for (int col = 0; col < 4; col++) {
         vec2 centre = vec2((float(col) + 0.5) * 0.25, (float(row) + 0.5) * 0.25);
         bool even = mod(float(row + col), 2.0) < 0.5;
-        float radius = mix(0.1, 0.42, even ? t : 1.0 - t);
-        float offset = (length(p - centre) - radius) / 0.022;
-        float band = exp(-offset * offset);
-        float phase = hash(vec2(float(row), float(col)) + 0.37) * TAU;
-        vec2 facing = normalize(centre - vec2(0.5, 0.5 * uAspect) + 0.001);
-        float visible = smoothstep(0.2, 0.85, 0.5 + 0.5 * cos(dot(tilt, facing) * 9.0 + (tilt.x - tilt.y) * 4.0 + phase));
-        float hue = offset * 0.12 + phase / TAU + dot(tilt, vec2(1.7, 1.1)) * 1.6;
-        rings += (rainbow(hue) - 0.5) * band * visible;
+        float radius = mix(0.0, 0.42, even ? t : 1.0 - t);
+        vec2 fromCentre = p - centre;
+        float offset = (length(fromCentre) - radius) / 0.018;
+        float band = exp(-offset * offset) * smoothstep(0.0, 0.04, radius);
+        vec2 towardLight = light - centre;
+        float facing = dot(normalize(fromCentre + 0.0001), normalize(towardLight + 0.0001));
+        float arc = smoothstep(0.35, 0.95, facing) * exp(-pow(length(towardLight) / 0.55, 2.0));
+        float hue = offset * 0.1 + atan(fromCentre.y, fromCentre.x) / TAU + dot(tilt, vec2(1.7, 1.1));
+        rings += (rainbow(hue) - 0.5) * band * arc;
       }
     }
-    colour = hardLight(base, clamp(0.5 + rings * 0.6, 0.0, 1.0));
+    colour = hardLight(base, clamp(0.5 + rings * 0.5, 0.0, 1.0));
   } else if (uType == 5) {
     // Halo: domain-warped marbling, mostly silver with rainbow and dark veins,
     // revealed in patches by large noise that shifts with the tilt.
