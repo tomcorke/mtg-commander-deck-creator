@@ -21,6 +21,7 @@ export const foilShaderTypes = {
   oilslick: 15,
   confettifoil: 17,
   gilded: 14,
+  embossed: 25,
 } as const
 
 const vertexSource = `
@@ -141,6 +142,26 @@ float phyrexianSymbol(vec2 l) {
   vec2 stem = abs(l) - vec2(0.0052, 0.042);
   float bar = length(max(stem, 0.0)) + min(max(stem.x, stem.y), 0.0);
   return min(ring, bar);
+}
+
+// Distance from p to the segment a-b.
+float segment(vec2 p, vec2 a, vec2 b) {
+  vec2 pa = p - a;
+  vec2 ba = b - a;
+  return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0));
+}
+
+// Distance to a stylised ampersand (y down, about -1..1): a small upper loop, a large lower bowl
+// open on its upper right, a diagonal leg to the bottom right and a short tail on the right.
+float ampersand(vec2 l) {
+  float upper = abs(length(l - vec2(-0.05, -0.5)) - 0.28);
+  vec2 b = l - vec2(-0.05, 0.3);
+  float bowl = b.x > 0.0 && b.y < 0.0
+    ? min(length(b - vec2(0.0, -0.5)), length(b - vec2(0.5, 0.0)))
+    : abs(length(b) - 0.5);
+  float leg = segment(l, vec2(-0.3, -0.3), vec2(0.65, 0.85));
+  float tail = segment(l, vec2(0.3, 0.15), vec2(0.8, 0.05));
+  return min(min(upper, bowl), min(leg, tail)) - 0.07;
 }
 
 void main() {
@@ -513,6 +534,29 @@ void main() {
     float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
     vec3 foiled = hardLight(base, 0.5 + (rainbow(hue) - 0.5) * 0.22 * foilMask * onAxis);
     colour = screen(mix(foiled, metal, h), vec3(1.0, 0.88, 0.6) * specular * h * 0.8);
+  }
+
+  if (uType == 25) {
+    // Embossed (AFR ampersand promos; REX uses its own logo): a traditional foil card under a large
+    // clear, glossy D&D ampersand that covers the whole card. The varnish slightly dulls the foil
+    // colour beneath it, shows as a faint pale shape off-axis, turns glossy white near the light,
+    // and its raised edges catch the light on the side facing it.
+    vec2 l = (p - vec2(0.5, 0.5 * uAspect)) / 0.62;
+    float d = ampersand(l);
+    float inside = smoothstep(0.012, -0.012, d);
+    float e = 0.004;
+    vec2 normal = normalize(vec2(
+      ampersand(l + vec2(e, 0.0)) - ampersand(l - vec2(e, 0.0)),
+      ampersand(l + vec2(0.0, e)) - ampersand(l - vec2(0.0, e))) + 0.0001);
+    float rim = smoothstep(-0.05, 0.0, d) * inside;
+    vec2 toLight = normalize((uPointer - vUv) * vec2(1.0, uAspect) + vec2(0.0001));
+    float emboss = dot(normal, toLight) * rim;
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    float amount = 0.5 * foilMask * sweep * (0.2 + 0.8 * glare) * (1.0 - 0.4 * inside);
+    float gloss = inside * (0.05 + 0.25 * glare * glare) + emboss * 0.3 * onAxis;
+    colour = hardLight(base, clamp(0.5 + (rainbow(hue) - 0.5) * amount + gloss, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);

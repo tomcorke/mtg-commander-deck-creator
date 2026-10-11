@@ -131,6 +131,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Finds warm gold ink in the scan and treats it as the stamp and its height map. The stamp is replaced by metal that is dark bronze away from the light and bright saturated gold where a broad diagonal reflection band, which follows the light, crosses it. Normals from the height add shading and small glints lit from the tilt direction. The rest of the card gets a gentle traditional foil sweep that fades off-axis. Gold ink in the art also turns metallic. The preview uses the regular Golden Age Raffine (SNC #327), whose scan prints the frame in flat gold; the gilded scans show only thin dark lines there, so the effect is weak on them.',
   },
+  embossed: {
+    expected:
+      'Embossed foil: the Adventures in the Forgotten Realms ampersand promos (PAFR, about 80 rares and mythics given to WPN Premium stores, collector numbers ending in "a"), later reused by Jurassic World Collection (REX #26-45) with the Jurassic World logo. The Wizards announcement (Love Your Local Game Store, June 2021) calls them "traditional foil with a glossy D&D ampersand overlaying the entire card". mtg.wiki and the TCGplayer "Every Foil Type" article (Aug 2023) call the ampersand "glossy embossed"; the Wizards text does not mention a raised layer, so the sources disagree on whether it is raised. Scryfall scans show the overlay as a pale, translucent ampersand covering the whole card. Expect a normal foil sheen with a clear, glossy logo that shows faintly off-axis and catches the light near it.',
+    css: standardCss,
+    webgl:
+      'A stylised ampersand drawn from a distance function (upper loop, open lower bowl, diagonal leg and tail) covering the card. Under it the traditional-foil sweep is about 40% weaker; the logo itself is a faint lift off-axis, turns glossy white near the light, and its edges are bevelled and lit on the side facing the light. Only the ampersand is drawn, not the REX logo or the dragon detail inside the real ampersand. The preview uses the regular AFR Acererak (#87), because the embossed scans have the overlay printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
