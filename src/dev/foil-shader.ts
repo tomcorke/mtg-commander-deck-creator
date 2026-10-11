@@ -17,6 +17,7 @@ export const foilShaderTypes = {
   raisedfoil: 11,
   neonink: 12,
   dragonscalefoil: 13,
+  singularityfoil: 16,
 } as const
 
 const vertexSource = `
@@ -419,6 +420,27 @@ void main() {
     vec3 holo = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5) - 0.5) * 0.18 * glare * foilMask;
     vec3 light = 0.5 + (tint - 0.5) * shine * 0.9 + emboss * 0.35 * onAxis + holo;
     colour = hardLight(base, clamp(light, 0.0, 1.0));
+  }
+
+  if (uType == 16) {
+    // Singularity, matched to photos of Sothera, the Supervoid (EOE #382): dark mirror chrome with
+    // fine vertical brushed lines. The brushing stretches the highlight into a horizontal band at
+    // the light's height. Light ink turns chrome silver with a pale rainbow that shifts with the
+    // tilt; dark areas sink towards black off-axis. Everything fades off-axis.
+    float column = floor(vUv.x * 900.0);
+    float brushed = (hash(vec2(column, 3.1)) - 0.5) * (0.4 + 0.6 * noise(vec2(column * 0.37, vUv.y * 5.0)));
+    float sheen = exp(-pow((vUv.y - uPointer.y) * uAspect / 0.12, 2.0)) * exp(-pow((vUv.x - uPointer.x) / 0.6, 2.0));
+    // Light ink becomes silver chrome (darker than white off-axis) with a pale shifting rainbow.
+    float chromeInk = smoothstep(0.45, 0.9, lum);
+    vec3 chrome = mix(vec3(0.82, 0.86, 0.9), rainbow(vUv.x * 1.2 + vUv.y * 0.6 + dot(tilt, vec2(2.0, 1.2))), 0.3);
+    chrome *= 0.7 + 0.3 * glare + 0.2 * sheen;
+    // Coloured ink takes a cool, slightly desaturated metallic cast.
+    vec3 metal = mix(base, lum * vec3(0.85, 0.97, 1.08), 0.25);
+    metal = mix(metal, chrome, chromeInk * 0.75);
+    vec3 light = 0.5 + brushed * (0.08 + 0.12 * sheen)
+      + vec3(0.07, 0.09, 0.11) * sheen
+      - 0.13 * (1.0 - glare) * (1.0 - chromeInk);
+    colour = hardLight(metal, clamp(light, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);

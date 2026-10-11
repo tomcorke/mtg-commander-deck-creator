@@ -103,6 +103,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Scales are cells of a staggered, slightly jittered grid (about 11 across, rows warped by a sine and noise so they curve), with rounded corners from a smooth-min over the cell edges. Seams are lightened with a hard-light blend so they show on dark ink; scale interiors are darkened a little and shaded from the tilt direction. A noise mask that shifts with the tilt reveals the net in patches, on top of the off-axis fade. Narrow vertical rainbow streaks (about 8 across) slide with horizontal tilt, break up along their length, dim over the seams and are strongest near the light. The preview uses a Special Guests fetch land, whose scan has no scales printed in.',
   },
+  singularityfoil: {
+    expected:
+      'Singularity foil: made only for the Edge of Eternities headliner, Sothera, the Supervoid (EOE #382, Collector Boosters, under 1% of packs). In photos of a PSA-graded copy, the whole card is dark mirror chrome with fine vertical brushed lines that show even over the black void. The white title turns chrome silver with a pale rainbow, the cyan and purple ribbons take on a cool metallic sheen, and the soft glow in the background sinks almost to black.',
+    css: standardCss,
+    webgl:
+      'Fine vertical brushed lines (about 900 across, each broken up along its length) cover the card, faint everywhere and brighter in a narrow horizontal highlight band at the height of the light, as brushed metal stretches a reflection across the brushing. Light ink turns chrome silver, slightly darker than white away from the light, with a pale rainbow that shifts with the tilt. Coloured ink takes a cool, slightly desaturated metallic cast, and dark and mid areas darken away from the light. Hard-light blend, faded off-axis. The preview uses the Sothera scan, which has no foil printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
