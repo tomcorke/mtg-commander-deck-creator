@@ -169,17 +169,23 @@ void main() {
     float t = clamp(0.5 + (uPointer.x * 0.5 + uPointer.y * 0.5 - 0.5) * 0.8, 0.0, 1.0);
     vec2 light = mix(vec2(0.5, 0.5 * uAspect), vec2(uPointer.x, uPointer.y * uAspect), 0.35);
     vec3 rings = vec3(0.0); // offsets from neutral grey
-    for (int row = 0; row < 6; row++) {
-      for (int col = 0; col < 4; col++) {
-        vec2 centre = vec2((float(col) + 0.5) * 0.25, (float(row) + 0.5) * 0.25);
+    // A 3-wide grid: fewer, larger rings that still overlap.
+    for (int row = 0; row < 5; row++) {
+      for (int col = 0; col < 3; col++) {
+        vec2 centre = vec2((float(col) + 0.5) / 3.0, (float(row) + 0.5) / 3.0);
         bool even = mod(float(row + col), 2.0) < 0.5;
-        float radius = mix(0.0, 0.42, even ? t : 1.0 - t);
+        float radius = mix(0.0, 0.5, even ? t : 1.0 - t);
         vec2 fromCentre = p - centre;
-        float offset = (length(fromCentre) - radius) / 0.018;
+        float offset = (length(fromCentre) - radius) / 0.03;
         float band = exp(-offset * offset) * smoothstep(0.0, 0.04, radius);
         vec2 towardLight = light - centre;
         float facing = dot(normalize(fromCentre + 0.0001), normalize(towardLight + 0.0001));
         float arc = smoothstep(0.0, 0.95, facing) * exp(-pow(length(towardLight) / 0.62, 2.0));
+        // Each ring also has its own tilt at which it shows as a complete circle.
+        float phase = hash(centre + 0.37) * TAU;
+        vec2 ringFacing = vec2(hash(centre + 3.3), hash(centre + 7.7)) * 2.0 - 1.0;
+        float whole = pow(max(0.0, cos(dot(tilt, ringFacing) * 7.0 + phase)), 8.0);
+        arc = max(arc, whole);
         float hue = offset * 0.1 + atan(fromCentre.y, fromCentre.x) / TAU + dot(tilt, vec2(1.7, 1.1));
         rings += (rainbow(hue) - 0.5) * band * arc;
       }
