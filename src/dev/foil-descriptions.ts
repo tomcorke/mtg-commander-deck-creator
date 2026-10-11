@@ -103,6 +103,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Scales are cells of a staggered, slightly jittered grid (about 11 across, rows warped by a sine and noise so they curve), with rounded corners from a smooth-min over the cell edges. Seams are lightened with a hard-light blend so they show on dark ink; scale interiors are darkened a little and shaded from the tilt direction. A noise mask that shifts with the tilt reveals the net in patches, on top of the off-axis fade. Narrow vertical rainbow streaks (about 8 across) slide with horizontal tilt, break up along their length, dim over the seams and are strongest near the light. The preview uses a Special Guests fetch land, whose scan has no scales printed in.',
   },
+  gilded: {
+    expected:
+      'Gilded foil (Streets of New Capenna Golden Age showcase, SNC #361-405, and three Secret Lair commanders such as Atraxa, SLD #453): the gold Art Deco frame lines are a raised, mirror-polished gold hot stamp over a traditional foil card. In the Wizards collecting-article animation of Nimble Larcenist, the frame swings from dull dark bronze to saturated, almost orange gold as the card turns, and the raised lines catch small glints. The art and text box keep a mild traditional foil sheen; the text box pattern stays dark. Scryfall’s SNC gilded scans show the frame as thin dark copper lines, because the stamp isn’t printed.',
+    css: standardCss,
+    webgl:
+      'Finds warm gold ink in the scan and treats it as the stamp and its height map. The stamp is replaced by metal that is dark bronze away from the light and bright saturated gold where a broad diagonal reflection band, which follows the light, crosses it. Normals from the height add shading and small glints lit from the tilt direction. The rest of the card gets a gentle traditional foil sweep that fades off-axis. Gold ink in the art also turns metallic. The preview uses the regular Golden Age Raffine (SNC #327), whose scan prints the frame in flat gold; the gilded scans show only thin dark lines there, so the effect is weak on them.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
