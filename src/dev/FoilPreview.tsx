@@ -45,7 +45,7 @@ const sampleOverrides: Record<string, string> = {
   fracturefoil: '!"Overlord of the Hauntwoods" -is:fracturefoil',
   raisedfoil: '!"Zoraline, Cosmos Caller" is:raisedfoil',
   neonink: 'is:neonink set:neo',
-  oilslick: 'set:one cn:357',
+  oilslick: '!"Atraxa, Grand Unifier" set:one cn:316',
   confettifoil: '!"Rhystic Study" set:wot cn:71',
   gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
 }
