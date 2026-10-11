@@ -73,6 +73,12 @@ vec3 hardLight(vec3 base, vec3 light) {
   return mix(2.0 * base * light, 1.0 - 2.0 * (1.0 - base) * (1.0 - light), step(0.5, light));
 }
 
+// Soft light (W3C formula), as CSS mix-blend-mode: soft-light.
+vec3 softLight(vec3 base, vec3 light) {
+  vec3 d = mix(sqrt(base), ((16.0 * base - 12.0) * base + 4.0) * base, step(base, vec3(0.25)));
+  return mix(base - (1.0 - 2.0 * light) * base * (1.0 - base), base + (2.0 * light - 1.0) * (d - base), step(0.5, light));
+}
+
 void main() {
   vec3 base = texture2D(uImage, vUv).rgb;
   vec2 tilt = uPointer - 0.5;
@@ -95,15 +101,24 @@ void main() {
     float amount = strength * foilMask * sweep * (0.2 + 0.8 * glare);
     colour = hardLight(base, 0.5 + (rainbow(hue) - 0.5) * amount);
   } else if (uType == 2) {
-    // Etched: metallic gold on edges in light areas, strongest near the light.
-    float l = luminance(texture2D(uImage, vUv - vec2(uTexel.x, 0.0)).rgb);
-    float r = luminance(texture2D(uImage, vUv + vec2(uTexel.x, 0.0)).rgb);
-    float u = luminance(texture2D(uImage, vUv - vec2(0.0, uTexel.y)).rgb);
-    float d = luminance(texture2D(uImage, vUv + vec2(0.0, uTexel.y)).rgb);
-    float edges = clamp(length(vec2(r - l, d - u)) * 4.0, 0.0, 1.0);
-    float grain = hash(floor(vUv / uTexel));
-    vec3 gold = vec3(1.0, 0.86, 0.55) * (0.6 + 0.4 * grain);
-    colour = screen(base, gold * edges * (0.25 + 0.9 * glare));
+    // Etched, ported from the CSS effect: gold edges found with a 3x3 Laplacian inside the art box
+    // only, masked to a circle around the light; a soft-light gold sheen; a faint warm glow.
+    float centre = luminance(base);
+    float around = 0.0;
+    for (int dy = -1; dy <= 1; dy++)
+      for (int dx = -1; dx <= 1; dx++)
+        around += luminance(texture2D(uImage, vUv + vec2(float(dx), float(dy)) * uTexel).rgb);
+    float laplacian = 9.0 * centre - around;
+    float edgeAlpha = clamp(3.0 * laplacian - 0.12, 0.0, 1.0);
+    float inArt = step(0.07, vUv.x) * step(vUv.x, 0.93) * step(0.08, vUv.y) * step(vUv.y, 0.55);
+    float near = length((vUv - uPointer) * vec2(1.0, uAspect)) / 1.2;
+    float edgeMask = mix(1.0, 0.53, smoothstep(0.18, 0.35, near)) * (1.0 - smoothstep(0.35, 0.58, near));
+    vec3 edged = screen(base, vec3(1.0, 0.88, 0.55) * edgeAlpha * edgeMask * inArt);
+    float diagonal = dot(vUv - uPointer / 3.0, vec2(0.57, 0.82)) * 1.2;
+    vec3 sheenColour = mix(vec3(0.22, 0.18, 0.16), vec3(0.91, 0.84, 0.67), 0.5 + 0.5 * sin(diagonal * TAU));
+    vec3 sheen = softLight(edged, mix(vec3(0.5), sheenColour, 0.4 * 0.88));
+    float glow = mix(0.22, 0.0, smoothstep(0.0, 0.58, length(vUv - uPointer)));
+    colour = screen(sheen, vec3(1.0, 0.94, 0.77) * glow * 0.45);
   } else if (uType == 3) {
     // Surge: noise stretched along steep streaks rising to the right and thresholded into
     // bands of varied width, like brushed flames; saturated rainbow that shifts with the tilt.
