@@ -44,3 +44,5 @@ The dev-only `dev-feedback` plugin in `vite.config.ts` stores notes in `dev-feed
 - Choose sample scans without foil photographed or printed in. Halo uses Multiverse Legends; step-and-compleat, fracture and raised use the overrides in `FoilPreview.tsx`.
 - Look at real reference photos first. mtg.wiki "Foil" has a gallery, and the image API is `https://mtg.wiki/api.php?action=query&prop=imageinfo&iiprop=url&titles=File:<name>`.
 - `half` is a reserved word in GLSL ES; don't use it as a variable name.
+- Use more than one source for each foil's description (mtg.wiki, Wizards announcements, collector photos and videos). Cite them in `expected`, and say where they disagree.
+- Never use a sample scan with the foil effect baked in. Photos of real foil cards are reference only.
