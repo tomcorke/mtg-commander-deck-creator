@@ -75,6 +75,27 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     css: 'The rainbow-foil tint plus a second rainbow band moving against the first.',
     webgl: 'Same as rainbow foil for now (the traditional sweep at strength 0.75).',
   },
+  fracturefoil: {
+    expected:
+      'Fracture foil (Japan Showcase): the border is covered in small, sharp-edged glass shards, each catching the light in its own rainbow colour, like shattered glass. A few sparkles also show in light parts of the art. Shards flash on and off as the card tilts.',
+    css: standardCss,
+    webgl:
+      'Voronoi shards about 2.5% of the card wide, each with its own random tilt, shimmering faintly and flashing brightly in its own rainbow colour at its own angle, with thin dark seams between shards. Dense on the outer border (about 5% of the width), sparse elsewhere and only on light ink. Faded off-axis. Screen blend, so shards shine on dark borders. The preview uses a regular Overlord of the Hauntwoods printing, because the fracture scans include photographed foil.',
+  },
+  raisedfoil: {
+    expected:
+      'Raised foil: a raised, embossed glossy layer on parts of the frame. Bloomburrow raises the gold or bronze vine ornaments around the name and text box; the Big Score Vault cards have a raised gold stamp in the frame. The raised parts catch glossy highlights and cast slight shading as the card tilts, over a foil card.',
+    css: standardCss,
+    webgl:
+      'Finds warm metallic ink (gold, bronze, copper) in the scan and treats it as a height map. Normals from that height are lit from a direction set by the tilt, giving the ornaments shading and glossy gold highlights. A faint foil sheen covers the rest, and everything fades off-axis. Cards without warm metallic frames show little raised effect. The preview uses the Bloomburrow Zoraline raised-foil scan, whose ornaments are the raised parts.',
+  },
+  neonink: {
+    expected:
+      'Neon ink (Kamigawa: Neon Dynasty, later Cavern of Souls, Mana Crypt and others): a flat, very saturated fluorescent spot ink (pink, yellow, green, blue or orange) printed in parts of the art and frame, over a foil card. The ink looks almost lit from within and glows under a blacklight; it does not change with angle, but the foil around it does.',
+    css: standardCss,
+    webgl:
+      'Detects the neon ink as very saturated, bright pixels in the scan. The ink is made slightly brighter and more saturated, and a soft glow spreads from it, sampled from a 24-point ring around each pixel. The rest of the card gets the traditional foil sweep, fading off-axis. The ink and glow do not depend on angle. The preview uses Hidetsugu (Kamigawa: Neon Dynasty), whose scan shows the printed ink.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

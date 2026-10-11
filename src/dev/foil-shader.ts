@@ -13,6 +13,9 @@ export const foilShaderTypes = {
   rainbowfoil: 8,
   doublerainbow: 8,
   stepandcompleat: 9,
+  fracturefoil: 10,
+  raisedfoil: 11,
+  neonink: 12,
 } as const
 
 const vertexSource = `
@@ -107,6 +110,24 @@ vec3 galaxyShapes(vec2 p, vec2 tilt, float scale, float salt, float density) {
   vec2 facing = vec2(hash(cell + 31.0), hash(cell + 37.0)) * 2.0 - 1.0;
   float twinkle = pow(max(0.0, cos(dot(tilt, facing) * 14.0 + seed * TAU)), 10.0);
   return (rainbow(seed * 5.0 + dot(tilt, facing) * 2.0) - 0.5) * step(1.0 - density, seed) * shape * twinkle;
+}
+
+// How strongly a pixel looks like warm metallic ink (gold, bronze, copper): used as the height
+// of raised-foil frame ornaments.
+float warmMetal(vec3 c) {
+  float high = max(c.r, max(c.g, c.b));
+  float low = min(c.r, min(c.g, c.b));
+  float saturation = high > 0.0 ? (high - low) / high : 0.0;
+  float warm = step(c.b, c.g) * step(c.g, c.r);
+  return warm * smoothstep(0.18, 0.4, saturation) * smoothstep(0.2, 0.4, luminance(c));
+}
+
+// How strongly a pixel looks like fluorescent neon ink: very saturated and bright.
+float neonInk(vec3 c) {
+  float high = max(c.r, max(c.g, c.b));
+  float low = min(c.r, min(c.g, c.b));
+  float saturation = high > 0.0 ? (high - low) / high : 0.0;
+  return smoothstep(0.55, 0.75, saturation) * smoothstep(0.45, 0.7, high);
 }
 
 // Distance to a Phyrexian symbol: a ring with a vertical stroke through it, extending above and below.
@@ -250,6 +271,81 @@ void main() {
     colour = hardLight(mix(base, mono, 0.6), vec3(metal, metal + 0.01, metal + 0.02));
   }
 
+  if (uType == 12) {
+    // Neon ink: a flat fluorescent spot ink over a foil card. The ink pops (slightly brighter and
+    // more saturated) and glows softly into its surroundings; it doesn't change with angle. The
+    // foil underneath sweeps with the light and fades off-axis, as on traditional foil.
+    float ink = neonInk(base);
+    vec3 glowColour = vec3(0.0);
+    float glowWeight = 0.0;
+    for (int i = 0; i < 12; i++) {
+      float angle = float(i) * TAU / 12.0;
+      for (int ring = 1; ring <= 2; ring++) {
+        vec2 offset = vec2(cos(angle), sin(angle)) * uTexel * 7.0 * float(ring);
+        vec3 sampleColour = texture2D(uImage, vUv + offset).rgb;
+        float weight = neonInk(sampleColour) / float(ring);
+        glowColour += sampleColour * weight;
+        glowWeight += 1.0 / float(ring);
+      }
+    }
+    vec3 glow = glowColour / glowWeight;
+    vec3 popped = mix(base, clamp(base * 1.18 + (base - luminance(base)) * 0.35, 0.0, 1.0), ink);
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    vec3 foiled = hardLight(popped, 0.5 + (rainbow(hue) - 0.5) * 0.45 * foilMask * sweep * onAxis * (1.0 - ink));
+    colour = screen(foiled, glow * 0.9);
+  }
+  if (uType == 11) {
+    // Raised foil: the warm metallic frame ornaments are treated as a raised, glossy surface.
+    // Their height comes from the scan; light from a direction set by the tilt gives them glossy
+    // gold highlights and shading. A faint foil sheen covers the rest; everything fades off-axis.
+    vec2 step2 = uTexel * 1.5;
+    float h = warmMetal(base);
+    float hx = warmMetal(texture2D(uImage, vUv + vec2(step2.x, 0.0)).rgb) - warmMetal(texture2D(uImage, vUv - vec2(step2.x, 0.0)).rgb);
+    float hy = warmMetal(texture2D(uImage, vUv + vec2(0.0, step2.y)).rgb) - warmMetal(texture2D(uImage, vUv - vec2(0.0, step2.y)).rgb);
+    vec3 normal = normalize(vec3(-hx * 6.0, -hy * 6.0, 1.0));
+    vec3 lightDir = normalize(vec3(tilt * 2.2, 0.8));
+    float diffuse = dot(normal, lightDir) - lightDir.z;
+    float specular = pow(max(0.0, dot(reflect(-lightDir, normal), vec3(0.0, 0.0, 1.0))), 6.0);
+    vec3 gold = vec3(1.0, 0.86, 0.55);
+    vec3 holo = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5) - 0.5) * 0.2 * glare * foilMask;
+    vec3 light = 0.5 + h * (diffuse * 1.2 + (gold - 0.5) * 0.6) * onAxis + holo;
+    colour = screen(hardLight(base, clamp(light, 0.0, 1.0)), gold * specular * h * onAxis * 1.6);
+  }
+  if (uType == 10) {
+    // Fracture: shattered-glass shards (Voronoi cells about 2.5% of the card wide), each tilted
+    // its own way so it flashes its own rainbow colour at its own angle. Dense on the border,
+    // sparse elsewhere; fades off-axis. Screen blend, so shards shine on a dark border.
+    vec2 grid = p * 40.0;
+    vec2 cellBase = floor(grid);
+    float nearest = 8.0;
+    float second = 8.0;
+    vec2 shard = vec2(0.0);
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec2 cell = cellBase + vec2(float(x), float(y));
+        vec2 point = cell + vec2(hash(cell), hash(cell + 4.1));
+        float d = length(grid - point);
+        if (d < nearest) {
+          second = nearest;
+          nearest = d;
+          shard = cell;
+        } else if (d < second) {
+          second = d;
+        }
+      }
+    }
+    vec2 shardTilt = vec2(hash(shard + 7.3), hash(shard + 2.9)) * 2.0 - 1.0;
+    float flash = pow(max(0.0, cos(dot(tilt, shardTilt) * 12.0 + hash(shard + 1.7) * TAU)), 3.0);
+    float seam = smoothstep(0.0, 0.08, second - nearest);
+    vec2 edgeDistance = min(vUv, 1.0 - vUv) * vec2(1.0, uAspect);
+    float border = 1.0 - smoothstep(0.04, 0.055, min(edgeDistance.x, edgeDistance.y));
+    float density = mix(0.12 * foilMask, 1.0, border);
+    vec3 glass = rainbow(hash(shard + 5.5) + dot(tilt, shardTilt) * 1.5) * 0.8 + 0.2;
+    // Every shard shimmers a little; the ones angled at the light flash brightly.
+    colour = screen(base, glass * (0.3 + 0.9 * flash) * seam * density * onAxis);
+  }
   if (uType == 9) {
     // Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols. Each symbol
     // is embossed (lit from the light direction) and tinted metallic gold, rose, green or silver,

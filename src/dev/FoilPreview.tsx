@@ -42,10 +42,30 @@ const plainCardImage = (query: string) =>
 // the image) preview on a plain printing with the foil type applied by the app.
 const sampleOverrides: Record<string, string> = {
   stepandcompleat: '!"Glissa, the Traitor" -is:stepandcompleat',
+  fracturefoil: '!"Overlord of the Hauntwoods" -is:fracturefoil',
+  raisedfoil: '!"Zoraline, Cosmos Caller" is:raisedfoil',
+  neonink: 'is:neonink set:neo',
 }
+
+// Results are cached on globalThis by key and query, so hot updates to this page refill the
+// grid instantly and only changed queries are fetched again.
+const sampleCache: Map<string, Sample | string> = ((
+  globalThis as { foilSampleCache?: Map<string, Sample | string> }
+).foilSampleCache ??= new Map())
 
 async function loadSample([key, defaultQuery]: [string, string]): Promise<Sample | string> {
   const query = sampleOverrides[key] ?? defaultQuery
+  const cacheKey = `${key}|${query}`
+  const cached = sampleCache.get(cacheKey)
+  if (cached) return cached
+  const sample = await fetchSample(key, query).catch(() => `${key}: request failed`)
+  if (typeof sample !== 'string') sampleCache.set(cacheKey, sample)
+  // Scryfall search allows about 2 requests a second.
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  return sample
+}
+
+async function fetchSample(key: string, query: string): Promise<Sample | string> {
   const url = `https://api.scryfall.com/cards/search?order=released&dir=desc&q=${encodeURIComponent(query)}`
   const response = await fetch(url)
   if (!response.ok) return `${key}: no results`
@@ -132,10 +152,9 @@ export function FoilPreview() {
     setSamples([])
     void (async () => {
       for (const query of queries) {
-        const sample = await loadSample(query).catch(() => `${query[0]}: request failed`)
+        const sample = await loadSample(query)
         if (cancelled) return
         setSamples((current) => [...current, sample])
-        await new Promise((resolve) => setTimeout(resolve, 600)) // Scryfall search allows about 2 requests a second.
       }
     })()
     return () => {
