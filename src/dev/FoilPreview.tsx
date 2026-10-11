@@ -6,6 +6,7 @@ import { finishLabel, foilTypeNames, printingOptions } from '../domain/printing.
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { FinishFilters } from '../shared/FinishFilters.tsx'
 import { FoilStage } from './FoilStage.tsx'
+import { noteSummary, useFeedback } from './FoilFeedback.tsx'
 import { VisualPreferencesContext } from '../shared/VisualPreferencesContext.tsx'
 
 type Sample = ReturnType<typeof printingOptions>[number] & { name: string }
@@ -70,10 +71,12 @@ function SampleCard({
   sample,
   image,
   onCompare,
+  summary,
 }: {
   sample: Sample
   image: string
   onCompare: () => void
+  summary: string
 }) {
   return (
     <li>
@@ -91,6 +94,7 @@ function SampleCard({
       <button type="button" onClick={onCompare}>
         Compare CSS and WebGL
       </button>
+      {summary && <small className="foil-note-summary">{summary}</small>}
     </li>
   )
 }
@@ -102,10 +106,13 @@ export function FoilPreview() {
   const [staticEffects, setStaticEffects] = useState(true)
   const [plainCard, setPlainCard] = useState('')
   const [compared, setCompared] = useState<Sample>()
+  const { notes, save } = useFeedback()
   const imageFor = (sample: Sample) => (plainCard ? plainCardImage(plainCard) : sample.image)
 
   useEffect(() => {
     let cancelled = false
+    // Hot reloads re-run this effect; start from an empty list rather than appending duplicates.
+    setSamples([])
     void (async () => {
       for (const query of queries) {
         const sample = await loadSample(query).catch(() => `${query[0]}: request failed`)
@@ -156,7 +163,13 @@ export function FoilPreview() {
               </select>
             </label>
           </p>
-          {compared && <FoilStage card={{ ...compared, image: imageFor(compared) }} />}
+          {compared && (
+            <FoilStage
+              card={{ ...compared, image: imageFor(compared) }}
+              notes={notes}
+              save={save}
+            />
+          )}
           <ul>
             {samples.map((sample) =>
               typeof sample === 'string' ? (
@@ -167,6 +180,7 @@ export function FoilPreview() {
                   sample={sample}
                   image={imageFor(sample)}
                   onCompare={() => setCompared(sample)}
+                  summary={noteSummary(notes, sample.foilType ?? sample.finish ?? 'nonfoil')}
                 />
               ),
             )}

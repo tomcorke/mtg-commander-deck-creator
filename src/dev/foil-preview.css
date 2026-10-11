@@ -86,3 +86,33 @@
   width: 100%;
   height: auto;
 }
+.foil-note {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.foil-note textarea {
+  width: 100%;
+  font: inherit;
+}
+.foil-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.foil-note-status.ready,
+.foil-note-status.working {
+  color: #a35b00;
+}
+.foil-note-status.done,
+.foil-note-summary {
+  color: #2f7d32;
+}
+.foil-note-reply {
+  margin: 0;
+  padding: 8px;
+  border-left: 3px solid #2f7d32;
+  background: #2f7d3214;
+  white-space: pre-wrap;
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
 import type { CardFinish } from '../domain/card-model.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
+import { NotePanel, noteId, type FeedbackNote } from './FoilFeedback.tsx'
 import { createFoilRenderer, foilShaderTypes } from './foil-shader.ts'
 
 type StageCard = { image: string; name: string; finish?: CardFinish; foilType?: string }
@@ -13,12 +14,12 @@ const shaderType = ({ finish, foilType }: StageCard) =>
       ? 2
       : 0
 
-// Dev prototype: the selected card drawn by CSS and by the WebGL foil shader, side by side.
-export function FoilStage({ card }: { card: StageCard }) {
+// Runs the WebGL foil renderer for one card, tilting with the pointer or automatically.
+function useFoilCanvas({ image, finish, foilType }: StageCard, autoTilt: boolean) {
+  const type = shaderType({ image, name: '', finish, foilType })
   const canvas = useRef<HTMLCanvasElement>(null)
   const wrapper = useRef<HTMLDivElement>(null)
   const pointer = useRef({ x: 0.5, y: 0.5 })
-  const [autoTilt, setAutoTilt] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -37,14 +38,14 @@ export function FoilStage({ card }: { card: StageCard }) {
     }
     let frame = 0
     let ready = false
-    const image = new Image()
-    image.crossOrigin = 'anonymous'
-    image.onload = () => {
-      renderer.setImage(image)
+    const loader = new Image()
+    loader.crossOrigin = 'anonymous'
+    loader.onload = () => {
+      renderer.setImage(loader)
       ready = true
     }
-    image.onerror = () => setError('Could not load the card image for WebGL.')
-    image.src = card.image
+    loader.onerror = () => setError('Could not load the card image for WebGL.')
+    loader.src = image
     const draw = (time: number) => {
       if (autoTilt) {
         const seconds = time / 1000
@@ -53,7 +54,7 @@ export function FoilStage({ card }: { card: StageCard }) {
           y: 0.5 + 0.4 * Math.sin(seconds * 0.43),
         }
       }
-      if (ready) renderer.render(shaderType(card), pointer.current, time / 1000)
+      if (ready) renderer.render(type, pointer.current, time / 1000)
       const { x, y } = pointer.current
       wrapper.current?.style.setProperty(
         'transform',
@@ -63,7 +64,7 @@ export function FoilStage({ card }: { card: StageCard }) {
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [card, autoTilt])
+  }, [image, finish, foilType, autoTilt])
 
   const track = (event: PointerEvent<HTMLElement>) => {
     if (autoTilt) return
@@ -73,6 +74,24 @@ export function FoilStage({ card }: { card: StageCard }) {
       y: (event.clientY - bounds.top) / bounds.height,
     }
   }
+
+  return { canvas, wrapper, track, error }
+}
+
+// Dev prototype: the selected card drawn by CSS and by the WebGL foil shader, side by side.
+export function FoilStage({
+  card,
+  notes,
+  save,
+}: {
+  card: StageCard
+  notes: FeedbackNote[]
+  save: (note: FeedbackNote) => Promise<void>
+}) {
+  const foil = card.foilType ?? card.finish ?? 'nonfoil'
+  const note = (side: 'css' | 'webgl') => notes.find(({ id }) => id === noteId(foil, side))
+  const [autoTilt, setAutoTilt] = useState(true)
+  const { canvas, wrapper, track, error } = useFoilCanvas(card, autoTilt)
 
   return (
     <section className="foil-stage">
@@ -96,12 +115,14 @@ export function FoilStage({ card }: { card: StageCard }) {
             foilType={card.foilType}
           />
           <figcaption>CSS (hover it)</figcaption>
+          <NotePanel foil={foil} side="css" note={note('css')} save={save} />
         </figure>
         <figure>
           <div ref={wrapper} className="foil-stage-webgl" onPointerMove={track}>
             <canvas ref={canvas} width={488 * 2} height={680 * 2} />
           </div>
           <figcaption>{error || 'WebGL'}</figcaption>
+          <NotePanel foil={foil} side="webgl" note={note('webgl')} save={save} />
         </figure>
       </div>
     </section>

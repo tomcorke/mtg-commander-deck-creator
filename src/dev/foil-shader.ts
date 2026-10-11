@@ -124,13 +124,14 @@ void main() {
     // bands of varied width, like brushed flames; saturated rainbow that shifts with the tilt.
     vec2 q = mat2(0.5, -0.87, 0.87, 0.5) * p;
     q += (vec2(fbm(p * 1.4), fbm(p * 1.4 + 7.3)) - 0.5) * 0.25;
-    vec2 stretched = vec2(q.x * 2.2, q.y * 26.0) + tilt * vec2(1.5, 6.0);
+    vec2 stretched = vec2(q.x * 2.6, q.y * 14.0) + tilt * vec2(1.5, 4.0);
+    stretched.y += (fbm(q * vec2(3.0, 5.0) + 2.7) - 0.5) * 4.0;
     float streaks = fbm(stretched);
-    float bands = smoothstep(0.5, 0.68, streaks) * (0.6 + 0.4 * noise(vec2(q.x * 5.0, q.y * 60.0)));
+    float bands = smoothstep(0.46, 0.72, streaks) * (0.6 + 0.4 * noise(vec2(q.x * 5.0, q.y * 60.0)));
     float reveal = smoothstep(0.18, 0.48, fbm(p * 1.3 + tilt * 1.6));
     vec3 hue = rainbow(q.y * 2.4 + streaks * 1.5 + tilt.x * 2.0 + tilt.y);
     float amount = bands * reveal * (0.75 + 0.7 * glare);
-    colour = hardLight(base, 0.5 + (hue - 0.5) * clamp(amount * 1.3, 0.0, 1.0));
+    colour = hardLight(base, 0.5 + (hue - 0.5) * clamp(amount, 0.0, 0.65));
   } else if (uType == 4) {
     // Ripple: soft rainbow rings on a 4x4 grid; the checkerboard sets grow and shrink in turn.
     // Each ring's colour shifts with the tilt, and each only lights up at some viewing angles.
