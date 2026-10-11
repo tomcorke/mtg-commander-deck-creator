@@ -121,7 +121,11 @@
 }
 .foil-sheet-row canvas,
 .foil-sheet-css {
-  width: 366px;
+  width: 300px;
+}
+.foil-sheet h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
 }
 .foil-stage-description {
   width: min(360px, 100%);

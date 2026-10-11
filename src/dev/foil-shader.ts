@@ -127,6 +127,8 @@ void main() {
   float foilMask = 0.25 + 0.75 * smoothstep(0.05, 0.75, lum);
   // Broad specular highlight that follows the pointer.
   float glare = exp(-pow(length((vUv - uPointer) * vec2(1.0, uAspect)) / 0.45, 2.0));
+  // Almost every foil fades out off-axis: faint away from the light, full near it.
+  float onAxis = 0.15 + 0.85 * glare;
   vec3 colour = base;
 
   if (uType == 1 || uType == 8) {
@@ -147,16 +149,16 @@ void main() {
       for (int dx = -1; dx <= 1; dx++)
         around += luminance(texture2D(uImage, vUv + vec2(float(dx), float(dy)) * uTexel).rgb);
     float laplacian = 9.0 * centre - around;
-    float edgeAlpha = clamp(3.0 * laplacian - 0.12, 0.0, 1.0);
+    float edgeAlpha = clamp(8.0 * laplacian - 0.1, 0.0, 1.0);
     float inArt = step(0.07, vUv.x) * step(vUv.x, 0.93) * step(0.08, vUv.y) * step(vUv.y, 0.55);
-    float near = length((vUv - uPointer) * vec2(1.0, uAspect)) / 1.2;
+    float near = length((vUv - uPointer) * vec2(1.0, uAspect)) / 1.6;
     float edgeMask = mix(1.0, 0.53, smoothstep(0.18, 0.35, near)) * (1.0 - smoothstep(0.35, 0.58, near));
-    vec3 edged = screen(base, vec3(1.0, 0.88, 0.55) * edgeAlpha * edgeMask * inArt);
+    vec3 edged = screen(base, vec3(1.0, 0.9, 0.6) * min(1.0, edgeAlpha * edgeMask * inArt * 1.3));
     float diagonal = dot(vUv - uPointer / 3.0, vec2(0.57, 0.82)) * 1.2;
     vec3 sheenColour = mix(vec3(0.22, 0.18, 0.16), vec3(0.91, 0.84, 0.67), 0.5 + 0.5 * sin(diagonal * TAU));
-    vec3 sheen = softLight(edged, mix(vec3(0.5), sheenColour, 0.4 * 0.88));
+    vec3 sheen = softLight(edged, mix(vec3(0.5), sheenColour, 0.75));
     float glow = mix(0.22, 0.0, smoothstep(0.0, 0.58, length(vUv - uPointer)));
-    colour = screen(sheen, vec3(1.0, 0.94, 0.77) * glow * 0.45);
+    colour = screen(sheen, vec3(1.0, 0.94, 0.77) * glow * 0.85);
   } else if (uType == 3) {
     // Surge: noise stretched along steep streaks rising to the right and thresholded into
     // bands of varied width, like brushed flames; saturated rainbow that shifts with the tilt.
@@ -168,7 +170,7 @@ void main() {
     float bands = smoothstep(0.46, 0.72, streaks) * (0.6 + 0.4 * noise(vec2(q.x * 5.0, q.y * 60.0)));
     float reveal = smoothstep(0.18, 0.48, fbm(p * 1.3 + tilt * 1.6));
     vec3 hue = rainbow(q.y * 2.4 + streaks * 1.5 + tilt.x * 2.0 + tilt.y);
-    float amount = bands * reveal * (0.75 + 0.7 * glare);
+    float amount = bands * reveal * onAxis * 1.3;
     colour = hardLight(base, 0.5 + (hue - 0.5) * clamp(amount, 0.0, 0.65));
   } else if (uType == 4) {
     // Ripple: rings on a 4x4 grid; the checkerboard sets grow from zero and shrink back in turn.
@@ -221,7 +223,7 @@ void main() {
       : mix(vec3(0.32, 0.5, 1.0), vec3(0.72, 0.42, 1.0), shift * 2.0 - 1.0);
     vec3 tint = mix(silver, hue, 0.7);
     float reveal = smoothstep(0.42, 0.66, fbm(p * 1.1 - tilt * 1.4 + 3.0));
-    colour = hardLight(base, 0.5 + (tint - 0.5) * amount * 0.85 * reveal);
+    colour = hardLight(base, 0.5 + (tint - 0.5) * amount * reveal * onAxis * 1.1);
   } else if (uType == 6) {
     // Galaxy: round rainbow glitter points and larger stars. Each point twinkles at its own angle,
     // and a large noise reveal shifts with the tilt, so only some areas sparkle at once.
@@ -235,7 +237,7 @@ void main() {
     vec3 glitter = (rainbow(seed * 3.0 + tilt.x) - 0.5) * point * twinkle;
     // Shapes in two layers: many small ones and a few large ones, with sizes skewed small.
     vec3 stars = (galaxyShapes(p, tilt, 16.0, 0.0, 0.3) + galaxyShapes(p, tilt, 5.0, 40.0, 0.3)) * 1.6;
-    float light = reveal * (0.55 + 0.9 * glare);
+    float light = reveal * onAxis * 1.3;
     colour = hardLight(base, clamp(0.5 + (glitter + stars) * light * 2.2, 0.0, 1.0));
   } else if (uType == 7) {
     // Silverscreen: monochrome print under a broad metallic silver sheen.
@@ -270,9 +272,9 @@ void main() {
     vec3 metal = pick < 0.3 ? vec3(0.95, 0.8, 0.45) : pick < 0.55 ? vec3(0.95, 0.6, 0.65)
       : pick < 0.75 ? vec3(0.65, 0.9, 0.55) : vec3(0.85, 0.88, 0.92);
     vec3 tint = mix(metal, rainbow(pick * 2.0 + dot(tilt, vec2(2.0, 1.5))), 0.3);
-    float shine = inside * (0.35 + 0.75 * glare);
+    float shine = inside * onAxis * 1.1;
     vec3 holo = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5) - 0.5) * 0.18 * glare * foilMask;
-    vec3 light = 0.5 + (tint - 0.5) * shine * 0.9 + emboss * 0.35 + holo;
+    vec3 light = 0.5 + (tint - 0.5) * shine * 0.9 + emboss * 0.35 * onAxis + holo;
     colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
