@@ -111,8 +111,8 @@ vec3 galaxyShapes(vec2 p, vec2 tilt, float scale, float salt, float density) {
 
 // Distance to a Phyrexian symbol: a ring with a vertical stroke through it, extending above and below.
 float phyrexianSymbol(vec2 l) {
-  float ring = abs(length(l) - 0.021) - 0.0045;
-  vec2 stem = abs(l) - vec2(0.0042, 0.034);
+  float ring = abs(length(l) - 0.026) - 0.0056;
+  vec2 stem = abs(l) - vec2(0.0052, 0.042);
   float bar = length(max(stem, 0.0)) + min(max(stem.x, stem.y), 0.0);
   return min(ring, bar);
 }
@@ -252,7 +252,7 @@ void main() {
     // Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols. Each symbol
     // is embossed (lit from the light direction) and tinted metallic gold, rose, green or silver,
     // shifting with the tilt and brightest near the light; a light holo sheen covers the rest.
-    vec2 spacing = vec2(0.1, 0.105);
+    vec2 spacing = vec2(0.13, 0.136);
     float row = floor(p.y / spacing.y);
     vec2 shifted = vec2(p.x + mod(row, 2.0) * spacing.x * 0.5, p.y);
     vec2 cell = floor(shifted / spacing);
