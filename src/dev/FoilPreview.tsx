@@ -20,6 +20,20 @@ const queries: [string, string][] = [
   ]),
 ]
 
+// Plain nonfoil scans to show every effect on the same, quieter image.
+const plainCards: [string, string][] = [
+  ['Each type’s own printing', ''],
+  ['Sol Ring (CMM)', 'Sol Ring&set=cmm'],
+  ['Plains (M21)', 'Plains&set=m21'],
+  ['Llanowar Elves (M19)', 'Llanowar Elves&set=m19'],
+  ['Counterspell (MH2)', 'Counterspell&set=mh2'],
+]
+const plainCardImage = (query: string) =>
+  `https://api.scryfall.com/cards/named?format=image&version=normal&exact=${query
+    .split('&')
+    .map((part, index) => (index ? part : encodeURIComponent(part)))
+    .join('&')}`
+
 async function loadSample([key, query]: [string, string]): Promise<Sample | string> {
   const url = `https://api.scryfall.com/cards/search?order=released&dir=desc&q=${encodeURIComponent(query)}`
   const response = await fetch(url)
@@ -30,11 +44,33 @@ async function loadSample([key, query]: [string, string]): Promise<Sample | stri
   return option ? { ...option, name: card.name } : `${key}: printing has no ${finish} finish`
 }
 
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <label>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />{' '}
+      {label}{' '}
+    </label>
+  )
+}
+
 export function FoilPreview() {
   const [samples, setSamples] = useState<(Sample | string)[]>([])
   const [darkMode, setDarkMode] = useState(false)
   const [cardEffects, setCardEffects] = useState(true)
   const [staticEffects, setStaticEffects] = useState(true)
+  const [plainCard, setPlainCard] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -70,29 +106,22 @@ export function FoilPreview() {
             effect. Loaded {samples.length} of {queries.length}.
           </p>
           <p>
+            <Toggle label="Dark mode" checked={darkMode} onChange={setDarkMode} />
+            <Toggle label="Motion and finishes" checked={cardEffects} onChange={setCardEffects} />
+            <Toggle
+              label="Show effects without hover"
+              checked={staticEffects}
+              onChange={setStaticEffects}
+            />
             <label>
-              <input
-                type="checkbox"
-                checked={darkMode}
-                onChange={(event) => setDarkMode(event.target.checked)}
-              />{' '}
-              Dark mode
-            </label>{' '}
-            <label>
-              <input
-                type="checkbox"
-                checked={cardEffects}
-                onChange={(event) => setCardEffects(event.target.checked)}
-              />{' '}
-              Motion and finishes
-            </label>{' '}
-            <label>
-              <input
-                type="checkbox"
-                checked={staticEffects}
-                onChange={(event) => setStaticEffects(event.target.checked)}
-              />{' '}
-              Show effects without hover
+              Card image{' '}
+              <select value={plainCard} onChange={(event) => setPlainCard(event.target.value)}>
+                {plainCards.map(([label, query]) => (
+                  <option key={label} value={query}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </label>
           </p>
           <ul>
@@ -102,7 +131,7 @@ export function FoilPreview() {
               ) : (
                 <li key={`${sample.set}-${sample.collectorNumber}-${sample.finish}`}>
                   <FinishedCardImage
-                    image={sample.image}
+                    image={plainCard ? plainCardImage(plainCard) : sample.image}
                     alt={`${sample.name} card`}
                     finish={sample.finish}
                     foilType={sample.foilType}
