@@ -117,6 +117,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Hue comes from a smooth, domain-warped fbm "film thickness" plus a gentle gradient and the tilt, so colour bands are broad and swirl rather than stripe. The rainbow is pulled towards an oily palette (green muted into teal and blue, about a third silver). A broad, near-vertical sweep follows the light, on top of the off-axis fade, and the strength scales with ink brightness. The print is darkened slightly, more so away from the light, for the black stock. Hard-light blend around neutral grey. The preview uses the oil slick Atraxa scan (ONE #357), because the plain showcase printing has light art instead of the dark ichor art; its scan shows only a faint tint.',
   },
+  confettifoil: {
+    expected:
+      'Confetti foil (Wilds of Eldraine Enchanting Tales anime borderless cards, WOT #84-103, and Secret Lair drops such as the Furby cards, SLD #2326-2338), from the mtg.wiki photo of Distant Melody and the WOT Rhystic Study #91 scan: a dense, even scatter of tiny irregular glitter flecks over the whole card, about 100 across, including the frame and text box. Each fleck catches the light in its own saturated colour (green, blue, red, gold, violet), so the card shimmers with multicoloured sparkle that changes as it tilts. Strongest on bright art; dimmer on the dark text box, where the text stays readable.',
+    css: standardCss,
+    webgl:
+      'Flecks on a rotated, strongly jittered grid (about 90 across), each a small round-to-pentagonal dot with its own size; about three quarters of the cells hold one. Each fleck has its own facing: it flashes its own rainbow colour, which shifts with the tilt, at its own angle, with a soft response so many are lit at once. Hard-light blend around neutral grey, stronger on light ink, plus a small screen sparkle on dark ink. A softened off-axis fade (about 30% away from the light), since the glitter shows everywhere on the real cards. The preview uses the plain anime Rhystic Study (WOT #71), because confetti scans have the flecks printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

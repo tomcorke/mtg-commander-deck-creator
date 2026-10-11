@@ -19,6 +19,7 @@ export const foilShaderTypes = {
   dragonscalefoil: 13,
   singularityfoil: 16,
   oilslick: 15,
+  confettifoil: 17,
 } as const
 
 const vertexSource = `
@@ -461,6 +462,28 @@ void main() {
     // The stock darkens the print a little everywhere, as the black oil-slick base does.
     vec3 dark = base * (0.82 - 0.12 * (1.0 - glare));
     colour = hardLight(dark, clamp(0.5 + (hue - 0.5) * amount * 0.9 + 0.06 * amount, 0.0, 1.0));
+  }
+
+  if (uType == 17) {
+    // Confetti (WOT anime borderless, SLD Furby): a dense scatter of tiny irregular glitter
+    // flecks over the whole card (about 90 across). Each fleck has its own facing, so it flashes
+    // its own saturated colour at its own angle; many are lit at once near the light and few
+    // away from it. Strongest on bright art, dimmer but still visible on dark ink.
+    // A rotated grid with strong jitter, so the flecks don't line up in rows; flecks clipped at a
+    // cell edge just look more irregular.
+    vec2 grid = mat2(0.87, 0.5, -0.5, 0.87) * p * 90.0;
+    vec2 cell = floor(grid);
+    float seed = hash(cell);
+    vec2 local = fract(grid) - 0.5 - (vec2(hash(cell + 1.7), hash(cell + 6.1)) - 0.5) * 0.65;
+    float angle = atan(local.y, local.x) + seed * TAU;
+    float radius = (0.24 + 0.16 * hash(cell + 3.3)) * (0.85 + 0.15 * cos(angle * 5.0));
+    float fleck = smoothstep(radius, radius - 0.08, length(local)) * step(0.25, seed);
+    vec2 facing = vec2(hash(cell + 9.2), hash(cell + 4.4)) * 2.0 - 1.0;
+    float flash = pow(0.5 + 0.5 * cos(dot(tilt, facing) * 9.0 + seed * TAU), 2.0);
+    vec3 hue = rainbow(hash(cell + 12.5) + dot(tilt, facing) * 1.5);
+    float amount = fleck * (0.3 + 0.7 * flash) * (0.3 + 0.7 * onAxis);
+    vec3 tinted = hardLight(base, clamp(0.5 + (hue - 0.5) * amount * (0.8 + 1.0 * foilMask) + 0.12 * amount, 0.0, 1.0));
+    colour = screen(tinted, hue * amount * flash * 0.5 * (1.0 - foilMask));
   }
 
   gl_FragColor = vec4(colour, 1.0);

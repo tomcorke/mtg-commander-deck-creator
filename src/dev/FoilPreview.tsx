@@ -46,6 +46,7 @@ const sampleOverrides: Record<string, string> = {
   raisedfoil: '!"Zoraline, Cosmos Caller" is:raisedfoil',
   neonink: 'is:neonink set:neo',
   oilslick: 'set:one cn:357',
+  confettifoil: '!"Rhystic Study" set:wot cn:71',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the
