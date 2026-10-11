@@ -21,6 +21,7 @@ export const foilShaderTypes = {
   oilslick: 15,
   confettifoil: 17,
   gilded: 14,
+  cosmicfoil: 19,
 } as const
 
 const vertexSource = `
@@ -513,6 +514,26 @@ void main() {
     float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
     vec3 foiled = hardLight(base, 0.5 + (rainbow(hue) - 0.5) * 0.22 * foilMask * onAxis);
     colour = screen(mix(foiled, metal, h), vec3(1.0, 0.88, 0.6) * specular * h * 0.8);
+  }
+
+  if (uType == 19) {
+    // Cosmic, matched to retailer photos of The Mind Stone (MSH #385): very fine concentric rings
+    // centred on the stone, like a whorl, plus a field of tiny star specks. The rings catch the
+    // light in a rainbow that runs outwards and shifts with the tilt; each speck glints at its own
+    // angle. Both show mostly near the light and fade off-axis.
+    vec2 fromCentre = p - vec2(0.5, 0.45 * uAspect);
+    float radius = length(fromCentre) + (fbm(p * 3.0) - 0.5) * 0.02;
+    float rings = pow(0.5 + 0.5 * cos(radius * 420.0 - dot(tilt, vec2(6.0, 4.0))), 3.0);
+    float ringBand = 0.4 + 0.6 * pow(0.5 + 0.5 * cos(radius * 18.0 - dot(tilt, vec2(9.0, 7.0))), 2.0);
+    vec3 ringHue = rainbow(radius * 3.0 + dot(tilt, vec2(1.6, 1.0)));
+    vec2 grid = p * 140.0;
+    vec2 cell = floor(grid);
+    float seed = hash(cell + 3.0);
+    float speck = smoothstep(0.22, 0.05, length(fract(grid) - 0.5 - (vec2(hash(cell + 1.1), hash(cell + 6.2)) - 0.5) * 0.5)) * step(0.7, seed);
+    float glint = pow(max(0.0, cos(dot(tilt, vec2(hash(cell + 9.4), hash(cell + 4.4)) * 2.0 - 1.0) * 14.0 + seed * TAU)), 4.0);
+    vec3 light = 0.5 + (ringHue - 0.5) * rings * ringBand * foilMask * onAxis * 0.42
+      + (rainbow(seed * 4.0 + tilt.x) * 0.5 + 0.35) * speck * glint * onAxis * 0.7;
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);

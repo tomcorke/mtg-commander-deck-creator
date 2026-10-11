@@ -131,6 +131,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Finds warm gold ink in the scan and treats it as the stamp and its height map. The stamp is replaced by metal that is dark bronze away from the light and bright saturated gold where a broad diagonal reflection band, which follows the light, crosses it. Normals from the height add shading and small glints lit from the tilt direction. The rest of the card gets a gentle traditional foil sweep that fades off-axis. Gold ink in the art also turns metallic. The preview uses the regular Golden Age Raffine (SNC #327), whose scan prints the frame in flat gold; the gilded scans show only thin dark lines there, so the effect is weak on them.',
   },
+  cosmicfoil: {
+    expected:
+      'Cosmic foil: headliner Infinity Stones only, The Soul Stone (SPM #242) and The Mind Stone (MSH #385), textless in very few Collector Boosters (mtg.wiki "Foil"; Wizards "Collecting Marvel’s Spider-Man" and "Collecting Marvel Super Heroes"). Wizards only says it "conjures the cosmic imagery of the Marvel Universe", and a retailer (Ancestral MTG) calls it a "star-filled foil pattern". Retailer photos of a real Mind Stone show more than that: very fine concentric rings centred on the stone, like a whorl or fingerprint, with tiny star specks and a rainbow sheen on the bright tendrils. CGC’s graded Soul Stone photos are too small to show the texture. No source mentions the rings, so they come from the photos only.',
+    css: standardCss,
+    webgl:
+      'Very fine concentric rings (about 70 per card width) centred just above the middle, slightly wobbled by noise, in a rainbow that runs outwards and shifts with the tilt. Broad bands of the rings brighten and dim as the card tilts. A sparse grid of tiny specks glints, each at its own angle. Strongest on light ink, hard-light blend, faded off-axis. The preview uses the regular Mind Stone (MSH #21), because both cosmic foil scans have the rings printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
