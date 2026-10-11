@@ -329,129 +329,228 @@
 /* Special foil types (Scryfall promo_types); gradients only, like the base holo effect. */
 .foil-surgefoil::before {
   /* Fine diagonal streaks in broad rainbow bands, brightest in a band that sweeps with the light. */
-  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 488 680' preserveAspectRatio='none'> <defs> <linearGradient id='c' gradientUnits='userSpaceOnUse' x1='0' y1='680' x2='300' y2='380' spreadMethod='reflect'><stop offset='0.000' stop-color='%23ff2b2b'/><stop offset='0.167' stop-color='%23ff9a1f'/><stop offset='0.333' stop-color='%23ffe81f'/><stop offset='0.500' stop-color='%233dff5a'/><stop offset='0.667' stop-color='%2321b8ff'/><stop offset='0.833' stop-color='%237a4dff'/><stop offset='1.000' stop-color='%23ff2bd0'/></linearGradient> <linearGradient id='l' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='7' spreadMethod='repeat'> <stop offset='0' stop-color='white'/><stop offset='0.35' stop-color='white'/><stop offset='0.6' stop-color='black'/><stop offset='1' stop-color='black'/> </linearGradient> <filter id='n' x='0' y='0' width='100%' height='100%'> <feTurbulence type='fractalNoise' baseFrequency='0.008 0.16' numOctaves='2' seed='3' result='t'/> <feColorMatrix in='t' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 2.6 0 0 0 -0.75' result='a'/> <feComposite in='SourceGraphic' in2='a' operator='in'/> </filter> <filter id='w' x='-10%' y='-10%' width='120%' height='120%'> <feTurbulence type='fractalNoise' baseFrequency='0.004 0.008' numOctaves='2' seed='4'/> <feDisplacementMap in='SourceGraphic' scale='40' xChannelSelector='R' yChannelSelector='G'/> </filter> <mask id='m'><g transform='rotate(-35 244 340)'><rect x='-400' y='-400' width='1300' height='1500' fill='url(%23l)' filter='url(%23n)'/></g></mask> </defs> <g filter='url(%23w)'><rect x='-40' y='-40' width='568' height='760' fill='url(%23c)' mask='url(%23m)'/></g> </svg>")
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 488 680' preserveAspectRatio='none'> <defs> <linearGradient id='c' gradientUnits='userSpaceOnUse' x1='0' y1='680' x2='560' y2='120' spreadMethod='reflect'><stop offset='0.000' stop-color='%23ff2b2b'/><stop offset='0.167' stop-color='%23ff9a1f'/><stop offset='0.333' stop-color='%23ffe81f'/><stop offset='0.500' stop-color='%233dff5a'/><stop offset='0.667' stop-color='%2321b8ff'/><stop offset='0.833' stop-color='%237a4dff'/><stop offset='1.000' stop-color='%23ff2bd0'/></linearGradient> <linearGradient id='l' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='7' spreadMethod='repeat'> <stop offset='0' stop-color='white'/><stop offset='0.35' stop-color='white'/><stop offset='0.6' stop-color='black'/><stop offset='1' stop-color='black'/> </linearGradient> <filter id='n' x='0' y='0' width='100%' height='100%'> <feTurbulence type='fractalNoise' baseFrequency='0.008 0.16' numOctaves='2' seed='3' result='t'/> <feColorMatrix in='t' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 2.6 0 0 0 -0.75' result='a'/> <feComposite in='SourceGraphic' in2='a' operator='in'/> </filter> <filter id='w' x='-10%' y='-10%' width='120%' height='120%'> <feTurbulence type='fractalNoise' baseFrequency='0.0028 0.004' numOctaves='2' seed='4'/> <feDisplacementMap in='SourceGraphic' scale='170' xChannelSelector='R' yChannelSelector='G'/> </filter> <mask id='m'><g transform='rotate(-35 244 340)'><rect x='-400' y='-400' width='1300' height='1500' fill='url(%23l)' filter='url(%23n)'/></g></mask> </defs> <g filter='url(%23w)'><rect x='-40' y='-40' width='568' height='760' fill='url(%23c)' mask='url(%23m)'/></g> </svg>")
     center / 100% 100%;
   filter: hue-rotate(calc(var(--foil-shift, 0deg) * 1.5));
-  mask-image: linear-gradient(
-    35deg,
-    #0004 0,
-    #0008 calc(var(--foil-y) - 30%),
-    #000 calc(var(--foil-y) - 5%),
-    #000 calc(var(--foil-y) + 15%),
-    #0008 calc(var(--foil-y) + 40%),
-    #0004 100%
-  );
+  /* Shifting noise mask: tilting reveals different areas and leaves others bare. */
+  mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 840' preserveAspectRatio='none'> <filter id='n' x='0' y='0' width='100%' height='100%'> <feTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='5'/> <feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0 -1.6'/> </filter> <rect width='600' height='840' filter='url(%23n)'/> </svg>");
+  mask-size: 190% 190%;
+  mask-position: var(--foil-x) calc(100% - var(--foil-y));
   mix-blend-mode: hard-light;
 }
 .holo-card.foil-surgefoil:hover::before {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 .foil-ripplefoil::before {
-  /* Separate rainbow rings fixed to points on the card, growing and shrinking as it tilts.
-     The vertical radius is scaled by the card's aspect ratio so the rings stay round. */
+  /* Soft rainbow rings on a 4x4 grid. The two checkerboard sets grow and shrink in turn as the
+     card tilts. The vertical radius uses the card's aspect ratio so the rings stay round. */
   background:
     radial-gradient(
-      calc(26% + (var(--foil-x) - 50%) * 0.25)
-        calc(calc(26% + (var(--foil-x) - 50%) * 0.25) * 0.718) at 22% 18%,
-      transparent 78%,
-      #ff3b3bb0 81%,
-      #ffb02eb0 83.6%,
-      #f4ff3bb0 86.2%,
-      #3bff6ab0 88.8%,
-      #3bb8ffb0 91.4%,
-      #8a4bffb0 94%,
-      #ff3bd8b0 96.6%,
+      calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 12.5% 12.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
       transparent 100%
     ),
     radial-gradient(
-      calc(20% - (var(--foil-y) - 50%) * 0.25)
-        calc(calc(20% - (var(--foil-y) - 50%) * 0.25) * 0.718) at 78% 30%,
-      transparent 78%,
-      #ff3bd8b0 81%,
-      #8a4bffb0 83.6%,
-      #3bb8ffb0 86.2%,
-      #3bff6ab0 88.8%,
-      #f4ff3bb0 91.4%,
-      #ffb02eb0 94%,
-      #ff3b3bb0 96.6%,
+      calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 37.5% 12.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
       transparent 100%
     ),
     radial-gradient(
-      calc(30% - (var(--foil-x) - 50%) * 0.25)
-        calc(calc(30% - (var(--foil-x) - 50%) * 0.25) * 0.718) at 40% 52%,
-      transparent 78%,
-      #ff3b3bb0 81%,
-      #ffb02eb0 83.6%,
-      #f4ff3bb0 86.2%,
-      #3bff6ab0 88.8%,
-      #3bb8ffb0 91.4%,
-      #8a4bffb0 94%,
-      #ff3bd8b0 96.6%,
+      calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 62.5% 12.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
       transparent 100%
     ),
     radial-gradient(
-      calc(24% + (var(--foil-x) - 50%) * 0.25)
-        calc(calc(24% + (var(--foil-x) - 50%) * 0.25) * 0.718) at 90% 72%,
-      transparent 78%,
-      #ff3bd8b0 81%,
-      #8a4bffb0 83.6%,
-      #3bb8ffb0 86.2%,
-      #3bff6ab0 88.8%,
-      #f4ff3bb0 91.4%,
-      #ffb02eb0 94%,
-      #ff3b3bb0 96.6%,
+      calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 87.5% 12.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
       transparent 100%
     ),
     radial-gradient(
-      calc(22% + (var(--foil-y) - 50%) * 0.25)
-        calc(calc(22% + (var(--foil-y) - 50%) * 0.25) * 0.718) at 12% 70%,
-      transparent 78%,
-      #ff3b3bb0 81%,
-      #ffb02eb0 83.6%,
-      #f4ff3bb0 86.2%,
-      #3bff6ab0 88.8%,
-      #3bb8ffb0 91.4%,
-      #8a4bffb0 94%,
-      #ff3bd8b0 96.6%,
+      calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 12.5% 37.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
       transparent 100%
     ),
     radial-gradient(
-      calc(28% - (var(--foil-y) - 50%) * 0.25)
-        calc(calc(28% - (var(--foil-y) - 50%) * 0.25) * 0.718) at 58% 88%,
-      transparent 78%,
-      #ff3bd8b0 81%,
-      #8a4bffb0 83.6%,
-      #3bb8ffb0 86.2%,
-      #3bff6ab0 88.8%,
-      #f4ff3bb0 91.4%,
-      #ffb02eb0 94%,
-      #ff3b3bb0 96.6%,
+      calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 37.5% 37.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
       transparent 100%
     ),
     radial-gradient(
-      calc(16% - (var(--foil-x) - 50%) * 0.25)
-        calc(calc(16% - (var(--foil-x) - 50%) * 0.25) * 0.718) at 62% 12%,
-      transparent 78%,
-      #ff3b3bb0 81%,
-      #ffb02eb0 83.6%,
-      #f4ff3bb0 86.2%,
-      #3bff6ab0 88.8%,
-      #3bb8ffb0 91.4%,
-      #8a4bffb0 94%,
-      #ff3bd8b0 96.6%,
+      calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 62.5% 37.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
       transparent 100%
     ),
     radial-gradient(
-      calc(18% + (var(--foil-x) - 50%) * 0.25)
-        calc(calc(18% + (var(--foil-x) - 50%) * 0.25) * 0.718) at 30% 96%,
-      transparent 78%,
-      #ff3bd8b0 81%,
-      #8a4bffb0 83.6%,
-      #3bb8ffb0 86.2%,
-      #3bff6ab0 88.8%,
-      #f4ff3bb0 91.4%,
-      #ffb02eb0 94%,
-      #ff3b3bb0 96.6%,
+      calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 87.5% 37.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 12.5% 62.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 37.5% 62.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 62.5% 62.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 87.5% 62.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 12.5% 87.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 37.5% 87.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(22% - (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 62.5% 87.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09)
+        calc(calc(4% + (var(--foil-x) + var(--foil-y)) * 0.09) * 0.718) at 87.5% 87.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
       transparent 100%
     );
   background-repeat: no-repeat;
@@ -459,7 +558,7 @@
   mix-blend-mode: hard-light;
 }
 .holo-card.foil-ripplefoil:hover::before {
-  opacity: 0.75;
+  opacity: 0.85;
 }
 .foil-halofoil::before {
   /* Marbled, ink-like rainbow and silver bands that shift colour as the card tilts. */

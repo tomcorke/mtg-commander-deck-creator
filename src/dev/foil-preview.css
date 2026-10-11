@@ -55,10 +55,10 @@
   opacity: 0.85;
 }
 .static-effects .foil-surgefoil::before {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 .static-effects .foil-ripplefoil::before {
-  opacity: 0.75;
+  opacity: 0.85;
 }
 .static-effects .foil-halofoil::before {
   opacity: 0.7;
