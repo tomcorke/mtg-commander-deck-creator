@@ -1,7 +1,7 @@
 import { withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
-import { cardPrintingOptions } from '../domain/printing.ts'
+import { printingOptions } from '../domain/printing.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import {
   orderedPrintings,
@@ -44,7 +44,7 @@ function scoringContext(
 function buildPrintings(card: Card, result: ScryfallCard[]) {
   return orderedPrintings(card, [
     ...(card.printings?.length === 1 ? card.printings : []),
-    ...cardPrintingOptions(result),
+    ...printingOptions(result),
   ])
 }
 
@@ -117,6 +117,7 @@ function updateQueuedCard(
             price: selected.price,
             priceUri: selected.priceUri,
             finish: selected.finish,
+            foilType: selected.foilType,
             printing: selectedIndex,
           }
         : item,

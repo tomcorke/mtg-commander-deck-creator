@@ -22,6 +22,7 @@ const printingSchema = z.object({
   price: z.string().optional(),
   priceUri: z.string().optional(),
   finish: finishSchema.optional(),
+  foilType: z.string().optional(),
 })
 const cardBase = {
   name: z.string(),
@@ -74,6 +75,7 @@ const cardBase = {
   printing: z.number().int().nonnegative().optional(),
   printingManuallySelected: z.boolean().optional(),
   finish: finishSchema.optional(),
+  foilType: z.string().optional(),
 }
 const cardSchema = z.object({ ...cardBase, reason: z.string(), printsUri: z.string() })
 const deckCardSchema = z.object(cardBase)

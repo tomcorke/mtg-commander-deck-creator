@@ -95,6 +95,7 @@ export function DeckCardModal({
               alt={`${selectedDeckCard.name} card`}
               cardName={selectedDeckCard.name}
               finish={selectedDeckCard.finish}
+              foilType={selectedDeckCard.foilType}
               className="deck-card-modal-image"
               showFlipButton
               printing={{

@@ -69,6 +69,7 @@ export type RecommendationCard = {
   price?: string
   priceUri?: string
   finish?: CardFinish
+  foilType?: string
   tags: string[]
   collectionMatch?: boolean
 }

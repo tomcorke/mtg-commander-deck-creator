@@ -1,3 +1,4 @@
+import { finishLabel } from '../domain/printing.ts'
 import { cardPrintingsUri, cardScryfallUri, type Card } from '../domain/card-model'
 import { formatUsdPrice } from '../domain/recommendation-scoring'
 
@@ -36,7 +37,15 @@ export function CardDetails({
 }: {
   card: Pick<
     Card,
-    'name' | 'set' | 'setName' | 'collectorNumber' | 'scryfallUri' | 'price' | 'priceUri' | 'finish'
+    | 'name'
+    | 'set'
+    | 'setName'
+    | 'collectorNumber'
+    | 'scryfallUri'
+    | 'price'
+    | 'priceUri'
+    | 'finish'
+    | 'foilType'
   >
   source: CardSource
   onToggleSet?: () => void
@@ -54,7 +63,7 @@ export function CardDetails({
           <strong>{printingName ?? card.set.toUpperCase()}</strong>{' '}
           <span>
             {printingName ? `(${card.set.toUpperCase()}) · ` : '· '}#{card.collectorNumber}
-            {card.finish && card.finish !== 'nonfoil' ? ` · ${card.finish}` : ''}
+            {finishLabel(card) ? ` · ${finishLabel(card)}` : ''}
           </span>
           {onToggleSet && (
             <button

@@ -1,5 +1,6 @@
 import type { ScryfallCard } from './card-model.ts'
 import { hasBackFace } from './card-layout.ts'
+import { defaultFinish, foilTypeFor } from './printing.ts'
 import {
   cardText,
   isManaCard,
@@ -75,7 +76,8 @@ export function toRecommendationCard(
     printsUri: card.prints_search_uri,
     price: card.prices?.usd ?? undefined,
     priceUri: card.purchase_uris?.tcgplayer,
-    finish: card.finishes?.includes('nonfoil') ? 'nonfoil' : card.finishes?.[0],
+    finish: defaultFinish(card.finishes),
+    foilType: foilTypeFor(card, defaultFinish(card.finishes)),
     tags: tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line),
   }
 }

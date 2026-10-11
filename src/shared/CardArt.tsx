@@ -49,6 +49,7 @@ export function FinishedCardImage({
   alt,
   cardName,
   finish,
+  foilType,
   hasSynergyGlow = false,
   className = '',
   printing,
@@ -59,6 +60,7 @@ export function FinishedCardImage({
   alt: string
   cardName?: string
   finish?: CardFinish
+  foilType?: string
   hasSynergyGlow?: boolean
   className?: string
   printing?: {
@@ -79,7 +81,7 @@ export function FinishedCardImage({
       (hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0,
       0,
     ) % 360
-  const finishClass = cardFinishClass(finish, effectsEnabled)
+  const finishClass = cardFinishClass(finish, foilType, effectsEnabled)
   const flipName = printing?.name ?? cardName ?? 'card'
   const hasActions = Boolean(printing?.count && printing.count > 1) || (showFlipButton && backImage)
 
@@ -120,9 +122,25 @@ export function FinishedCardImage({
   )
 }
 
-function cardFinishClass(finish: CardFinish | undefined, effectsEnabled: boolean) {
+// Foil types with their own effect; other foil types use the standard holo effect.
+const styledFoilTypes = new Set([
+  'surgefoil',
+  'galaxyfoil',
+  'silverfoil',
+  'ripplefoil',
+  'doublerainbow',
+  'rainbowfoil',
+  'halofoil',
+])
+
+function cardFinishClass(
+  finish: CardFinish | undefined,
+  foilType: string | undefined,
+  effectsEnabled: boolean,
+) {
   if (!effectsEnabled) return ''
-  if (finish === 'foil') return 'holo-card'
+  if (finish === 'foil')
+    return foilType && styledFoilTypes.has(foilType) ? `holo-card foil-${foilType}` : 'holo-card'
   return finish === 'etched' ? 'etched-card' : ''
 }
 

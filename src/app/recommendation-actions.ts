@@ -6,7 +6,7 @@ import { currentCardData } from '../domain/current-card-data.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import { resetSignatureContext } from './signature-actions.ts'
 import { commanderNames, themeSearchTerms } from '../domain/commander-catalog.ts'
-import { commanderPrintingOptions, defaultFinish } from '../domain/printing.ts'
+import { defaultFinish, printingOptions } from '../domain/printing.ts'
 import {
   batchRecommendations,
   buildEdhrecRecommendations,
@@ -22,7 +22,7 @@ import {
   toDeckCard,
   type DeckCard,
   edhrecSlug,
-  scryfallBackImage,
+  scryfallImage,
   toCard,
   type Card,
   type CommanderCard,
@@ -296,24 +296,13 @@ export async function loadCommanderCards(deps: ActionDeps, chosen: string) {
   const printings = await Promise.all(
     commanders.map(async (card) => {
       const finish = defaultFinish(card.finishes)
-      const primary = {
-        image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? '',
-        backImage: scryfallBackImage(card),
-        art: card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop,
+      const primary = printingOptions([card]).find((printing) => printing.finish === finish) ?? {
+        image: scryfallImage(card),
         set: card.set,
-        setName: card.set_name,
         collectorNumber: card.collector_number,
-        scryfallUri: card.scryfall_uri,
-        price:
-          (finish === 'etched'
-            ? card.prices?.usd_etched
-            : finish === 'foil'
-              ? card.prices?.usd_foil
-              : card.prices?.usd) ?? undefined,
-        priceUri: card.purchase_uris?.tcgplayer,
         finish,
       }
-      const alternatives = commanderPrintingOptions(await fetchPrintings(card.prints_search_uri))
+      const alternatives = printingOptions(await fetchPrintings(card.prints_search_uri))
       return [
         primary,
         ...alternatives.filter(
@@ -441,6 +430,7 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
         printings: printings[index],
         printing: 0,
         finish: printings[index][0].finish,
+        foilType: printings[index][0].foilType,
       })),
     )
   }

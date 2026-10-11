@@ -1,6 +1,6 @@
 import type { DeckCard, ScryfallCard } from './card-model.ts'
 import { toDeckCard } from './card-model.ts'
-import { defaultFinish } from './printing.ts'
+import { defaultFinish, foilTypeFor } from './printing.ts'
 import { cardConstructionError } from './commander-construction.ts'
 
 export type SearchMatch = 'any' | 'need' | 'exclude'
@@ -137,7 +137,11 @@ export function addCardSearchCards(
     const pending = additions.slice(target === deck ? 0 : Math.max(0, 100 - deck.length))
     const error = cardSearchError(card, [...target, ...pending], commanderColours)
     if (error) throw new Error(`${card.name}: ${error}`)
-    additions.push({ ...toDeckCard(card), finish: defaultFinish(card.finishes) })
+    additions.push({
+      ...toDeckCard(card),
+      finish: defaultFinish(card.finishes),
+      foilType: foilTypeFor(card, defaultFinish(card.finishes)),
+    })
   }
   const mainCount = Math.min(additions.length, Math.max(0, 100 - deck.length))
   return {

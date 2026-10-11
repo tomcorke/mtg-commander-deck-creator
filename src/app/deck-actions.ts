@@ -12,7 +12,7 @@ import {
 } from '../deck-doctor.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
 import { addCardSearchCards } from '../domain/card-search.ts'
-import { cardPrintingOptions } from '../domain/printing.ts'
+import { defaultFinish, finishPrice, foilTypeFor, printingOptions } from '../domain/printing.ts'
 import type {
   Card,
   DeckCard,
@@ -50,6 +50,7 @@ import {
   missingCardNames,
   parseDeckImportSource,
   shouldOpenReviewAfterImport,
+  type ImportedCard,
   type ImportedDeck,
 } from '../deck-import.ts'
 import { commanderPromotionInfo, promoteDeckCard } from '../domain/commander-promotion.ts'
@@ -299,6 +300,7 @@ export async function cycleCommanderPrinting(deps: ActionDeps, commanderIndex: n
               priceUri: selected.priceUri,
               printing: selection,
               finish: selected.finish,
+              foilType: selected.foilType,
             }
           : card,
       ),
@@ -325,6 +327,7 @@ export async function cycleCommanderPrinting(deps: ActionDeps, commanderIndex: n
           priceUri: printing.priceUri,
           printing: matching,
           finish: printing.finish,
+          foilType: printing.foilType,
         }
       }),
     )
@@ -353,6 +356,7 @@ export async function cyclePrinting(deps: ActionDeps, card: Card) {
               priceUri: selected.priceUri,
               printingManuallySelected: true,
               finish: selected.finish,
+              foilType: selected.foilType,
             }
           : item,
       ),
@@ -372,6 +376,7 @@ export async function cyclePrinting(deps: ActionDeps, card: Card) {
             priceUri: selected.priceUri,
             printingManuallySelected: true,
             finish: selected.finish,
+            foilType: selected.foilType,
           }
         : current,
     )
@@ -391,6 +396,7 @@ export async function cyclePrinting(deps: ActionDeps, card: Card) {
               printing: index,
               printingManuallySelected: true,
               finish: selected.finish,
+              foilType: selected.foilType,
             }
           : item
       setDeck((current: any) => current.map(update))
@@ -426,6 +432,7 @@ export async function cycleDeckPrinting(deps: ActionDeps, cardIndex: number) {
               printing,
               printingManuallySelected: true,
               finish: selected.finish,
+              foilType: selected.foilType,
             }
           : item,
       ),
@@ -456,6 +463,7 @@ export async function cycleSideboardPrinting(deps: ActionDeps, cardIndex: number
               printing,
               printingManuallySelected: true,
               finish: selected.finish,
+              foilType: selected.foilType,
             }
           : item,
       ),
@@ -698,7 +706,7 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
         (hasBackFace(card.layout) && printings.some((printing) => !printing.backImage))) &&
       printsUri
     ) {
-      const options = cardPrintingOptions(await fetchScryfallPrintings(printsUri))
+      const options = printingOptions(await fetchScryfallPrintings(printsUri))
       if (options.length) printings = orderedPrintings(card, options)
     }
     const desiredFinish = card.finish ?? 'nonfoil'
@@ -723,6 +731,7 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       printings,
       printing: selectedIndex >= 0 ? selectedIndex : card.printing,
       finish: selected?.finish ?? card.finish,
+      foilType: selected ? selected.foilType : card.foilType,
     }
     // Enrich only the captured card; newer printing choices and gameplay refreshes win.
     setDeck((current: any) =>
@@ -1105,6 +1114,20 @@ async function resolveImportedCards(imported: ImportedDeck, signal: AbortSignal)
   return { expanded, commanderCards }
 }
 
+// Keep an imported finish when the printing has it; otherwise use the printing's default.
+function importedDeckCard({ card, entry }: { card: ScryfallCard; entry: ImportedCard }) {
+  const finish =
+    entry.finish && card.finishes?.includes(entry.finish)
+      ? entry.finish
+      : defaultFinish(card.finishes)
+  return {
+    ...toDeckCard(card),
+    finish,
+    foilType: foilTypeFor(card, finish),
+    price: finishPrice(card, finish),
+  }
+}
+
 async function importedRecommendationState(deps: ActionDeps, name: string) {
   const staged: ActionDeps = {
     ...deps,
@@ -1139,11 +1162,11 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
       (a: any, b: any) =>
         Number(b.entry.board === 'commander') - Number(a.entry.board === 'commander'),
     )
-    .map(({ card }) => toDeckCard(card))
+    .map(importedDeckCard)
   const importedSideboard = expanded
     .filter(({ entry }: any) => entry.board === 'sideboard')
-    .map(({ card }) => toDeckCard(card))
-  const printings = commanderCards.map(({ card }) => cardPrintingOptions([card]))
+    .map(importedDeckCard)
+  const printings = commanderCards.map(({ card }) => printingOptions([card]))
   const state: PersistedDeckState = {
     ...prepared,
     deck: importedMain,
@@ -1155,7 +1178,14 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
         ({ card }) => card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop ?? '',
       ),
       printings,
-      selections: printings.map(() => 0),
+      selections: printings.map((options, index) =>
+        Math.max(
+          0,
+          options.findIndex(
+            (option) => option.finish === importedDeckCard(commanderCards[index]).finish,
+          ),
+        ),
+      ),
     },
     queue: prepared.queue.filter(
       (card) => !expanded.some(({ card: added }) => added.name === card.name),

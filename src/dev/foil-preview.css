@@ -1,0 +1,45 @@
+.foil-preview {
+  min-height: 100vh;
+  padding: 24px 16px;
+  background: var(--page-background, #f6f5fb);
+  color: inherit;
+}
+.dark .foil-preview {
+  background: #15131f;
+  color: #ece9f7;
+}
+.foil-preview ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 32px 20px;
+  padding: 0;
+  list-style: none;
+}
+.foil-preview li {
+  display: grid;
+  gap: 6px;
+}
+/* Hover-state opacities, so every card can be compared at once. */
+.static-effects .holo-card::before {
+  opacity: 0.62;
+}
+.static-effects .holo-card::after {
+  opacity: 0.24;
+}
+.static-effects .etched-card::before {
+  opacity: 0.88;
+}
+.static-effects .etched-card::after {
+  opacity: 0.45;
+}
+.static-effects .etched-card .etched-edges {
+  opacity: 1;
+}
+.foil-preview .finished-card,
+.foil-preview .finished-card img {
+  width: 100%;
+  height: auto;
+}
+.foil-preview .finished-card {
+  aspect-ratio: 488 / 680;
+}

@@ -53,6 +53,9 @@ export function CommanderCardArt({
               alt={`${names[index]} full card`}
               cardName={names[index]}
               finish={commanderDetails.printings[index][commanderDetails.selections[index]]?.finish}
+              foilType={
+                commanderDetails.printings[index][commanderDetails.selections[index]]?.foilType
+              }
               showFlipButton
               printing={{
                 count: commanderDetails.printings[index].length,

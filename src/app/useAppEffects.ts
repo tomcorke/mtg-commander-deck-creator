@@ -5,7 +5,7 @@ import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import type { Card } from '../domain/card-model.ts'
 import { basicLandNames, rolesForCard, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
-import { commanderPrintingOptions, needsPrintingRepair } from '../domain/printing.ts'
+import { printingOptions, needsPrintingRepair } from '../domain/printing.ts'
 import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
 
 export type AppEffectsDeps = Record<string, any>
@@ -166,6 +166,7 @@ function updatedDeckPrintings(current: any[], printings: any[][], names: string[
           price: selected.price,
           priceUri: selected.priceUri,
           finish: selected.finish,
+          foilType: selected.foilType,
         }
       : card
   })
@@ -202,7 +203,7 @@ export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
     void Promise.all(
       names.map(async (name) => {
         const card = await fetchCard(name)
-        return commanderPrintingOptions(await fetchPrintings(card.prints_search_uri))
+        return printingOptions(await fetchPrintings(card.prints_search_uri))
       }),
     )
       .then((printings) => {

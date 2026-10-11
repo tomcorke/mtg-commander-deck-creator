@@ -1,3 +1,5 @@
+import { finishLabel } from '../../domain/printing.ts'
+import { FinishFilters } from '../../shared/FinishFilters.tsx'
 import {
   useEffect,
   useRef,
@@ -814,6 +816,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         alt={`${card.name} card`}
                         cardName={card.name}
                         finish={card.finish}
+                        foilType={card.foilType}
                         hasSynergyGlow={pairCards.includes(card)}
                         className="card-face-image"
                         showFlipButton
@@ -940,6 +943,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             image={card.image}
                             alt=""
                             finish={card.finish}
+                            foilType={card.foilType}
                             className="health-card-thumbnail-image"
                           />
                         </span>
@@ -959,6 +963,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           alt={`${card.name} card`}
                           cardName={card.name}
                           finish={card.finish}
+                          foilType={card.foilType}
                           className="health-card-full-image"
                           showFlipButton
                         />
@@ -1254,8 +1259,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 ) : (
                                   <OracleText text={card.manaCost} />
                                 )}
-                                {card.finish && card.finish !== 'nonfoil' && (
-                                  <small className="finish-label">{card.finish}</small>
+                                {finishLabel(card) && (
+                                  <small className="finish-label">{finishLabel(card)}</small>
                                 )}
                               </span>
                               {index >= commanderNames(commander).length && (
@@ -1383,8 +1388,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         <span className="deck-card-meta">
                           <span className="deck-mana">
                             <OracleText text={card.manaCost} />
-                            {card.finish && card.finish !== 'nonfoil' && (
-                              <small className="finish-label">{card.finish}</small>
+                            {finishLabel(card) && (
+                              <small className="finish-label">{finishLabel(card)}</small>
                             )}
                           </span>
                           <button
@@ -1412,26 +1417,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             )}
           </div>
         </section>
-        <svg className="filter-definitions" aria-hidden="true">
-          <filter
-            id="etched-edges"
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-            colorInterpolationFilters="sRGB"
-          >
-            <feColorMatrix type="saturate" values="0" result="grey" />
-            <feConvolveMatrix
-              in="grey"
-              order="3"
-              kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1"
-              preserveAlpha="true"
-              result="edges"
-            />
-            <feColorMatrix in="edges" values="0 0 0 0 1 0 0 0 0 .88 0 0 0 0 .55 1 1 1 0 -.12" />
-          </filter>
-        </svg>
+        <FinishFilters />
       </div>
     </main>
   )

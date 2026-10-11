@@ -125,3 +125,52 @@ test('parses common deck-list syntax, printings, and boards', () => {
     ],
   )
 })
+
+test('reads foil and etched markers from text exports', () => {
+  const cards = parseDeckList(
+    'Commander\n1 Atraxa (SLD) 1 *F*\nDeck\n1 Sol Ring (MSC) 211 *E*\n1 Forest *F*\n1 Island',
+  ).cards
+  assert.deepEqual(
+    cards.map(({ name, finish }) => [name, finish]),
+    [
+      ['Atraxa', 'foil'],
+      ['Sol Ring', 'etched'],
+      ['Forest', 'foil'],
+      ['Island', undefined],
+    ],
+  )
+})
+
+test('reads the CSV export, including quoted names and finishes', () => {
+  const deck = parseDeckList(
+    'Quantity,Name,Set,Collector Number,Foil,Board\n' +
+      '1,"Atraxa, ""Grand"" Unifier",SLD,1,foil,Commander\n' +
+      '1,"Sol Ring",MSC,211,,Mainboard\n' +
+      '2,"Forest",M3C,317,etched,Sideboard',
+  )
+  assert.deepEqual(deck.cards, [
+    {
+      name: 'Atraxa, "Grand" Unifier',
+      quantity: 1,
+      set: 'sld',
+      collectorNumber: '1',
+      board: 'commander',
+      finish: 'foil',
+    },
+    {
+      name: 'Sol Ring',
+      quantity: 1,
+      set: 'msc',
+      collectorNumber: '211',
+      board: 'mainboard',
+    },
+    {
+      name: 'Forest',
+      quantity: 2,
+      set: 'm3c',
+      collectorNumber: '317',
+      board: 'sideboard',
+      finish: 'etched',
+    },
+  ])
+})

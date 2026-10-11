@@ -326,6 +326,101 @@
 .holo-card:hover::after {
   opacity: 0.24;
 }
+/* Special foil types (Scryfall promo_types); gradients only, like the base holo effect. */
+.foil-surgefoil::before {
+  background: repeating-linear-gradient(
+    62deg,
+    #ff4c9168 0 6%,
+    #ffd95260 9%,
+    #4ce3ad58 13%,
+    #4ebcff60 17%,
+    #ae65ff68 21%,
+    #ff4c9168 24%
+  );
+  background-position: calc(var(--foil-x) * 0.6) calc(var(--foil-y) * 0.6);
+  background-size: 160% 160%;
+}
+.foil-ripplefoil::before {
+  background: repeating-radial-gradient(
+    circle at var(--foil-x) var(--foil-y),
+    #4ebcff60 0 3%,
+    #4ce3ad38 5%,
+    #ffffff10 7%,
+    #ae65ff50 9%
+  );
+}
+.foil-halofoil::before {
+  background: conic-gradient(
+    from calc(var(--foil-shift, 0deg) * 2) at var(--foil-x) var(--foil-y),
+    #ff4c9170,
+    #ffd95260,
+    #4ce3ad60,
+    #4ebcff70,
+    #ae65ff70,
+    #ff4c9170
+  );
+}
+.foil-galaxyfoil::before {
+  background:
+    radial-gradient(circle, #ffffff 0 1px, transparent 1.6px) 0 0 / 23px 29px,
+    radial-gradient(circle, #fff3c4e0 0 1px, transparent 1.8px) 7px 11px / 37px 41px,
+    radial-gradient(circle, #c9e8ffd0 0 1.4px, transparent 2.2px) 15px 5px / 53px 47px,
+    radial-gradient(
+      ellipse at var(--foil-x) var(--foil-y),
+      #6b5cff70 0,
+      #2a8cff48 40%,
+      #ae65ff30 75%
+    );
+  filter: none;
+}
+.foil-silverfoil::before {
+  background: linear-gradient(
+    115deg,
+    #ffffff00 20%,
+    #e8eef560 38%,
+    #ffffffa0 48%,
+    #c3ccd860 58%,
+    #ffffff00 76%
+  );
+  background-position: calc(var(--foil-x) * 1.2 - 10%) calc(var(--foil-y) * 1.2 - 10%);
+  background-size: 200% 200%;
+  filter: none;
+  mix-blend-mode: soft-light;
+}
+.foil-rainbowfoil::before,
+.foil-doublerainbow::before {
+  background: linear-gradient(
+    125deg,
+    #ff4c9190,
+    #ffd95288,
+    #4ce3ad88,
+    #4ebcff90,
+    #ae65ff90,
+    #ff4c9190
+  );
+  background-position: var(--foil-x) var(--foil-y);
+  background-size: 220% 220%;
+}
+.foil-doublerainbow::after {
+  background: linear-gradient(
+    305deg,
+    transparent 20%,
+    #4ebcff60 35%,
+    #ffd95260 50%,
+    #ff4c9160 65%,
+    transparent 80%
+  );
+  background-position: calc(100% - var(--foil-x)) calc(100% - var(--foil-y));
+  background-size: 200% 200%;
+  mix-blend-mode: color-dodge;
+}
+.holo-card.foil-rainbowfoil:hover::before,
+.holo-card.foil-doublerainbow:hover::before {
+  opacity: 0.75;
+}
+.holo-card.foil-silverfoil:hover::before {
+  opacity: 0.9;
+}
 .filter-definitions {
   position: absolute;
   width: 0;
