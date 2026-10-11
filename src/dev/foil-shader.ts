@@ -165,8 +165,9 @@ void main() {
     // Ripple: rings on a 4x4 grid; the checkerboard sets grow from zero and shrink back in turn.
     // Each ring only shows the arc facing the light, so where four rings meet near the light
     // their arcs converge into a star-like shape. Colour shifts with the angle around the ring.
-    float t = clamp(uPointer.x * 0.5 + uPointer.y * 0.5, 0.0, 1.0);
-    vec2 light = vec2(uPointer.x, uPointer.y * uAspect);
+    // Gentler response: the cycle and the light point move less than the pointer.
+    float t = clamp(0.5 + (uPointer.x * 0.5 + uPointer.y * 0.5 - 0.5) * 0.8, 0.0, 1.0);
+    vec2 light = mix(vec2(0.5, 0.5 * uAspect), vec2(uPointer.x, uPointer.y * uAspect), 0.35);
     vec3 rings = vec3(0.0); // offsets from neutral grey
     for (int row = 0; row < 6; row++) {
       for (int col = 0; col < 4; col++) {
@@ -178,12 +179,12 @@ void main() {
         float band = exp(-offset * offset) * smoothstep(0.0, 0.04, radius);
         vec2 towardLight = light - centre;
         float facing = dot(normalize(fromCentre + 0.0001), normalize(towardLight + 0.0001));
-        float arc = smoothstep(0.35, 0.95, facing) * exp(-pow(length(towardLight) / 0.55, 2.0));
+        float arc = smoothstep(0.0, 0.95, facing) * exp(-pow(length(towardLight) / 0.62, 2.0));
         float hue = offset * 0.1 + atan(fromCentre.y, fromCentre.x) / TAU + dot(tilt, vec2(1.7, 1.1));
         rings += (rainbow(hue) - 0.5) * band * arc;
       }
     }
-    colour = hardLight(base, clamp(0.5 + rings * 0.5, 0.0, 1.0));
+    colour = hardLight(base, clamp(0.5 + rings * 0.42, 0.0, 1.0));
   } else if (uType == 5) {
     // Halo: domain-warped marbling, mostly silver with rainbow and dark veins,
     // revealed in patches by large noise that shifts with the tilt.
