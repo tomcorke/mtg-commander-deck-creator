@@ -48,6 +48,7 @@ const sampleOverrides: Record<string, string> = {
   oilslick: '!"Atraxa, Grand Unifier" set:one cn:316',
   confettifoil: '!"Rhystic Study" set:wot cn:71',
   gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
+  invisibleink: 'set:mkm cn:355',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the

@@ -21,6 +21,7 @@ export const foilShaderTypes = {
   oilslick: 15,
   confettifoil: 17,
   gilded: 14,
+  invisibleink: 22,
 } as const
 
 const vertexSource = `
@@ -141,6 +142,17 @@ float phyrexianSymbol(vec2 l) {
   vec2 stem = abs(l) - vec2(0.0052, 0.042);
   float bar = length(max(stem, 0.0)) + min(max(stem.x, stem.y), 0.0);
   return min(ring, bar);
+}
+
+// Handwriting-like scrawl: a wavy line with irregular loops, broken into words by noise.
+// Returns 0..1 ink coverage for a line of writing at height y0 running from x0 to x1.
+float scrawl(vec2 uv, float y0, float x0, float x1, float salt) {
+  float x = uv.x;
+  float wobble = sin(x * 210.0 + salt) * 0.0055 + sin(x * 97.0 + salt * 2.0) * 0.003
+    + (noise(vec2(x * 40.0, salt)) - 0.5) * 0.008;
+  float stroke = smoothstep(0.003, 0.0012, abs(uv.y - y0 - wobble));
+  float words = step(0.38, noise(vec2(x * 22.0 + salt * 3.0, salt)));
+  return stroke * words * step(x0, x) * step(x, x1);
 }
 
 void main() {
@@ -513,6 +525,33 @@ void main() {
     float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
     vec3 foiled = hardLight(base, 0.5 + (rainbow(hue) - 0.5) * 0.22 * foilMask * onAxis);
     colour = screen(mix(foiled, metal, h), vec3(1.0, 0.88, 0.6) * specular * h * 0.8);
+  }
+
+  if (uType == 22) {
+    // Invisible ink (MKM showcase dossiers): a traditional foil card with Alquist Proft's
+    // handwritten case notes and doodles in the margins and text box. The notes are almost
+    // invisible face-on and show as violet-grey ink only when the card is tilted
+    // steeply towards the bottom right. Under the notes, the traditional foil sweep.
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    float hueShift = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    vec3 foiled = hardLight(base, 0.5 + (rainbow(hueShift) - 0.5) * 0.45 * foilMask * sweep * (0.2 + 0.8 * glare));
+    vec2 hand = vec2(vUv.x, vUv.y + (vUv.x - 0.5) * 0.04);
+    float notes = max(max(scrawl(hand, 0.615, 0.5, 0.82, 1.0), scrawl(hand, 0.66, 0.56, 0.9, 4.0)),
+      max(scrawl(hand, 0.86, 0.3, 0.6, 7.0), scrawl(hand, 0.125, 0.62, 0.9, 9.0)));
+    // A magnifying-glass doodle and a ring circling part of the art.
+    vec2 m = (vUv - vec2(0.88, 0.63)) * vec2(1.0, uAspect);
+    float glass = smoothstep(0.003, 0.001, abs(length(m) - 0.03));
+    vec2 handle = m - vec2(0.03, 0.03);
+    glass = max(glass, smoothstep(0.003, 0.001, abs(handle.x - handle.y) * 0.7) * step(0.0, handle.x) * step(handle.x, 0.025));
+    vec2 r = (vUv - vec2(0.7, 0.3)) * vec2(1.0, uAspect);
+    float ring = smoothstep(0.0035, 0.0012, abs(length(r * vec2(1.0, 1.3)) - 0.09 - 0.006 * sin(atan(r.y, r.x) * 3.0)));
+    notes = max(notes, max(glass, ring * 0.8));
+    // Revealed only at a steep tilt towards the bottom right.
+    float reveal = smoothstep(0.55, 0.9, dot(normalize(tilt + 0.0001), vec2(0.7, 0.7))) * smoothstep(0.12, 0.3, length(tilt));
+    // Violet-grey ink: darkens the cream text box, lightens dark art, so it reads on both.
+    vec3 inked = mix(screen(foiled, vec3(0.85, 0.8, 1.0)), foiled * vec3(0.5, 0.45, 0.7), smoothstep(0.35, 0.65, lum));
+    colour = mix(foiled, inked, notes * (0.04 + 0.86 * reveal));
   }
 
   gl_FragColor = vec4(colour, 1.0);

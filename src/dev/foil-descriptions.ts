@@ -131,6 +131,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Finds warm gold ink in the scan and treats it as the stamp and its height map. The stamp is replaced by metal that is dark bronze away from the light and bright saturated gold where a broad diagonal reflection band, which follows the light, crosses it. Normals from the height add shading and small glints lit from the tilt direction. The rest of the card gets a gentle traditional foil sweep that fades off-axis. Gold ink in the art also turns metallic. The preview uses the regular Golden Age Raffine (SNC #327), whose scan prints the frame in flat gold; the gilded scans show only thin dark lines there, so the effect is weak on them.',
   },
+  invisibleink: {
+    expected:
+      'Invisible ink foil (Murders at Karlov Manor showcase dossiers, MKM #377-389, Collector Boosters only, always English). Wizards' "Collecting Murders at Karlov Manor" says the cards carry mark-up and details "handwritten" on the file, and the MKM #384 Alquist Proft scan shows pale handwriting ("But of course", "Handsome, Genius") and a magnifying-glass doodle on the right of the text box, with more marks near the bottom. Underneath is traditional foil. Sources disagree on how the notes appear: mtg.wiki says they are designed to be visible at right angles; TCGplayer's MKM variants guide says they appear under UV light; Draftsim and Cardsphere say at certain angles or in certain light; the mtg.wiki "Invisible Ink MKM.gif" video shows them clearly under a blacklight and barely at all in normal light.',
+    css: standardCss,
+    webgl:
+      'The traditional foil sweep, plus procedural notes: wavy, loopy lines broken into words by noise (two lines at the top right of the text box, one near the bottom, one in the top margin), a magnifying-glass doodle and a ring circling part of the art. The notes are almost invisible face-on (4%) and show only at a steep tilt towards the bottom right, following the "visible at an angle" reading; UV can't be simulated. The ink is violet-grey: it darkens the cream text box and lightens dark art, so it reads on both. The preview uses the non-foil showcase dossier Alquist Proft (MKM #355), because invisible ink scans have the notes baked in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
