@@ -80,14 +80,14 @@ export const foilDescriptions: Record<string, FoilDescription> = {
       'Fracture foil (Japan Showcase): the border is covered in small, sharp-edged glass shards, each catching the light in its own rainbow colour, like shattered glass. A few sparkles also show in light parts of the art. Shards flash on and off as the card tilts.',
     css: standardCss,
     webgl:
-      'Voronoi shards about 2.5% of the card wide, each with its own random tilt, shimmering faintly and flashing brightly in its own rainbow colour at its own angle, with thin dark seams between shards. Dense on the outer border (about 5% of the width), sparse elsewhere and only on light ink. Faded off-axis. Screen blend, so shards shine on dark borders. The preview uses a regular Overlord of the Hauntwoods printing, because the fracture scans include photographed foil.',
+      'Voronoi shards about 2.5% of the card wide, each with its own random tilt, shimmering faintly and flashing brightly in its own rainbow colour at its own angle, with thin dark seams between shards. Shards cover the whole card. On the outer border (about 5% of the width) they use a screen blend, so they shine on the dark border; elsewhere a softer hard-light blend, so they show on light art and keep text readable. Faded off-axis. The preview uses a regular Overlord of the Hauntwoods printing, because the fracture scans include photographed foil.',
   },
   raisedfoil: {
     expected:
       'Raised foil: a raised, embossed glossy layer on parts of the frame. Bloomburrow raises the gold or bronze vine ornaments around the name and text box; the Big Score Vault cards have a raised gold stamp in the frame. The raised parts catch glossy highlights and cast slight shading as the card tilts, over a foil card.',
     css: standardCss,
     webgl:
-      'Finds warm metallic ink (gold, bronze, copper) in the scan and treats it as a height map. Normals from that height are lit from a direction set by the tilt, giving the ornaments shading and glossy gold highlights. A faint foil sheen covers the rest, and everything fades off-axis. Cards without warm metallic frames show little raised effect. The preview uses the Bloomburrow Zoraline raised-foil scan, whose ornaments are the raised parts.',
+      'Finds warm metallic ink (gold, bronze, copper) in the scan and treats it as a height map with a steep, wide bevel. Normals from that height are lit from a direction set by the tilt, giving the ornaments strong shading and bright glossy gold highlights. A light foil sheen covers the rest, and everything fades off-axis. Cards without warm metallic frames show little raised effect. The preview uses the Bloomburrow Zoraline raised-foil scan, whose ornaments are the raised parts.',
   },
   neonink: {
     expected:

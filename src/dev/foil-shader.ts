@@ -347,23 +347,24 @@ void main() {
     // Raised foil: the warm metallic frame ornaments are treated as a raised, glossy surface.
     // Their height comes from the scan; light from a direction set by the tilt gives them glossy
     // gold highlights and shading. A faint foil sheen covers the rest; everything fades off-axis.
-    vec2 step2 = uTexel * 1.5;
+    vec2 step2 = uTexel * 2.5;
     float h = warmMetal(base);
     float hx = warmMetal(texture2D(uImage, vUv + vec2(step2.x, 0.0)).rgb) - warmMetal(texture2D(uImage, vUv - vec2(step2.x, 0.0)).rgb);
     float hy = warmMetal(texture2D(uImage, vUv + vec2(0.0, step2.y)).rgb) - warmMetal(texture2D(uImage, vUv - vec2(0.0, step2.y)).rgb);
-    vec3 normal = normalize(vec3(-hx * 6.0, -hy * 6.0, 1.0));
+    vec3 normal = normalize(vec3(-hx * 14.0, -hy * 14.0, 1.0));
     vec3 lightDir = normalize(vec3(tilt * 2.2, 0.8));
     float diffuse = dot(normal, lightDir) - lightDir.z;
     float specular = pow(max(0.0, dot(reflect(-lightDir, normal), vec3(0.0, 0.0, 1.0))), 6.0);
     vec3 gold = vec3(1.0, 0.86, 0.55);
-    vec3 holo = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5) - 0.5) * 0.2 * glare * foilMask;
-    vec3 light = 0.5 + h * (diffuse * 1.2 + (gold - 0.5) * 0.6) * onAxis + holo;
-    colour = screen(hardLight(base, clamp(light, 0.0, 1.0)), gold * specular * h * onAxis * 1.6);
+    vec3 holo = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5) - 0.5) * 0.3 * glare * foilMask;
+    vec3 light = 0.5 + h * (diffuse * 1.8 + (gold - 0.5) * 0.85) * onAxis + holo;
+    colour = screen(hardLight(base, clamp(light, 0.0, 1.0)), gold * specular * h * onAxis * 2.4);
   }
   if (uType == 10) {
     // Fracture: shattered-glass shards (Voronoi cells about 2.5% of the card wide), each tilted
-    // its own way so it flashes its own rainbow colour at its own angle. Dense on the border,
-    // sparse elsewhere; fades off-axis. Screen blend, so shards shine on a dark border.
+    // its own way so it flashes its own rainbow colour at its own angle, over the whole card and
+    // strongest on the border; fades off-axis. Screen on the dark border, hard light elsewhere so
+    // shards also show on light art.
     vec2 grid = p * 40.0;
     vec2 cellBase = floor(grid);
     float nearest = 8.0;
@@ -388,10 +389,11 @@ void main() {
     float seam = smoothstep(0.0, 0.08, second - nearest);
     vec2 edgeDistance = min(vUv, 1.0 - vUv) * vec2(1.0, uAspect);
     float border = 1.0 - smoothstep(0.04, 0.055, min(edgeDistance.x, edgeDistance.y));
-    float density = mix(0.12 * foilMask, 1.0, border);
     vec3 glass = rainbow(hash(shard + 5.5) + dot(tilt, shardTilt) * 1.5) * 0.8 + 0.2;
     // Every shard shimmers a little; the ones angled at the light flash brightly.
-    colour = screen(base, glass * (0.3 + 0.9 * flash) * seam * density * onAxis);
+    float shine = (0.3 + 0.9 * flash) * seam * onAxis;
+    vec3 inner = hardLight(base, clamp(0.5 + (glass - 0.4) * shine * 0.7, 0.0, 1.0));
+    colour = mix(inner, screen(base, glass * shine), border);
   }
   if (uType == 9) {
     // Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols. Each symbol
