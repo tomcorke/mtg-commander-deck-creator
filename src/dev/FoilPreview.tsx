@@ -79,7 +79,7 @@ function SampleCard({
   summary: string
 }) {
   return (
-    <li>
+    <li onClick={onCompare}>
       <FinishedCardImage
         image={image}
         alt={`${sample.name} card`}
