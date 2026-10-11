@@ -98,10 +98,10 @@ export const foilDescriptions: Record<string, FoilDescription> = {
   },
   dragonscalefoil: {
     expected:
-      'Dragonscale foil (Tarkir: Dragonstorm Special Guests fetch lands): a textured pattern of rounded, overlapping scales (about 13 across) over the whole card. Each scale has a bright, silvery, slightly iridescent surface, with dark seams between scales. The scales catch the light as a band that moves with the tilt.',
+      'Dragonscale foil (Tarkir: Dragonstorm Special Guests fetch lands), from photos of Misty Rainforest, Marsh Flats and Arid Mesa: a net of bright, silvery seams around darker scales over the whole card, about 10-14 scales across, wider than tall, in staggered rows that curve slightly. Each scale is shaded so it looks slightly raised. The net shows in patches where the light catches it, and is clearest over dark areas such as the text box. Narrow, saturated vertical rainbow streaks run down the card and slide sideways with the tilt.',
     css: standardCss,
     webgl:
-      'A staggered grid of rounded scales (about 13 across) with dark seams. Each scale is shaded as a shallow dome lit from a direction set by the tilt (with a slight random wobble per scale), so it catches its own specular highlight. Silvery surface with a faint rainbow tint per scale; strongest near the light and fading off-axis. The preview uses a Special Guests fetch land, whose scan has no scales printed in.',
+      'Scales are cells of a staggered, slightly jittered grid (about 11 across, rows warped by a sine and noise so they curve), with rounded corners from a smooth-min over the cell edges. Seams are lightened with a hard-light blend so they show on dark ink; scale interiors are darkened a little and shaded from the tilt direction. A noise mask that shifts with the tilt reveals the net in patches, on top of the off-axis fade. Narrow vertical rainbow streaks (about 8 across) slide with horizontal tilt, break up along their length, dim over the seams and are strongest near the light. The preview uses a Special Guests fetch land, whose scan has no scales printed in.',
   },
   stepandcompleat: {
     expected:

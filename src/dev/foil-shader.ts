@@ -273,24 +273,49 @@ void main() {
   }
 
   if (uType == 13) {
-    // Dragonscale: a staggered grid of rounded scales (about 13 across) with dark seams. Each scale
-    // is a shallow dome lit from a direction set by the tilt, so it catches its own highlight; the
-    // surface is silvery with a faint rainbow tint per scale. Fades off-axis.
-    vec2 size = vec2(1.0 / 13.0, 0.062);
-    float row = floor(p.y / size.y);
-    vec2 shifted = vec2(p.x + mod(row, 2.0) * size.x * 0.5, p.y);
-    vec2 cell = floor(shifted / size);
-    vec2 l = (fract(shifted / size) - 0.5) * size;
-    vec2 halfSize = size * 0.5 - vec2(0.0035);
-    float radius = 0.012;
-    float d = length(max(abs(l) - halfSize + radius, 0.0)) - radius;
-    float inside = smoothstep(0.0015, -0.0015, d);
-    vec3 normal = normalize(vec3(l / halfSize * 0.55, 1.0));
-    vec3 lightDir = normalize(vec3(tilt * 2.2 + (hash(cell) - 0.5) * 0.3, 0.8));
-    float specular = pow(max(0.0, dot(reflect(-lightDir, normal), vec3(0.0, 0.0, 1.0))), 8.0);
-    vec3 silver = mix(vec3(0.85, 0.9, 0.98), rainbow(hash(cell + 3.0) + dot(tilt, vec2(1.5, 1.0))), 0.25);
-    float seam = (1.0 - inside) * 0.14;
-    vec3 light = 0.5 + (inside * ((silver - 0.5) * 0.6 + specular * 0.55) - seam) * onAxis;
+    // Dragonscale, matched to TDM Special Guests photos: an irregular net of scales (about 11
+    // across, wider than tall, rows gently curving) printed as bright silvery seams around darker
+    // cells. Each cell is shaded like a shallow overlapping scale, lit from the tilt direction.
+    // The net shows in patches where the light catches it and fades off-axis. Narrow vertical
+    // rainbow streaks sweep sideways with the tilt and break up along their length.
+    vec2 q = vec2(p.x * 11.0, p.y * 17.0);
+    q.y += sin(p.x * 4.0 + p.y * 1.5) * 0.6;
+    q += (vec2(fbm(p * 5.0), fbm(p * 5.0 + 7.0)) - 0.5) * 0.6;
+    vec2 g = floor(q);
+    // Two-pass cell edges on a staggered, jittered grid; smooth-min rounds the corners.
+    vec2 nearest = vec2(9.0);
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -2; x <= 1; x++) {
+        vec2 c = g + vec2(float(x), float(y));
+        vec2 r = c + vec2(mod(c.y, 2.0) * 0.5 + 0.5, 0.5) + (vec2(hash(c), hash(c + 5.0)) - 0.5) * 0.35 - q;
+        if (dot(r, r) < dot(nearest, nearest)) nearest = r;
+      }
+    }
+    float edge = 9.0;
+    for (int y = -2; y <= 2; y++) {
+      for (int x = -2; x <= 2; x++) {
+        vec2 c = g + vec2(float(x), float(y));
+        vec2 r = c + vec2(mod(c.y, 2.0) * 0.5 + 0.5, 0.5) + (vec2(hash(c), hash(c + 5.0)) - 0.5) * 0.35 - q;
+        vec2 between = r - nearest;
+        if (dot(between, between) > 0.0001) {
+          float e = dot(0.5 * (nearest + r), normalize(between));
+          float k = 0.1;
+          float h = clamp(0.5 + 0.5 * (edge - e) / k, 0.0, 1.0);
+          edge = mix(edge, e, h) - k * h * (1.0 - h);
+        }
+      }
+    }
+    vec2 local = -nearest;
+    float seam = 1.0 - smoothstep(0.03, 0.1, edge);
+    float shade = dot(local, normalize(tilt + vec2(0.001, 0.25))) - 0.25 * local.y;
+    float reveal = onAxis * (0.35 + 0.65 * smoothstep(0.35, 0.65, fbm(p * 2.2 + tilt * 1.8)));
+    vec3 net = vec3(seam * 0.34 - (1.0 - seam) * (0.07 - shade * 0.12)) * reveal;
+    float phase = vUv.x * 8.0 - tilt.x * 5.0;
+    float streak = pow(0.5 + 0.5 * cos(TAU * phase), 14.0);
+    streak *= smoothstep(0.3, 0.6, noise(vec2(floor(phase + 0.5) * 3.7, vUv.y * 4.0 + tilt.y * 3.0)));
+    streak *= (0.25 + 0.75 * glare) * (1.0 - seam * 0.5);
+    vec3 hue = rainbow(phase * 0.45 + vUv.y * 0.25 + tilt.y);
+    vec3 light = 0.5 + net + ((hue - 0.5) * 0.9 + 0.12) * streak * 0.55;
     colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
   if (uType == 12) {
