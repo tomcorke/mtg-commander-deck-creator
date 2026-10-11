@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+
+import { useStoredState } from './stored-state.ts'
 import './foil-preview.css'
 
 import type { ScryfallCard } from '../domain/card-model.ts'
@@ -36,14 +38,22 @@ const plainCardImage = (query: string) =>
     .map((part, index) => (index ? part : encodeURIComponent(part)))
     .join('&')}`
 
-async function loadSample([key, query]: [string, string]): Promise<Sample | string> {
+// Foil types whose own scans already show the foil (step-and-compleat prints the symbols into
+// the image) preview on a plain printing with the foil type applied by the app.
+const sampleOverrides: Record<string, string> = {
+  stepandcompleat: '!"Glissa, the Traitor" -is:stepandcompleat',
+}
+
+async function loadSample([key, defaultQuery]: [string, string]): Promise<Sample | string> {
+  const query = sampleOverrides[key] ?? defaultQuery
   const url = `https://api.scryfall.com/cards/search?order=released&dir=desc&q=${encodeURIComponent(query)}`
   const response = await fetch(url)
   if (!response.ok) return `${key}: no results`
   const card = ((await response.json()) as { data: ScryfallCard[] }).data[0]
   const finish = key === 'nonfoil' ? 'nonfoil' : key === 'etched' ? 'etched' : 'foil'
   const option = printingOptions([card]).find((printing) => printing.finish === finish)
-  return option ? { ...option, name: card.name } : `${key}: printing has no ${finish} finish`
+  if (!option) return `${key}: printing has no ${finish} finish`
+  return { ...option, name: card.name, ...(sampleOverrides[key] ? { foilType: key } : {}) }
 }
 
 function Toggle({
@@ -101,11 +111,18 @@ function SampleCard({
 
 export function FoilPreview() {
   const [samples, setSamples] = useState<(Sample | string)[]>([])
-  const [darkMode, setDarkMode] = useState(false)
-  const [cardEffects, setCardEffects] = useState(true)
-  const [staticEffects, setStaticEffects] = useState(true)
-  const [plainCard, setPlainCard] = useState('')
-  const [compared, setCompared] = useState<Sample>()
+  const [darkMode, setDarkMode] = useStoredState('dark-mode', true)
+  const [cardEffects, setCardEffects] = useStoredState('card-effects', true)
+  const [staticEffects, setStaticEffects] = useStoredState('static-effects', true)
+  const [plainCard, setPlainCard] = useStoredState('card-image', '')
+  // Remember the compared card by key, and pick it again once its sample has loaded.
+  const [comparedKey, setComparedKey] = useStoredState('compared', '')
+  const sampleKey = (sample: Sample) =>
+    `${sample.set}-${sample.collectorNumber}-${sample.finish}-${sample.foilType ?? ''}`
+  const compared = samples.find(
+    (sample): sample is Sample => typeof sample !== 'string' && sampleKey(sample) === comparedKey,
+  )
+  const setCompared = (sample: Sample) => setComparedKey(sampleKey(sample))
   const { notes, save } = useFeedback()
   const imageFor = (sample: Sample) => (plainCard ? plainCardImage(plainCard) : sample.image)
 

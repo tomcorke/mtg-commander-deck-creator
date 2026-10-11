@@ -123,3 +123,14 @@
 .foil-sheet-css {
   width: 366px;
 }
+.foil-stage-description {
+  width: min(360px, 100%);
+}
+.foil-stage-description h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.foil-stage-description p {
+  margin: 0 0 14px;
+  line-height: 1.45;
+}

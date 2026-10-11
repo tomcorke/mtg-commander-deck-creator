@@ -12,6 +12,7 @@ export const foilShaderTypes = {
   silverfoil: 7,
   rainbowfoil: 8,
   doublerainbow: 8,
+  stepandcompleat: 9,
 } as const
 
 const vertexSource = `
@@ -106,6 +107,14 @@ vec3 galaxyShapes(vec2 p, vec2 tilt, float scale, float salt, float density) {
   vec2 facing = vec2(hash(cell + 31.0), hash(cell + 37.0)) * 2.0 - 1.0;
   float twinkle = pow(max(0.0, cos(dot(tilt, facing) * 14.0 + seed * TAU)), 10.0);
   return (rainbow(seed * 5.0 + dot(tilt, facing) * 2.0) - 0.5) * step(1.0 - density, seed) * shape * twinkle;
+}
+
+// Distance to a Phyrexian symbol: a ring with a vertical stroke through it, extending above and below.
+float phyrexianSymbol(vec2 l) {
+  float ring = abs(length(l) - 0.021) - 0.0045;
+  vec2 stem = abs(l) - vec2(0.0042, 0.034);
+  float bar = length(max(stem, 0.0)) + min(max(stem.x, stem.y), 0.0);
+  return min(ring, bar);
 }
 
 void main() {
@@ -237,6 +246,34 @@ void main() {
     float inkKeep = smoothstep(0.08, 0.45, grey);
     float metal = 0.5 + band * 0.34 * inkKeep - 0.05 * (1.0 - band) * glare;
     colour = hardLight(mix(base, mono, 0.6), vec3(metal, metal + 0.01, metal + 0.02));
+  }
+
+  if (uType == 9) {
+    // Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols. Each symbol
+    // is embossed (lit from the light direction) and tinted metallic gold, rose, green or silver,
+    // shifting with the tilt and brightest near the light; a light holo sheen covers the rest.
+    vec2 spacing = vec2(0.1, 0.105);
+    float row = floor(p.y / spacing.y);
+    vec2 shifted = vec2(p.x + mod(row, 2.0) * spacing.x * 0.5, p.y);
+    vec2 cell = floor(shifted / spacing);
+    vec2 l = (fract(shifted / spacing) - 0.5) * spacing;
+    float d = phyrexianSymbol(l);
+    float inside = smoothstep(0.0012, -0.0012, d);
+    float e = 0.0015;
+    vec2 normal = normalize(vec2(
+      phyrexianSymbol(l + vec2(e, 0.0)) - phyrexianSymbol(l - vec2(e, 0.0)),
+      phyrexianSymbol(l + vec2(0.0, e)) - phyrexianSymbol(l - vec2(0.0, e))) + 0.0001);
+    vec2 lightDir = normalize(vec2(-0.6, -0.8) + tilt * 2.0);
+    float rim = smoothstep(-0.004, 0.0, d) * inside;
+    float emboss = dot(-normal, lightDir) * rim;
+    float pick = hash(cell);
+    vec3 metal = pick < 0.3 ? vec3(0.95, 0.8, 0.45) : pick < 0.55 ? vec3(0.95, 0.6, 0.65)
+      : pick < 0.75 ? vec3(0.65, 0.9, 0.55) : vec3(0.85, 0.88, 0.92);
+    vec3 tint = mix(metal, rainbow(pick * 2.0 + dot(tilt, vec2(2.0, 1.5))), 0.3);
+    float shine = inside * (0.35 + 0.75 * glare);
+    vec3 holo = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5) - 0.5) * 0.18 * glare * foilMask;
+    vec3 light = 0.5 + (tint - 0.5) * shine * 0.9 + emboss * 0.35 + holo;
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);

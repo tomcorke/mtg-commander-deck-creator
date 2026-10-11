@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
+import { useStoredState } from './stored-state.ts'
+
 import type { CardFinish } from '../domain/card-model.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { NotePanel, noteId, type FeedbackNote } from './FoilFeedback.tsx'
+import { describeFoil } from './foil-descriptions.ts'
 import { createFoilRenderer, foilShaderTypes } from './foil-shader.ts'
 
 type StageCard = { image: string; name: string; finish?: CardFinish; foilType?: string }
@@ -90,7 +93,7 @@ export function FoilStage({
 }) {
   const foil = card.foilType ?? card.finish ?? 'nonfoil'
   const note = (side: 'css' | 'webgl') => notes.find(({ id }) => id === noteId(foil, side))
-  const [autoTilt, setAutoTilt] = useState(true)
+  const [autoTilt, setAutoTilt] = useStoredState('auto-tilt', true)
   const { canvas, wrapper, track, error } = useFoilCanvas(card, autoTilt)
 
   return (
@@ -124,7 +127,22 @@ export function FoilStage({
           <figcaption>{error || 'WebGL'}</figcaption>
           <NotePanel foil={foil} side="webgl" note={note('webgl')} save={save} />
         </figure>
+        <FoilDescriptionPanel foil={foil} />
       </div>
     </section>
+  )
+}
+
+function FoilDescriptionPanel({ foil }: { foil: string }) {
+  const { expected, css, webgl } = describeFoil(foil)
+  return (
+    <aside className="foil-stage-description">
+      <h3>How it should look</h3>
+      <p>{expected}</p>
+      <h3>CSS version</h3>
+      <p>{css}</p>
+      <h3>WebGL version</h3>
+      <p>{webgl}</p>
+    </aside>
   )
 }
