@@ -18,7 +18,7 @@ const queries: [string, string][] = [
   ['etched', 'is:etched game:paper'],
   ...Object.keys(foilTypeNames).map((type): [string, string] => [
     type,
-    `is:${type} is:foil game:paper`,
+    `is:${type} is:foil game:paper${type === 'halofoil' ? ' set:mul' : ''}`,
   ]),
 ]
 

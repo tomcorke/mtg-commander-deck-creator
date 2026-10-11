@@ -192,18 +192,27 @@ void main() {
     }
     colour = hardLight(base, clamp(0.5 + rings * 0.42, 0.0, 1.0));
   } else if (uType == 5) {
-    // Halo: domain-warped marbling, mostly silver with rainbow and dark veins,
-    // revealed in patches by large noise that shifts with the tilt.
+    // Halo: swirling ribbons from domain-warped marbling, each filled with fine streaks that follow
+    // the swirl (contour lines of the same field), in iridescent cyan, blue and violet.
+    // Revealed in patches by large noise that shifts with the tilt.
     vec2 q = p * 2.2;
     vec2 warp = vec2(fbm(q + vec2(0.0, uTime * 0.02)), fbm(q + vec2(5.2, 1.3)));
-    float marble = fbm(q + warp * 3.0);
-    float bands = 0.5 + 0.5 * sin(marble * 22.0 + tilt.x * 4.0);
+    // A warped directional field: its contour lines flow in long swirls without closed loops.
+    // Two smooth noise layers only, so the contours flow instead of wiggling.
+    vec2 swirl = q + warp * 2.5;
+    float marble = q.y * 0.7 + q.x * 0.3 + (noise(swirl) * 0.65 + noise(swirl * 2.0) * 0.35) * 1.8;
+    float ribbon = smoothstep(0.3, 0.8, 0.5 + 0.5 * sin(marble * 9.0 + tilt.x * 4.0));
+    float streaks = smoothstep(0.25, 0.9, 0.5 + 0.5 * sin(marble * 140.0 + tilt.y * 8.0));
+    float amount = ribbon * (0.35 + 0.65 * streaks);
     vec3 silver = vec3(0.86, 0.9, 0.96);
-    vec3 tint = mix(silver, rainbow(marble * 2.5 + tilt.y * 2.0), 0.55);
-    // Thin, soft dark veins between silver and tinted bands.
-    vec3 halo = mix(vec3(0.38), mix(silver, tint, smoothstep(0.55, 0.95, bands)), smoothstep(0.04, 0.2, bands));
-    float reveal = smoothstep(0.46, 0.68, fbm(p * 1.1 - tilt * 1.4 + 3.0));
-    colour = hardLight(base, 0.5 + (halo - 0.5) * 0.5 * reveal);
+    // Iridescent hues kept within cyan, blue and violet.
+    float shift = 0.5 + 0.5 * sin(marble * 3.0 + dot(tilt, vec2(3.0, 2.0)));
+    vec3 hue = shift < 0.5
+      ? mix(vec3(0.3, 0.92, 1.0), vec3(0.32, 0.5, 1.0), shift * 2.0)
+      : mix(vec3(0.32, 0.5, 1.0), vec3(0.72, 0.42, 1.0), shift * 2.0 - 1.0);
+    vec3 tint = mix(silver, hue, 0.7);
+    float reveal = smoothstep(0.42, 0.66, fbm(p * 1.1 - tilt * 1.4 + 3.0));
+    colour = hardLight(base, 0.5 + (tint - 0.5) * amount * 0.85 * reveal);
   } else if (uType == 6) {
     // Galaxy: round rainbow glitter points and larger stars. Each point twinkles at its own angle,
     // and a large noise reveal shifts with the tilt, so only some areas sparkle at once.
