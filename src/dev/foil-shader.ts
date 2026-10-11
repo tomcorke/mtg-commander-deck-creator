@@ -448,21 +448,27 @@ void main() {
     colour = hardLight(metal, clamp(light, 0.0, 1.0));
   }
   if (uType == 15) {
-    // Oil slick (ONE Compleat Edition): a deep, glossy near-black card. Light ink turns to dark
-    // chrome carrying a thin oil film: broad, smooth bands of copper, magenta, violet and blue
-    // that swirl gently and slide with the tilt. Strongest in a broad sweep near the light;
-    // elsewhere the card stays dark and glossy.
+    // Oil slick (ONE Compleat Edition): glossy black stock. Dark ink is crushed to full black and
+    // carries a glossy sheen near the light. Light ink keeps its brightness and turns to chrome
+    // with a thin oil film: broad, smooth bands of copper, magenta, violet and blue that swirl
+    // gently and slide with the tilt, strongest in a broad sweep near the light.
     vec2 q = p * 1.6 + (vec2(fbm(p * 2.0 + 3.0), fbm(p * 2.0 + 9.0)) - 0.5) * 0.9;
     float film = fbm(q) * 2.2 + dot(vUv, vec2(0.35, 0.6)) + dot(tilt, vec2(2.2, 1.4));
     vec3 hue = rainbow(film);
-    // Pull the hues towards an oily palette: green muted into teal and blue, part silver.
-    hue = mix(vec3(hue.r, hue.g * 0.5, max(hue.b, hue.g * 0.7)), vec3(0.62, 0.62, 0.68), 0.35);
+    // Pull the hues towards an oily palette: green muted into teal and blue.
+    hue = vec3(hue.r, hue.g * 0.5, max(hue.b, hue.g * 0.7));
     float along = dot(vUv - uPointer, vec2(0.95, 0.3));
     float sweep = 0.3 + 0.7 * exp(-pow(along / 0.28, 2.0));
     float amount = foilMask * sweep * onAxis;
-    // The stock darkens the print a little everywhere, as the black oil-slick base does.
-    vec3 dark = base * (0.82 - 0.12 * (1.0 - glare));
-    colour = hardLight(dark, clamp(0.5 + (hue - 0.5) * amount * 0.9 + 0.06 * amount, 0.0, 1.0));
+    // Crush dark ink to black; bright ink is untouched.
+    float black = 1.0 - smoothstep(0.06, 0.3, lum);
+    vec3 deep = base * (1.0 - black);
+    vec3 tinted = hardLight(deep, clamp(0.5 + (hue - 0.5) * amount * 0.9, 0.0, 1.0));
+    // Keep the bright ink's luminosity: shift the tinted colour back to the original brightness.
+    tinted = clamp(tinted + (luminance(deep) - luminance(tinted)) * (1.0 - black), 0.0, 1.0);
+    // Glossy sheen on the black: a tight highlight following the light with a hint of oil colour.
+    float gloss = exp(-pow(along / 0.12, 2.0)) * glare;
+    colour = screen(tinted, mix(vec3(0.75), hue, 0.45) * gloss * black * 0.45);
   }
 
   if (uType == 17) {
