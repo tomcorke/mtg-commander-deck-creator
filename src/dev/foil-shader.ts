@@ -22,6 +22,7 @@ export const foilShaderTypes = {
   confettifoil: 17,
   gilded: 14,
   embossed: 25,
+  textured: 26,
 } as const
 
 const vertexSource = `
@@ -162,6 +163,12 @@ float ampersand(vec2 l) {
   float leg = segment(l, vec2(-0.3, -0.3), vec2(0.65, 0.85));
   float tail = segment(l, vec2(0.3, 0.15), vec2(0.8, 0.05));
   return min(min(upper, bowl), min(leg, tail)) - 0.07;
+}
+
+// Field whose contour lines form the textured-foil pattern: long, gently warped swirls.
+float texturedField(vec2 p) {
+  vec2 warp = vec2(fbm(p * 2.2 + 1.7), fbm(p * 2.2 + 8.3)) - 0.5;
+  return dot(p, vec2(0.6, 0.8)) + length(warp) * 0.9 + warp.x * 0.5;
 }
 
 void main() {
@@ -557,6 +564,27 @@ void main() {
     float amount = 0.5 * foilMask * sweep * (0.2 + 0.8 * glare) * (1.0 - 0.4 * inside);
     float gloss = inside * (0.05 + 0.25 * glare * glare) + emboss * 0.3 * onAxis;
     colour = hardLight(base, clamp(0.5 + (rainbow(hue) - 0.5) * amount + gloss, 0.0, 1.0));
+  }
+
+  if (uType == 26) {
+    // Textured (2X2, DMU, CMM, MH3 and later): a fine embossed pattern of warped, roughly parallel
+    // ridges across the card. Each ridge is a tiny slope lit from the light's direction, so the
+    // lines shimmer and seem to move as the card tilts; near the light the crests pick up a
+    // shifting rainbow over a light traditional foil sheen. Everything fades off-axis.
+    float field = texturedField(p);
+    float e = 0.002;
+    vec2 grad = normalize(vec2(texturedField(p + vec2(e, 0.0)) - field, texturedField(p + vec2(0.0, e)) - field) + 0.0001);
+    float phase = field * 70.0;
+    float slope = cos(phase * TAU);
+    vec2 toLight = normalize((uPointer - vUv) * vec2(1.0, uAspect) + vec2(0.0001));
+    float ridge = slope * (0.35 + 0.65 * abs(dot(grad, toLight)));
+    float crest = pow(0.5 + 0.5 * sin(phase * TAU), 6.0);
+    float hue = field * 3.0 + tilt.x * 1.5 + tilt.y;
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    vec3 light = 0.5 + vec3(ridge * 0.13 * (0.1 + 0.9 * glare))
+      + (rainbow(hue) - 0.5) * (0.1 + 0.6 * crest) * foilMask * sweep * (0.1 + 0.9 * glare);
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);

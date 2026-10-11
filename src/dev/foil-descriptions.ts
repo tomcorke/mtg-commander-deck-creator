@@ -138,6 +138,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'A stylised ampersand drawn from a distance function (upper loop, open lower bowl, diagonal leg and tail) covering the card. Under it the traditional-foil sweep is about 40% weaker; the logo itself is a faint lift off-axis, turns glossy white near the light, and its edges are bevelled and lit on the side facing the light. Only the ampersand is drawn, not the REX logo or the dragon detail inside the real ampersand. The preview uses the regular AFR Acererak (#87), because the embossed scans have the overlay printed in.',
   },
+  textured: {
+    expected:
+      'Textured foil (Double Masters 2022 borderless mythics, 2X2 #573-577; Dominaria United stained-glass legends, DMU #329-369; Commander Masters, Outlaws Breaking News, Modern Horizons 3, Assassin’s Creed, Duskmourn, Special Guests and Spider-Man): a fine embossed pattern pressed into the foil. The Wizards "Collecting Double Masters 2022" article says it is "foiled with a special textured pattern, giving the art some appearance of movement", and Wizards’ announcement tweet calls it "gorgeous (but subtle)". mtg.wiki adds that the raised lines in the art are "visible even at a distance". Draftsim describes "a clear, repeating pattern across the entire card surface" with an illusion of motion when tilted, but says the DMU stained-glass cards are textured only on the name and text box; mtg.wiki just says DMU legends got the treatment. So the sources disagree on subtle versus visible from a distance, and on how much of a DMU card is textured.',
+    css: standardCss,
+    webgl:
+      'Contour lines of a gently warped diagonal field (about 70 across the card) act as tiny ridges. Each ridge is shaded by its slope towards the light, so the lines shimmer and move as the card tilts, and its crests pick up a rainbow over a light traditional foil sweep. Both fade sharply away from the light. The whole card is textured, including DMU name and text boxes. The preview uses the regular-foil stained-glass Aron (DMU #292), because the textured scans have some of the texture printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
