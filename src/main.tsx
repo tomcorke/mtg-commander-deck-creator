@@ -6,7 +6,9 @@ import { openAppStorage } from './app-storage.ts'
 import { createWorkspace } from './autosaves.ts'
 
 const root = createRoot(document.getElementById('root')!)
-if (import.meta.env.DEV && new URLSearchParams(location.search).has('foil-preview'))
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('foil-sheet'))
+  void import('./dev/FoilSheet.tsx').then(({ FoilSheet }) => root.render(<FoilSheet />))
+else if (import.meta.env.DEV && new URLSearchParams(location.search).has('foil-preview'))
   void import('./dev/FoilPreview.tsx').then(({ FoilPreview }) => root.render(<FoilPreview />))
 else
   void openAppStorage(localStorage)

@@ -114,3 +114,12 @@
 .foil-preview ul .finished-card {
   cursor: pointer;
 }
+.foil-sheet-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.foil-sheet-row canvas,
+.foil-sheet-css {
+  width: 366px;
+}
