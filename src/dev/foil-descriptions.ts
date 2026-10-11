@@ -131,6 +131,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Finds warm gold ink in the scan and treats it as the stamp and its height map. The stamp is replaced by metal that is dark bronze away from the light and bright saturated gold where a broad diagonal reflection band, which follows the light, crosses it. Normals from the height add shading and small glints lit from the tilt direction. The rest of the card gets a gentle traditional foil sweep that fades off-axis. Gold ink in the art also turns metallic. The preview uses the regular Golden Age Raffine (SNC #327), whose scan prints the frame in flat gold; the gilded scans show only thin dark lines there, so the effect is weak on them.',
   },
+  gleaminggold: {
+    expected:
+      'Gleaming gold (The Hobbit, used only on the Smaug the Magnificent headliner, HOB #249; about 500 printed, Collector Boosters only): a gold frame covers most of the card around the art, with a hammered, stippled texture of fine dark specks, darker brown lettering and lighter gold banners. Wizards calls it a dazzling gleaming gold coating. No photos of a physical copy were public at the time of writing, so this follows the Wizards render (mtg.wiki gallery, File:Smaug the Magnificent Headliner.png) and how mirror gold foil behaves: bright warm gold where it catches the light, darker bronze away from it, with the hammered surface glittering.',
+    css: standardCss,
+    webgl:
+      'Finds yellow-gold ink in the scan (warm metal with green close to red, so Smaug’s browns and oranges are left alone) and treats it as mirror gold. Hard-light keeps the dark stipple and lettering dark, but the gold turns dark bronze away from the light and bright warm gold where a broad diagonal reflection band, which follows the light, crosses it. A fine grid of tiny facets, each angled its own way, glints white-gold at its own tilt near the light. The art gets a faint warm foil sweep that fades off-axis. The preview uses the gleaming gold scan itself: its gold is flat printed ink, not photographed foil.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',
