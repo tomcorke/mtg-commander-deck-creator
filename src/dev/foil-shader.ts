@@ -86,11 +86,14 @@ void main() {
   vec3 colour = base;
 
   if (uType == 1 || uType == 8) {
-    // Traditional or rainbow foil: diagonal holographic sheen.
-    float strength = uType == 8 ? 0.55 : 0.35;
+    // Traditional or rainbow foil: holographic sheen in diagonal bands that sweep and change
+    // colour with the tilt; strongest near the light, faint elsewhere.
+    float strength = uType == 8 ? 0.75 : 0.5;
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
     float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
-    vec3 holo = rainbow(hue) * (0.35 + 0.65 * glare);
-    colour = hardLight(base, 0.5 + (holo - 0.5) * strength * foilMask);
+    float amount = strength * foilMask * sweep * (0.2 + 0.8 * glare);
+    colour = hardLight(base, 0.5 + (rainbow(hue) - 0.5) * amount);
   } else if (uType == 2) {
     // Etched: metallic gold on edges in light areas, strongest near the light.
     float l = luminance(texture2D(uImage, vUv - vec2(uTexel.x, 0.0)).rgb);
@@ -98,22 +101,24 @@ void main() {
     float u = luminance(texture2D(uImage, vUv - vec2(0.0, uTexel.y)).rgb);
     float d = luminance(texture2D(uImage, vUv + vec2(0.0, uTexel.y)).rgb);
     float edges = clamp(length(vec2(r - l, d - u)) * 4.0, 0.0, 1.0);
-    float grain = hash(floor(vUv / uTexel));
+    // Smooth fine grain rather than per-texel noise, so the metal sparkles without pixelation.
+    float grain = noise(p * 260.0);
     vec3 gold = vec3(1.0, 0.86, 0.55) * (0.6 + 0.4 * grain);
     colour = screen(base, gold * edges * (0.25 + 0.9 * glare));
   } else if (uType == 3) {
-    // Surge: fine streaks rising to the right, warped into broad waves, in saturated rainbow.
+    // Surge: thick streaks rising to the right, warped into broad waves, in saturated rainbow.
     vec2 q = mat2(0.82, -0.57, 0.57, 0.82) * p;
     q += (vec2(fbm(p * 1.6), fbm(p * 1.6 + 7.3)) - 0.5) * 0.35;
-    float line = q.y * 480.0;
-    float streak = pow(0.5 + 0.5 * sin(line), 2.0);
-    float segment = smoothstep(0.25, 0.6, noise(vec2(q.x * 9.0, floor(line / TAU) * 1.7)));
-    float reveal = smoothstep(0.25, 0.55, fbm(p * 1.3 + tilt * 1.6));
+    float line = q.y * 190.0;
+    float streak = smoothstep(-0.2, 0.55, sin(line));
+    float segment = smoothstep(0.25, 0.6, noise(vec2(q.x * 7.0, floor(line / TAU) * 1.7)));
+    float reveal = smoothstep(0.18, 0.48, fbm(p * 1.3 + tilt * 1.6));
     vec3 hue = rainbow(q.y * 1.6 + tilt.x * 2.0 + tilt.y);
-    float amount = streak * segment * reveal * (0.6 + 0.8 * glare);
+    float amount = streak * segment * reveal * (0.75 + 0.7 * glare);
     colour = hardLight(base, 0.5 + (hue - 0.5) * clamp(amount, 0.0, 1.0) * 0.9);
   } else if (uType == 4) {
     // Ripple: soft rainbow rings on a 4x4 grid; the checkerboard sets grow and shrink in turn.
+    // Each ring's colour shifts with the tilt, and each only lights up at some viewing angles.
     float t = clamp(uPointer.x * 0.5 + uPointer.y * 0.5, 0.0, 1.0);
     vec3 rings = vec3(0.0); // offsets from neutral grey
     for (int row = 0; row < 6; row++) {
@@ -123,10 +128,14 @@ void main() {
         float radius = mix(0.06, 0.3, even ? t : 1.0 - t);
         float offset = (length(p - centre) - radius) / 0.022;
         float band = exp(-offset * offset);
-        rings += (rainbow(offset * 0.12 + float(row * 4 + col) * 0.13) - 0.5) * band;
+        float phase = hash(vec2(float(row), float(col)) + 0.37) * TAU;
+        vec2 facing = normalize(centre - vec2(0.5, 0.5 * uAspect) + 0.001);
+        float visible = smoothstep(0.2, 0.85, 0.5 + 0.5 * cos(dot(tilt, facing) * 9.0 + (tilt.x - tilt.y) * 4.0 + phase));
+        float hue = offset * 0.12 + phase / TAU + dot(tilt, vec2(1.7, 1.1)) * 1.6;
+        rings += (rainbow(hue) - 0.5) * band * visible;
       }
     }
-    colour = hardLight(base, clamp(0.5 + rings * 0.55, 0.0, 1.0));
+    colour = hardLight(base, clamp(0.5 + rings * 0.6, 0.0, 1.0));
   } else if (uType == 5) {
     // Halo: domain-warped marbling, mostly silver with rainbow and dark veins,
     // revealed in patches by large noise that shifts with the tilt.
@@ -138,29 +147,35 @@ void main() {
     vec3 tint = mix(silver, rainbow(marble * 2.5 + tilt.y * 2.0), 0.55);
     // Thin, soft dark veins between silver and tinted bands.
     vec3 halo = mix(vec3(0.38), mix(silver, tint, smoothstep(0.55, 0.95, bands)), smoothstep(0.04, 0.2, bands));
-    float reveal = smoothstep(0.38, 0.62, fbm(p * 1.1 - tilt * 1.4 + 3.0));
+    float reveal = smoothstep(0.46, 0.68, fbm(p * 1.1 - tilt * 1.4 + 3.0));
     colour = hardLight(base, 0.5 + (halo - 0.5) * 0.5 * reveal);
   } else if (uType == 6) {
-    // Galaxy: fine rainbow glitter and larger stars that twinkle as the card tilts.
-    vec2 cell = floor(vUv / (uTexel * 3.0));
+    // Galaxy: round rainbow glitter points and larger stars. Each point twinkles at its own angle,
+    // and a large noise reveal shifts with the tilt, so only some areas sparkle at once.
+    float reveal = smoothstep(0.25, 0.52, fbm(p * 1.4 + tilt * 1.8 + 11.0));
+    vec2 grid = p * 90.0;
+    vec2 cell = floor(grid);
     float seed = hash(cell);
-    float twinkle = pow(max(0.0, cos(dot(tilt, vec2(seed, hash(cell + 3.1)) * 2.0 - 1.0) * 18.0 + seed * TAU)), 6.0);
-    float glitter = step(0.78, seed) * twinkle;
+    vec2 spot = fract(grid) - 0.5 - (vec2(hash(cell + 1.3), hash(cell + 4.7)) - 0.5) * 0.6;
+    float point = smoothstep(0.2, 0.06, length(spot)) * step(0.5, seed);
+    float twinkle = pow(max(0.0, cos(dot(tilt, vec2(hash(cell + 2.1), hash(cell + 8.4)) * 2.0 - 1.0) * 16.0 + seed * TAU)), 3.0);
     vec2 starGrid = p * 14.0;
     vec2 starCell = floor(starGrid);
     float starSeed = hash(starCell + 17.0);
     vec2 local = fract(starGrid) - 0.5 + (vec2(hash(starCell + 2.0), hash(starCell + 5.0)) - 0.5) * 0.5;
     float star = step(0.82, starSeed) * smoothstep(0.012, 0.0, abs(local.x * local.y)) * smoothstep(0.32, 0.0, length(local));
-    float starTwinkle = 0.4 + 0.6 * pow(max(0.0, cos(dot(tilt, vec2(starSeed, 1.0 - starSeed)) * 9.0 + starSeed * TAU)), 3.0);
-    vec3 sparkle = rainbow(seed * 3.0 + tilt.x) * glitter + rainbow(starSeed * 5.0 + tilt.y) * star * starTwinkle * 1.6;
-    vec3 holo = rainbow(dot(vUv, vec2(0.9, 0.6)) + tilt.x * 1.5) * 0.18 * glare;
-    colour = screen(base, sparkle * (0.5 + 0.9 * glare) + holo * foilMask);
+    float starTwinkle = pow(max(0.0, cos(dot(tilt, vec2(starSeed, 1.0 - starSeed) * 2.0 - 1.0) * 9.0 + starSeed * TAU)), 3.0);
+    vec3 glitter = (rainbow(seed * 3.0 + tilt.x) - 0.5) * point * twinkle;
+    vec3 stars = (rainbow(starSeed * 5.0 + tilt.y) - 0.5) * star * starTwinkle * 1.4;
+    float light = reveal * (0.55 + 0.9 * glare);
+    colour = hardLight(base, clamp(0.5 + (glitter + stars) * light * 2.2, 0.0, 1.0));
   } else if (uType == 7) {
     // Silverscreen: monochrome print under a broad metallic silver sheen.
     float grey = luminance(base);
     vec3 mono = vec3(grey);
     float band = exp(-pow((dot(vUv - uPointer, vec2(0.8, 0.6))) / 0.22, 2.0));
-    colour = screen(mix(base, mono, 0.6), vec3(0.85, 0.9, 0.98) * band * 0.55 * foilMask);
+    float metal = 0.5 + band * 0.42 - 0.07 * (1.0 - band) * glare;
+    colour = hardLight(mix(base, mono, 0.6), vec3(metal, metal + 0.01, metal + 0.03));
   }
 
   gl_FragColor = vec4(colour, 1.0);
