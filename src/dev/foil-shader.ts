@@ -22,6 +22,7 @@ export const foilShaderTypes = {
   confettifoil: 17,
   gilded: 14,
   invisibleink: 22,
+  silverscroll: 23,
 } as const
 
 const vertexSource = `
@@ -552,6 +553,21 @@ void main() {
     // Violet-grey ink: darkens the cream text box, lightens dark art, so it reads on both.
     vec3 inked = mix(screen(foiled, vec3(0.85, 0.8, 1.0)), foiled * vec3(0.5, 0.45, 0.7), smoothstep(0.35, 0.65, lum));
     colour = mix(foiled, inked, notes * (0.04 + 0.86 * reveal));
+  }
+
+  if (uType == 23) {
+    // Silver scroll (SOS Japanese Mystical Archive): printed over silver foil, so the whole card
+    // takes on a cool, muted, silvery cast; pale areas (sky, scroll, text box) become brushed,
+    // slightly grainy silver. A broad metallic sheen follows the light and fades off-axis.
+    float high = max(base.r, max(base.g, base.b));
+    float low = min(base.r, min(base.g, base.b));
+    float saturation = high > 0.0 ? (high - low) / high : 0.0;
+    float pale = smoothstep(0.4, 0.85, lum) * (1.0 - saturation);
+    vec3 silvered = mix(base, vec3(lum) * vec3(0.96, 0.98, 1.03), 0.55 + 0.4 * pale);
+    float band = exp(-pow(dot(vUv - uPointer, vec2(0.8, 0.6)) / 0.25, 2.0));
+    float grain = 0.75 + 0.5 * noise(p * 600.0);
+    float shine = (0.3 + 0.7 * band) * onAxis * grain * (0.35 + 0.65 * pale) * smoothstep(0.08, 0.4, lum);
+    colour = hardLight(silvered, clamp(vec3(0.5 + shine * 0.5, 0.5 + shine * 0.51, 0.5 + shine * 0.53), 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);

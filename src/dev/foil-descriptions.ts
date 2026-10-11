@@ -138,6 +138,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'The traditional foil sweep, plus procedural notes: wavy, loopy lines broken into words by noise (two lines at the top right of the text box, one near the bottom, one in the top margin), a magnifying-glass doodle and a ring circling part of the art. The notes are almost invisible face-on (4%) and show only at a steep tilt towards the bottom right, following the "visible at an angle" reading; UV can’t be simulated. The ink is violet-grey: it darkens the cream text box and lightens dark art, so it reads on both. The preview uses the non-foil showcase dossier Alquist Proft (MKM #355), because invisible ink scans have the notes baked in.',
   },
+  silverscroll: {
+    expected:
+      'Silver scroll foil (Secrets of Strixhaven Mystical Archive, Japanese-art cards SOA #131-195; Collector Boosters only, in every language). mtg.wiki says it gives the card “a silvery shine”; Wizards’ “Collecting Secrets of Strixhaven” only calls it “shimmering and spellbindingly beautiful”; Draftsim and retailer listings (Card Kingdom, Face to Face) add no visual detail. The best visual source is the Scryfall scan of Daze (SOA #145) against its non-foil twin (#80): the blue title scroll and frame turn mirror silver, the pale sky and waves become grainy, brushed silver, and the coloured art stays visible but cool and muted, as if printed over silver foil. The sources don’t contradict each other; they just say very little, and I found no in-hand photos or videos.',
+    css: standardCss,
+    webgl:
+      'The whole card is pulled towards a cool silver grey (55% desaturated, up to 95% on pale, unsaturated areas such as sky and text box). A broad diagonal metallic sheen follows the light, broken by fine noise grain, strongest on pale areas, kept off the darkest ink, and faded off-axis. Hard-light blend around neutral grey. The frame isn’t detected separately, so a saturated frame stays slightly coloured rather than turning fully silver. The preview uses the non-foil Japanese Daze (SOA #80), because silver scroll scans have the silver baked in; the preview page now allows a non-foil-only scan when an override applies the foil type.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

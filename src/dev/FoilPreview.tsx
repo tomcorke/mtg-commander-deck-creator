@@ -49,6 +49,7 @@ const sampleOverrides: Record<string, string> = {
   confettifoil: '!"Rhystic Study" set:wot cn:71',
   gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
   invisibleink: 'set:mkm cn:355',
+  silverscroll: 'set:soa cn:80 lang:ja',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the
@@ -75,7 +76,11 @@ async function fetchSample(key: string, query: string): Promise<Sample | string>
   if (!response.ok) return `${key}: no results`
   const card = ((await response.json()) as { data: ScryfallCard[] }).data[0]
   const finish = key === 'nonfoil' ? 'nonfoil' : key === 'etched' ? 'etched' : 'foil'
-  const option = printingOptions([card]).find((printing) => printing.finish === finish)
+  const options = printingOptions([card])
+  // An override may pick a non-foil-only scan (no foil printed in) and apply the foil type to it.
+  const option =
+    options.find((printing) => printing.finish === finish) ??
+    (sampleOverrides[key] && options[0] ? { ...options[0], finish } : undefined)
   if (!option) return `${key}: printing has no ${finish} finish`
   return { ...option, name: card.name, ...(sampleOverrides[key] ? { foilType: key } : {}) }
 }
