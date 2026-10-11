@@ -103,6 +103,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Scales are cells of a staggered, slightly jittered grid (about 11 across, rows warped by a sine and noise so they curve), with rounded corners from a smooth-min over the cell edges. Seams are lightened with a hard-light blend so they show on dark ink; scale interiors are darkened a little and shaded from the tilt direction. A noise mask that shifts with the tilt reveals the net in patches, on top of the off-axis fade. Narrow vertical rainbow streaks (about 8 across) slide with horizontal tilt, break up along their length, dim over the seams and are strongest near the light. The preview uses a Special Guests fetch land, whose scan has no scales printed in.',
   },
+  oilslick: {
+    expected:
+      'Oil slick raised foil (Phyrexia: All Will Be One Compleat Edition bundle, ONE #345-369: praetors, planeswalkers and basic lands in the inverted ichor style), from the mtg.wiki "Oil slick.gif" photo: a deep, glossy, near-black card, as if soaked in Phyrexian oil. Where light catches it, the light ink turns to dark chrome with a thin oil film: broad, smooth bands of copper, magenta, violet and blue, with little green, that slide across the card as it tilts. Away from the light the card stays dark and the black linework keeps its contrast.',
+    css: standardCss,
+    webgl:
+      'Hue comes from a smooth, domain-warped fbm "film thickness" plus a gentle gradient and the tilt, so colour bands are broad and swirl rather than stripe. The rainbow is pulled towards an oily palette (green muted into teal and blue, about a third silver). A broad, near-vertical sweep follows the light, on top of the off-axis fade, and the strength scales with ink brightness. The print is darkened slightly, more so away from the light, for the black stock. Hard-light blend around neutral grey. The preview uses the oil slick Atraxa scan (ONE #357), because the plain showcase printing has light art instead of the dark ichor art; its scan shows only a faint tint.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

@@ -45,6 +45,7 @@ const sampleOverrides: Record<string, string> = {
   fracturefoil: '!"Overlord of the Hauntwoods" -is:fracturefoil',
   raisedfoil: '!"Zoraline, Cosmos Caller" is:raisedfoil',
   neonink: 'is:neonink set:neo',
+  oilslick: 'set:one cn:357',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the
