@@ -5,7 +5,7 @@ import { foilTypeNames } from '../domain/printing.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { FinishFilters } from '../shared/FinishFilters.tsx'
 import { VisualPreferencesContext } from '../shared/VisualPreferencesContext.tsx'
-import { createFoilRenderer, foilShaderTypes } from './foil-shader.ts'
+import { createFoilRenderer, foilShaderTypes } from '../shared/foil/foil-shader.ts'
 import './foil-preview.css'
 
 // Dev contact sheet (?foil-sheet&foil=ripplefoil,halofoil&card=cmm/410&css=0): one card with each
@@ -96,6 +96,7 @@ function PrintingList({
             onClick={() => onSelect(printing.card)}
           >
             <FinishedCardImage
+              cssOnly
               image={printing.image}
               alt={printing.label}
               finish="foil"
@@ -238,6 +239,7 @@ export function FoilSheet() {
                     {showCss && (
                       <figure className="foil-sheet-css">
                         <FinishedCardImage
+                          cssOnly
                           image={image}
                           alt={`${foil} CSS at tilt ${tilt.x}, ${tilt.y}`}
                           finish={finishOf(foil)}

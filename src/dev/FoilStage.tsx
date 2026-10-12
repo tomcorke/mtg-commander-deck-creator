@@ -6,7 +6,7 @@ import type { CardFinish } from '../domain/card-model.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { NotePanel, noteId, type FeedbackNote } from './FoilFeedback.tsx'
 import { describeFoil } from './foil-descriptions.ts'
-import { createFoilRenderer, foilShaderTypes } from './foil-shader.ts'
+import { createFoilRenderer, foilShaderTypes } from '../shared/foil/foil-shader.ts'
 
 type StageCard = {
   image: string
@@ -127,6 +127,7 @@ export function FoilStage({
       <div className="foil-stage-cards">
         <figure>
           <FinishedCardImage
+            cssOnly
             image={card.image}
             alt={`${card.name} card`}
             finish={card.finish}

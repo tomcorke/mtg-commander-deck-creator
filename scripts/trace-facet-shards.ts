@@ -1,5 +1,5 @@
 // Throwaway: traces the glass shards of the 13 FRA Shattered Mirror facet foil cards (#449-461) as
-// polygons for src/dev/facet-shards.ts. Each facet scan is diffed against its nonfoil twin
+// polygons for src/shared/foil/facet-shards.ts. Each facet scan is diffed against its nonfoil twin
 // (#321-333, the same art without the foil restyling), thresholded, cleaned up morphologically,
 // split into connected regions, and each region's outline is simplified (Douglas-Peucker).
 // Writes the polygons as JSON and an outline overlay per card for checking by eye.

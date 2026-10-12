@@ -1,4 +1,6 @@
 import {
+  useLayoutEffect,
+  useRef,
   useState,
   type CSSProperties,
   type Dispatch,
@@ -8,6 +10,13 @@ import {
 
 import type { CardFinish } from '../domain/card-model'
 import { useVisualPreferences } from './VisualPreferencesContext.tsx'
+import {
+  foilPointer,
+  hideHoverFoil,
+  moveHoverFoil,
+  showHoverFoil,
+  type FoilCard,
+} from './foil/hover-foil.ts'
 
 export function ArtLoading({ active }: { active: boolean }) {
   return active ? (
@@ -50,6 +59,9 @@ export function FinishedCardImage({
   cardName,
   finish,
   foilType,
+  set,
+  collectorNumber,
+  cssOnly = false,
   hasSynergyGlow = false,
   className = '',
   printing,
@@ -61,6 +73,9 @@ export function FinishedCardImage({
   cardName?: string
   finish?: CardFinish
   foilType?: string
+  set?: string
+  collectorNumber?: string
+  cssOnly?: boolean
   hasSynergyGlow?: boolean
   className?: string
   printing?: {
@@ -84,14 +99,19 @@ export function FinishedCardImage({
   const finishClass = cardFinishClass(finish, foilType, effectsEnabled)
   const flipName = printing?.name ?? cardName ?? 'card'
   const hasActions = Boolean(printing?.count && printing.count > 1) || (showFlipButton && backImage)
+  const name = cardName ?? printing?.name
+
+  const foil = useFoilImage(
+    { image: displayedImage, finish, foilType, set, collectorNumber, name },
+    effectsEnabled,
+    cssOnly,
+  )
 
   return (
     <span
+      {...foil}
       className={`finished-card ${loadedImage === displayedImage ? 'image-ready' : ''} ${effectsEnabled ? 'tilting-card' : ''} ${finishClass}`}
       style={effectsEnabled ? ({ '--foil-hue': `${foilHue}deg` } as CSSProperties) : undefined}
-      onPointerMove={effectsEnabled ? moveFoil : undefined}
-      onPointerLeave={effectsEnabled ? resetFoil : undefined}
-      onPointerCancel={effectsEnabled ? resetFoil : undefined}
     >
       <img
         className={className}
@@ -120,6 +140,40 @@ export function FinishedCardImage({
       )}
     </span>
   )
+}
+
+function useFoilImage(card: FoilCard, effectsEnabled: boolean, cssOnly: boolean) {
+  const { image, finish, foilType, set, collectorNumber, name } = card
+  const ref = useRef<HTMLSpanElement>(null)
+  const enabled = effectsEnabled && !cssOnly
+  // A printing/face or preference change removes the old canvas before the next paint.
+  useLayoutEffect(() => {
+    const element = ref.current
+    if (!element) return
+    if (enabled && element.matches(':hover'))
+      showHoverFoil(element, { image, finish, foilType, set, collectorNumber, name })
+    return () => hideHoverFoil(element)
+  }, [image, finish, foilType, set, collectorNumber, name, enabled])
+  const leave = (event: PointerEvent<HTMLElement>) => {
+    resetFoil(event)
+    hideHoverFoil(event.currentTarget)
+  }
+  return {
+    ref,
+    onPointerEnter: enabled
+      ? (event: PointerEvent<HTMLElement>) =>
+          showHoverFoil(
+            event.currentTarget,
+            card,
+            foilPointer(event.currentTarget, event.clientX, event.clientY),
+          )
+      : undefined,
+    onPointerMove: effectsEnabled
+      ? (event: PointerEvent<HTMLElement>) => moveHoverFoil(event.currentTarget, moveFoil(event))
+      : undefined,
+    onPointerLeave: leave,
+    onPointerCancel: leave,
+  }
 }
 
 // Foil types with their own effect; other foil types use the standard holo effect.
@@ -186,14 +240,13 @@ function CardImageActions({
 
 function moveFoil(event: PointerEvent<HTMLElement>) {
   const card = event.currentTarget
-  const bounds = card.getBoundingClientRect()
-  const x = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width))
-  const y = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height))
+  const { x, y } = foilPointer(card, event.clientX, event.clientY)
   card.style.setProperty('--foil-x', `${x * 100}%`)
   card.style.setProperty('--foil-y', `${y * 100}%`)
   card.style.setProperty('--foil-rotate-x', `${(0.5 - y) * 16}deg`)
   card.style.setProperty('--foil-rotate-y', `${(x - 0.5) * 16}deg`)
   card.style.setProperty('--foil-shift', `${(x + y - 1) * 100}deg`)
+  return { x, y }
 }
 
 function resetFoil(event: PointerEvent<HTMLElement>) {
