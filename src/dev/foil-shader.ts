@@ -50,12 +50,10 @@ varying vec2 vUv;
 uniform sampler2D uImage;
 uniform sampler2D uShards; // facet shards: red coverage, green a per-shard seed, blue the rims
 uniform float uHasShards; // 1 when the card has facet shards
-uniform sampler2D uNotes; // invisible-ink notes: red is the ink, green a soft halo around it
 uniform vec2 uPointer;   // 0..1 across the card; (0.5, 0.5) is flat
 uniform vec2 uTexel;     // 1 / image size
 uniform float uTime;
 uniform float uAspect;   // height / width
-uniform vec2 uRingCentre; // cosmic ring centre, 0..1 across the card (the stone in the art)
 uniform int uType;
 
 const float TAU = 6.28318530718;
@@ -629,7 +627,7 @@ void main() {
     // rings centred on the stone, like a whorl, plus a field of tiny star specks. The rings catch the
     // light in a rainbow that runs outwards and shifts with the tilt; each speck glints at its own
     // angle. Both show mostly near the light and fade off-axis.
-    vec2 fromCentre = p - vec2(uRingCentre.x, uRingCentre.y * uAspect);
+    vec2 fromCentre = p - vec2(0.5, 0.44 * uAspect);
     // Rings wobble like tree rings: a broad noise warp bends whole groups of rings, and a finer
     // one ripples each ring along its length.
     vec2 warped = p + (vec2(fbm(p * 4.0), fbm(p * 4.0 + 9.1)) - 0.5) * 0.05;
@@ -704,19 +702,12 @@ void main() {
   }
 
   if (uType == 22) {
-    // Invisible ink (MKM showcase dossiers): a traditional foil card with Alquist Proft's case
-    // notes handwritten in light ink, placed as on MKM #384: "But of course" and "Handsome,
-    // Genius" across the top of the text box, a magnifying glass, a seal at the bottom left and
-    // a faint stamp behind the mana cost. The notes are faint face-on and show clearly when the
-    // card is tilted. A soft dark halo keeps the light ink readable on the cream text box.
+    // Invisible ink (MKM showcase dossiers): a traditional foil sweep. Each card's own notes are
+    // printed into its scan, so none are drawn here.
     float along = dot(vUv - uPointer, vec2(0.8, 0.6));
     float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
     float hueShift = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
-    vec3 foiled = hardLight(base, 0.5 + (rainbow(hueShift) - 0.5) * 0.45 * foilMask * sweep * (0.2 + 0.8 * glare));
-    vec2 notes = texture2D(uNotes, vUv).rg;
-    float show = 0.12 + 0.88 * smoothstep(0.1, 0.3, length(tilt)) * (0.5 + 0.5 * glare);
-    colour = mix(foiled, foiled * 0.8, notes.g * show * 0.5);
-    colour = mix(colour, vec3(1.0, 0.99, 1.0), notes.r * show * 0.92);
+    colour = hardLight(base, 0.5 + (rainbow(hueShift) - 0.5) * 0.45 * foilMask * sweep * (0.2 + 0.8 * glare));
   }
 
   if (uType == 23) {
@@ -869,77 +860,6 @@ function compile(gl: WebGLRenderingContext, type: number, source: string) {
   return shader
 }
 
-// Alquist Proft's invisible-ink notes as on MKM #384, drawn once at card-scan size. Each shape is
-// drawn twice: blurred in green as a halo, then sharp in red as the ink, added together.
-function invisibleInkNotes() {
-  const width = 488
-  const height = 680
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const context = canvas.getContext('2d')!
-  context.fillStyle = 'black'
-  context.fillRect(0, 0, width, height)
-  context.globalCompositeOperation = 'lighter'
-  const hand = '"Segoe Print", "Ink Free", "Bradley Hand", "Comic Sans MS", cursive'
-  const draw = (colour: string, blur: number, extra: number) => {
-    context.filter = blur ? `blur(${blur}px)` : 'none'
-    context.fillStyle = colour
-    context.strokeStyle = colour
-    context.lineCap = 'round'
-    const write = (
-      text: string,
-      x: number,
-      y: number,
-      size: number,
-      angle: number,
-      maxWidth: number,
-    ) => {
-      context.save()
-      context.translate(x * width, y * height)
-      context.rotate(angle)
-      context.font = `600 ${size}px ${hand}`
-      context.lineWidth = extra
-      if (extra) context.strokeText(text, 0, 0, maxWidth * width)
-      context.fillText(text, 0, 0, maxWidth * width)
-      context.restore()
-    }
-    write('But of course', 0.1, 0.648, 32, -0.03, 0.5)
-    write('Handsome, Genius', 0.3, 0.712, 34, -0.02, 0.64)
-    context.lineWidth = 3 + extra
-    // Magnifying glass beside the first note.
-    context.beginPath()
-    context.arc(0.79 * width, 0.62 * height, 15, 0, Math.PI * 2)
-    context.moveTo(0.79 * width + 11, 0.62 * height + 11)
-    context.lineTo(0.79 * width + 30, 0.62 * height + 30)
-    context.stroke()
-    // A seal at the bottom left of the text box, running off its edge.
-    context.lineWidth = 2.5 + extra
-    for (const radius of [40, 30]) {
-      context.beginPath()
-      context.arc(0.1 * width, 0.865 * height, radius, 0, Math.PI * 2)
-      context.stroke()
-    }
-    for (let tick = 0; tick < 12; tick++) {
-      const angle = (tick / 12) * Math.PI * 2
-      context.beginPath()
-      context.moveTo(0.1 * width + Math.cos(angle) * 30, 0.865 * height + Math.sin(angle) * 30)
-      context.lineTo(0.1 * width + Math.cos(angle) * 40, 0.865 * height + Math.sin(angle) * 40)
-      context.stroke()
-    }
-    // A faint stamp behind the mana cost.
-    context.globalAlpha = 0.5
-    context.lineWidth = 2 + extra
-    context.beginPath()
-    context.arc(0.84 * width, 0.08 * height, 26, 0, Math.PI * 2)
-    context.stroke()
-    context.globalAlpha = 1
-  }
-  draw('rgb(0, 255, 0)', 3, 4)
-  draw('rgb(255, 0, 0)', 0, 0)
-  return canvas
-}
-
 export function createFoilRenderer(canvas: HTMLCanvasElement) {
   const gl = canvas.getContext('webgl', { premultipliedAlpha: false })
   if (!gl) return null
@@ -966,14 +886,6 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
-  // Unit 2 holds the invisible-ink notes.
-  gl.activeTexture(gl.TEXTURE2)
-  gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, invisibleInkNotes())
   // Unit 3 holds the facet shard mask.
   gl.activeTexture(gl.TEXTURE3)
   const shardTexture = gl.createTexture()
@@ -987,7 +899,6 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
 
   const uniform = (name: string) => gl.getUniformLocation(program, name)
   gl.uniform1i(uniform('uImage'), 0)
-  gl.uniform1i(uniform('uNotes'), 2)
   gl.uniform1i(uniform('uShards'), 3)
   const uniforms = {
     pointer: uniform('uPointer'),
@@ -996,13 +907,12 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
     aspect: uniform('uAspect'),
     type: uniform('uType'),
     hasShards: uniform('uHasShards'),
-    ringCentre: uniform('uRingCentre'),
   }
   let hasShards = false
   let imageSize = { width: 488, height: 680 }
 
   return {
-    // The card identifies its facet shards (see facet-shards.ts) and cosmic ring centre, if any.
+    // The card identifies its facet shards, if it has any (see facet-shards.ts).
     setImage(
       image: HTMLImageElement,
       card?: { set: string; collectorNumber: string; name?: string },
@@ -1010,8 +920,6 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
       gl.bindTexture(gl.TEXTURE_2D, texture)
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
       imageSize = { width: image.naturalWidth, height: image.naturalHeight }
-      const [x, y] = (card && stoneCentres[`${card.set}/${card.collectorNumber}`]) ?? [0.5, 0.44]
-      gl.uniform2f(uniforms.ringCentre, x, y)
       const shards = card ? findFacetShards(card) : null
       hasShards = !!shards
       if (!shards) return
@@ -1032,14 +940,6 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     },
   }
-}
-
-// Cosmic rings centre on the Infinity Stone. Both cosmic printings (MSH #385, SPM #242) have it at
-// the default (0.5, 0.44); the regular printings, used as clean previews, hold it higher in a hand.
-const stoneCentres: Record<string, [number, number]> = {
-  'msh/21': [0.5, 0.29],
-  'spm/66': [0.5, 0.32],
-  'pspm/66s': [0.5, 0.32],
 }
 
 // Rasterises facet shards for the shader: red is coverage, green the shard's seed (its index), and

@@ -38,37 +38,13 @@ const plainCardImage = (query: string) =>
     .map((part, index) => (index ? part : encodeURIComponent(part)))
     .join('&')}`
 
-// Foil types whose own scans already show the foil (step-and-compleat prints the symbols into
-// the image) preview on a plain printing with the foil type applied by the app.
-const sampleOverrides: Record<string, string> = {
-  stepandcompleat: '!"Glissa, the Traitor" -is:stepandcompleat',
-  fracturefoil: '!"Overlord of the Hauntwoods" -is:fracturefoil',
-  raisedfoil: '!"Zoraline, Cosmos Caller" is:raisedfoil',
-  neonink: 'is:neonink set:neo',
-  oilslick: '!"Atraxa, Grand Unifier" set:one cn:316',
-  confettifoil: '!"Rhystic Study" set:wot cn:71',
-  gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
-  gleaminggold: '!"Smaug the Magnificent" set:hob cn:110',
-  cosmicfoil: '!"The Mind Stone" set:msh -is:cosmicfoil',
-  facetfoil: 'set:fra cn:329',
-  dazzlefoil: 'set:sld cn:IFIYW-7',
-  invisibleink: 'set:mkm cn:355',
-  silverscroll: 'set:soa cn:80 lang:ja',
-  manafoil: 'set:fdn cn:299',
-  embossed: 'set:afr cn:87',
-  textured: 'set:dmu cn:292',
-  firstplacefoil: 'set:dft cn:456',
-  chocobotrackfoil: 'set:fin cn:406',
-}
-
 // Results are cached on globalThis by key and query, so hot updates to this page refill the
 // grid instantly and only changed queries are fetched again.
 const sampleCache: Map<string, Sample | string> = ((
   globalThis as { foilSampleCache?: Map<string, Sample | string> }
 ).foilSampleCache ??= new Map())
 
-async function loadSample([key, defaultQuery]: [string, string]): Promise<Sample | string> {
-  const query = sampleOverrides[key] ?? defaultQuery
+async function loadSample([key, query]: [string, string]): Promise<Sample | string> {
   const cacheKey = `${key}|${query}`
   const cached = sampleCache.get(cacheKey)
   if (cached) return cached
@@ -86,11 +62,11 @@ async function fetchSample(key: string, query: string): Promise<Sample | string>
   const card = ((await response.json()) as { data: ScryfallCard[] }).data[0]
   const finish: CardFinish = key === 'nonfoil' ? 'nonfoil' : key === 'etched' ? 'etched' : 'foil'
   const options = printingOptions([card])
-  // A clean scan may exist only as a nonfoil printing (FRA Shattered Mirror); show it as foil.
-  const fallback = sampleOverrides[key] && options[0] ? { ...options[0], finish } : undefined
-  const option = options.find((printing) => printing.finish === finish) ?? fallback
+  // Always a real printing with the foil type, even when its scan shows the foil printed in: a
+  // clean stand-in is usually a printing that never had that foil.
+  const option = options.find((printing) => printing.finish === finish)
   if (!option) return `${key}: printing has no ${finish} finish`
-  return { ...option, name: card.name, ...(sampleOverrides[key] ? { foilType: key } : {}) }
+  return { ...option, name: card.name }
 }
 
 function Toggle({

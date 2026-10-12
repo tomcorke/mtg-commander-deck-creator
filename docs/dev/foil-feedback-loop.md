@@ -45,4 +45,4 @@ The dev-only `dev-feedback` plugin in `vite.config.ts` stores notes in `dev-feed
 - Look at real reference photos first. mtg.wiki "Foil" has a gallery, and the image API is `https://mtg.wiki/api.php?action=query&prop=imageinfo&iiprop=url&titles=File:<name>`.
 - `half` is a reserved word in GLSL ES; don't use it as a variable name.
 - Use more than one source for each foil's description (mtg.wiki, Wizards announcements, collector photos and videos). Cite them in `expected`, and say where they disagree.
-- Never use a sample scan with the foil effect baked in. Photos of real foil cards are reference only.
+- Preview each foil type on a real printing with that foil, even when its scan shows the foil printed in. A clean stand-in is usually a printing that never had the foil. Photos of real foil cards are reference only; never tune an effect to look right on a stand-in.
