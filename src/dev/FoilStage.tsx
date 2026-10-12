@@ -25,8 +25,11 @@ const shaderType = ({ finish, foilType }: StageCard) =>
       : 0
 
 // Runs the WebGL foil renderer for one card, tilting with the pointer or automatically.
-function useFoilCanvas({ image, finish, foilType }: StageCard, autoTilt: boolean) {
-  const type = shaderType({ image, name: '', set: '', collectorNumber: '', finish, foilType })
+function useFoilCanvas(
+  { image, name, set, collectorNumber, finish, foilType }: StageCard,
+  autoTilt: boolean,
+) {
+  const type = shaderType({ image, name, set, collectorNumber, finish, foilType })
   const canvas = useRef<HTMLCanvasElement>(null)
   const wrapper = useRef<HTMLDivElement>(null)
   const pointer = useRef({ x: 0.5, y: 0.5 })
@@ -51,7 +54,7 @@ function useFoilCanvas({ image, finish, foilType }: StageCard, autoTilt: boolean
     const loader = new Image()
     loader.crossOrigin = 'anonymous'
     loader.onload = () => {
-      renderer.setImage(loader)
+      renderer.setImage(loader, { set, collectorNumber, name })
       ready = true
     }
     loader.onerror = () => setError('Could not load the card image for WebGL.')
@@ -74,7 +77,7 @@ function useFoilCanvas({ image, finish, foilType }: StageCard, autoTilt: boolean
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [image, finish, foilType, autoTilt])
+  }, [image, name, set, collectorNumber, finish, foilType, autoTilt])
 
   const track = (event: PointerEvent<HTMLElement>) => {
     if (autoTilt) return

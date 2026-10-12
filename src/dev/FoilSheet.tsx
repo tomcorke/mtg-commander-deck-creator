@@ -122,9 +122,10 @@ export function FoilSheet() {
     const renderer = createFoilRenderer(canvas)
     const loader = new Image()
     loader.crossOrigin = 'anonymous'
+    let name: string | undefined
     loader.onload = () => {
       if (!renderer) return
-      renderer.setImage(loader)
+      renderer.setImage(loader, { set, collectorNumber: number, name })
       foilList.split(',').forEach(drawRow)
     }
     const drawRow = (foil: string, row: number) => {
@@ -134,7 +135,12 @@ export function FoilSheet() {
         frames.current[row * tilts.length + column]?.getContext('2d')?.drawImage(canvas, 0, 0)
       })
     }
-    loader.src = image
+    // The name lets a nonfoil Shattered Mirror twin borrow its facet printing's shards.
+    void fetch(`https://api.scryfall.com/cards/${set}/${number}`)
+      .then((response) => response.json() as Promise<ScryfallCard>)
+      .then((found) => (name = found.name))
+      .catch(() => undefined)
+      .finally(() => (loader.src = image))
     // The card element sets its own default tilt, so set the fixed tilts on it directly.
     document
       .querySelectorAll<HTMLElement>('.foil-sheet-css .finished-card')

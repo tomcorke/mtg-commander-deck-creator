@@ -1,6 +1,8 @@
 // Dev prototype: WebGL foil renderer. One fragment shader draws the card scan and the foil
 // effect for the hovered card, so foil can respond per pixel to the image and the tilt.
 
+import { findFacetShards } from './facet-shards.ts'
+
 export const foilShaderTypes = {
   nonfoil: 0,
   foil: 1,
@@ -46,7 +48,8 @@ const fragmentSource = `
 precision highp float;
 varying vec2 vUv;
 uniform sampler2D uImage;
-uniform float uBakedRims; // 1 when the scan shows facet foil's baked rainbow shard rims
+uniform sampler2D uShards; // facet shards: red coverage, green a per-shard seed, blue the rims
+uniform float uHasShards; // 1 when the card has facet shards
 uniform sampler2D uNotes; // invisible-ink notes: red is the ink, green a soft halo around it
 uniform vec2 uPointer;   // 0..1 across the card; (0.5, 0.5) is flat
 uniform vec2 uTexel;     // 1 / image size
@@ -156,72 +159,6 @@ float phyrexianSymbol(vec2 l) {
   return min(ring, bar);
 }
 
-// Saturation times brightness, as max - min: high only for vivid, bright colour.
-float vivid(vec3 c) {
-  return max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
-}
-
-// Facet foil scans show each shard outlined by a thin, bright rainbow line. A pixel is on such a
-// line when it is vivid and, along some axis, both pixels 5 texels away differ clearly in colour
-// (often duller, but beside bright glass mostly in hue).
-float facetRim(vec2 uv) {
-  vec3 c = texture2D(uImage, uv).rgb;
-  if (vivid(c) < 0.45) return 0.0;
-  float best = 0.0;
-  for (int i = 0; i < 4; i++) {
-    vec2 axis = (i == 0 ? vec2(1.0, 0.0) : i == 1 ? vec2(0.0, 1.0) : i == 2 ? vec2(0.7, 0.7) : vec2(0.7, -0.7)) * uTexel * 5.0;
-    float side = min(length(texture2D(uImage, uv + axis).rgb - c), length(texture2D(uImage, uv - axis).rgb - c));
-    best = max(best, side);
-  }
-  // Frame borders (the red type-line and frame lines on Stingcaster Mage and Curse-Marred Demon)
-  // are also thin vivid lines, but run perfectly horizontal or vertical in one colour; rainbow
-  // rims change colour along their length. Reject lines that stay the same colour 8 and 16 texels
-  // along either axis.
-  vec3 colour = c;
-  float straight = 0.0;
-  for (int i = 0; i < 2; i++) {
-    vec2 along = (i == 0 ? vec2(1.0, 0.0) : vec2(0.0, 1.0)) * uTexel * 8.0;
-    float same = 1.0;
-    for (int k = 1; k <= 2; k++) {
-      same *= step(length(texture2D(uImage, uv + along * float(k)).rgb - colour), 0.15);
-      same *= step(length(texture2D(uImage, uv - along * float(k)).rgb - colour), 0.15);
-    }
-    straight = max(straight, same);
-  }
-  // Red-dominant lines are skipped too: on these cards they are mostly red frames, coats and
-  // shards, and a real rim's red segment keeps its baked colour anyway.
-  float red = smoothstep(0.15, 0.35, colour.r - max(colour.g, colour.b));
-  return smoothstep(0.3, 0.5, best) * (1.0 - straight) * (1.0 - red);
-}
-
-// Procedural shards for scans without baked rims: elongated, angular cells of a stretched,
-// rotated Voronoi grid; about a third are shards, inset from their cell so they float apart.
-// Returns (coverage, rim).
-vec2 proceduralShard(vec2 p) {
-  vec2 q = mat2(0.8, 0.6, -0.6, 0.8) * p * vec2(4.0, 9.0);
-  vec2 base = floor(q);
-  float nearest = 9.0;
-  float second = 9.0;
-  vec2 shardCell = vec2(0.0);
-  for (int y = -1; y <= 1; y++) {
-    for (int x = -1; x <= 1; x++) {
-      vec2 cell = base + vec2(float(x), float(y));
-      float d = length(q - cell - vec2(hash(cell + 3.7), hash(cell + 8.1)));
-      if (d < nearest) {
-        second = nearest;
-        nearest = d;
-        shardCell = cell;
-      } else if (d < second) {
-        second = d;
-      }
-    }
-  }
-  float edge = (second - nearest) * 0.5;
-  float chosen = step(0.66, hash(shardCell + 1.9));
-  float coverage = smoothstep(0.1, 0.13, edge) * chosen;
-  float rim = (smoothstep(0.08, 0.1, edge) - smoothstep(0.13, 0.16, edge)) * chosen;
-  return vec2(coverage, rim);
-}
 // Handwriting-like scrawl: a wavy line with irregular loops, broken into words by noise.
 // Returns 0..1 ink coverage for a line of writing at height y0 running from x0 to x1.
 float scrawl(vec2 uv, float y0, float x0, float x1, float salt) {
@@ -301,10 +238,11 @@ void main() {
   float onAxis = 0.15 + 0.85 * glare;
   vec3 colour = base;
 
-  if (uType == 1 || uType == 8) {
+  if (uType == 1 || uType == 8 || (uType == 20 && uHasShards < 0.5)) {
     // Traditional or rainbow foil: holographic sheen in diagonal bands that sweep and change
-    // colour with the tilt; strongest near the light, faint elsewhere.
-    float strength = uType == 8 ? 0.75 : 0.5;
+    // colour with the tilt; strongest near the light, faint elsewhere. Facet foil on a card
+    // without facet shards gets a milder version.
+    float strength = uType == 8 ? 0.75 : uType == 20 ? 0.3 : 0.5;
     float along = dot(vUv - uPointer, vec2(0.8, 0.6));
     float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
     float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
@@ -709,34 +647,18 @@ void main() {
     colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
-  if (uType == 20) {
-    // Facet (FRA Shattered Mirror): foil only on the glass shards in the art. On facet scans the
-    // shards are found from their baked rainbow rims: rims are redrawn in a rainbow that shifts
-    // with the tilt, and a band about 3% of the card wide around them is treated as shard. Scans
-    // without rims (uBakedRims 0) get procedural shards instead. Inside shards the art turns
-    // higher-contrast chrome and Voronoi facets (about an eighth of the card wide) shimmer their
-    // own rainbow colour, flashing at their own angle. The rest stays bare; fades off-axis.
-    float shard;
-    float rim;
-    if (uBakedRims > 0.5) {
-      rim = facetRim(vUv);
-      float near = 0.0;
-      for (int i = 0; i < 8; i++) {
-        float angle = float(i) * TAU / 8.0;
-        for (int r = 1; r <= 3; r++) {
-          vec2 offset = vec2(cos(angle), sin(angle)) * uTexel * 5.0 * float(r);
-          near += facetRim(vUv + offset);
-        }
-      }
-      // Averaged rather than the maximum: single samples only sometimes land on a thin rim, so
-      // the maximum gives a speckled band; a rim crossing the ring hits a few samples on average.
-      shard = max(rim, smoothstep(0.02, 0.1, near / 24.0));
-    } else {
-      vec2 procedural = proceduralShard(p);
-      shard = procedural.x;
-      rim = procedural.y;
-    }
-    vec2 grid = p * 8.0;
+  if (uType == 20 && uHasShards > 0.5) {
+    // Facet (FRA Shattered Mirror): foil only on the glass shards in the art, read from the card's
+    // preset shard polygons (facet-shards.ts) rasterised into uShards. Each shard is filled with
+    // higher-contrast chrome and Voronoi facets (about an eighth of the card wide, laid out afresh
+    // per shard from its seed) that shimmer their own rainbow colour and flash at their own angle.
+    // Bright rainbow rims, shifting with the tilt, run along the shard edges. The rest of the card
+    // stays bare; everything fades off-axis.
+    vec3 mask = texture2D(uShards, vUv).rgb;
+    float shard = mask.r;
+    float seed = floor(mask.g * 255.0 + 0.5);
+    float rim = mask.b;
+    vec2 grid = p * 8.0 + seed * 3.7;
     vec2 cellBase = floor(grid);
     float nearest = 8.0;
     vec2 facet = vec2(0.0);
@@ -753,13 +675,12 @@ void main() {
     vec2 facing = vec2(hash(facet + 7.3), hash(facet + 2.9)) * 2.0 - 1.0;
     float flash = pow(max(0.0, cos(dot(tilt, facing) * 6.0 + hash(facet + 1.7) * TAU)), 4.0);
     vec3 facetHue = rainbow(hash(facet + 5.5) + dot(vUv, vec2(0.6, 0.4)) + dot(tilt, facing) * 1.5);
-    vec3 rimHue = rainbow(dot(vUv, vec2(2.0, 1.4)) + dot(tilt, vec2(2.0, 1.3)));
+    vec3 rimHue = rainbow(dot(vUv, vec2(2.0, 1.4)) + dot(tilt, vec2(2.0, 1.3)) + seed * 0.13);
     vec3 chrome = clamp((base - 0.5) * 1.35 + 0.5, 0.0, 1.0);
-    vec3 light = 0.5 + (facetHue - 0.5) * shard * (0.35 + 0.65 * flash) * onAxis;
+    vec3 light = 0.5 + (facetHue - 0.5) * shard * (0.4 + 0.6 * flash) * onAxis;
     colour = hardLight(mix(base, chrome, shard * 0.6), clamp(light, 0.0, 1.0));
     colour = mix(colour, screen(colour * 0.6, rimHue), rim * (0.45 + 0.55 * onAxis));
   }
-
 
   if (uType == 21) {
     // Dazzle ("Pool Party" foil, SLD Deadpool: I Fixed It), matched to Wizards' product photo:
@@ -1052,29 +973,49 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, invisibleInkNotes())
+  // Unit 3 holds the facet shard mask.
+  gl.activeTexture(gl.TEXTURE3)
+  const shardTexture = gl.createTexture()
+  gl.bindTexture(gl.TEXTURE_2D, shardTexture)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
   gl.activeTexture(gl.TEXTURE0)
   gl.bindTexture(gl.TEXTURE_2D, texture)
 
   const uniform = (name: string) => gl.getUniformLocation(program, name)
   gl.uniform1i(uniform('uImage'), 0)
   gl.uniform1i(uniform('uNotes'), 2)
+  gl.uniform1i(uniform('uShards'), 3)
   const uniforms = {
     pointer: uniform('uPointer'),
     texel: uniform('uTexel'),
     time: uniform('uTime'),
     aspect: uniform('uAspect'),
     type: uniform('uType'),
-    bakedRims: uniform('uBakedRims'),
+    hasShards: uniform('uHasShards'),
   }
-  let bakedRims = false
+  let hasShards = false
   let imageSize = { width: 488, height: 680 }
 
   return {
-    setImage(image: HTMLImageElement) {
+    // The card identifies its facet shards, if it has any (see facet-shards.ts).
+    setImage(
+      image: HTMLImageElement,
+      card?: { set: string; collectorNumber: string; name?: string },
+    ) {
       gl.bindTexture(gl.TEXTURE_2D, texture)
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
       imageSize = { width: image.naturalWidth, height: image.naturalHeight }
-      bakedRims = hasBakedRims(image)
+      const shards = card ? findFacetShards(card) : null
+      hasShards = !!shards
+      if (!shards) return
+      gl.activeTexture(gl.TEXTURE3)
+      gl.bindTexture(gl.TEXTURE_2D, shardTexture)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, shardMask(shards))
+      gl.activeTexture(gl.TEXTURE0)
+      gl.bindTexture(gl.TEXTURE_2D, texture)
     },
     render(type: number, pointer: { x: number; y: number }, time: number) {
       gl.viewport(0, 0, canvas.width, canvas.height)
@@ -1083,39 +1024,39 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
       gl.uniform1f(uniforms.time, time)
       gl.uniform1f(uniforms.aspect, imageSize.height / imageSize.width)
       gl.uniform1i(uniforms.type, type)
-      gl.uniform1f(uniforms.bakedRims, bakedRims ? 1 : 0)
+      gl.uniform1f(uniforms.hasShards, hasShards ? 1 : 0)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     },
   }
 }
 
-// Whether a scan shows facet foil's baked rainbow shard rims, checked once per image on the CPU.
-// Counts thin, vivid, yellow-green to cyan line pixels: the shader's rim test plus a hue band that
-// fire, lightning and red art details rarely reach. Measured on Scryfall's FRA scans: all 13 facet
-// foil scans have 0.5-2.9 such pixels per thousand, their nonfoil twins at most 0.06.
-function hasBakedRims(image: HTMLImageElement) {
-  const width = 488
-  const height = Math.round((width * image.naturalHeight) / image.naturalWidth)
+// Rasterises facet shards for the shader: red is coverage, green the shard's seed (its index), and
+// blue the rims, a line about 0.6% of the card wide along every edge, holes included.
+function shardMask(shards: number[][][]) {
+  const [width, height] = [732, 1020]
   const canvas = Object.assign(document.createElement('canvas'), { width, height })
-  const context = canvas.getContext('2d', { willReadFrequently: true })
-  if (!context) return false
-  context.drawImage(image, 0, 0, width, height)
-  const { data } = context.getImageData(0, 0, width, height)
-  const vivid = (at: number) =>
-    (Math.max(data[at], data[at + 1], data[at + 2]) -
-      Math.min(data[at], data[at + 1], data[at + 2])) /
-    255
-  const steps = [4, width * 4, (width + 1) * 4, (width - 1) * 4].map((step) => step * 3)
-  let count = 0
-  for (let y = 4; y < height - 4; y += 2) {
-    for (let x = 4; x < width - 4; x += 2) {
-      const at = (y * width + x) * 4
-      const [r, g, b] = [data[at], data[at + 1], data[at + 2]]
-      const centre = vivid(at)
-      // Hue between yellow-green and cyan: green leads, red is well below it.
-      if (centre < 0.35 || g < r + 25 || g < b - 60) continue
-      if (steps.some((step) => centre - Math.max(vivid(at + step), vivid(at - step)) > 0.3)) count++
+  const context = canvas.getContext('2d')!
+  const trace = (rings: number[][]) => {
+    context.beginPath()
+    for (const ring of rings) {
+      context.moveTo(ring[0] * width, ring[1] * height)
+      for (let k = 2; k < ring.length; k += 2) context.lineTo(ring[k] * width, ring[k + 1] * height)
+      context.closePath()
     }
   }
-  return count / ((width * height) / 4) > 0.0003
+  shards.forEach((rings, index) => {
+    context.fillStyle = `rgb(255, ${index + 1}, 0)`
+    trace(rings)
+    context.fill('evenodd')
+  })
+  // Added on top, so the rims keep each shard's coverage and seed.
+  context.globalCompositeOperation = 'lighter'
+  context.strokeStyle = 'rgb(0, 0, 255)'
+  context.lineWidth = 4.5
+  context.lineJoin = 'round'
+  for (const rings of shards) {
+    trace(rings)
+    context.stroke()
+  }
+  return canvas
 }
