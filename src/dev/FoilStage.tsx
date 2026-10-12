@@ -6,7 +6,7 @@ import type { CardFinish } from '../domain/card-model.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { NotePanel, noteId, type FeedbackNote } from './FoilFeedback.tsx'
 import { describeFoil } from './foil-descriptions.ts'
-import { createFoilRenderer, foilShaderTypes } from './foil-shader.ts'
+import { createFoilRenderer, foilShaderTypes, loadFacetMask } from './foil-shader.ts'
 
 type StageCard = { image: string; name: string; finish?: CardFinish; foilType?: string }
 
@@ -18,7 +18,7 @@ const shaderType = ({ finish, foilType }: StageCard) =>
       : 0
 
 // Runs the WebGL foil renderer for one card, tilting with the pointer or automatically.
-function useFoilCanvas({ image, finish, foilType }: StageCard, autoTilt: boolean) {
+function useFoilCanvas({ image, name, finish, foilType }: StageCard, autoTilt: boolean) {
   const type = shaderType({ image, name: '', finish, foilType })
   const canvas = useRef<HTMLCanvasElement>(null)
   const wrapper = useRef<HTMLDivElement>(null)
@@ -49,6 +49,7 @@ function useFoilCanvas({ image, finish, foilType }: StageCard, autoTilt: boolean
     }
     loader.onerror = () => setError('Could not load the card image for WebGL.')
     loader.src = image
+    if (foilType === 'facetfoil') void loadFacetMask(name).then((mask) => renderer.setMask(mask))
     const draw = (time: number) => {
       if (autoTilt) {
         const seconds = time / 1000
@@ -67,7 +68,7 @@ function useFoilCanvas({ image, finish, foilType }: StageCard, autoTilt: boolean
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [image, finish, foilType, autoTilt])
+  }, [image, name, finish, foilType, autoTilt])
 
   const track = (event: PointerEvent<HTMLElement>) => {
     if (autoTilt) return
