@@ -116,12 +116,24 @@
 }
 .foil-sheet-row {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 24px;
   margin-bottom: 16px;
 }
-.foil-sheet-row canvas,
-.foil-sheet-css {
-  width: 300px;
+.foil-sheet-pair {
+  display: flex;
+  gap: 8px;
+}
+.foil-sheet-pair figure {
+  width: 240px;
+  margin: 0;
+}
+.foil-sheet-pair canvas {
+  width: 100%;
+}
+.foil-sheet-pair figcaption {
+  font-size: 12px;
+  opacity: 0.7;
 }
 .foil-sheet h2 {
   margin: 0 0 6px;

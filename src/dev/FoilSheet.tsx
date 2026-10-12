@@ -9,8 +9,8 @@ import { createFoilRenderer, foilShaderTypes } from './foil-shader.ts'
 import './foil-preview.css'
 
 // Dev contact sheet (?foil-sheet&foil=ripplefoil,halofoil&card=cmm/410&css=0): one card with each
-// listed finish at fixed tilts, WebGL rows with CSS rows below (unless css=0), for quick checks
-// without the full preview page.
+// listed finish at fixed tilts, each WebGL frame beside its CSS version (unless css=0), for quick
+// checks without the full preview page.
 const tilts = [
   { x: 0.2, y: 0.2 },
   { x: 0.5, y: 0.5 },
@@ -165,31 +165,32 @@ export function FoilSheet() {
               </h2>
               <div className="foil-sheet-row">
                 {tilts.map((tilt, column) => (
-                  <canvas
-                    key={column}
-                    ref={(element) => {
-                      frames.current[row * tilts.length + column] = element
-                    }}
-                    width={366}
-                    height={510}
-                    aria-label={`${foil} WebGL at tilt ${tilt.x}, ${tilt.y}`}
-                  />
+                  <div key={column} className="foil-sheet-pair">
+                    <figure>
+                      <canvas
+                        ref={(element) => {
+                          frames.current[row * tilts.length + column] = element
+                        }}
+                        width={366}
+                        height={510}
+                        aria-label={`${foil} WebGL at tilt ${tilt.x}, ${tilt.y}`}
+                      />
+                      <figcaption>WebGL</figcaption>
+                    </figure>
+                    {showCss && (
+                      <figure className="foil-sheet-css">
+                        <FinishedCardImage
+                          image={image}
+                          alt={`${foil} CSS at tilt ${tilt.x}, ${tilt.y}`}
+                          finish={finishOf(foil)}
+                          foilType={finishOf(foil) === 'foil' && foil !== 'foil' ? foil : undefined}
+                        />
+                        <figcaption>CSS</figcaption>
+                      </figure>
+                    )}
+                  </div>
                 ))}
               </div>
-              {showCss && (
-                <div className="foil-sheet-row">
-                  {tilts.map((_, column) => (
-                    <div key={column} className="foil-sheet-css">
-                      <FinishedCardImage
-                        image={image}
-                        alt={`${foil} CSS`}
-                        finish={finishOf(foil)}
-                        foilType={finishOf(foil) === 'foil' && foil !== 'foil' ? foil : undefined}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
             </section>
           ))}
           <FinishFilters />

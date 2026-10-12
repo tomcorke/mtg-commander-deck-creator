@@ -15,7 +15,7 @@ Work is on branch `feat/b33-foil-types` in worktree `E:\working\worktrees\mtg-b3
 Start the dev server from the worktree with `pnpm exec vite --port 5199`. The examples below use port 5199.
 
 - `http://localhost:5199/?foil-preview` is the feedback page. It has a grid of samples, one per finish and foil type. Clicking a card opens a comparison of CSS and WebGL with auto tilt, a notes box under each side, and a panel describing how the foil should look and how each version imitates it. Settings (dark mode, card image, auto tilt, last compared card) are remembered in `localStorage`.
-- `http://localhost:5199/?foil-sheet&foil=<types>&card=<set>/<number>&css=0` is a contact sheet. It renders each listed foil (comma-separated) on one card at three fixed tilts. It loads quickly, so use it for agent checks and screenshots. Drop `css=0` to add CSS rows.
+- `http://localhost:5199/?foil-sheet&foil=<types>&card=<set>/<number>` is a contact sheet. It renders each listed foil (comma-separated) on one card at three fixed tilts. It loads quickly, so use it for agent checks and screenshots. Each WebGL frame has its CSS version beside it; add `css=0` to show WebGL only.
 
 ## Notes store
 
