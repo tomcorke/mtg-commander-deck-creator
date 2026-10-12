@@ -138,6 +138,27 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'A whole-card gold coating, so it works on scans without the gold printed in: light, unsaturated ink (frame, banners, text box) is recoloured to gold with sparse fine dark pits, while saturated art and dark text keep their colour. Hard-light lighting then makes the gold dark bronze away from the light and bright warm gold where a broad diagonal reflection band, which follows the light, crosses it. A fine grid of tiny facets, each angled its own way, glints white-gold at its own tilt near the light. The art gets a faint warm foil sweep, and everything fades off-axis. The preview uses the regular Smaug the Magnificent (HOB #110), because the #249 scan has the gold baked in.',
   },
+  cosmicfoil: {
+    expected:
+      'Cosmic foil: headliner Infinity Stones only, The Soul Stone (SPM #242) and The Mind Stone (MSH #385), textless in very few Collector Boosters (mtg.wiki "Foil"; Wizards "Collecting Marvel’s Spider-Man" and "Collecting Marvel Super Heroes"). Wizards only says it "conjures the cosmic imagery of the Marvel Universe", and a retailer (Ancestral MTG) calls it a "star-filled foil pattern". Retailer photos of a real Mind Stone show more than that: very fine concentric rings centred on the stone, like a whorl or fingerprint, with tiny star specks and a rainbow sheen on the bright tendrils. CGC’s graded Soul Stone photos are too small to show the texture. No source mentions the rings, so they come from the photos only.',
+    css: standardCss,
+    webgl:
+      'Very fine concentric rings (about 70 per card width) centred just above the middle, slightly wobbled by noise, in a rainbow that runs outwards and shifts with the tilt. Broad bands of the rings brighten and dim as the card tilts. A sparse grid of tiny specks glints, each at its own angle. Strongest on light ink, hard-light blend, faded off-axis. The preview uses the regular Mind Stone (MSH #21), because both cosmic foil scans have the rings printed in.',
+  },
+  facetfoil: {
+    expected:
+      'Facet foil: only the 13 Reality Fracture Shattered Mirror cards (FRA #449–461), in Collector Boosters (mtg.wiki "Foil"; Scryfall). mtg.wiki and Wizards ("Collecting Reality Fracture") agree the foil is restricted to the splintering glass shards in the art, a "shimmering treatment that makes the shards of broken reality truly stand out"; the rest of the card is not foiled. The official render (mtg.wiki gallery and Scryfall FRA #457) shows the shards with bright rainbow rims and an iridescent glassy fill. No in-hand photo was found, so the strength of the real shimmer is unconfirmed.',
+    css: standardCss,
+    webgl:
+      'Finds the glass shards by colour (pale cyan-blue, low to medium saturation). Inside them, Voronoi facets about an eighth of the card wide each shimmer their own rainbow colour and flash at their own angle (hard light). The shard rims, found by comparing the shard mask with its neighbours, glow in a bright rainbow that shifts with the tilt (screen). The rest of the card is untouched; everything fades off-axis. Shards in other colours (the lilac ones on Return to the Light Realms) are only partly found. The preview uses the nonfoil Shattered Mirror Stingcaster Mage (FRA #329), because the facet scans have the rainbow rims printed in.',
+  },
+  dazzlefoil: {
+    expected:
+      'Dazzle foil: Secret Lair x Marvel’s Deadpool: I Fixed It (You’re Welcome), sold as the "Pool Party Foil Edition" (Deadly Dispute, Lightning Bolt, Thrill of Possibility, Lightning Greaves, Sol Ring, plus a bonus Deadpool card and Mountain). mtg.wiki says the box calls it Pool Party foil and that it is like confetti foil but with denser, smaller, more square refraction points. Wizards’ Secret Lair page only promises "so much shine" and Nerdist calls it the shiniest of the three editions; neither describes the pattern. Wizards’ product photo of the five cards agrees with mtg.wiki: dense, tiny, squarish rainbow glitter over the whole card, brightest in patches and clearest on dark art and frames, with a broad rainbow sheen on light areas.',
+    css: standardCss,
+    webgl:
+      'Small square flecks on an unrotated grid (about 170 across) packed almost edge to edge, each flashing its own rainbow colour at its own angle. Lit in patches by large noise that drifts with the tilt, over a soft rainbow sheen near the light. Hard-light tint with a screen boost on dark ink; faded off-axis. Denser, smaller and squarer than confetti (about 90 across, round, rotated grid). The preview uses the dazzle Lightning Bolt (SLD IFIYW-7), whose scan has no foil printed in (the confetti and rainbow are part of the art).',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

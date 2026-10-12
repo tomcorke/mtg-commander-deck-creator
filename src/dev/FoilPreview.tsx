@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useStoredState } from './stored-state.ts'
 import './foil-preview.css'
 
-import type { ScryfallCard } from '../domain/card-model.ts'
+import type { CardFinish, ScryfallCard } from '../domain/card-model.ts'
 import { finishLabel, foilTypeNames, printingOptions } from '../domain/printing.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { FinishFilters } from '../shared/FinishFilters.tsx'
@@ -49,6 +49,9 @@ const sampleOverrides: Record<string, string> = {
   confettifoil: '!"Rhystic Study" set:wot cn:71',
   gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
   gleaminggold: '!"Smaug the Magnificent" set:hob cn:110',
+  cosmicfoil: '!"The Mind Stone" set:msh -is:cosmicfoil',
+  facetfoil: 'set:fra cn:329',
+  dazzlefoil: 'set:sld cn:IFIYW-7',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the
@@ -74,8 +77,11 @@ async function fetchSample(key: string, query: string): Promise<Sample | string>
   const response = await fetch(url)
   if (!response.ok) return `${key}: no results`
   const card = ((await response.json()) as { data: ScryfallCard[] }).data[0]
-  const finish = key === 'nonfoil' ? 'nonfoil' : key === 'etched' ? 'etched' : 'foil'
-  const option = printingOptions([card]).find((printing) => printing.finish === finish)
+  const finish: CardFinish = key === 'nonfoil' ? 'nonfoil' : key === 'etched' ? 'etched' : 'foil'
+  const options = printingOptions([card])
+  // A clean scan may exist only as a nonfoil printing (FRA Shattered Mirror); show it as foil.
+  const fallback = sampleOverrides[key] && options[0] ? { ...options[0], finish } : undefined
+  const option = options.find((printing) => printing.finish === finish) ?? fallback
   if (!option) return `${key}: printing has no ${finish} finish`
   return { ...option, name: card.name, ...(sampleOverrides[key] ? { foilType: key } : {}) }
 }

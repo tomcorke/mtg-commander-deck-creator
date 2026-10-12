@@ -22,6 +22,9 @@ export const foilShaderTypes = {
   confettifoil: 17,
   gilded: 14,
   gleaminggold: 18,
+  cosmicfoil: 19,
+  facetfoil: 20,
+  dazzlefoil: 21,
 } as const
 
 const vertexSource = `
@@ -142,6 +145,15 @@ float phyrexianSymbol(vec2 l) {
   vec2 stem = abs(l) - vec2(0.0052, 0.042);
   float bar = length(max(stem, 0.0)) + min(max(stem.x, stem.y), 0.0);
   return min(ring, bar);
+}
+
+// How strongly a pixel looks like the pale cyan-blue glass shards of FRA Shattered Mirror art.
+float glassShard(vec3 c) {
+  float high = max(c.r, max(c.g, c.b));
+  float low = min(c.r, min(c.g, c.b));
+  float saturation = high > 0.0 ? (high - low) / high : 0.0;
+  float cyan = smoothstep(0.02, 0.12, c.b - c.r) * smoothstep(-0.15, 0.0, c.g - c.r) * step(c.r, c.g + 0.3);
+  return cyan * smoothstep(0.85, 0.5, saturation) * smoothstep(0.25, 0.5, luminance(c));
 }
 
 void main() {
@@ -541,6 +553,78 @@ void main() {
     vec3 sheen = 0.5 + (mix(rainbow(hue), vec3(0.9, 0.75, 0.4), 0.6) - 0.5) * 0.3 * foilMask * onAxis;
     vec3 light = mix(sheen, metal, gold);
     colour = screen(hardLight(coated, light), vec3(1.0, 0.9, 0.6) * glint * speck * gold * (1.0 - pits) * glare * 0.9);
+  }
+  if (uType == 19) {
+    // Cosmic, matched to retailer photos of The Mind Stone (MSH #385): very fine concentric rings
+    // centred on the stone, like a whorl, plus a field of tiny star specks. The rings catch the
+    // light in a rainbow that runs outwards and shifts with the tilt; each speck glints at its own
+    // angle. Both show mostly near the light and fade off-axis.
+    vec2 fromCentre = p - vec2(0.5, 0.45 * uAspect);
+    float radius = length(fromCentre) + (fbm(p * 3.0) - 0.5) * 0.02;
+    float rings = pow(0.5 + 0.5 * cos(radius * 420.0 - dot(tilt, vec2(6.0, 4.0))), 3.0);
+    float ringBand = 0.4 + 0.6 * pow(0.5 + 0.5 * cos(radius * 18.0 - dot(tilt, vec2(9.0, 7.0))), 2.0);
+    vec3 ringHue = rainbow(radius * 3.0 + dot(tilt, vec2(1.6, 1.0)));
+    vec2 grid = p * 140.0;
+    vec2 cell = floor(grid);
+    float seed = hash(cell + 3.0);
+    float speck = smoothstep(0.22, 0.05, length(fract(grid) - 0.5 - (vec2(hash(cell + 1.1), hash(cell + 6.2)) - 0.5) * 0.5)) * step(0.7, seed);
+    float glint = pow(max(0.0, cos(dot(tilt, vec2(hash(cell + 9.4), hash(cell + 4.4)) * 2.0 - 1.0) * 14.0 + seed * TAU)), 4.0);
+    vec3 light = 0.5 + (ringHue - 0.5) * rings * ringBand * foilMask * onAxis * 0.42
+      + (rainbow(seed * 4.0 + tilt.x) * 0.5 + 0.35) * speck * glint * onAxis * 0.7;
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
+  }
+
+  if (uType == 20) {
+    // Facet, from the FRA Shattered Mirror cards: foil only on the glass shards in the art. Shards
+    // are found by colour (pale cyan-blue); each facet (a Voronoi cell about an eighth of the card
+    // wide) shimmers its own rainbow colour and flashes at its own angle, and the shard rims glow
+    // in bright rainbow. The rest of the card stays bare. Fades off-axis.
+    float shard = glassShard(base);
+    vec2 o = uTexel * 2.5;
+    float around = (glassShard(texture2D(uImage, vUv + vec2(o.x, 0.0)).rgb) + glassShard(texture2D(uImage, vUv - vec2(o.x, 0.0)).rgb)
+      + glassShard(texture2D(uImage, vUv + vec2(0.0, o.y)).rgb) + glassShard(texture2D(uImage, vUv - vec2(0.0, o.y)).rgb)) * 0.25;
+    float rim = clamp(abs(shard - around) * 7.0, 0.0, 1.0) * max(shard, around);
+    vec2 grid = p * 8.0;
+    vec2 cellBase = floor(grid);
+    float nearest = 8.0;
+    vec2 facet = vec2(0.0);
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec2 cell = cellBase + vec2(float(x), float(y));
+        float d = length(grid - cell - vec2(hash(cell), hash(cell + 4.1)));
+        if (d < nearest) {
+          nearest = d;
+          facet = cell;
+        }
+      }
+    }
+    vec2 facing = vec2(hash(facet + 7.3), hash(facet + 2.9)) * 2.0 - 1.0;
+    float flash = pow(max(0.0, cos(dot(tilt, facing) * 6.0 + hash(facet + 1.7) * TAU)), 4.0);
+    vec3 facetHue = rainbow(hash(facet + 5.5) + dot(vUv, vec2(0.6, 0.4)) + dot(tilt, facing) * 1.5);
+    vec3 rimHue = rainbow(dot(vUv, vec2(2.0, 1.4)) + dot(tilt, vec2(2.0, 1.3)));
+    vec3 light = 0.5 + (facetHue - 0.5) * shard * (0.35 + 0.65 * flash) * onAxis * 0.8;
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
+    colour = screen(colour, rimHue * rim * (0.5 + 0.7 * onAxis));
+  }
+
+  if (uType == 21) {
+    // Dazzle ("Pool Party" foil, SLD Deadpool: I Fixed It), matched to Wizards' product photo:
+    // finer and denser than confetti, with small square flecks (about 170 across) packed almost
+    // edge to edge on an unrotated grid. Each square flashes its own rainbow colour at its own
+    // angle, lit in patches that drift with the tilt, over a soft rainbow sheen near the light.
+    vec2 grid = p * 170.0;
+    vec2 cell = floor(grid);
+    float seed = hash(cell + 0.5);
+    vec2 local = abs(fract(grid) - 0.5);
+    float square = smoothstep(0.42, 0.32, max(local.x, local.y)) * step(0.15, seed);
+    vec2 facing = vec2(hash(cell + 9.2), hash(cell + 4.4)) * 2.0 - 1.0;
+    float flash = pow(max(0.0, cos(dot(tilt, facing) * 11.0 + seed * TAU)), 3.0);
+    float patches = 0.25 + 0.75 * smoothstep(0.35, 0.62, fbm(p * 2.5 + tilt * 2.2 + 5.0));
+    vec3 hue = rainbow(hash(cell + 12.5) + dot(tilt, facing) * 1.5);
+    float amount = square * flash * patches * onAxis;
+    vec3 sheen = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y) - 0.5) * 0.3 * glare * foilMask;
+    vec3 tinted = hardLight(base, clamp(0.5 + (hue - 0.5) * amount * 2.0 + 0.12 * amount + sheen, 0.0, 1.0));
+    colour = screen(tinted, hue * amount * 0.7 * (1.0 - foilMask));
   }
 
   gl_FragColor = vec4(colour, 1.0);
