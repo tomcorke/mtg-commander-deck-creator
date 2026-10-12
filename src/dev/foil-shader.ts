@@ -1081,7 +1081,9 @@ function hasBakedRims(image: HTMLImageElement) {
   context.drawImage(image, 0, 0, width, height)
   const { data } = context.getImageData(0, 0, width, height)
   const vivid = (at: number) =>
-    (Math.max(data[at], data[at + 1], data[at + 2]) - Math.min(data[at], data[at + 1], data[at + 2])) / 255
+    (Math.max(data[at], data[at + 1], data[at + 2]) -
+      Math.min(data[at], data[at + 1], data[at + 2])) /
+    255
   const steps = [4, width * 4, (width + 1) * 4, (width - 1) * 4].map((step) => step * 3)
   let count = 0
   for (let y = 4; y < height - 4; y += 2) {
