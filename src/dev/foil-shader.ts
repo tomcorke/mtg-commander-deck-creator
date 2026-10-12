@@ -25,6 +25,9 @@ export const foilShaderTypes = {
   cosmicfoil: 19,
   facetfoil: 20,
   dazzlefoil: 21,
+  invisibleink: 22,
+  silverscroll: 23,
+  manafoil: 24,
 } as const
 
 const vertexSource = `
@@ -154,6 +157,44 @@ float glassShard(vec3 c) {
   float saturation = high > 0.0 ? (high - low) / high : 0.0;
   float cyan = smoothstep(0.02, 0.12, c.b - c.r) * smoothstep(-0.15, 0.0, c.g - c.r) * step(c.r, c.g + 0.3);
   return cyan * smoothstep(0.85, 0.5, saturation) * smoothstep(0.25, 0.5, luminance(c));
+}
+// Handwriting-like scrawl: a wavy line with irregular loops, broken into words by noise.
+// Returns 0..1 ink coverage for a line of writing at height y0 running from x0 to x1.
+float scrawl(vec2 uv, float y0, float x0, float x1, float salt) {
+  float x = uv.x;
+  float wobble = sin(x * 210.0 + salt) * 0.0055 + sin(x * 97.0 + salt * 2.0) * 0.003
+    + (noise(vec2(x * 40.0, salt)) - 0.5) * 0.008;
+  float stroke = smoothstep(0.003, 0.0012, abs(uv.y - y0 - wobble));
+  float words = step(0.38, noise(vec2(x * 22.0 + salt * 3.0, salt)));
+  return stroke * words * step(x0, x) * step(x, x1);
+}
+
+// Distance to a simplified mana symbol in a ring: kind 0-4 is W (sun), U (drop), B (skull),
+// R (fireball), G (tree). Units: the ring has radius 0.3; y points down the card.
+float drop(vec2 l, float r) {
+  return length(l) - r + clamp(-l.y, 0.0, r * 2.0) * 0.5;
+}
+float manaSymbol(vec2 l, float kind) {
+  float ring = abs(length(l) - 0.3) - 0.025;
+  float glyph;
+  if (kind < 0.5) {
+    float angle = atan(l.y, l.x);
+    glyph = length(l) - 0.09 - 0.08 * pow(abs(cos(angle * 4.0)), 6.0);
+  } else if (kind < 1.5) {
+    glyph = drop(l - vec2(0.0, 0.05), 0.11);
+  } else if (kind < 2.5) {
+    float head = length(l - vec2(0.0, -0.02)) - 0.12;
+    float eyes = length(vec2(abs(l.x) - 0.045, l.y + 0.03)) - 0.032;
+    vec2 jaw = abs(l - vec2(0.0, 0.11)) - vec2(0.06, 0.04);
+    glyph = max(min(head, max(jaw.x, jaw.y)), -eyes);
+  } else if (kind < 3.5) {
+    glyph = drop(mat2(0.82, 0.57, -0.57, 0.82) * (l - vec2(0.02, 0.05)), 0.1);
+  } else {
+    float canopy = length(l - vec2(0.0, -0.05)) - 0.11;
+    vec2 trunk = abs(l - vec2(0.0, 0.1)) - vec2(0.022, 0.08);
+    glyph = min(canopy, max(trunk.x, trunk.y));
+  }
+  return min(ring, glyph);
 }
 
 void main() {
@@ -625,6 +666,81 @@ void main() {
     vec3 sheen = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y) - 0.5) * 0.3 * glare * foilMask;
     vec3 tinted = hardLight(base, clamp(0.5 + (hue - 0.5) * amount * 2.0 + 0.12 * amount + sheen, 0.0, 1.0));
     colour = screen(tinted, hue * amount * 0.7 * (1.0 - foilMask));
+  }
+
+  if (uType == 22) {
+    // Invisible ink (MKM showcase dossiers): a traditional foil card with Alquist Proft's
+    // handwritten case notes and doodles in the margins and text box. The notes are almost
+    // invisible face-on and show as violet-grey ink only when the card is tilted
+    // steeply towards the bottom right. Under the notes, the traditional foil sweep.
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    float hueShift = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    vec3 foiled = hardLight(base, 0.5 + (rainbow(hueShift) - 0.5) * 0.45 * foilMask * sweep * (0.2 + 0.8 * glare));
+    vec2 hand = vec2(vUv.x, vUv.y + (vUv.x - 0.5) * 0.04);
+    float notes = max(max(scrawl(hand, 0.615, 0.5, 0.82, 1.0), scrawl(hand, 0.66, 0.56, 0.9, 4.0)),
+      max(scrawl(hand, 0.86, 0.3, 0.6, 7.0), scrawl(hand, 0.125, 0.62, 0.9, 9.0)));
+    // A magnifying-glass doodle and a ring circling part of the art.
+    vec2 m = (vUv - vec2(0.88, 0.63)) * vec2(1.0, uAspect);
+    float glass = smoothstep(0.003, 0.001, abs(length(m) - 0.03));
+    vec2 handle = m - vec2(0.03, 0.03);
+    glass = max(glass, smoothstep(0.003, 0.001, abs(handle.x - handle.y) * 0.7) * step(0.0, handle.x) * step(handle.x, 0.025));
+    vec2 r = (vUv - vec2(0.7, 0.3)) * vec2(1.0, uAspect);
+    float ring = smoothstep(0.0035, 0.0012, abs(length(r * vec2(1.0, 1.3)) - 0.09 - 0.006 * sin(atan(r.y, r.x) * 3.0)));
+    notes = max(notes, max(glass, ring * 0.8));
+    // Revealed only at a steep tilt towards the bottom right.
+    float reveal = smoothstep(0.55, 0.9, dot(normalize(tilt + 0.0001), vec2(0.7, 0.7))) * smoothstep(0.12, 0.3, length(tilt));
+    // Violet-grey ink: darkens the cream text box, lightens dark art, so it reads on both.
+    vec3 inked = mix(screen(foiled, vec3(0.85, 0.8, 1.0)), foiled * vec3(0.5, 0.45, 0.7), smoothstep(0.35, 0.65, lum));
+    colour = mix(foiled, inked, notes * (0.04 + 0.86 * reveal));
+  }
+
+  if (uType == 23) {
+    // Silver scroll (SOS Japanese Mystical Archive): printed over silver foil, so the whole card
+    // takes on a cool, muted, silvery cast; pale areas (sky, scroll, text box) become brushed,
+    // slightly grainy silver. A broad metallic sheen follows the light and fades off-axis.
+    float high = max(base.r, max(base.g, base.b));
+    float low = min(base.r, min(base.g, base.b));
+    float saturation = high > 0.0 ? (high - low) / high : 0.0;
+    float pale = smoothstep(0.4, 0.85, lum) * (1.0 - saturation);
+    vec3 silvered = mix(base, vec3(lum) * vec3(0.96, 0.98, 1.03), 0.55 + 0.4 * pale);
+    float band = exp(-pow(dot(vUv - uPointer, vec2(0.8, 0.6)) / 0.25, 2.0));
+    float grain = 0.75 + 0.5 * noise(p * 600.0);
+    float shine = (0.3 + 0.7 * band) * onAxis * grain * (0.35 + 0.65 * pale) * smoothstep(0.08, 0.4, lum);
+    colour = hardLight(silvered, clamp(vec3(0.5 + shine * 0.5, 0.5 + shine * 0.51, 0.5 + shine * 0.53), 0.0, 1.0));
+  }
+
+  if (uType == 24) {
+    // Mana foil (FDN borderless rares and mythics): the five mana symbols, each in a ring, in a
+    // randomised pattern over the whole card (about 10 across), raised so they catch the light.
+    // Each symbol is embossed from the light direction and tinted metallic with a hint of its
+    // colour; a traditional foil sweep covers the card. Everything fades off-axis.
+    vec2 grid = p * 10.0;
+    float row = floor(grid.y);
+    grid.x += mod(row, 2.0) * 0.5;
+    vec2 cell = floor(grid);
+    vec2 l = (fract(grid) - 0.5) - (vec2(hash(cell + 2.3), hash(cell + 8.1)) - 0.5) * 0.25;
+    float kind = floor(hash(cell + 5.7) * 5.0);
+    float d = manaSymbol(l, kind);
+    float inside = smoothstep(0.012, -0.012, d) * step(0.15, hash(cell + 11.0));
+    float e = 0.01;
+    vec2 normal = normalize(vec2(manaSymbol(l + vec2(e, 0.0), kind) - manaSymbol(l - vec2(e, 0.0), kind),
+      manaSymbol(l + vec2(0.0, e), kind) - manaSymbol(l - vec2(0.0, e), kind)) + 0.0001);
+    vec2 lightDir = normalize(vec2(-0.6, -0.8) + tilt * 2.0);
+    float rim = smoothstep(-0.03, 0.0, d) * inside;
+    float emboss = dot(-normal, lightDir) * rim;
+    vec3 manaColour = kind < 0.5 ? vec3(0.98, 0.9, 0.6) : kind < 1.5 ? vec3(0.55, 0.75, 1.0)
+      : kind < 2.5 ? vec3(0.7, 0.62, 0.78) : kind < 3.5 ? vec3(1.0, 0.6, 0.5) : vec3(0.6, 0.9, 0.6);
+    vec3 tint = mix(vec3(0.86, 0.86, 0.9), manaColour, 0.45);
+    tint = mix(tint, rainbow(hash(cell) + dot(tilt, vec2(2.0, 1.5))), 0.2);
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    vec3 holo = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y) - 0.5) * 0.35 * foilMask * sweep * onAxis;
+    // Symbols show in patches near the light and almost vanish away from it.
+    float reveal = glare * glare * (0.4 + 0.6 * smoothstep(0.35, 0.6, fbm(p * 2.0 + tilt * 2.0)));
+    float show = 0.08 + 0.92 * reveal;
+    vec3 light = 0.5 + (tint - 0.5) * inside * show * 0.8 + vec3(emboss * 0.45 * show) + holo * (1.0 - inside * show);
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);

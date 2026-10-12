@@ -45,13 +45,16 @@ const sampleOverrides: Record<string, string> = {
   fracturefoil: '!"Overlord of the Hauntwoods" -is:fracturefoil',
   raisedfoil: '!"Zoraline, Cosmos Caller" is:raisedfoil',
   neonink: 'is:neonink set:neo',
-  oilslick: 'set:one cn:357',
+  oilslick: '!"Atraxa, Grand Unifier" set:one cn:316',
   confettifoil: '!"Rhystic Study" set:wot cn:71',
   gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
   gleaminggold: '!"Smaug the Magnificent" set:hob cn:110',
   cosmicfoil: '!"The Mind Stone" set:msh -is:cosmicfoil',
   facetfoil: 'set:fra cn:329',
   dazzlefoil: 'set:sld cn:IFIYW-7',
+  invisibleink: 'set:mkm cn:355',
+  silverscroll: 'set:soa cn:80 lang:ja',
+  manafoil: 'set:fdn cn:299',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the
