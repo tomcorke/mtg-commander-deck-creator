@@ -19,6 +19,8 @@ const tilts = [
 const finishOf = (foil: string): CardFinish =>
   foil === 'nonfoil' || foil === 'etched' ? foil : 'foil'
 
+type Tilt = { x: number; y: number }
+type DrawFrame = (foil: string, frame: number, tilt: Tilt) => void
 type Printing = { card: string; label: string }
 
 // Every printing with a foil type, cached on globalThis like the preview samples, so hot updates
@@ -90,6 +92,49 @@ function PrintingList({
   )
 }
 
+// Follows and tilts with the mouse like the CSS card, then returns to its fixed tilt (onTilt(undefined)).
+function WebglFrame({
+  label,
+  canvasRef,
+  onTilt,
+}: {
+  label: string
+  canvasRef: (element: HTMLCanvasElement | null) => void
+  onTilt: (tilt?: Tilt) => void
+}) {
+  return (
+    <canvas
+      ref={canvasRef}
+      width={366}
+      height={510}
+      aria-label={label}
+      onPointerMove={(event) => {
+        const box = event.currentTarget.getBoundingClientRect()
+        const x = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width))
+        const y = Math.min(1, Math.max(0, (event.clientY - box.top) / box.height))
+        // Same tilt as the CSS card (CardArt moveFoil).
+        event.currentTarget.style.transform = `perspective(800px) rotateX(${(0.5 - y) * 16}deg) rotateY(${(x - 0.5) * 16}deg)`
+        onTilt({ x, y })
+      }}
+      onPointerLeave={(event) => {
+        event.currentTarget.style.transform = ''
+        onTilt()
+      }}
+    />
+  )
+}
+
+// The card element sets its own default tilt, so set the fixed tilts on it directly.
+function setCssTilts() {
+  document
+    .querySelectorAll<HTMLElement>('.foil-sheet-css .finished-card')
+    .forEach((card, index) => {
+      const tilt = tilts[index % tilts.length]
+      card.style.setProperty('--foil-x', `${tilt.x * 100}%`)
+      card.style.setProperty('--foil-y', `${tilt.y * 100}%`)
+    })
+}
+
 const sheetPreferences = {
   darkMode: true,
   setDarkMode: () => undefined,
@@ -113,6 +158,7 @@ export function FoilSheet() {
   }
   const image = `https://api.scryfall.com/cards/${set}/${number}?format=image&version=normal`
   const frames = useRef<(HTMLCanvasElement | null)[]>([])
+  const drawFrame = useRef<DrawFrame>(() => undefined)
   const foilList = foils.join(',')
 
   useEffect(() => {
@@ -126,14 +172,18 @@ export function FoilSheet() {
     loader.onload = () => {
       if (!renderer) return
       renderer.setImage(loader, { set, collectorNumber: number, name })
+      loaded = true
       foilList.split(',').forEach(drawRow)
     }
+    let loaded = false
+    const draw: DrawFrame = (foil, frame, tilt) => {
+      if (!loaded) return
+      renderer?.render((foilShaderTypes as Record<string, number>)[foil] ?? 1, tilt, 1)
+      frames.current[frame]?.getContext('2d')?.drawImage(canvas, 0, 0)
+    }
+    drawFrame.current = draw
     const drawRow = (foil: string, row: number) => {
-      const type = (foilShaderTypes as Record<string, number>)[foil] ?? 1
-      tilts.forEach((tilt, column) => {
-        renderer?.render(type, tilt, 1)
-        frames.current[row * tilts.length + column]?.getContext('2d')?.drawImage(canvas, 0, 0)
-      })
+      tilts.forEach((tilt, column) => draw(foil, row * tilts.length + column, tilt))
     }
     // The name lets a nonfoil Shattered Mirror twin borrow its facet printing's shards.
     void fetch(`https://api.scryfall.com/cards/${set}/${number}`)
@@ -141,14 +191,7 @@ export function FoilSheet() {
       .then((found) => (name = found.name))
       .catch(() => undefined)
       .finally(() => (loader.src = image))
-    // The card element sets its own default tilt, so set the fixed tilts on it directly.
-    document
-      .querySelectorAll<HTMLElement>('.foil-sheet-css .finished-card')
-      .forEach((card, index) => {
-        const tilt = tilts[index % tilts.length]
-        card.style.setProperty('--foil-x', `${tilt.x * 100}%`)
-        card.style.setProperty('--foil-y', `${tilt.y * 100}%`)
-      })
+    setCssTilts()
   }, [image, foilList, set, number])
 
   return (
@@ -167,13 +210,14 @@ export function FoilSheet() {
                 {tilts.map((tilt, column) => (
                   <div key={column} className="foil-sheet-pair">
                     <figure>
-                      <canvas
-                        ref={(element) => {
+                      <WebglFrame
+                        label={`${foil} WebGL at tilt ${tilt.x}, ${tilt.y}`}
+                        canvasRef={(element) => {
                           frames.current[row * tilts.length + column] = element
                         }}
-                        width={366}
-                        height={510}
-                        aria-label={`${foil} WebGL at tilt ${tilt.x}, ${tilt.y}`}
+                        onTilt={(next) =>
+                          drawFrame.current(foil, row * tilts.length + column, next ?? tilt)
+                        }
                       />
                       <figcaption>WebGL</figcaption>
                     </figure>
