@@ -23,6 +23,7 @@ export const foilShaderTypes = {
   gilded: 14,
   cosmicfoil: 19,
   facetfoil: 20,
+  dazzlefoil: 21,
 } as const
 
 const vertexSource = `
@@ -577,6 +578,26 @@ void main() {
     vec3 light = 0.5 + (facetHue - 0.5) * shard * (0.35 + 0.65 * flash) * onAxis * 0.8;
     colour = hardLight(base, clamp(light, 0.0, 1.0));
     colour = screen(colour, rimHue * rim * (0.5 + 0.7 * onAxis));
+  }
+
+  if (uType == 21) {
+    // Dazzle ("Pool Party" foil, SLD Deadpool: I Fixed It), matched to Wizards' product photo:
+    // finer and denser than confetti, with small square flecks (about 170 across) packed almost
+    // edge to edge on an unrotated grid. Each square flashes its own rainbow colour at its own
+    // angle, lit in patches that drift with the tilt, over a soft rainbow sheen near the light.
+    vec2 grid = p * 170.0;
+    vec2 cell = floor(grid);
+    float seed = hash(cell + 0.5);
+    vec2 local = abs(fract(grid) - 0.5);
+    float square = smoothstep(0.42, 0.32, max(local.x, local.y)) * step(0.15, seed);
+    vec2 facing = vec2(hash(cell + 9.2), hash(cell + 4.4)) * 2.0 - 1.0;
+    float flash = pow(max(0.0, cos(dot(tilt, facing) * 11.0 + seed * TAU)), 3.0);
+    float patches = 0.25 + 0.75 * smoothstep(0.35, 0.62, fbm(p * 2.5 + tilt * 2.2 + 5.0));
+    vec3 hue = rainbow(hash(cell + 12.5) + dot(tilt, facing) * 1.5);
+    float amount = square * flash * patches * onAxis;
+    vec3 sheen = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y) - 0.5) * 0.3 * glare * foilMask;
+    vec3 tinted = hardLight(base, clamp(0.5 + (hue - 0.5) * amount * 2.0 + 0.12 * amount + sheen, 0.0, 1.0));
+    colour = screen(tinted, hue * amount * 0.7 * (1.0 - foilMask));
   }
 
   gl_FragColor = vec4(colour, 1.0);

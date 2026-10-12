@@ -50,6 +50,7 @@ const sampleOverrides: Record<string, string> = {
   gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
   cosmicfoil: '!"The Mind Stone" set:msh -is:cosmicfoil',
   facetfoil: 'set:fra cn:329',
+  dazzlefoil: 'set:sld cn:IFIYW-7',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the
