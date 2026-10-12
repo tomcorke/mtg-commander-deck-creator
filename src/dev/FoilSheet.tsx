@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import type { CardFinish, ScryfallCard } from '../domain/card-model.ts'
+import { scryfallImage, type CardFinish, type ScryfallCard } from '../domain/card-model.ts'
 import { foilTypeNames } from '../domain/printing.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { FinishFilters } from '../shared/FinishFilters.tsx'
@@ -21,7 +21,7 @@ const finishOf = (foil: string): CardFinish =>
 
 type Tilt = { x: number; y: number }
 type DrawFrame = (foil: string, frame: number, tilt: Tilt) => void
-type Printing = { card: string; label: string }
+type Printing = { card: string; label: string; image: string }
 
 // Every printing with a foil type, cached on globalThis like the preview samples, so hot updates
 // and card changes don't fetch again.
@@ -47,6 +47,8 @@ async function fetchPrintings(foil: string, onPage: (printings: Printing[]) => v
       printings.push({
         card: `${card.set}/${card.collector_number}`,
         label: `${card.name} · ${card.set.toUpperCase()} #${card.collector_number} · ${marker}`,
+        // The CDN image, not the API's image redirect, which counts against the rate limit.
+        image: scryfallImage(card),
       })
     }
     onPage([...printings])
@@ -78,17 +80,31 @@ function PrintingList({
     }
   }, [foil])
   return (
-    <label className="foil-sheet-printings">
-      {foilTypeNames[foil]} printings ({printings.length}
-      {done ? '' : ', loading'})
-      <select size={10} value={card} onChange={(event) => onSelect(event.target.value)}>
+    // Every printing as a thumbnail with the CSS effect; click one to compare it above.
+    <section className="foil-sheet-printings">
+      <h2>
+        All {foilTypeNames[foil]} printings ({printings.length}
+        {done ? '' : ', loading'})
+      </h2>
+      <div>
         {printings.map((printing) => (
-          <option key={printing.card} value={printing.card}>
-            {printing.label}
-          </option>
+          <button
+            key={printing.card}
+            type="button"
+            title={printing.label}
+            aria-pressed={printing.card === card}
+            onClick={() => onSelect(printing.card)}
+          >
+            <FinishedCardImage
+              image={printing.image}
+              alt={printing.label}
+              finish="foil"
+              foilType={foil}
+            />
+          </button>
         ))}
-      </select>
-    </label>
+      </div>
+    </section>
   )
 }
 
@@ -155,6 +171,7 @@ export function FoilSheet() {
     const search = location.search.replace(/&card=[^&]*/, '')
     history.replaceState(null, '', `${search}&card=${next}`)
     setCard(next)
+    scrollTo({ top: 0 })
   }
   const image = `https://api.scryfall.com/cards/${set}/${number}?format=image&version=normal`
   const frames = useRef<(HTMLCanvasElement | null)[]>([])
@@ -198,9 +215,6 @@ export function FoilSheet() {
     <VisualPreferencesContext.Provider value={sheetPreferences}>
       <div className="dark" style={{ colorScheme: 'dark' }}>
         <main className="foil-preview static-effects foil-sheet">
-          {foils.length === 1 && Object.hasOwn(foilTypeNames, foils[0]) && (
-            <PrintingList foil={foils[0]} card={card} onSelect={selectCard} />
-          )}
           {foils.map((foil, row) => (
             <section key={foil}>
               <h2>
@@ -237,6 +251,9 @@ export function FoilSheet() {
               </div>
             </section>
           ))}
+          {foils.length === 1 && Object.hasOwn(foilTypeNames, foils[0]) && (
+            <PrintingList foil={foils[0]} card={card} onSelect={selectCard} />
+          )}
           <FinishFilters />
         </main>
       </div>

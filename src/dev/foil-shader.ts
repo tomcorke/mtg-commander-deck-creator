@@ -55,6 +55,7 @@ uniform vec2 uPointer;   // 0..1 across the card; (0.5, 0.5) is flat
 uniform vec2 uTexel;     // 1 / image size
 uniform float uTime;
 uniform float uAspect;   // height / width
+uniform vec2 uRingCentre; // cosmic ring centre, 0..1 across the card (the stone in the art)
 uniform int uType;
 
 const float TAU = 6.28318530718;
@@ -628,7 +629,7 @@ void main() {
     // rings centred on the stone, like a whorl, plus a field of tiny star specks. The rings catch the
     // light in a rainbow that runs outwards and shifts with the tilt; each speck glints at its own
     // angle. Both show mostly near the light and fade off-axis.
-    vec2 fromCentre = p - vec2(0.5, 0.45 * uAspect);
+    vec2 fromCentre = p - vec2(uRingCentre.x, uRingCentre.y * uAspect);
     // Rings wobble like tree rings: a broad noise warp bends whole groups of rings, and a finer
     // one ripples each ring along its length.
     vec2 warped = p + (vec2(fbm(p * 4.0), fbm(p * 4.0 + 9.1)) - 0.5) * 0.05;
@@ -995,12 +996,13 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
     aspect: uniform('uAspect'),
     type: uniform('uType'),
     hasShards: uniform('uHasShards'),
+    ringCentre: uniform('uRingCentre'),
   }
   let hasShards = false
   let imageSize = { width: 488, height: 680 }
 
   return {
-    // The card identifies its facet shards, if it has any (see facet-shards.ts).
+    // The card identifies its facet shards (see facet-shards.ts) and cosmic ring centre, if any.
     setImage(
       image: HTMLImageElement,
       card?: { set: string; collectorNumber: string; name?: string },
@@ -1008,6 +1010,8 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
       gl.bindTexture(gl.TEXTURE_2D, texture)
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
       imageSize = { width: image.naturalWidth, height: image.naturalHeight }
+      const [x, y] = (card && stoneCentres[`${card.set}/${card.collectorNumber}`]) ?? [0.5, 0.44]
+      gl.uniform2f(uniforms.ringCentre, x, y)
       const shards = card ? findFacetShards(card) : null
       hasShards = !!shards
       if (!shards) return
@@ -1028,6 +1032,14 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     },
   }
+}
+
+// Cosmic rings centre on the Infinity Stone. Both cosmic printings (MSH #385, SPM #242) have it at
+// the default (0.5, 0.44); the regular printings, used as clean previews, hold it higher in a hand.
+const stoneCentres: Record<string, [number, number]> = {
+  'msh/21': [0.5, 0.29],
+  'spm/66': [0.5, 0.32],
+  'pspm/66s': [0.5, 0.32],
 }
 
 // Rasterises facet shards for the shader: red is coverage, green the shard's seed (its index), and

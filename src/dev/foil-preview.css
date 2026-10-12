@@ -150,9 +150,19 @@
   margin: 0 0 14px;
   line-height: 1.45;
 }
-.foil-sheet-printings {
+.foil-sheet-printings > div {
   display: grid;
-  gap: 6px;
-  width: min(640px, 100%);
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
   margin-bottom: 16px;
+}
+.foil-sheet-printings button {
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+.foil-sheet-printings button[aria-pressed='true'] {
+  border-color: #7aa7ff;
 }
