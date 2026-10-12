@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import type { CardFinish } from '../domain/card-model.ts'
+import type { CardFinish, ScryfallCard } from '../domain/card-model.ts'
+import { foilTypeNames } from '../domain/printing.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { FinishFilters } from '../shared/FinishFilters.tsx'
 import { VisualPreferencesContext } from '../shared/VisualPreferencesContext.tsx'
@@ -18,11 +19,89 @@ const tilts = [
 const finishOf = (foil: string): CardFinish =>
   foil === 'nonfoil' || foil === 'etched' ? foil : 'foil'
 
+type Printing = { card: string; label: string }
+
+// Every printing with a foil type, cached on globalThis like the preview samples, so hot updates
+// and card changes don't fetch again.
+const printingCache: Map<string, Printing[]> = ((
+  globalThis as { foilPrintingCache?: Map<string, Printing[]> }
+).foilPrintingCache ??= new Map())
+
+async function fetchPrintings(foil: string, onPage: (printings: Printing[]) => void) {
+  const cached = printingCache.get(foil)
+  if (cached) return onPage(cached)
+  const printings: Printing[] = []
+  let url: string | undefined =
+    `https://api.scryfall.com/cards/search?unique=prints&order=released&q=${encodeURIComponent(`is:${foil}`)}`
+  while (url) {
+    const response = await fetch(url)
+    if (!response.ok) break
+    const page = (await response.json()) as { data: ScryfallCard[]; next_page?: string }
+    for (const card of page.data) {
+      // Foil-only printings are scanned as foil, so the scan may show the effect baked in.
+      const marker = card.finishes?.includes('nonfoil')
+        ? 'non-foil scan'
+        : 'foil only: scan may show foil'
+      printings.push({
+        card: `${card.set}/${card.collector_number}`,
+        label: `${card.name} · ${card.set.toUpperCase()} #${card.collector_number} · ${marker}`,
+      })
+    }
+    onPage([...printings])
+    url = page.next_page
+    // Scryfall asks for 50-100 ms between requests.
+    if (url) await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  if (!url) printingCache.set(foil, printings)
+}
+
+function PrintingList({
+  foil,
+  card,
+  onSelect,
+}: {
+  foil: string
+  card: string
+  onSelect: (card: string) => void
+}) {
+  const [printings, setPrintings] = useState<Printing[]>([])
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void fetchPrintings(foil, (next) => !cancelled && setPrintings(next)).finally(
+      () => !cancelled && setDone(true),
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [foil])
+  return (
+    <label className="foil-sheet-printings">
+      {foilTypeNames[foil]} printings ({printings.length}
+      {done ? '' : ', loading'})
+      <select size={10} value={card} onChange={(event) => onSelect(event.target.value)}>
+        {printings.map((printing) => (
+          <option key={printing.card} value={printing.card}>
+            {printing.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 export function FoilSheet() {
   const params = new URLSearchParams(location.search)
   const foils = (params.get('foil') ?? 'foil').split(',')
   const showCss = params.get('css') !== '0'
-  const [set, number] = (params.get('card') ?? 'cmm/410').split('/')
+  const [card, setCard] = useState(params.get('card') ?? 'cmm/410')
+  const [set, number] = card.split('/')
+  const selectCard = (next: string) => {
+    // Rebuilt by hand so the URL stays readable (?foil-sheet&card=snc/327, not foil-sheet=&card=snc%2F327).
+    const search = location.search.replace(/&card=[^&]*/, '')
+    history.replaceState(null, '', `${search}&card=${next}`)
+    setCard(next)
+  }
   const image = `https://api.scryfall.com/cards/${set}/${number}?format=image&version=normal`
   const frames = useRef<(HTMLCanvasElement | null)[]>([])
   const foilList = foils.join(',')
@@ -69,6 +148,9 @@ export function FoilSheet() {
     >
       <div className="dark" style={{ colorScheme: 'dark' }}>
         <main className="foil-preview static-effects foil-sheet">
+          {foils.length === 1 && Object.hasOwn(foilTypeNames, foils[0]) && (
+            <PrintingList foil={foils[0]} card={card} onSelect={selectCard} />
+          )}
           {foils.map((foil, row) => (
             <section key={foil}>
               <h2>

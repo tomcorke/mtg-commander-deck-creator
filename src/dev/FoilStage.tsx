@@ -8,7 +8,14 @@ import { NotePanel, noteId, type FeedbackNote } from './FoilFeedback.tsx'
 import { describeFoil } from './foil-descriptions.ts'
 import { createFoilRenderer, foilShaderTypes } from './foil-shader.ts'
 
-type StageCard = { image: string; name: string; finish?: CardFinish; foilType?: string }
+type StageCard = {
+  image: string
+  name: string
+  set: string
+  collectorNumber: string
+  finish?: CardFinish
+  foilType?: string
+}
 
 const shaderType = ({ finish, foilType }: StageCard) =>
   finish === 'foil'
@@ -19,7 +26,7 @@ const shaderType = ({ finish, foilType }: StageCard) =>
 
 // Runs the WebGL foil renderer for one card, tilting with the pointer or automatically.
 function useFoilCanvas({ image, finish, foilType }: StageCard, autoTilt: boolean) {
-  const type = shaderType({ image, name: '', finish, foilType })
+  const type = shaderType({ image, name: '', set: '', collectorNumber: '', finish, foilType })
   const canvas = useRef<HTMLCanvasElement>(null)
   const wrapper = useRef<HTMLDivElement>(null)
   const pointer = useRef({ x: 0.5, y: 0.5 })
@@ -101,6 +108,11 @@ export function FoilStage({
       <h2>
         Compare: {card.name} · {card.foilType ?? card.finish ?? 'nonfoil'}
       </h2>
+      <p>
+        <a href={`?foil-sheet&foil=${foil}&card=${card.set}/${card.collectorNumber}`}>
+          Contact sheet for {foil} on this card
+        </a>
+      </p>
       <label>
         <input
           type="checkbox"

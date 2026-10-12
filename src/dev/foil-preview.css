@@ -138,3 +138,9 @@
   margin: 0 0 14px;
   line-height: 1.45;
 }
+.foil-sheet-printings {
+  display: grid;
+  gap: 6px;
+  width: min(640px, 100%);
+  margin-bottom: 16px;
+}
