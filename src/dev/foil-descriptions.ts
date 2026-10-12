@@ -145,6 +145,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'The whole card is pulled towards a cool silver grey (55% desaturated, up to 95% on pale, unsaturated areas such as sky and text box). A broad diagonal metallic sheen follows the light, broken by fine noise grain, strongest on pale areas, kept off the darkest ink, and faded off-axis. Hard-light blend around neutral grey. The frame isn’t detected separately, so a saturated frame stays slightly coloured rather than turning fully silver. The preview uses the non-foil Japanese Daze (SOA #80), because silver scroll scans have the silver baked in; the preview page now allows a non-foil-only scan when an override applies the foil type.',
   },
+  manafoil: {
+    expected:
+      'Mana foil (Foundations borderless rares and mythics, FDN #362-421, 60 cards; Collector Boosters only, English only). Wizards’ “Collecting Foundations” says each card has “the five mana symbols stamped over” the borderless art and doesn’t say whether they are raised. mtg.wiki says the symbols are in a randomised pattern across the card face and are raised for a 3D texture like step-and-compleat, citing a collector’s in-hand post (Ben Bateman: “this just looks insane in person”). The Scryfall scan of Herald of Eternal Dawn (FDN #368), also the mtg.wiki gallery image, shows the symbols faintly: each mana symbol in a thin ring, about 12 across, over art, frame and text box alike, in metallic silver-gold. The sources agree on the pattern; only mtg.wiki and the collector mention texture.',
+    css: standardCss,
+    webgl:
+      'Simplified mana symbols (sun, drop, skull, fireball, tree) inside thin rings, drawn as distance functions on a staggered, slightly jittered grid (about 10 across), with the symbol picked at random per cell and a few cells left empty. Each symbol is embossed from a light direction set by the tilt and tinted metallic silver with a hint of its mana colour and a slight rainbow shift. The symbols show in patches near the light (a tilt-shifting noise reveal times the squared glare) and fade to about 8% elsewhere. A traditional foil sweep covers the rest. Hard-light blend around neutral grey. The preview uses the non-foil borderless Herald of Eternal Dawn (FDN #299), because mana foil scans have the symbols baked in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

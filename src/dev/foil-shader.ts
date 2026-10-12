@@ -23,6 +23,7 @@ export const foilShaderTypes = {
   gilded: 14,
   invisibleink: 22,
   silverscroll: 23,
+  manafoil: 24,
 } as const
 
 const vertexSource = `
@@ -154,6 +155,34 @@ float scrawl(vec2 uv, float y0, float x0, float x1, float salt) {
   float stroke = smoothstep(0.003, 0.0012, abs(uv.y - y0 - wobble));
   float words = step(0.38, noise(vec2(x * 22.0 + salt * 3.0, salt)));
   return stroke * words * step(x0, x) * step(x, x1);
+}
+
+// Distance to a simplified mana symbol in a ring: kind 0-4 is W (sun), U (drop), B (skull),
+// R (fireball), G (tree). Units: the ring has radius 0.3; y points down the card.
+float drop(vec2 l, float r) {
+  return length(l) - r + clamp(-l.y, 0.0, r * 2.0) * 0.5;
+}
+float manaSymbol(vec2 l, float kind) {
+  float ring = abs(length(l) - 0.3) - 0.025;
+  float glyph;
+  if (kind < 0.5) {
+    float angle = atan(l.y, l.x);
+    glyph = length(l) - 0.09 - 0.08 * pow(abs(cos(angle * 4.0)), 6.0);
+  } else if (kind < 1.5) {
+    glyph = drop(l - vec2(0.0, 0.05), 0.11);
+  } else if (kind < 2.5) {
+    float head = length(l - vec2(0.0, -0.02)) - 0.12;
+    float eyes = length(vec2(abs(l.x) - 0.045, l.y + 0.03)) - 0.032;
+    vec2 jaw = abs(l - vec2(0.0, 0.11)) - vec2(0.06, 0.04);
+    glyph = max(min(head, max(jaw.x, jaw.y)), -eyes);
+  } else if (kind < 3.5) {
+    glyph = drop(mat2(0.82, 0.57, -0.57, 0.82) * (l - vec2(0.02, 0.05)), 0.1);
+  } else {
+    float canopy = length(l - vec2(0.0, -0.05)) - 0.11;
+    vec2 trunk = abs(l - vec2(0.0, 0.1)) - vec2(0.022, 0.08);
+    glyph = min(canopy, max(trunk.x, trunk.y));
+  }
+  return min(ring, glyph);
 }
 
 void main() {
@@ -568,6 +597,39 @@ void main() {
     float grain = 0.75 + 0.5 * noise(p * 600.0);
     float shine = (0.3 + 0.7 * band) * onAxis * grain * (0.35 + 0.65 * pale) * smoothstep(0.08, 0.4, lum);
     colour = hardLight(silvered, clamp(vec3(0.5 + shine * 0.5, 0.5 + shine * 0.51, 0.5 + shine * 0.53), 0.0, 1.0));
+  }
+
+  if (uType == 24) {
+    // Mana foil (FDN borderless rares and mythics): the five mana symbols, each in a ring, in a
+    // randomised pattern over the whole card (about 10 across), raised so they catch the light.
+    // Each symbol is embossed from the light direction and tinted metallic with a hint of its
+    // colour; a traditional foil sweep covers the card. Everything fades off-axis.
+    vec2 grid = p * 10.0;
+    float row = floor(grid.y);
+    grid.x += mod(row, 2.0) * 0.5;
+    vec2 cell = floor(grid);
+    vec2 l = (fract(grid) - 0.5) - (vec2(hash(cell + 2.3), hash(cell + 8.1)) - 0.5) * 0.25;
+    float kind = floor(hash(cell + 5.7) * 5.0);
+    float d = manaSymbol(l, kind);
+    float inside = smoothstep(0.012, -0.012, d) * step(0.15, hash(cell + 11.0));
+    float e = 0.01;
+    vec2 normal = normalize(vec2(manaSymbol(l + vec2(e, 0.0), kind) - manaSymbol(l - vec2(e, 0.0), kind),
+      manaSymbol(l + vec2(0.0, e), kind) - manaSymbol(l - vec2(0.0, e), kind)) + 0.0001);
+    vec2 lightDir = normalize(vec2(-0.6, -0.8) + tilt * 2.0);
+    float rim = smoothstep(-0.03, 0.0, d) * inside;
+    float emboss = dot(-normal, lightDir) * rim;
+    vec3 manaColour = kind < 0.5 ? vec3(0.98, 0.9, 0.6) : kind < 1.5 ? vec3(0.55, 0.75, 1.0)
+      : kind < 2.5 ? vec3(0.7, 0.62, 0.78) : kind < 3.5 ? vec3(1.0, 0.6, 0.5) : vec3(0.6, 0.9, 0.6);
+    vec3 tint = mix(vec3(0.86, 0.86, 0.9), manaColour, 0.45);
+    tint = mix(tint, rainbow(hash(cell) + dot(tilt, vec2(2.0, 1.5))), 0.2);
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    vec3 holo = (rainbow(dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y) - 0.5) * 0.35 * foilMask * sweep * onAxis;
+    // Symbols show in patches near the light and almost vanish away from it.
+    float reveal = glare * glare * (0.4 + 0.6 * smoothstep(0.35, 0.6, fbm(p * 2.0 + tilt * 2.0)));
+    float show = 0.08 + 0.92 * reveal;
+    vec3 light = 0.5 + (tint - 0.5) * inside * show * 0.8 + vec3(emboss * 0.45 * show) + holo * (1.0 - inside * show);
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);

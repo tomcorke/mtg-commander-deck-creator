@@ -50,6 +50,7 @@ const sampleOverrides: Record<string, string> = {
   gilded: '!"Raffine, Scheming Seer" is:showcase -is:gilded',
   invisibleink: 'set:mkm cn:355',
   silverscroll: 'set:soa cn:80 lang:ja',
+  manafoil: 'set:fdn cn:299',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the
