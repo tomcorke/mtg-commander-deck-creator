@@ -1166,7 +1166,15 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
   const importedSideboard = expanded
     .filter(({ entry }: any) => entry.board === 'sideboard')
     .map(importedDeckCard)
-  const printings = commanderCards.map(({ card }) => printingOptions([card]))
+  // Keep every printing the recommendation load fetched, so the art can still be cycled, and add
+  // the imported printing if that list lacks it.
+  const printings = commanderCards.map(({ card }, index) => {
+    const all = prepared.commanderDetails?.printings?.[index] ?? []
+    const own = printingOptions([card])
+    return own.every((option) => all.some((item: any) => item.image === option.image))
+      ? all
+      : [...own, ...all]
+  })
   const state: PersistedDeckState = {
     ...prepared,
     deck: importedMain,
@@ -1182,7 +1190,9 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
         Math.max(
           0,
           options.findIndex(
-            (option) => option.finish === importedDeckCard(commanderCards[index]).finish,
+            (option: any) =>
+              option.image === scryfallImage(commanderCards[index].card) &&
+              option.finish === importedDeckCard(commanderCards[index]).finish,
           ),
         ),
       ),
