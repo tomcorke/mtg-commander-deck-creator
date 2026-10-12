@@ -5,7 +5,7 @@ import { foilTypeNames } from '../domain/printing.ts'
 import { FinishedCardImage } from '../shared/CardArt.tsx'
 import { FinishFilters } from '../shared/FinishFilters.tsx'
 import { VisualPreferencesContext } from '../shared/VisualPreferencesContext.tsx'
-import { createFoilRenderer, foilShaderTypes } from './foil-shader.ts'
+import { createFoilRenderer, foilShaderTypes, loadFacetMask } from './foil-shader.ts'
 import './foil-preview.css'
 
 // Dev contact sheet (?foil-sheet&foil=ripplefoil,halofoil&card=cmm/410&css=0): one card with each
@@ -90,6 +90,15 @@ function PrintingList({
   )
 }
 
+const sheetPreferences = {
+  darkMode: true,
+  setDarkMode: () => undefined,
+  commanderStyling: false,
+  setCommanderStyling: () => undefined,
+  cardEffects: true,
+  setCardEffects: () => undefined,
+}
+
 export function FoilSheet() {
   const params = new URLSearchParams(location.search)
   const foils = (params.get('foil') ?? 'foil').split(',')
@@ -111,17 +120,26 @@ export function FoilSheet() {
     canvas.width = 366
     canvas.height = 510
     const renderer = createFoilRenderer(canvas)
+    const mask = foilList.split(',').includes('facetfoil')
+      ? fetch(`https://api.scryfall.com/cards/${set}/${number}`)
+          .then((response) => response.json() as Promise<{ name: string }>)
+          .then((card) => loadFacetMask(card.name))
+      : Promise.resolve(null)
     const loader = new Image()
     loader.crossOrigin = 'anonymous'
     loader.onload = () => {
       if (!renderer) return
       renderer.setImage(loader)
-      foilList.split(',').forEach((foil, row) => {
-        const type = (foilShaderTypes as Record<string, number>)[foil] ?? 1
-        tilts.forEach((tilt, column) => {
-          renderer.render(type, tilt, 1)
-          frames.current[row * tilts.length + column]?.getContext('2d')?.drawImage(canvas, 0, 0)
-        })
+      void mask.then((maskImage) => {
+        renderer.setMask(maskImage)
+        foilList.split(',').forEach(drawRow)
+      })
+    }
+    const drawRow = (foil: string, row: number) => {
+      const type = (foilShaderTypes as Record<string, number>)[foil] ?? 1
+      tilts.forEach((tilt, column) => {
+        renderer?.render(type, tilt, 1)
+        frames.current[row * tilts.length + column]?.getContext('2d')?.drawImage(canvas, 0, 0)
       })
     }
     loader.src = image
@@ -133,19 +151,10 @@ export function FoilSheet() {
         card.style.setProperty('--foil-x', `${tilt.x * 100}%`)
         card.style.setProperty('--foil-y', `${tilt.y * 100}%`)
       })
-  }, [image, foilList])
+  }, [image, foilList, set, number])
 
   return (
-    <VisualPreferencesContext.Provider
-      value={{
-        darkMode: true,
-        setDarkMode: () => undefined,
-        commanderStyling: false,
-        setCommanderStyling: () => undefined,
-        cardEffects: true,
-        setCardEffects: () => undefined,
-      }}
-    >
+    <VisualPreferencesContext.Provider value={sheetPreferences}>
       <div className="dark" style={{ colorScheme: 'dark' }}>
         <main className="foil-preview static-effects foil-sheet">
           {foils.length === 1 && Object.hasOwn(foilTypeNames, foils[0]) && (
