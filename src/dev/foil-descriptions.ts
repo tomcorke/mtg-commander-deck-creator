@@ -152,6 +152,13 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Yellow and gold ink (warm, bright and saturated, with green close to red) becomes gold metal: deep amber away from the light and pale champagne where a broad diagonal reflection band, which follows the light, crosses it, with soft mottling that drifts with the tilt. Red and orange ink keep their colour. The rest of the card gets a warm gold hard-light sheen instead of a rainbow, and fades off-axis. The preview uses the first-place Chandra (DFT #456), whose scan shows the frame as flat yellow with no foil printed in.',
   },
+  chocobotrackfoil: {
+    expected:
+      'Chocobo track foil (Final Fantasy borderless cards such as Traveling Chocobo, FIN #564-569 and others; FINAL FANTASY Commander, FIC #471-482 including basic lands; and the Chocobo Bundle, which holds ten track-foil basics and two random track-foil cards from a list of 20). mtg.wiki has no entry for it. The MTGStocks "Unwrapping the Chocobo Bundle" article says the foil makes the cards "look like a Chocobo walked across the surface". Retailer listings (Card Kingdom, Journey’s End Games) only name the finish. Scryfall scans of Traveling Chocobo (FIN #568) and Forest (FIC #482) show dozens of three-toed bird footprints, about 5% of the card wide, scattered at all angles across the art, frame and text box in a greyish lavender, over a traditional rainbow foil. No source describes how the prints react to light, so the sheen is assumed to work like traditional foil.',
+    css: standardCss,
+    webgl:
+      'A jittered grid about 7.5 cells across; most cells hold a three-toed footprint (three strokes from a heel) with its own rotation. The prints are greyish lavender that darkens bright art, and each flashes bright with a rainbow tint at its own angle. They show everywhere but are strongest near the light. Under them is the traditional-foil sweep. The preview uses the regular borderless Traveling Chocobo (FIN #406), because the track-foil scans have the footprints and foil printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

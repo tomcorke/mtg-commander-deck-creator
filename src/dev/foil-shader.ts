@@ -24,6 +24,7 @@ export const foilShaderTypes = {
   embossed: 25,
   textured: 26,
   firstplacefoil: 27,
+  chocobotrackfoil: 28,
 } as const
 
 const vertexSource = `
@@ -605,6 +606,33 @@ void main() {
     vec3 warm = vec3(1.0, 0.82, 0.45);
     vec3 sheen = hardLight(base, clamp(0.5 + (warm - 0.5) * 0.35 * foilMask * onAxis + 0.12 * band * foilMask * onAxis, 0.0, 1.0));
     colour = mix(sheen, metal, frame);
+  }
+
+  if (uType == 28) {
+    // Chocobo track (FIN, FIC, Chocobo Bundle): three-toed bird footprints scattered over a
+    // traditional foil card, as if a chocobo walked across it. Each print points its own way and
+    // is a pale lavender-silver foil that brightens and takes a rainbow tint at its own angle;
+    // the prints show most near the light and fade off-axis.
+    vec2 grid = p * 7.5;
+    vec2 cell = floor(grid);
+    float seed = hash(cell + 3.7);
+    vec2 local = fract(grid) - 0.5 - (vec2(hash(cell + 1.1), hash(cell + 8.9)) - 0.5) * 0.3;
+    float angle = hash(cell + 5.3) * TAU;
+    local = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * local;
+    vec2 heel = vec2(0.0, 0.2);
+    float toes = min(segment(local, heel, vec2(0.0, -0.28)),
+      min(segment(local, heel, vec2(-0.27, -0.12)), segment(local, heel, vec2(0.27, -0.12))));
+    float track = smoothstep(0.065, 0.04, toes) * step(0.3, seed);
+    vec2 facing = vec2(hash(cell + 2.2), hash(cell + 6.6)) * 2.0 - 1.0;
+    float flash = pow(0.5 + 0.5 * cos(dot(tilt, facing) * 8.0 + seed * TAU), 3.0);
+    // Greyish lavender that darkens bright art, turning bright and rainbow-tinted when it flashes.
+    vec3 lavender = mix(vec3(0.3, 0.27, 0.5), mix(vec3(0.88, 0.85, 1.0), rainbow(seed * 3.0 + dot(tilt, facing) * 1.5), 0.35), flash);
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    vec3 light = 0.5 + (rainbow(hue) - 0.5) * 0.45 * foilMask * sweep * (0.2 + 0.8 * glare);
+    light = mix(light, lavender, track * (0.8 + 0.2 * flash) * (0.5 + 0.5 * onAxis));
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
   gl_FragColor = vec4(colour, 1.0);
