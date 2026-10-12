@@ -55,6 +55,10 @@ const sampleOverrides: Record<string, string> = {
   invisibleink: 'set:mkm cn:355',
   silverscroll: 'set:soa cn:80 lang:ja',
   manafoil: 'set:fdn cn:299',
+  embossed: 'set:afr cn:87',
+  textured: 'set:dmu cn:292',
+  firstplacefoil: 'set:dft cn:456',
+  chocobotrackfoil: 'set:fin cn:406',
 }
 
 // Results are cached on globalThis by key and query, so hot updates to this page refill the

@@ -180,6 +180,34 @@ export const foilDescriptions: Record<string, FoilDescription> = {
     webgl:
       'Simplified mana symbols (sun, drop, skull, fireball, tree) inside thin rings, drawn as distance functions on a staggered, slightly jittered grid (about 10 across), with the symbol picked at random per cell and a few cells left empty. Each symbol is embossed from a light direction set by the tilt and tinted metallic silver with a hint of its mana colour and a slight rainbow shift. The symbols show in patches near the light (a tilt-shifting noise reveal times the squared glare) and fade to about 8% elsewhere. A traditional foil sweep covers the rest. Hard-light blend around neutral grey. The preview uses the non-foil borderless Herald of Eternal Dawn (FDN #299), because mana foil scans have the symbols baked in.',
   },
+  embossed: {
+    expected:
+      'Embossed foil: the Adventures in the Forgotten Realms ampersand promos (PAFR, about 80 rares and mythics given to WPN Premium stores, collector numbers ending in "a"), later reused by Jurassic World Collection (REX #26-45) with the Jurassic World logo. The Wizards announcement (Love Your Local Game Store, June 2021) calls them "traditional foil with a glossy D&D ampersand overlaying the entire card". mtg.wiki and the TCGplayer "Every Foil Type" article (Aug 2023) call the ampersand "glossy embossed"; the Wizards text does not mention a raised layer, so the sources disagree on whether it is raised. Scryfall scans show the overlay as a pale, translucent ampersand covering the whole card. Expect a normal foil sheen with a clear, glossy logo that shows faintly off-axis and catches the light near it.',
+    css: standardCss,
+    webgl:
+      'A stylised ampersand drawn from a distance function (upper loop, open lower bowl, diagonal leg and tail) covering the card. Under it the traditional-foil sweep is about 40% weaker; the logo itself is a faint lift off-axis, turns glossy white near the light, and its edges are bevelled and lit on the side facing the light. Only the ampersand is drawn, not the REX logo or the dragon detail inside the real ampersand. The preview uses the regular AFR Acererak (#87), because the embossed scans have the overlay printed in.',
+  },
+  textured: {
+    expected:
+      'Textured foil (Double Masters 2022 borderless mythics, 2X2 #573-577; Dominaria United stained-glass legends, DMU #329-369; Commander Masters, Outlaws Breaking News, Modern Horizons 3, Assassin’s Creed, Duskmourn, Special Guests and Spider-Man): a fine embossed pattern pressed into the foil. The Wizards "Collecting Double Masters 2022" article says it is "foiled with a special textured pattern, giving the art some appearance of movement", and Wizards’ announcement tweet calls it "gorgeous (but subtle)". mtg.wiki adds that the raised lines in the art are "visible even at a distance". Draftsim describes "a clear, repeating pattern across the entire card surface" with an illusion of motion when tilted, but says the DMU stained-glass cards are textured only on the name and text box; mtg.wiki just says DMU legends got the treatment. So the sources disagree on subtle versus visible from a distance, and on how much of a DMU card is textured.',
+    css: standardCss,
+    webgl:
+      'Contour lines of a gently warped diagonal field (about 70 across the card) act as tiny ridges. Each ridge is shaded by its slope towards the light, so the lines shimmer and move as the card tilts, and its crests pick up a rainbow over a light traditional foil sweep. Both fade sharply away from the light. The whole card is textured, including DMU name and text boxes. The preview uses the regular-foil stained-glass Aron (DMU #292), because the textured scans have some of the texture printed in.',
+  },
+  firstplacefoil: {
+    expected:
+      'First-place foil (Aetherdrift box toppers, DFT #427-553, two per box-topper pack; also ten Special Guests, SPG #94-103): the Wizards "Collecting Aetherdrift" article describes "a shimmering layer of gold-like foil that extends across their border". mtg.wiki says the cards have "a yellow frame" with that gold-like foil layer. The mtg.wiki photo of Chandra, Spark Hunter (DFT #456) shows the frame as polished champagne-to-amber gold metal with a soft gradient, a warm gold cast over the art, and black text boxes. Scryfall scans print the frame as flat yellow ink, so the sources disagree only in that the scan and mtg.wiki say "yellow" where the photo and Wizards show gold metal.',
+    css: standardCss,
+    webgl:
+      'Yellow and gold ink (warm, bright and saturated, with green close to red) becomes gold metal: deep amber away from the light and pale champagne where a broad diagonal reflection band, which follows the light, crosses it, with soft mottling that drifts with the tilt. Red and orange ink keep their colour. The rest of the card gets a warm gold hard-light sheen instead of a rainbow, and fades off-axis. The preview uses the first-place Chandra (DFT #456), whose scan shows the frame as flat yellow with no foil printed in.',
+  },
+  chocobotrackfoil: {
+    expected:
+      'Chocobo track foil (Final Fantasy borderless cards such as Traveling Chocobo, FIN #564-569 and others; FINAL FANTASY Commander, FIC #471-482 including basic lands; and the Chocobo Bundle, which holds ten track-foil basics and two random track-foil cards from a list of 20). mtg.wiki has no entry for it. The MTGStocks "Unwrapping the Chocobo Bundle" article says the foil makes the cards "look like a Chocobo walked across the surface". Retailer listings (Card Kingdom, Journey’s End Games) only name the finish. Scryfall scans of Traveling Chocobo (FIN #568) and Forest (FIC #482) show dozens of three-toed bird footprints, about 5% of the card wide, scattered at all angles across the art, frame and text box in a greyish lavender, over a traditional rainbow foil. No source describes how the prints react to light, so the sheen is assumed to work like traditional foil.',
+    css: standardCss,
+    webgl:
+      'A jittered grid about 7.5 cells across; most cells hold a three-toed footprint (three strokes from a heel) with its own rotation. The prints are greyish lavender that darkens bright art, and each flashes bright with a rainbow tint at its own angle. They show everywhere but are strongest near the light. Under them is the traditional-foil sweep. The preview uses the regular borderless Traveling Chocobo (FIN #406), because the track-foil scans have the footprints and foil printed in.',
+  },
   stepandcompleat: {
     expected:
       'Step-and-compleat: a staggered step-and-repeat grid of raised Phyrexian symbols (a ring with a vertical stroke through it) across the whole card, about seven or eight across. The symbols catch the light in metallic gold, rose, green and silver.',

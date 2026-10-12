@@ -28,6 +28,10 @@ export const foilShaderTypes = {
   invisibleink: 22,
   silverscroll: 23,
   manafoil: 24,
+  embossed: 25,
+  textured: 26,
+  firstplacefoil: 27,
+  chocobotrackfoil: 28,
 } as const
 
 const vertexSource = `
@@ -195,6 +199,32 @@ float manaSymbol(vec2 l, float kind) {
     glyph = min(canopy, max(trunk.x, trunk.y));
   }
   return min(ring, glyph);
+}
+
+// Distance from p to the segment a-b.
+float segment(vec2 p, vec2 a, vec2 b) {
+  vec2 pa = p - a;
+  vec2 ba = b - a;
+  return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0));
+}
+
+// Distance to a stylised ampersand (y down, about -1..1): a small upper loop, a large lower bowl
+// open on its upper right, a diagonal leg to the bottom right and a short tail on the right.
+float ampersand(vec2 l) {
+  float upper = abs(length(l - vec2(-0.05, -0.5)) - 0.28);
+  vec2 b = l - vec2(-0.05, 0.3);
+  float bowl = b.x > 0.0 && b.y < 0.0
+    ? min(length(b - vec2(0.0, -0.5)), length(b - vec2(0.5, 0.0)))
+    : abs(length(b) - 0.5);
+  float leg = segment(l, vec2(-0.3, -0.3), vec2(0.65, 0.85));
+  float tail = segment(l, vec2(0.3, 0.15), vec2(0.8, 0.05));
+  return min(min(upper, bowl), min(leg, tail)) - 0.07;
+}
+
+// Field whose contour lines form the textured-foil pattern: long, gently warped swirls.
+float texturedField(vec2 p) {
+  vec2 warp = vec2(fbm(p * 2.2 + 1.7), fbm(p * 2.2 + 8.3)) - 0.5;
+  return dot(p, vec2(0.6, 0.8)) + length(warp) * 0.9 + warp.x * 0.5;
 }
 
 void main() {
@@ -740,6 +770,96 @@ void main() {
     float reveal = glare * glare * (0.4 + 0.6 * smoothstep(0.35, 0.6, fbm(p * 2.0 + tilt * 2.0)));
     float show = 0.08 + 0.92 * reveal;
     vec3 light = 0.5 + (tint - 0.5) * inside * show * 0.8 + vec3(emboss * 0.45 * show) + holo * (1.0 - inside * show);
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
+  }
+
+  if (uType == 25) {
+    // Embossed (AFR ampersand promos; REX uses its own logo): a traditional foil card under a large
+    // clear, glossy D&D ampersand that covers the whole card. The varnish slightly dulls the foil
+    // colour beneath it, shows as a faint pale shape off-axis, turns glossy white near the light,
+    // and its raised edges catch the light on the side facing it.
+    vec2 l = (p - vec2(0.5, 0.5 * uAspect)) / 0.62;
+    float d = ampersand(l);
+    float inside = smoothstep(0.012, -0.012, d);
+    float e = 0.004;
+    vec2 normal = normalize(vec2(
+      ampersand(l + vec2(e, 0.0)) - ampersand(l - vec2(e, 0.0)),
+      ampersand(l + vec2(0.0, e)) - ampersand(l - vec2(0.0, e))) + 0.0001);
+    float rim = smoothstep(-0.05, 0.0, d) * inside;
+    vec2 toLight = normalize((uPointer - vUv) * vec2(1.0, uAspect) + vec2(0.0001));
+    float emboss = dot(normal, toLight) * rim;
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    float amount = 0.5 * foilMask * sweep * (0.2 + 0.8 * glare) * (1.0 - 0.4 * inside);
+    float gloss = inside * (0.05 + 0.25 * glare * glare) + emboss * 0.3 * onAxis;
+    colour = hardLight(base, clamp(0.5 + (rainbow(hue) - 0.5) * amount + gloss, 0.0, 1.0));
+  }
+
+  if (uType == 26) {
+    // Textured (2X2, DMU, CMM, MH3 and later): a fine embossed pattern of warped, roughly parallel
+    // ridges across the card. Each ridge is a tiny slope lit from the light's direction, so the
+    // lines shimmer and seem to move as the card tilts; near the light the crests pick up a
+    // shifting rainbow over a light traditional foil sheen. Everything fades off-axis.
+    float field = texturedField(p);
+    float e = 0.002;
+    vec2 grad = normalize(vec2(texturedField(p + vec2(e, 0.0)) - field, texturedField(p + vec2(0.0, e)) - field) + 0.0001);
+    float phase = field * 70.0;
+    float slope = cos(phase * TAU);
+    vec2 toLight = normalize((uPointer - vUv) * vec2(1.0, uAspect) + vec2(0.0001));
+    float ridge = slope * (0.35 + 0.65 * abs(dot(grad, toLight)));
+    float crest = pow(0.5 + 0.5 * sin(phase * TAU), 6.0);
+    float hue = field * 3.0 + tilt.x * 1.5 + tilt.y;
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    vec3 light = 0.5 + vec3(ridge * 0.13 * (0.1 + 0.9 * glare))
+      + (rainbow(hue) - 0.5) * (0.1 + 0.6 * crest) * foilMask * sweep * (0.1 + 0.9 * glare);
+    colour = hardLight(base, clamp(light, 0.0, 1.0));
+  }
+
+  if (uType == 27) {
+    // First-place (DFT box toppers, SPG): a gold-like foil layer over the whole card, including the
+    // border. The yellow frame ink becomes polished gold: deep amber away from the light, pale
+    // champagne where a broad reflection band, following the light, crosses it. The art takes a
+    // warm gold sheen rather than a rainbow; dark ink and text boxes stay dark. Fades off-axis.
+    // Yellow and gold ink only: red and orange ink keep their colour.
+    float frame = warmMetal(base) * smoothstep(0.55, 0.75, base.g / max(base.r, 0.01));
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float band = exp(-pow(along / 0.25, 2.0));
+    float reflection = clamp(band * 0.75 + glare * 0.45, 0.0, 1.0);
+    vec3 gold = mix(vec3(0.55, 0.36, 0.08), vec3(1.0, 0.93, 0.7), reflection);
+    // Soft mottling that drifts with the tilt, so the gold shimmers instead of a flat gradient.
+    gold *= 0.9 + 0.2 * fbm(p * 6.0 + tilt * 2.0);
+    vec3 metal = clamp(gold * (0.7 + 0.5 * luminance(base)), 0.0, 1.0);
+    vec3 warm = vec3(1.0, 0.82, 0.45);
+    vec3 sheen = hardLight(base, clamp(0.5 + (warm - 0.5) * 0.35 * foilMask * onAxis + 0.12 * band * foilMask * onAxis, 0.0, 1.0));
+    colour = mix(sheen, metal, frame);
+  }
+
+  if (uType == 28) {
+    // Chocobo track (FIN, FIC, Chocobo Bundle): three-toed bird footprints scattered over a
+    // traditional foil card, as if a chocobo walked across it. Each print points its own way and
+    // is a pale lavender-silver foil that brightens and takes a rainbow tint at its own angle;
+    // the prints show most near the light and fade off-axis.
+    vec2 grid = p * 7.5;
+    vec2 cell = floor(grid);
+    float seed = hash(cell + 3.7);
+    vec2 local = fract(grid) - 0.5 - (vec2(hash(cell + 1.1), hash(cell + 8.9)) - 0.5) * 0.3;
+    float angle = hash(cell + 5.3) * TAU;
+    local = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * local;
+    vec2 heel = vec2(0.0, 0.2);
+    float toes = min(segment(local, heel, vec2(0.0, -0.28)),
+      min(segment(local, heel, vec2(-0.27, -0.12)), segment(local, heel, vec2(0.27, -0.12))));
+    float track = smoothstep(0.065, 0.04, toes) * step(0.3, seed);
+    vec2 facing = vec2(hash(cell + 2.2), hash(cell + 6.6)) * 2.0 - 1.0;
+    float flash = pow(0.5 + 0.5 * cos(dot(tilt, facing) * 8.0 + seed * TAU), 3.0);
+    // Greyish lavender that darkens bright art, turning bright and rainbow-tinted when it flashes.
+    vec3 lavender = mix(vec3(0.3, 0.27, 0.5), mix(vec3(0.88, 0.85, 1.0), rainbow(seed * 3.0 + dot(tilt, facing) * 1.5), 0.35), flash);
+    float along = dot(vUv - uPointer, vec2(0.8, 0.6));
+    float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
+    float hue = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
+    vec3 light = 0.5 + (rainbow(hue) - 0.5) * 0.45 * foilMask * sweep * (0.2 + 0.8 * glare);
+    light = mix(light, lavender, track * (0.8 + 0.2 * flash) * (0.5 + 0.5 * onAxis));
     colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
