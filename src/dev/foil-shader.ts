@@ -162,17 +162,36 @@ float vivid(vec3 c) {
 }
 
 // Facet foil scans show each shard outlined by a thin, bright rainbow line. A pixel is on such a
-// line when it is vivid and, along some axis, both pixels 3 texels away are much duller.
+// line when it is vivid and, along some axis, both pixels 5 texels away differ clearly in colour
+// (often duller, but beside bright glass mostly in hue).
 float facetRim(vec2 uv) {
-  float centre = vivid(texture2D(uImage, uv).rgb);
-  if (centre < 0.35) return 0.0;
+  vec3 c = texture2D(uImage, uv).rgb;
+  if (vivid(c) < 0.45) return 0.0;
   float best = 0.0;
   for (int i = 0; i < 4; i++) {
-    vec2 axis = (i == 0 ? vec2(1.0, 0.0) : i == 1 ? vec2(0.0, 1.0) : i == 2 ? vec2(0.7, 0.7) : vec2(0.7, -0.7)) * uTexel * 3.0;
-    float side = max(vivid(texture2D(uImage, uv + axis).rgb), vivid(texture2D(uImage, uv - axis).rgb));
-    best = max(best, centre - side);
+    vec2 axis = (i == 0 ? vec2(1.0, 0.0) : i == 1 ? vec2(0.0, 1.0) : i == 2 ? vec2(0.7, 0.7) : vec2(0.7, -0.7)) * uTexel * 5.0;
+    float side = min(length(texture2D(uImage, uv + axis).rgb - c), length(texture2D(uImage, uv - axis).rgb - c));
+    best = max(best, side);
   }
-  return smoothstep(0.2, 0.35, best);
+  // Frame borders (the red type-line and frame lines on Stingcaster Mage and Curse-Marred Demon)
+  // are also thin vivid lines, but run perfectly horizontal or vertical in one colour; rainbow
+  // rims change colour along their length. Reject lines that stay the same colour 8 and 16 texels
+  // along either axis.
+  vec3 colour = c;
+  float straight = 0.0;
+  for (int i = 0; i < 2; i++) {
+    vec2 along = (i == 0 ? vec2(1.0, 0.0) : vec2(0.0, 1.0)) * uTexel * 8.0;
+    float same = 1.0;
+    for (int k = 1; k <= 2; k++) {
+      same *= step(length(texture2D(uImage, uv + along * float(k)).rgb - colour), 0.15);
+      same *= step(length(texture2D(uImage, uv - along * float(k)).rgb - colour), 0.15);
+    }
+    straight = max(straight, same);
+  }
+  // Red-dominant lines are skipped too: on these cards they are mostly red frames, coats and
+  // shards, and a real rim's red segment keeps its baked colour anyway.
+  float red = smoothstep(0.15, 0.35, colour.r - max(colour.g, colour.b));
+  return smoothstep(0.3, 0.5, best) * (1.0 - straight) * (1.0 - red);
 }
 
 // Procedural shards for scans without baked rims: elongated, angular cells of a stretched,
@@ -706,10 +725,12 @@ void main() {
         float angle = float(i) * TAU / 8.0;
         for (int r = 1; r <= 3; r++) {
           vec2 offset = vec2(cos(angle), sin(angle)) * uTexel * 5.0 * float(r);
-          near = max(near, facetRim(vUv + offset) * (1.15 - 0.15 * float(r)));
+          near += facetRim(vUv + offset);
         }
       }
-      shard = max(rim, smoothstep(0.3, 0.8, near));
+      // Averaged rather than the maximum: single samples only sometimes land on a thin rim, so
+      // the maximum gives a speckled band; a rim crossing the ring hits a few samples on average.
+      shard = max(rim, smoothstep(0.02, 0.1, near / 24.0));
     } else {
       vec2 procedural = proceduralShard(p);
       shard = procedural.x;
