@@ -669,12 +669,16 @@ void main() {
     colour = screen(hardLight(coated, light), vec3(1.0, 0.9, 0.6) * glint * speck * gold * (1.0 - pits) * glare * 0.9);
   }
   if (uType == 19) {
-    // Cosmic, matched to retailer photos of The Mind Stone (MSH #385): very fine concentric rings
-    // centred on the stone, like a whorl, plus a field of tiny star specks. The rings catch the
+    // Cosmic, matched to retailer photos of The Mind Stone (MSH #385): very fine, wobbly concentric
+    // rings centred on the stone, like a whorl, plus a field of tiny star specks. The rings catch the
     // light in a rainbow that runs outwards and shifts with the tilt; each speck glints at its own
     // angle. Both show mostly near the light and fade off-axis.
     vec2 fromCentre = p - vec2(0.5, 0.45 * uAspect);
-    float radius = length(fromCentre) + (fbm(p * 3.0) - 0.5) * 0.02;
+    // Rings wobble like tree rings: a broad noise warp bends whole groups of rings, and a finer
+    // one ripples each ring along its length.
+    vec2 warped = p + (vec2(fbm(p * 4.0), fbm(p * 4.0 + 9.1)) - 0.5) * 0.05;
+    float radius = length(warped - (p - fromCentre)) + (fbm(p * 7.0 + 3.3) - 0.5) * 0.03
+      + (noise(p * 40.0) - 0.5) * 0.004;
     float rings = pow(0.5 + 0.5 * cos(radius * 420.0 - dot(tilt, vec2(6.0, 4.0))), 3.0);
     float ringBand = 0.4 + 0.6 * pow(0.5 + 0.5 * cos(radius * 18.0 - dot(tilt, vec2(9.0, 7.0))), 2.0);
     vec3 ringHue = rainbow(radius * 3.0 + dot(tilt, vec2(1.6, 1.0)));
