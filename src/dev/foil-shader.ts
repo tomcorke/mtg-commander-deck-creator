@@ -48,6 +48,7 @@ varying vec2 vUv;
 uniform sampler2D uImage;
 uniform sampler2D uMask;  // optional second scan of the same card (facet foil); see uHasMask
 uniform float uHasMask;
+uniform sampler2D uNotes; // invisible-ink notes: red is the ink, green a soft halo around it
 uniform vec2 uPointer;   // 0..1 across the card; (0.5, 0.5) is flat
 uniform vec2 uTexel;     // 1 / image size
 uniform float uTime;
@@ -755,30 +756,19 @@ void main() {
   }
 
   if (uType == 22) {
-    // Invisible ink (MKM showcase dossiers): a traditional foil card with Alquist Proft's
-    // handwritten case notes and doodles in the margins and text box. The notes are almost
-    // invisible face-on and show as violet-grey ink only when the card is tilted
-    // steeply towards the bottom right. Under the notes, the traditional foil sweep.
+    // Invisible ink (MKM showcase dossiers): a traditional foil card with Alquist Proft's case
+    // notes handwritten in light ink, placed as on MKM #384: "But of course" and "Handsome,
+    // Genius" across the top of the text box, a magnifying glass, a seal at the bottom left and
+    // a faint stamp behind the mana cost. The notes are faint face-on and show clearly when the
+    // card is tilted. A soft dark halo keeps the light ink readable on the cream text box.
     float along = dot(vUv - uPointer, vec2(0.8, 0.6));
     float sweep = 0.35 + 0.65 * exp(-pow(along / 0.3, 2.0));
     float hueShift = dot(vUv, vec2(0.9, 0.6)) * 1.4 + tilt.x * 1.5 + tilt.y;
     vec3 foiled = hardLight(base, 0.5 + (rainbow(hueShift) - 0.5) * 0.45 * foilMask * sweep * (0.2 + 0.8 * glare));
-    vec2 hand = vec2(vUv.x, vUv.y + (vUv.x - 0.5) * 0.04);
-    float notes = max(max(scrawl(hand, 0.615, 0.5, 0.82, 1.0), scrawl(hand, 0.66, 0.56, 0.9, 4.0)),
-      max(scrawl(hand, 0.86, 0.3, 0.6, 7.0), scrawl(hand, 0.125, 0.62, 0.9, 9.0)));
-    // A magnifying-glass doodle and a ring circling part of the art.
-    vec2 m = (vUv - vec2(0.88, 0.63)) * vec2(1.0, uAspect);
-    float glass = smoothstep(0.003, 0.001, abs(length(m) - 0.03));
-    vec2 handle = m - vec2(0.03, 0.03);
-    glass = max(glass, smoothstep(0.003, 0.001, abs(handle.x - handle.y) * 0.7) * step(0.0, handle.x) * step(handle.x, 0.025));
-    vec2 r = (vUv - vec2(0.7, 0.3)) * vec2(1.0, uAspect);
-    float ring = smoothstep(0.0035, 0.0012, abs(length(r * vec2(1.0, 1.3)) - 0.09 - 0.006 * sin(atan(r.y, r.x) * 3.0)));
-    notes = max(notes, max(glass, ring * 0.8));
-    // Revealed only at a steep tilt towards the bottom right.
-    float reveal = smoothstep(0.55, 0.9, dot(normalize(tilt + 0.0001), vec2(0.7, 0.7))) * smoothstep(0.12, 0.3, length(tilt));
-    // Violet-grey ink: darkens the cream text box, lightens dark art, so it reads on both.
-    vec3 inked = mix(screen(foiled, vec3(0.85, 0.8, 1.0)), foiled * vec3(0.5, 0.45, 0.7), smoothstep(0.35, 0.65, lum));
-    colour = mix(foiled, inked, notes * (0.04 + 0.86 * reveal));
+    vec2 notes = texture2D(uNotes, vUv).rg;
+    float show = 0.12 + 0.88 * smoothstep(0.1, 0.3, length(tilt)) * (0.5 + 0.5 * glare);
+    colour = mix(foiled, foiled * 0.8, notes.g * show * 0.5);
+    colour = mix(colour, vec3(1.0, 0.99, 1.0), notes.r * show * 0.92);
   }
 
   if (uType == 23) {
@@ -931,6 +921,77 @@ function compile(gl: WebGLRenderingContext, type: number, source: string) {
   return shader
 }
 
+// Alquist Proft's invisible-ink notes as on MKM #384, drawn once at card-scan size. Each shape is
+// drawn twice: blurred in green as a halo, then sharp in red as the ink, added together.
+function invisibleInkNotes() {
+  const width = 488
+  const height = 680
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const context = canvas.getContext('2d')!
+  context.fillStyle = 'black'
+  context.fillRect(0, 0, width, height)
+  context.globalCompositeOperation = 'lighter'
+  const hand = '"Segoe Print", "Ink Free", "Bradley Hand", "Comic Sans MS", cursive'
+  const draw = (colour: string, blur: number, extra: number) => {
+    context.filter = blur ? `blur(${blur}px)` : 'none'
+    context.fillStyle = colour
+    context.strokeStyle = colour
+    context.lineCap = 'round'
+    const write = (
+      text: string,
+      x: number,
+      y: number,
+      size: number,
+      angle: number,
+      maxWidth: number,
+    ) => {
+      context.save()
+      context.translate(x * width, y * height)
+      context.rotate(angle)
+      context.font = `600 ${size}px ${hand}`
+      context.lineWidth = extra
+      if (extra) context.strokeText(text, 0, 0, maxWidth * width)
+      context.fillText(text, 0, 0, maxWidth * width)
+      context.restore()
+    }
+    write('But of course', 0.1, 0.648, 32, -0.03, 0.5)
+    write('Handsome, Genius', 0.3, 0.712, 34, -0.02, 0.64)
+    context.lineWidth = 3 + extra
+    // Magnifying glass beside the first note.
+    context.beginPath()
+    context.arc(0.79 * width, 0.62 * height, 15, 0, Math.PI * 2)
+    context.moveTo(0.79 * width + 11, 0.62 * height + 11)
+    context.lineTo(0.79 * width + 30, 0.62 * height + 30)
+    context.stroke()
+    // A seal at the bottom left of the text box, running off its edge.
+    context.lineWidth = 2.5 + extra
+    for (const radius of [40, 30]) {
+      context.beginPath()
+      context.arc(0.1 * width, 0.865 * height, radius, 0, Math.PI * 2)
+      context.stroke()
+    }
+    for (let tick = 0; tick < 12; tick++) {
+      const angle = (tick / 12) * Math.PI * 2
+      context.beginPath()
+      context.moveTo(0.1 * width + Math.cos(angle) * 30, 0.865 * height + Math.sin(angle) * 30)
+      context.lineTo(0.1 * width + Math.cos(angle) * 40, 0.865 * height + Math.sin(angle) * 40)
+      context.stroke()
+    }
+    // A faint stamp behind the mana cost.
+    context.globalAlpha = 0.5
+    context.lineWidth = 2 + extra
+    context.beginPath()
+    context.arc(0.84 * width, 0.08 * height, 26, 0, Math.PI * 2)
+    context.stroke()
+    context.globalAlpha = 1
+  }
+  draw('rgb(0, 255, 0)', 3, 4)
+  draw('rgb(255, 0, 0)', 0, 0)
+  return canvas
+}
+
 export function createFoilRenderer(canvas: HTMLCanvasElement) {
   const gl = canvas.getContext('webgl', { premultipliedAlpha: false })
   if (!gl) return null
@@ -961,6 +1022,9 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
   const maskTexture = gl.createTexture()
   gl.activeTexture(gl.TEXTURE1)
   gl.bindTexture(gl.TEXTURE_2D, maskTexture)
+  // Invisible-ink notes on texture unit 1; the card scan stays on unit 0.
+  gl.activeTexture(gl.TEXTURE1)
+  gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
@@ -971,6 +1035,13 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
   const uniform = (name: string) => gl.getUniformLocation(program, name)
   gl.uniform1i(uniform('uImage'), 0)
   gl.uniform1i(uniform('uMask'), 1)
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, invisibleInkNotes())
+  gl.activeTexture(gl.TEXTURE0)
+  gl.bindTexture(gl.TEXTURE_2D, texture)
+
+  const uniform = (name: string) => gl.getUniformLocation(program, name)
+  gl.uniform1i(uniform('uImage'), 0)
+  gl.uniform1i(uniform('uNotes'), 1)
   const uniforms = {
     pointer: uniform('uPointer'),
     texel: uniform('uTexel'),
