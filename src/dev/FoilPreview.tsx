@@ -104,6 +104,7 @@ function SampleCard({
   return (
     <li onClick={onCompare}>
       <FinishedCardImage
+        cssOnly
         image={image}
         alt={`${sample.name} card`}
         finish={sample.finish}

@@ -1,4 +1,4 @@
-// Dev prototype: WebGL foil renderer. One fragment shader draws the card scan and the foil
+// Shared WebGL foil renderer. One fragment shader draws the card scan and the foil
 // effect for the hovered card, so foil can respond per pixel to the image and the tilt.
 
 import { findFacetShards } from './facet-shards.ts'

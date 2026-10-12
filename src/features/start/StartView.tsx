@@ -231,6 +231,8 @@ export function StartView(props: StartViewProps) {
                       backImage={scryfallBackImage(card)}
                       alt={`${card.name} card`}
                       cardName={card.name}
+                      set={card.set}
+                      collectorNumber={card.collector_number}
                       showFlipButton
                     />
                     <CardImagePreview image={image} placement="reference" />

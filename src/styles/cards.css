@@ -236,6 +236,17 @@
   display: block;
   border-radius: 4.75%;
 }
+.foil-canvas {
+  position: absolute;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.finished-card[data-foil-webgl]::before,
+.finished-card[data-foil-webgl]::after,
+.finished-card[data-foil-webgl] > .finish-edges {
+  display: none;
+}
 .card-image-actions {
   position: absolute;
   z-index: 4;

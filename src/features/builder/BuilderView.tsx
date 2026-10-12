@@ -817,6 +817,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         cardName={card.name}
                         finish={card.finish}
                         foilType={card.foilType}
+                        set={card.set}
+                        collectorNumber={card.collectorNumber}
                         hasSynergyGlow={pairCards.includes(card)}
                         className="card-face-image"
                         showFlipButton
@@ -944,6 +946,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             alt=""
                             finish={card.finish}
                             foilType={card.foilType}
+                            cardName={card.name}
+                            set={card.set}
+                            collectorNumber={card.collectorNumber}
                             className="health-card-thumbnail-image"
                           />
                         </span>
@@ -964,6 +969,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           cardName={card.name}
                           finish={card.finish}
                           foilType={card.foilType}
+                          set={card.set}
+                          collectorNumber={card.collectorNumber}
                           className="health-card-full-image"
                           showFlipButton
                         />

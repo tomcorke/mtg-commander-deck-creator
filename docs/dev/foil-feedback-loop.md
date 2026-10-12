@@ -1,14 +1,15 @@
 # Foil effects: interactive feedback loop
 
-This is how B33's foil effects are being developed. The user reviews effects in the browser and leaves notes, and an agent watches for notes marked ready, changes the effect, and replies. Everything here is dev-only and is not in the production build.
+This is how B33's foil effects are being developed. The user reviews effects in the browser and leaves notes, and an agent watches for notes marked ready, changes the effect, and replies. The feedback pages and notes store are dev-only. Their shader and facet presets are shared with the app and lazy-loaded on foil hover.
 
-## State on 2026-10-11
+## State on 2026-10-12
 
-Work is on branch `feat/b33-foil-types` in worktree `E:\working\worktrees\mtg-b33`. It is **not merged**.
+Foil development is on `feat/b33-foil-types` in `E:\working\worktrees\mtg-b33`. App integration is on its child branch `feat/b33-webgl` in `E:\working\worktrees\mtg-b33-webgl`. Neither is merged.
 
 - **Shipped app code (branch):** foil types from Scryfall `promo_types`, finish labels ("Surge foil" and so on), finish import from text (`*F*`/`*E*`) and CSV, merged printing options, and CSS effects for surge, ripple, halo, galaxy, silverscreen, rainbow and double rainbow. Covered by tests; lint, typecheck and build pass.
-- **WebGL prototype (dev only):** `src/dev/foil-shader.ts` has a fragment shader for nonfoil, traditional, etched, surge, ripple, halo, galaxy, silverscreen, rainbow/double rainbow, step-and-compleat, fracture, raised, neon ink and dragonscale. The user prefers WebGL for most types. Etched should stay close to the CSS approach.
-- **Not done:** integrating WebGL into the builder. The plan is one shared canvas over the hovered card, with the CSS effects kept as the fallback. B33 also still needs moving to `COMPLETED.md`, a merge and a release once the user is happy.
+- **Shared WebGL renderer (branch):** `src/shared/foil/foil-shader.ts` has a fragment shader for nonfoil, traditional, etched, surge, ripple, halo, galaxy, silverscreen, rainbow/double rainbow, step-and-compleat, fracture, raised, neon ink and dragonscale. The user prefers WebGL for most types. Etched should stay close to the CSS approach.
+- **App integration (child branch):** `FinishedCardImage` uses `src/shared/foil/hover-foil.ts` to share one canvas across hovered foil and etched cards. CSS stays visible until the first WebGL frame; leave, preference changes and failures return to CSS. CORS images are cached by URL, decoded asynchronously and uploaded outside pointer handlers. Face flips and printing changes update the texture. The CSS examples on the dev pages opt out with `cssOnly`.
+- **Not done:** Chrome review and user acceptance of the integration. B33 still needs moving to `COMPLETED.md`, a merge and a release once the user is happy.
 
 ## Pages
 
@@ -28,7 +29,7 @@ The dev-only `dev-feedback` plugin in `vite.config.ts` stores notes in `dev-feed
 2. For each ready note, mark it working:
    `node --experimental-strip-types scripts/foil-feedback-note.ts <id> working`
 3. Re-run the watcher straight away, so new notes aren't missed while you work.
-4. Change the effect. Shaders are in `src/dev/foil-shader.ts`, CSS effects in `src/styles/cards.css`, preview samples and overrides in `src/dev/FoilPreview.tsx`.
+4. Change the effect. Shaders are in `src/shared/foil/foil-shader.ts`, with facet presets in `src/shared/foil/facet-shards.ts`, CSS effects in `src/styles/cards.css`, preview samples and overrides in `src/dev/FoilPreview.tsx`.
 5. Update `src/dev/foil-descriptions.ts` in the same change, so the side panel always matches the effect.
 6. Check the result on a contact sheet in Chrome, at two or three tilts, with one zoomed screenshot.
 7. Reply and mark it done:
