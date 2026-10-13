@@ -18,6 +18,7 @@ export type Printing = {
   price?: string
   priceUri?: string
   finish?: CardFinish
+  foilType?: string
 }
 
 export type PrintingLike = Pick<Printing, 'image' | 'set' | 'collectorNumber' | 'finish'>
@@ -51,6 +52,7 @@ export type ScryfallCard = {
   prints_search_uri: string
   purchase_uris?: { tcgplayer?: string; cardmarket?: string; cardhoarder?: string }
   finishes?: CardFinish[]
+  promo_types?: string[]
   released_at?: string
   game_changer?: boolean | null
   prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null }
@@ -88,6 +90,7 @@ const scryfallCardSchema = z.object({
   set_name: z.string().optional(),
   scryfall_uri: z.string().optional(),
   finishes: z.array(z.enum(['nonfoil', 'foil', 'etched'])).optional(),
+  promo_types: z.array(z.string()).optional(),
   prices: z
     .object({
       usd: z.string().nullable().optional(),
@@ -201,6 +204,7 @@ export const toDeckCardFromRecommendation = (card: Card): DeckCard => ({
   printing: card.printing ?? 0,
   printingManuallySelected: card.printingManuallySelected,
   finish: card.finish,
+  foilType: card.foilType,
 })
 
 export const toDeckCard = (card: ScryfallCard): DeckCard => ({

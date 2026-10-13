@@ -4,7 +4,8 @@ import { CardImagePreview } from './CardImagePreview.tsx'
 import { showCardPreview, hideCardPreview } from './card-preview.ts'
 
 type Props = {
-  card: Pick<Card, 'name' | 'image'> & Partial<Pick<Card, 'backImage' | 'finish'>>
+  card: Pick<Card, 'name' | 'image'> &
+    Partial<Pick<Card, 'backImage' | 'finish' | 'foilType' | 'set' | 'collectorNumber'>>
   onOpen: () => void
   thumbnail?: boolean
   disabled?: boolean
@@ -45,6 +46,9 @@ export function CardReference({
             image={card.image}
             backImage={card.backImage}
             finish={card.finish as CardFinish | undefined}
+            foilType={card.foilType}
+            set={card.set}
+            collectorNumber={card.collectorNumber}
             alt={card.name}
             cardName={card.name}
             className=""

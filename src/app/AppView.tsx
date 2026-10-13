@@ -5,7 +5,7 @@ import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
 import { toDeckCard, type DeckCard, type ScryfallCard } from '../domain/card-model.ts'
 import { cardSearchError } from '../domain/card-search.ts'
-import { defaultFinish } from '../domain/printing.ts'
+import { defaultFinish, foilTypeFor } from '../domain/printing.ts'
 import { CardReference } from '../shared/CardReference.tsx'
 import { CardSearchView } from '../features/builder/CardSearchView.tsx'
 import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
@@ -92,10 +92,12 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
     ? {
         ...toDeckCard(manualCard),
         finish: defaultFinish(manualCard.finishes),
+        foilType: foilTypeFor(manualCard, defaultFinish(manualCard.finishes)),
         printing: state.manualPrinting,
         printings: state.manualPrintings.map((card: ScryfallCard) => ({
           ...toDeckCard(card),
           finish: defaultFinish(card.finishes),
+          foilType: foilTypeFor(card, defaultFinish(card.finishes)),
         })),
       }
     : state.selectedDeckCard

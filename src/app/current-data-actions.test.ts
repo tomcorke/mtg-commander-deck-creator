@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { a14BaseState } from '../../scripts/fixtures/a14.ts'
-import { toCard, toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
-import type { ImportedDeck } from '../deck-import.ts'
+import { toCard, toDeckCard, type DeckCard, type ScryfallCard } from '../domain/card-model.ts'
+import { parseDeckImportSource, type ImportedDeck } from '../deck-import.ts'
 import {
   addBasicLands,
   addOneBasic,
   applyImportedDeck,
   cycleDeckPrinting,
   decide,
+  deckList,
   hydrateDeckCardDetails,
   loadSavedDeck,
   promoteToCommander,
@@ -267,6 +268,187 @@ test('import commits only after successful resolution and recommendation prepara
   )
   assert.equal(success.deck[1].collectorNumber, 'Imported card')
   assert.equal(success.deck[1].dataStatus, undefined)
+})
+
+const cardSignatures = (cards: DeckCard[]) =>
+  cards
+    .map(({ name, set, collectorNumber, finish }) => [name, set, collectorNumber, finish])
+    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
+
+for (const format of ['plain', 'moxfield', 'csv'] as const) {
+  test(`${format} export round-trips commanders, finishes, condensed basics and sideboard copies`, async (context) => {
+    const records: ScryfallCard[] = [
+      { ...raw('Commander'), collector_number: '1', finishes: ['nonfoil', 'foil'] },
+      {
+        ...raw('Forest'),
+        type_line: 'Basic Land — Forest',
+        collector_number: '2',
+        finishes: ['nonfoil', 'foil'],
+      },
+      { ...raw('Etched, "card"'), collector_number: '3', finishes: ['nonfoil', 'etched'] },
+    ]
+    context.mock.method(globalThis, 'fetch', async () => Response.json({ data: records }))
+    const deps = fixture()
+    deps.fetchCard = async (name) => records.find((record) => record.name === name)!
+    const commander = { ...toDeckCard(records[0]), finish: 'foil' as const }
+    const forest = { ...toDeckCard(records[1]), finish: 'foil' as const }
+    const etched = { ...toDeckCard(records[2]), finish: 'etched' as const }
+    deps.deck = [
+      commander,
+      ...Array.from({ length: 15 }, () => ({ ...forest })),
+      etched,
+      ...Array.from({ length: 15 }, () => ({ ...forest })),
+      { ...forest, finish: 'nonfoil' },
+      { ...forest, finish: 'nonfoil' },
+    ]
+    deps.sideboard = [{ ...forest }, { ...forest }, { ...etched }, { ...etched }]
+    const expectedDeck = cardSignatures(deps.deck)
+    const expectedSideboard = cardSignatures(deps.sideboard)
+    const output = deckList(deps, format)
+    if (format === 'moxfield') assert.ok(!output.includes('Commander'))
+    if (format === 'plain') assert.match(output, /^COMMANDER:\n1 Commander \*F\*\n\nDECK:\n/)
+    const imported = parseDeckImportSource(
+      format === 'moxfield' ? `COMMANDER:\n1 Commander (TST) 1 *F*\n\nDECK:\n${output}` : output,
+    )
+    assert.equal(imported.cards.filter(({ board }) => board === 'commander').length, 1)
+    assert.deepEqual(
+      imported.cards
+        .filter(({ name }) => name === 'Forest')
+        .map(({ quantity, finish, board }) => [quantity, finish, board]),
+      [
+        [30, 'foil', 'mainboard'],
+        [2, undefined, 'mainboard'],
+        [2, 'foil', 'sideboard'],
+      ],
+    )
+    assert.equal(
+      imported.cards.find(({ name, board }) => name === etched.name && board === 'sideboard')
+        ?.quantity,
+      2,
+    )
+    await applyImportedDeck(deps, imported)
+    assert.deepEqual(cardSignatures(deps.deck), expectedDeck)
+    assert.deepEqual(cardSignatures(deps.sideboard), expectedSideboard)
+    const selected = deps.commanderDetails!.printings[0][deps.commanderDetails!.selections[0]]
+    assert.equal(selected.finish, 'foil')
+  })
+}
+
+test('every export keeps different printings, finishes and boards in separate quantity groups', () => {
+  const forest = { ...toDeckCard(raw('Forest')), collectorNumber: '1', finish: 'foil' as const }
+  const deps = fixture()
+  deps.deck = [
+    deps.deck[0],
+    forest,
+    { ...forest, set: 'alt' },
+    { ...forest, collectorNumber: '2' },
+    { ...forest, finish: 'etched' },
+    { ...forest },
+  ]
+  deps.sideboard = [{ ...forest }, { ...forest }]
+  for (const format of ['plain', 'moxfield', 'csv'] as const) {
+    const groups = parseDeckImportSource(deckList(deps, format)).cards.filter(
+      ({ name }) => name === 'Forest',
+    )
+    assert.deepEqual(
+      groups.map(({ quantity, board }) => [quantity, board]),
+      [
+        [2, 'mainboard'],
+        [1, 'mainboard'],
+        [1, 'mainboard'],
+        [1, 'mainboard'],
+        [2, 'sideboard'],
+      ],
+    )
+    if (format !== 'plain')
+      assert.deepEqual(
+        groups.map(({ set, collectorNumber, finish }) => [set, collectorNumber, finish]),
+        [
+          ['tst', '1', 'foil'],
+          ['alt', '1', 'foil'],
+          ['tst', '2', 'foil'],
+          ['tst', '1', 'etched'],
+          ['tst', '1', 'foil'],
+        ],
+      )
+  }
+})
+
+test('name-only finish imports find the newest paper printing, reuse the cache and keep exact-printing fallbacks', async (context) => {
+  const records: ScryfallCard[] = [
+    'Commander',
+    'Foil',
+    'Etched',
+    'Supported',
+    'Missing',
+    'Normal',
+  ].map((name, index) => ({
+    ...raw(name),
+    collector_number: String(index + 1),
+    finishes: name === 'Supported' ? ['nonfoil', 'foil'] : ['nonfoil'],
+    prices: { usd: '1', usd_foil: '3', usd_etched: '4' },
+    prints_search_uri:
+      name === 'Etched' || name === 'Missing'
+        ? `https://api.scryfall.com/cards/search?q=oracleid%3A${name}&unique=prints`
+        : '',
+  }))
+  const requests: URL[] = []
+  context.mock.method(globalThis, 'fetch', async (input: unknown, init: RequestInit) => {
+    assert.equal(new Headers(init.headers).get('Accept'), 'application/json')
+    assert.ok(init.signal)
+    const url = new URL(String(input))
+    if (url.pathname.endsWith('/collection')) return Response.json({ data: records })
+    requests.push(url)
+    assert.equal(url.searchParams.get('unique'), 'prints')
+    assert.equal(url.searchParams.get('order'), 'released')
+    assert.equal(url.searchParams.get('dir'), 'desc')
+    const query = url.searchParams.get('q')!
+    assert.match(query, /game:paper/)
+    if (query.includes('Missing')) return new Response('', { status: 404 })
+    const name = query.includes('Etched') ? 'Etched' : 'Foil'
+    const finish = name === 'Etched' ? 'etched' : 'foil'
+    assert.match(query, new RegExp(`is:${finish}`))
+    assert.match(query, name === 'Etched' ? /oracleid:Etched/ : /!"Foil"/)
+    const newest: ScryfallCard = {
+      ...records.find((card) => card.name === name)!,
+      set: 'new',
+      finishes: [finish],
+      released_at: '2026-01-01',
+      promo_types: ['surgefoil'],
+    }
+    return Response.json({
+      data: [newest, { ...newest, set: 'old', released_at: '2020-01-01' }],
+    })
+  })
+  const imported = parseDeckImportSource(
+    'COMMANDER:\n1 Commander\nDECK:\n1 Foil *F*\n1 Etched *E*\n1 Supported *F*\n1 Missing *E*\n1 Normal\nSIDEBOARD:\n2 Foil *F*\n1 Foil (TST) 2 *F*',
+  )
+  const deps = fixture()
+  await applyImportedDeck(deps, imported)
+  assert.deepEqual(
+    deps.deck.slice(1).map(({ name, set, finish, price }) => [name, set, finish, price]),
+    [
+      ['Foil', 'new', 'foil', '3'],
+      ['Etched', 'new', 'etched', '4'],
+      ['Supported', 'tst', 'foil', '3'],
+      ['Missing', 'tst', 'nonfoil', '1'],
+      ['Normal', 'tst', 'nonfoil', '1'],
+    ],
+  )
+  assert.equal(deps.deck[1].foilType, 'surgefoil')
+  assert.deepEqual(
+    deps.sideboard.map(({ set, finish }) => [set, finish]),
+    [
+      ['new', 'foil'],
+      ['new', 'foil'],
+      ['tst', 'nonfoil'],
+    ],
+  )
+  assert.equal(requests.length, 3, 'Repeated name-only entries share the finish lookup')
+  await applyImportedDeck(fixture(), {
+    cards: imported.cards.filter(({ name }) => name !== 'Missing'),
+  })
+  assert.equal(requests.length, 3, 'Successful finish lookups are cached across imports')
 })
 
 test('a stale import cannot create or overwrite a different workspace', async (context) => {

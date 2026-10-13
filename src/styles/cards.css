@@ -236,6 +236,17 @@
   display: block;
   border-radius: 4.75%;
 }
+.foil-canvas {
+  position: absolute;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.finished-card[data-foil-webgl]::before,
+.finished-card[data-foil-webgl]::after,
+.finished-card[data-foil-webgl] > .finish-edges {
+  display: none;
+}
 .card-image-actions {
   position: absolute;
   z-index: 4;
@@ -325,6 +336,340 @@
 }
 .holo-card:hover::after {
   opacity: 0.24;
+}
+/* Special foil types (Scryfall promo_types); gradients only, like the base holo effect. */
+.foil-surgefoil::before {
+  /* Fine diagonal streaks in broad rainbow bands, brightest in a band that sweeps with the light. */
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 488 680' preserveAspectRatio='none'> <defs> <linearGradient id='c' gradientUnits='userSpaceOnUse' x1='0' y1='680' x2='560' y2='120' spreadMethod='reflect'><stop offset='0.000' stop-color='%23ff2b2b'/><stop offset='0.167' stop-color='%23ff9a1f'/><stop offset='0.333' stop-color='%23ffe81f'/><stop offset='0.500' stop-color='%233dff5a'/><stop offset='0.667' stop-color='%2321b8ff'/><stop offset='0.833' stop-color='%237a4dff'/><stop offset='1.000' stop-color='%23ff2bd0'/></linearGradient> <linearGradient id='l' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='0' y2='7' spreadMethod='repeat'> <stop offset='0' stop-color='white'/><stop offset='0.35' stop-color='white'/><stop offset='0.6' stop-color='black'/><stop offset='1' stop-color='black'/> </linearGradient> <filter id='n' x='0' y='0' width='100%' height='100%'> <feTurbulence type='fractalNoise' baseFrequency='0.008 0.16' numOctaves='2' seed='3' result='t'/> <feColorMatrix in='t' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 2.6 0 0 0 -0.75' result='a'/> <feComposite in='SourceGraphic' in2='a' operator='in'/> </filter> <filter id='w' x='-10%' y='-10%' width='120%' height='120%'> <feTurbulence type='fractalNoise' baseFrequency='0.0028 0.004' numOctaves='2' seed='4'/> <feDisplacementMap in='SourceGraphic' scale='170' xChannelSelector='R' yChannelSelector='G'/> </filter> <mask id='m'><g transform='rotate(-35 244 340)'><rect x='-400' y='-400' width='1300' height='1500' fill='url(%23l)' filter='url(%23n)'/></g></mask> </defs> <g filter='url(%23w)'><rect x='-40' y='-40' width='568' height='760' fill='url(%23c)' mask='url(%23m)'/></g> </svg>")
+    center / 100% 100%;
+  filter: hue-rotate(calc(var(--foil-shift, 0deg) * 1.5));
+  /* Shifting noise mask: tilting reveals different areas and leaves others bare. */
+  mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 840' preserveAspectRatio='none'> <filter id='n' x='0' y='0' width='100%' height='100%'> <feTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='5'/> <feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0 -1.6'/> </filter> <rect width='600' height='840' filter='url(%23n)'/> </svg>");
+  mask-size: 190% 190%;
+  mask-position: var(--foil-x) calc(100% - var(--foil-y));
+  mix-blend-mode: hard-light;
+}
+.holo-card.foil-surgefoil:hover::before {
+  opacity: 0.8;
+}
+.foil-ripplefoil::before {
+  /* Soft rainbow rings on a 4x4 grid. The two checkerboard sets grow and shrink in turn as the
+     card tilts. The vertical radius uses the card's aspect ratio so the rings stay round. */
+  background:
+    radial-gradient(
+      calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 12.5% 12.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 37.5% 12.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 62.5% 12.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 87.5% 12.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 12.5% 37.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 37.5% 37.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 62.5% 37.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 87.5% 37.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 12.5% 62.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 37.5% 62.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 62.5% 62.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 87.5% 62.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 12.5% 87.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 37.5% 87.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(31% - (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 62.5% 87.5%,
+      transparent 60%,
+      #ff3b3b58 68%,
+      #ffb02e58 72.5%,
+      #f4ff3b58 77%,
+      #3bff6a58 81.5%,
+      #3bb8ff58 86%,
+      #8a4bff58 90.5%,
+      #ff3bd858 95%,
+      transparent 100%
+    ),
+    radial-gradient(
+      calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11)
+        calc(calc(9% + (var(--foil-x) + var(--foil-y)) * 0.11) * 0.718) at 87.5% 87.5%,
+      transparent 60%,
+      #ff3bd858 68%,
+      #8a4bff58 72.5%,
+      #3bb8ff58 77%,
+      #3bff6a58 81.5%,
+      #f4ff3b58 86%,
+      #ffb02e58 90.5%,
+      #ff3b3b58 95%,
+      transparent 100%
+    );
+  background-repeat: no-repeat;
+  filter: none;
+  mix-blend-mode: hard-light;
+}
+.holo-card.foil-ripplefoil:hover::before {
+  opacity: 0.85;
+}
+.foil-halofoil::before {
+  /* Marbled, ink-like rainbow and silver bands that shift colour as the card tilts. */
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 488 680' preserveAspectRatio='none'> <defs> <linearGradient id='h' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='110' y2='30' spreadMethod='reflect'><stop offset='0.000' stop-color='%23c9d2de'/><stop offset='0.091' stop-color='%23eef3fa'/><stop offset='0.182' stop-color='%23ff8a5c'/><stop offset='0.273' stop-color='%23fff27a'/><stop offset='0.364' stop-color='%23e6edf6'/><stop offset='0.455' stop-color='%23b8c3d2'/><stop offset='0.545' stop-color='%236ae0ff'/><stop offset='0.636' stop-color='%23e9eef5'/><stop offset='0.727' stop-color='%23c49bff'/><stop offset='0.818' stop-color='%23d5dce6'/><stop offset='0.909' stop-color='%233a4050'/><stop offset='1.000' stop-color='%23cfd7e2'/></linearGradient> <filter id='w' x='-10%' y='-10%' width='120%' height='120%'> <feTurbulence type='fractalNoise' baseFrequency='0.0045 0.006' numOctaves='3' seed='9'/> <feDisplacementMap in='SourceGraphic' scale='230' xChannelSelector='R' yChannelSelector='G'/> </filter> </defs> <rect x='-120' y='-120' width='728' height='920' fill='url(%23h)' filter='url(%23w)'/> </svg>")
+    calc(50% + (var(--foil-x) - 50%) * 0.1) calc(50% + (var(--foil-y) - 50%) * 0.1) / 110% 110%;
+  filter: hue-rotate(calc(var(--foil-shift, 0deg) * 1.2));
+  /* Shifting noise mask: tilting reveals different areas and leaves others bare. */
+  mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 840' preserveAspectRatio='none'> <filter id='n' x='0' y='0' width='100%' height='100%'> <feTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='21'/> <feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4 0 0 0 -1.6'/> </filter> <rect width='600' height='840' filter='url(%23n)'/> </svg>");
+  mask-size: 190% 190%;
+  mask-position: calc(100% - var(--foil-x)) calc(100% - var(--foil-y));
+  mix-blend-mode: hard-light;
+}
+.holo-card.foil-halofoil:hover::before {
+  opacity: 0.7;
+}
+.foil-galaxyfoil {
+  --galaxy-glitter: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='240'><circle cx='0' cy='221' r='0.7' fill='%239dff6ace'/><circle cx='59' cy='180' r='1.3' fill='%239dff6ad9'/><circle cx='147' cy='58' r='1.1' fill='%239dff6a9c'/><circle cx='123' cy='112' r='1.9' fill='%23ffffffcc'/><circle cx='166' cy='165' r='1.3' fill='%23c38bfff5'/><circle cx='67' cy='80' r='1.1' fill='%23ff6ad5b5'/><circle cx='77' cy='71' r='1.5' fill='%239dff6af2'/><circle cx='11' cy='66' r='1.1' fill='%23fff35caa'/><circle cx='164' cy='13' r='0.8' fill='%239dff6af7'/><circle cx='93' cy='40' r='0.8' fill='%235ffbf1c3'/><circle cx='60' cy='128' r='0.9' fill='%23c38bffc6'/><circle cx='155' cy='152' r='1.2' fill='%237aa8ffde'/><circle cx='169' cy='95' r='0.9' fill='%237aa8ffbb'/><circle cx='60' cy='94' r='1.9' fill='%23ffffffec'/><circle cx='14' cy='98' r='0.6' fill='%23c38bffad'/><circle cx='114' cy='35' r='1.1' fill='%23ff6ad5f7'/><circle cx='159' cy='214' r='2' fill='%23ffa45cb3'/><circle cx='2' cy='60' r='0.6' fill='%237aa8ffae'/><circle cx='133' cy='117' r='0.9' fill='%23c38bffaf'/><circle cx='67' cy='215' r='0.7' fill='%23fffffff6'/><circle cx='115' cy='221' r='0.6' fill='%23ff6ad5fc'/><circle cx='102' cy='163' r='0.7' fill='%23ff6ad5d1'/><circle cx='9' cy='185' r='1.5' fill='%23fff35c99'/><circle cx='20' cy='221' r='0.8' fill='%23c38bff9a'/><circle cx='159' cy='207' r='2.3' fill='%23ffa45cc2'/><circle cx='45' cy='175' r='1.2' fill='%23ff6ad5c1'/><circle cx='160' cy='134' r='1' fill='%239dff6ab9'/><circle cx='131' cy='101' r='0.7' fill='%23c38bfffe'/><circle cx='114' cy='209' r='0.9' fill='%239dff6aa4'/><circle cx='90' cy='134' r='1.9' fill='%23fff35caa'/><circle cx='80' cy='40' r='1.2' fill='%237aa8ffcb'/><circle cx='136' cy='87' r='0.6' fill='%235ffbf1cf'/><circle cx='36' cy='174' r='0.7' fill='%239dff6ac3'/><circle cx='14' cy='185' r='2' fill='%23c38bffdd'/><circle cx='173' cy='6' r='1.4' fill='%239dff6af4'/><circle cx='7' cy='33' r='0.6' fill='%23ffffff97'/><circle cx='109' cy='227' r='0.6' fill='%23ff6ad5dd'/><circle cx='44' cy='110' r='1.4' fill='%239dff6ae7'/><circle cx='71' cy='100' r='0.6' fill='%23ffa45cfc'/><circle cx='27' cy='222' r='0.7' fill='%23ff6ad5d5'/><circle cx='31' cy='19' r='0.9' fill='%237aa8ffc8'/><circle cx='179' cy='18' r='0.8' fill='%23ffffff97'/><circle cx='74' cy='22' r='1' fill='%23ffa45ce6'/><circle cx='79' cy='205' r='2' fill='%239dff6ad2'/><circle cx='63' cy='98' r='1' fill='%237aa8ffe2'/><circle cx='120' cy='152' r='1.8' fill='%23ffa45cfe'/><circle cx='79' cy='117' r='2.3' fill='%235ffbf19e'/><circle cx='62' cy='212' r='1.5' fill='%23c38bffe9'/><circle cx='37' cy='57' r='0.7' fill='%23c38bffea'/><circle cx='114' cy='171' r='1' fill='%23ffa45cd1'/><circle cx='157' cy='65' r='1.1' fill='%23fff35caa'/><circle cx='106' cy='56' r='1.9' fill='%235ffbf1de'/><circle cx='158' cy='28' r='1.1' fill='%23ffffffa4'/><circle cx='72' cy='5' r='1.7' fill='%23ff6ad5ac'/><circle cx='171' cy='168' r='0.6' fill='%239dff6a98'/><circle cx='146' cy='142' r='0.8' fill='%235ffbf1e1'/><circle cx='172' cy='131' r='1.4' fill='%239dff6ae3'/><circle cx='108' cy='24' r='0.7' fill='%23ff6ad5d3'/><circle cx='45' cy='54' r='1.3' fill='%23ffa45caf'/><circle cx='163' cy='13' r='1.1' fill='%23ffa45cdb'/><circle cx='145' cy='25' r='1.4' fill='%23ffa45cc3'/><circle cx='156' cy='190' r='1.8' fill='%23ffa45caa'/><circle cx='130' cy='37' r='0.8' fill='%23c38bff9c'/><circle cx='14' cy='63' r='2.1' fill='%23c38bffb3'/><circle cx='36' cy='7' r='1.1' fill='%23ff6ad5b8'/><circle cx='87' cy='54' r='0.6' fill='%23ffffffd8'/><circle cx='84' cy='194' r='1.3' fill='%239dff6abf'/><circle cx='110' cy='232' r='1.9' fill='%239dff6ad5'/><circle cx='144' cy='41' r='0.7' fill='%239dff6ac3'/><circle cx='98' cy='93' r='0.7' fill='%23ffffff9e'/><circle cx='64' cy='83' r='0.8' fill='%23ff6ad59b'/><circle cx='0' cy='201' r='0.7' fill='%23ffa45cb7'/><circle cx='72' cy='218' r='0.6' fill='%23c38bffac'/><circle cx='116' cy='103' r='0.6' fill='%23ffa45ce5'/><circle cx='45' cy='206' r='1.1' fill='%23fff35cb5'/><circle cx='46' cy='212' r='1.7' fill='%23fff35cf1'/><circle cx='148' cy='195' r='1.9' fill='%239dff6ab4'/><circle cx='128' cy='78' r='0.9' fill='%23ffa45cdb'/><circle cx='147' cy='112' r='1.8' fill='%23ffffffae'/><circle cx='35' cy='6' r='1.4' fill='%239dff6af0'/><circle cx='156' cy='195' r='0.8' fill='%23fff35cbf'/><circle cx='97' cy='180' r='1' fill='%23fff35cb0'/><circle cx='127' cy='185' r='0.7' fill='%237aa8ffd0'/><circle cx='169' cy='136' r='0.9' fill='%237aa8ffd9'/><circle cx='103' cy='39' r='0.6' fill='%235ffbf1d9'/><circle cx='157' cy='155' r='0.8' fill='%23fff35ca3'/><circle cx='28' cy='13' r='0.9' fill='%23ffffffd9'/><circle cx='73' cy='110' r='0.8' fill='%235ffbf1b6'/><circle cx='22' cy='49' r='0.8' fill='%237aa8ffd3'/><circle cx='136' cy='188' r='1.4' fill='%239dff6aa3'/><circle cx='112' cy='177' r='1.5' fill='%23c38bffb5'/><circle cx='179' cy='9' r='0.7' fill='%23ffa45cf4'/><circle cx='130' cy='131' r='0.8' fill='%23ffa45ca9'/><circle cx='146' cy='164' r='1.6' fill='%235ffbf199'/><circle cx='132' cy='124' r='1.4' fill='%239dff6a9b'/><circle cx='127' cy='235' r='1.6' fill='%237aa8ffad'/><circle cx='113' cy='136' r='0.6' fill='%23ffa45cdb'/><circle cx='176' cy='74' r='1.9' fill='%237aa8ffd7'/><circle cx='36' cy='58' r='0.9' fill='%23ffffffd2'/><circle cx='141' cy='202' r='0.6' fill='%237aa8ffc2'/><circle cx='57' cy='70' r='0.6' fill='%23fff35cd9'/><circle cx='91' cy='130' r='1.1' fill='%23c38bfff9'/><circle cx='83' cy='200' r='1.7' fill='%23fff35cd8'/><circle cx='9' cy='69' r='0.6' fill='%23ffffffaf'/><circle cx='120' cy='53' r='0.7' fill='%23ffa45cb6'/><circle cx='112' cy='181' r='0.6' fill='%23c38bffe7'/><circle cx='172' cy='17' r='0.6' fill='%23c38bffc8'/><circle cx='50' cy='126' r='1.7' fill='%23ffa45c97'/><circle cx='21' cy='148' r='0.7' fill='%235ffbf1c1'/><circle cx='139' cy='162' r='0.8' fill='%23c38bffff'/><circle cx='111' cy='173' r='0.9' fill='%23ff6ad5ba'/><circle cx='125' cy='101' r='1.4' fill='%23fff35cd0'/><circle cx='119' cy='25' r='0.7' fill='%23ffa45cb9'/><circle cx='179' cy='130' r='0.7' fill='%237aa8ff97'/><circle cx='98' cy='197' r='0.8' fill='%23ffffffd9'/><circle cx='78' cy='31' r='0.6' fill='%23c38bffe2'/><circle cx='160' cy='161' r='1.6' fill='%235ffbf1dd'/><circle cx='84' cy='0' r='0.6' fill='%23ffffffcc'/><circle cx='22' cy='53' r='1' fill='%23ff6ad5b0'/><circle cx='129' cy='180' r='1.7' fill='%23ff6ad5b3'/><circle cx='98' cy='97' r='1' fill='%237aa8fff2'/><circle cx='153' cy='98' r='1.2' fill='%239dff6af8'/><circle cx='43' cy='231' r='1.8' fill='%237aa8ffda'/><circle cx='161' cy='44' r='1' fill='%23ffa45ce5'/><circle cx='125' cy='147' r='0.6' fill='%23ffa45cd1'/><circle cx='6' cy='132' r='0.6' fill='%23c38bffdc'/><circle cx='99' cy='207' r='2.1' fill='%23ffffffe5'/><circle cx='65' cy='168' r='0.7' fill='%23ffffffb6'/><circle cx='67' cy='76' r='0.6' fill='%23fff35cc2'/><circle cx='144' cy='197' r='0.6' fill='%237aa8ffd9'/><circle cx='24' cy='28' r='0.6' fill='%235ffbf1dc'/><circle cx='33' cy='233' r='1.5' fill='%23ff6ad5c2'/><circle cx='126' cy='68' r='0.8' fill='%23fff35cab'/><circle cx='1' cy='53' r='1.3' fill='%23fffffff9'/><circle cx='16' cy='26' r='1.5' fill='%239dff6ad3'/><circle cx='169' cy='14' r='0.7' fill='%235ffbf1b8'/><circle cx='36' cy='8' r='0.7' fill='%23c38bffa6'/><circle cx='93' cy='151' r='0.8' fill='%239dff6ae2'/><circle cx='169' cy='166' r='0.7' fill='%23fff35cb3'/><circle cx='27' cy='97' r='1.5' fill='%239dff6aeb'/><circle cx='153' cy='129' r='0.6' fill='%23c38bffdc'/><circle cx='133' cy='199' r='1.2' fill='%235ffbf1ce'/><circle cx='3' cy='134' r='0.6' fill='%23fff35cbf'/><circle cx='28' cy='119' r='0.8' fill='%23ffffff98'/><circle cx='139' cy='135' r='1.8' fill='%239dff6ae4'/><circle cx='150' cy='93' r='1.2' fill='%235ffbf199'/><circle cx='15' cy='24' r='0.6' fill='%239dff6aab'/><circle cx='1' cy='10' r='1.8' fill='%23c38bffec'/><circle cx='170' cy='177' r='1.2' fill='%23ffffffbc'/><circle cx='85' cy='126' r='1.1' fill='%239dff6acb'/><circle cx='131' cy='82' r='0.6' fill='%23ffffffdc'/><circle cx='177' cy='49' r='0.6' fill='%23ffffffc5'/><circle cx='121' cy='148' r='1.2' fill='%23ffffffee'/><circle cx='157' cy='106' r='0.7' fill='%239dff6aa0'/><circle cx='52' cy='159' r='0.7' fill='%23c38bff98'/><circle cx='164' cy='59' r='0.6' fill='%23c38bffd7'/><circle cx='46' cy='147' r='0.9' fill='%23fff35cfb'/><circle cx='148' cy='230' r='0.7' fill='%235ffbf1cb'/><circle cx='97' cy='30' r='0.9' fill='%23fff35cd6'/><circle cx='151' cy='85' r='0.6' fill='%23ff6ad59b'/><circle cx='165' cy='176' r='1.6' fill='%23ffffffd6'/><circle cx='157' cy='32' r='0.9' fill='%23ffa45cdb'/><circle cx='171' cy='9' r='0.8' fill='%23ffa45cd7'/><circle cx='20' cy='120' r='1.2' fill='%239dff6ab2'/><circle cx='15' cy='23' r='1.3' fill='%239dff6aec'/><circle cx='164' cy='205' r='1' fill='%239dff6ae5'/><circle cx='131' cy='122' r='1.4' fill='%237aa8ffa9'/><circle cx='159' cy='175' r='0.7' fill='%23ff6ad5ef'/><circle cx='39' cy='87' r='1.7' fill='%239dff6aa0'/><circle cx='121' cy='194' r='0.6' fill='%23fff35ca9'/><circle cx='4' cy='54' r='1.4' fill='%237aa8ffd8'/><circle cx='6' cy='101' r='1' fill='%23ffffffaf'/><circle cx='116' cy='67' r='0.9' fill='%23ff6ad5ee'/><circle cx='74' cy='236' r='0.6' fill='%23ffa45cc2'/><circle cx='67' cy='218' r='1.4' fill='%239dff6aba'/><circle cx='160' cy='175' r='0.6' fill='%23ffffffc8'/><circle cx='63' cy='173' r='0.6' fill='%23c38bfff5'/><circle cx='139' cy='123' r='1.2' fill='%239dff6aed'/><circle cx='58' cy='164' r='1.8' fill='%239dff6aec'/><circle cx='126' cy='207' r='0.7' fill='%23fff35cf9'/><circle cx='28' cy='177' r='0.9' fill='%23fff35c9a'/><circle cx='120' cy='16' r='0.7' fill='%23ffffffa9'/><circle cx='102' cy='168' r='0.9' fill='%23ffffffbf'/><circle cx='11' cy='215' r='1.4' fill='%23c38bfffc'/><circle cx='153' cy='46' r='1.3' fill='%23c38bffb0'/><circle cx='154' cy='37' r='1.3' fill='%23fff35c9a'/><circle cx='42' cy='121' r='1.8' fill='%235ffbf1d0'/><circle cx='144' cy='119' r='1.8' fill='%23fff35cca'/><circle cx='63' cy='76' r='0.6' fill='%235ffbf1be'/><circle cx='144' cy='129' r='0.8' fill='%23ff6ad5ea'/><circle cx='48' cy='140' r='1.1' fill='%237aa8ffb7'/><circle cx='22' cy='96' r='1.3' fill='%23ffffffec'/><circle cx='26' cy='218' r='1' fill='%237aa8ffc7'/><circle cx='102' cy='1' r='1.3' fill='%23fff35ce2'/><circle cx='90' cy='11' r='1' fill='%23c38bffc4'/><circle cx='69' cy='51' r='0.7' fill='%23ffa45cb4'/><circle cx='177' cy='49' r='1' fill='%237aa8fff8'/><circle cx='150' cy='212' r='0.8' fill='%23fff35cac'/><circle cx='134' cy='154' r='1.1' fill='%237aa8fffd'/><circle cx='12' cy='202' r='1.3' fill='%235ffbf1c2'/><circle cx='145' cy='237' r='1.2' fill='%23ffa45caa'/><circle cx='106' cy='90' r='1.7' fill='%23c38bffad'/><circle cx='136' cy='197' r='0.7' fill='%23ffa45cdc'/><circle cx='3' cy='31' r='1.2' fill='%23ffffffa4'/><circle cx='156' cy='127' r='0.8' fill='%239dff6a98'/><circle cx='100' cy='64' r='0.8' fill='%237aa8ffcc'/><circle cx='146' cy='44' r='1.3' fill='%23fff35cf7'/><circle cx='115' cy='203' r='0.8' fill='%23ffffffea'/><circle cx='69' cy='49' r='1.2' fill='%239dff6aa0'/><circle cx='161' cy='94' r='1.7' fill='%239dff6ad3'/><circle cx='158' cy='34' r='1.4' fill='%239dff6ab3'/><circle cx='64' cy='195' r='0.9' fill='%239dff6ad7'/><circle cx='107' cy='71' r='2.2' fill='%23ff6ad5ed'/><circle cx='172' cy='208' r='0.7' fill='%23ff6ad5bb'/><circle cx='125' cy='222' r='0.6' fill='%23fff35c9c'/><circle cx='7' cy='103' r='0.6' fill='%23fff35cc3'/><circle cx='55' cy='107' r='0.9' fill='%23fffffffb'/><circle cx='143' cy='170' r='1.3' fill='%23ff6ad5bc'/><circle cx='9' cy='176' r='2.4' fill='%23ff6ad5c5'/><circle cx='104' cy='94' r='0.9' fill='%23ffa45cc1'/><circle cx='5' cy='143' r='0.7' fill='%23c38bffd4'/><circle cx='159' cy='6' r='1.5' fill='%239dff6a96'/><circle cx='61' cy='180' r='1.4' fill='%23ff6ad5b8'/><circle cx='3' cy='50' r='1.5' fill='%23fffffff3'/><circle cx='83' cy='72' r='0.9' fill='%23ffa45cb3'/><circle cx='62' cy='97' r='0.7' fill='%235ffbf1fc'/><circle cx='176' cy='27' r='1.2' fill='%239dff6ad6'/><circle cx='15' cy='223' r='1' fill='%23ffa45cfa'/><circle cx='19' cy='174' r='1.2' fill='%235ffbf1e7'/><circle cx='170' cy='203' r='2' fill='%235ffbf1c2'/><circle cx='21' cy='102' r='0.6' fill='%23c38bffef'/><circle cx='157' cy='222' r='1' fill='%237aa8ffeb'/><circle cx='37' cy='28' r='2.3' fill='%23ffa45ca9'/><circle cx='174' cy='106' r='1.2' fill='%235ffbf1fc'/><circle cx='40' cy='4' r='0.6' fill='%239dff6ab7'/><circle cx='126' cy='170' r='0.7' fill='%23ff6ad5a9'/><circle cx='147' cy='107' r='0.6' fill='%23ff6ad5b0'/><circle cx='70' cy='163' r='1.4' fill='%235ffbf1b2'/><circle cx='44' cy='157' r='0.6' fill='%23ffffffd1'/><circle cx='107' cy='42' r='1.1' fill='%23ff6ad5a2'/><circle cx='28' cy='183' r='1.5' fill='%239dff6ae1'/><circle cx='30' cy='50' r='0.7' fill='%23fff35ced'/><circle cx='37' cy='98' r='1.3' fill='%23ffffffee'/><circle cx='54' cy='66' r='0.7' fill='%237aa8ffdc'/><circle cx='143' cy='185' r='0.6' fill='%23ff6ad5ae'/><circle cx='163' cy='181' r='0.8' fill='%23c38bfffb'/><circle cx='151' cy='164' r='1.4' fill='%23ffa45cc8'/><circle cx='154' cy='37' r='0.8' fill='%235ffbf1cc'/><circle cx='52' cy='19' r='0.7' fill='%239dff6aa4'/><circle cx='86' cy='207' r='0.7' fill='%23c38bfff4'/><circle cx='177' cy='80' r='0.7' fill='%23ff6ad5b1'/><circle cx='118' cy='118' r='0.7' fill='%235ffbf1cf'/><circle cx='145' cy='105' r='0.6' fill='%23ffffffd6'/><circle cx='50' cy='3' r='1.6' fill='%23ff6ad5de'/><circle cx='80' cy='38' r='1.9' fill='%235ffbf1e2'/><circle cx='89' cy='130' r='1.6' fill='%23ffffffe0'/><circle cx='176' cy='203' r='0.9' fill='%239dff6af5'/><circle cx='55' cy='75' r='1.2' fill='%239dff6afe'/><circle cx='149' cy='150' r='0.6' fill='%23c38bffbc'/><circle cx='0' cy='118' r='0.9' fill='%235ffbf19b'/><circle cx='94' cy='124' r='0.6' fill='%23fff35ced'/><circle cx='146' cy='196' r='0.8' fill='%23ffa45cbb'/><circle cx='16' cy='54' r='1.3' fill='%23ffa45cbb'/><circle cx='108' cy='43' r='1' fill='%237aa8ffc4'/><circle cx='72' cy='230' r='0.7' fill='%237aa8fffb'/><circle cx='160' cy='120' r='0.9' fill='%237aa8ffed'/><circle cx='69' cy='48' r='1.8' fill='%235ffbf1bd'/><circle cx='166' cy='191' r='0.7' fill='%23fff35cee'/><circle cx='110' cy='202' r='1.4' fill='%237aa8ffbb'/><circle cx='118' cy='41' r='0.9' fill='%23ff6ad5e3'/><circle cx='115' cy='190' r='0.9' fill='%237aa8ffb7'/><circle cx='31' cy='203' r='1.8' fill='%23fff35cd8'/><circle cx='153' cy='224' r='0.7' fill='%23ffa45cdd'/><circle cx='81' cy='76' r='0.8' fill='%23fff35cf1'/><circle cx='26' cy='137' r='0.6' fill='%23fff35ce7'/><circle cx='147' cy='123' r='1.7' fill='%235ffbf1e3'/><circle cx='155' cy='219' r='1.5' fill='%23ff6ad59e'/><circle cx='176' cy='171' r='1' fill='%23c38bfff2'/><circle cx='148' cy='32' r='1.2' fill='%23ffa45cba'/><circle cx='162' cy='129' r='1.2' fill='%235ffbf1db'/><circle cx='125' cy='109' r='1.5' fill='%23ffffffc8'/><circle cx='172' cy='59' r='0.7' fill='%237aa8fff2'/><circle cx='20' cy='9' r='0.6' fill='%237aa8ffca'/><circle cx='19' cy='139' r='0.8' fill='%239dff6ad7'/><circle cx='153' cy='37' r='1.9' fill='%235ffbf1ce'/><circle cx='135' cy='181' r='2.1' fill='%23ffffffd6'/><circle cx='73' cy='111' r='0.6' fill='%23ff6ad5c1'/><circle cx='129' cy='235' r='2' fill='%23ffffffda'/><circle cx='154' cy='73' r='1.9' fill='%23ffffffe8'/><circle cx='138' cy='108' r='2' fill='%23ffffffa5'/><circle cx='152' cy='215' r='0.7' fill='%239dff6ad3'/><circle cx='118' cy='185' r='0.7' fill='%23fff35ca5'/><circle cx='174' cy='92' r='0.7' fill='%237aa8ffd9'/><circle cx='22' cy='175' r='1' fill='%239dff6a9e'/><circle cx='59' cy='42' r='1.4' fill='%239dff6ae6'/><circle cx='79' cy='193' r='1.2' fill='%23fff35ce8'/><circle cx='17' cy='226' r='1' fill='%23ffa45cdf'/><circle cx='154' cy='15' r='0.7' fill='%235ffbf196'/><circle cx='147' cy='60' r='0.6' fill='%239dff6af8'/><circle cx='136' cy='162' r='0.8' fill='%23ffa45cfb'/></svg>");
+}
+.foil-galaxyfoil::before {
+  /* Fine rainbow glitter, brightest where the light falls. */
+  background:
+    var(--galaxy-glitter) 0 0 / 180px 240px,
+    var(--galaxy-glitter) 67px 113px / 125.99999999999999px 168px,
+    linear-gradient(125deg, #ff4c9138, #ffd95230, #4ce3ad30, #4ebcff38, #ae65ff38, #ff4c9138)
+      var(--foil-x) var(--foil-y) / 220% 220%;
+  mask-image: radial-gradient(
+    circle at var(--foil-x) var(--foil-y),
+    #000 0 22%,
+    #0009 50%,
+    #0004 100%
+  );
+  mix-blend-mode: screen;
+}
+.foil-galaxyfoil::after {
+  /* Scattered stars, dots, rings and swirls that shift colour with the tilt. */
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='400'><circle cx='143.8' cy='14.5' r='2.7' fill='%23fff35c'/><circle cx='150.8' cy='187.8' r='1.5' fill='%23ff6ad5'/><path d='M21.3 120L22.2 123.6L25.9 123.4L22.8 125.4L24.2 128.9L21.3 126.5L18.4 128.9L19.8 125.4L16.7 123.4L20.4 123.6Z' fill='%23ff6ad5'/><circle cx='226.4' cy='106.7' r='2.3' fill='%235ffbf1'/><path d='M138.4 210.5L139.2 217L145.8 217.9L139.2 218.7L138.4 225.3L137.5 218.7L131 217.9L137.5 217Z' fill='%239dff6a'/><path d='M243.5 164.3L244.4 170.8L250.9 171.6L244.4 172.5L243.5 179L242.7 172.5L236.2 171.6L242.7 170.8Z' fill='%23ffa45c'/><path d='M120 153.7L121 156.4L123.9 156.5L121.6 158.2L122.4 161L120 159.3L117.7 161L118.5 158.2L116.2 156.5L119.1 156.4Z' fill='%23c38bff'/><path d='M136.3 204.6L137.1 211L143.5 211.9L137.1 212.7L136.3 219.1L135.4 212.7L129 211.9L135.4 211Z' fill='%23c38bff'/><circle cx='138.5' cy='105.1' r='3' fill='%23c38bff'/><circle cx='162.2' cy='389.8' r='4.7' fill='none' stroke='%237aa8ff' stroke-width='1.2'/><circle cx='3.7' cy='248.7' r='3.4' fill='%239dff6a'/><circle cx='240.3' cy='116.5' r='3.5' fill='%23ffffff'/><circle cx='91.3' cy='273' r='1.7' fill='%237aa8ff'/><path d='M75.2 395.2L75.6 395.4L75.7 395.8L75.6 396.2L75.2 396.7L74.5 396.9L73.6 396.7L72.8 396.1L72.3 395.1L72.3 393.8L72.9 392.5L74 391.5L75.6 390.9L77.4 391.1L79.1 392.1L80.4 393.7L80.9 395.9L80.5 398.3L79.2 400.4L76.9 401.9L74.2 402.4L71.3 401.7L68.8 399.9L67.1 397.1L66.7 393.7L67.7 390.3L70 387.5L73.3 385.7L77.3 385.4L81.2 386.6L84.3 389.4L86.2 393.4' fill='none' stroke='%23fff35c' stroke-width='1.1'/><circle cx='247.8' cy='304.9' r='3.5' fill='%23fff35c'/><path d='M212.9 299L213.7 305.2L219.9 306L213.7 306.9L212.9 313.1L212 306.9L205.8 306L212 305.2Z' fill='%239dff6a'/><path d='M275.4 284L276.2 288L280.2 288.8L276.2 289.7L275.4 293.7L274.5 289.7L270.5 288.8L274.5 288Z' fill='%23c38bff'/><circle cx='44.7' cy='89.4' r='4.2' fill='%23ff6ad5'/><circle cx='8.8' cy='151.3' r='4.1' fill='none' stroke='%239dff6a' stroke-width='1.2'/><path d='M89.5 256.1L90.3 262.3L96.6 263.1L90.3 264L89.5 270.2L88.6 264L82.4 263.1L88.6 262.3Z' fill='%23ffa45c'/><path d='M6.6 363.4L7.4 369.9L13.9 370.8L7.4 371.6L6.6 378.1L5.7 371.6L-0.8 370.8L5.7 369.9Z' fill='%237aa8ff'/><circle cx='47.3' cy='168.3' r='1.9' fill='%23fff35c'/><path d='M212.3 -2.2L213.1 2.4L217.7 3.3L213.1 4.1L212.3 8.8L211.4 4.1L206.8 3.3L211.4 2.4Z' fill='%237aa8ff'/><path d='M43 344.6L43.9 348.4L47.8 348.1L44.5 350.1L46 353.8L43 351.2L40 353.8L41.4 350.1L38.1 348.1L42 348.4Z' fill='%23c38bff'/><circle cx='268.5' cy='295.2' r='4.4' fill='none' stroke='%235ffbf1' stroke-width='1.2'/><circle cx='130.8' cy='81.7' r='1.7' fill='%23ffffff'/><circle cx='267' cy='306.9' r='2.9' fill='%23ffffff'/><path d='M58.4 274.2L59.3 277.6L62.9 277.5L59.9 279.4L61.2 282.8L58.4 280.5L55.6 282.8L56.9 279.4L53.8 277.5L57.4 277.6Z' fill='%239dff6a'/><circle cx='243.7' cy='152.8' r='2.5' fill='%235ffbf1'/><circle cx='87.6' cy='116.9' r='4.5' fill='none' stroke='%237aa8ff' stroke-width='1.2'/><path d='M293 202.8L293.3 202.9L293.5 203.3L293.4 203.8L292.9 204.2L292.2 204.4L291.4 204.3L290.6 203.6L290.1 202.6L290.1 201.4L290.6 200.1L291.8 199L293.4 198.5L295.2 198.7L296.9 199.6L298.2 201.3L298.7 203.5L298.3 205.8L296.9 207.9L294.7 209.4L291.9 209.9L289.1 209.3L286.6 207.4L284.9 204.6L284.5 201.3L285.4 197.9L287.7 195L291.1 193.3L295 192.9L298.9 194.2L302.1 197L304 200.9' fill='none' stroke='%239dff6a' stroke-width='1.1'/><path d='M277 106.5L277.8 113.2L284.6 114.1L277.8 114.9L277 121.7L276.1 114.9L269.4 114.1L276.1 113.2Z' fill='%235ffbf1'/><path d='M264.3 282.9L265.3 285.3L267.9 285.5L265.9 287.1L266.5 289.6L264.3 288.2L262.1 289.6L262.8 287.1L260.8 285.5L263.4 285.3Z' fill='%23ffa45c'/><circle cx='194.2' cy='394.4' r='3.3' fill='%23ffa45c'/></svg>")
+    0 0 / 240px 320px;
+  filter: hue-rotate(calc(var(--foil-hue, 0deg) + var(--foil-shift, 0deg))) saturate(1.8);
+  mask-image: radial-gradient(
+    circle at var(--foil-x) var(--foil-y),
+    #000 0 30%,
+    #0007 65%,
+    #0003 100%
+  );
+  mix-blend-mode: screen;
+}
+.holo-card.foil-galaxyfoil:hover::before {
+  opacity: 0.9;
+}
+.holo-card.foil-galaxyfoil:hover::after {
+  opacity: 0.85;
+}
+.foil-silverfoil::before {
+  /* Broad metallic silver sheen; overlay so it also shows on light areas. */
+  background: linear-gradient(
+    115deg,
+    transparent 15%,
+    #c9d0dab0 -15.2%,
+    #ffffff 48%,
+    #7d8796b0 31.6%,
+    transparent 82%
+  );
+  background-position: calc(var(--foil-x) * 1.2 - 10%) calc(var(--foil-y) * 1.2 - 10%);
+  background-size: 200% 200%;
+  filter: none;
+  mix-blend-mode: hard-light;
+}
+.foil-rainbowfoil::before,
+.foil-doublerainbow::before {
+  background: linear-gradient(
+    125deg,
+    #ff4c9150,
+    #ffd95250,
+    #4ce3ad50,
+    #4ebcff50,
+    #ae65ff50,
+    #ff4c9150
+  );
+  background-position: var(--foil-x) var(--foil-y);
+  background-size: 220% 220%;
+}
+.foil-doublerainbow::after {
+  background: linear-gradient(
+    305deg,
+    transparent 20%,
+    #4ebcff60 35%,
+    #ffd95260 50%,
+    #ff4c9160 65%,
+    transparent 80%
+  );
+  background-position: calc(100% - var(--foil-x)) calc(100% - var(--foil-y));
+  background-size: 200% 200%;
+  mix-blend-mode: color-dodge;
+}
+.holo-card.foil-rainbowfoil:hover::before,
+.holo-card.foil-doublerainbow:hover::before {
+  opacity: 0.7;
+}
+.holo-card.foil-silverfoil:hover::before {
+  opacity: 0.75;
 }
 .filter-definitions {
   position: absolute;

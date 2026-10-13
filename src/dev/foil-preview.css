@@ -1,0 +1,168 @@
+.foil-preview {
+  min-height: 100vh;
+  padding: 24px 16px;
+  background: var(--page-background, #f6f5fb);
+  color: inherit;
+}
+.dark .foil-preview {
+  background: #15131f;
+  color: #ece9f7;
+}
+.foil-preview ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 32px 20px;
+  padding: 0;
+  list-style: none;
+}
+.foil-preview li {
+  display: grid;
+  gap: 6px;
+}
+/* Hover-state opacities, so every card can be compared at once. */
+.static-effects .holo-card::before {
+  opacity: 0.62;
+}
+.static-effects .holo-card::after {
+  opacity: 0.24;
+}
+.static-effects .etched-card::before {
+  opacity: 0.88;
+}
+.static-effects .etched-card::after {
+  opacity: 0.45;
+}
+.static-effects .etched-card .etched-edges {
+  opacity: 1;
+}
+.foil-preview .finished-card,
+.foil-preview .finished-card img {
+  width: 100%;
+  height: auto;
+}
+.foil-preview .finished-card {
+  aspect-ratio: 488 / 680;
+}
+.static-effects .foil-galaxyfoil::before {
+  opacity: 0.9;
+}
+.static-effects .foil-galaxyfoil::after {
+  opacity: 0.85;
+}
+.static-effects .foil-surgefoil::before {
+  opacity: 0.8;
+}
+.static-effects .foil-ripplefoil::before {
+  opacity: 0.85;
+}
+.static-effects .foil-halofoil::before {
+  opacity: 0.7;
+}
+.foil-stage {
+  margin: 0 0 32px;
+}
+.foil-stage-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-top: 12px;
+}
+.foil-stage figure {
+  width: min(400px, 100%);
+  margin: 0;
+}
+.foil-stage-webgl {
+  border-radius: 4.75%;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -20px black;
+}
+.foil-stage canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.foil-note {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.foil-note textarea {
+  width: 100%;
+  font: inherit;
+}
+.foil-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.foil-note-status.ready,
+.foil-note-status.working {
+  color: #a35b00;
+}
+.foil-note-status.done,
+.foil-note-summary {
+  color: #2f7d32;
+}
+.foil-note-reply {
+  margin: 0;
+  padding: 8px;
+  border-left: 3px solid #2f7d32;
+  background: #2f7d3214;
+  white-space: pre-wrap;
+}
+.foil-preview ul .finished-card {
+  cursor: pointer;
+}
+.foil-sheet-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+.foil-sheet-pair {
+  display: flex;
+  gap: 8px;
+}
+.foil-sheet-pair figure {
+  width: 240px;
+  margin: 0;
+}
+.foil-sheet-pair canvas {
+  width: 100%;
+}
+.foil-sheet-pair figcaption {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.foil-sheet h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.foil-stage-description {
+  width: min(360px, 100%);
+}
+.foil-stage-description h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.foil-stage-description p {
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+.foil-sheet-printings > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.foil-sheet-printings button {
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+.foil-sheet-printings button[aria-pressed='true'] {
+  border-color: #7aa7ff;
+}

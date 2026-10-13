@@ -8,6 +8,7 @@ export type ImportedCard = {
   quantity: number
   set?: string
   collectorNumber?: string
+  finish?: 'foil' | 'etched'
   board: ImportBoard
 }
 export type ImportedDeck = { name?: string; cards: ImportedCard[] }
@@ -57,6 +58,7 @@ const sectionBoard = (line: string): ImportBoard | null => {
 }
 
 export function parseDeckList(text: string): ImportedDeck {
+  if (/^s*quantity,name,/i.test(text)) return parseDeckCsv(text)
   let board: ImportBoard = 'mainboard'
   const cards: ImportedCard[] = []
   for (const rawLine of text.split(/\r?\n/)) {
@@ -68,7 +70,7 @@ export function parseDeckList(text: string): ImportedDeck {
       continue
     }
     const match = line.match(
-      /^(\d+)x?\s+(.+?)(?:\s+\(([A-Za-z0-9]+)\)\s+([^\s]+)|\s+\[([A-Za-z0-9]+):([^\]]+)\])?(?:\s+\*[^*]+\*)?$/,
+      /^(\d+)x?\s+(.+?)(?:\s+\(([A-Za-z0-9]+)\)\s+([^\s]+)|\s+\[([A-Za-z0-9]+):([^\]]+)\])?(?:\s+\*([^*]+)\*)?$/,
     )
     if (!match) continue
     cards.push({
@@ -77,8 +79,52 @@ export function parseDeckList(text: string): ImportedDeck {
       set: (match[3] ?? match[5])?.toLowerCase(),
       collectorNumber: (match[4] ?? match[6])?.trim(),
       board,
+      ...importedFinish(match[7]),
     })
   }
+  return { cards }
+}
+
+const importedFinish = (value = ''): Pick<ImportedCard, 'finish'> =>
+  /^(f|foil)$/i.test(value.trim())
+    ? { finish: 'foil' }
+    : /^(e|etched)$/i.test(value.trim())
+      ? { finish: 'etched' }
+      : {}
+
+// Reads the app's own CSV export: Quantity,Name,Set,Collector Number,Foil,Board.
+function parseDeckCsv(text: string): ImportedDeck {
+  const [header, ...rows] = text
+    .trim()
+    .split(/\r?\n/)
+    .map((line) =>
+      [...line.matchAll(/(?:^|,)("(?:[^"]|"")*"|[^,]*)/g)].map(([, cell]) =>
+        cell.startsWith('"') ? cell.slice(1, -1).replaceAll('""', '"') : cell.trim(),
+      ),
+    )
+  const column = (name: string) => header.findIndex((cell) => cell.toLowerCase() === name)
+  const [quantity, name, set, collectorNumber, finish, board] = [
+    'quantity',
+    'name',
+    'set',
+    'collector number',
+    'foil',
+    'board',
+  ].map(column)
+  const cards = rows.flatMap((row): ImportedCard[] =>
+    row[name]?.trim()
+      ? [
+          {
+            name: row[name].trim(),
+            quantity: Number(row[quantity]) || 1,
+            set: row[set]?.toLowerCase() || undefined,
+            collectorNumber: row[collectorNumber] || undefined,
+            board: sectionBoard(row[board] ?? '') ?? 'mainboard',
+            ...importedFinish(row[finish]),
+          },
+        ]
+      : [],
+  )
   return { cards }
 }
 
