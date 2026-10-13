@@ -127,6 +127,7 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
       promoteToCommander={() => {
         if (state.selectedDeckCard) void actions.promoteToCommander(state.selectedDeckCard)
       }}
+      openCard={actions.openCardReference}
       loadingArt={state.loadingArt}
       cycleSelectedDeckCardPrinting={() =>
         void (manualCard ? actions.cycleManualPrinting() : actions.cycleSelectedDeckCardPrinting())

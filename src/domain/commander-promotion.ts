@@ -13,10 +13,10 @@ type CommanderCandidate = Pick<
   'name' | 'typeLine' | 'manaCost' | 'detail' | 'faces' | 'power' | 'toughness'
 > & { colorIdentity?: string[] }
 
-export type CommanderPromotionInfo = {
+export type CommanderPromotionInfo<T = Pick<DeckCard, 'name'>> = {
   canPromote: boolean
   missingColours: string[]
-  dependentCards: Pick<DeckCard, 'name'>[]
+  dependentCards: T[]
   error?: string
 }
 
@@ -56,18 +56,18 @@ export function isCommanderCandidate(card: CommanderCandidate) {
   return typeLines(card).some((typeLine) => hasEligibleLegendaryType(typeLine, hasPowerToughness))
 }
 
-export function commanderPromotionInfo(
+export function commanderPromotionInfo<T extends CommanderCandidate>(
   candidate: CommanderCandidate,
-  deck: CommanderCandidate[],
+  deck: T[],
   commanderColours: string[] = [],
-): CommanderPromotionInfo | null {
+): CommanderPromotionInfo<T> | null {
   if (!isCommanderCandidate(candidate)) return null
   if ([candidate, ...deck].some((card) => !card.colorIdentity))
     return {
       canPromote: false,
       missingColours: [],
       dependentCards: [],
-      error: 'Cannot use as commander: colour identity is unknown. Refresh card data first.',
+      error: "Can't check this commander: colour identity is unknown. Refresh card data first.",
     }
   const candidateColours = new Set(cardColourIdentity(candidate))
   const requiredColours = distinct([
@@ -84,20 +84,16 @@ export function commanderPromotionInfo(
   }
 }
 
-function listNames(names: string[]) {
-  if (names.length < 2) return names[0] ?? 'another card'
-  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+export function missingColourNames(info: CommanderPromotionInfo<unknown>, joiner = 'and') {
+  const names = info.missingColours.map(
+    (colour) => colourNames[colour as (typeof manaColours)[number]] ?? colour,
+  )
+  if (names.length < 2) return names[0] ?? ''
+  return `${names.slice(0, -1).join(', ')} ${joiner} ${names.at(-1)}`
 }
 
-export function commanderPromotionWarning(info: CommanderPromotionInfo) {
-  if (info.error) return info.error
-  const colours = listNames(
-    info.missingColours.map(
-      (colour) => colourNames[colour as (typeof manaColours)[number]] ?? colour,
-    ),
-  )
-  const cards = listNames([...new Set(info.dependentCards.map((card) => card.name))])
-  return `Cannot use as commander: colour identity omits ${colours}, required by ${cards}.`
+export function commanderPromotionWarning(info: CommanderPromotionInfo<unknown>) {
+  return info.error ?? `Can't be commander: not ${missingColourNames(info)}.`
 }
 
 export function promoteDeckCard(deck: DeckCard[], sideboard: DeckCard[], candidate: DeckCard) {

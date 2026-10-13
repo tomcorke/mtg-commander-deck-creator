@@ -879,6 +879,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       <CommanderPromotion
                         info={commanderPromotionInfo(card, deck, commanderDetails?.colours ?? [])!}
                         onPromote={() => void promoteToCommander(card)}
+                        onOpenCard={model.openCardReference}
                       />
                     )}
                   </article>
