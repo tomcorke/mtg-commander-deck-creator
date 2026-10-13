@@ -107,28 +107,31 @@ export function FinishedCardImage({
     cssOnly,
   )
 
+  // Actions sit beside the tilting card, not inside it, so they stay still while it tilts.
   return (
-    <span
-      {...foil}
-      className={`finished-card ${loadedImage === displayedImage ? 'image-ready' : ''} ${effectsEnabled ? 'tilting-card' : ''} ${finishClass}`}
-      style={effectsEnabled ? ({ '--foil-hue': `${foilHue}deg` } as CSSProperties) : undefined}
-    >
-      <img
-        className={className}
-        src={displayedImage}
-        alt={flipped ? `${alt} (back face)` : alt}
-        onLoad={() => setLoadedImage(displayedImage)}
-        onError={() => setLoadedImage(displayedImage)}
-      />
-      {hasSynergyGlow && <span className="synergy-connector" aria-hidden="true" />}
-      {effectsEnabled && finish && finish !== 'nonfoil' && (
+    <>
+      <span
+        {...foil}
+        className={`finished-card ${loadedImage === displayedImage ? 'image-ready' : ''} ${effectsEnabled ? 'tilting-card' : ''} ${finishClass}`}
+        style={effectsEnabled ? ({ '--foil-hue': `${foilHue}deg` } as CSSProperties) : undefined}
+      >
         <img
-          className={`finish-edges ${finish}-edges ${className}`}
+          className={className}
           src={displayedImage}
-          alt=""
-          aria-hidden="true"
+          alt={flipped ? `${alt} (back face)` : alt}
+          onLoad={() => setLoadedImage(displayedImage)}
+          onError={() => setLoadedImage(displayedImage)}
         />
-      )}
+        {hasSynergyGlow && <span className="synergy-connector" aria-hidden="true" />}
+        {effectsEnabled && finish && finish !== 'nonfoil' && (
+          <img
+            className={`finish-edges ${finish}-edges ${className}`}
+            src={displayedImage}
+            alt=""
+            aria-hidden="true"
+          />
+        )}
+      </span>
       {hasActions && (
         <CardImageActions
           flipped={flipped}
@@ -138,7 +141,7 @@ export function FinishedCardImage({
           showFlipButton={showFlipButton && Boolean(backImage)}
         />
       )}
-    </span>
+    </>
   )
 }
 
