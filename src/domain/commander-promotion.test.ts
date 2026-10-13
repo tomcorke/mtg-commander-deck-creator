@@ -30,8 +30,11 @@ test('commander promotion keeps deck colours and explains conflicts', () => {
 
   assert.equal(info?.canPromote, false)
   assert.deepEqual(info?.missingColours, ['W', 'U'])
-  assert.match(commanderPromotionWarning(info!), /White and Blue/)
-  assert.match(commanderPromotionWarning(info!), /Old Commander and Blue Spell/)
+  assert.equal(commanderPromotionWarning(info!), "Can't be commander: not White and Blue.")
+  assert.deepEqual(
+    info?.dependentCards.map(({ name }) => name),
+    ['Old Commander', 'Blue Spell'],
+  )
 })
 
 test('mana production does not add colours to a card identity', () => {

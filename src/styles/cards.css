@@ -481,6 +481,19 @@ button:disabled {
   font-size: 11px;
   line-height: 1.35;
 }
+.commander-warning p {
+  margin: 0;
+}
+.commander-warning summary {
+  cursor: pointer;
+  margin-top: 2px;
+  font-weight: 400;
+}
+.commander-warning details[open] p {
+  max-height: 160px;
+  margin-top: 4px;
+  overflow-y: auto;
+}
 .deck-card-modal .commander-promotion {
   justify-content: flex-end;
   margin: 0 0 12px;

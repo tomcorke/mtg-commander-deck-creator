@@ -15,8 +15,9 @@ type DeckCardModalProps = {
   selectedCardReference: boolean
   deckComplete: boolean
   selectedDeckCardIsCommander: boolean
-  commanderPromotion: CommanderPromotionInfo | null
+  commanderPromotion: CommanderPromotionInfo<DeckCard> | null
   promoteToCommander: () => void
+  openCard: (card: DeckCard) => void
   loadingArt: string
   cycleSelectedDeckCardPrinting: () => void
   pendingCardRemoval: { board: 'deck' | 'sideboard'; index: number } | null
@@ -42,6 +43,7 @@ export function DeckCardModal({
   selectedDeckCardIsCommander,
   commanderPromotion,
   promoteToCommander,
+  openCard,
   loadingArt,
   cycleSelectedDeckCardPrinting,
   pendingCardRemoval,
@@ -143,7 +145,11 @@ export function DeckCardModal({
           </div>
         )}
         {commanderPromotion && (
-          <CommanderPromotion info={commanderPromotion} onPromote={promoteToCommander} />
+          <CommanderPromotion
+            info={commanderPromotion}
+            onPromote={promoteToCommander}
+            onOpenCard={openCard}
+          />
         )}
         {selectedGuidanceCard && (
           <div className="export-actions deck-card-modal-actions">
