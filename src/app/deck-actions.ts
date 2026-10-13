@@ -912,7 +912,10 @@ export function storeDeck(deps: ActionDeps, overwrite = false) {
       saved.id !== activeSavedDeckId && saved.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
   )
   if (!state || !name || (duplicate && !overwrite)) return
-  const id = duplicate?.id || activeSavedDeckId || crypto.randomUUID()
+  const active = savedDecks.find((saved: SavedDeck) => saved.id === activeSavedDeckId)
+  // A new name saves a separate deck; only the active save's own name overwrites it.
+  const keepActive = active?.name.toLocaleLowerCase() === name.toLocaleLowerCase()
+  const id = duplicate?.id || (keepActive ? activeSavedDeckId : crypto.randomUUID())
   setSavedDecks(
     saveSavedDeck({
       id,
