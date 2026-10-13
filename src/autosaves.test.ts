@@ -570,6 +570,38 @@ test('a taken manual-save name requires explicit overwrite and reuses the existi
   }
 })
 
+test('saving the active deck under a new name keeps the original save', () => {
+  const storage = memoryStorage()
+  saveSavedDeck(
+    { id: 'manual', name: 'Named save', updatedAt: '2026-10-03T12:00:00Z', state },
+    storage,
+  )
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage })
+  try {
+    const deps: Record<string, any> = {
+      activeSavedDeckId: 'manual',
+      deckName: 'Other commander',
+      savedDecks: loadSavedDecks(storage),
+      currentDeckState: { ...state, commander: 'Other' },
+      setSavedDecks: (value: unknown) => {
+        deps.savedDecks = value
+      },
+      setActiveSavedDeckId: (value: string) => {
+        deps.activeSavedDeckId = value
+      },
+    }
+    storeDeck(deps as ActionDeps)
+    const saves = loadSavedDecks(storage)
+    assert.equal(saves.length, 2)
+    assert.equal(saves.find(({ id }) => id === 'manual')?.state.commander, state.commander)
+    assert.notEqual(deps.activeSavedDeckId, 'manual')
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, 'localStorage', descriptor)
+    else Reflect.deleteProperty(globalThis, 'localStorage')
+  }
+})
+
 test('quota failures prune only drafts beyond retention and report deletion without touching live drafts or manual saves', async () => {
   const env = environment()
   const a = await env.tab()

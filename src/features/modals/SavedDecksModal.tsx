@@ -83,6 +83,8 @@ export function SavedDecksModal({
     void workspace.refresh()
   }, [show, workspace])
   if (!show) return null
+  const overwritesActive =
+    activeSavedDeck?.name.toLocaleLowerCase() === deckName.trim().toLocaleLowerCase()
 
   return (
     <div
@@ -287,10 +289,10 @@ export function SavedDecksModal({
                 )}
               </label>
               <button className="primary" disabled={!deckName.trim()}>
-                {activeSavedDeck || deckNameDuplicate ? 'Overwrite save' : 'Save deck'}
+                {overwritesActive || deckNameDuplicate ? 'Overwrite save' : 'Save deck'}
               </button>
             </form>
-            {activeSavedDeck && savedDeckChanged && !deckNameDuplicate && (
+            {activeSavedDeck && overwritesActive && savedDeckChanged && (
               <p className="overwrite-notice">
                 This will overwrite <b>{activeSavedDeck.name}</b> with{' '}
                 <span className="delta-added">+{activeDeckDelta?.added} added</span> and{' '}
