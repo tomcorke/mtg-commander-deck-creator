@@ -1303,6 +1303,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         <>
                           {groupedBasics.map(({ name, cards: basics }) => {
                             const { card, index } = basics[0]
+                            const labels = new Set<string>()
+                            for (const { card: basic } of basics) {
+                              const label = finishLabel(basic)
+                              if (label) labels.add(label)
+                            }
                             return (
                               <li className="basic-land-row deck-card-tile" key={name}>
                                 <span className="deck-card-reference">
@@ -1317,6 +1322,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 <span className="deck-card-meta">
                                   <span className="deck-mana">
                                     <ManaSymbols symbols={card.producedMana} />
+                                    {labels.size > 0 && (
+                                      <small className="finish-label">
+                                        {[...labels].join(' · ')}
+                                      </small>
+                                    )}
                                   </span>
                                   <button
                                     className="deck-add"

@@ -486,29 +486,34 @@ export async function cycleSelectedDeckCardPrinting(deps: ActionDeps) {
 export function deckList(deps: ActionDeps, format: ExportFormat) {
   const { commander, deck, sideboard } = deps
   const commanderCount = commanderNames(commander).length
-  const section = (cards: DeckCard[]) =>
-    cards
-      .map((card: any) => {
+  const section = (cards: DeckCard[], board: string) => {
+    const grouped = new Map<string, { card: DeckCard; quantity: number }>()
+    for (const card of cards) {
+      const key = JSON.stringify([card.name, card.set, card.collectorNumber, card.finish])
+      const existing = grouped.get(key)
+      if (existing) existing.quantity++
+      else grouped.set(key, { card, quantity: 1 })
+    }
+    return [...grouped.values()]
+      .map(({ card, quantity }) => {
         const finish = card.finish === 'foil' ? ' *F*' : card.finish === 'etched' ? ' *E*' : ''
         return format === 'plain'
-          ? `1 ${card.name}${finish}`
+          ? `${quantity} ${card.name}${finish}`
           : format === 'csv'
-            ? `1,"${card.name.replaceAll('"', '""')}",${card.set.toUpperCase()},${card.collectorNumber},${card.finish ?? ''}`
-            : `1 ${card.name} (${card.set.toUpperCase()}) ${card.collectorNumber}${finish}`
+            ? `${quantity},"${card.name.replaceAll('"', '""')}",${card.set.toUpperCase()},${card.collectorNumber},${card.finish ?? ''},${board}`
+            : `${quantity} ${card.name} (${card.set.toUpperCase()}) ${card.collectorNumber}${finish}`
       })
       .join('\n')
+  }
+  const commanders = section(deck.slice(0, commanderCount), 'Commander')
+  const mainboard = section(deck.slice(commanderCount), 'Mainboard')
+  const side = section(sideboard, 'Sideboard')
   if (format === 'csv')
-    return [
-      'Quantity,Name,Set,Collector Number,Foil,Board',
-      ...deck.map(
-        (card: any, index: any) =>
-          `${section([card])},${index < commanderCount ? 'Commander' : 'Mainboard'}`,
-      ),
-      ...sideboard.map((card: any) => `${section([card])},Sideboard`),
-    ].join('\n')
-  if (format === 'moxfield')
-    return `${section(deck.slice(commanderCount))}${sideboard.length ? `\n\nSIDEBOARD:\n${section(sideboard)}` : ''}`
-  return `${section(deck)}${sideboard.length ? `\n\nSIDEBOARD:\n${section(sideboard)}` : ''}`
+    return ['Quantity,Name,Set,Collector Number,Foil,Board', commanders, mainboard, side]
+      .filter(Boolean)
+      .join('\n')
+  const main = format === 'plain' ? `COMMANDER:\n${commanders}\n\nDECK:\n${mainboard}` : mainboard
+  return `${main}${side ? `\n\nSIDEBOARD:\n${side}` : ''}`
 }
 
 export async function copyDeck(deps: ActionDeps) {
@@ -1049,6 +1054,30 @@ export async function importDeck(deps: ActionDeps, openReviewAfterImport = true)
   }
 }
 
+async function resolveImportedPrinting(
+  entry: ImportedCard,
+  card: ScryfallCard | undefined,
+  signal: AbortSignal,
+) {
+  if (
+    !card ||
+    !entry.finish ||
+    (entry.set && entry.collectorNumber) ||
+    card.finishes?.includes(entry.finish)
+  )
+    return card
+  const url = new URL(card.prints_search_uri || 'https://api.scryfall.com/cards/search')
+  url.searchParams.set(
+    'q',
+    `${url.searchParams.get('q') ?? `!"${card.name}"`} game:paper is:${entry.finish}`,
+  )
+  url.searchParams.set('unique', 'prints')
+  url.searchParams.set('order', 'released')
+  url.searchParams.set('dir', 'desc')
+  const printings = await fetchScryfallPrintings(url.toString(), fetch, signal)
+  return printings.find((printing) => printing.finishes?.includes(entry.finish!)) ?? card
+}
+
 async function resolveImportedCards(imported: ImportedDeck, signal: AbortSignal) {
   const commanderEntries = imported.cards.filter(({ board }: any) => board === 'commander')
   if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
@@ -1086,7 +1115,11 @@ async function resolveImportedCards(imported: ImportedDeck, signal: AbortSignal)
         `Not found: ${missingCardNames(result.not_found, unresolved).join(', ')}. Check spelling, set, and collector number.`,
       )
   }
-  const resolved = imported.cards.map((entry: any) => matchImportedCard(entry, fetched))
+  const resolved = await Promise.all(
+    imported.cards.map((entry) =>
+      resolveImportedPrinting(entry, matchImportedCard(entry, fetched), signal),
+    ),
+  )
   const stillMissing = imported.cards.filter((_: any, index: any) => !resolved[index])
   if (stillMissing.length)
     throw new Error(
@@ -1171,7 +1204,9 @@ export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck
   const printings = commanderCards.map(({ card }, index) => {
     const all = prepared.commanderDetails?.printings?.[index] ?? []
     const own = printingOptions([card])
-    return own.every((option) => all.some((item: any) => item.image === option.image))
+    return own.every((option) =>
+      all.some((item: any) => item.image === option.image && item.finish === option.finish),
+    )
       ? all
       : [...own, ...all]
   })
