@@ -2,6 +2,34 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [B33] Show special foil types and make finishes survive export
+
+**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — The data path is clear, but the visual effects need rendered review, and Scryfall doesn't say which finish a foil type belongs to.
+
+The app only knows three finishes: nonfoil, foil and etched. Scryfall `finishes` uses the same three values, but the specific foil type is recorded in `promo_types` (`surgefoil`, `galaxyfoil`, `halofoil` and so on), which the app ignores. As a result, every special foil looks and reads as a plain traditional foil, and an exported deck loses its finishes when it is imported again.
+
+- Read `promo_types` from Scryfall card data and derive the foil type for each printing option. Derive it on load from the saved printing instead of storing it. Show a foil type only on the `foil` finish: Scryfall doesn't say which finish a promo type applies to (for example, 693 surge foil printings also have a nonfoil finish), and `silverfoil` is never foil-only.
+- Name the foil type wherever the finish is shown today, for example "Surge foil" in card details, the deck-list finish label and the printing choice. Use the plain name and fall back to "Foil".
+- Give the most common types their own effect under "Motion and finishes": surge, galaxy, silverscreen, ripple, double-rainbow or rainbow, and halo. Other types keep the current holo effect. Keep the effects cheap enough for four large offered cards; see the rendering note in `docs/ux-review.md`.
+- Parse ` *F*`, ` *E*` and the CSV `Foil` column on import, so the app's own exports keep their finishes when imported again.
+- Merge `commanderPrintingOptions` and `cardPrintingOptions` in `src/domain/printing.ts`. They differ only in `art`.
+- Document `promo_types`, the finish ambiguity and the type names in `docs/domain/data-sources.md`, and cite mtg.wiki "Foil" as the reference for type names and descriptions.
+
+**Status:** Complete (2026-10-13).
+
+Foil types come from Scryfall `promo_types` and show as labels ("Surge foil") in the deck list, basic-land rows, card details and printing choice. Hovering a foil or etched card renders its effect with one shared, lazy-loaded WebGL renderer in `FinishedCardImage`; the CSS effects remain the fallback, and reduced motion or "Motion and finishes" off removes both. Imports read ` *F*`, ` *E*` and the CSV `Foil` column. A name-only foil or etched line looks up the newest paper printing with that finish. Plain exports have COMMANDER and DECK headings, and every export condenses identical cards into one line with a quantity. Importing a deck keeps the commander's full printing list, so its art can still be cycled. The dev contact sheet and preview pages stay for future foil work; see [docs/dev/foil-feedback-loop.md](docs/dev/foil-feedback-loop.md).
+
+Acceptance evidence (Chrome on the dev server, 2026-10-12 and 2026-10-13): MSC 211 Sol Ring as foil shows "Surge foil" and the surge effect, and as nonfoil shows neither. Plain, Moxfield (with a commander heading added) and CSV exports re-import with foil, etched and condensed basics intact. With "Motion and finishes" off, labels stay and no effect or canvas renders. Halo, facet and cosmic WebGL effects and the CSS fallback were reviewed in light and dark mode. Narrow layouts and the OS reduced-motion setting were not checked in the browser.
+
+Current context: finish model in `src/domain/card-model.ts` and `src/deck-state.ts`; printing options in `src/domain/printing.ts`; effects in `FinishedCardImage` (`src/shared/CardArt.tsx`) and `src/styles/cards.css`; shared hover renderer, shader and facet presets in `src/shared/foil/`; finish labels in `BuilderView.tsx` and `CardDetails.tsx`; export in `src/app/deck-actions.ts`; import in `src/deck-import.ts`. Scryfall counts and type descriptions were gathered on 2026-10-11 from the bulk card data and mtg.wiki.
+
+Acceptance checks:
+
+- A surge foil printing of Sol Ring (for example MSC 211) chosen as foil shows "Surge foil" in the deck list and card details, and the surge effect. Its nonfoil finish shows no foil type.
+- Exporting a deck with a foil card and an etched card as text and as CSV, then importing each, keeps both finishes.
+- With "Motion and finishes" off, no foil effect renders, but the foil type labels are still shown.
+- Rendered review in light and dark mode covers each new effect and the fallback.
+
 ## [B18] Move saved decks and autosaves out of localStorage
 
 **Complexity:** High · **Value:** High · **Delivery risk:** Medium — Persistence, migration, and cross-tab sync change together; an error loses player decks.

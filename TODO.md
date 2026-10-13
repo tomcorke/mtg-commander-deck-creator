@@ -23,71 +23,46 @@ Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5
 
 Ship the completed-feature batch before starting A16–A19 or B15–B17. A15's Moxfield verification remains open; its technical work does not establish that outcome. A6 closed at the user's request without representative-player review.
 
-A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `chore/todo-shipping@64efe8f`. A20–A33 and B18–B32 come from the 2026-10-04 visual design and UX review of the live site (`main@0ccbaed`). B18 shipped first because it could lose decks. Release evidence and nonblocking follow-ups are in [the acceptance record](docs/completed-features-acceptance-2026-10-04.md). B33 was added on 2026-10-11 at the user's request as a high priority.
+A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `chore/todo-shipping@64efe8f`. A20–A33 and B18–B32 come from the 2026-10-04 visual design and UX review of the live site (`main@0ccbaed`). B18 shipped first because it could lose decks. Release evidence and nonblocking follow-ups are in [the acceptance record](docs/completed-features-acceptance-2026-10-04.md). B33 shipped on 2026-10-13; see [COMPLETED.md](COMPLETED.md).
 
 | Order | ID  | TODO                                   | Complexity | Value  | Delivery risk | Reason                                                                          |
 | ----- | --- | -------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------- |
-| 1     | B33 | Special foil types; finish round-trip  | Medium     | Medium | Medium        | Requested as high priority; Scryfall promo_types are ignored today.             |
-| 2     | A15 | Remaining Moxfield verification        | Medium     | Medium | Medium        | Policy/provider fixes are implemented; browser access blocked the import check. |
-| 3     | A16 | Clear batch decisions and tile states  | Low        | High   | Low           | Most-used screen; selected Later and Ignore need distinct states.               |
-| 4     | B17 | Consistent mana and land guidance      | Low        | Medium | Low           | Align existing targets and identity-based presentation.                         |
-| 5     | B15 | Actionable review progress and results | Medium     | High   | Low           | Review navigation, feedback and incomplete-deck guidance.                       |
-| 6     | B19 | Consistent card tiles; text deck list  | Medium     | High   | Low           | Five tile styles today; condensed deck list requested.                          |
-| 7     | B31 | Better layout for review additions     | Medium     | High   | Low           | 13 pages of small tiles; builds on B19.                                         |
-| 8     | A22 | Start screen as a full page            | Medium     | High   | Low           | Commander choice is a key step squeezed into a narrow column.                   |
-| 9     | B20 | Replace the 0-100 score display        | Low        | Medium | Low           | Low absolute scores make good picks look poor.                                  |
-| 10    | A28 | Calm card-data check status            | Low        | Medium | Low           | Red banner, layout shift and empty curve on every reload.                       |
-| 11    | A30 | Card art clear of tile controls        | Low        | Medium | Low           | Art covers a decision control.                                                  |
-| 12    | A31 | Card details from recommendation names | Low        | Medium | Low           | Reuse CardReference as ui.md requires.                                          |
-| 13    | B28 | Deck review on small decks             | Low        | Medium | Low           | Early review looks broken and shows false success checks.                       |
-| 14    | B30 | Plain labels for review additions      | Low        | Medium | Low           | Copy only.                                                                      |
-| 15    | A21 | Simpler commander Choose button        | Low        | Medium | Low           | Removes three-line wrapping and misalignment.                                   |
-| 16    | A20 | Clearer commander tile captions        | Low        | Medium | Low           | Copy and layout only.                                                           |
-| 17    | A24 | Builder starts at the top              | Low        | Medium | Low           | Header is cut off after choosing a commander.                                   |
-| 18    | A26 | Clearer play-style cards               | Low        | Medium | Low           | First choice after picking a commander.                                         |
-| 19    | B27 | Clearer search results and actions     | Low        | Medium | Low           | Copy and action styling.                                                        |
-| 20    | B22 | Investigation: button hierarchy        | Medium     | Medium | Low           | Spike and prototype before any change.                                          |
-| 21    | B24 | Document repeated role-target figures  | Low        | Medium | Low           | Doc for a layout decision.                                                      |
-| 22    | B25 | Confirmation dialog consistency        | Low        | Medium | Low           | Replace window.confirm after agreeing a pattern.                                |
-| 23    | B16 | Role-tag and cut-flag accuracy         | High       | High   | Medium        | Investigate labelled real decks before changing heuristics.                     |
-| 24    | A17 | Forgiving, transparent import          | Medium     | Medium | Low           | Front-face matching, partial imports and replacement confirmation.              |
-| 25    | A18 | Narrow-screen layout                   | Medium     | Medium | Low           | Keep progress visible and remove overflow.                                      |
-| 26    | A19 | Start-screen keyboard and SR state     | Low        | Medium | Low           | Finish result navigation and focus handoff on the new discovery flow.           |
-| 27    | B26 | Readable search filters                | Medium     | Medium | Low           | Narrow nested-scroll panel and unclear labels.                                  |
-| 28    | B29 | Remaining dialog issues                | Medium     | Medium | Low           | Save/load, export and settings fixes; storage usage after B18.                  |
-| 29    | B23 | Consistent content widths              | Medium     | Medium | Low           | Shared page widths; A22 and B19 benefit.                                        |
-| 30    | B21 | Shared text components                 | High       | Medium | Medium        | Agree a type scale first; touches most screens.                                 |
-| 31    | A23 | Consistent header labels               | Low        | Low    | Low           | Copy only.                                                                      |
-| 32    | A25 | Correct card-count wording             | Low        | Low    | Low           | Copy only.                                                                      |
-| 33    | A27 | Accurate setup and loading headings    | Low        | Low    | Low           | Copy by state.                                                                  |
-| 34    | A29 | Less prominent Start over              | Low        | Low    | Low           | Button style.                                                                   |
-| 35    | A32 | Intro guide placement                  | Low        | Low    | Low           | Popover positioning.                                                            |
-| 36    | A33 | Move the API request indicator         | Low        | Low    | Low           | Move one control.                                                               |
-| 37    | B32 | Step-heading focus style               | Low        | Low    | Low           | CSS.                                                                            |
-
-## [B33] Show special foil types and make finishes survive export
-
-**Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — The data path is clear, but the visual effects need rendered review, and Scryfall doesn't say which finish a foil type belongs to.
-
-The app only knows three finishes: nonfoil, foil and etched. Scryfall `finishes` uses the same three values, but the specific foil type is recorded in `promo_types` (`surgefoil`, `galaxyfoil`, `halofoil` and so on), which the app ignores. As a result, every special foil looks and reads as a plain traditional foil, and an exported deck loses its finishes when it is imported again.
-
-- Read `promo_types` from Scryfall card data and derive the foil type for each printing option. Derive it on load from the saved printing instead of storing it. Show a foil type only on the `foil` finish: Scryfall doesn't say which finish a promo type applies to (for example, 693 surge foil printings also have a nonfoil finish), and `silverfoil` is never foil-only.
-- Name the foil type wherever the finish is shown today, for example "Surge foil" in card details, the deck-list finish label and the printing choice. Use the plain name and fall back to "Foil".
-- Give the most common types their own effect under "Motion and finishes": surge, galaxy, silverscreen, ripple, double-rainbow or rainbow, and halo. Other types keep the current holo effect. Keep the effects cheap enough for four large offered cards; see the rendering note in `docs/ux-review.md`.
-- Parse ` *F*`, ` *E*` and the CSV `Foil` column on import, so the app's own exports keep their finishes when imported again.
-- Merge `commanderPrintingOptions` and `cardPrintingOptions` in `src/domain/printing.ts`. They differ only in `art`.
-- Document `promo_types`, the finish ambiguity and the type names in `docs/domain/data-sources.md`, and cite mtg.wiki "Foil" as the reference for type names and descriptions.
-
-Status (2026-10-12): data, labels, import and CSS effects are done on `feat/b33-foil-types` (not merged). Name-only foil and etched imports now look up the newest matching paper printing when needed; explicit set and collector numbers retain their printing. Plain exports include commander and deck headings, and plain, Moxfield and CSV exports condense identical printing/finish/board entries into quantities. Basic-land rows show each distinct finish label once. Round-trip and mocked-fetch tests cover the export and import changes. WebGL integration is implemented on its child branch `feat/b33-webgl` in `E:\working\worktrees\mtg-b33-webgl`: `FinishedCardImage` lazy-loads one shared renderer on foil hover, hands off from CSS only after a rendered frame, and updates the texture when the face or printing changes. CSS remains the fallback; reduced motion and the display preference prevent the canvas. The dev comparison pages retain their CSS-only samples. Remaining: Chrome review in light, dark and narrow layouts, user acceptance, then merge and release. See [docs/dev/foil-feedback-loop.md](docs/dev/foil-feedback-loop.md).
-
-Current context: finish model in `src/domain/card-model.ts` and `src/deck-state.ts`; printing options in `src/domain/printing.ts`; effects in `FinishedCardImage` (`src/shared/CardArt.tsx`) and `src/styles/cards.css`; shared hover renderer, shader and facet presets in `src/shared/foil/`; finish labels in `BuilderView.tsx` and `CardDetails.tsx`; export in `src/app/deck-actions.ts`; import in `src/deck-import.ts`. Scryfall counts and type descriptions were gathered on 2026-10-11 from the bulk card data and mtg.wiki.
-
-Acceptance checks:
-
-- A surge foil printing of Sol Ring (for example MSC 211) chosen as foil shows "Surge foil" in the deck list and card details, and the surge effect. Its nonfoil finish shows no foil type.
-- Exporting a deck with a foil card and an etched card as text and as CSV, then importing each, keeps both finishes.
-- With "Motion and finishes" off, no foil effect renders, but the foil type labels are still shown.
-- Rendered review in light and dark mode covers each new effect and the fallback.
+| 1     | A15 | Remaining Moxfield verification        | Medium     | Medium | Medium        | Policy/provider fixes are implemented; browser access blocked the import check. |
+| 2     | A16 | Clear batch decisions and tile states  | Low        | High   | Low           | Most-used screen; selected Later and Ignore need distinct states.               |
+| 3     | B17 | Consistent mana and land guidance      | Low        | Medium | Low           | Align existing targets and identity-based presentation.                         |
+| 4     | B15 | Actionable review progress and results | Medium     | High   | Low           | Review navigation, feedback and incomplete-deck guidance.                       |
+| 5     | B19 | Consistent card tiles; text deck list  | Medium     | High   | Low           | Five tile styles today; condensed deck list requested.                          |
+| 6     | B31 | Better layout for review additions     | Medium     | High   | Low           | 13 pages of small tiles; builds on B19.                                         |
+| 7     | A22 | Start screen as a full page            | Medium     | High   | Low           | Commander choice is a key step squeezed into a narrow column.                   |
+| 8     | B20 | Replace the 0-100 score display        | Low        | Medium | Low           | Low absolute scores make good picks look poor.                                  |
+| 9     | A28 | Calm card-data check status            | Low        | Medium | Low           | Red banner, layout shift and empty curve on every reload.                       |
+| 10    | A30 | Card art clear of tile controls        | Low        | Medium | Low           | Art covers a decision control.                                                  |
+| 11    | A31 | Card details from recommendation names | Low        | Medium | Low           | Reuse CardReference as ui.md requires.                                          |
+| 12    | B28 | Deck review on small decks             | Low        | Medium | Low           | Early review looks broken and shows false success checks.                       |
+| 13    | B30 | Plain labels for review additions      | Low        | Medium | Low           | Copy only.                                                                      |
+| 14    | A21 | Simpler commander Choose button        | Low        | Medium | Low           | Removes three-line wrapping and misalignment.                                   |
+| 15    | A20 | Clearer commander tile captions        | Low        | Medium | Low           | Copy and layout only.                                                           |
+| 16    | A24 | Builder starts at the top              | Low        | Medium | Low           | Header is cut off after choosing a commander.                                   |
+| 17    | A26 | Clearer play-style cards               | Low        | Medium | Low           | First choice after picking a commander.                                         |
+| 18    | B27 | Clearer search results and actions     | Low        | Medium | Low           | Copy and action styling.                                                        |
+| 19    | B22 | Investigation: button hierarchy        | Medium     | Medium | Low           | Spike and prototype before any change.                                          |
+| 20    | B24 | Document repeated role-target figures  | Low        | Medium | Low           | Doc for a layout decision.                                                      |
+| 21    | B25 | Confirmation dialog consistency        | Low        | Medium | Low           | Replace window.confirm after agreeing a pattern.                                |
+| 22    | B16 | Role-tag and cut-flag accuracy         | High       | High   | Medium        | Investigate labelled real decks before changing heuristics.                     |
+| 23    | A17 | Forgiving, transparent import          | Medium     | Medium | Low           | Front-face matching, partial imports and replacement confirmation.              |
+| 24    | A18 | Narrow-screen layout                   | Medium     | Medium | Low           | Keep progress visible and remove overflow.                                      |
+| 25    | A19 | Start-screen keyboard and SR state     | Low        | Medium | Low           | Finish result navigation and focus handoff on the new discovery flow.           |
+| 26    | B26 | Readable search filters                | Medium     | Medium | Low           | Narrow nested-scroll panel and unclear labels.                                  |
+| 27    | B29 | Remaining dialog issues                | Medium     | Medium | Low           | Save/load, export and settings fixes; storage usage after B18.                  |
+| 28    | B23 | Consistent content widths              | Medium     | Medium | Low           | Shared page widths; A22 and B19 benefit.                                        |
+| 29    | B21 | Shared text components                 | High       | Medium | Medium        | Agree a type scale first; touches most screens.                                 |
+| 30    | A23 | Consistent header labels               | Low        | Low    | Low           | Copy only.                                                                      |
+| 31    | A25 | Correct card-count wording             | Low        | Low    | Low           | Copy only.                                                                      |
+| 32    | A27 | Accurate setup and loading headings    | Low        | Low    | Low           | Copy by state.                                                                  |
+| 33    | A29 | Less prominent Start over              | Low        | Low    | Low           | Button style.                                                                   |
+| 34    | A32 | Intro guide placement                  | Low        | Low    | Low           | Popover positioning.                                                            |
+| 35    | A33 | Move the API request indicator         | Low        | Low    | Low           | Move one control.                                                               |
+| 36    | B32 | Step-heading focus style               | Low        | Low    | Low           | CSS.                                                                            |
 
 ## [A15] Verify remaining Moxfield guidance after policy/provider fixes
 
