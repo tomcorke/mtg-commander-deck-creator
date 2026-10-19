@@ -23,7 +23,7 @@ Completed goals: [COMPLETED.md](COMPLETED.md) — A1, A3, A4, A5, B1, B2, B3, B5
 
 Ship the completed-feature batch before starting A16–A19 or B15–B17. A15's Moxfield verification remains open; its technical work does not establish that outcome. A6 closed at the user's request without representative-player review.
 
-A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `chore/todo-shipping@64efe8f`. A20–A33 and B18–B32 come from the 2026-10-04 visual design and UX review of the live site (`main@0ccbaed`). B18 shipped first because it could lose decks. Release evidence and nonblocking follow-ups are in [the acceptance record](docs/completed-features-acceptance-2026-10-04.md). B33 shipped on 2026-10-13; see [COMPLETED.md](COMPLETED.md).
+A16–A19 and B15–B17 come from the 2026-10-04 Chrome interaction review of `chore/todo-shipping@64efe8f`. A20–A33 and B18–B32 come from the 2026-10-04 visual design and UX review of the live site (`main@0ccbaed`). B18 shipped first because it could lose decks. Release evidence and nonblocking follow-ups are in [the acceptance record](docs/completed-features-acceptance-2026-10-04.md). B33 shipped on 2026-10-13. B34 adds type/subtype search and moves rules-text search beside the name filter; see [COMPLETED.md](COMPLETED.md).
 
 | Order | ID  | TODO                                   | Complexity | Value  | Delivery risk | Reason                                                                          |
 | ----- | --- | -------------------------------------- | ---------- | ------ | ------------- | ------------------------------------------------------------------------------- |

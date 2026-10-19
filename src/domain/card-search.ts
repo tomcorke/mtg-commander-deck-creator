@@ -7,6 +7,8 @@ export type SearchMatch = 'any' | 'need' | 'exclude'
 export type CardSearchFilters = {
   name: string
   nameMatch: SearchMatch
+  typeLine: string
+  typeLineMatch: SearchMatch
   minimumManaValue: string
   maximumManaValue: string
   manaValueMatch: SearchMatch
@@ -19,6 +21,8 @@ export type CardSearchFilters = {
 export const defaultCardSearchFilters: CardSearchFilters = {
   name: '',
   nameMatch: 'need',
+  typeLine: '',
+  typeLineMatch: 'need',
   minimumManaValue: '',
   maximumManaValue: '',
   manaValueMatch: 'need',
@@ -97,27 +101,29 @@ export function buildCardSearchQuery(
   const manaOptions = cardSearchManaOptions(
     filters.filterIdentity ? commanderColours : ['W', 'U', 'B', 'R', 'G'],
   )
-  const phrases = (value: string, match: SearchMatch) =>
+  const phrases = (field: 't' | 'o', value: string, match: SearchMatch) =>
     value
       .split(',')
       .map((phrase) => phrase.trim())
       .filter(Boolean)
-      .map((phrase) => matchTerm(`o:${quoted(phrase)}`, match))
+      .map((phrase) => matchTerm(`${field}:${quoted(phrase)}`, match))
   const query = [
     'legal:commander',
     filters.filterIdentity ? `id<=${commanderColours.join('').toLowerCase() || 'c'}` : '',
     excludeUnreleased ? 'date<=today' : '',
     filters.name.trim() ? matchTerm(`name:${quoted(filters.name.trim())}`, filters.nameMatch) : '',
+    ...phrases('t', filters.typeLine, filters.typeLineMatch),
     range ? matchTerm(range, filters.manaValueMatch) : '',
     ...[...manaOptions, ...cardSearchKeywords].map(({ query, label }) =>
       matchTerm(query, filters.matches[label] ?? 'any'),
     ),
-    ...phrases(filters.rulesNeed, 'need'),
-    ...phrases(filters.rulesExclude, 'exclude'),
+    ...phrases('o', filters.rulesNeed, 'need'),
+    ...phrases('o', filters.rulesExclude, 'exclude'),
   ]
     .filter(Boolean)
     .join(' ')
-  if (query.length > 1000) throw new Error('Too many search terms. Shorten the name or rules text.')
+  if (query.length > 1000)
+    throw new Error('Too many search terms. Shorten the name, types, or rules text.')
   return query
 }
 

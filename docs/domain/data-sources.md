@@ -43,6 +43,7 @@ The [syntax guide](https://scryfall.com/docs/syntax) defines predicates evaluate
 
 - **`is:commander`** finds commander-eligible cards; **`legal:commander`** finds cards legal for inclusion. There is no per-card `can_be_commander` boolean. Eligibility alone does not validate a partner pairing or replace legality. Excluding `is:commander` also excludes eligible legends that could be useful in the 99.
 - **`id<=...`** filters colour identity; `c:` filters colour. `mana:` and `mv:` query costs and mana value, respectively. These are different properties.
+- **`t:`** (or `type:`) searches the type line, including card types, supertypes, and subtypes. Class and Saga searches use `t:class` and `t:saga`, not name or Oracle-text searches. Checked against the search API on 2026-10-19.
 - **`is:gamechanger`** corresponds to current list membership. **`otag:`** searches Scryfall Tagger's functional Oracle tags, not a rules keyword or the app's regex tags. `o:` searches Oracle wording; it does not execute the effect. Tagger classifications can change; see [the tag API](https://scryfall.com/docs/api/tags).
 - **`date<=today`**, set, finish, and price predicates constrain printing data. A rolled-up result is still one selected printing, not every edition or every price of that card.
 
