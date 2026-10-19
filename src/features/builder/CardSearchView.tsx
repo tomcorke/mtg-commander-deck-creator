@@ -104,6 +104,52 @@ function SearchFilters({
         value={filters.nameMatch}
         onChange={(nameMatch) => setFilters((current) => ({ ...current, nameMatch }))}
       />
+      <label className="search-field">
+        Type or subtype
+        <input
+          value={filters.typeLine}
+          autoComplete="off"
+          placeholder="e.g. Saga"
+          aria-describedby="search-type-help"
+          onChange={(event) =>
+            setFilters((current) => ({ ...current, typeLine: event.target.value }))
+          }
+        />
+      </label>
+      <MatchSelect
+        label="Type or subtype"
+        value={filters.typeLineMatch}
+        onChange={(typeLineMatch) => setFilters((current) => ({ ...current, typeLineMatch }))}
+      />
+      <p id="search-type-help">
+        Matches the type line, including subtypes such as Class, Saga, or Zombie.
+      </p>
+      <label className="search-field">
+        Rules text contains
+        <input
+          value={filters.rulesNeed}
+          placeholder="e.g. draw a card"
+          aria-describedby="search-text-help"
+          onChange={(event) =>
+            setFilters((current) => ({ ...current, rulesNeed: event.target.value }))
+          }
+        />
+      </label>
+      <label className="search-field">
+        Exclude rules text
+        <input
+          value={filters.rulesExclude}
+          placeholder="e.g. discard"
+          aria-describedby="search-text-help"
+          onChange={(event) =>
+            setFilters((current) => ({ ...current, rulesExclude: event.target.value }))
+          }
+        />
+      </label>
+      <p id="search-text-help">
+        Rules text searches Oracle wording, not flavour text. Separate type or text phrases with
+        commas. Every Need filter must match; any Exclude match removes a card.
+      </p>
       <fieldset>
         <legend>Mana value</legend>
         <div className="search-value-bounds">
@@ -195,30 +241,6 @@ function SearchFilters({
           mentions do not guarantee a particular interaction.
         </p>
       </details>
-      <label className="search-field">
-        Need rules text
-        <input
-          value={filters.rulesNeed}
-          placeholder="e.g. proliferate, treasure"
-          onChange={(event) =>
-            setFilters((current) => ({ ...current, rulesNeed: event.target.value }))
-          }
-        />
-      </label>
-      <label className="search-field">
-        Exclude rules text
-        <input
-          value={filters.rulesExclude}
-          placeholder="e.g. discard"
-          onChange={(event) =>
-            setFilters((current) => ({ ...current, rulesExclude: event.target.value }))
-          }
-        />
-      </label>
-      <p>
-        Separate phrases with commas. Every Need filter must match; any Exclude match removes a
-        card.
-      </p>
     </>
   )
 }
@@ -547,8 +569,8 @@ export function CardSearchView({
           {status === 'loading' && <p role="status">Searching Scryfall…</p>}
           {!request && (
             <p>
-              Search by name, use filters without a name, or browse all legal cards. Choose cards
-              individually or select several to add together.
+              Search by name, type or subtype (such as Class or Saga), or rules text. No name is
+              needed. Choose cards individually or select several to add together.
             </p>
           )}
           {request && status === 'idle' && !available.length && (

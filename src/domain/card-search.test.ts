@@ -127,11 +127,39 @@ test('names and rules-text phrases remain literal, and exclusions negate whole c
   assert.ok(!query({ minimumManaValue: '1', manaValueMatch: 'any' }).includes('mv>='))
 })
 
+test('searches types and subtypes without a name and combines them with Oracle text', () => {
+  for (const typeLine of ['Class', 'Saga', 'Creature', 'Zombie'])
+    assert.equal(query({ typeLine }), `legal:commander id<=gu date<=today t:"${typeLine}"`)
+  assert.equal(
+    query({
+      typeLine: ' Enchantment, Saga, ',
+      rulesNeed: 'draw a card',
+      rulesExclude: 'discard',
+    }),
+    'legal:commander id<=gu date<=today t:"Enchantment" t:"Saga" o:"draw a card" -(o:"discard")',
+  )
+  assert.equal(
+    query({ typeLine: 'Class, Saga', typeLineMatch: 'exclude' }),
+    'legal:commander id<=gu date<=today -(t:"Class") -(t:"Saga")',
+  )
+  assert.equal(
+    query({ rulesNeed: 'draw a card' }),
+    'legal:commander id<=gu date<=today o:"draw a card"',
+  )
+  assert.equal(query({ typeLine: 'Saga', typeLineMatch: 'any' }), query())
+  assert.equal(query({ typeLine: ' ,  , ' }), query())
+  assert.equal(
+    query({ typeLine: 'A "quoted" type \\' }),
+    'legal:commander id<=gu date<=today t:"A \\"quoted\\" type \\\\"',
+  )
+})
+
 test('rejects invalid bounds and oversized queries before sending a request', () => {
   for (const minimumManaValue of ['-1', 'NaN', 'Infinity'])
     assert.throws(() => query({ minimumManaValue }), /non-negative/)
   assert.throws(() => query({ minimumManaValue: '4', maximumManaValue: '2' }), /must not exceed/)
   assert.throws(() => query({ rulesNeed: 'x'.repeat(1000) }), /Too many search terms/)
+  assert.throws(() => query({ typeLine: 'x'.repeat(1000) }), /Too many search terms/)
 })
 
 test('multi-add fills the main deck then sideboard, preserving chosen printing and finish', () => {

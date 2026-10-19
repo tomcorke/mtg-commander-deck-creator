@@ -2,6 +2,24 @@
 
 Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
 
+## [B34] Search by type, subtype, and Oracle text
+
+**Complexity:** Low · **Value:** High · **Delivery risk:** Low — Reuses Scryfall predicates and the existing search controls.
+
+**Status:** Complete (2026-10-19).
+
+- Added a Type or subtype field near Name, with the existing Any / Need / Exclude controls. Class and Saga searches need no card name. Comma-separated required terms all match; excluded terms each remove matching cards.
+- Moved the existing rules-text fields above mana and keyword filters, renamed the required field to "Rules text contains", and explained that it searches Oracle wording rather than flavour text.
+- Kept Commander legality, identity, release filters, pagination, and card-adding behavior unchanged.
+
+Acceptance evidence:
+
+- Query tests cover Class, Saga, Creature, Zombie, combined type and Oracle phrases, exclusions, ignored and empty terms, literal escaping, and query-length validation. All 312 unit tests pass.
+- Chrome 155 checks at 1440px and 390px cover Class, Saga with Oracle text, excluded types and wording, reset, Oracle-only search, name and image previews, and filters surviving card details and Add. Rendered light and dark layouts have no horizontal overflow. Browser providers were mocked using live Scryfall card records; live search API calls separately confirmed Class and Saga results.
+- `pnpm lint`, `pnpm typecheck`, and `pnpm build` pass. Existing lint and bundle-size warnings remain.
+
+Current context: `src/domain/card-search.ts`, `src/domain/card-search.test.ts`, and `src/features/builder/CardSearchView.tsx`. Broader filter-layout work remains in B26.
+
 ## [B33] Show special foil types and make finishes survive export
 
 **Complexity:** Medium · **Value:** Medium · **Delivery risk:** Medium — The data path is clear, but the visual effects need rendered review, and Scryfall doesn't say which finish a foil type belongs to.
