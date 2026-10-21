@@ -25,4 +25,4 @@ Batch only tightly related edits. Skip publishing docs-only changes.
 
 ## MTG domain knowledge
 
-- Read `CONTEXT.md` before code, docs, or UI copy that depends on an MTG or Commander fact: rules, legality, brackets, Game Changers, card data, or deck-building heuristics. Its references outrank remembered MTG knowledge, which is often out of date.
+- Read `CONTEXT.md` before code, docs, or UI copy that depends on an MTG or Commander fact. Shared rules, policy, eligibility, and provider knowledge live in `E:/working/mtg-knowledge-base`; read its `AGENTS.md` and matching topic before relying on or updating a claim. Keep that checkout beside this repository. App terminology, heuristic limits, and audits stay here. Sourced references outrank remembered MTG knowledge.

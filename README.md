@@ -32,6 +32,10 @@ pnpm audit:recommendations -- --output recommendation-audit.md
 
 The script fetches current Archidekt, EDHREC, and Scryfall data, then imports the same recommendation builder and queue transition functions used by the app. It does not automate or duplicate the UI implementation.
 
+## MTG knowledge
+
+Shared rules, format policy, commander eligibility, and provider references live in the sibling `E:/working/mtg-knowledge-base` repository. Keep both checkouts side by side when working on MTG-dependent behavior. Start with [CONTEXT.md](CONTEXT.md); app terminology, heuristic limits, and code audits remain here. The knowledge base is a documentation dependency, not an app runtime dependency.
+
 ## Design decisions
 
 - React, TypeScript, and Vite provide a client-only single-page app with fast local HMR.

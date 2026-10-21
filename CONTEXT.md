@@ -2,20 +2,22 @@
 
 This app helps a player build a 100-card Magic: The Gathering Commander deck. This file defines the app's domain terms and points to the reference material agents must use instead of remembered MTG knowledge.
 
+Shared MTG references now live in the sibling [MTG knowledge base](../mtg-knowledge-base/README.md) at `E:/working/mtg-knowledge-base`. Read its `AGENTS.md` before using or updating those notes. Keep that checkout beside this repository; worktrees use the same main knowledge-base checkout. App terminology, heuristic implementations, and code audits remain here. Migration preserved the original check dates; it did not revalidate sources.
+
 ## Use the references, not memory
 
 Commander rules and policy changed often in 2024–2026. Model training data is likely to be out of date: for example, on legendary Vehicles as commanders, partner variants, tutors in brackets, the Game Changers list, Lutri's companion ban, and hybrid colour identity. Before writing code or docs that depend on an MTG fact, check the matching reference:
 
 | Question                                                                                                        | Read                                                                                                                                                                                         |
 | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| What does the game allow? Deck size, singleton, colour identity, partners, companions, mana value, mana symbols | [docs/domain/commander-rules.md](docs/domain/commander-rules.md)                                                                                                                             |
-| Can this card be a commander?                                                                                   | [docs/commander-eligibility.md](docs/commander-eligibility.md)                                                                                                                               |
-| What is banned? What do brackets and Game Changers mean?                                                        | [docs/domain/format-policy.md](docs/domain/format-policy.md)                                                                                                                                 |
-| What do Scryfall and EDHREC fields mean, and how far can they be trusted?                                       | [docs/domain/data-sources.md](docs/domain/data-sources.md)                                                                                                                                   |
+| What does the game allow? Deck size, singleton, colour identity, partners, companions, mana value, mana symbols | [Commander rules](../mtg-knowledge-base/knowledge/topics/commander/rules.md)                                                                                                                 |
+| Can this card be a commander?                                                                                   | [Commander eligibility](../mtg-knowledge-base/knowledge/topics/commander/eligibility.md)                                                                                                     |
+| What is banned? What do brackets and Game Changers mean?                                                        | [Format policy](../mtg-knowledge-base/knowledge/topics/commander/format-policy.md)                                                                                                           |
+| What do Scryfall and EDHREC fields mean, and how far can they be trusted?                                       | [Card data sources](../mtg-knowledge-base/knowledge/topics/providers/card-data.md); [app integration](docs/domain/data-sources.md)                                                           |
 | Which app numbers and classifiers are heuristics, and what are their limits?                                    | [docs/domain/heuristics.md](docs/domain/heuristics.md)                                                                                                                                       |
 | Where does the code encode an MTG assumption, and is it right?                                                  | [docs/domain/assumption-audit-2026-10-03.md](docs/domain/assumption-audit-2026-10-03.md), a dated snapshot whose line numbers drift; its fixes are tracked in `TODO.md` as B12, B13, and A15 |
 
-If a reference does not answer the question, check the primary source it cites, then add the answer to the reference with the date checked.
+If a reference does not answer the question, check the primary source it cites, then add the answer to the matching knowledge-base topic with the date checked. App-only findings stay in this repository.
 
 ## Kinds of domain claim
 
@@ -50,7 +52,7 @@ Prefer reading rules and policy from Scryfall fields at runtime over hard-coding
 
 **Power** — Core, Upgraded, or High power. It selects app-specific recommendation filters; Core excludes a short list of fast-mana cards. It is not a bracket verdict, and Core is not a preconstructed-deck power claim.
 
-**Exclusions** — independent recommendation filters for Game Changers, tutors, extra turns, and unreleased cards. Tutor, extra-turn, and release filters are player preferences, not bracket limits. Game Changer counts have official bracket limits; see [format policy](docs/domain/format-policy.md). These filters do not verify a bracket.
+**Exclusions** — independent recommendation filters for Game Changers, tutors, extra turns, and unreleased cards. Tutor, extra-turn, and release filters are player preferences, not bracket limits. Game Changer counts have official bracket limits; see [format policy](../mtg-knowledge-base/knowledge/topics/commander/format-policy.md). These filters do not verify a bracket.
 
 **Bracket** — one of Wizards' five Commander Brackets, describing intended game experience. The app may say which bracket guidelines a deck appears to meet. It must not assign a bracket.
 
