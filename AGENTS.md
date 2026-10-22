@@ -20,7 +20,8 @@ Batch only tightly related edits. Skip publishing docs-only changes.
 
 ## Project planning
 
-- `TODO.md` is the source of truth for planned work. Read it before planning and update it when scope or priority changes.
+- GitHub issues are the source of truth for planned work. Run `gh issue list` before planning; open, update, or close issues when scope or priority changes.
+- Label each issue with `complexity:`, `value:`, and `risk:` (`low`/`medium`/`high`). Issues migrated from the retired `TODO.md` keep their `[A#]`/`[B#]` ID in the title; `COMPLETED.md` is a frozen record of goals closed before the move.
 - This is a single-context repo. See `docs/agents/domain.md`.
 
 ## MTG domain knowledge
