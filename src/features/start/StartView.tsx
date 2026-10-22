@@ -80,7 +80,7 @@ export function StartView(props: StartViewProps) {
             Import deck
           </button>
           <button className="export" type="button" onClick={props.openSavedDecks}>
-            Drafts / saved decks ({props.savedDecks} saves)
+            Saved decks ({props.savedDecks})
           </button>
           <RequestActivityIndicator />
         </div>
