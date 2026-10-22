@@ -856,7 +856,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       <ArtLoading active={loadingArt === card.name} />
                     </div>
                     <div className="card-copy">
-                      <h3>{card.name}</h3>
+                      <h3>
+                        <CardReference card={card} onOpen={() => model.openCardReference(card)} />
+                      </h3>
                       <p className="offer-reason">{reason.sentence}</p>
                       <p>
                         <OracleText text={card.detail} />
