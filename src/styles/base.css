@@ -292,26 +292,6 @@ main > .workspace-alert .modal-close {
   cursor: not-allowed;
   opacity: 0.55;
 }
-.header-destructive {
-  margin-left: 4px;
-  padding-left: 14px;
-  border-left: 1px solid #d7d4e3;
-}
-.start-over {
-  padding: 8px 11px;
-  border: 1px solid #a94840;
-  border-radius: 7px;
-  background: #fff7f6;
-  color: #9a392f;
-  font-weight: 600;
-}
-.start-over:hover {
-  background: #f4e4e3;
-}
-.start-over:focus-visible {
-  outline: 3px solid #8c3131;
-  outline-offset: 2px;
-}
 
 .display-settings {
   position: relative;

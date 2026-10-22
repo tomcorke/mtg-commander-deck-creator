@@ -56,20 +56,6 @@
   border-color: #615b96;
   color: #d4d0ed;
 }
-.dark .header-destructive {
-  border-color: #4a3442;
-}
-.dark .start-over {
-  border-color: #9e5d61;
-  background: #302127;
-  color: #f0aaa4;
-}
-.dark .start-over:hover {
-  background: #3b252c;
-}
-.dark .start-over:focus-visible {
-  outline-color: #f0aaa4;
-}
 .dark .subthemes button {
   border-color: #615b96;
   color: #d4d0ed;
