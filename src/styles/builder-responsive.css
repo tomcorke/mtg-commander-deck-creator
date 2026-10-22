@@ -210,7 +210,6 @@
 }
 .dark .deck-board .deck-group ol > li {
   border-color: #393650;
-  background: #201f34;
 }
 .dark .deck-add,
 .dark .deck-remove,
@@ -332,9 +331,6 @@
   }
 }
 @media (max-width: 520px) {
-  .deck-board .deck-group ol {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  }
   .recommendation-toolbar,
   .toolbar-actions {
     align-items: stretch;

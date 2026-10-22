@@ -61,13 +61,13 @@
 }
 .deck-board .deck-list {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 32px;
   max-width: 1940px;
   align-items: start;
 }
 .deck-board .deck-column {
-  display: contents;
+  min-width: 0;
 }
 .deck-board .deck-group {
   break-inside: avoid;

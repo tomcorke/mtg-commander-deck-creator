@@ -1237,7 +1237,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         return (
                           <li
                             data-highlighted={highlighted || undefined}
-                            className={`deck-card-tile ${highlighted ? '' : 'deck-highlight-dimmed'}`}
+                            className={highlighted ? '' : 'deck-highlight-dimmed'}
                             key={`${card.name}-${index}`}
                           >
                             {activeHighlightLabel && highlighted && (
@@ -1255,7 +1255,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                               )}
                               <CardReference
                                 card={card}
-                                thumbnail
                                 className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
                                 onOpen={() => openDeckCard(card, { board: 'deck', index })}
                               />
@@ -1310,12 +1309,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                               if (label) labels.add(label)
                             }
                             return (
-                              <li className="basic-land-row deck-card-tile" key={name}>
+                              <li className="basic-land-row" key={name}>
                                 <span className="deck-card-reference">
                                   <b className="card-quantity">{basics.length}×</b>
                                   <CardReference
                                     card={card}
-                                    thumbnail
                                     className="deck-card-name"
                                     onOpen={() => openDeckCard(card, { board: 'deck', index })}
                                   />
@@ -1351,7 +1349,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             )
                           })}
                           {unrepresentedBasicNames.map((name) => (
-                            <li className="basic-placeholder deck-card-tile" key={name}>
+                            <li className="basic-placeholder" key={name}>
                               <button
                                 type="button"
                                 disabled={deck.length >= 100}
@@ -1394,11 +1392,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   </summary>
                   <ol>
                     {sideboard.map((card, index) => (
-                      <li className="deck-card-tile" key={`${card.name}-${index}`}>
+                      <li key={`${card.name}-${index}`}>
                         <span className="deck-card-reference">
                           <CardReference
                             card={card}
-                            thumbnail
                             className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
                             onOpen={() => openDeckCard(card, { board: 'sideboard', index })}
                           />

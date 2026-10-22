@@ -998,47 +998,15 @@ li b {
   color: #82ba98;
 }
 
-.deck-board .deck-group ol {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-  gap: 10px;
-}
-.deck-board .deck-group ol > li.deck-card-tile {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  min-width: 0;
-  align-content: start;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid #d5d3e1;
-  border-radius: 8px;
-  background: #f8f8ff;
-  font-size: var(--decision-text);
+.deck-board .deck-group ol > li {
+  padding: 4px 0;
 }
 .deck-board .deck-card-reference {
   display: flex;
+  flex: 1;
   min-width: 0;
   align-items: center;
   gap: 6px;
-}
-.deck-board .deck-card-reference .card-reference {
-  flex: 1;
-  min-width: 0;
-}
-.deck-board .deck-card-reference .deck-card-name {
-  display: flex;
-  width: 100%;
-  min-height: 44px;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--decision-text);
-  line-height: 1.25;
-}
-.deck-board .deck-card-reference .card-reference-name {
-  overflow-wrap: break-word;
-}
-.deck-board .deck-card-reference .card-reference-thumbnail {
-  width: 36px;
 }
 .deck-board .deck-card-reference > .alternate-printing {
   position: static;
@@ -1049,16 +1017,6 @@ li b {
   flex: none;
   margin: 0 0 0 6px;
   font-size: 11px;
-}
-.deck-board .deck-card-meta {
-  width: 100%;
-  min-width: 0;
-  justify-content: space-between;
-  gap: 8px;
-}
-.deck-board .deck-mana {
-  min-width: 0;
-  justify-content: flex-start;
 }
 .deck-board .deck-group ol > li .deck-remove-wrap {
   position: static;
@@ -1083,7 +1041,6 @@ li b {
 }
 .deck-board .basic-placeholder > button {
   display: flex;
-  min-height: 44px;
   align-items: center;
   justify-content: space-between;
   font-size: var(--decision-text);
