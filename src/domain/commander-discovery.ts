@@ -107,7 +107,7 @@ export async function discoverCommanders(
     ? `Curated for ${filters.theme}`
     : term
       ? `Oracle text matches ${filters.theme}`
-      : 'Scryfall commander search'
+      : ''
   return filterCommanders(cards, filters).map((card) => ({ card, reason }))
 }
 
