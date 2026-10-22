@@ -19,13 +19,9 @@
 .dark .score-breakdown {
   border-color: #39374f;
 }
-.dark .score-breakdown-heading h4,
+.dark .score-breakdown-heading,
 .dark .score-factors dd {
   color: #ccc9df;
-}
-.dark .score-radar-grid,
-.dark .score-radar-axis {
-  stroke: #39374f;
 }
 .dark .score-factors dt,
 .dark .score-breakdown .score-note {

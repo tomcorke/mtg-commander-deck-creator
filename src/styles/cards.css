@@ -927,55 +927,18 @@ button:disabled {
   border-top: 1px solid #dedcea;
 }
 .score-breakdown-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-.score-breakdown-heading h4 {
-  margin: 0;
   color: #514e66;
+  cursor: pointer;
   font:
     600 var(--decision-text) 'DM Sans',
     sans-serif;
   letter-spacing: 0.7px;
   text-transform: uppercase;
 }
-.score-breakdown-heading strong {
-  color: #7546a8;
-  font-size: 16px;
-}
-.score-breakdown-content {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 10px;
-  margin-top: 9px;
-  align-items: center;
-}
-.score-radar {
-  display: block;
-  width: 92px;
-  height: 92px;
-  overflow: visible;
-}
-.score-radar-grid {
-  fill: none;
-  stroke: #dedcea;
-  stroke-width: 0.8;
-}
-.score-radar-axis {
-  stroke: #dedcea;
-  stroke-width: 0.6;
-}
-.score-radar-area {
-  fill: color-mix(in srgb, var(--commander-accent, #7546a8) 28%, transparent);
-  stroke: var(--commander-accent, #7546a8);
-  stroke-width: 1.5;
-}
 .score-factors {
   display: grid;
   gap: 4px;
-  margin: 0;
+  margin: 9px 0 0;
   font-size: var(--decision-text);
   line-height: 1.35;
 }
