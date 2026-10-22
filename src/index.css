@@ -3,3 +3,7 @@ a:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
+/* Script-set focus targets (headings, dialog containers) need no ring; controls keep theirs. */
+[tabindex='-1']:focus {
+  outline: none;
+}
