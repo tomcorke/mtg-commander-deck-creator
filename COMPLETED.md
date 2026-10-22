@@ -1,6 +1,6 @@
 # Completed work
 
-Closed goals moved from [TODO.md](TODO.md). IDs remain reserved and are not reused.
+Goals closed before planning moved to [GitHub issues](https://github.com/tomcorke/mtg-commander-deck-creator/issues). This record is frozen; IDs remain reserved and are not reused.
 
 ## [B34] Search by type, subtype, and Oracle text
 

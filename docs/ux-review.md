@@ -4,7 +4,7 @@ Reviewed 2026-10-03 against `main@e7d6a1e` (app v0.1.123), running locally in Ch
 
 The four focus areas follow, each with observed issues and proposed changes. Cross-cutting issues and a suggested order come at the end.
 
-**Update:** Large recommendation cards and four-card batches are deliberate design choices, so this review no longer proposes shrinking cards or enlarging batches. Prioritised work is tracked in [TODO.md](../TODO.md).
+**Update:** Large recommendation cards and four-card batches are deliberate design choices, so this review no longer proposes shrinking cards or enlarging batches. Prioritised work is tracked in [GitHub issues](https://github.com/tomcorke/mtg-commander-deck-creator/issues).
 
 ## Summary
 

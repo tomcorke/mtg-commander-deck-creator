@@ -55,7 +55,7 @@ Shared rules, format policy, commander eligibility, and provider references live
 
 ## Planned work
 
-See [TODO.md](TODO.md) for planned tasks, supporting context, ratings, and suggested order.
+Planned work is tracked in [GitHub issues](https://github.com/tomcorke/mtg-commander-deck-creator/issues).
 
 ## Publishing
 
