@@ -1282,9 +1282,14 @@ export async function startOver(deps: ActionDeps) {
     setTheme,
   } = deps
   if (
-    !window.confirm(
-      'Start a new deck? Your current deck remains available in Autosaved drafts. Manual saves are unchanged.',
-    )
+    // Lazy import keeps this module loadable by node's test runner, which cannot parse TSX.
+    !(await (
+      await import('../shared/ConfirmDialog.tsx')
+    ).confirmDialog({
+      title: 'Start a new deck?',
+      message: 'Your current deck stays available in Autosaved drafts. Manual saves are unchanged.',
+      confirmLabel: 'Start new deck',
+    }))
   )
     return
   if (deps.beginWorkspace && !(await deps.beginWorkspace())) return

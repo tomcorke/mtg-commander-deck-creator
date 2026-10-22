@@ -6,6 +6,7 @@ import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import type { DeckCard } from '../../domain/card-model.ts'
 import type { AutosavedDraft, DeckWorkspace } from '../../autosaves.ts'
+import { confirmDialog } from '../../shared/ConfirmDialog.tsx'
 import { DraftSavedTime } from './WorkspaceNotice.tsx'
 
 type SavedDecksModalProps = {
@@ -67,9 +68,12 @@ export function SavedDecksModal({
     const count = await workspace.previewRetention(limits)
     if (
       count &&
-      !window.confirm(
-        `Apply limits and delete ${count} inactive draft${count === 1 ? '' : 's'}? Manual saves and decks open in tabs are kept.`,
-      )
+      !(await confirmDialog({
+        title: `Delete ${count} inactive draft${count === 1 ? '' : 's'}?`,
+        message:
+          'Applying these limits deletes them. Manual saves and decks open in tabs are kept.',
+        confirmLabel: `Delete ${count} draft${count === 1 ? '' : 's'}`,
+      }))
     )
       return
     const removed = await workspace.setRetention(limits)
@@ -253,13 +257,15 @@ export function SavedDecksModal({
           <>
             <form
               className="save-deck-form"
-              onSubmit={(event) => {
+              onSubmit={async (event) => {
                 event.preventDefault()
                 if (
                   deckNameDuplicate &&
-                  !window.confirm(
-                    `Overwrite the manual save named "${deckName.trim()}"? This replaces its saved deck.`,
-                  )
+                  !(await confirmDialog({
+                    title: `Overwrite "${deckName.trim()}"?`,
+                    message: 'This replaces the deck in that manual save.',
+                    confirmLabel: 'Overwrite',
+                  }))
                 )
                   return
                 storeDeck(deckNameDuplicate)

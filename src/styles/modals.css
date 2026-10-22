@@ -1646,3 +1646,11 @@ main > .commander-header {
   background: #684695;
   color: #fff;
 }
+.confirm-modal {
+  width: min(440px, calc(100vw - 32px));
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
