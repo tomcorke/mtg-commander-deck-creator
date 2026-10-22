@@ -116,7 +116,7 @@ async function mockProviders(context: BrowserContext) {
 }
 
 async function openPicker(page: Page) {
-  await page.getByRole('button', { name: /Save \/ load|Drafts \/ saved decks/ }).click()
+  await page.getByRole('button', { name: /^Saved decks/ }).click()
   await page.getByRole('dialog', { name: 'Drafts and saved decks' }).waitFor()
 }
 
