@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { RequestActivitySummary } from './RequestActivityIndicator.tsx'
 import { useVisualPreferences } from './VisualPreferencesContext.tsx'
 
 export function DisplaySettingsMenu() {
@@ -59,6 +60,7 @@ export function DisplaySettingsMenu() {
               {label}
             </label>
           ))}
+          <RequestActivitySummary />
         </div>
       )}
     </div>
