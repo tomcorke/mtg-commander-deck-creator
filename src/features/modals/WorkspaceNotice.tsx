@@ -48,7 +48,8 @@ export function WorkspaceNotice({
         <section className="workspace-notice" aria-label="Draft recovery">
           <p role="status">
             {notice.latest ? 'Automatically restored your latest draft' : 'Restored your draft'}:{' '}
-            <b>{notice.draft.state.commander}</b> ({notice.draft.state.deck.length} cards, saved{' '}
+            <b>{notice.draft.state.commander}</b> ({notice.draft.state.deck.length} card
+            {notice.draft.state.deck.length === 1 ? '' : 's'}, saved{' '}
             <DraftSavedTime updatedAt={notice.draft.updatedAt} />
             ).
             {notice.copied && ' This tab edits its own copy.'}

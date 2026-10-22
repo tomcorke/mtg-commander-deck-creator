@@ -167,7 +167,9 @@ function recommendationReason(
   const evidence = card.seedEvidence?.[0]
   if (!evidence || !card.reason.startsWith('Seen with ')) return explanation
   const seed = selected.find(({ name }) => name === evidence.seed)
-  const decks = evidence.decks ? ` in ${evidence.decks.toLocaleString('en')} decks on EDHREC` : ''
+  const decks = evidence.decks
+    ? ` in ${evidence.decks.toLocaleString('en')} deck${evidence.decks === 1 ? '' : 's'} on EDHREC`
+    : ''
   return {
     label: 'Deck engine',
     sentence: seed ? (
@@ -1019,7 +1021,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </div>
             <p className="sr-only" aria-live="polite">
               {activeHighlightLabel
-                ? `${highlightedCardCount} cards highlighted for ${activeHighlightLabel}. Other cards are dimmed.`
+                ? `${highlightedCardCount} card${highlightedCardCount === 1 ? '' : 's'} highlighted for ${activeHighlightLabel}. Other cards are dimmed.`
                 : 'Deck highlight filter cleared.'}
             </p>
             <ManaCurve
@@ -1083,7 +1085,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   }}
                 >
                   <span>Fill to land target</span>
-                  <b>{landGap} lands left</b>
+                  <b>
+                    {landGap} land{landGap === 1 ? '' : 's'} left
+                  </b>
                 </button>
               ) : (
                 <p className="land-fill-later">
@@ -1185,7 +1189,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="deck-board-heading">
             <div>
               <p className="eyebrow">Your deck</p>
-              <h2 id="deck-list-title">{deck.length} cards</h2>
+              <h2 id="deck-list-title">
+                {deck.length} card{deck.length === 1 ? '' : 's'}
+              </h2>
             </div>
             <div>
               <span>
@@ -1197,8 +1203,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           {activeHighlightLabel && (
             <div className="deck-review-filter-status" role="status">
               <span>
-                {highlightedCardCount} cards highlighted for {activeHighlightLabel}; other cards are
-                dimmed.
+                {highlightedCardCount} card{highlightedCardCount === 1 ? '' : 's'} highlighted for{' '}
+                {activeHighlightLabel}; other cards are dimmed.
               </span>
               <button
                 className="export"
