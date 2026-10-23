@@ -70,8 +70,7 @@ export function SavedDecksModal({
       count &&
       !(await confirmDialog({
         title: `Delete ${count} inactive draft${count === 1 ? '' : 's'}?`,
-        message:
-          'Applying these limits deletes them. Manual saves and decks open in tabs are kept.',
+        message: `Applying these limits deletes ${count === 1 ? 'it' : 'them'}. Manual saves and decks open in tabs are kept.`,
         confirmLabel: `Delete ${count} draft${count === 1 ? '' : 's'}`,
       }))
     )
