@@ -116,7 +116,7 @@ async function mockProviders(context: BrowserContext) {
 }
 
 async function openPicker(page: Page) {
-  await page.getByRole('button', { name: /Save \/ load|Drafts \/ saved decks/ }).click()
+  await page.getByRole('button', { name: /^Saved decks/ }).click()
   await page.getByRole('dialog', { name: 'Drafts and saved decks' }).waitFor()
 }
 
@@ -519,7 +519,7 @@ async function unchangedCopies(page: Page, context: BrowserContext) {
     assert.notEqual(copy.id, (await currentDraft(page)).id)
     assert.equal(copy.state.savedDeckId, '')
     await peer.reload()
-    await peer.getByRole('button', { name: 'Save / load', exact: true }).waitFor()
+    await peer.getByRole('button', { name: 'Saved decks', exact: true }).waitFor()
     assert.equal(
       await peer.locator('[aria-label="Draft recovery"]').count(),
       0,
@@ -544,7 +544,7 @@ async function legacyLinks(page: Page, context: BrowserContext) {
   const url = new URL('/', page.url()).href
   const pages = context.pages()
   await Promise.all(
-    pages.map((peer) => peer.getByRole('button', { name: 'Save / load', exact: true }).waitFor()),
+    pages.map((peer) => peer.getByRole('button', { name: 'Saved decks', exact: true }).waitFor()),
   )
   const states = await Promise.all(pages.map(currentDraft))
   const owner = pages[states.findIndex(({ state }) => state.savedDeckId === manual.id)]
@@ -579,7 +579,7 @@ async function legacyLinks(page: Page, context: BrowserContext) {
   await copy.close()
   const restored = await context.newPage()
   await restored.goto(url)
-  await restored.getByRole('button', { name: 'Save / load', exact: true }).waitFor()
+  await restored.getByRole('button', { name: 'Saved decks', exact: true }).waitFor()
   assert.equal((await currentDraft(restored)).state.savedDeckId, manual.id)
   assert.equal((await currentDraft(restored)).name, manual.name)
   assert.doesNotMatch(
@@ -748,7 +748,7 @@ async function noticeAndKeyboard(page: Page) {
     recovery,
   )
   await page.reload()
-  await page.getByRole('button', { name: 'Save / load', exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Saved decks', exact: true }).waitFor()
   assert.equal(await page.locator('[aria-label="Draft recovery"]').count(), 0)
   await openPicker(page)
   const currentRow = page
@@ -808,7 +808,7 @@ async function noticeAndKeyboard(page: Page) {
   })
   await openPicker(page)
   await currentRow.getByRole('button', { name: 'Open in this tab', exact: true }).click()
-  await page.getByRole('button', { name: 'Save / load', exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Saved decks', exact: true }).waitFor()
   assert.deepEqual(
     (await currentDraft(page)).state,
     before,

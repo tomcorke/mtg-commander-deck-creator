@@ -52,10 +52,10 @@ export function BuilderTopBar({
           Start over
         </button>
         <button className="export" type="button" onClick={onImport}>
-          Import
+          Import deck
         </button>
         <button className="export" type="button" onClick={onSaveLoad}>
-          Save / load
+          Saved decks
         </button>
         <button className="export" type="button" onClick={onExport}>
           Export deck
