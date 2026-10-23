@@ -212,6 +212,7 @@ main > .workspace-alert .modal-close {
   font-weight: 600;
 }
 .progress {
+  position: relative;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -223,6 +224,13 @@ main > .workspace-alert .modal-close {
   height: 5px;
   border-radius: 9px;
   background: linear-gradient(90deg, #7650ae 3%, #dedcea 3%);
+}
+.card-data-status {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  font-size: 12px;
+  white-space: nowrap;
 }
 .export,
 .actions button,

@@ -501,60 +501,52 @@ function DeckReviewScreen({
 }
 
 function CurrentCardDataNotice({ state, actions, builderData }: AppViewProps) {
+  // The header shows the check; a banner here would shift the page when it ends.
+  if (builderData.cardDataPending) return null
   return (
     <>
       {builderData.cardDataNotices.length > 0 && (
-        <section
-          className="workspace-notice"
-          role={builderData.cardDataPending ? 'status' : 'alert'}
-          aria-label="Current card data"
-        >
+        <section className="workspace-notice" role="alert" aria-label="Current card data">
           <p className="form-error">
-            {builderData.cardDataPending
-              ? 'Checking current card data. Cards and choices are kept.'
-              : `Card data warnings for ${builderData.cardDataNotices.length} ${builderData.cardDataNotices.length === 1 ? 'card' : 'cards'}. Cards and choices have been kept.`}
+            {`Card data warnings for ${builderData.cardDataNotices.length} ${builderData.cardDataNotices.length === 1 ? 'card' : 'cards'}. Cards and choices have been kept.`}
             {state.deck.length === 100 &&
               !builderData.deckComplete &&
               ' This deck needs validation; it is not verified complete.'}
           </p>
-          {!builderData.cardDataPending && (
-            <details className="workspace-notice-details">
-              <summary>Show cards</summary>
-              {builderData.cardDataNotices.map(
-                ({ card, message }: { card: DeckCard; message: string }, index: number) => (
-                  <p key={index}>
-                    <CardReference card={card} onOpen={() => actions.openCardReference(card)} />:{' '}
-                    {message}
-                  </p>
-                ),
-              )}
-            </details>
-          )}
-          {!builderData.cardDataPending && (
-            <div className="workspace-notice-actions">
-              {builderData.cardDataNotices.some(
-                ({ card }: { card: DeckCard }) =>
-                  card.dataStatus === 'unavailable' ||
-                  card.gameChanger === undefined ||
-                  card.commanderLegality === undefined ||
-                  card.colorIdentity === undefined ||
-                  !card.manaValueKnown,
-              ) && (
-                <button className="export" type="button" onClick={actions.retryCurrentCardData}>
-                  Retry current card data
-                </button>
-              )}
-              {!builderData.deckComplete && (
-                <button
-                  className="export"
-                  type="button"
-                  onClick={() => actions.navigateView('builder', 'review')}
-                >
-                  Review deck
-                </button>
-              )}
-            </div>
-          )}
+          <details className="workspace-notice-details">
+            <summary>Show cards</summary>
+            {builderData.cardDataNotices.map(
+              ({ card, message }: { card: DeckCard; message: string }, index: number) => (
+                <p key={index}>
+                  <CardReference card={card} onOpen={() => actions.openCardReference(card)} />:{' '}
+                  {message}
+                </p>
+              ),
+            )}
+          </details>
+          <div className="workspace-notice-actions">
+            {builderData.cardDataNotices.some(
+              ({ card }: { card: DeckCard }) =>
+                card.dataStatus === 'unavailable' ||
+                card.gameChanger === undefined ||
+                card.commanderLegality === undefined ||
+                card.colorIdentity === undefined ||
+                !card.manaValueKnown,
+            ) && (
+              <button className="export" type="button" onClick={actions.retryCurrentCardData}>
+                Retry current card data
+              </button>
+            )}
+            {!builderData.deckComplete && (
+              <button
+                className="export"
+                type="button"
+                onClick={() => actions.navigateView('builder', 'review')}
+              >
+                Review deck
+              </button>
+            )}
+          </div>
         </section>
       )}
     </>
@@ -612,6 +604,7 @@ export function AppView({ state, actions, builderData }: AppViewProps) {
       <BuilderTopBar
         activeDeckDelta={state.activeDeckDelta}
         activeSavedDeck={state.activeSavedDeck}
+        checkingCardData={builderData.cardDataPending}
         deckCount={state.deck.length}
         startOver={actions.startOver}
         onImport={() => {
