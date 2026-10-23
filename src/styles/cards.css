@@ -28,6 +28,8 @@
     --pointer-proximity: 0 !important;
   }
   .juicy-fan .offered-image {
+    /* Room for the hover lift and scale (collapses with .actions' 10px bottom margin). */
+    margin-top: 24px;
     user-select: none;
     -webkit-user-drag: none;
     transform: translateY(calc(var(--fan-drop) - var(--pointer-proximity, 0) * 9px))
