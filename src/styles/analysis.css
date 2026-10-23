@@ -95,8 +95,28 @@
   background: #dedcea;
 }
 .actions .quiet {
-  border-color: transparent;
-  color: #817e91;
+  color: #5f5c72;
+}
+.actions > div button[aria-pressed='true']:not(.primary) {
+  border-color: var(--commander-accent, #36327f);
+  background: #d5d0f2;
+  color: #26234a;
+  font-weight: 700;
+}
+.dark .actions > div button[aria-pressed='true']:not(.primary) {
+  border-color: #a69fde;
+  background: #423c69;
+  color: white;
+}
+.actions > div button[aria-pressed='true']::before {
+  content: '✓ ';
+}
+.batch-undecided {
+  color: #5f5c72;
+  font-size: 13px;
+}
+.dark .batch-undecided {
+  color: #aaa8c2;
 }
 .action-help-wrap {
   position: relative;

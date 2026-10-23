@@ -19,7 +19,6 @@ import {
   findSynergyPair,
   manaSupportFromAnalysis,
   recommendationScoreBreakdown,
-  recommendedScoreThreshold,
   sharedThemes,
   supportedThemes,
   themeMatchesSearch,
@@ -407,21 +406,6 @@ function buildRecommendationData(
       })),
     })
   const scoredBatch = visibleBatch.map((card: Card) => ({ card, score: scoreCandidate(card) }))
-  const best = scoredBatch
-    .filter(
-      ({ card }) =>
-        !recommendationDataError(
-          card,
-          deps.deck,
-          deps.commanderDetails?.colours ?? [],
-          deps.excludeGameChangers,
-        ),
-    )
-    .sort((left, right) => compareRecommendationScores(left.score, right.score))[0]
-  const recommendedCard = {
-    card: best && best.score.total >= recommendedScoreThreshold ? best.card : null,
-    score: best?.score.total ?? recommendedScoreThreshold - 1,
-  }
   return {
     rawBatch,
     synergyPair,
@@ -435,7 +419,6 @@ function buildRecommendationData(
     scoreReplacements,
     suggestFindingChanges,
     scoredBatch,
-    recommendedCard,
   }
 }
 

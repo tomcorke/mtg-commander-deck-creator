@@ -96,16 +96,6 @@
 .offer-heading .suggestion-type {
   flex: 1;
 }
-.recommended-badge {
-  padding: 3px 6px;
-  border-radius: 10px;
-  background: var(--commander-accent, #5d568d);
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
 .decision-badge {
   position: absolute;
   z-index: 4;
@@ -187,7 +177,7 @@
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
 }
-.card-offer.later {
+.card-offer.later > :not(.actions):not(.decision-badge) {
   opacity: 0.42;
 }
 .card-offer.ignore > :not(.ignore-feedback):not(.actions):not(.decision-badge) {
