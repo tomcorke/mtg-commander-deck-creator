@@ -129,7 +129,6 @@ type BuilderViewModel = {
   recommendationState: 'idle' | 'loading' | 'error'
   recommendationStyle: RecommendationStyle
   maxPrice: number | null
-  recommendedCard: { card: Card | null; score: number }
   scoredBatch: { card: Card; score: RecommendationScoreBreakdown }[]
   search: string
   sideboard: DeckCard[]
@@ -273,7 +272,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     recommendationState,
     recommendationStyle,
     maxPrice,
-    recommendedCard,
     removeDeckCard,
     removeSideboardCard,
     resetFan,
@@ -308,6 +306,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     theme,
     toggleCollectionSet,
   } = model
+  const undecidedCount = scoredBatch.filter(({ card }) => !decisions[card.name]).length
   const batchHeading = useRef<HTMLHeadingElement>(null)
   const landFillTrigger = useRef<HTMLButtonElement>(null)
   const manaSymbols = [...manaColours, 'C', 'S'] as const
@@ -580,6 +579,12 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   <button className="primary" type="button" onClick={() => void nextBatch()}>
                     Next recommendations →
                   </button>
+                  {undecidedCount > 0 && (
+                    <span className="batch-undecided">
+                      {undecidedCount} undecided {undecidedCount === 1 ? 'card' : 'cards'} will come
+                      back later
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -681,22 +686,15 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     onClick={(event) => clickCardImage(event, card)}
                     key={card.name}
                   >
-                    {decisions[card.name] && (
+                    {decisions[card.name] === 'add' && (
                       <span className="decision-badge">
-                        {decisions[card.name] === 'add'
-                          ? sideboard.some((item) => item.name === card.name)
-                            ? 'Added to sideboard'
-                            : 'Added to deck'
-                          : decisions[card.name] === 'later'
-                            ? 'Later'
-                            : 'Ignored'}
+                        {sideboard.some((item) => item.name === card.name)
+                          ? 'Added to sideboard'
+                          : 'Added to deck'}
                       </span>
                     )}
                     <div className="offer-heading">
                       <p className="suggestion-type">{reason.label}</p>
-                      {recommendedCard.card === card && (
-                        <span className="recommended-badge">Recommended</span>
-                      )}
                     </div>
                     <div
                       data-guide={index === 0 ? 'decisions' : undefined}
@@ -888,7 +886,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         showSubThemes={activeSubThemes.length > 0}
                       />
                     </div>
-                    {commanderPromotionInfo(card, deck, commanderDetails?.colours ?? []) && (
+                    {commanderPromotionInfo(card, deck, commanderDetails?.colours ?? [])
+                      ?.canPromote && (
                       <CommanderPromotion
                         info={commanderPromotionInfo(card, deck, commanderDetails?.colours ?? [])!}
                         onPromote={() => void promoteToCommander(card)}

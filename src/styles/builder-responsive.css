@@ -121,7 +121,9 @@
 .batch-controls {
   display: flex;
   flex: none;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 .limited-mode {
   display: flex;
