@@ -35,7 +35,19 @@ type DeckOverviewProps = {
 
 type StatusKind = 'good' | 'attention' | 'neutral'
 
-function ReviewStatus({ kind, label }: { kind: StatusKind; label: string }) {
+// Below this size a passing check says little, so success shows as neutral.
+const earlyDeckSize = 60
+
+function ReviewStatus({
+  kind: rawKind,
+  label,
+  early,
+}: {
+  kind: StatusKind
+  label: string
+  early: boolean
+}) {
+  const kind = early && rawKind === 'good' ? 'neutral' : rawKind
   return (
     <span className={`deck-review-status ${kind}`}>
       <b aria-hidden="true">{kind === 'good' ? '✓' : kind === 'attention' ? '!' : '·'}</b>
@@ -91,6 +103,7 @@ export function DeckOverview({
   selectCards,
 }: DeckOverviewProps) {
   const mainboard = deck.slice(commanderCount)
+  const early = deck.length < earlyDeckSize
   const spellCount = analysis.curve.reduce(
     (sum, point) => sum + point.permanents + point.nonPermanents,
     0,
@@ -165,6 +178,11 @@ export function DeckOverview({
         {sideboardCount === 1 ? 'card' : 'cards'} excluded from analysis. Select any count to show
         matching cards in the deck list.
       </p>
+      {early && (
+        <p className="deck-review-early" role="note">
+          Early checks only: the full review needs at least {earlyDeckSize} cards to mean much.
+        </p>
+      )}
 
       <div className="deck-review-grid">
         <section className="deck-review-section deck-review-overview">
@@ -173,6 +191,7 @@ export function DeckOverview({
           <div className="deck-review-findings">
             <div>
               <ReviewStatus
+                early={early}
                 kind={roleTargetsMet === targetKeys.length ? 'good' : 'attention'}
                 label={roleTargetsMet === targetKeys.length ? 'On target' : 'Needs attention'}
               />
@@ -182,6 +201,7 @@ export function DeckOverview({
             </div>
             <div>
               <ReviewStatus
+                early={early}
                 kind={unsupportedColours ? 'attention' : hasColourSignal ? 'good' : 'neutral'}
                 label={
                   unsupportedColours
@@ -198,6 +218,7 @@ export function DeckOverview({
             </div>
             <div>
               <ReviewStatus
+                early={early}
                 kind={
                   !selectedTags.length
                     ? 'neutral'
@@ -260,6 +281,7 @@ export function DeckOverview({
                       />
                     </span>
                     <ReviewStatus
+                      early={early}
                       kind={gap ? 'attention' : 'good'}
                       label={gap ? `${gap} below target` : 'Target met'}
                     />
@@ -311,6 +333,7 @@ export function DeckOverview({
                   <ManaSymbols symbols={[colour]} />
                   <b>{manaGuidanceName(colour)}</b>
                   <ReviewStatus
+                    early={early}
                     kind={
                       pips > 0 && sourceCards.length === 0
                         ? 'attention'
@@ -366,6 +389,7 @@ export function DeckOverview({
                     <span className="deck-review-tag-heading">
                       <b>{tag}</b>
                       <ReviewStatus
+                        early={early}
                         kind={kind}
                         label={
                           selected ? (cards.length ? 'Matches found' : 'No matches') : 'Detected'

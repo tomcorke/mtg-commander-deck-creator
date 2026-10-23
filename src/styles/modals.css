@@ -377,7 +377,15 @@
   display: grid;
   gap: 12px;
 }
-.doctor-overview .deck-review-grid {
+.doctor-overview .deck-review-early {
+  margin: 8px 0 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #eeedf7;
+  color: #514e66;
+  font-size: 14px;
+}
+.deck-review-grid {
   margin-top: 0;
 }
 .doctor-page-context h1 {
@@ -1064,6 +1072,10 @@
 }
 .deck-review-type-filter {
   gap: 5px;
+}
+.dark .deck-review-early {
+  background: #292644;
+  color: #c4c1d5;
 }
 .dark .deck-review-intro {
   color: #c4c1d5;
