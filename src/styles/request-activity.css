@@ -50,7 +50,9 @@
   line-height: 1.4;
 }
 .display-settings-panel .request-activity-details {
+  min-width: 0;
   padding-top: 12px;
+  white-space: normal;
   border-top: 1px solid #bbb9cd;
 }
 .dark .display-settings-panel .request-activity-details {
