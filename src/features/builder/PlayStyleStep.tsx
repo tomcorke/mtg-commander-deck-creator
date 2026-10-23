@@ -17,7 +17,7 @@ export function PlayStyleStep({
 }) {
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
-    heading.current?.focus()
+    heading.current?.focus({ preventScroll: true })
   }, [])
   const matching = matchingPlayStyle(settings)
   return (

@@ -1,4 +1,4 @@
-import { type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { colourNames, randomItems, selectableThemes } from '../../domain/commander-catalog.ts'
 import type { AppModal, AppView } from '../../app/routes.ts'
 import {
@@ -51,6 +51,8 @@ type StartViewProps = {
 export function StartView(props: StartViewProps) {
   const { darkMode } = useVisualPreferences()
   const discovery = useCommanderDiscovery(props, true)
+  // Leaving the start screen opens the next view at the top, not at the old scroll position.
+  useEffect(() => () => scrollTo({ top: 0 }), [])
   const resume = Boolean(props.commander && props.deck.length)
   const draft =
     props.autosave.drafts.find(({ id }) => id === props.autosave.id) ?? props.autosave.notice?.draft
