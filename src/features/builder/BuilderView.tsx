@@ -25,6 +25,7 @@ import {
   curveBucket,
   type DeckTargets,
   type ManaColour,
+  manaGuidanceSymbols,
   rolesForCard,
   targetKeys,
   targetLabels,
@@ -309,7 +310,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   const undecidedCount = scoredBatch.filter(({ card }) => !decisions[card.name]).length
   const batchHeading = useRef<HTMLHeadingElement>(null)
   const landFillTrigger = useRef<HTMLButtonElement>(null)
-  const manaSymbols = [...manaColours, 'C', 'S'] as const
+  // Any-colour sources (Command Tower, Fellwar Stone) cannot make off-identity mana.
+  const manaSymbols = manaGuidanceSymbols(commanderDetails?.colours ?? [...manaColours])
+  const [landLow, landHigh] = analysis.landRange
+  const suggestedLands = Math.round((landLow + landHigh) / 2)
   const reviewFilterNames = new Set(deckReviewFilter?.cardNames ?? [])
   const activeHighlightLabel =
     deckReviewFilter?.label ??
@@ -1074,10 +1078,23 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </div>
             <div className="target-heading">
               <h4>Deck targets</h4>
-              <span>
-                Suggested lands {analysis.landRange[0]}-{analysis.landRange[1]}
-              </span>
             </div>
+            {(deckTargets.lands < landLow || deckTargets.lands > landHigh) && (
+              <p className="land-fill-later">
+                <span>
+                  This curve suggests {landLow}–{landHigh} lands.
+                </span>
+                <button
+                  type="button"
+                  className="compact-action"
+                  onClick={() =>
+                    setDeckTargets((current) => ({ ...current, lands: suggestedLands }))
+                  }
+                >
+                  Use {suggestedLands}
+                </button>
+              </p>
+            )}
             {basicLands.length > 0 &&
               (showLandFill ? (
                 <button
