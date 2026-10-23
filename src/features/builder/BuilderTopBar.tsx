@@ -48,11 +48,9 @@ export function BuilderTopBar({
       </div>
       <div className="header-actions">
         <DisplaySettingsMenu />
-        <div className="header-destructive">
-          <button className="start-over" type="button" onClick={startOver}>
-            Start over
-          </button>
-        </div>
+        <button className="export" type="button" onClick={startOver}>
+          Start over
+        </button>
         <button className="export" type="button" onClick={onImport}>
           Import
         </button>
