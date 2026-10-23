@@ -686,10 +686,13 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     onClick={(event) => clickCardImage(event, card)}
                     key={card.name}
                   >
-                    {decisions[card.name] === 'add' &&
-                      sideboard.some((item) => item.name === card.name) && (
-                        <span className="decision-badge">Added to sideboard</span>
-                      )}
+                    {decisions[card.name] === 'add' && (
+                      <span className="decision-badge">
+                        {sideboard.some((item) => item.name === card.name)
+                          ? 'Added to sideboard'
+                          : 'Added to deck'}
+                      </span>
+                    )}
                     <div className="offer-heading">
                       <p className="suggestion-type">{reason.label}</p>
                     </div>
