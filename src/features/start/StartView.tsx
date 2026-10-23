@@ -242,16 +242,17 @@ export function StartView(props: StartViewProps) {
                     onOpen={() => props.openCardReference(converted)}
                   />
                   <p className="commander-reason" id={reasonId}>
-                    {reason}
+                    <OracleText text={card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''} />
+                    {reason && <span>{reason}</span>}
                   </p>
                   <button
                     className="export commander-choose"
                     type="button"
-                    aria-describedby={reasonId}
+                    aria-label={`Choose ${card.name}`}
+                    aria-describedby={reason ? reasonId : undefined}
                     onClick={() => void props.chooseCommander(card.name)}
                   >
-                    <OracleText text={card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''} />{' '}
-                    Choose {card.name}
+                    Choose
                   </button>
                 </article>
               )
