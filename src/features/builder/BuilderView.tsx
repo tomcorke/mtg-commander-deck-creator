@@ -389,9 +389,13 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
         <div className="recommendation-setup">
           <div className="section-title">
             <div>
-              <p className="eyebrow">Next pick</p>
+              <p className="eyebrow">{model.playStyleStep ? 'Setup' : 'Next pick'}</p>
               <h2 id="recommendation-batch-title" ref={batchHeading} tabIndex={-1}>
-                Add to your deck
+                {model.playStyleStep
+                  ? 'Choose a play style'
+                  : recommendationState === 'loading'
+                    ? 'Finding cards…'
+                    : 'Add to your deck'}
               </h2>
             </div>
             {!model.awaitingPlayStyle && <span>Batch {batchNumber}</span>}
