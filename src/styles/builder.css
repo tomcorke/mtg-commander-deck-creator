@@ -984,15 +984,18 @@
   flex-direction: column;
   text-align: left;
   align-items: flex-start;
-  gap: 12px;
-  min-height: 160px;
+  gap: 8px;
   white-space: normal;
 }
 .play-style-choice strong {
   font-size: 22px;
 }
 .play-style-choice span {
-  font-size: 14px;
+  font-size: 15px;
+}
+.play-style-choice small {
+  font-size: 13px;
+  opacity: 0.75;
 }
 .play-style-choice[aria-pressed='true'] {
   outline: 2px solid var(--commander-accent, #36327f);
@@ -1005,9 +1008,6 @@
 @media (max-width: 600px) {
   .play-style-choices {
     grid-template-columns: 1fr;
-  }
-  .play-style-choice {
-    min-height: 0;
   }
   .play-style-step .export-actions {
     flex-wrap: wrap;
