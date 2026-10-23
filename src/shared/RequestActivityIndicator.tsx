@@ -42,7 +42,7 @@ const localTime = (at: number) =>
 
 function ActivityDetails({ activity, now }: { activity: RequestActivity; now: number }) {
   return (
-    <>
+    <div className="request-activity-details">
       <strong>API requests — this tab</strong>
       <table>
         <thead>
@@ -86,9 +86,16 @@ function ActivityDetails({ activity, now }: { activity: RequestActivity; now: nu
         Shared calls count once. Cached lookups and card images are excluded. Deferred work is not
         queued.
       </small>
-    </>
+    </div>
   )
 }
+
+export function RequestActivitySummary() {
+  const activity = useSyncExternalStore(observeRequestActivity, getRequestActivity)
+  return <ActivityDetails activity={activity} now={useActivityClock(activity)} />
+}
+
+// Header sign only while a provider is cooling down or enrichment waits; full details live in Display.
 
 export function RequestActivityIndicator() {
   const activity = useSyncExternalStore(observeRequestActivity, getRequestActivity)
@@ -125,6 +132,7 @@ export function RequestActivityIndicator() {
       window.removeEventListener('scroll', position, true)
     }
   }, [open, activity, now])
+  if (!waiting) return null
   return (
     <span className="action-help-wrap request-activity" onMouseEnter={show} onMouseLeave={hide}>
       <button
