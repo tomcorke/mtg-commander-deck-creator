@@ -182,6 +182,8 @@ export function analyseDeck(cards: AnalysisCard[]) {
     counts,
     typeCounts,
     averageManaValue,
+    // Saved decks drop type lines, so the curve is unknown until current card data loads.
+    curvePending: cards.some((card) => card.dataStatus === 'pending'),
     landRange: [Math.max(30, landCentre - 1), Math.min(42, landCentre + 1)] as [number, number],
   }
 }

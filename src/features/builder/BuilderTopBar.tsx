@@ -5,6 +5,7 @@ import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.
 export type BuilderTopBarProps = {
   activeDeckDelta: { added: number; removed: number } | null
   activeSavedDeck: SavedDeck | undefined
+  checkingCardData: boolean
   deckCount: number
   onExport: () => void
   onImport: () => void
@@ -15,6 +16,7 @@ export type BuilderTopBarProps = {
 export function BuilderTopBar({
   activeDeckDelta,
   activeSavedDeck,
+  checkingCardData,
   deckCount,
   onExport,
   onImport,
@@ -44,6 +46,9 @@ export function BuilderTopBar({
             }}
           />
           {deckCount} / 100 cards
+          <small className="card-data-status" role="status">
+            {checkingCardData ? 'Checking card data…' : ''}
+          </small>
         </div>
       </div>
       <div className="header-actions">

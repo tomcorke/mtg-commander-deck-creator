@@ -17,7 +17,11 @@ export function ManaCurve({
   return (
     <>
       <div className="curve-scroll">
-        <div className="mana-curve" aria-label="Mana-value curve">
+        <div
+          className={`mana-curve${analysis.curvePending ? ' curve-pending' : ''}`}
+          aria-label="Mana-value curve"
+          aria-busy={analysis.curvePending}
+        >
           {analysis.curve.map((point) => (
             <button
               type="button"
@@ -50,7 +54,7 @@ export function ManaCurve({
         <span>
           <i className="non-permanent" /> Non-permanent
         </span>
-        <b>Avg {analysis.averageManaValue.toFixed(1)}</b>
+        <b>Avg {analysis.curvePending ? '…' : analysis.averageManaValue.toFixed(1)}</b>
       </div>
     </>
   )
