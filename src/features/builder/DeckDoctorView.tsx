@@ -729,7 +729,9 @@ export function DeckDoctorView({
         Other main-deck cards
         <select value={otherCutFilter} onChange={(event) => setOtherCutFilter(event.target.value)}>
           <option value="">Choose a type or role</option>
-          <option value="all">All {otherCards.length} cards</option>
+          <option value="all">
+            All {otherCards.length} card{otherCards.length === 1 ? '' : 's'}
+          </option>
           <optgroup label="Card type">
             {typeFilters.map((type) => (
               <option key={type} value={`type:${type}`}>
@@ -1269,7 +1271,8 @@ export function DeckDoctorView({
               <p className="doctor-muted">Select cards to cut or add to review the plan.</p>
             ) : (
               <p className="doctor-muted" role="status">
-                Deck size after applying: {deck.length} → {projectedSize} cards
+                Deck size after applying: {deck.length} → {projectedSize} card
+                {projectedSize === 1 ? '' : 's'}
                 {projectedSize < 100
                   ? ` (${100 - projectedSize} short of 100)`
                   : projectedSize > 100
