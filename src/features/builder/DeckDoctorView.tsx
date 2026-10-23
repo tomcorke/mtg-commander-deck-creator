@@ -1138,7 +1138,7 @@ export function DeckDoctorView({
                   <div
                     className="doctor-card-grid doctor-additions-grid"
                     role="region"
-                    aria-label="Replacement candidates"
+                    aria-label="Addition candidates"
                   >
                     {visibleCandidates.map(({ card, score }) => {
                       const selected = selectedAdditionNames.includes(card.name)
@@ -1146,7 +1146,6 @@ export function DeckDoctorView({
                         <CardTile
                           key={card.name}
                           card={card}
-                          status="Replacement"
                           openCard={openCard}
                           note={[
                             card.reason,

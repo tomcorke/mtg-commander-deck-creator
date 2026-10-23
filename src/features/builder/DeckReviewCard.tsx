@@ -41,7 +41,7 @@ export function CardTile({
   quantity,
 }: {
   card: DoctorCard
-  status: string
+  status?: string
   openCard: (card: DoctorCard) => void
   note?: string
   fit?: RecommendationScoreRating
@@ -92,9 +92,11 @@ export function CardTile({
         {card.image ? <SmallCardImage image={card.image} /> : <span>No card art</span>}
       </button>
       <div className="doctor-card-copy">
-        <span className={`doctor-card-status${status.startsWith('In deck') ? ' in-deck' : ''}`}>
-          {status}
-        </span>
+        {status && (
+          <span className={`doctor-card-status${status.startsWith('In deck') ? ' in-deck' : ''}`}>
+            {status}
+          </span>
+        )}
         {fit && (
           <span className={`doctor-card-fit doctor-card-fit--${fit}`}>
             <span className="doctor-card-fit-stars" aria-hidden="true">
