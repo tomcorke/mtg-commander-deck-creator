@@ -158,6 +158,13 @@ type BuilderViewModel = {
   setTheme: Dispatch<SetStateAction<string>>
 }
 
+/** The unmet role target with the lowest share filled, for the narrow-screen deck bar. */
+function neediestTarget(counts: DeckTargets, targets: DeckTargets) {
+  return targetKeys
+    .filter((key) => counts[key] < targets[key])
+    .sort((a, b) => counts[a] / targets[a] - counts[b] / targets[b])[0]
+}
+
 function recommendationReason(
   card: Card,
   explanation: { label: string; sentence: string },
@@ -307,6 +314,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     theme,
     toggleCollectionSet,
   } = model
+  const neediest = neediestTarget(analysis.counts, deckTargets)
   const undecidedCount = scoredBatch.filter(({ card }) => !decisions[card.name]).length
   const batchHeading = useRef<HTMLHeadingElement>(null)
   const landFillTrigger = useRef<HTMLButtonElement>(null)
@@ -489,6 +497,12 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
       )}
       <div className="workspace">
         <section className="recommendations">
+          {/* Narrow screens stack the deck panel far below the batch, so keep its essentials in view. */}
+          <p className="narrow-deck-bar">
+            {deck.length}/100 cards
+            {neediest &&
+              ` · ${targetLabels[neediest]} ${analysis.counts[neediest]} of ${deckTargets[neediest]}`}
+          </p>
           <p className="sr-only" aria-live="polite" aria-atomic="true">
             {batchAnnouncement}
           </p>

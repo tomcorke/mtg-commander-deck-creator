@@ -462,3 +462,58 @@
     width: 100%;
   }
 }
+
+.narrow-deck-bar {
+  display: none;
+}
+@media (max-width: 800px) {
+  .narrow-deck-bar {
+    position: sticky;
+    z-index: 20;
+    top: 0;
+    display: block;
+    margin: -30px -6vw 20px;
+    padding: 10px 6vw;
+    border-bottom: 1px solid #dedcea;
+    background: #f8f8ff;
+    color: #34324a;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .dark .narrow-deck-bar {
+    border-color: #36344f;
+    background: #19182d;
+    color: #e8e6f5;
+  }
+  /* Keep the header to a brand-and-count row plus one row of actions. */
+  header .brand small {
+    display: none;
+  }
+  header .progress {
+    display: flex;
+    white-space: nowrap;
+  }
+  header .brand {
+    font-size: 18px;
+  }
+  header .progress span {
+    display: none;
+  }
+  .header-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .header-actions button {
+    padding: 8px 12px;
+  }
+  /* The last offer action's tooltip would overflow the right edge. */
+  .action-help-wrap:last-child .action-help {
+    left: auto;
+    right: 0;
+    transform: translateY(4px);
+  }
+  .action-help-wrap:last-child:hover .action-help,
+  .action-help-wrap:last-child > button:focus-visible + .action-help {
+    transform: none;
+  }
+}
