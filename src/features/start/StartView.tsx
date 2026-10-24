@@ -224,6 +224,14 @@ export function StartView(props: StartViewProps) {
               Clear filters
             </button>
           </div>
+          <label className="intro-guide-option">
+            <input
+              type="checkbox"
+              checked={props.introGuideRequested}
+              onChange={(event) => props.setIntroGuideRequested(event.target.checked)}
+            />{' '}
+            Walk me through the builder for this deck
+          </label>
         </section>
         <section
           className="commander-discovery"
@@ -326,14 +334,6 @@ export function StartView(props: StartViewProps) {
             </button>
           )}
         </section>
-        <label className="intro-guide-option">
-          <input
-            type="checkbox"
-            checked={props.introGuideRequested}
-            onChange={(event) => props.setIntroGuideRequested(event.target.checked)}
-          />{' '}
-          Show a quick guide when I start my next deck
-        </label>
       </section>
     </main>
   )

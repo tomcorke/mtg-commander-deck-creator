@@ -265,7 +265,7 @@ async function preferences(page: Page) {
 }
 async function styleAndResume(page: Page, requests: string[], label: string) {
   const guideOption = page.getByRole('checkbox', {
-    name: 'Show a quick guide when I start my next deck',
+    name: 'Walk me through the builder for this deck',
   })
   assert.ok(await guideOption.isChecked())
   await chooseCommander(page)
@@ -336,9 +336,7 @@ async function skipAndReload(context: BrowserContext) {
   const page = await context.newPage()
   await page.goto('http://127.0.0.1:5282/#start')
   await page.locator('.commander-tile').first().waitFor()
-  await page
-    .getByRole('checkbox', { name: 'Show a quick guide when I start my next deck' })
-    .uncheck()
+  await page.getByRole('checkbox', { name: 'Walk me through the builder for this deck' }).uncheck()
   const before = await preferences(page)
   await chooseCommander(page)
   await press(page, page.getByRole('button', { name: 'Skip — use current settings', exact: true }))

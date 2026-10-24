@@ -234,11 +234,16 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-top: 28px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #d6d4e2;
   font-size: 14px;
 }
 .intro-guide-option input {
   accent-color: #36327f;
+}
+.dark .intro-guide-option {
+  border-color: #36344f;
 }
 .dark .commander-tile,
 .dark .continue-card {
