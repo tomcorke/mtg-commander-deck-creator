@@ -1076,8 +1076,8 @@ li b {
   justify-content: space-between;
   font-size: var(--decision-text);
 }
-/* Aligned columns: one row when the tile is wide, Add above Later and Ignore when it isn't,
-   and a single stack on the narrowest tiles. */
+/* Wide tiles keep the natural single row beside More like this. Narrower tiles use aligned
+   columns: three across, then Add above Later and Ignore, then a single stack. */
 .card-offer .actions {
   container-type: inline-size;
 }
@@ -1091,8 +1091,12 @@ li b {
 }
 .card-offer .actions > div button {
   width: 100%;
-  padding-inline: 6px;
   white-space: nowrap;
+}
+@container (max-width: 389px) {
+  .card-offer .actions > div button {
+    padding-inline: 6px;
+  }
 }
 @container (min-width: 300px) {
   .card-offer .actions > div {
@@ -1105,5 +1109,14 @@ li b {
 @container (max-width: 160px) {
   .card-offer .actions > div {
     grid-template-columns: 1fr;
+  }
+}
+@container (min-width: 390px) {
+  .card-offer .actions > div {
+    display: flex;
+    width: auto;
+  }
+  .card-offer .actions > div button {
+    width: auto;
   }
 }
