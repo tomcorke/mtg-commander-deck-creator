@@ -44,4 +44,4 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 
 ## Review gate
 
-Before handoff, inspect the rendered path in light and dark modes and at a narrow viewport. Verify card names preview and open details, small images enlarge from image hover/focus, comparisons show both images and identify the in-deck card, and buttons use shared theme styles. Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`.
+Before handoff, inspect the rendered path in light and dark modes and at a narrow viewport. Verify card names preview and open details, small images enlarge from image hover/focus, comparisons show both images and identify the in-deck card, and buttons use shared theme styles. Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`. When a change renders card names, also run `pnpm check:card-references:browser`; it fails on any visible card name outside `CardReference`.
