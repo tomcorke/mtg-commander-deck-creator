@@ -104,9 +104,9 @@ export async function discoverCommanders(
       )
   signal?.throwIfAborted()
   const reason = curated
-    ? `Curated for ${filters.theme}`
+    ? `Picked for ${filters.theme} decks`
     : term
-      ? `Oracle text matches ${filters.theme}`
+      ? `Commanders whose rules text mentions ${filters.theme}`
       : ''
   return filterCommanders(cards, filters).map((card) => ({ card, reason }))
 }

@@ -56,6 +56,7 @@ type StartViewProps = {
 export function StartView(props: StartViewProps) {
   const { darkMode } = useVisualPreferences()
   const discovery = useCommanderDiscovery(props, true)
+  const reason = discovery.status === 'idle' ? discovery.suggestions[0]?.reason : undefined
   // Leaving the start screen opens the next view at the top, not at the old scroll position.
   useEffect(() => () => scrollTo({ top: 0 }), [])
   const resume = Boolean(props.commander && props.deck.length)
@@ -230,9 +231,11 @@ export function StartView(props: StartViewProps) {
           aria-busy={discovery.status === 'loading'}
         >
           <h2 id="commander-discovery-title">Choose a commander</h2>
+          {/* Every suggestion in a batch shares one reason, so it is shown once. */}
+          {reason && <p className="commander-reason">{reason}</p>}
           <p id="commander-result-count" className="sr-only" role="status">
             {discovery.status === 'idle' &&
-              `${discovery.suggestions.length} ${discovery.suggestions.length === 1 ? 'commander' : 'commanders'} shown. Press Down to move through them.`}
+              `${discovery.suggestions.length} ${discovery.suggestions.length === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}. Press Down to move through them.`}
           </p>
           <div className="commander-grid" onKeyDown={moveBetweenChoices}>
             {discovery.status === 'loading' &&
@@ -256,10 +259,9 @@ export function StartView(props: StartViewProps) {
                   />
                 </div>
               ))}
-            {discovery.suggestions.map(({ card, reason }, index) => {
+            {discovery.suggestions.map(({ card }) => {
               const converted = toDeckCard(card)
               const image = scryfallImage(card)
-              const reasonId = `commander-reason-${index}`
               return (
                 <CardTile
                   className="commander-tile"
@@ -289,19 +291,12 @@ export function StartView(props: StartViewProps) {
                       className="export commander-choose"
                       type="button"
                       aria-label={`Choose ${card.name}`}
-                      aria-describedby={reason ? reasonId : undefined}
                       onClick={() => void props.chooseCommander(card.name)}
                     >
                       Choose
                     </button>
                   }
-                >
-                  {reason && (
-                    <p className="commander-reason" id={reasonId}>
-                      {reason}
-                    </p>
-                  )}
-                </CardTile>
+                />
               )
             })}
           </div>
