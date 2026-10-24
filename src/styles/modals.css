@@ -572,15 +572,7 @@
   font-size: 12px;
 }
 .doctor-card-tile {
-  display: grid;
-  width: min(100%, 200px);
-  min-width: 0;
-  justify-self: center;
-  align-content: start;
-  gap: 8px;
-  padding: 9px;
-  border: 1px solid var(--doctor-border);
-  border-radius: 10px;
+  border-color: var(--doctor-border);
   background: var(--doctor-soft);
 }
 .doctor-card-tile.selected {
@@ -589,11 +581,9 @@
 }
 .doctor-card-select {
   display: flex;
-  min-height: 24px;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   color: var(--doctor-muted);
-  font-size: 11px;
   font-weight: 650;
 }
 .doctor-card-art {
@@ -618,14 +608,7 @@
 .doctor-card-art:focus-visible {
   z-index: 150;
 }
-.doctor-card-copy {
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  justify-items: start;
-  gap: 5px;
-}
-.doctor-card-copy > small,
+.doctor-card-tile .card-tile-note,
 .doctor-card-cost {
   color: var(--doctor-muted);
   font-size: 10px;

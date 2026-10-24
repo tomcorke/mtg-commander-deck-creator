@@ -3,7 +3,7 @@ import { useRef } from 'react'
 import type { Card, DeckCard } from '../../domain/card-model.ts'
 import type { DeckDoctorSwapRecord } from '../../deck-doctor.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
-import { CardTile } from '../builder/DeckReviewCard.tsx'
+import { ReviewCardTile } from '../builder/DeckReviewCard.tsx'
 
 type Props = {
   show: boolean
@@ -67,7 +67,7 @@ export function DeckReviewHistoryModal({
               <article className="doctor-history-item" key={swap.id}>
                 <div className="doctor-history-pair">
                   {swap.cutCard && (
-                    <CardTile
+                    <ReviewCardTile
                       card={swap.cutCard}
                       status={swap.movedToSideboard ? 'Moved to sideboard' : 'Cut from deck'}
                       openCard={openCard}
@@ -79,7 +79,7 @@ export function DeckReviewHistoryModal({
                     </span>
                   )}
                   {swap.addedCard && (
-                    <CardTile card={swap.addedCard} status="In deck" openCard={openCard} />
+                    <ReviewCardTile card={swap.addedCard} status="In deck" openCard={openCard} />
                   )}
                 </div>
                 <button

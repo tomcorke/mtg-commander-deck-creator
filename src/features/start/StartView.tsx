@@ -20,8 +20,9 @@ import { CardImagePreview } from '../../shared/CardImagePreview.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { showCardPreview, hideCardPreview } from '../../shared/card-preview.ts'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
+import { CardTile } from '../../shared/CardTile.tsx'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
-import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
+import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
@@ -245,46 +246,57 @@ export function StartView(props: StartViewProps) {
               const image = scryfallImage(card)
               const reasonId = `commander-reason-${index}`
               return (
-                <article className="commander-tile" key={card.oracle_id ?? card.name}>
-                  <div
-                    className="commander-discovery-art card-reference"
-                    tabIndex={0}
-                    role="group"
-                    aria-label={`Preview art for ${card.name}`}
-                    onMouseEnter={({ currentTarget }) => showCardPreview(currentTarget)}
-                    onFocus={({ currentTarget }) => showCardPreview(currentTarget)}
-                    onMouseLeave={({ currentTarget }) => hideCardPreview(currentTarget)}
-                    onBlur={({ currentTarget }) => hideCardPreview(currentTarget)}
-                  >
-                    <FinishedCardImage
-                      image={image}
-                      backImage={scryfallBackImage(card)}
-                      alt={`${card.name} card`}
-                      cardName={card.name}
-                      set={card.set}
-                      collectorNumber={card.collector_number}
-                      showFlipButton
+                <CardTile
+                  className="commander-tile"
+                  key={card.oracle_id ?? card.name}
+                  art={
+                    <div
+                      className="commander-discovery-art card-reference"
+                      tabIndex={0}
+                      role="group"
+                      aria-label={`Preview art for ${card.name}`}
+                      onMouseEnter={({ currentTarget }) => showCardPreview(currentTarget)}
+                      onFocus={({ currentTarget }) => showCardPreview(currentTarget)}
+                      onMouseLeave={({ currentTarget }) => hideCardPreview(currentTarget)}
+                      onBlur={({ currentTarget }) => hideCardPreview(currentTarget)}
+                    >
+                      <FinishedCardImage
+                        image={image}
+                        backImage={scryfallBackImage(card)}
+                        alt={`${card.name} card`}
+                        cardName={card.name}
+                        set={card.set}
+                        collectorNumber={card.collector_number}
+                        showFlipButton
+                      />
+                      <CardImagePreview image={image} placement="reference" />
+                    </div>
+                  }
+                  name={
+                    <CardReference
+                      card={converted}
+                      onOpen={() => props.openCardReference(converted)}
                     />
-                    <CardImagePreview image={image} placement="reference" />
-                  </div>
-                  <CardReference
-                    card={converted}
-                    onOpen={() => props.openCardReference(converted)}
-                  />
-                  <p className="commander-reason" id={reasonId}>
-                    <OracleText text={card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? ''} />
-                    {reason && <span>{reason}</span>}
-                  </p>
-                  <button
-                    className="export commander-choose"
-                    type="button"
-                    aria-label={`Choose ${card.name}`}
-                    aria-describedby={reason ? reasonId : undefined}
-                    onClick={() => void props.chooseCommander(card.name)}
-                  >
-                    Choose
-                  </button>
-                </article>
+                  }
+                  cost={card.mana_cost ?? card.card_faces?.[0]?.mana_cost}
+                  actions={
+                    <button
+                      className="export commander-choose"
+                      type="button"
+                      aria-label={`Choose ${card.name}`}
+                      aria-describedby={reason ? reasonId : undefined}
+                      onClick={() => void props.chooseCommander(card.name)}
+                    >
+                      Choose
+                    </button>
+                  }
+                >
+                  {reason && (
+                    <p className="commander-reason" id={reasonId}>
+                      {reason}
+                    </p>
+                  )}
+                </CardTile>
               )
             })}
           </div>

@@ -27,6 +27,7 @@ import {
 import { CardReference } from '../../shared/CardReference.tsx'
 import { OracleText } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
+import { CardTile } from '../../shared/CardTile.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
@@ -266,35 +267,55 @@ function SearchCard({
 }) {
   const display = toDeckCard(card)
   return (
-    <article
-      className={`search-card${location ? ' already-in-deck' : ''}${selected ? ' selected' : ''}`}
+    <CardTile
+      className={`search-card${location ? ' already-in-deck' : ''}`}
+      selected={Boolean(selected)}
+      selection={
+        selected !== null && (
+          <label className="search-checkbox">
+            <input
+              type="checkbox"
+              checked={selected}
+              disabled={Boolean(error)}
+              aria-label={`Select ${card.name}`}
+              onChange={onSelect}
+            />
+            Select
+          </label>
+        )
+      }
+      art={
+        <button
+          className="search-card-art"
+          type="button"
+          aria-label={`View ${card.name} card`}
+          onClick={onOpen}
+        >
+          {display.image ? <SmallCardImage image={display.image} /> : 'No card art'}
+        </button>
+      }
+      badges={location && <strong className="search-card-location">{location}</strong>}
+      name={<CardReference card={display} onOpen={onOpen} />}
+      cost={display.manaCost || display.faces[0]?.manaCost}
+      actions={
+        <button
+          type="button"
+          className="export"
+          disabled={Boolean(error)}
+          title={error || undefined}
+          onClick={onAdd}
+        >
+          {error && location
+            ? 'Already added'
+            : fullDeck
+              ? 'Add to sideboard'
+              : location
+                ? 'Add another'
+                : 'Add to deck'}
+        </button>
+      }
     >
-      {selected !== null && (
-        <label className="search-checkbox">
-          <input
-            type="checkbox"
-            checked={selected}
-            disabled={Boolean(error)}
-            aria-label={`Select ${card.name}`}
-            onChange={onSelect}
-          />
-          Select
-        </label>
-      )}
-      <button
-        className="search-card-art"
-        type="button"
-        aria-label={`View ${card.name} card`}
-        onClick={onOpen}
-      >
-        {display.image ? <SmallCardImage image={display.image} /> : 'No card art'}
-      </button>
-      <CardReference card={display} onOpen={onOpen} />
-      <span className="search-card-cost">
-        <OracleText text={display.manaCost || display.faces[0]?.manaCost || ''} />
-      </span>
       <p>{display.typeLine}</p>
-      {location && <strong className="search-card-location">{location}</strong>}
       <details>
         <summary>Rules text</summary>
         <p className="search-card-rules">
@@ -302,22 +323,7 @@ function SearchCard({
         </p>
       </details>
       {error && !location && <p className="search-card-error">{error}</p>}
-      <button
-        type="button"
-        className="export"
-        disabled={Boolean(error)}
-        title={error || undefined}
-        onClick={onAdd}
-      >
-        {error && location
-          ? 'Already added'
-          : fullDeck
-            ? 'Add to sideboard'
-            : location
-              ? 'Add another'
-              : 'Add to deck'}
-      </button>
-    </article>
+    </CardTile>
   )
 }
 
