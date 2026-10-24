@@ -27,9 +27,43 @@
   text-decoration: underline;
 }
 .start {
-  max-width: 1150px;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  column-gap: 32px;
+  align-items: start;
   margin: auto;
-  padding: 40px 24px;
+  padding: 40px 48px;
+}
+/* Filters sit beside the commander grid and stay in view; everything else spans the page. */
+.start > * {
+  grid-column: 1 / -1;
+}
+.start > .commander-filters {
+  position: sticky;
+  top: 16px;
+  grid-column: 1;
+  margin-top: 0;
+}
+.start > .commander-discovery {
+  grid-column: 2;
+}
+@media (max-width: 1100px) {
+  .start {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 40px 24px;
+  }
+  .start > .commander-filters {
+    position: static;
+    margin-top: 24px;
+  }
+  .start > .commander-discovery {
+    grid-column: 1;
+  }
+}
+@media (max-width: 600px) {
+  .start .commander-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
+  }
 }
 .start > h1 {
   max-width: 750px;
@@ -124,7 +158,11 @@
 }
 .commander-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
+  /* At most six columns, so a batch of 12 fills whole rows on wide screens. */
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(max(225px, calc((100% - 60px) / 6)), 100%), 1fr)
+  );
   gap: 12px;
 }
 .commander-tile {
