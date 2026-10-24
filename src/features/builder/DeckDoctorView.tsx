@@ -42,7 +42,7 @@ import {
 import { CardReference } from '../../shared/CardReference.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
-import { CardTile } from './DeckReviewCard.tsx'
+import { ReviewCardTile } from './DeckReviewCard.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { reviewSteps, type DeckReviewStep } from '../../app/routes.ts'
 import { CommanderSummary } from './CommanderSummary.tsx'
@@ -167,13 +167,17 @@ function DoctorSuggestionRow(props: SuggestionRowProps) {
       <div className="doctor-suggestion-pair">
         {suggestion.cut && (
           <>
-            <CardTile card={suggestion.cut.cutCard} status="In deck · cut" openCard={openCard} />
+            <ReviewCardTile
+              card={suggestion.cut.cutCard}
+              status="In deck · cut"
+              openCard={openCard}
+            />
             <span className="doctor-pair-arrow" aria-hidden="true">
               →
             </span>
           </>
         )}
-        <CardTile card={suggestion.addCard} status="Addition" openCard={openCard} />
+        <ReviewCardTile card={suggestion.addCard} status="Addition" openCard={openCard} />
       </div>
       <div className="doctor-suggestion-copy">
         <p>{suggestion.impact}</p>
@@ -559,7 +563,7 @@ export function DeckDoctorView({
     const status = flagged ? 'In deck · flagged' : 'In deck'
     if (indexes.length > 1)
       return (
-        <CardTile
+        <ReviewCardTile
           key={card.name}
           card={card}
           status={`${status} · ×${indexes.length}`}
@@ -574,7 +578,7 @@ export function DeckDoctorView({
     const [index] = indexes
     const selected = selectedCutIndexes.includes(index)
     return (
-      <CardTile
+      <ReviewCardTile
         key={card.name}
         card={card}
         status={status}
@@ -1143,7 +1147,7 @@ export function DeckDoctorView({
                     {visibleCandidates.map(({ card, score }) => {
                       const selected = selectedAdditionNames.includes(card.name)
                       return (
-                        <CardTile
+                        <ReviewCardTile
                           key={card.name}
                           card={card}
                           openCard={openCard}
@@ -1224,7 +1228,7 @@ export function DeckDoctorView({
                     key={`${index}:${selectedCuts[index].cutCard.name}`}
                   >
                     <span className="doctor-pair-number">Swap {index + 1}</span>
-                    <CardTile
+                    <ReviewCardTile
                       card={selectedCuts[index].cutCard}
                       status="In deck · cut"
                       openCard={openCard}
@@ -1232,7 +1236,7 @@ export function DeckDoctorView({
                     <span className="doctor-pair-arrow" aria-hidden="true">
                       →
                     </span>
-                    <CardTile
+                    <ReviewCardTile
                       card={selectedAdditions[index]}
                       status="Replacement"
                       openCard={openCard}
@@ -1246,7 +1250,7 @@ export function DeckDoctorView({
                 <h3>Cut without replacement</h3>
                 <div className="doctor-card-grid">
                   {selectedCuts.slice(pairCount).map(({ cutIndex, cutCard }) => (
-                    <CardTile
+                    <ReviewCardTile
                       key={cutIndex}
                       card={cutCard}
                       status="In deck · cut"
@@ -1261,7 +1265,12 @@ export function DeckDoctorView({
                 <h3>Add without cutting</h3>
                 <div className="doctor-card-grid">
                   {selectedAdditions.slice(pairCount).map((card) => (
-                    <CardTile key={card.name} card={card} status="Addition" openCard={openCard} />
+                    <ReviewCardTile
+                      key={card.name}
+                      card={card}
+                      status="Addition"
+                      openCard={openCard}
+                    />
                   ))}
                 </div>
               </>
@@ -1374,7 +1383,7 @@ export function DeckDoctorView({
                         <article className="doctor-commander-option" key={candidate.name}>
                           <div className="doctor-commander-pair">
                             {currentCommander && (
-                              <CardTile
+                              <ReviewCardTile
                                 card={currentCommander}
                                 status="In deck"
                                 openCard={openCard}
@@ -1383,7 +1392,11 @@ export function DeckDoctorView({
                             <span className="doctor-pair-arrow" aria-hidden="true">
                               →
                             </span>
-                            <CardTile card={candidate} status="Alternative" openCard={openCard} />
+                            <ReviewCardTile
+                              card={candidate}
+                              status="Alternative"
+                              openCard={openCard}
+                            />
                           </div>
                           <p>
                             {added.length ? (
