@@ -5,6 +5,9 @@ import {
   type PlayStyle,
   type PlayStyleSettings,
 } from '../../domain/play-style.ts'
+import { priorityLabels } from '../../domain/recommendation-tuning.ts'
+
+const powerLabels = { precon: 'Core', upgraded: 'Upgraded', high: 'High power' }
 
 export function PlayStyleStep({
   settings,
@@ -19,7 +22,10 @@ export function PlayStyleStep({
   useEffect(() => {
     heading.current?.focus({ preventScroll: true })
   }, [])
-  const matching = matchingPlayStyle(settings)
+  const matching = playStyles.find(({ id }) => id === matchingPlayStyle(settings))?.label
+  const current =
+    matching ??
+    `${powerLabels[settings.powerTarget]} · ${priorityLabels[settings.recommendationStyle]}`
   return (
     <section className="play-style-step" aria-labelledby="play-style-title">
       <h2 id="play-style-title" tabIndex={-1} ref={heading}>
@@ -35,13 +41,11 @@ export function PlayStyleStep({
             className="export play-style-choice"
             type="button"
             key={id}
-            aria-pressed={matching === id}
             onClick={() => choose(id)}
           >
             <strong>{label}</strong>
             <span>{summary}</span>
             <small>{description}</small>
-            {matching === id && <small>Matches current settings</small>}
           </button>
         ))}
       </div>
@@ -49,8 +53,8 @@ export function PlayStyleStep({
         <button className="export" type="button" onClick={chooseSets}>
           Choose sets to build from
         </button>
-        <button className="primary" type="button" onClick={() => choose()}>
-          Skip — use current settings
+        <button className="export" type="button" onClick={() => choose()}>
+          Keep current settings ({current})
         </button>
       </div>
     </section>
