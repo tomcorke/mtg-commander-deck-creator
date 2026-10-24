@@ -1076,3 +1076,47 @@ li b {
   justify-content: space-between;
   font-size: var(--decision-text);
 }
+/* Wide tiles keep the natural single row beside More like this. Narrower tiles use aligned
+   columns: three across, then Add above Later and Ignore, then a single stack. */
+.card-offer .actions {
+  container-type: inline-size;
+}
+.card-offer .actions > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+}
+.card-offer .actions > div > .primary {
+  grid-column: 1 / -1;
+}
+.card-offer .actions > div button {
+  width: 100%;
+  white-space: nowrap;
+}
+@container (max-width: 389px) {
+  .card-offer .actions > div button {
+    padding-inline: 6px;
+  }
+}
+@container (min-width: 300px) {
+  .card-offer .actions > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .card-offer .actions > div > .primary {
+    grid-column: auto;
+  }
+}
+@container (max-width: 160px) {
+  .card-offer .actions > div {
+    grid-template-columns: 1fr;
+  }
+}
+@container (min-width: 390px) {
+  .card-offer .actions > div {
+    display: flex;
+    width: auto;
+  }
+  .card-offer .actions > div button {
+    width: auto;
+  }
+}
