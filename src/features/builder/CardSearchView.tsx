@@ -69,8 +69,8 @@ function MatchSelect({
       className={`search-match search-match--${value}`}
       onChange={(event) => onChange(event.target.value as SearchMatch)}
     >
-      <option value="any">Any</option>
-      <option value="need">Need</option>
+      <option value="any">Ignore</option>
+      <option value="need">Must match</option>
       <option value="exclude">Exclude</option>
     </select>
   )
@@ -149,7 +149,7 @@ function SearchFilters({
       </label>
       <p id="search-text-help">
         Rules text searches Oracle wording, not flavour text. Separate type or text phrases with
-        commas. Every Need filter must match; any Exclude match removes a card.
+        commas. A card must match every "Must match" filter; any "Exclude" match removes it.
       </p>
       <fieldset>
         <legend>Mana value</legend>
@@ -210,7 +210,7 @@ function SearchFilters({
             <label className="search-filter-row" key={label}>
               <span>
                 {symbol && <OracleText text={symbol} />}
-                {!colourNames[label] && label}
+                {colourNames[label] ?? label}
               </span>
               <MatchSelect
                 label={colourNames[label] ?? label}
