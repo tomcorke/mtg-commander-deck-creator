@@ -37,8 +37,10 @@ export function CardTile({
       {art}
       <div className="card-tile-caption">
         {badges && <div className="card-tile-badges">{badges}</div>}
-        {name}
-        <span className="card-tile-cost">{cost && <OracleText text={cost} />}</span>
+        <div className="card-tile-title">
+          {name}
+          <span className="card-tile-cost">{cost && <OracleText text={cost} />}</span>
+        </div>
         {children}
       </div>
       {actions && <div className="card-tile-actions">{actions}</div>}

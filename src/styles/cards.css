@@ -1018,8 +1018,24 @@ button:disabled {
   align-content: start;
   gap: 4px;
   min-width: 0;
+  container-type: inline-size;
 }
-.card-tile-caption > .card-reference {
+/* Name and pips share a row when the tile is wide enough; pips never wrap. */
+.card-tile-title {
+  display: grid;
+  justify-self: stretch;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+@container (min-width: 180px) {
+  .card-tile-title {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: 8px;
+  }
+}
+.card-tile-title > .card-reference {
   font-size: 14px;
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -1032,6 +1048,8 @@ button:disabled {
 }
 .card-tile-cost {
   display: flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   align-items: center;
   gap: 2px;
   min-height: 20px;
