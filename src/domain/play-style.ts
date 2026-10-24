@@ -12,18 +12,22 @@ export const playStyles = [
   {
     id: 'casual',
     label: 'Casual',
-    description: 'Core · Theme first. Exclude Game Changers, tutors and extra turns.',
+    summary:
+      'Theme-first picks for relaxed games, without the strongest cards, tutors or extra turns.',
+    description: 'Core · Theme first · Excludes Game Changers, tutors and extra turns',
   },
   {
     id: 'upgraded',
     label: 'Upgraded',
-    description:
-      'Upgraded · Balanced. Allow Game Changers; keep your tutor and extra-turn preferences.',
+    summary:
+      'A balance of theme and strength. Strong cards are in; your tutor and extra-turn choices stay.',
+    description: 'Upgraded · Balanced · Allows Game Changers',
   },
   {
     id: 'high',
     label: 'High power',
-    description: 'High power · Deck needs first. Allow Game Changers, tutors and extra turns.',
+    summary: 'The strongest picks for what the deck needs, with nothing held back.',
+    description: 'High power · Deck needs first · Allows Game Changers, tutors and extra turns',
   },
 ] as const
 

@@ -30,7 +30,7 @@ export function PlayStyleStep({
         You can edit them later.
       </p>
       <div className="play-style-choices">
-        {playStyles.map(({ id, label, description }) => (
+        {playStyles.map(({ id, label, summary, description }) => (
           <button
             className="export play-style-choice"
             type="button"
@@ -39,8 +39,9 @@ export function PlayStyleStep({
             onClick={() => choose(id)}
           >
             <strong>{label}</strong>
-            <span>{description}</span>
-            {matching === id && <span>Matches current settings</span>}
+            <span>{summary}</span>
+            <small>{description}</small>
+            {matching === id && <small>Matches current settings</small>}
           </button>
         ))}
       </div>
