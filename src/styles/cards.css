@@ -28,9 +28,6 @@
     --pointer-proximity: 0 !important;
   }
   .juicy-fan .offered-image {
-    /* Room for the hover lift (9px) and scale, which grows with card width; percentage
-       margins follow width. Collapses with .actions' 10px bottom margin. */
-    margin-top: calc(20px + 8%);
     user-select: none;
     -webkit-user-drag: none;
     transform: translateY(calc(var(--fan-drop) - var(--pointer-proximity, 0) * 9px))
