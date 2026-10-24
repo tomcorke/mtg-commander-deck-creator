@@ -46,11 +46,12 @@ export function fanCards(event: MouseEvent<HTMLDivElement>) {
   const cards = event.currentTarget.querySelectorAll<HTMLElement>('.card-offer')
   cards.forEach((card) => {
     const { left, width } = card.getBoundingClientRect()
-    const proximity = Math.max(
-      0,
-      1 - Math.abs(event.clientX - (left + width / 2)) / Math.max(width * 1.5, 1),
-    )
     const image = card.querySelector('.offered-image')?.getBoundingClientRect()
+    // No lift while the pointer is above the art, so it never rises into the decision buttons.
+    const proximity =
+      image && event.clientY < image.top
+        ? 0
+        : Math.max(0, 1 - Math.abs(event.clientX - (left + width / 2)) / Math.max(width * 1.5, 1))
     card.style.setProperty('--pointer-proximity', proximity.toFixed(3))
     card.style.cursor =
       image &&
