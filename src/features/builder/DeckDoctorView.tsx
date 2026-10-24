@@ -1050,21 +1050,23 @@ export function DeckDoctorView({
                     The deck has {deck.length} of 100 cards. These additions fill the gap without
                     cutting anything.
                   </p>
-                  {ratedCandidates.slice(0, Math.max(3, missingCards)).map(({ card }) => (
-                    <DoctorSuggestionRow
-                      key={card.name}
-                      suggestion={{ addCard: card, impact: card.reason || 'Fills an open slot.' }}
-                      findingId="open-slots"
-                      selectedCutIndexes={selectedCutIndexes}
-                      selectedAdditionNames={selectedAdditionNames}
-                      hasPendingChanges={hasPendingChanges}
-                      settingsRefreshPending={settingsRefreshPending}
-                      recommendationOptionsChanged={recommendationOptionsChanged}
-                      openCard={openCard}
-                      applySuggestion={applySuggestion}
-                      toggleSuggestionInPlan={toggleSuggestionInPlan}
-                    />
-                  ))}
+                  <div className="doctor-suggestion-grid">
+                    {ratedCandidates.slice(0, Math.max(3, missingCards)).map(({ card }) => (
+                      <DoctorSuggestionRow
+                        key={card.name}
+                        suggestion={{ addCard: card, impact: card.reason || 'Fills an open slot.' }}
+                        findingId="open-slots"
+                        selectedCutIndexes={selectedCutIndexes}
+                        selectedAdditionNames={selectedAdditionNames}
+                        hasPendingChanges={hasPendingChanges}
+                        settingsRefreshPending={settingsRefreshPending}
+                        recommendationOptionsChanged={recommendationOptionsChanged}
+                        openCard={openCard}
+                        applySuggestion={applySuggestion}
+                        toggleSuggestionInPlan={toggleSuggestionInPlan}
+                      />
+                    ))}
+                  </div>
                 </article>
               )}
               {findings.length ? (
@@ -1098,21 +1100,23 @@ export function DeckDoctorView({
                     <div className="doctor-suggestions">
                       <h4>{mode === 'build' ? 'Suggested additions' : 'Suggested swaps'}</h4>
                       {findingSuggestions[finding.id]?.length ? (
-                        findingSuggestions[finding.id].map((suggestion) => (
-                          <DoctorSuggestionRow
-                            key={suggestion.addCard.name}
-                            suggestion={suggestion}
-                            findingId={finding.id}
-                            selectedCutIndexes={selectedCutIndexes}
-                            selectedAdditionNames={selectedAdditionNames}
-                            hasPendingChanges={hasPendingChanges}
-                            settingsRefreshPending={settingsRefreshPending}
-                            recommendationOptionsChanged={recommendationOptionsChanged}
-                            openCard={openCard}
-                            applySuggestion={applySuggestion}
-                            toggleSuggestionInPlan={toggleSuggestionInPlan}
-                          />
-                        ))
+                        <div className="doctor-suggestion-grid">
+                          {findingSuggestions[finding.id].map((suggestion) => (
+                            <DoctorSuggestionRow
+                              key={suggestion.addCard.name}
+                              suggestion={suggestion}
+                              findingId={finding.id}
+                              selectedCutIndexes={selectedCutIndexes}
+                              selectedAdditionNames={selectedAdditionNames}
+                              hasPendingChanges={hasPendingChanges}
+                              settingsRefreshPending={settingsRefreshPending}
+                              recommendationOptionsChanged={recommendationOptionsChanged}
+                              openCard={openCard}
+                              applySuggestion={applySuggestion}
+                              toggleSuggestionInPlan={toggleSuggestionInPlan}
+                            />
+                          ))}
+                        </div>
                       ) : (
                         <p className="doctor-muted">
                           {mode === 'build'
