@@ -165,8 +165,13 @@
   );
   gap: 12px;
 }
-.commander-discovery-art.card-reference {
-  display: block;
+.commander-discovery-art {
+  position: relative;
+}
+/* Flip sits on the art's bottom edge so it never covers the name below. */
+.commander-discovery-art .card-image-actions {
+  top: auto;
+  bottom: 8px;
 }
 .commander-discovery-art > .finished-card,
 .commander-discovery-art > .finished-card > img {
@@ -174,13 +179,6 @@
   width: 100%;
   aspect-ratio: 488 / 680;
   border-radius: 4.75%;
-}
-.commander-discovery-art .card-image-preview {
-  aspect-ratio: auto;
-}
-.commander-discovery-art:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
 }
 .commander-reason {
   color: #68667c;

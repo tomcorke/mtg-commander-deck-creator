@@ -16,9 +16,7 @@ import {
 import type { DeckWorkspace } from '../../autosaves.ts'
 import { useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
 import { FinishedCardImage } from '../../shared/CardArt.tsx'
-import { CardImagePreview } from '../../shared/CardImagePreview.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
-import { showCardPreview, hideCardPreview } from '../../shared/card-preview.ts'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { CardTile } from '../../shared/CardTile.tsx'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
@@ -250,16 +248,7 @@ export function StartView(props: StartViewProps) {
                   className="commander-tile"
                   key={card.oracle_id ?? card.name}
                   art={
-                    <div
-                      className="commander-discovery-art card-reference"
-                      tabIndex={0}
-                      role="group"
-                      aria-label={`Preview art for ${card.name}`}
-                      onMouseEnter={({ currentTarget }) => showCardPreview(currentTarget)}
-                      onFocus={({ currentTarget }) => showCardPreview(currentTarget)}
-                      onMouseLeave={({ currentTarget }) => hideCardPreview(currentTarget)}
-                      onBlur={({ currentTarget }) => hideCardPreview(currentTarget)}
-                    >
+                    <div className="commander-discovery-art">
                       <FinishedCardImage
                         image={image}
                         backImage={scryfallBackImage(card)}
@@ -269,7 +258,6 @@ export function StartView(props: StartViewProps) {
                         collectorNumber={card.collector_number}
                         showFlipButton
                       />
-                      <CardImagePreview image={image} placement="reference" />
                     </div>
                   }
                   name={
