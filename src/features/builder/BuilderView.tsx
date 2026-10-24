@@ -310,6 +310,14 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   const undecidedCount = scoredBatch.filter(({ card }) => !decisions[card.name]).length
   const batchHeading = useRef<HTMLHeadingElement>(null)
   const landFillTrigger = useRef<HTMLButtonElement>(null)
+  const inPlayStyleStep = Boolean(model.playStyleStep)
+  const wasInPlayStyleStep = useRef(inPlayStyleStep)
+  useEffect(() => {
+    // Leaving the play-style step unmounts the focused button; land on the next heading instead.
+    if (wasInPlayStyleStep.current && !inPlayStyleStep)
+      batchHeading.current?.focus({ preventScroll: true })
+    wasInPlayStyleStep.current = inPlayStyleStep
+  }, [inPlayStyleStep])
   // Any-colour sources (Command Tower, Fellwar Stone) cannot make off-identity mana.
   const manaSymbols = manaGuidanceSymbols(commanderDetails?.colours ?? [...manaColours])
   const [landLow, landHigh] = analysis.landRange

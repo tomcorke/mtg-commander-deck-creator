@@ -1,4 +1,10 @@
-import { useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import {
+  useEffect,
+  type Dispatch,
+  type KeyboardEvent,
+  type ReactNode,
+  type SetStateAction,
+} from 'react'
 import { colourNames, randomItems, selectableThemes } from '../../domain/commander-catalog.ts'
 import type { AppModal, AppView } from '../../app/routes.ts'
 import {
@@ -60,6 +66,17 @@ export function StartView(props: StartViewProps) {
     props.setTheme('')
     props.setColours([])
     props.setSearch('')
+  }
+  const moveBetweenChoices = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key]
+    if (!step || !(event.target instanceof HTMLButtonElement)) return
+    const choices = [
+      ...event.currentTarget.querySelectorAll<HTMLButtonElement>('.commander-choose'),
+    ]
+    const index = choices.indexOf(event.target)
+    if (index < 0) return
+    event.preventDefault()
+    choices[Math.min(choices.length - 1, Math.max(0, index + step))]?.focus()
   }
   const summary =
     [
@@ -189,7 +206,13 @@ export function StartView(props: StartViewProps) {
               onChange={(event) => props.setSearch(event.target.value)}
               placeholder="Search commanders…"
               aria-label="Search commanders"
+              aria-describedby="commander-result-count"
               autoComplete="off"
+              onKeyDown={(event) => {
+                if (event.key !== 'ArrowDown') return
+                event.preventDefault()
+                document.querySelector<HTMLButtonElement>('.commander-choose')?.focus()
+              }}
             />
           </label>
           <div className="filter-summary">
@@ -207,7 +230,11 @@ export function StartView(props: StartViewProps) {
           aria-busy={discovery.status === 'loading'}
         >
           <h2 id="commander-discovery-title">Choose a commander</h2>
-          <div className="commander-grid">
+          <p id="commander-result-count" className="sr-only" role="status">
+            {discovery.status === 'idle' &&
+              `${discovery.suggestions.length} ${discovery.suggestions.length === 1 ? 'commander' : 'commanders'} shown. Press Down to move through them.`}
+          </p>
+          <div className="commander-grid" onKeyDown={moveBetweenChoices}>
             {discovery.status === 'loading' &&
               Array.from({ length: 12 }, (_, index) => (
                 <div className="commander-placeholder" aria-hidden="true" key={index} />
