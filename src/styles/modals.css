@@ -498,12 +498,17 @@
   margin: 0;
   font-size: 14px;
 }
+.doctor-suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+  align-items: start;
+  gap: 12px;
+}
 .doctor-suggestion {
   display: grid;
-  grid-template-columns: minmax(0, 330px) minmax(0, 1fr);
-  align-items: center;
-  gap: 16px;
-  padding: 12px;
+  align-content: start;
+  gap: 10px;
+  padding: 10px;
   border: 1px solid var(--doctor-border);
   border-radius: 10px;
   background: var(--doctor-soft);
@@ -514,8 +519,8 @@
   align-items: center;
   gap: 10px;
 }
-.doctor-suggestion-pair .doctor-card-tile {
-  max-width: 140px;
+.doctor-suggestion:has(.doctor-pair-arrow) {
+  grid-column: span 2;
 }
 .doctor-suggestion-pair > .doctor-card-tile:only-child {
   grid-column: 1 / -1;
@@ -523,7 +528,7 @@
 .doctor-suggestion-copy {
   display: grid;
   min-width: 0;
-  gap: 12px;
+  gap: 8px;
 }
 .doctor-suggestion-copy p {
   margin: 0;
@@ -846,10 +851,11 @@
   }
   .doctor-plan-pair,
   .doctor-history-pair,
-  .doctor-commander-pair,
-  .doctor-suggestion,
-  .doctor-suggestion-pair {
+  .doctor-commander-pair {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .doctor-suggestion:has(.doctor-pair-arrow) {
+    grid-column: 1 / -1;
   }
   .doctor-pair-arrow {
     justify-self: center;
