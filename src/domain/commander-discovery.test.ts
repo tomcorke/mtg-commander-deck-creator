@@ -81,7 +81,7 @@ test('source labels are honest and name search never bypasses theme/identity', a
   )
   assert.deepEqual(
     result.map(({ card: c, reason }) => [c.name, reason]),
-    [['Token leader', 'Curated for Tokens']],
+    [['Token leader', 'Picked for Tokens decks']],
   )
   assert.equal(queries.length, 0)
   const query = await discoverCommanders(
@@ -93,7 +93,7 @@ test('source labels are honest and name search never bypasses theme/identity', a
   assert.match(queries[0], /id=gw/)
   assert.match(queries[0], /name:"Equipment leader"/)
   assert.match(queries[0], /o:equipment/)
-  assert.equal(query[0].reason, 'Oracle text matches Equipment')
+  assert.equal(query[0].reason, 'Commanders whose rules text mentions Equipment')
   const aborted = new AbortController()
   aborted.abort()
   await assert.rejects(
