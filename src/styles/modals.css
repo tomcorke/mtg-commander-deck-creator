@@ -561,15 +561,22 @@
   align-items: start;
   gap: 12px;
 }
-.doctor-candidate-pages {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.doctor-candidate-group {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
 }
-.doctor-candidate-pages > span {
+.doctor-candidate-group h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.doctor-candidate-group h3 span {
   color: var(--doctor-muted);
   font-size: 12px;
+  font-weight: 600;
+}
+.doctor-show-more {
+  justify-self: start;
 }
 .doctor-card-tile {
   border-color: var(--doctor-border);

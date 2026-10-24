@@ -103,7 +103,8 @@ type Props = {
   closePage: () => void
 }
 
-const doctorCandidatePageSize = 12
+const doctorGroupPreview = 6
+const doctorGroupStep = 12
 const emptyDoctorCandidates: Card[] = []
 const typeFilters = ['Land', ...cardTypes] as const
 
@@ -327,7 +328,7 @@ export function DeckDoctorView({
   const extraCandidates = currentFetch ? candidateFetch.cards : emptyDoctorCandidates
   const candidateState = currentFetch ? candidateFetch.state : 'idle'
   const candidateError = currentFetch ? candidateFetch.error : ''
-  const [candidatePage, setCandidatePage] = useState(0)
+  const [shownCandidates, setShownCandidates] = useState<Record<string, number>>({})
   const [selectedCutIndexes, setSelectedCutIndexes] = useState<number[]>([])
   const [selectedAdditionNames, setSelectedAdditionNames] = useState<string[]>([])
   const [selectedAdditionCards, setSelectedAdditionCards] = useState<Card[]>([])
@@ -388,10 +389,6 @@ export function DeckDoctorView({
     availableCandidates.filter((card) => matchesCardFilter(card, candidateFilter)),
     deck.filter((_, index) => !selectedCutIndexes.includes(index)),
   ).sort((left, right) => compareRecommendationScores(left.score, right.score))
-  const candidatePageCount = Math.ceil(ratedCandidates.length / doctorCandidatePageSize)
-  const activeCandidatePage = Math.min(candidatePage, Math.max(0, candidatePageCount - 1))
-  const pageStart = activeCandidatePage * doctorCandidatePageSize
-  const visibleCandidates = ratedCandidates.slice(pageStart, pageStart + doctorCandidatePageSize)
   const flaggedNames = new Set(
     findings
       .filter(({ kind }) => kind === 'weak-connection' || kind === 'mana-outlier')
@@ -449,7 +446,7 @@ export function DeckDoctorView({
     if (previousQueryKey.current === recommendationQueryKey) return
     previousQueryKey.current = recommendationQueryKey
     candidateRequest.current += 1
-    setCandidatePage(0)
+    setShownCandidates({})
     setSettingsRefreshPending(true)
     setRemovedAdditionNames([])
   }, [recommendationQueryKey])
@@ -555,7 +552,7 @@ export function DeckDoctorView({
 
   function filterCandidates(filter: string) {
     setCandidateFilter(filter)
-    setCandidatePage(0)
+    setShownCandidates({})
   }
 
   function cutGroupTile({ card, indexes }: { card: DeckCard; indexes: number[] }) {
@@ -1139,62 +1136,82 @@ export function DeckDoctorView({
               </label>
               {ratedCandidates.length ? (
                 <>
-                  <div
-                    className="doctor-card-grid doctor-additions-grid"
-                    role="region"
-                    aria-label="Addition candidates"
-                  >
-                    {visibleCandidates.map(({ card, score }) => {
-                      const selected = selectedAdditionNames.includes(card.name)
-                      return (
-                        <ReviewCardTile
-                          key={card.name}
-                          card={card}
-                          openCard={openCard}
-                          note={[
-                            card.reason,
-                            score.theme > 0 && 'Matches your theme',
-                            score.deckNeeds > 0 && 'Fills a needed role',
-                            score.manaFitPenalty < 0 && 'Check mana support',
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')}
-                          fit={recommendationScoreRating(score.total)}
-                          selection={{
-                            checked: selected,
-                            label: 'Add',
-                            order: selected
-                              ? selectedAdditionNames.indexOf(card.name) + 1
-                              : undefined,
-                            onChange: () => toggleName(card.name),
-                          }}
-                        />
-                      )
-                    })}
-                  </div>
-                  {candidatePageCount > 1 && (
-                    <div className="doctor-candidate-pages">
-                      <button
-                        className="export"
-                        type="button"
-                        disabled={activeCandidatePage === 0}
-                        onClick={() => setCandidatePage(activeCandidatePage - 1)}
-                      >
-                        Previous
-                      </button>
-                      <span aria-live="polite">
-                        Page {activeCandidatePage + 1} of {candidatePageCount}
-                      </span>
-                      <button
-                        className="export"
-                        type="button"
-                        disabled={activeCandidatePage === candidatePageCount - 1}
-                        onClick={() => setCandidatePage(activeCandidatePage + 1)}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
+                  {(candidateFilter === 'all'
+                    ? [
+                        { key: 'all', label: 'Best overall' },
+                        ...roleGaps.map(({ key, gap }) => ({
+                          key: `role:${key}`,
+                          label: `${targetLabels[key]} · ${gap} below target`,
+                        })),
+                        ...selectedThemes.map((tag) => ({ key: `tag:${tag}`, label: tag })),
+                      ]
+                    : [{ key: candidateFilter, label: '' }]
+                  ).map(({ key, label }) => {
+                    const groupCandidates = ratedCandidates.filter(({ card }) =>
+                      matchesCardFilter(card, key),
+                    )
+                    if (!groupCandidates.length) return null
+                    const shown =
+                      shownCandidates[key] ??
+                      (candidateFilter === 'all' ? doctorGroupPreview : doctorGroupStep)
+                    const hidden = groupCandidates.length - shown
+                    return (
+                      <section className="doctor-candidate-group" key={key}>
+                        {label && (
+                          <h3>
+                            {label} <span>{groupCandidates.length}</span>
+                          </h3>
+                        )}
+                        <div
+                          className="doctor-card-grid doctor-additions-grid"
+                          role="region"
+                          aria-label={`${label || 'Addition'} candidates`}
+                        >
+                          {groupCandidates.slice(0, shown).map(({ card, score }) => {
+                            const selected = selectedAdditionNames.includes(card.name)
+                            return (
+                              <ReviewCardTile
+                                key={card.name}
+                                card={card}
+                                openCard={openCard}
+                                note={[
+                                  card.reason,
+                                  score.theme > 0 && 'Matches your theme',
+                                  score.deckNeeds > 0 && 'Fills a needed role',
+                                  score.manaFitPenalty < 0 && 'Check mana support',
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                                fit={recommendationScoreRating(score.total)}
+                                selection={{
+                                  checked: selected,
+                                  label: 'Add',
+                                  order: selected
+                                    ? selectedAdditionNames.indexOf(card.name) + 1
+                                    : undefined,
+                                  onChange: () => toggleName(card.name),
+                                }}
+                              />
+                            )
+                          })}
+                        </div>
+                        {hidden > 0 && (
+                          <button
+                            className="export doctor-show-more"
+                            type="button"
+                            onClick={() =>
+                              setShownCandidates((current) => ({
+                                ...current,
+                                [key]: shown + doctorGroupStep,
+                              }))
+                            }
+                          >
+                            Show {Math.min(hidden, doctorGroupStep)} more ({hidden} left)
+                          </button>
+                        )}
+                      </section>
+                    )
+                  })}
                 </>
               ) : (
                 <p className="doctor-muted">
