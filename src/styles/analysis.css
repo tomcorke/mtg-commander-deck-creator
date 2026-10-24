@@ -1076,3 +1076,34 @@ li b {
   justify-content: space-between;
   font-size: var(--decision-text);
 }
+/* Aligned columns: one row when the tile is wide, Add above Later and Ignore when it isn't,
+   and a single stack on the narrowest tiles. */
+.card-offer .actions {
+  container-type: inline-size;
+}
+.card-offer .actions > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+}
+.card-offer .actions > div > .primary {
+  grid-column: 1 / -1;
+}
+.card-offer .actions > div button {
+  width: 100%;
+  padding-inline: 6px;
+  white-space: nowrap;
+}
+@container (min-width: 300px) {
+  .card-offer .actions > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .card-offer .actions > div > .primary {
+    grid-column: auto;
+  }
+}
+@container (max-width: 160px) {
+  .card-offer .actions > div {
+    grid-template-columns: 1fr;
+  }
+}
