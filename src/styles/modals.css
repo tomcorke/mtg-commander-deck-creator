@@ -864,7 +864,7 @@
 .deck-review-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: stretch;
+  align-items: start;
   gap: 14px;
   margin-top: 16px;
 }
@@ -1564,14 +1564,47 @@ main > .commander-header {
   align-items: center;
   gap: 6px;
 }
-.doctor-navigation li[aria-current='step'] {
+.doctor-navigation button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.doctor-navigation button:hover:not(:disabled) {
+  color: var(--doctor-text);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.doctor-navigation button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.doctor-navigation button:focus-visible {
+  outline: 3px solid var(--focus-ring, var(--doctor-text));
+  outline-offset: 2px;
+}
+.doctor-navigation button[aria-current='step'] {
   color: var(--doctor-text);
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 5px;
 }
-.doctor-navigation li > span {
+.doctor-navigation button > span {
   font-weight: 700;
+}
+.doctor-apply-bar > .doctor-applied-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.doctor-card-fit-empty {
+  opacity: 0.25;
 }
 .doctor-apply-bar > div {
   display: grid;

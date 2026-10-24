@@ -31,6 +31,7 @@ type DeckOverviewProps = {
   displayedTypeCounts: readonly (readonly [string, number])[]
   selectManaValue: (value: number) => void
   selectCards: (label: string, cardNames: string[]) => void
+  chooseTheme?: () => void
 }
 
 type StatusKind = 'good' | 'attention' | 'neutral'
@@ -101,6 +102,7 @@ export function DeckOverview({
   displayedTypeCounts,
   selectManaValue,
   selectCards,
+  chooseTheme,
 }: DeckOverviewProps) {
   const mainboard = deck.slice(commanderCount)
   const early = deck.length < earlyDeckSize
@@ -239,6 +241,11 @@ export function DeckOverview({
                   ? `${selectedTagsFound} of ${selectedTags.length} selected themes have cards`
                   : 'Choose a theme to check its cards'}
               </b>
+              {!selectedTags.length && chooseTheme && (
+                <button className="export" type="button" onClick={chooseTheme}>
+                  Choose a theme
+                </button>
+              )}
             </div>
           </div>
         </section>
