@@ -226,6 +226,7 @@ export function StartView(props: StartViewProps) {
           </div>
         </section>
         <section
+          className="commander-discovery"
           aria-labelledby="commander-discovery-title"
           aria-busy={discovery.status === 'loading'}
         >
