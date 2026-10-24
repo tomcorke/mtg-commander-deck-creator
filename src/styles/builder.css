@@ -997,14 +997,6 @@
   font-size: 13px;
   opacity: 0.75;
 }
-.play-style-choice[aria-pressed='true'] {
-  outline: 2px solid var(--commander-accent, #36327f);
-  background: #e7e5fa;
-}
-.dark .play-style-choice[aria-pressed='true'] {
-  background: #36304b;
-  outline-color: #d6b8ff;
-}
 @media (max-width: 600px) {
   .play-style-choices {
     grid-template-columns: 1fr;
