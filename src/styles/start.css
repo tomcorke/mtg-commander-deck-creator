@@ -183,11 +183,14 @@
 .commander-reason {
   color: #68667c;
 }
-.commander-placeholder {
-  aspect-ratio: 160 / 350;
-  border: 1px solid #d6d4e2;
+.commander-tile-placeholder .commander-placeholder {
+  display: block;
+}
+.commander-tile-placeholder .placeholder-text {
+  border-color: transparent;
   border-radius: 4px;
   background: #e3e1ee;
+  color: transparent;
 }
 .discovery-status {
   margin: 12px 0;
@@ -247,8 +250,7 @@
 .dark .lead {
   color: #bab6cf;
 }
-.dark .commander-placeholder {
-  border-color: #36344f;
+.dark .commander-tile-placeholder .placeholder-text {
   background: #25233b;
 }
 .dark .colour-picker button.selected {

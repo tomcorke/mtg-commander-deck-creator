@@ -237,7 +237,24 @@ export function StartView(props: StartViewProps) {
           <div className="commander-grid" onKeyDown={moveBetweenChoices}>
             {discovery.status === 'loading' &&
               Array.from({ length: 12 }, (_, index) => (
-                <div className="commander-placeholder" aria-hidden="true" key={index} />
+                // Same tile parts as a result, so the grid keeps its height when results arrive.
+                <div className="commander-tile-placeholder" aria-hidden="true" key={index}>
+                  <CardTile
+                    className="commander-tile"
+                    art={<span className="commander-placeholder" />}
+                    name={<span className="placeholder-text">Loading</span>}
+                    actions={
+                      <button
+                        className="export commander-choose placeholder-text"
+                        type="button"
+                        disabled
+                        tabIndex={-1}
+                      >
+                        Choose
+                      </button>
+                    }
+                  />
+                </div>
               ))}
             {discovery.suggestions.map(({ card, reason }, index) => {
               const converted = toDeckCard(card)
