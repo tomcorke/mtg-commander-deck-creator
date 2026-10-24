@@ -258,7 +258,7 @@ function SearchCard({
   card: ScryfallCard
   location: string
   error: string
-  selected: boolean
+  selected: boolean | null
   onSelect: () => void
   onOpen: () => void
   onAdd: () => void
@@ -269,16 +269,18 @@ function SearchCard({
     <article
       className={`search-card${location ? ' already-in-deck' : ''}${selected ? ' selected' : ''}`}
     >
-      <label className="search-checkbox">
-        <input
-          type="checkbox"
-          checked={selected}
-          disabled={Boolean(error)}
-          aria-label={`Select ${card.name}`}
-          onChange={onSelect}
-        />
-        Select
-      </label>
+      {selected !== null && (
+        <label className="search-checkbox">
+          <input
+            type="checkbox"
+            checked={selected}
+            disabled={Boolean(error)}
+            aria-label={`Select ${card.name}`}
+            onChange={onSelect}
+          />
+          Select
+        </label>
+      )}
       <button
         className="search-card-art"
         type="button"
@@ -302,7 +304,7 @@ function SearchCard({
       {error && !location && <p className="search-card-error">{error}</p>}
       <button
         type="button"
-        className="primary"
+        className="export"
         disabled={Boolean(error)}
         title={error || undefined}
         onClick={onAdd}
@@ -357,6 +359,7 @@ export function CardSearchView({
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [selectedNames, setSelectedNames] = useState<string[]>([])
+  const [bulk, setBulk] = useState(false)
   const [page, setPage] = useState(0)
   const controllerRef = useRef<AbortController | null>(null)
   const resultsHeading = useRef<HTMLHeadingElement>(null)
@@ -508,7 +511,9 @@ export function CardSearchView({
               </h2>
               {request && (
                 <p>
-                  {available.length} available of {cards.length} loaded · {total} Scryfall matches
+                  {total} {total === 1 ? 'card' : 'cards'}
+                  {cards.length > available.length &&
+                    ` · ${cards.length - available.length} already in your deck, hidden`}
                 </p>
               )}
             </div>
@@ -586,20 +591,33 @@ export function CardSearchView({
                 <button
                   className="export"
                   type="button"
-                  disabled={!visible.some((card) => !cardSearchError(card, targetBoard, colours))}
-                  onClick={() =>
-                    setSelectedNames((current) => [
-                      ...new Set([
-                        ...current,
-                        ...visible
-                          .filter((card) => !cardSearchError(card, targetBoard, colours))
-                          .map(({ name }) => name),
-                      ]),
-                    ])
-                  }
+                  aria-pressed={bulk}
+                  onClick={() => {
+                    setBulk(!bulk)
+                    setSelectedNames([])
+                  }}
                 >
-                  Select this page
+                  {bulk ? 'Done selecting' : 'Select several'}
                 </button>
+                {bulk && (
+                  <button
+                    className="export"
+                    type="button"
+                    disabled={!visible.some((card) => !cardSearchError(card, targetBoard, colours))}
+                    onClick={() =>
+                      setSelectedNames((current) => [
+                        ...new Set([
+                          ...current,
+                          ...visible
+                            .filter((card) => !cardSearchError(card, targetBoard, colours))
+                            .map(({ name }) => name),
+                        ]),
+                      ])
+                    }
+                  >
+                    Select this page
+                  </button>
+                )}
                 {request && (
                   <a
                     href={`https://scryfall.com/search?q=${encodeURIComponent(request.query)}`}
@@ -617,7 +635,7 @@ export function CardSearchView({
                     card={card}
                     location={cardLocation(card.name, deck, sideboard)}
                     error={cardSearchError(card, targetBoard, colours)}
-                    selected={selected.some(({ name }) => name === card.name)}
+                    selected={bulk ? selected.some(({ name }) => name === card.name) : null}
                     onSelect={() =>
                       setSelectedNames((current) =>
                         current.includes(card.name)
