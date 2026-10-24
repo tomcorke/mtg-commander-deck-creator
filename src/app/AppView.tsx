@@ -487,6 +487,8 @@ function DeckReviewScreen({
         startOver={actions.startOver}
         applySwapPlan={actions.applyDeckDoctorSwapPlan}
         closePage={closePage}
+        undoSwap={actions.undoDeckDoctorSwap}
+        chooseTheme={() => void (state.setShowSubThemePicker(true), closePage())}
       />
       {modals.importModal}
       {modals.savedDecksModal}

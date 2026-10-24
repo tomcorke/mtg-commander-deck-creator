@@ -109,7 +109,7 @@ export function ReviewCardTile({
               <span className={`doctor-card-fit doctor-card-fit--${fit}`}>
                 <span className="doctor-card-fit-stars" aria-hidden="true">
                   {'★'.repeat(fitStars[fit])}
-                  {'☆'.repeat(5 - fitStars[fit])}
+                  <span className="doctor-card-fit-empty">{'★'.repeat(5 - fitStars[fit])}</span>
                 </span>
                 {fitLabels[fit]}
               </span>

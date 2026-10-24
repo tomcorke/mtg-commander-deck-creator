@@ -101,6 +101,8 @@ type Props = {
     moveCutToSideboard: boolean,
   ) => boolean
   closePage: () => void
+  undoSwap: (id: string) => Promise<boolean>
+  chooseTheme: () => void
 }
 
 const doctorGroupPreview = 6
@@ -313,6 +315,8 @@ export function DeckDoctorView({
   cycleCommanderPrinting,
   startOver,
   applySwapPlan,
+  undoSwap,
+  chooseTheme,
   closePage,
 }: Props) {
   const { commanderStyling, darkMode } = useVisualPreferences()
@@ -336,6 +340,8 @@ export function DeckDoctorView({
   const [removedAdditionNames, setRemovedAdditionNames] = useState<string[]>([])
   const [moveCutToSideboard, setMoveCutToSideboard] = useState(false)
   const [suggestionAnnouncement, setSuggestionAnnouncement] = useState('')
+  // History length before the last apply; records after it are what that apply changed.
+  const [appliedFrom, setAppliedFrom] = useState<number | null>(null)
   const previousAnnouncementContext = useRef({ step, historyCount: history.length })
   const historyOpener = useRef<HTMLButtonElement | null>(null)
   const findingNodes = useRef(new Map<string, HTMLElement>())
@@ -389,6 +395,14 @@ export function DeckDoctorView({
     availableCandidates.filter((card) => matchesCardFilter(card, candidateFilter)),
     deck.filter((_, index) => !selectedCutIndexes.includes(index)),
   ).sort((left, right) => compareRecommendationScores(left.score, right.score))
+  const appliedRecords = appliedFrom === null ? [] : history.slice(appliedFrom)
+  const appliedSummary = [
+    appliedRecords.flatMap(({ addedCard }) => (addedCard ? [addedCard.name] : [])),
+    appliedRecords.flatMap(({ cutCard }) => (cutCard ? [cutCard.name] : [])),
+  ]
+    .map((names, index) => names.length > 0 && `${index ? 'Cut' : 'Added'} ${names.join(', ')}`)
+    .filter(Boolean)
+    .join(' · ')
   const flaggedNames = new Set(
     findings
       .filter(({ kind }) => kind === 'weak-connection' || kind === 'mana-outlier')
@@ -478,6 +492,7 @@ export function DeckDoctorView({
   ])
 
   const hasPendingChanges = selectedCutIndexes.length + selectedAdditionNames.length > 0
+  const showApplied = appliedRecords.length > 0 && step === 'Diagnose' && !hasPendingChanges
   useLayoutEffect(() => {
     setPendingReviewChanges(hasPendingChanges)
     return () => setPendingReviewChanges(false)
@@ -641,7 +656,9 @@ export function DeckDoctorView({
 
   function applyPlan() {
     if (!planReady) return
+    const before = history.length
     if (applySwapPlan(selectedCuts, selectedAdditions, moveCutToSideboard)) {
+      setAppliedFrom(before)
       setSelectedCutIndexes([])
       setSelectedAdditionNames([])
       setSelectedAdditionCards([])
@@ -671,17 +688,25 @@ export function DeckDoctorView({
   function applySuggestion(findingId: string, suggestion: DoctorSuggestion) {
     // A direct edit would clear the B14 draft through board reconciliation. Never discard it.
     if (hasPendingChanges || settingsRefreshPending || recommendationOptionsChanged) return
+    const before = history.length
     if (applySwapPlan(suggestion.cut ? [suggestion.cut] : [], [suggestion.addCard], false)) {
+      setAppliedFrom(before)
       suggestionFocus.current = {
         id: findingId,
         index: findings.findIndex(({ id }) => id === findingId),
       }
       setSuggestionAnnouncement(
         suggestion.cut
-          ? `Swapped ${suggestion.cut.cutCard.name} for ${suggestion.addCard.name}. Undo in Change history.`
-          : `Added ${suggestion.addCard.name}. Undo in Change history.`,
+          ? `Swapped ${suggestion.cut.cutCard.name} for ${suggestion.addCard.name}.`
+          : `Added ${suggestion.addCard.name}.`,
       )
     }
+  }
+
+  async function undoApplied(records: DeckDoctorSwapRecord[]) {
+    for (const record of [...records].reverse()) await undoSwap(record.id)
+    setAppliedFrom(null)
+    setSuggestionAnnouncement('Undid the last change.')
   }
 
   const moreCandidates = (
@@ -839,13 +864,20 @@ export function DeckDoctorView({
         </div>
       </section>
       <div
-        className={`doctor-page${step !== 'Diagnose' || hasPendingChanges ? ' has-pending-summary' : ''}`}
+        className={`doctor-page${step !== 'Diagnose' || hasPendingChanges || showApplied ? ' has-pending-summary' : ''}`}
       >
         <nav className="doctor-navigation" aria-label="Deck review steps">
           <ol>
             {reviewSteps.map((label, index) => (
-              <li key={label} aria-current={step === label ? 'step' : undefined}>
-                <span>{index + 1}</span> {label}
+              <li key={label}>
+                <button
+                  type="button"
+                  aria-current={step === label ? 'step' : undefined}
+                  disabled={label === 'Confirm' && step !== 'Confirm' && !planReady}
+                  onClick={() => step !== label && changeStep(label)}
+                >
+                  <span>{index + 1}</span> {label}
+                </button>
               </li>
             ))}
           </ol>
@@ -887,7 +919,7 @@ export function DeckDoctorView({
             Adjust goals and filters
           </button>
         </div>
-        {suggestionAnnouncement && (
+        {suggestionAnnouncement && !showApplied && (
           <p className="doctor-muted" role="status">
             {suggestionAnnouncement}
           </p>
@@ -984,6 +1016,7 @@ export function DeckDoctorView({
                 selectCards={(label, names) => {
                   requestExit(() => selectCards(label, names))
                 }}
+                chooseTheme={() => requestExit(chooseTheme)}
               />
             </div>
             <section
@@ -1001,6 +1034,39 @@ export function DeckDoctorView({
                   {findings.length} finding{findings.length === 1 ? '' : 's'}
                 </span>
               </div>
+              {mode === 'review' && missingCards > 0 && (
+                <article
+                  className="doctor-finding"
+                  tabIndex={-1}
+                  aria-label={`${missingCards} slots open`}
+                  ref={(node) => {
+                    if (node) findingNodes.current.set('open-slots', node)
+                  }}
+                >
+                  <h3>
+                    {missingCards} slot{missingCards === 1 ? '' : 's'} open
+                  </h3>
+                  <p className="doctor-muted">
+                    The deck has {deck.length} of 100 cards. These additions fill the gap without
+                    cutting anything.
+                  </p>
+                  {ratedCandidates.slice(0, Math.max(3, missingCards)).map(({ card }) => (
+                    <DoctorSuggestionRow
+                      key={card.name}
+                      suggestion={{ addCard: card, impact: card.reason || 'Fills an open slot.' }}
+                      findingId="open-slots"
+                      selectedCutIndexes={selectedCutIndexes}
+                      selectedAdditionNames={selectedAdditionNames}
+                      hasPendingChanges={hasPendingChanges}
+                      settingsRefreshPending={settingsRefreshPending}
+                      recommendationOptionsChanged={recommendationOptionsChanged}
+                      openCard={openCard}
+                      applySuggestion={applySuggestion}
+                      toggleSuggestionInPlan={toggleSuggestionInPlan}
+                    />
+                  ))}
+                </article>
+              )}
               {findings.length ? (
                 findings.map((finding) => (
                   <article
@@ -1327,14 +1393,16 @@ export function DeckDoctorView({
                 </p>
               </div>
             )}
-            <label className="doctor-checkbox">
-              <input
-                type="checkbox"
-                checked={moveCutToSideboard}
-                onChange={(event) => setMoveCutToSideboard(event.target.checked)}
-              />
-              Move cut cards to the sideboard
-            </label>
+            {selectedCuts.length > 0 && (
+              <label className="doctor-checkbox">
+                <input
+                  type="checkbox"
+                  checked={moveCutToSideboard}
+                  onChange={(event) => setMoveCutToSideboard(event.target.checked)}
+                />
+                Move cut cards to the sideboard
+              </label>
+            )}
             {error && (
               <p className="doctor-error" role="status">
                 {error}
@@ -1437,6 +1505,29 @@ export function DeckDoctorView({
               </>
             )}
           </section>
+        </div>
+      )}
+      {showApplied && (
+        <div className="doctor-apply-bar doctor-applied" role="region" aria-label="Applied changes">
+          <div role="status">
+            <strong>Applied: {appliedSummary}</strong>
+            <span>Deck: {deck.length} / 100 · Also listed in Change history</span>
+          </div>
+          <div className="doctor-applied-actions">
+            <button
+              className="export"
+              type="button"
+              onClick={() => void undoApplied(appliedRecords)}
+            >
+              Undo
+            </button>
+            <button className="export" type="button" onClick={() => setAppliedFrom(null)}>
+              Dismiss
+            </button>
+            <button className="primary" type="button" onClick={() => changeStep('Choose changes')}>
+              Choose more changes
+            </button>
+          </div>
         </div>
       )}
       {(step !== 'Diagnose' || hasPendingChanges) && (
