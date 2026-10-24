@@ -418,13 +418,11 @@
 }
 .set-picker-rows {
   display: grid;
-  max-height: 264px;
   grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
   align-content: start;
   gap: 6px;
   margin: 0;
   padding: 2px;
-  overflow-y: auto;
   list-style: none;
 }
 .set-picker-row {

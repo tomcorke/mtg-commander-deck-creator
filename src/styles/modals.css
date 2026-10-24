@@ -1212,13 +1212,17 @@
 .autosaved-draft-list .saved-deck-load {
   flex: 0 0 auto;
 }
-.autosave-retention {
+.autosave-retention-settings {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid #dad8e6;
 }
-.autosave-retention h4 {
-  margin: 0 0 10px;
+.autosave-retention-settings > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+.autosave-retention {
+  margin-top: 12px;
 }
 .autosave-retention > div {
   display: flex;
@@ -1245,7 +1249,7 @@
   color: #e9e8f5;
 }
 .dark .saved-deck-list article,
-.dark .autosave-retention {
+.dark .autosave-retention-settings {
   border-color: #45415c;
 }
 .dark .draft-help,
@@ -1700,4 +1704,7 @@ main > .commander-header {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+.saved-deck-last {
+  font-size: 13px;
 }

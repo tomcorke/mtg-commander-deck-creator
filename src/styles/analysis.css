@@ -575,6 +575,12 @@
 .card-reference-name:has(.card-reference-thumbnail):focus-visible {
   color: inherit;
 }
+.card-reference-thumbnail.missing {
+  background: #dedcea;
+}
+.dark .card-reference-thumbnail.missing {
+  background: #36344f;
+}
 .card-reference-thumbnail {
   width: 32px;
   flex: none;

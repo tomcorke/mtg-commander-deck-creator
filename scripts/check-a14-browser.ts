@@ -467,6 +467,7 @@ async function quotaSafety(page: Page, context: BrowserContext) {
   )
   assert.deepEqual(await protectedBytes(page, ['recent', peerId]), fullBefore)
   await fillQuota(page)
+  await openLimits(page)
   await page.getByLabel('Maximum drafts', { exact: true }).fill('5')
   await page.getByRole('button', { name: 'Apply limits', exact: true }).click()
   await page.locator('.workspace-alert').filter({ hasText: 'Storage is full' }).waitFor()
@@ -669,6 +670,7 @@ async function deletionSafety(page: Page, context: BrowserContext) {
   )
   assert.deepEqual(await protectedBytes(page, [draft.id, peerId, 'closed']), before)
   await assertFocusInside(page, '.saved-decks-modal')
+  await openLimits(page)
   await page.getByLabel('Maximum drafts', { exact: true }).fill('1')
   assert.match(
     await respondToConfirmation(
@@ -697,7 +699,13 @@ async function deletionSafety(page: Page, context: BrowserContext) {
   await validateBounds(page)
 }
 
+const openLimits = (page: Page) =>
+  page
+    .locator('.autosave-retention-settings')
+    .evaluate((details: HTMLDetailsElement) => (details.open = true))
+
 async function validateBounds(page: Page) {
+  await openLimits(page)
   const before = await page.evaluate((key) => localStorage.getItem(key), retentionKey)
   for (const [label, invalidValues] of [
     ['Maximum drafts', ['0', '201']],

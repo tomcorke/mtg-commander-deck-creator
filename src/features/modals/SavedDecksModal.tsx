@@ -128,6 +128,15 @@ export function SavedDecksModal({
                   {draft.state.deck.length}/100 cards · Saved{' '}
                   <DraftSavedTime updatedAt={draft.updatedAt} />
                 </small>
+                {draft.state.deck.length > 1 && (
+                  <span className="saved-deck-last">
+                    <small>Last added</small>{' '}
+                    <CardReference
+                      card={draft.state.deck.at(-1)!}
+                      onOpen={() => openCard(draft.state.deck.at(-1)!)}
+                    />
+                  </span>
+                )}
                 {draft.id === autosave.id ? (
                   <small>Current workspace</small>
                 ) : (
@@ -190,67 +199,6 @@ export function SavedDecksModal({
             {autosave.draftDeleteError}
           </p>
         )}
-        <form
-          className="autosave-retention"
-          key={`${autosave.retention.maxCount}:${autosave.retention.maxAgeDays}`}
-          onSubmit={(event) => {
-            event.preventDefault()
-            const values = new FormData(event.currentTarget)
-            void applyLimits(values)
-          }}
-        >
-          <h4>Keep autosaves</h4>
-          <div>
-            <label>
-              Maximum drafts
-              <input
-                className="clearable-input"
-                type="number"
-                min="1"
-                max="200"
-                step="1"
-                required
-                name="maxCount"
-                defaultValue={autosave.retention.maxCount}
-                disabled={!autosave.cleanupAvailable}
-              />
-            </label>
-            <label>
-              Age limit (days)
-              <input
-                className="clearable-input"
-                type="number"
-                min="1"
-                max="365"
-                step="1"
-                required
-                name="maxAgeDays"
-                defaultValue={autosave.retention.maxAgeDays}
-                disabled={!autosave.cleanupAvailable}
-              />
-            </label>
-            <button
-              className="saved-deck-load"
-              disabled={!autosave.cleanupAvailable || autosave.busy}
-            >
-              Apply limits
-            </button>
-          </div>
-          <p className="draft-help">
-            Limits remove only inactive drafts. Decks open in any tab and manual saves are kept,
-            even above the maximum.
-          </p>
-          {retentionResult && (
-            <p className="draft-help" role="status">
-              {retentionResult}
-            </p>
-          )}
-          {!autosave.cleanupAvailable && (
-            <p className="draft-help">
-              Automatic cleanup is off because this browser cannot detect live workspaces safely.
-            </p>
-          )}
-        </form>
         <h3 className="draft-section-title">Manual saves</h3>
         {commander && (
           <>
@@ -359,6 +307,69 @@ export function SavedDecksModal({
           ))}
         </div>
         {!savedDecks.length && <p className="saved-decks-empty">No saved decks yet.</p>}
+        <details className="autosave-retention-settings">
+          <summary>Autosave limits</summary>
+          <form
+            className="autosave-retention"
+            key={`${autosave.retention.maxCount}:${autosave.retention.maxAgeDays}`}
+            onSubmit={(event) => {
+              event.preventDefault()
+              const values = new FormData(event.currentTarget)
+              void applyLimits(values)
+            }}
+          >
+            <div>
+              <label>
+                Maximum drafts
+                <input
+                  className="clearable-input"
+                  type="number"
+                  min="1"
+                  max="200"
+                  step="1"
+                  required
+                  name="maxCount"
+                  defaultValue={autosave.retention.maxCount}
+                  disabled={!autosave.cleanupAvailable}
+                />
+              </label>
+              <label>
+                Age limit (days)
+                <input
+                  className="clearable-input"
+                  type="number"
+                  min="1"
+                  max="365"
+                  step="1"
+                  required
+                  name="maxAgeDays"
+                  defaultValue={autosave.retention.maxAgeDays}
+                  disabled={!autosave.cleanupAvailable}
+                />
+              </label>
+              <button
+                className="saved-deck-load"
+                disabled={!autosave.cleanupAvailable || autosave.busy}
+              >
+                Apply limits
+              </button>
+            </div>
+            <p className="draft-help">
+              Limits remove only inactive drafts. Decks open in any tab and manual saves are kept,
+              even above the maximum.
+            </p>
+            {retentionResult && (
+              <p className="draft-help" role="status">
+                {retentionResult}
+              </p>
+            )}
+            {!autosave.cleanupAvailable && (
+              <p className="draft-help">
+                Automatic cleanup is off because this browser cannot detect live workspaces safely.
+              </p>
+            )}
+          </form>
+        </details>
       </section>
     </div>
   )

@@ -81,6 +81,9 @@ export function ExportDeckModal({
             <b>{names.join(' and ')}</b> as your {names.length > 1 ? 'commanders' : 'commander'}.
           </p>
         )}
+        {!deckCount && (
+          <p className="saved-decks-empty">The deck is empty. Add cards to export it.</p>
+        )}
         <textarea
           readOnly
           value={deckList(exportFormat)}
@@ -91,7 +94,7 @@ export function ExportDeckModal({
           <a href="https://www.moxfield.com/decks/personal" target="_blank" rel="noreferrer">
             Open Moxfield decks ↗
           </a>
-          <button className="primary" type="button" onClick={copyDeck}>
+          <button className="primary" type="button" disabled={!deckCount} onClick={copyDeck}>
             {copied ? 'Copied' : 'Copy to clipboard'}
           </button>
         </div>
