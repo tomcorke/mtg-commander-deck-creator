@@ -27,6 +27,8 @@ export type EdhrecEntry = {
   header: string
   /** Percentage of the commander's EDHREC decks that play this card. */
   inclusion?: number
+  /** EDHREC synergy: how much more often this commander's decks play it than its colours do. */
+  synergy?: number
 }
 export type SeedEvidence = {
   name: string
@@ -59,6 +61,7 @@ export type RecommendationCard = {
   source?: RecommendationSource
   seedEvidence?: SeedEvidence[]
   inclusion?: number
+  synergy?: number
   image: string
   backImage?: string
   set: string
@@ -96,7 +99,10 @@ export const recommendationScoreFactorMaximums = {
 } as const
 export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> &
   Partial<
-    Pick<RecommendationCard, 'set' | 'collectionMatch' | 'typeLine' | 'manaCost' | 'manaValue'>
+    Pick<
+      RecommendationCard,
+      'set' | 'collectionMatch' | 'typeLine' | 'manaCost' | 'manaValue' | 'synergy'
+    >
   >
 export type ManaSupport = {
   landCount: number

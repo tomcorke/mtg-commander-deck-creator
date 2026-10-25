@@ -16,28 +16,49 @@ import type {
   RecommendationOptions,
 } from './recommendation-types.ts'
 
+// Strongest EDHREC list first, so a card in several lists keeps the same reason whatever their order.
+const listStrength = (tag: string) =>
+  ['highsynergycards', 'highliftcards', 'topcards'].includes(tag)
+    ? 3 - ['highsynergycards', 'highliftcards', 'topcards'].indexOf(tag)
+    : ['lands', 'utilitylands', 'manafixing'].includes(tag)
+      ? -1
+      : 0
+const strongerList = (left: string, right: string) =>
+  listStrength(left) - listStrength(right) || (left < right ? 1 : left > right ? -1 : 0)
+
+/** One entry per card, merged across every list it appears in. */
 export function parseEdhrecEntries(
   lists: {
     header: string
     tag: string
-    cardviews: { name: string; num_decks?: number; potential_decks?: number }[]
+    cardviews: { name: string; num_decks?: number; potential_decks?: number; synergy?: number }[]
   }[],
 ) {
-  const entries: EdhrecEntry[] = []
-  const seen = new Set<string>()
+  const entries = new Map<string, EdhrecEntry>()
   for (const list of lists)
-    for (const card of list.cardviews)
-      if (!seen.has(card.name)) {
-        seen.add(card.name)
-        const { num_decks: decks, potential_decks: potential } = card
-        entries.push({
-          name: card.name,
-          tag: list.tag.toLowerCase(),
-          header: list.header,
-          ...(decks !== undefined && potential ? { inclusion: (decks / potential) * 100 } : {}),
-        })
+    for (const card of list.cardviews) {
+      const tag = list.tag.toLowerCase()
+      const { num_decks: decks, potential_decks: potential, synergy } = card
+      const inclusion = decks !== undefined && potential ? (decks / potential) * 100 : undefined
+      const previous = entries.get(card.name)
+      const keepPrevious = previous && strongerList(previous.tag, tag) >= 0
+      const best = (left?: number, right?: number) =>
+        left === undefined ? right : right === undefined ? left : Math.max(left, right)
+      const merged = {
+        name: card.name,
+        tag: keepPrevious ? previous.tag : tag,
+        header: keepPrevious ? previous.header : list.header,
+        inclusion: best(previous?.inclusion, inclusion),
+        synergy: best(previous?.synergy, synergy),
       }
-  return entries
+      entries.set(
+        card.name,
+        Object.fromEntries(
+          Object.entries(merged).filter(([, value]) => value !== undefined),
+        ) as EdhrecEntry,
+      )
+    }
+  return [...entries.values()]
 }
 
 export function toRecommendationCard(card: ScryfallCard, reason: string): RecommendationCard {
@@ -125,6 +146,7 @@ export function buildEdhrecRecommendations(
         ),
         source: 'edhrec' as const,
         ...(entry.inclusion !== undefined ? { inclusion: entry.inclusion } : {}),
+        ...(entry.synergy !== undefined ? { synergy: entry.synergy } : {}),
       }
     }),
     options.includeCreature,
