@@ -5,7 +5,7 @@ import { cardNameKey, toCard } from './card-model.ts'
 import { isCommanderCandidate } from './commander-promotion.ts'
 import { commanderNames } from './commander-catalog.ts'
 import { recommendationScore } from './recommendation-scoring.ts'
-import { buildEdhrecRecommendations } from './recommendation-sources.ts'
+import { excludedByOptions } from './recommendation-sources.ts'
 import { findSynergyPair } from './recommendation-themes.ts'
 import type {
   RecommendationOptions,
@@ -272,17 +272,12 @@ function allowedResult(raw: ScryfallCard, settings: SignatureSettings) {
     !withinPriceCap({ price: raw.prices?.usd ?? undefined }, settings.maxPrice)
   )
     return false
-  if (raw.legalities?.commander !== 'legal' || raw.type_line.includes('Land')) return false
-  if (settings.excludeGameChangers && raw.game_changer !== false) return false
-  if (settings.excludeUnreleased && !raw.released_at) return false
+  if (excludedByOptions(raw, settings) || raw.type_line.includes('Land')) return false
   if (!raw.color_identity.every((colour) => settings.commanderDetails?.colours.includes(colour)))
     return false
   // ponytail: collection-only accepts the hydrated printing; resolve allowed printings if wider coverage is needed.
   if (settings.collectionMode === 'only' && !settings.collectionSets.includes(raw.set)) return false
-  return (
-    buildEdhrecRecommendations([{ name: raw.name, tag: '', header: '' }], [raw], settings).length >
-    0
-  )
+  return true
 }
 
 export function mergeSignatureResults(

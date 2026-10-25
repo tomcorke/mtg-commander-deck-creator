@@ -280,6 +280,7 @@ test('production EDHREC builder applies safety filters and batches every card on
   const result = buildEdhrecRecommendations(
     entries,
     cards.map((card) => ({
+      released_at: '2020-01-01',
       ...card,
       cmc: 2,
       game_changer: false,

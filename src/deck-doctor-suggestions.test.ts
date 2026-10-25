@@ -24,7 +24,7 @@ const card = (name: string, overrides: Partial<DeckCard> = {}): DeckCard => ({
   colorIdentity: ['G'],
   manaCost: '{1}{G}',
   manaValue: 2,
-  detail: '',
+  detail: overrides.producedMana?.length ? '{T}: Add {G}.' : '',
   producedMana: [],
   faces: [],
   image: '',
@@ -34,7 +34,7 @@ const card = (name: string, overrides: Partial<DeckCard> = {}): DeckCard => ({
   ...overrides,
 })
 const addition = (name: string, overrides: Partial<Card> = {}): Card => ({
-  ...card(name),
+  ...card(name, { producedMana: ['G'], ...overrides }),
   reason: 'Commander synergy',
   printsUri: '',
   producedMana: ['G'],
@@ -85,7 +85,7 @@ test('a real ramp shortfall offers up to three distinct, role-filling swaps with
       card('Existing ramp B', { producedMana: ['G'] }),
     ],
     [
-      addition('Ramp + draw', { detail: 'Draw a card.' }),
+      addition('Ramp + draw', { detail: '{T}: Add {G}.\nDraw a card.' }),
       addition('Ramp B'),
       addition('Ramp C'),
       addition('Ramp D'),
@@ -177,7 +177,7 @@ test('lands at or below their target are protected, but surplus lands can be cut
 test('the last scarce role is protected even when the addition would replace that role', () => {
   const options = input(
     [card('Last draw', { detail: 'Draw a card.' })],
-    [addition('Ramp + draw', { detail: 'Draw a card.' })],
+    [addition('Ramp + draw', { detail: '{T}: Add {G}.\nDraw a card.' })],
   )
   assert.deepEqual(rampSuggestions(options), [])
   options.deckTargets = { ...defaultDeckTargets, draw: 0 }
@@ -191,7 +191,7 @@ test('multi-role cuts cannot reduce another role already at or below its target'
   ])
   assert.deepEqual(rampSuggestions(options), [])
   options.rankedCandidates = [
-    { card: addition('Ramp + draw', { detail: 'Draw a card.' }), fit: 50 },
+    { card: addition('Ramp + draw', { detail: '{T}: Add {G}.\nDraw a card.' }), fit: 50 },
   ]
   assert.equal(rampSuggestions(options)[0].impact, 'Ramp 0 → 1')
 })
@@ -203,7 +203,9 @@ test('equal-fit pairs prefer the same curve bucket and nearby coloured-pip requi
   )
   assert.equal(rampSuggestions(options)[0].addCard.name, 'Close')
   options.deck[0].producedMana = ['G']
+  options.deck[0].detail = '{T}: Add {G}.'
   options.deck[5].producedMana = ['G']
+  options.deck[5].detail = '{T}: Add {G}.'
   options.rankedCandidates = [
     { card: addition('More green', { manaCost: '{G}{G}', producedMana: ['G'] }), fit: 50 },
     { card: addition('Close'), fit: 50 },

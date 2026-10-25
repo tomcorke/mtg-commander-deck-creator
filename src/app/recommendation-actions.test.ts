@@ -8,6 +8,11 @@ import {
   recommendationScore,
 } from '../recommendations.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
+import {
+  mergeSignatureResults,
+  type SignatureSettings,
+  type SignatureSeed,
+} from '../domain/signature-recommendations.ts'
 import { fetchScryfallCardsByIdentifiers, fetchScryfallPrintings } from '../adapters/scryfall.ts'
 import { toDeckCard, toCard, type Card } from '../domain/card-model.ts'
 import { cyclePrinting } from './deck-actions.ts'
@@ -35,6 +40,7 @@ const card = (name: string, typeLine = 'Artifact', colourIdentity: string[] = []
   cmc: 2,
   legalities: { commander: 'legal' },
   game_changer: false,
+  released_at: '2020-01-01',
   oracle_text: 'Partner',
   color_identity: colourIdentity,
   set: 'tst',
@@ -696,43 +702,126 @@ test('theme search results are tagged from their own text, not the query themes'
   assert.deepEqual(found.tags, toCard(recursion, 'Collection match').tags)
 })
 
-test('every recommendation route applies the same tutor and extra-turn exclusions', async () => {
-  const withText = (name: string, oracle_text: string) => ({
-    ...card(name, 'Sorcery'),
-    oracle_text,
-  })
-  const tutor = withText('Fixture Tutor', 'Search your library for a card, put it into your hand.')
-  const turn = withText('Fixture Turn', 'Take an extra turn after this one.')
-  const rampSearch = withText(
-    'Fixture Cultivate',
-    'Search your library for up to two basic land cards, reveal them, put one onto the battlefield tapped and the other into your hand.',
-  )
-  const fixtures = [tutor, turn, rampSearch]
+// Give every fixture the same role/theme relevance so only eligibility decides the result.
+const withText = (name: string, oracle_text: string) => ({
+  ...card(name, 'Legendary Creature'),
+  released_at: '2020-01-01',
+  oracle_text: `${oracle_text}\nDestroy target artifact. Put a +1/+1 counter on target creature.`,
+})
+const fixtures = [
+  withText('Tutor', 'Search your library for a card, put it into your hand.'),
+  withText('Turn', 'Take an extra turn after this one.'),
+  withText('Multiple turns', 'Target player takes two extra turns after this one.'),
+  withText('Allowed land', 'Search your library for a basic land card, put it into your hand.'),
+  withText('Allowed Forest', 'Search your library for a Forest card, put it onto the battlefield.'),
+  withText('Allowed prevention', 'You can’t take an extra turn.'),
+  { ...withText('Game Changer', ''), game_changer: true },
+  { ...withText('Unknown membership', ''), game_changer: undefined },
+  { ...withText('Unreleased', ''), released_at: '9999-01-01' },
+  { ...withText('Unknown release', ''), released_at: undefined },
+  withText('Mana Vault', ''),
+  { ...withText('Illegal', ''), legalities: { commander: 'banned' } },
+]
+
+test('every source, signature and Doctor route applies the same exclusion fixtures', async () => {
   const options = {
     includeCreature: true,
-    excludeGameChangers: false,
+    excludeGameChangers: true,
     excludeTutors: true,
     excludeExtraTurns: true,
-    excludeUnreleased: false,
-    powerTarget: 'high' as const,
+    excludeUnreleased: true,
+    powerTarget: 'precon' as const,
   }
+  const queries: string[] = []
   const deps = {
     ...options,
-    // The fallback route runs a separate land/mana search; serve the fixtures once.
-    searchCards: async (query: string) => (query.includes('t:land or') ? [] : fixtures),
+    searchCards: async (query: string) => {
+      queries.push(query)
+      return query.includes('t:land or') ? [] : fixtures
+    },
     fetchCollection: async () => fixtures,
   }
   const names = (cards: { name: string }[]) => cards.map(({ name }) => name).sort()
-  const expected = ['Fixture Cultivate']
-  const edhrec = buildEdhrecRecommendations(
-    fixtures.map(({ name }) => ({ name, tag: 'highsynergycards', header: 'High Synergy Cards' })),
-    fixtures,
-    options,
+  const expected = ['Allowed Forest', 'Allowed land', 'Allowed prevention']
+  const entries = fixtures.map(({ name }) => ({
+    name,
+    tag: 'highsynergycards',
+    header: 'High Synergy Cards',
+  }))
+  assert.deepEqual(names(buildEdhrecRecommendations(entries, fixtures, options)), expected)
+  assert.deepEqual(
+    names(
+      await edhrecRecommendations(
+        {
+          ...deps,
+          fetchEdhrec: async () => ({
+            container: {
+              json_dict: {
+                cardlists: [{ tag: 'highsynergycards', header: '', cardviews: entries }],
+              },
+            },
+          }),
+          fetchCards: async () => fixtures,
+          setCommanderSubThemes: () => {},
+        },
+        'fixture',
+        [],
+      ),
+    ),
+    expected,
   )
-  assert.deepEqual(names(edhrec), expected)
   assert.deepEqual(names(await fallbackRecommendations(deps, [])), expected)
   assert.deepEqual(names(await themeRecommendations(deps, [], ['Graveyard'])), expected)
   assert.deepEqual(names(await fetchRecommendationCollectionCards(deps, [], [])), expected)
+  assert.deepEqual(names(await roleGapRecommendations(deps, [], ['removal'], [])), expected)
+  const commander = withText('Commander', '')
+  const doctorDeps = {
+    ...deps,
+    commander: 'Commander',
+    commanderDetails: { colours: [] },
+    deck: [toDeckCard(commander)],
+    sideboard: [],
+    ignoredCards: [],
+    collectionMode: 'only',
+    collectionSets: ['tst'],
+    theme: '+1/+1 counters',
+    activeSubThemes: [],
+    fetchCard: async () => commander,
+    setCollectionState: () => {},
+    setCollectionError: () => {},
+    setCollectionPoolSize: () => {},
+  }
+  assert.deepEqual(names(await fetchDeckDoctorCandidates(doctorDeps)), expected)
+  assert.deepEqual(names(await fetchDeckDoctorCommanders(doctorDeps)), expected)
+  const seed: SignatureSeed = {
+    card: toDeckCard(commander),
+    theme: '+1/+1 counters',
+    page: 'cards',
+  }
+  const visible = Array.from({ length: 4 }, (_, index) =>
+    toCard(withText(`Visible ${index}`, ''), ''),
+  )
+  const signature = mergeSignatureResults(
+    visible,
+    fixtures.map((raw) => ({
+      raw,
+      seeds: [seed],
+      evidence: [
+        {
+          name: raw.name,
+          seed: commander.name,
+          theme: seed.theme,
+          page: seed.page,
+          tag: 'creatures',
+          lift: 2,
+          decks: 200,
+        },
+      ],
+    })),
+    { ...doctorDeps, deferredCards: [] } as SignatureSettings,
+  )
+  assert.deepEqual(names(signature.slice(visible.length)), expected)
+  for (const query of queries) assert.doesNotMatch(query, /-otag:(?:tutor|extra-turn)/)
 })
 
 test('role-gap retrieval searches only roles the offered pool cannot cover, ten new cards each', async () => {
@@ -764,6 +853,7 @@ test('role-gap retrieval searches only roles the offered pool cannot cover, ten 
     offered,
   )
   assert.equal(queries.length, 1)
-  assert.match(queries[0], /id<=r legal:commander -t:land \(otag:draw\) -otag:tutor/)
+  assert.match(queries[0], /id<=r legal:commander -t:land \(otag:draw\)/)
+  assert.doesNotMatch(queries[0], /-otag:(?:tutor|extra-turn)/)
   assert.equal(found.length, 10)
 })

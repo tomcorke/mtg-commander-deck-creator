@@ -105,7 +105,7 @@ test('classifies common removal without treating one sacrifice or mass untap as 
 
 test('recognises common ramp and board-wipe wording', () => {
   const analysis = analyseDeck([
-    card({ detail: 'Create two Treasure tokens.' }),
+    card({ detail: 'Create two Treasure tokens.', typeLine: 'Sorcery' }),
     card({ detail: 'Whenever a Forest enters, lands you control produce an additional {G}.' }),
     card({ detail: 'Put a land card from your hand onto the battlefield tapped.' }),
     card({
@@ -424,7 +424,7 @@ test('card features separate ramp, fixing and burst; draw from cantrips; and rem
   )
   assert.equal(
     mana('Search your library for a basic land card, reveal it, put it into your hand.'),
-    'fixing',
+    'land-to-hand',
   )
   assert.equal(mana('Search your library for a land card.'), 'unknown')
   assert.equal(mana('Draw two cards.'), null)
@@ -449,12 +449,12 @@ test('card features separate ramp, fixing and burst; draw from cantrips; and rem
   assert.equal(interaction('Target creature you control gains hexproof until end of turn.'), 'self')
   assert.equal(interaction('Draw two cards.'), null)
   // Card selection isn't card advantage.
-  assert.equal(draw('Draw two cards, then discard two cards.'), 'cantrip')
+  assert.equal(draw('Draw two cards, then discard two cards.'), 'selection')
   assert.equal(
     draw(
       'Draw three cards, then put two cards from your hand on top of your library in any order.',
     ),
-    'cantrip',
+    'selection',
   )
   // Treasure reminder text isn't self-sacrifice.
   assert.equal(

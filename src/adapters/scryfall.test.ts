@@ -283,5 +283,6 @@ test('fetchScryfallCollectionCards follows collection search pages', async () =>
   )
   assert.match(urls[0], /set%3Aset-a/)
   assert.match(urls[0], /date%3C%3Dtoday/)
+  assert.doesNotMatch(new URL(urls[0]).searchParams.get('q') ?? '', /-otag:(?:tutor|extra-turn)/)
   assert.ok(!new URL(urls[0]).searchParams.get('q')?.includes('-is:commander'))
 })

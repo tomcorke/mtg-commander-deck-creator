@@ -29,6 +29,7 @@ const raw = (name: string, set = 'tst') => ({
   cmc: 2,
   legalities: { commander: 'legal' },
   game_changer: false,
+  released_at: '2020-01-01',
   color_identity: [],
   set,
   collector_number: '1',

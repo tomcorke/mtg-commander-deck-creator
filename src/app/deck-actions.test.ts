@@ -90,7 +90,10 @@ test('applying a finding suggestion updates deck and history once, refreshes fin
     deckTargets,
   }
   const findings = analyzeDeckDoctor(doctorInput)
-  const replacement = toCard({ ...card('New ramp'), produced_mana: ['G'] }, 'Commander synergy')
+  const replacement = toCard(
+    { ...card('New ramp'), produced_mana: ['G'], oracle_text: '{T}: Add {G}.' },
+    'Commander synergy',
+  )
   const suggestion = suggestDeckDoctorChanges({
     ...doctorInput,
     commanderColours: ['G'],
