@@ -20,8 +20,8 @@ export const playStyles = [
     id: 'upgraded',
     label: 'Upgraded',
     summary:
-      'A balance of theme and strength. Strong cards are in; your tutor and extra-turn choices stay.',
-    description: 'Upgraded · Balanced · Allows Game Changers',
+      'A balance of theme and strength. Strong cards and tutors are in; extra turns stay out.',
+    description: 'Upgraded · Balanced · Allows Game Changers and tutors · Excludes extra turns',
   },
   {
     id: 'high',
@@ -39,6 +39,8 @@ export function playStyleSettings(current: PlayStyleSettings, style: PlayStyle):
       powerTarget: 'upgraded',
       recommendationStyle: 'balanced',
       excludeGameChangers: false,
+      excludeTutors: false,
+      excludeExtraTurns: true,
     }
   const casual = style === 'casual'
   return {

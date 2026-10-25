@@ -23,6 +23,8 @@ test('presets map current preferences without mutating them or claiming a bracke
     powerTarget: 'upgraded',
     recommendationStyle: 'balanced',
     excludeGameChangers: false,
+    excludeTutors: false,
+    excludeExtraTurns: true,
   })
   assert.deepEqual(playStyleSettings(current, 'high'), {
     powerTarget: 'high',

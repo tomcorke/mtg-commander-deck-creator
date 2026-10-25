@@ -9,14 +9,14 @@ import { priorityLabels } from '../../domain/recommendation-tuning.ts'
 
 const powerLabels = { precon: 'Core', upgraded: 'Upgraded', high: 'High power' }
 
-// Art crops of familiar cards that hint at each tier, served by Scryfall (never stored here).
-const presetArt: Record<PlayStyle, { card: string; tier: number }> = {
-  casual: { card: 'Llanowar Elves', tier: 1 },
-  upgraded: { card: 'Rhystic Study', tier: 2 },
-  high: { card: 'Demonic Tutor', tier: 3 },
+// Art crops of chosen printings that hint at each tier, served by Scryfall (never stored here).
+// Cyclonic Rift is a Game Changer (checked against mtg-knowledge-base, 2026-10-25).
+const presetArt: Record<PlayStyle, { card: string; art: string; tier: number }> = {
+  casual: { card: 'Jumbo Cactuar', art: 'd/b/db01c222-8795-47e9-a789-e7f749a3ee7d', tier: 1 },
+  upgraded: { card: 'Cyclonic Rift', art: 'd/f/dfb7c4b9-f2f4-4d4e-baf2-86551c8150fe', tier: 2 },
+  high: { card: 'Black Lotus', art: 'b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd', tier: 3 },
 }
-const artCrop = (card: string) =>
-  `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card)}&format=image&version=art_crop`
+const artCrop = (path: string) => `https://cards.scryfall.io/art_crop/front/${path}.jpg`
 
 export function PlayStyleStep({
   settings,
@@ -54,7 +54,7 @@ export function PlayStyleStep({
           >
             <img
               className="play-style-art"
-              src={artCrop(presetArt[id].card)}
+              src={artCrop(presetArt[id].art)}
               alt=""
               loading="lazy"
               title={presetArt[id].card}
