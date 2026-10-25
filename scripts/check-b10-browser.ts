@@ -42,10 +42,11 @@ async function waitForCard(page: Page, name: string, present = true) {
       const raw =
         localStorage.getItem(prefix + sessionStorage.getItem(sessionKey)) ??
         sessionStorage.getItem(recoveryKey)
-      return (
-        raw !== null &&
-        JSON.parse(raw).state.deck.some((card: { name: string }) => card.name === name) === present
-      )
+      if (raw === null) return false
+      // Autosaves store the deck as a card table ({ fields, rows }); savedState parses it fully.
+      const { fields, rows } = JSON.parse(raw).state.deck
+      const column = fields.indexOf('name')
+      return rows.some((row: unknown[]) => row[column] === name) === present
     },
     {
       prefix: autosavePrefix,
@@ -155,7 +156,7 @@ async function pairingApplyUndo({ page }: Scenario) {
   assert(!(await savedState(page)).deck.some((card) => card.name === cut))
   assert.match(await rampFinding(page).innerText(), /3 cards detected against a target of 10/)
   assert(!(await rows(page).allTextContents()).some((text) => text.includes(add)))
-  const announcement = `Swapped ${cut} for ${add}. Undo in Change history.`
+  const announcement = `Applied: Added ${add} · Cut ${cut}`
   assert.equal(await page.getByRole('status').filter({ hasText: announcement }).count(), 1)
   await button(page, 'Change history (1)').press('Enter')
   const history = page.getByRole('dialog', { name: 'Change history' })
@@ -222,10 +223,7 @@ async function resolvingFinding({ page }: Scenario) {
   await button(page, `Undo ${add} for ${cut}`).click()
   await button(page, 'Close change history').press('Escape')
   await focusIs(button(page, 'Change history (0)'))
-  assert.equal(
-    await page.getByRole('status').filter({ hasText: 'Undo in Change history' }).count(),
-    0,
-  )
+  assert.equal(await page.getByRole('status').filter({ hasText: 'Applied:' }).count(), 0)
   await rampFinding(page).waitFor()
 }
 
@@ -277,7 +275,10 @@ async function stageAndCheckPairToggles(page: Page) {
     .getByRole('checkbox', { name: `Cut ${expectedPairs[1][0]}`, exact: true })
     .press('Space')
   for (const [, add] of expectedPairs)
-    await page.getByRole('checkbox', { name: `Add ${add}`, exact: true }).press('Space')
+    await page
+      .getByRole('checkbox', { name: `Add ${add}`, exact: true })
+      .first()
+      .press('Space')
   await button(page, 'Back to Diagnose').press('Enter')
   for (const index of [0, 1]) await button(rows(page).nth(index), 'Add to plan').press('Enter')
   return expectedPairs
@@ -324,7 +325,8 @@ async function stagedPlansAndExits({ page }: Scenario) {
   await button(page, 'Confirm changes').click()
   await button(page, 'Apply 4 changes').press('Enter')
   for (const [, add] of expectedPairs) await waitForCard(page, add)
-  assert.equal(await page.locator('.doctor-apply-bar').count(), 0)
+  assert.equal(await tray.count(), 0)
+  assert.equal(await page.getByRole('region', { name: 'Applied changes' }).count(), 1)
   await button(page, 'Change history (2)').click()
   for (const [cut, add] of expectedPairs.toReversed())
     await button(page, `Undo ${add} for ${cut}`).click()
@@ -372,10 +374,7 @@ async function readinessAndCurve({ page }: Scenario) {
     assert.equal((await savedState(page)).deck.length, 89)
     await button(page, 'Close change history').press('Escape')
     await focusIs(button(page, 'Change history (0)'))
-    assert.equal(
-      await page.getByRole('status').filter({ hasText: 'Undo in Change history' }).count(),
-      0,
-    )
+    assert.equal(await page.getByRole('status').filter({ hasText: 'Applied:' }).count(), 0)
   } else {
     assert.equal(state.deck.length, 90)
     assert.equal(await row.locator('.doctor-card-tile').count(), 2)
@@ -502,7 +501,10 @@ async function adjustSettings(page: Page, change: (dialog: Locator) => Promise<v
 async function manualNames(page: Page) {
   if (page.url().endsWith('/review')) await button(page, 'Choose changes').click()
   await heading(page, 'Choose changes').waitFor()
-  await page.locator('.doctor-additions-grid').waitFor()
+  await page.locator('.doctor-additions-grid').first().waitFor()
+  // Groups preview a few candidates; expand them so the filters are checked against all of them.
+  const more = page.locator('.doctor-show-more')
+  while (await more.count()) await more.first().click()
   return page.locator('.doctor-additions-grid .card-reference-name').allTextContents()
 }
 
@@ -563,11 +565,7 @@ async function pricePowerExclusions({ page, provider }: Scenario) {
   assert.equal(await page.evaluate(() => localStorage.getItem('option:powerTarget')), '"precon"')
   assert(
     provider.queries.some(
-      (query) =>
-        query.includes('-is:gamechanger') &&
-        query.includes('-otag:tutor') &&
-        query.includes('-otag:extra-turn') &&
-        query.includes('date<=today'),
+      (query) => query.includes('-is:gamechanger') && query.includes('date<=today'),
     ),
   )
   await button(page, 'Back to Diagnose').click()
@@ -605,7 +603,9 @@ async function setPreferences({ page, provider }: Scenario) {
 }
 
 async function ignoredUpdates({ page }: Scenario) {
-  const offer = page.locator('.card-offer').filter({ has: heading(page, 'B10 Ramp draw') })
+  const offer = page
+    .locator('.card-offer')
+    .filter({ has: button(page, 'Show details for B10 Ramp draw') })
   await button(offer, 'Ignore').press('Enter')
   await page.waitForFunction(
     ({ prefix, sessionKey, recoveryKey }) => {

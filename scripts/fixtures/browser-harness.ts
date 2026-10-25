@@ -235,7 +235,8 @@ export async function openScenario(
   }, state)
   await page.goto(`${base}#build`)
   await button(page, 'Deck review').waitFor()
-  await page.locator('[aria-label="Current card data"][role="status"]').waitFor({ state: 'hidden' })
+  // Saved cards render as pending, so the header shows this until current card data hydrates.
+  await page.getByText('Checking card data…').waitFor({ state: 'detached' })
   return scenario
 }
 

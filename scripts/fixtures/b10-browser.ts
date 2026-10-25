@@ -83,8 +83,8 @@ export const preferenceCandidates = [
 export const goalCandidates = [
   ramp('B10 Nearby ramp'),
   ramp('B10 Theme ramp', {
-    cmc: 5,
-    mana_cost: '{5}',
+    cmc: 4,
+    mana_cost: '{4}',
     oracle_text: '{T}: Add {G}. Create two 1/1 green Elf creature tokens.',
   }),
   fixtureCard('B10 Goal spare A'),
