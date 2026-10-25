@@ -207,3 +207,10 @@ test('rejects duplicates, off-identity and banned cards atomically but allows ba
   const basic = card('Forest', { type_line: 'Basic Land — Forest' })
   assert.equal(addCardSearchCards([basic, basic], deck, sideboard, ['G']).deck.length, 3)
 })
+
+test('multi-add keeps filling the main deck past 100 when asked', () => {
+  const deck = Array.from({ length: 100 }, (_, index) => toDeckCard(card(`Existing ${index}`)))
+  const result = addCardSearchCards([card('First'), card('Second')], deck, [], ['G'], Infinity)
+  assert.equal(result.deck.length, 102)
+  assert.equal(result.sideboardCount, 0)
+})

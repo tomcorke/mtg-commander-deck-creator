@@ -136,11 +136,12 @@ export function addCardSearchCards(
   deck: DeckCard[],
   sideboard: DeckCard[],
   commanderColours: string[],
+  mainLimit = 100,
 ) {
   const additions: DeckCard[] = []
   for (const card of cards) {
-    const target = deck.length + additions.length < 100 ? deck : sideboard
-    const pending = additions.slice(target === deck ? 0 : Math.max(0, 100 - deck.length))
+    const target = deck.length + additions.length < mainLimit ? deck : sideboard
+    const pending = additions.slice(target === deck ? 0 : Math.max(0, mainLimit - deck.length))
     const error = cardSearchError(card, [...target, ...pending], commanderColours)
     if (error) throw new Error(`${card.name}: ${error}`)
     additions.push({
@@ -149,7 +150,7 @@ export function addCardSearchCards(
       foilType: foilTypeFor(card, defaultFinish(card.finishes)),
     })
   }
-  const mainCount = Math.min(additions.length, Math.max(0, 100 - deck.length))
+  const mainCount = Math.min(additions.length, Math.max(0, mainLimit - deck.length))
   return {
     deck: [...deck, ...additions.slice(0, mainCount)],
     sideboard: [...sideboard, ...additions.slice(mainCount)],

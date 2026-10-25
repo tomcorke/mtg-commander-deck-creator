@@ -1,3 +1,4 @@
+import { addsToSideboard } from '../deck-analysis.ts'
 import { useEffect, type ReactNode } from 'react'
 
 import { duplicateDeckName } from '../deck-state.ts'
@@ -107,7 +108,7 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
   const manualError = manualCard
     ? cardSearchError(
         manualCard,
-        state.deck.length < 100 ? state.deck : state.sideboard,
+        addsToSideboard(state) ? state.sideboard : state.deck,
         state.commanderDetails?.colours ?? [],
       )
     : ''
@@ -118,7 +119,7 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
       selectedCollectionCard={state.selectedCollectionCard}
       selectedGuidanceCard={Boolean(state.selectedGuidanceCard)}
       selectedCardReference={Boolean(state.selectedCardReference || manualCard)}
-      deckComplete={state.deck.length >= 100}
+      deckComplete={addsToSideboard(state)}
       selectedDeckCardIsCommander={state.selectedDeckCardIsCommander}
       commanderPromotion={
         !manualCard && state.selectedDeckCard && !state.selectedDeckCardIsCommander
@@ -140,7 +141,7 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
       addAction={
         manualCard
           ? {
-              label: state.deck.length >= 100 ? 'Add to sideboard' : 'Add to deck',
+              label: addsToSideboard(state) ? 'Add to sideboard' : 'Add to deck',
               disabled: Boolean(manualError) || Boolean(state.loadingArt),
               error: manualError,
               onAdd: () => actions.addManualCard(),
@@ -151,6 +152,7 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
       pendingCardRemoval={state.pendingCardRemoval}
       selectedDeckCardLocation={state.selectedDeckCardLocation}
       removeSelectedDeckCard={actions.removeSelectedDeckCard}
+      moveSelectedDeckCard={actions.moveSelectedDeckCard}
       addSelectedGuidanceCard={actions.addSelectedGuidanceCard}
       closeDeckCard={actions.closeDeckCard}
       toggleCollectionSet={actions.toggleCollectionSet}

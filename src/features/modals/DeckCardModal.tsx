@@ -23,6 +23,7 @@ type DeckCardModalProps = {
   pendingCardRemoval: { board: 'deck' | 'sideboard'; index: number } | null
   selectedDeckCardLocation: { board: 'deck' | 'sideboard'; index: number } | null
   removeSelectedDeckCard: () => void
+  moveSelectedDeckCard: () => void
   addSelectedGuidanceCard: () => void
   closeDeckCard: () => void
   toggleCollectionSet: (set: string) => void
@@ -49,6 +50,7 @@ export function DeckCardModal({
   pendingCardRemoval,
   selectedDeckCardLocation,
   removeSelectedDeckCard,
+  moveSelectedDeckCard,
   addSelectedGuidanceCard,
   closeDeckCard,
   toggleCollectionSet,
@@ -165,20 +167,46 @@ export function DeckCardModal({
           !selectedGuidanceCard &&
           !selectedDeckCardIsCommander &&
           selectedCollectionCard === null && (
-            <div className="deck-card-modal-actions">
-              <button
-                type="button"
-                className={`deck-card-modal-remove ${pendingCardRemoval?.board === selectedDeckCardLocation?.board && pendingCardRemoval?.index === selectedDeckCardLocation?.index ? 'confirm' : ''}`}
-                onClick={removeSelectedDeckCard}
-              >
-                {pendingCardRemoval?.board === selectedDeckCardLocation?.board &&
-                pendingCardRemoval?.index === selectedDeckCardLocation?.index
-                  ? 'Confirm removal'
-                  : `Remove from ${selectedDeckCardLocation?.board === 'sideboard' ? 'sideboard' : 'deck'}`}
-              </button>
-            </div>
+            <DeckCardZoneActions
+              location={selectedDeckCardLocation}
+              pendingRemoval={pendingCardRemoval}
+              onMove={moveSelectedDeckCard}
+              onRemove={removeSelectedDeckCard}
+            />
           )}
       </section>
+    </div>
+  )
+}
+
+type CardLocation = { board: 'deck' | 'sideboard'; index: number } | null
+
+function DeckCardZoneActions({
+  location,
+  pendingRemoval,
+  onMove,
+  onRemove,
+}: {
+  location: CardLocation
+  pendingRemoval: CardLocation
+  onMove: () => void
+  onRemove: () => void
+}) {
+  const inSideboard = location?.board === 'sideboard'
+  const confirming =
+    pendingRemoval?.board === location?.board && pendingRemoval?.index === location?.index
+  return (
+    <div className="deck-card-modal-actions">
+      <button className="export" type="button" onClick={onMove}>
+        {inSideboard ? 'Move to main deck' : 'Move to sideboard'}
+      </button>
+      <button
+        type="button"
+        className={`deck-card-modal-remove ${confirming ? 'confirm' : ''}`}
+        onClick={onRemove}
+      >
+        {confirming ? 'Confirm removal' : `Remove from ${inSideboard ? 'sideboard' : 'deck'}`}
+      </button>
     </div>
   )
 }

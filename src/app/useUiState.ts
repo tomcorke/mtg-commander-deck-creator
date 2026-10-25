@@ -102,6 +102,7 @@ function useImportState() {
   const [importState, setImportState] = useState<'idle' | 'loading' | 'error' | 'missing'>('idle')
   const [importError, setImportError] = useState('')
   const [importFoundCount, setImportFoundCount] = useState(0)
+  const [keepAddingToMain, setKeepAddingToMain] = useState(false)
   return {
     importSource,
     setImportSource,
@@ -110,6 +111,8 @@ function useImportState() {
     importError,
     setImportError,
     importFoundCount,
+    keepAddingToMain,
+    setKeepAddingToMain,
     setImportFoundCount,
   }
 }
