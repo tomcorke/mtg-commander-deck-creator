@@ -21,6 +21,7 @@ Batch only tightly related edits. Skip publishing docs-only changes.
 ## Project planning
 
 - GitHub issues are the source of truth for planned work. Run `gh issue list` before planning; open, update, or close issues when scope or priority changes.
+- Read an issue with `gh issue view <n> --comments`. Comments carry scope changes and links from merged groundwork that the issue should build on.
 - Label each issue with `complexity:`, `value:`, and `risk:` (`low`/`medium`/`high`). The issue number is the only work-item ID; give new issues no other ID. `COMPLETED.md` is a frozen record of goals closed before the move, under their old A/B IDs.
 - This is a single-context repo. See `docs/agents/domain.md`.
 
