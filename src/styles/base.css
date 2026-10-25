@@ -282,13 +282,17 @@ main > .workspace-alert .modal-close {
   cursor: not-allowed;
   opacity: 0.55;
 }
-/* Navigation, not actions: a back link and a forward step, each with a direction chevron. */
+/* Navigation, not actions: a full button with a filled arrow segment on the side it travels to. */
 .nav-back,
 .nav-forward {
   --nav-accent: var(--commander-accent, #36327f);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  overflow: hidden;
+  padding: 0;
+  border: 1.5px solid var(--nav-accent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--nav-accent) 10%, transparent);
   color: var(--nav-accent);
   font-weight: 600;
   cursor: pointer;
@@ -298,40 +302,48 @@ main > .workspace-alert .modal-close {
   --nav-accent: color-mix(in srgb, var(--commander-accent, #7650ae) 45%, white);
 }
 .nav-back {
-  padding: 8px 4px;
-  border: 0;
-  background: none;
-  text-underline-offset: 4px;
+  padding-right: 16px;
+}
+.nav-forward {
+  padding-left: 16px;
 }
 .nav-back::before,
 .nav-forward::after {
-  font-size: 1.3em;
-  line-height: 1;
-  transition: transform 0.15s;
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--nav-accent);
+  color: var(--nav-arrow, #fff);
+  font-size: 1.15em;
+  transition: padding 0.15s;
+}
+.dark .nav-back::before,
+.dark .nav-forward::after {
+  --nav-arrow: #1b1930;
 }
 .nav-back::before {
-  content: '‹';
+  content: '←';
+  margin-right: 14px;
 }
 .nav-forward::after {
-  content: '›';
+  content: '→';
+  margin-left: 14px;
 }
-.nav-back:hover {
-  text-decoration: underline;
-}
-.nav-back:hover::before {
-  transform: translateX(-3px);
-}
+.nav-back,
 .nav-forward {
-  padding: 9px 14px 9px 20px;
-  border: 1.5px solid var(--nav-accent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--nav-accent) 10%, transparent);
+  min-height: 42px;
+  line-height: 1.2;
 }
+.nav-back:hover,
 .nav-forward:hover {
   background: color-mix(in srgb, var(--nav-accent) 18%, transparent);
 }
+.nav-back:hover::before {
+  padding: 0 16px 0 8px;
+}
 .nav-forward:hover::after {
-  transform: translateX(3px);
+  padding: 0 8px 0 16px;
 }
 .nav-back:focus-visible,
 .nav-forward:focus-visible {

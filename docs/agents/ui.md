@@ -27,7 +27,7 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 - Give icon-only buttons an accessible name and keep visible keyboard focus.
 - Choose the style by what the button does:
   - `.primary`: the main action in a region, such as the confirming action in a dialog, Search, or Add on a recommendation offer.
-  - `.nav-back` and `.nav-forward`: leaving the page or moving to the next step, such as "Back to builder" or "Next recommendations". Never use `.primary` for navigation. The CSS adds the direction chevron, so leave arrows out of the label.
+  - `.nav-back` and `.nav-forward`: leaving the page or moving to the next step, such as "Back to builder" or "Next recommendations". Never use `.primary` for navigation. The CSS adds the direction arrow, so leave arrows out of the label.
   - `.export`: secondary actions.
   - Destructive actions such as Delete and Remove: their red outline style, never filled.
   - Toggles and segmented choices: a selected state, not `.primary`.
