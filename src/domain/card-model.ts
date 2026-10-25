@@ -163,11 +163,11 @@ export const scryfallImage = (card: ScryfallCard) =>
 export const scryfallBackImage = (card: ScryfallCard) =>
   hasBackFace(card.layout) ? card.card_faces?.[1]?.image_uris?.normal : undefined
 
-export const cardTags = (card: ScryfallCard, category = '') =>
-  tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line)
+export const cardTags = (card: ScryfallCard) =>
+  tagsFor(`${card.type_line}\n${cardText(card)}`, card.type_line)
 
-export const toCard = (card: ScryfallCard, reason: string, category = ''): Card => ({
-  ...toRecommendationCard(card, reason, category),
+export const toCard = (card: ScryfallCard, reason: string): Card => ({
+  ...toRecommendationCard(card, reason),
   source: 'scryfall',
 })
 

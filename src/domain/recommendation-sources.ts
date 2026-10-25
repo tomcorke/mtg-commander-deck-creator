@@ -40,11 +40,7 @@ export function parseEdhrecEntries(
   return entries
 }
 
-export function toRecommendationCard(
-  card: ScryfallCard,
-  reason: string,
-  category = '',
-): RecommendationCard {
+export function toRecommendationCard(card: ScryfallCard, reason: string): RecommendationCard {
   return {
     name: card.name,
     layout: card.layout ?? 'normal',
@@ -78,7 +74,8 @@ export function toRecommendationCard(
     priceUri: card.purchase_uris?.tcgplayer,
     finish: defaultFinish(card.finishes),
     foilType: foilTypeFor(card, defaultFinish(card.finishes)),
-    tags: tagsFor(`${card.type_line}\n${cardText(card)}\n${category}`, card.type_line),
+    // Tags come only from gameplay text, never from the query or list that found the card.
+    tags: tagsFor(`${card.type_line}\n${cardText(card)}`, card.type_line),
   }
 }
 
@@ -113,7 +110,6 @@ export function buildEdhrecRecommendations(
           isManaCard(card)
             ? 'Land or mana'
             : (recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, '')),
-          `${entry.tag} ${entry.header}`,
         ),
         source: 'edhrec' as const,
         ...(entry.inclusion !== undefined ? { inclusion: entry.inclusion } : {}),

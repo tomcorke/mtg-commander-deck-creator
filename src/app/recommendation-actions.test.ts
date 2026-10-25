@@ -667,3 +667,24 @@ test('automatic printing enrichment respects the cap even for a preferred set or
   assert.equal(queued.image, 'cheap-art')
   assert.equal(queued.finish, 'nonfoil')
 })
+
+test('theme search results are tagged from their own text, not the query themes', async () => {
+  const recursion = {
+    ...card('Artifact Recursion'),
+    oracle_text: 'Return target artifact card from your graveyard to your hand.',
+  }
+  const [found] = await themeRecommendations(
+    {
+      excludeGameChangers: false,
+      excludeTutors: false,
+      excludeExtraTurns: false,
+      excludeUnreleased: false,
+      powerTarget: 'high',
+      searchCards: async () => [recursion],
+    },
+    [],
+    ['Artifacts', 'Enchantments'],
+  )
+  assert.ok(!found.tags.includes('Enchantments'))
+  assert.deepEqual(found.tags, toCard(recursion, 'Collection match').tags)
+})
