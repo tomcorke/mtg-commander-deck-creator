@@ -1195,3 +1195,19 @@ test('every creature type is a theme, tagged from type lines and text references
   // Lowercase words aren't type references.
   assert.equal(tagsFor('Look at the top card of your library.', 'Sorcery').includes('Cats'), false)
 })
+
+test('Kindred spells share creature types, so they get creature-type tags', () => {
+  // CR 205.3m: creatures and Kindreds share creature types (mtg-knowledge-base commander/rules.md).
+  assert.ok(
+    tagsFor(
+      'Kindred Instant — Goblin\nCreate two 1/1 red Goblin creature tokens.',
+      'Kindred Instant — Goblin',
+    ).includes('Goblins'),
+  )
+  assert.ok(
+    tagsFor(
+      'Kindred Sorcery — Elf\nUntap all lands you control.',
+      'Kindred Sorcery — Elf',
+    ).includes('Elves'),
+  )
+})
