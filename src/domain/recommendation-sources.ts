@@ -79,6 +79,26 @@ export function toRecommendationCard(card: ScryfallCard, reason: string): Recomm
   }
 }
 
+/**
+ * Local bracket-option check shared by every recommendation route. Scryfall queries pre-filter with
+ * Tagger (`-otag:tutor`), so this matches its intent: land searches are ramp or fixing, not tutors.
+ */
+export function excludedByOptions(
+  card: ScryfallCard,
+  options: Omit<RecommendationOptions, 'includeCreature' | 'maxPrice'>,
+) {
+  const text = cardText(card)
+  return (
+    card.legalities?.commander !== 'legal' ||
+    (options.excludeGameChangers && card.game_changer !== false) ||
+    (options.excludeTutors &&
+      /search your library for (?![^.]*\b(?:basic )?lands? cards?)/i.test(text)) ||
+    (options.excludeExtraTurns && /takes? an extra turn/i.test(text)) ||
+    (options.excludeUnreleased && !isReleased(card)) ||
+    (options.powerTarget === 'precon' && preconFastMana.has(card.name))
+  )
+}
+
 export function buildEdhrecRecommendations(
   entries: EdhrecEntry[],
   responseCards: ScryfallCard[],
@@ -87,18 +107,10 @@ export function buildEdhrecRecommendations(
   const cards = new Map(responseCards.map((card) => [card.name, card]))
   const allowed = entries.filter((entry) => {
     const card = cards.get(entry.name)
-    const text = card ? cardText(card) : ''
     return (
       card &&
-      card.legalities?.commander === 'legal' &&
-      !(
-        options.excludeGameChangers &&
-        (entry.tag === 'gamechangers' || card.game_changer !== false)
-      ) &&
-      !(options.excludeTutors && /search your library/i.test(text)) &&
-      !(options.excludeExtraTurns && /extra turn/i.test(text)) &&
-      !(options.excludeUnreleased && !isReleased(card)) &&
-      !(options.powerTarget === 'precon' && preconFastMana.has(card.name))
+      !(options.excludeGameChangers && entry.tag === 'gamechangers') &&
+      !excludedByOptions(card, options)
     )
   })
   return batchRecommendations(

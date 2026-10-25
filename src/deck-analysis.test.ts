@@ -13,6 +13,7 @@ import {
   deckSection,
   defaultDeckTargets,
   requiredPipsForCard,
+  rolesForCard,
   manaGuidanceSymbols,
   type AnalysisCard,
 } from './deck-analysis.ts'
@@ -49,7 +50,7 @@ test('analyses curve, coloured requirements, production, roles, and land range',
       typeLine: 'Sorcery',
       manaCost: '{1}{G}',
       manaValue: 2,
-      detail: 'Search your library for a basic land card.',
+      detail: 'Search your library for a basic land card, put it onto the battlefield tapped.',
     }),
     card({
       name: 'Dual',
@@ -326,4 +327,39 @@ test('guidance starts at 70 and strengthens aggregate impossible late gaps', () 
     true,
   )
   assert.equal(strong.filter((item) => item.text.includes('slots left')).length, 1)
+})
+
+test('role rules reject land-to-hand ramp, opponent-only draw, self-blink and recursion', () => {
+  const roles = (detail: string, typeLine = 'Sorcery') => rolesForCard(card({ detail, typeLine }))
+  // Ramp: land onto the battlefield, mana abilities and Treasure count; land to hand is fixing.
+  assert.ok(
+    roles(
+      'Search your library for up to two basic land cards, put them onto the battlefield tapped.',
+    ).includes('ramp'),
+  )
+  assert.ok(
+    !roles('Search your library for a basic land card, reveal it, put it into your hand.').includes(
+      'ramp',
+    ),
+  )
+  // Ambiguous: no destination named, so no ramp credit.
+  assert.ok(!roles('Search your library for a land card.').includes('ramp'))
+  // Draw: yours counts; opponent-only draw doesn't.
+  assert.ok(roles('Draw two cards.').includes('draw'))
+  assert.ok(!roles('Target opponent draws a card.').includes('draw'))
+  assert.ok(!roles('Each opponent may draw a card.').includes('draw'))
+  assert.ok(roles('You and target opponent each draw a card.').includes('draw'))
+  // Removal: opposing targets count; self-blink, own permanents and recursion don't.
+  assert.ok(roles('Exile target creature an opponent controls.').includes('removal'))
+  assert.ok(roles('Destroy target creature you don’t control.').includes('removal'))
+  assert.ok(
+    !roles('Exile target creature you control, then return it to the battlefield.').includes(
+      'removal',
+    ),
+  )
+  assert.ok(
+    !roles('Return target creature card from your graveyard to your hand.').includes('removal'),
+  )
+  // Ambiguous: "return target creature" can bounce either side, so it still counts.
+  assert.ok(roles('Return target creature to its owner’s hand.').includes('removal'))
 })

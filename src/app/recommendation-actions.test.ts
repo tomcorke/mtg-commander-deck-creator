@@ -2,7 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { defaultDeckTargets, rolesForCard } from '../deck-analysis.ts'
-import { rankRecommendationCards, recommendationScore } from '../recommendations.ts'
+import {
+  buildEdhrecRecommendations,
+  rankRecommendationCards,
+  recommendationScore,
+} from '../recommendations.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import { fetchScryfallCardsByIdentifiers, fetchScryfallPrintings } from '../adapters/scryfall.ts'
 import { toDeckCard, toCard, type Card } from '../domain/card-model.ts'
@@ -12,6 +16,7 @@ import {
   addCommanderCards,
   edhrecRecommendations,
   fallbackRecommendations,
+  fetchRecommendationCollectionCards,
   fetchDeckDoctorCandidates,
   fetchDeckDoctorCommanders,
   resetRecommendationState,
@@ -687,4 +692,43 @@ test('theme search results are tagged from their own text, not the query themes'
   )
   assert.ok(!found.tags.includes('Enchantments'))
   assert.deepEqual(found.tags, toCard(recursion, 'Collection match').tags)
+})
+
+test('every recommendation route applies the same tutor and extra-turn exclusions', async () => {
+  const withText = (name: string, oracle_text: string) => ({
+    ...card(name, 'Sorcery'),
+    oracle_text,
+  })
+  const tutor = withText('Fixture Tutor', 'Search your library for a card, put it into your hand.')
+  const turn = withText('Fixture Turn', 'Take an extra turn after this one.')
+  const rampSearch = withText(
+    'Fixture Cultivate',
+    'Search your library for up to two basic land cards, reveal them, put one onto the battlefield tapped and the other into your hand.',
+  )
+  const fixtures = [tutor, turn, rampSearch]
+  const options = {
+    includeCreature: true,
+    excludeGameChangers: false,
+    excludeTutors: true,
+    excludeExtraTurns: true,
+    excludeUnreleased: false,
+    powerTarget: 'high' as const,
+  }
+  const deps = {
+    ...options,
+    // The fallback route runs a separate land/mana search; serve the fixtures once.
+    searchCards: async (query: string) => (query.includes('t:land or') ? [] : fixtures),
+    fetchCollection: async () => fixtures,
+  }
+  const names = (cards: { name: string }[]) => cards.map(({ name }) => name).sort()
+  const expected = ['Fixture Cultivate']
+  const edhrec = buildEdhrecRecommendations(
+    fixtures.map(({ name }) => ({ name, tag: 'highsynergycards', header: 'High Synergy Cards' })),
+    fixtures,
+    options,
+  )
+  assert.deepEqual(names(edhrec), expected)
+  assert.deepEqual(names(await fallbackRecommendations(deps, [])), expected)
+  assert.deepEqual(names(await themeRecommendations(deps, [], ['Graveyard'])), expected)
+  assert.deepEqual(names(await fetchRecommendationCollectionCards(deps, [], [])), expected)
 })
