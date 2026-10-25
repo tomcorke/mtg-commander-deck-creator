@@ -461,3 +461,6 @@ main > header:has(.display-settings-panel) {
   border-color: #a69fde;
   background: #423c69;
 }
+.recommendations > .add-zone-toggle {
+  margin-top: 10px;
+}
