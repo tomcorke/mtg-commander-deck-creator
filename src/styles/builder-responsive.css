@@ -119,11 +119,15 @@
   }
 }
 .batch-controls {
-  display: flex;
+  position: relative;
   flex: none;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+}
+/* Out of flow so the note never moves the button off the toolbar row. */
+.batch-undecided {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  white-space: nowrap;
 }
 .limited-mode {
   display: flex;
@@ -340,6 +344,12 @@
   }
   .batch-controls button {
     width: 100%;
+  }
+  .batch-undecided {
+    position: static;
+    display: block;
+    margin-top: 4px;
+    white-space: normal;
   }
 }
 .completion {
