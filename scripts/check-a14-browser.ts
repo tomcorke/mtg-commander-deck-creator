@@ -222,12 +222,14 @@ async function pickerPresentation(page: Page) {
           errors.push('deck/card names must use primary text colour')
         if (narrow) {
           const bounds = details.getBoundingClientRect()
-          const actions = row.querySelectorAll(':scope > button, :scope > .saved-deck-delete-wrap')
+          const actions = row.querySelectorAll(
+            ':scope > button:not(.saved-deck-art), :scope > .saved-deck-delete-wrap',
+          )
           if (
-            bounds.width < row.getBoundingClientRect().width - 1 ||
+            bounds.right < row.getBoundingClientRect().right - 1 ||
             [...actions].some((action) => action.getBoundingClientRect().top < bounds.bottom)
           )
-            errors.push('narrow row actions must sit below full-width details')
+            errors.push('narrow row actions must sit below details that reach the row edge')
         }
         if (!row.closest('.autosaved-draft-list')) {
           const time = details.querySelector('time')
@@ -761,7 +763,7 @@ async function noticeAndKeyboard(page: Page) {
   await openPicker(page)
   const currentRow = page
     .locator('.autosaved-draft-list article')
-    .filter({ hasText: 'Current workspace' })
+    .filter({ hasText: 'Editing in this tab' })
   assert.equal(
     await currentRow.getByRole('button', { name: 'Open in this tab', exact: true }).count(),
     0,
@@ -786,7 +788,7 @@ async function noticeAndKeyboard(page: Page) {
     await page.getByRole('button', { name: 'Close saved decks', exact: true }).press('Tab')
     assert.equal(
       await page
-        .locator('.autosaved-draft-list .card-image-preview')
+        .locator('.autosaved-draft-list .card-reference .card-image-preview')
         .first()
         .evaluate((preview) => preview.matches(':popover-open')),
       true,

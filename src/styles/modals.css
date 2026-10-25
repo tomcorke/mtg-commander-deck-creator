@@ -1263,7 +1263,7 @@
     flex-wrap: wrap;
   }
   .saved-deck-list .saved-deck-details {
-    flex-basis: 100%;
+    flex: 1 1 calc(100% - 54px);
   }
 }
 .save-deck-form {
@@ -1707,4 +1707,29 @@ main > .commander-header {
 }
 .saved-deck-last {
   font-size: 13px;
+}
+.saved-deck-art {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.saved-deck-art .small-card-image-thumbnail {
+  width: 44px;
+  height: auto;
+}
+.saved-deck-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 0;
+}
+.saved-deck-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--commander-accent, #36327f) 14%, transparent);
+  font-size: 12px;
+  font-weight: 600;
 }
