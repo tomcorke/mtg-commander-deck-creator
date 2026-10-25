@@ -1,3 +1,4 @@
+import { creatureTypeTags, creatureTypes, creatureTypePlural } from './creature-types.ts'
 import type { EdhrecThemeCount, TaggedCard } from './recommendation-types.ts'
 
 export const themeMatchers: [string, RegExp][] = [
@@ -95,9 +96,13 @@ export const themeMatchers: [string, RegExp][] = [
   ],
 ]
 
-export const supportedThemes = themeMatchers
-  .map(([name]) => name)
-  .filter((name) => name !== 'Tribal')
+// Curated themes first, then every other creature type (Cats, Pirates, Wizards…).
+export const supportedThemes = [
+  ...new Set([
+    ...themeMatchers.map(([name]) => name).filter((name) => name !== 'Tribal'),
+    ...creatureTypes.map(creatureTypePlural),
+  ]),
+]
 const supportedThemeNames = new Map(supportedThemes.map((theme) => [theme.toLowerCase(), theme]))
 
 const edhrecThemeAliases: Record<string, string> = {
@@ -188,7 +193,12 @@ export function sharedThemes(cards: { tags: string[] }[], excluded: string[] = [
 }
 
 export function tagsFor(source: string, typeLine: string) {
-  const tags = themeMatchers.filter(([, matcher]) => matcher.test(source)).map(([tag]) => tag)
+  const tags = [
+    ...new Set([
+      ...themeMatchers.filter(([, matcher]) => matcher.test(source)).map(([tag]) => tag),
+      ...creatureTypeTags(source),
+    ]),
+  ]
   for (const type of ['Creature', 'Artifact', 'Enchantment', 'Land'])
     if (typeLine.includes(type) && !tags.includes(`${type}s`)) tags.push(`${type}s`)
   return tags

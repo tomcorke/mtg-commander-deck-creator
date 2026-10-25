@@ -1,11 +1,48 @@
 import {
   useEffect,
+  useState,
   type Dispatch,
   type KeyboardEvent,
   type ReactNode,
   type SetStateAction,
 } from 'react'
 import { colourNames, randomItems, selectableThemes } from '../../domain/commander-catalog.ts'
+import { creatureTypeForTheme, creatureTypeThemes } from '../../domain/creature-types.ts'
+
+const creatureThemeNames = [...new Set(creatureTypeThemes.values())].sort()
+
+/** Any creature type as a theme, alongside the curated chips. */
+function CreatureTypePicker({
+  theme,
+  chooseTheme,
+}: {
+  theme: string
+  chooseTheme: (name: string) => void
+}) {
+  const [query, setQuery] = useState(() => (creatureTypeForTheme(theme) ? theme : ''))
+  return (
+    <label className="commander-search creature-type-search">
+      Creature type
+      <input
+        list="creature-type-themes"
+        value={query}
+        placeholder="Any creature type, e.g. Cats or Pirates"
+        autoComplete="off"
+        onChange={(event) => {
+          setQuery(event.target.value)
+          const typed = event.target.value.trim().toLowerCase()
+          const match = [...creatureTypeThemes].find(([word]) => word.toLowerCase() === typed)
+          if (match && match[1] !== theme) chooseTheme(match[1])
+        }}
+      />
+      <datalist id="creature-type-themes">
+        {creatureThemeNames.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+    </label>
+  )
+}
 import type { AppModal, AppView } from '../../app/routes.ts'
 import {
   toDeckCard,
@@ -184,6 +221,12 @@ export function StartView(props: StartViewProps) {
               Show more themes
             </button>
           )}
+          <CreatureTypePicker
+            // Remount when the theme changes elsewhere (a chip, Clear filters) so the field follows it.
+            key={creatureTypeForTheme(props.theme) ? props.theme : ''}
+            theme={props.theme}
+            chooseTheme={props.chooseTheme}
+          />
           <h3 className="filter-heading">Colour identity</h3>
           <div className="colour-picker">
             {Object.entries(colourNames).map(([symbol, name]) => (

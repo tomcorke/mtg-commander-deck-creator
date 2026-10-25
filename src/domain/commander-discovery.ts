@@ -1,5 +1,6 @@
 import { fetchScryfallCardsByIdentifiers, searchScryfallCached } from '../adapters/scryfall.ts'
-import { themeCommanders, randomItems } from './commander-catalog.ts'
+import { themeCommanders, randomItems, themeSearchTerm } from './commander-catalog.ts'
+import { creatureTypeForTheme } from './creature-types.ts'
 import { commanderConstructionError } from './commander-construction.ts'
 import { toDeckCard, type ScryfallCard } from './card-model.ts'
 
@@ -83,7 +84,12 @@ export async function discoverCommanders(
   signal?: AbortSignal,
   providers = { search: searchScryfallCached, hydrate: fetchScryfallCardsByIdentifiers },
 ): Promise<CommanderSuggestion[]> {
-  const term = discoveryQueries[filters.theme]
+  // Creature types without a curated list search for commanders of, or referring to, that type.
+  const term =
+    discoveryQueries[filters.theme] ??
+    (discoveryNames(filters.theme).length || !creatureTypeForTheme(filters.theme)
+      ? undefined
+      : themeSearchTerm(filters.theme))
   const curated = filters.theme && !term
   const identity = filters.colours.length
     ? `id=${[...filters.colours].sort().join('').toLowerCase()}`
@@ -105,9 +111,11 @@ export async function discoverCommanders(
   signal?.throwIfAborted()
   const reason = curated
     ? `Picked for ${filters.theme} decks`
-    : term
-      ? `Commanders whose rules text mentions ${filters.theme}`
-      : ''
+    : term && creatureTypeForTheme(filters.theme)
+      ? `${filters.theme}, or commanders whose rules text mentions them`
+      : term
+        ? `Commanders whose rules text mentions ${filters.theme}`
+        : ''
   return filterCommanders(cards, filters).map((card) => ({ card, reason }))
 }
 

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { creatureTypeForTheme } from './domain/creature-types.ts'
 import test from 'node:test'
 import {
   advanceRecommendationQueue,
@@ -49,77 +50,78 @@ test('ordinary tapped lands do not create false Landfall preferences', () => {
 
 test('all exposed themes can tag matching card text', () => {
   for (const theme of supportedThemes) {
-    const source = (
-      {
-        Tokens: 'create one Soldier token',
-        '+1/+1 counters': 'put a +1/+1 counter',
-        Enchantments: 'enchantment',
-        Graveyard: 'graveyard',
-        Dragons: 'Dragon',
-        Spellslinger: 'instant or sorcery',
-        Artifacts: 'artifact',
-        Lifegain: 'gain 2 life',
-        Sacrifice: 'sacrifice a creature',
-        Equipment: 'Equipment',
-        'Group hug': 'each player draws',
-        Landfall: 'landfall',
-        Voltron: 'equipped creature',
-        Goad: 'goad',
-        'Big mana': 'mana value 7',
-        Blink: 'exile it then return',
-        ETB: 'Whenever another creature enters the battlefield under your control',
-        'Death triggers': 'Whenever another creature dies',
-        Wither: 'wither',
-        Political: 'vote',
-        Vampires: 'Vampire',
-        Angels: 'Angel',
-        Demons: 'Demon',
-        Faeries: 'Faerie',
-        Vehicles: 'Vehicle',
-        Indestructible: 'indestructible',
-        Mill: 'mill three cards',
-        Zombies: 'Zombie',
-        Elves: 'Elf',
-        Goblins: 'Goblin',
-        Dinosaurs: 'Dinosaur',
-        Merfolk: 'Merfolk',
-        Knights: 'Knight',
-        Spirits: 'Spirit',
-        Slivers: 'Sliver',
-        Mutants: 'Mutant',
-        Turtles: 'Turtle',
-        Defenders: 'Defender',
-        'Toughness matters': 'assign combat damage equal to its toughness',
-        'Power matters': 'power is equal to its mana value',
-        'Power 7+': 'creature with power 7 or greater',
-        Counters: 'proliferate',
-        Combat: 'additional combat phase',
-        'Resource tokens': 'create a Treasure token',
-        Recursion: 'return target card from your graveyard',
-        Protection: 'other creatures have hexproof',
-        Flying: 'flying',
-        Energy: 'get {E}',
-        Sagas: 'Saga',
-        'Exile matters': 'play that card from exile',
-        'Spell copying': 'copy target instant spell',
-        Cascade: 'cascade',
-        Discover: 'discover 4',
-        Explore: 'it explores',
-        Ninjas: 'Ninja',
-        Eldrazi: 'Eldrazi',
-        Humans: 'Human',
-        Soldiers: 'Soldier',
-        Phyrexians: 'Phyrexian',
-        Planeswalkers: 'Planeswalker',
-        Poison: 'toxic 2',
-        Wheels: 'each player discards their hand, then draws seven cards',
-        Clones: 'enters as a copy',
-        Amass: 'amass Orcs 2',
-        Populate: 'populate',
-        Anthems: 'creatures you control get +1/+1',
-        Topdeck: 'look at the top card of your library',
-      } as Record<string, string>
-    )[theme]
+    const source =
+      (
+        {
+          Tokens: 'create one Soldier token',
+          '+1/+1 counters': 'put a +1/+1 counter',
+          Enchantments: 'enchantment',
+          Graveyard: 'graveyard',
+          Dragons: 'Dragon',
+          Spellslinger: 'instant or sorcery',
+          Artifacts: 'artifact',
+          Lifegain: 'gain 2 life',
+          Sacrifice: 'sacrifice a creature',
+          Equipment: 'Equipment',
+          'Group hug': 'each player draws',
+          Landfall: 'landfall',
+          Voltron: 'equipped creature',
+          Goad: 'goad',
+          'Big mana': 'mana value 7',
+          Blink: 'exile it then return',
+          ETB: 'Whenever another creature enters the battlefield under your control',
+          'Death triggers': 'Whenever another creature dies',
+          Wither: 'wither',
+          Political: 'vote',
+          Vampires: 'Vampire',
+          Angels: 'Angel',
+          Demons: 'Demon',
+          Faeries: 'Faerie',
+          Vehicles: 'Vehicle',
+          Indestructible: 'indestructible',
+          Mill: 'mill three cards',
+          Zombies: 'Zombie',
+          Elves: 'Elf',
+          Goblins: 'Goblin',
+          Dinosaurs: 'Dinosaur',
+          Merfolk: 'Merfolk',
+          Knights: 'Knight',
+          Spirits: 'Spirit',
+          Slivers: 'Sliver',
+          Mutants: 'Mutant',
+          Turtles: 'Turtle',
+          Defenders: 'Defender',
+          'Toughness matters': 'assign combat damage equal to its toughness',
+          'Power matters': 'power is equal to its mana value',
+          'Power 7+': 'creature with power 7 or greater',
+          Counters: 'proliferate',
+          Combat: 'additional combat phase',
+          'Resource tokens': 'create a Treasure token',
+          Recursion: 'return target card from your graveyard',
+          Protection: 'other creatures have hexproof',
+          Flying: 'flying',
+          Energy: 'get {E}',
+          Sagas: 'Saga',
+          'Exile matters': 'play that card from exile',
+          'Spell copying': 'copy target instant spell',
+          Cascade: 'cascade',
+          Discover: 'discover 4',
+          Explore: 'it explores',
+          Ninjas: 'Ninja',
+          Eldrazi: 'Eldrazi',
+          Humans: 'Human',
+          Soldiers: 'Soldier',
+          Phyrexians: 'Phyrexian',
+          Planeswalkers: 'Planeswalker',
+          Poison: 'toxic 2',
+          Wheels: 'each player discards their hand, then draws seven cards',
+          Clones: 'enters as a copy',
+          Amass: 'amass Orcs 2',
+          Populate: 'populate',
+          Anthems: 'creatures you control get +1/+1',
+          Topdeck: 'look at the top card of your library',
+        } as Record<string, string>
+      )[theme] ?? `Creature — ${creatureTypeForTheme(theme)}`
     assert.ok(tagsFor(source, '').includes(theme), theme)
   }
 })
@@ -1174,4 +1176,22 @@ test('complementary batches swap a repeated role for a nearby card that adds som
     spreadRoles(creatures, roles, new Set()).map(({ name }) => name),
     creatures.map(({ name }) => name),
   )
+})
+
+test('every creature type is a theme, tagged from type lines and text references', () => {
+  assert.ok(supportedThemes.includes('Cats'))
+  assert.ok(supportedThemes.includes('Pirates'))
+  assert.ok(supportedThemes.includes('Elves'))
+  assert.equal(supportedThemes.filter((theme) => theme === 'Elves').length, 1)
+  assert.deepEqual(
+    tagsFor('Creature — Cat Warrior\nOther Cats you control get +1/+1.', 'Creature').filter((tag) =>
+      ['Cats', 'Warriors'].includes(tag),
+    ),
+    ['Cats', 'Warriors'],
+  )
+  assert.ok(
+    tagsFor('Whenever you cast a Pirate spell, draw a card.', 'Instant').includes('Pirates'),
+  )
+  // Lowercase words aren't type references.
+  assert.equal(tagsFor('Look at the top card of your library.', 'Sorcery').includes('Cats'), false)
 })
