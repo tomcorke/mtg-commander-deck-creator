@@ -905,7 +905,8 @@
 .subthemes button span {
   margin-left: 4px;
 }
-.subthemes .add-subtheme {
+.subthemes .add-subtheme,
+.subtheme-picker .theme-placeholder {
   border-style: dashed;
   background: transparent;
 }

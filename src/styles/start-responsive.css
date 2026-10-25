@@ -21,6 +21,19 @@
   background: #5851a6;
   color: white;
 }
+.dark .themes .theme-placeholder {
+  color: #aaa8c2;
+}
+.dark .themes .theme-placeholder:hover {
+  border-color: #7169ca;
+  background: transparent;
+  color: #d4d0ed;
+}
+.dark .themes .creature-type-search {
+  border-color: #7169ca;
+  background: #121121;
+  color: #e5e3f0;
+}
 .dark .suggestions,
 .dark .suggestion-select {
   border-color: #39374f;

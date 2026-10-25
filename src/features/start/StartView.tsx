@@ -11,36 +11,79 @@ import { creatureTypeForTheme, creatureTypeThemes } from '../../domain/creature-
 
 const creatureThemeNames = [...new Set(creatureTypeThemes.values())].sort()
 
-/** Any creature type as a theme, alongside the curated chips. */
-function CreatureTypePicker({
+/**
+ * Chosen creature types as chips, plus a dashed "+ Creature type" placeholder that opens a search.
+ * The first type is the theme; up to two more become sub-themes.
+ */
+function CreatureTypeChips({
   theme,
-  chooseTheme,
+  extras,
+  setTheme,
+  setExtras,
 }: {
   theme: string
-  chooseTheme: (name: string) => void
+  extras: string[]
+  setTheme: (name: string) => void
+  setExtras: (names: string[]) => void
 }) {
-  const [query, setQuery] = useState(() => (creatureTypeForTheme(theme) ? theme : ''))
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const chosen = [...(creatureTypeForTheme(theme) ? [theme] : []), ...extras]
+  const choose = (name: string) => {
+    if (chosen.includes(name)) return
+    if (!theme) setTheme(name)
+    else setExtras([...extras, name].slice(0, 2))
+  }
+  const remove = (name: string) => {
+    if (name !== theme) return setExtras(extras.filter((extra) => extra !== name))
+    setTheme(extras[0] ?? '')
+    setExtras(extras.slice(1))
+  }
   return (
-    <label className="commander-search creature-type-search">
-      Creature type
-      <input
-        list="creature-type-themes"
-        value={query}
-        placeholder="Any creature type, e.g. Cats or Pirates"
-        autoComplete="off"
-        onChange={(event) => {
-          setQuery(event.target.value)
-          const typed = event.target.value.trim().toLowerCase()
-          const match = [...creatureTypeThemes].find(([word]) => word.toLowerCase() === typed)
-          if (match && match[1] !== theme) chooseTheme(match[1])
-        }}
-      />
+    <>
+      {chosen.map((name) => (
+        <button
+          className="selected"
+          type="button"
+          key={name}
+          aria-label={`Remove ${name}`}
+          onClick={() => remove(name)}
+        >
+          {name} <span aria-hidden="true">×</span>
+        </button>
+      ))}
+      {chosen.length < 3 &&
+        (open ? (
+          <input
+            className="creature-type-search"
+            list="creature-type-themes"
+            aria-label="Creature type"
+            placeholder="Creature type, e.g. Cats"
+            autoComplete="off"
+            autoFocus
+            value={query}
+            onBlur={() => (setOpen(false), setQuery(''))}
+            onKeyDown={(event) => event.key === 'Escape' && (setOpen(false), setQuery(''))}
+            onChange={(event) => {
+              const typed = event.target.value.trim().toLowerCase()
+              const match = [...creatureTypeThemes].find(([word]) => word.toLowerCase() === typed)
+              if (!match) return setQuery(event.target.value)
+              choose(match[1])
+              setQuery('')
+              setOpen(false)
+            }}
+          />
+        ) : (
+          <button className="theme-placeholder" type="button" onClick={() => setOpen(true)}>
+            + Creature type
+          </button>
+        ))}
       <datalist id="creature-type-themes">
         {creatureThemeNames.map((name) => (
           <option key={name} value={name} />
         ))}
       </datalist>
-    </label>
+    </>
   )
 }
 import type { AppModal, AppView } from '../../app/routes.ts'
@@ -63,6 +106,8 @@ import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.
 import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
 
 type StartViewProps = {
+  extraCreatureTypes: string[]
+  setExtraCreatureTypes: Dispatch<SetStateAction<string[]>>
   navigateView: (view: AppView, modal?: AppModal | null, replace?: boolean) => void
   openModal: (modal: AppModal) => void
   openSavedDecks: () => void
@@ -92,14 +137,30 @@ type StartViewProps = {
 // eslint-disable-next-line max-lines-per-function -- Start-screen markup stays together; search helpers and render callbacks remain checked.
 export function StartView(props: StartViewProps) {
   const { darkMode } = useVisualPreferences()
-  const discovery = useCommanderDiscovery(props, true)
+  const discovery = useCommanderDiscovery(
+    { ...props, creatureTypes: props.extraCreatureTypes },
+    true,
+  )
   const reason = discovery.status === 'idle' ? discovery.suggestions[0]?.reason : undefined
   // Leaving the start screen opens the next view at the top, not at the old scroll position.
   useEffect(() => () => scrollTo({ top: 0 }), [])
   const resume = Boolean(props.commander && props.deck.length)
   const draft =
     props.autosave.drafts.find(({ id }) => id === props.autosave.id) ?? props.autosave.notice?.draft
+  // A curated theme becomes the main theme; a creature-type theme it replaces moves to the extras,
+  // and clearing the theme promotes the first extra creature type.
+  const chooseCuratedTheme = (name: string) => {
+    const extras = props.extraCreatureTypes
+    if (name === props.theme && extras.length) {
+      props.setTheme(extras[0])
+      return props.setExtraCreatureTypes(extras.slice(1))
+    }
+    if (creatureTypeForTheme(props.theme) && name !== props.theme)
+      props.setExtraCreatureTypes([props.theme, ...extras].slice(0, 2))
+    props.chooseTheme(name)
+  }
   const clearFilters = () => {
+    props.setExtraCreatureTypes([])
     props.setTheme('')
     props.setColours([])
     props.setSearch('')
@@ -117,7 +178,7 @@ export function StartView(props: StartViewProps) {
   }
   const summary =
     [
-      props.theme,
+      [props.theme, ...props.extraCreatureTypes].filter(Boolean).join(' + '),
       ...props.colours.map((colour) => colourNames[colour]),
       props.search.trim().length >= 2 ? `Name: ${props.search.trim()}` : '',
     ]
@@ -198,11 +259,17 @@ export function StartView(props: StartViewProps) {
                 aria-pressed={props.theme === name}
                 key={name}
                 type="button"
-                onClick={() => props.chooseTheme(name)}
+                onClick={() => chooseCuratedTheme(name)}
               >
                 {name}
               </button>
             ))}
+            <CreatureTypeChips
+              theme={props.theme}
+              extras={props.extraCreatureTypes}
+              setTheme={props.setTheme}
+              setExtras={props.setExtraCreatureTypes}
+            />
           </div>
           {props.visibleThemes.length < selectableThemes.length && (
             <button
@@ -221,12 +288,6 @@ export function StartView(props: StartViewProps) {
               Show more themes
             </button>
           )}
-          <CreatureTypePicker
-            // Remount when the theme changes elsewhere (a chip, Clear filters) so the field follows it.
-            key={creatureTypeForTheme(props.theme) ? props.theme : ''}
-            theme={props.theme}
-            chooseTheme={props.chooseTheme}
-          />
           <h3 className="filter-heading">Colour identity</h3>
           <div className="colour-picker">
             {Object.entries(colourNames).map(([symbol, name]) => (

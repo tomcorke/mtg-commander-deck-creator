@@ -469,7 +469,8 @@ export function resetRecommendationState(
     deps.setDeckDoctorHistory([])
     deps.setDeckDoctorError('')
     setIgnoredCards([])
-    setActiveSubThemes([])
+    // Extra creature types picked on the start screen carry over as sub-themes.
+    setActiveSubThemes(deps.extraCreatureTypes?.slice(0, 2) ?? [])
     setDismissedSubThemes([])
     setPreferenceScores({})
     setCollectionSets([])

@@ -1,11 +1,27 @@
 import { fetchScryfallCardsByIdentifiers, searchScryfallCached } from '../adapters/scryfall.ts'
 import { themeCommanders, randomItems, themeSearchTerm } from './commander-catalog.ts'
-import { creatureTypeForTheme } from './creature-types.ts'
+import { creatureTypeForTheme, creatureTypeTags } from './creature-types.ts'
 import { commanderConstructionError } from './commander-construction.ts'
 import { toDeckCard, type ScryfallCard } from './card-model.ts'
 
-export type DiscoveryFilters = { theme: string; colours: string[]; search: string }
-export type CommanderSuggestion = { card: ScryfallCard; reason: string }
+export type DiscoveryFilters = {
+  theme: string
+  colours: string[]
+  search: string
+  /** More creature types after a creature-type theme; commanders matching any of them are found. */
+  creatureTypes?: string[]
+}
+/** `coverage`: how many of several chosen creature types the commander is or mentions. */
+export type CommanderSuggestion = { card: ScryfallCard; reason: string; coverage?: number }
+
+const coveredTypes = (card: ScryfallCard, types: string[]) => {
+  const tags = creatureTypeTags(
+    [card.type_line, card.oracle_text, ...(card.card_faces ?? []).map((face) => face.oracle_text)]
+      .filter(Boolean)
+      .join('\n'),
+  )
+  return types.filter((type) => tags.includes(type))
+}
 
 // Heuristic curation from live Oracle/type review, 2026-10-04; see docs/a2-a9-first-use-investigation.md.
 // These expand the old lists only where the bounded thematic-query trial failed relevance/coverage.
@@ -79,17 +95,27 @@ export function filterCommanders(cards: ScryfallCard[], filters: DiscoveryFilter
   })
 }
 
+/**
+ * The Scryfall search for a theme, or undefined to use its curated list. Creature types without a
+ * curated list search for commanders of, or referring to, that type; several types search for any.
+ */
+function discoveryTerm(theme: string, types: string[]) {
+  if (types.length > 1) return types.map((type) => `(${themeSearchTerm(type)})`).join(' or ')
+  if (discoveryQueries[theme]) return discoveryQueries[theme]
+  return discoveryNames(theme).length || !creatureTypeForTheme(theme)
+    ? undefined
+    : themeSearchTerm(theme)
+}
+
 export async function discoverCommanders(
   filters: DiscoveryFilters,
   signal?: AbortSignal,
   providers = { search: searchScryfallCached, hydrate: fetchScryfallCardsByIdentifiers },
 ): Promise<CommanderSuggestion[]> {
-  // Creature types without a curated list search for commanders of, or referring to, that type.
-  const term =
-    discoveryQueries[filters.theme] ??
-    (discoveryNames(filters.theme).length || !creatureTypeForTheme(filters.theme)
-      ? undefined
-      : themeSearchTerm(filters.theme))
+  const types = creatureTypeForTheme(filters.theme)
+    ? [filters.theme, ...(filters.creatureTypes ?? [])]
+    : []
+  const term = discoveryTerm(filters.theme, types)
   const curated = filters.theme && !term
   const identity = filters.colours.length
     ? `id=${[...filters.colours].sort().join('').toLowerCase()}`
@@ -116,9 +142,21 @@ export async function discoverCommanders(
       : term
         ? `Commanders whose rules text mentions ${filters.theme}`
         : ''
-  return filterCommanders(cards, filters).map((card) => ({ card, reason }))
+  const commanders = filterCommanders(cards, filters)
+  if (types.length < 2) return commanders.map((card) => ({ card, reason }))
+  return commanders.map((card) => {
+    const covered = coveredTypes(card, types)
+    return {
+      card,
+      reason: covered.length ? `Covers ${covered.join(' and ')}` : reason,
+      coverage: covered.length,
+    }
+  })
 }
 
+/** Twelve at random, keeping commanders that cover more of the chosen creature types first. */
 export function shuffleCommanders(cards: CommanderSuggestion[]) {
-  return randomItems(cards, Math.min(12, cards.length))
+  return randomItems(cards, cards.length)
+    .sort((left, right) => (right.coverage ?? 0) - (left.coverage ?? 0))
+    .slice(0, 12)
 }
