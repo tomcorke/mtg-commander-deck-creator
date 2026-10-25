@@ -11,8 +11,8 @@ import {
   batchRecommendations,
   buildEdhrecRecommendations,
   commanderThemes,
+  excludedByOptions,
   parseEdhrecEntries,
-  preconFastMana,
   releaseDeferred,
   type CollectionMode,
   type DeferredCard,
@@ -150,7 +150,16 @@ export async function fallbackRecommendations(deps: ActionDeps, identityColours:
     searchCards(`${baseQuery} (t:land or o:"add {")`, undefined, 'edhrec'),
   ])
   const allowed = (cards: ScryfallCard[]) =>
-    cards.filter((card) => powerTarget !== 'precon' || !preconFastMana.has(card.name))
+    cards.filter(
+      (card) =>
+        !excludedByOptions(card, {
+          excludeGameChangers,
+          excludeTutors,
+          excludeExtraTurns,
+          excludeUnreleased,
+          powerTarget,
+        }),
+    )
   const main = allowed(mainCards).sort(() => Math.random() - 0.5)
   const mana = allowed(manaCards).sort(() => Math.random() - 0.5)
   return batchRecommendations(
@@ -182,7 +191,14 @@ export async function fetchRecommendationCollectionCards(
     excludeUnreleased,
   })
   return cards.filter(
-    (card: ScryfallCard) => powerTarget !== 'precon' || !preconFastMana.has(card.name),
+    (card: ScryfallCard) =>
+      !excludedByOptions(card, {
+        excludeGameChangers,
+        excludeTutors,
+        excludeExtraTurns,
+        excludeUnreleased,
+        powerTarget,
+      }),
   )
 }
 
@@ -237,7 +253,16 @@ export async function themeRecommendations(
   const query = `id<=${identity} legal:commander (${terms.join(' or ')}) ${bracketFilters}`
   const cards = await searchCards(query, undefined, 'edhrec')
   return cards
-    .filter((card: ScryfallCard) => powerTarget !== 'precon' || !preconFastMana.has(card.name))
+    .filter(
+      (card: ScryfallCard) =>
+        !excludedByOptions(card, {
+          excludeGameChangers,
+          excludeTutors,
+          excludeExtraTurns,
+          excludeUnreleased,
+          powerTarget,
+        }),
+    )
     .map((card: ScryfallCard) => toCard(card, 'Interesting new pick'))
 }
 

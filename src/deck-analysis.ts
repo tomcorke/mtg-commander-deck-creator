@@ -86,19 +86,25 @@ const isWipe = (text: string) =>
   /(?:destroy|exile|return) (?:all|each) (?:nonland )?(?:creature|artifact|enchantment|permanent)|each (?:creature|artifact|enchantment|player) (?:sacrifices|exiles) (?:all|any number)|deals? \d+ damage to each creature|all creatures get -[x\d]+\/-[x\d]+/i.test(
     text,
   )
+// Targets you control (self-blink, protection) and cards in your graveyard (recursion) aren't
+// interaction with opposing threats.
 const isRemoval = (text: string) =>
   !isWipe(text) &&
-  /(?:destroy|exile|return) target|target .* gets -(?:\d+|x)\/(?:-\d+|-x)|(?:deals?.* to|fights?) target|counter target/i.test(
+  /(?:destroy|exile|return) target(?![^.]*(?:you control|from your graveyard))|target .* gets -(?:\d+|x)\/(?:-\d+|-x)|(?:deals?.* to|fights?) target|counter target/i.test(
     text,
   )
 const isRamp = (card: AnalysisCard) =>
   !isLand(card) &&
   (card.producedMana.length > 0 ||
-    /search your library for .*(?:\bland|Plains|Island|Swamp|Mountain|Forest) card|put .*\bland card.* onto the battlefield|add \{|create (?:a|one|two|\d+|x) treasure|lands? you control produce[s]? .*additional/i.test(
+    // A land search only ramps when the land goes onto the battlefield; land-to-hand is fixing.
+    /search your library for [^.]*(?:\bland|Plains|Island|Swamp|Mountain|Forest) cards?[^.]*onto the battlefield|put .*\bland card.* onto the battlefield|add \{|create (?:a|one|two|\d+|x) treasure|lands? you control produce[s]? .*additional/i.test(
       card.detail,
     ))
+// Draw that only an opponent gets ("target opponent draws", "each opponent may draw") isn't yours.
 const isDraw = (text: string) =>
-  /draw (?:(?:a|one|two|three|\d+|that many|x) cards?|cards? equal to)/i.test(text)
+  /(?<!opponents? (?:may )?)draw (?:(?:a|one|two|three|\d+|that many|x) cards?|cards? equal to)/i.test(
+    text,
+  )
 
 export function rolesForCard(card: AnalysisCard) {
   return [
