@@ -10,6 +10,8 @@ export function useCommanderState(saved: PersistedDeckState | null) {
   )
   const [search, setSearch] = useState('')
   const [theme, setTheme] = useState(saved?.theme ?? '')
+  // Start screen only: creature types after the first, which become sub-themes of a new deck.
+  const [extraCreatureTypes, setExtraCreatureTypes] = useState<string[]>([])
   const [visibleThemes, setVisibleThemes] = useState(() => randomItems(selectableThemes, 6))
   const [colours, setColours] = useState<string[]>([])
   const [commanderSubThemes, setCommanderSubThemes] = useState<string[]>(
@@ -24,6 +26,8 @@ export function useCommanderState(saved: PersistedDeckState | null) {
     setSearch,
     theme,
     setTheme,
+    extraCreatureTypes,
+    setExtraCreatureTypes,
     visibleThemes,
     setVisibleThemes,
     colours,

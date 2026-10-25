@@ -5,7 +5,7 @@ import { deckJob } from './deck-job.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import { resetSignatureContext } from './signature-actions.ts'
-import { commanderNames, themeSearchTerms } from '../domain/commander-catalog.ts'
+import { commanderNames, themeSearchTerm } from '../domain/commander-catalog.ts'
 import { defaultFinish, printingOptions } from '../domain/printing.ts'
 import {
   batchRecommendations,
@@ -239,7 +239,7 @@ export async function themeRecommendations(
     powerTarget,
     searchCards,
   } = deps
-  const terms = [...new Set(themes.map((name) => themeSearchTerms[name]).filter(Boolean))]
+  const terms = [...new Set(themes.map(themeSearchTerm).filter(Boolean))]
   if (!terms.length) return []
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
@@ -469,7 +469,8 @@ export function resetRecommendationState(
     deps.setDeckDoctorHistory([])
     deps.setDeckDoctorError('')
     setIgnoredCards([])
-    setActiveSubThemes([])
+    // Extra creature types picked on the start screen carry over as sub-themes.
+    setActiveSubThemes(deps.extraCreatureTypes?.slice(0, 2) ?? [])
     setDismissedSubThemes([])
     setPreferenceScores({})
     setCollectionSets([])
@@ -645,7 +646,7 @@ export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[
   const currentNames = commanderNames(deps.commander)
   if (currentNames.length !== 1) return []
   const themes = [...new Set([deps.theme, ...deps.activeSubThemes].filter(Boolean))]
-  const terms = [...new Set(themes.map((name) => themeSearchTerms[name]).filter(Boolean))]
+  const terms = [...new Set(themes.map(themeSearchTerm).filter(Boolean))]
   if (!terms.length) return []
 
   const requiredColours = new Set(

@@ -13,6 +13,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
   const [error, setError] = useState('')
   const identity = [...filters.colours].sort().join('')
   const search = filters.search.trim().length >= 2 ? filters.search.trim() : ''
+  const creatureTypes = filters.creatureTypes ?? []
   useEffect(() => {
     if (!active) return
     const controller = new AbortController()
@@ -22,7 +23,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     const timer = setTimeout(
       () => {
         void discoverCommanders(
-          { theme: filters.theme, colours: [...identity], search },
+          { theme: filters.theme, colours: [...identity], search, creatureTypes },
           controller.signal,
         )
           .then((cards) => {
@@ -45,6 +46,6 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
       clearTimeout(timer)
       controller.abort()
     }
-  }, [active, filters.theme, identity, search])
+  }, [active, filters.theme, identity, search, creatureTypes.join('|')])
   return { suggestions, status, error, reshuffle: () => setSuggestions(shuffleCommanders(pool)) }
 }

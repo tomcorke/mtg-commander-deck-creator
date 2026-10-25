@@ -1,4 +1,5 @@
 import { supportedThemes } from '../recommendations.ts'
+import { creatureTypeForTheme } from './creature-types.ts'
 
 export const colourNames: Record<string, string> = {
   W: 'White',
@@ -348,4 +349,13 @@ export const themeSearchTerms: Record<string, string> = {
   ETB: 'o:"enters the battlefield"',
   'Death triggers': 'o:"dies"',
   Political: 'o:"each player"',
+}
+
+/** Scryfall search for a theme: the curated term, or members and references for a creature type. */
+export function themeSearchTerm(theme: string) {
+  const type = creatureTypeForTheme(theme)
+  return (
+    themeSearchTerms[theme] ??
+    (type ? `t:"${type}" or o:/\\b${type}\\b/ or o:/\\b${theme}\\b/` : undefined)
+  )
 }

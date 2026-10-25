@@ -101,3 +101,33 @@ test('source labels are honest and name search never bypasses theme/identity', a
     { name: 'AbortError' },
   )
 })
+
+test('several creature types find commanders for any of them, covering more types first', async () => {
+  const queries: string[] = []
+  const providers = {
+    search: async (query: string) => {
+      queries.push(query)
+      return [
+        card('Cat leader', { type_line: 'Legendary Creature — Cat', oracle_text: '' }),
+        card('Both leader', {
+          type_line: 'Legendary Creature — Cat',
+          oracle_text: 'Dogs you control get +1/+1.',
+        }),
+      ]
+    },
+    hydrate: async () => [],
+  }
+  const found = await discoverCommanders(
+    { theme: 'Cats', colours: [], search: '', creatureTypes: ['Dogs'] },
+    undefined,
+    providers,
+  )
+  assert.match(queries[0], /\(t:"Cat" .*\) or \(t:"Dog" .*\)/)
+  assert.deepEqual(
+    shuffleCommanders(found).map(({ card: { name }, reason }) => [name, reason]),
+    [
+      ['Both leader', 'Covers Cats and Dogs'],
+      ['Cat leader', 'Covers Cats'],
+    ],
+  )
+})

@@ -1,8 +1,10 @@
 import { finishLabel } from '../../domain/printing.ts'
 import { FinishFilters } from '../../shared/FinishFilters.tsx'
+import { creatureTypeForTheme } from '../../domain/creature-types.ts'
 import {
   useEffect,
   useRef,
+  useState,
   type CSSProperties,
   type Dispatch,
   type ReactNode,
@@ -323,6 +325,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   const landFillTrigger = useRef<HTMLButtonElement>(null)
   const inPlayStyleStep = Boolean(model.playStyleStep)
   const wasInPlayStyleStep = useRef(inPlayStyleStep)
+  // "+ Creature type" narrows the sub-theme search to creature types until the picker reopens.
+  const [creatureTypesOnly, setCreatureTypesOnly] = useState(false)
+  const subThemeInput = useRef<HTMLInputElement>(null)
   useEffect(() => {
     // Leaving the play-style step unmounts the focused button; land on the next heading instead.
     if (wasInPlayStyleStep.current && !inPlayStyleStep)
@@ -589,7 +594,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 <button
                   className="add-subtheme"
                   type="button"
-                  onClick={() => setShowSubThemePicker((current) => !current)}
+                  onClick={() => {
+                    setCreatureTypesOnly(false)
+                    setShowSubThemePicker((current) => !current)
+                  }}
                 >
                   + Choose sub-theme
                 </button>
@@ -622,17 +630,33 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           {showSubThemePicker && (
             <div className="subtheme-picker">
               <input
+                ref={subThemeInput}
                 value={subThemeSearch}
                 onChange={(event) => setSubThemeSearch(event.target.value)}
-                placeholder="Search sub-themes…"
-                aria-label="Search sub-themes"
+                placeholder={creatureTypesOnly ? 'Search creature types…' : 'Search sub-themes…'}
+                aria-label={creatureTypesOnly ? 'Search creature types' : 'Search sub-themes'}
               />
               <div>
-                {filteredSubThemes.slice(0, 8).map((name) => (
-                  <button type="button" key={name} onClick={() => chooseSubTheme(name)}>
-                    {name}
+                {filteredSubThemes
+                  .filter((name) => !creatureTypesOnly || creatureTypeForTheme(name))
+                  .slice(0, 8)
+                  .map((name) => (
+                    <button type="button" key={name} onClick={() => chooseSubTheme(name)}>
+                      {name}
+                    </button>
+                  ))}
+                {!creatureTypesOnly && !subThemeSearch && (
+                  <button
+                    className="theme-placeholder"
+                    type="button"
+                    onClick={() => {
+                      setCreatureTypesOnly(true)
+                      subThemeInput.current?.focus()
+                    }}
+                  >
+                    + Creature type
                   </button>
-                ))}
+                )}
               </div>
             </div>
           )}
