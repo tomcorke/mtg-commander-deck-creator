@@ -188,13 +188,66 @@ function suggestionsForFinding(finding: DeckDoctorFinding, input: SuggestionCont
   return bestSuggestions(pairs, context)
 }
 
+/**
+ * Evaluates the deck left after the swaps already chosen, so suggestions that are each safe can't
+ * together drop a role below target, or remove the last card for an active theme.
+ */
+function keepsDeckWorking(
+  pair: CandidatePair,
+  remaining: { roles: Record<TargetKey, number>; themes: Map<string, number> },
+  context: FindingContext,
+) {
+  if (!pair.cut) return true
+  const cutRoles = rolesForCard(pair.cut.cutCard)
+  const addRoles = rolesForCard(pair.addCard)
+  const rolesHold = targetKeys.every((role) => {
+    const next =
+      remaining.roles[role] - Number(cutRoles.includes(role)) + Number(addRoles.includes(role))
+    return next >= remaining.roles[role] || next >= context.deckTargets[role]
+  })
+  const themesHold = [...remaining.themes].every(
+    ([theme, count]) =>
+      !pair.cut!.cutCard.tags.includes(theme) || pair.addCard.tags.includes(theme) || count > 1,
+  )
+  return rolesHold && themesHold
+}
+
+function applyToRemaining(
+  pair: CandidatePair,
+  remaining: { roles: Record<TargetKey, number>; themes: Map<string, number> },
+) {
+  if (!pair.cut) return
+  const cutRoles = rolesForCard(pair.cut.cutCard)
+  const addRoles = rolesForCard(pair.addCard)
+  for (const role of targetKeys)
+    remaining.roles[role] += Number(addRoles.includes(role)) - Number(cutRoles.includes(role))
+  for (const [theme, count] of remaining.themes)
+    remaining.themes.set(
+      theme,
+      count +
+        Number(pair.addCard.tags.includes(theme)) -
+        Number(pair.cut.cutCard.tags.includes(theme)),
+    )
+}
+
 function bestSuggestions(pairs: CandidatePair[], context: FindingContext) {
   const suggestions: DoctorSuggestion[] = []
   const usedCuts = new Set<number>()
   const usedAdditions = new Set<string>()
+  const mainDeck = context.deck.slice(context.commanderCount)
+  const remaining = {
+    roles: { ...context.counts },
+    themes: new Map(
+      [context.theme, ...context.activeSubThemes]
+        .filter(Boolean)
+        .map((theme) => [theme, mainDeck.filter((card) => card.tags.includes(theme)).length]),
+    ),
+  }
   for (const pair of pairs.sort((left, right) => right.priority - left.priority)) {
     if (usedAdditions.has(pair.addCard.name) || (pair.cut && usedCuts.has(pair.cut.cutIndex)))
       continue
+    if (!keepsDeckWorking(pair, remaining, context)) continue
+    applyToRemaining(pair, remaining)
     suggestions.push({
       cut: pair.cut,
       addCard: pair.addCard,
