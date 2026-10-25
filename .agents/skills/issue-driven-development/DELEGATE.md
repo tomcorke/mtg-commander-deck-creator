@@ -10,22 +10,26 @@ gh issue view 139 --repo tomcorke/mtg-commander-deck-creator --json title,body,c
 
 Run `herdr --help` before your first Herdr command.
 
+## Agent handoffs
+
+Coordinate through explicit messages with `herdr agent prompt <name> "<message>"`, not by reading another agent's chat or terminal log. Put long or complex findings in a file and message its absolute path with a short summary. Include this handoff rule in every helper brief. Use lifecycle commands such as `agent get` only to check status, not to recover answers.
+
 ## 1. Research
 
-For anything you'd otherwise look up yourself (domain rules, provider APIs, existing knowledge, a wide code survey), spawn a **luna** research agent in Herdr. It does the reading in its own context, so yours stays free for the build and the review:
+Research only what the issue needs. Handle small lookups directly. Optionally delegate a substantial, bounded research question to a **luna** agent when it would help; spawning a researcher is not a required step:
 
 ```text
 herdr pane split --current --direction right --cwd "$PWD" --no-focus
 herdr agent start research-<n> --kind pi --pane <pane-id> -- --model gpt-6-luna --thinking max
-herdr agent prompt research-<n> "<question>. Write concise, sourced findings to <file>, then reply with only the file path." --wait --timeout 900000
+herdr agent prompt research-<n> "<question>. Coordinate through explicit messages, not other panes' chat or terminal logs. Write concise, sourced findings to <absolute-file-path>, then message <your-agent-name> with the path and a short summary using herdr agent prompt."
 ```
 
 - Put the findings file where the global instructions keep research, outside the repo.
-- Read the file: a pane read is limited to the visible scrollback and can cut a long answer short. Close the pane when you're done with it.
+- If implementation depends on the answer, wait for the researcher's explicit message, then read the findings file. Close its pane once the researcher reports completion.
 
-Persist research worth keeping to the knowledge base the repo's `AGENTS.md` names. Start another luna agent there and let it work **without waiting**, so the build isn't held up. Tell it to follow that repo's `AGENTS.md` (branching, sourcing, merging, search refresh, pushing) and to report the commit.
+Persist research worth keeping to the knowledge base the repo's `AGENTS.md` names. Delegate this as **fire-and-forget**: send the findings path and maintenance scope without `--wait`. Tell the KB agent to follow that repo's instructions, use explicit message/file handoffs, and report its commit or blockers directly to the orchestrator. Leave its pane running; KB persistence must not gate the PR, issue completion, or cleanup of your own work.
 
-Done when you understand the problem and every fact you rely on is sourced.
+Done when the facts needed for this issue are checked; no unrelated research or KB completion is required.
 
 ## 2. Build
 
@@ -55,7 +59,7 @@ Done when the user approves.
 
 1. Merge the PR and confirm it merged.
 2. Delete the remote branch, remove the worktree and local branch, and update the local default branch, as the repo instructions say.
-3. Read each knowledge-base agent's reply (`herdr agent read <name>`) and confirm it reported its commit, then close every pane you opened.
+3. Close completed helper panes. Leave fire-and-forget KB agents running and include their names in your report so the orchestrator can close their panes after explicit completion messages arrive.
 4. Report to the orchestrator in one message:
 
    ```text

@@ -8,6 +8,10 @@ disable-model-invocation: true
 
 You are the **orchestrator**. You help the user choose the next issue, hand it to a **delegate** agent in its own Herdr pane, and wait. The delegate owns everything about its issue: research, implementation, the PR, review with the user, merge and cleanup. You hold no implementation detail; keep your context to issue selection.
 
+## Agent handoffs
+
+All agents in this workflow coordinate through explicit `herdr agent prompt` messages, not by reading other panes' chat or terminal logs. Put long or complex findings in files and message their absolute paths. Apply this rule to delegate and helper briefs.
+
 Requires Herdr: check `test "$HERDR_ENV" = 1`. If it fails, tell the user and stop. Read the `herdr` skill (or run `herdr --help`) before the first Herdr command.
 
 ## 1. Set up the session
@@ -23,8 +27,8 @@ Ask the user, in one round of questions, before starting:
 
    | Issue kind                                            | Kind     | Agent arguments                                      |
    | ----------------------------------------------------- | -------- | ---------------------------------------------------- |
-   | Any visual UI design                                  | `claude` | `--model claude-opus-5-5 --effort medium` (or `low`) |
-   | Code only                                             | `pi`     | `--model gpt-6.1-sol --thinking high`                |
+   | Any visual UI design                                  | `claude` | `--model claude-opus-5-5 --effort low` |
+   | Code only                                             | `pi`     | `--model gpt-6.1-sol --thinking medium`                |
    | Docs only, or an extremely specific, well-scoped task | `pi`     | `--model gpt-6-luna --thinking max`                  |
 
 Name yourself so delegates can report back: `herdr agent rename "$HERDR_PANE_ID" orchestrator`. If that name is taken, pick another and use it in every brief.
@@ -67,6 +71,6 @@ Run one delegate at a time unless the user asks for more: each delegate reviews 
 A delegate's report arrives as a message from the `issue-<n>` agent.
 
 1. Close the delegate's pane. Find its ID with `herdr agent get issue-<n>` if you no longer have it, then `herdr pane close <pane-id>`.
-2. Note any new issues it filed, then return to step 2. Refresh the issue list rather than reusing the old one.
+2. Note any new issues and any fire-and-forget KB agents it reports, then return to step 2. Refresh the issue list rather than reusing the old one. KB work does not block the next issue; close each KB pane only after its agent sends an explicit completion message. If it reports a blocker, surface that message to the user.
 
 If the user abandons an issue instead, close the pane the same way and return to step 2.
