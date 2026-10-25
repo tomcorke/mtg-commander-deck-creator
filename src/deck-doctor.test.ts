@@ -175,8 +175,8 @@ test('does not flag a {2/color} hybrid spell as above-curve when deck sources su
       deckCard('High Cost Spell', {
         typeLine: 'Sorcery',
         colorIdentity: ['W'],
-        manaCost: '{5}{W}',
-        manaValue: 6,
+        manaCost: '{7}{W}',
+        manaValue: 8,
       }),
       ...Array.from({ length: 20 }, (_, index) =>
         deckCard(`White Creature ${index}`, {

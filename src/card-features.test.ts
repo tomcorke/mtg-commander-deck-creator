@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { cardFeatures, rolesForCard, type AnalysisCard } from './deck-analysis.ts'
+import { cardFeatures, roleCredit, rolesForCard, type AnalysisCard } from './deck-analysis.ts'
 
 const card = (detail: string, typeLine = 'Sorcery'): AnalysisCard => ({
   name: 'Fixture',
@@ -20,8 +20,13 @@ test('feature boundaries retain positive, negative and ambiguous evidence', () =
     ['mana', 'Search your library for a land card.', 'unknown'],
     ['mana', 'Draw two cards.', null],
     ['draw', 'Draw two cards.', 'net'],
+    ['draw', 'Draw four cards.', 'net'],
+    ['draw', 'Cycling {2}', 'cantrip'],
+    ['draw', 'Cycling {2}\nDraw four cards.', 'net'],
+    ['draw', 'Whenever you activate a cycling ability, create a token.', null],
     ['draw', 'Draw a card.', 'cantrip'],
     ['draw', 'Each opponent may draw a card.', null],
+    ['draw', 'Target opponent may draw four cards.', null],
     ['draw', 'Whenever an opponent draws a card, create a Treasure token.', null],
     ['draw', 'Each player draws two cards.', 'net'],
     ['draw', 'Target player draws two cards.', 'unknown'],
@@ -30,10 +35,16 @@ test('feature boundaries retain positive, negative and ambiguous evidence', () =
     ['draw', 'Whenever your draw step begins, create a Treasure token.', null],
     ['draw', 'Draw two cards, then discard two cards.', 'selection'],
     ['interaction', 'Exile target creature an opponent controls.', 'opposing'],
+    ['interaction', 'Whenever a creature you control dies, destroy target creature.', 'opposing'],
+    ['interaction', 'This spell deals 3 damage to target player.', 'unknown'],
+    ['interaction', 'This spell deals 3 damage to target spell’s controller.', 'unknown'],
     ['interaction', 'Exile target creature you control, then return it.', 'self'],
     ['interaction', 'Target permanent phases out.', 'unknown'],
     ['interaction', 'Draw two cards.', null],
     ['wipe', 'Destroy all creatures.', true],
+    ['wipe', 'Destroy all creatures you control.', 'unknown'],
+    ['wipe', 'Return each creature card from your graveyard to the battlefield.', 'unknown'],
+    ['wipe', 'This spell deals X damage to each creature.', true],
     ['wipe', 'Draw two cards.', false],
     ['wipe', 'Destroy each chosen thing.', 'unknown'],
   ] as const
@@ -43,6 +54,29 @@ test('feature boundaries retain positive, negative and ambiguous evidence', () =
     if (expected !== null && expected !== false)
       assert.ok(result.evidence[feature]?.includes(detail), detail)
   }
+})
+
+// Provider text checked 2026-10-25: https://api.scryfall.com/cards/named?exact=<card name>.
+test('review regressions preserve opposing wipes and keep opponents’ seven cards out of your draw credit', () => {
+  const livingDeath = {
+    ...card(
+      'Each player exiles all creature cards from their graveyard, then sacrifices all creatures they control, then puts all cards they exiled this way onto the battlefield.',
+    ),
+    oracleId: '9e6a3df4-67a3-452e-a6ef-f04dbadb21ef',
+  }
+  const mutilate = card('All creatures get -1/-1 until end of turn for each Swamp you control.')
+  assert.deepEqual(rolesForCard(livingDeath), ['wipes'])
+  assert.deepEqual(rolesForCard(mutilate), ['wipes'])
+  const wheel = {
+    ...card(
+      'Any number of target opponents each discard their hands, then draw seven cards.\nDraw a card.',
+      'Instant',
+    ),
+    oracleId: 'a7c6f07c-3cc3-4271-bbc7-9f7d5bbed3e8',
+  }
+  assert.equal(cardFeatures(wheel).draw, 'cantrip')
+  assert.equal(roleCredit(wheel).draw, 0.5)
+  assert.equal(cardFeatures(card('Target opponent may draw four cards.')).beneficiary, 'opponents')
 })
 
 test('mana costs and repetition distinguish acceleration, fixing and one-shot resources', () => {
