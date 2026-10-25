@@ -318,6 +318,12 @@ function transitionBatch<T extends { name: string }>(
   return { batch, released, candidates: [...remaining, ...released.ready] }
 }
 
+function countRoleSupply<T>(roles: string[], candidates: T[], cardRoles: (card: T) => string[]) {
+  return Object.fromEntries(
+    roles.map((role) => [role, candidates.filter((card) => cardRoles(card).includes(role)).length]),
+  )
+}
+
 export function advanceRecommendationQueue<
   T extends {
     name: string
@@ -336,6 +342,7 @@ export function advanceRecommendationQueue<
   liked,
   preferenceScores,
   pickedTags = new Set(),
+  tagCounts,
   activeSubThemes,
   extraSubTheme = '',
   theme,
@@ -357,6 +364,7 @@ export function advanceRecommendationQueue<
   liked: string[]
   preferenceScores: Record<string, number>
   pickedTags?: Set<string>
+  tagCounts?: Record<string, number>
   activeSubThemes: string[]
   extraSubTheme?: string
   theme: string
@@ -384,12 +392,7 @@ export function advanceRecommendationQueue<
     theme,
     ...rankedSubThemes,
   ])
-  const roleSupply = Object.fromEntries(
-    Object.keys(roleBoosts).map((role) => [
-      role,
-      candidates.filter((card) => cardRoles(card).includes(role)).length,
-    ]),
-  )
+  const roleSupply = countRoleSupply(Object.keys(roleBoosts), candidates, cardRoles)
   const context: RecommendationScoreContext = {
     theme,
     activeSubThemes: rankedSubThemes,
@@ -399,6 +402,7 @@ export function advanceRecommendationQueue<
         .filter(([, score]) => score > 0)
         .map(([tag]) => tag),
     ]),
+    tagCounts,
     preferenceScores: scores,
     neededRoles: new Set(Object.keys(roleBoosts).filter((role) => (roleBoosts[role] ?? 0) > 0)),
     cardRoles: [],

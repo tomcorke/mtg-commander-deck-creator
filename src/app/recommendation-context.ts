@@ -21,6 +21,9 @@ export function buildRecommendationContext(
   const roleBoosts: Record<string, number> = settings.prioritizeDeckHealth
     ? deckRoleBoosts(deck.length, analysis.counts, targets)
     : {}
+  const tagCounts: Record<string, number> = {}
+  for (const { tags } of deck.slice(commanderNames(settings.commander ?? '').length))
+    for (const tag of tags) tagCounts[tag] = (tagCounts[tag] ?? 0) + 1
   return {
     theme: settings.theme ?? '',
     activeSubThemes: settings.activeSubThemes ?? [],
@@ -30,6 +33,7 @@ export function buildRecommendationContext(
         .filter(([, score]) => score > 0)
         .map(([tag]) => tag),
     ]),
+    tagCounts,
     preferenceScores: settings.preferenceScores ?? {},
     neededRoles: new Set(targetKeys.filter((role) => (roleBoosts[role] ?? 0) > 0)),
     cardRoles: [],

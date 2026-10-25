@@ -116,6 +116,8 @@ export type RecommendationScoreContext = {
   theme: string
   activeSubThemes: string[]
   pickedTags: Set<string>
+  /** How many deck cards (excluding commanders) carry each tag; drives diminishing returns. */
+  tagCounts?: Record<string, number>
   preferenceScores: Record<string, number>
   neededRoles: Set<string>
   cardRoles: string[]
