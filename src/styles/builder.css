@@ -984,25 +984,74 @@
   gap: 12px;
   margin: 24px 0;
 }
+/* Rarity trim (#113): uncommon silver, rare gold, mythic orange-red, thicker at each tier. */
 .play-style-choice {
+  --tier-dark: #5d6b78;
+  --tier-light: #e6eef4;
+  --weight: 1;
+  --trim: calc(0.1em + var(--weight) * 0.08em);
+  --trim-gradient: linear-gradient(
+    135deg,
+    var(--tier-dark),
+    var(--tier-light) 45%,
+    var(--tier-dark) 55%,
+    color-mix(in srgb, var(--tier-dark), var(--commander-accent, var(--tier-dark)) 40%)
+  );
+  position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   padding: 0;
+  border: var(--trim) solid transparent;
+  border-radius: calc(0.5em + var(--trim));
   text-align: left;
   white-space: normal;
-  transition:
-    transform 0.15s,
-    border-color 0.15s;
+  transition: transform 0.15s;
+}
+.play-style-choice--upgraded {
+  --tier-dark: #9a7425;
+  --tier-light: #f6dd8f;
+  --weight: 2;
+}
+.play-style-choice--high {
+  --tier-dark: #b3301a;
+  --tier-light: #ffb054;
+  --weight: 3;
+}
+/* A masked ring rather than an opaque fill, so the commander backdrop still shows through. */
+.play-style-choice::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--trim));
+  padding: var(--trim);
+  border-radius: inherit;
+  background: var(--trim-gradient);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  pointer-events: none;
 }
 .play-style-choice:hover,
 .play-style-choice:focus-visible {
+  --trim-gradient: linear-gradient(
+    135deg,
+    var(--tier-light),
+    var(--tier-dark) 50%,
+    var(--tier-light)
+  );
   transform: translateY(-2px);
-  border-color: var(--commander-accent, #7650ae);
+}
+.play-style-choice:not(:disabled):hover,
+.play-style-choice:focus-visible {
+  background: color-mix(in srgb, var(--tier-dark) 9%, transparent);
+}
+.play-style-choice:focus-visible {
+  outline: 2px solid var(--commander-accent, #7650ae);
+  outline-offset: 3px;
 }
 .play-style-art {
   display: block;
   width: 100%;
+  border-radius: 0.5em 0.5em 0 0;
   aspect-ratio: 16 / 7;
   object-fit: cover;
   background: color-mix(in srgb, currentColor 10%, transparent);
