@@ -200,7 +200,7 @@ export async function collectionRecommendations(
     setCollectionPoolSize(unique.length)
     setCollectionState('idle')
     return unique.map((card: ScryfallCard) => ({
-      ...toCard(card, 'Collection match', `collection ${selectedSets.join(' ')}`),
+      ...toCard(card, 'Collection match'),
       collectionMatch: true,
     }))
   } catch (error) {
@@ -238,7 +238,7 @@ export async function themeRecommendations(
   const cards = await searchCards(query, undefined, 'edhrec')
   return cards
     .filter((card: ScryfallCard) => powerTarget !== 'precon' || !preconFastMana.has(card.name))
-    .map((card: ScryfallCard) => toCard(card, 'Interesting new pick', `theme ${themes.join(' ')}`))
+    .map((card: ScryfallCard) => toCard(card, 'Interesting new pick'))
 }
 
 export async function edhrecRecommendations(
@@ -569,9 +569,7 @@ export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[
       return true
     })
     .slice(0, 3)
-    .map((card: ScryfallCard) =>
-      toCard(card, 'Theme-compatible commander', `theme ${themes.join(' ')}`),
-    )
+    .map((card: ScryfallCard) => toCard(card, 'Theme-compatible commander'))
 }
 
 async function collectOfferedCards(
