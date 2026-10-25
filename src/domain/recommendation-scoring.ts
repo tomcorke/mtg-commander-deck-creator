@@ -290,7 +290,7 @@ export const recommendationReasons: Record<string, string> = {
   topcards: 'Commander favourite',
   newcards: 'Interesting new pick',
   creatures: 'Creature synergy',
-  instants: 'Interaction',
+  instants: 'Instant support',
   sorceries: 'Sorcery support',
   utilityartifacts: 'Utility artifact',
   utilityenchantments: 'Utility enchantment',

@@ -166,11 +166,12 @@ function manaSignal(card: DeckCard, context: DiagnosisContext): DeckDoctorCardSi
     return required > 0 && sources < required ? [{ colour, required, sources }] : []
   })
   const estimatedCost = card.manaValue - hybridAlternativeDiscount(card, analysis)
-  const highCost = estimatedCost >= 6 && estimatedCost >= average + 2
+  // Heuristic: ordinary six/seven-mana top end is not a casting problem by itself.
+  const highCost = estimatedCost >= 8 && estimatedCost >= average + 3
   if (!colourGaps.length && !highCost) return null
 
   const summary = [
-    highCost && 'Cost is well above the deck average',
+    highCost && 'Cost is at least eight mana and well above the deck average',
     colourGaps.length && 'Colour pips exceed reported mana sources',
   ]
     .filter(Boolean)
