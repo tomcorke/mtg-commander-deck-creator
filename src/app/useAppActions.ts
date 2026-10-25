@@ -373,7 +373,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
   const chooseSubTheme = (name: string) => {
     const selection = selectSubTheme(state.activeSubThemes, name)
     state.setActiveSubThemes(selection.activeSubThemes)
-    if (selection.refreshRecommendations) state.setRecommendationOptionsChanged(true)
+    if (selection.refreshRecommendations) state.setPendingSubThemes((t: string[]) => [...t, name])
     state.setShowSubThemePicker(false)
     state.setSubThemeSearch('')
   }

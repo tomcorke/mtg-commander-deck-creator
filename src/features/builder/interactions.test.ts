@@ -524,3 +524,14 @@ test('applying a price offer refreshes the pool without resetting choices or coo
   assert(!hasCard(deps.queue, 'Later'))
   assert.equal(deps.batchNumber, 7)
 })
+
+test('next batch rebuilds the pool after a deferred sub-theme change', async () => {
+  const deps = fixture()
+  let started = 0
+  deps.start = async () => {
+    started++
+  }
+  deps.activeSubThemes = ['Tokens']
+  await nextBatch(deps)
+  assert.equal(started, 1)
+})

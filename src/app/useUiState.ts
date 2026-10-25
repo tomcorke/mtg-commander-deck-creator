@@ -37,6 +37,7 @@ export function useUiState(
     setFirstBatchPending(false)
   }, [])
   const [recommendationOptionsChanged, setRecommendationOptionsChanged] = useState(false)
+  const [pendingSubThemes, setPendingSubThemes] = useState<string[]>([])
   const pendingReviewChanges = useRef(false)
   const setPendingReviewChanges = useCallback((pending: boolean) => {
     pendingReviewChanges.current = pending
@@ -79,6 +80,8 @@ export function useUiState(
     setFirstBatchFocusPending,
     recommendationOptionsChanged,
     setRecommendationOptionsChanged,
+    pendingSubThemes,
+    setPendingSubThemes,
     pendingReviewChanges,
     setPendingReviewChanges,
     reviewNavigation,
