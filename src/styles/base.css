@@ -413,3 +413,54 @@ main > .workspace-alert .modal-close {
 main > header:has(.display-settings-panel) {
   z-index: 35;
 }
+/* Compact segmented choice of where added cards go; kept quiet so it never competes with Add. */
+.add-zone-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  font-size: 13px;
+}
+.add-zone-toggle > span {
+  margin-right: 8px;
+  color: #68657c;
+}
+.add-zone-toggle button {
+  padding: 4px 10px;
+  border: 1px solid #bbb9cd;
+  background: transparent;
+  color: #34324a;
+  font-size: 13px;
+  cursor: pointer;
+}
+.add-zone-toggle button:first-of-type {
+  border-radius: 6px 0 0 6px;
+}
+.add-zone-toggle button:last-of-type {
+  margin-left: -1px;
+  border-radius: 0 6px 6px 0;
+}
+.add-zone-toggle button[aria-pressed='true'] {
+  position: relative;
+  border-color: var(--commander-accent, #36327f);
+  background: #d5d0f2;
+  font-weight: 600;
+}
+.add-zone-toggle button:focus-visible {
+  position: relative;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.dark .add-zone-toggle > span {
+  color: #a9a7c0;
+}
+.dark .add-zone-toggle button {
+  border-color: #4b4867;
+  color: #d8d8ea;
+}
+.dark .add-zone-toggle button[aria-pressed='true'] {
+  border-color: #a69fde;
+  background: #423c69;
+}
+.recommendations > .add-zone-toggle {
+  margin-top: 10px;
+}

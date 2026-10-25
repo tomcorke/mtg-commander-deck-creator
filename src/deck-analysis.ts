@@ -1,10 +1,24 @@
 export const targetKeys = ['lands', 'ramp', 'draw', 'removal', 'wipes'] as const
 export type TargetKey = (typeof targetKeys)[number]
 export type DeckTargets = Record<TargetKey, number>
-/** New cards go to the sideboard once the main deck has 100, unless the player keeps adding to it. */
+export type AddZone = 'deck' | 'sideboard'
+/** A player's zone choice, tied to whether the main deck had 100 cards when they made it. */
+export type AddZoneChoice = { zone: AddZone; full: boolean } | null
+/**
+ * New cards go to the main deck below 100 and to the sideboard from 100. A player's choice
+ * overrides that until the main deck crosses 100 either way, so reaching 100 re-enables the sideboard.
+ */
 // Takes the app's loosely typed state and action deps as well as plain objects.
+export const addZone = (state: Record<string, any>): AddZone => {
+  const full = (state.deck?.length ?? 0) >= 100
+  const choice: AddZoneChoice = state.addZoneChoice ?? null
+  return choice?.full === full ? choice.zone : full ? 'sideboard' : 'deck'
+}
 export const addsToSideboard = (state: Record<string, any>): boolean =>
-  (state.deck?.length ?? 0) >= 100 && !state.keepAddingToMain
+  addZone(state) === 'sideboard'
+/** Main-deck size a multi-card add fills before the rest spills to the sideboard. */
+export const mainDeckLimit = (state: Record<string, any>): number =>
+  addsToSideboard(state) ? 0 : (state.deck?.length ?? 0) >= 100 ? Infinity : 100
 export const deckBecameComplete = (previousCount: number, nextCount: number) =>
   previousCount < 100 && nextCount >= 100
 export const shouldAutoOpenDeckReview = (

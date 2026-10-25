@@ -1,4 +1,5 @@
-import { addsToSideboard } from '../deck-analysis.ts'
+import { addsToSideboard, mainDeckLimit } from '../deck-analysis.ts'
+import { AddZoneToggle } from '../shared/AddZoneToggle.tsx'
 import { useEffect, type ReactNode } from 'react'
 
 import { duplicateDeckName } from '../deck-state.ts'
@@ -120,6 +121,12 @@ function DeckCardModalView({ state, actions }: AppViewProps) {
       selectedGuidanceCard={Boolean(state.selectedGuidanceCard)}
       selectedCardReference={Boolean(state.selectedCardReference || manualCard)}
       deckComplete={addsToSideboard(state)}
+      zoneToggle={
+        <AddZoneToggle
+          zone={addsToSideboard(state) ? 'sideboard' : 'deck'}
+          onChange={actions.chooseAddZone}
+        />
+      }
       selectedDeckCardIsCommander={state.selectedDeckCardIsCommander}
       commanderPromotion={
         !manualCard && state.selectedDeckCard && !state.selectedDeckCardIsCommander
@@ -263,6 +270,13 @@ function CardSearchScreen({
         }}
         openCommander={(index) => actions.openCardReference(state.deck[index])}
         addCards={actions.addSearchCards}
+        mainLimit={mainDeckLimit(state)}
+        zoneToggle={
+          <AddZoneToggle
+            zone={addsToSideboard(state) ? 'sideboard' : 'deck'}
+            onChange={actions.chooseAddZone}
+          />
+        }
         closePage={() => {
           state.setBuilderModeReturn(null)
           actions.closeModal()

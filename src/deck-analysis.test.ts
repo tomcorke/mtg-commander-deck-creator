@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  addZone,
   addsToSideboard,
   analyseDeck,
+  mainDeckLimit,
   basicLandPlan,
   landFillReady,
   nonbasicLandSuggestions,
@@ -380,12 +382,21 @@ test('basic lands go to colours that existing fixing does not already cover', ()
   ])
 })
 
-test('new cards go to the sideboard from 100 unless the player keeps adding to main', () => {
+test('new cards go to the sideboard from 100 unless the player picks a zone', () => {
   const deck = (length: number) => Array.from({ length }, () => ({}))
-  assert.equal(addsToSideboard({ deck: deck(99) }), false)
+  const choose = (zone: 'deck' | 'sideboard', full: boolean) => ({ zone, full })
+  assert.equal(addZone({ deck: deck(99) }), 'deck')
+  assert.equal(addZone({ deck: deck(100) }), 'sideboard')
+  assert.equal(addZone({ deck: deck(50), addZoneChoice: choose('sideboard', false) }), 'sideboard')
+  assert.equal(addZone({ deck: deck(100), addZoneChoice: choose('deck', true) }), 'deck')
+  assert.equal(addZone({ deck: deck(104), addZoneChoice: choose('deck', true) }), 'deck')
+  // A choice made below 100 lapses at 100, so the sideboard default comes back.
+  assert.equal(addZone({ deck: deck(100), addZoneChoice: choose('deck', false) }), 'sideboard')
+  assert.equal(addZone({ deck: deck(99), addZoneChoice: choose('deck', true) }), 'deck')
   assert.equal(addsToSideboard({ deck: deck(100) }), true)
-  assert.equal(addsToSideboard({ deck: deck(100), keepAddingToMain: true }), false)
-  assert.equal(addsToSideboard({ deck: deck(104), keepAddingToMain: true }), false)
+  assert.equal(mainDeckLimit({ deck: deck(90) }), 100)
+  assert.equal(mainDeckLimit({ deck: deck(90), addZoneChoice: choose('sideboard', false) }), 0)
+  assert.equal(mainDeckLimit({ deck: deck(100), addZoneChoice: choose('deck', true) }), Infinity)
 })
 
 test('card features separate ramp, fixing and burst; draw from cantrips; and removal from self-targeting', () => {

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import type { CollectionMode } from '../../recommendations.ts'
 import type { CommanderPromotionInfo } from '../../domain/commander-promotion.ts'
 import { cardScryfallUri, cardTypeLine, type DeckCard } from '../../domain/card-model.ts'
@@ -14,6 +16,7 @@ type DeckCardModalProps = {
   selectedGuidanceCard: boolean
   selectedCardReference: boolean
   deckComplete: boolean
+  zoneToggle: ReactNode
   selectedDeckCardIsCommander: boolean
   commanderPromotion: CommanderPromotionInfo<DeckCard> | null
   promoteToCommander: () => void
@@ -41,6 +44,7 @@ export function DeckCardModal({
   selectedGuidanceCard,
   selectedCardReference,
   deckComplete,
+  zoneToggle,
   selectedDeckCardIsCommander,
   commanderPromotion,
   promoteToCommander,
@@ -139,6 +143,7 @@ export function DeckCardModal({
         {addAction && (
           <div className="export-actions deck-card-modal-actions">
             {addAction.error && <p role="status">{addAction.error}</p>}
+            {zoneToggle}
             <button
               type="button"
               className="primary"
@@ -158,6 +163,7 @@ export function DeckCardModal({
         )}
         {selectedGuidanceCard && (
           <div className="export-actions deck-card-modal-actions">
+            {zoneToggle}
             <button type="button" className="primary" onClick={addSelectedGuidanceCard}>
               {deckComplete ? 'Add to sideboard' : 'Add to deck'}
             </button>
