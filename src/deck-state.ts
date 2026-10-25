@@ -56,6 +56,7 @@ const cardBase = {
   priceUri: z.string().optional(),
   tags: z.array(z.string()).default([]),
   source: z.enum(['edhrec', 'scryfall']).optional(),
+  localIndexSnapshot: z.boolean().optional(),
   seedEvidence: z
     .array(
       z.object({

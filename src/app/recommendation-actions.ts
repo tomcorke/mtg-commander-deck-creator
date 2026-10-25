@@ -1,6 +1,11 @@
 import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { analyseDeck, defaultDeckTargets, rolesForCard, type TargetKey } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
+import {
+  mergeLocalAndLiveCards,
+  type LocalCardQuery,
+  type LocalIndexStatus,
+} from '../adapters/local-card-index.ts'
 import { deckJob } from './deck-job.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
@@ -126,15 +131,7 @@ type StateSetters = {
 export type ActionDeps = Record<string, any> & StateSetters
 
 export async function fallbackRecommendations(deps: ActionDeps, identityColours: string[]) {
-  const {
-    excludeGameChangers,
-    excludeTutors,
-    excludeExtraTurns,
-    excludeUnreleased,
-    powerTarget,
-    includeCreature,
-    searchCards,
-  } = deps
+  const { excludeGameChangers, excludeUnreleased, includeCreature } = deps
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
@@ -144,27 +141,28 @@ export async function fallbackRecommendations(deps: ActionDeps, identityColours:
     .join(' ')
   const baseQuery = `id<=${identity} legal:commander ${bracketFilters}`
   const [mainCards, manaCards] = await Promise.all([
-    searchCards(`${baseQuery} -t:land -o:"add {"`, undefined, 'edhrec'),
-    searchCards(`${baseQuery} (t:land or o:"add {")`, undefined, 'edhrec'),
+    localAndLiveCandidates(
+      deps,
+      {
+        colours: identityColours,
+        themes: [deps.theme, ...(deps.activeSubThemes ?? [])].filter(Boolean),
+        roles: ['draw', 'removal', 'wipes'],
+      },
+      `${baseQuery} -t:land -o:"add {"`,
+      'Popular inclusion',
+    ),
+    localAndLiveCandidates(
+      deps,
+      { colours: identityColours, roles: ['lands', 'ramp'] },
+      `${baseQuery} (t:land or o:"add {")`,
+      'Land or mana',
+    ),
   ])
-  const allowed = (cards: ScryfallCard[]) =>
-    cards.filter(
-      (card) =>
-        !excludedByOptions(card, {
-          excludeGameChangers,
-          excludeTutors,
-          excludeExtraTurns,
-          excludeUnreleased,
-          powerTarget,
-        }),
-    )
-  const main = allowed(mainCards).sort(() => Math.random() - 0.5)
-  const mana = allowed(manaCards).sort(() => Math.random() - 0.5)
   return batchRecommendations(
-    [
-      ...main.map((card) => toCard(card, 'Popular inclusion')),
-      ...mana.map((card) => toCard(card, 'Land or mana')),
-    ],
+    mergeRecommendationCandidates(
+      mainCards.sort(() => Math.random() - 0.5),
+      manaCards.sort(() => Math.random() - 0.5),
+    ),
     includeCreature,
   )
 }
@@ -224,21 +222,65 @@ export async function collectionRecommendations(
   }
 }
 
+/** Local breadth supplements every live query, including Tagger searches and stale-index refreshes. */
+async function localAndLiveCandidates(
+  deps: ActionDeps,
+  query: LocalCardQuery,
+  liveQuery: string,
+  reason: string,
+): Promise<Card[]> {
+  const [local, live] = await Promise.allSettled([
+    deps.fetchLocalCards?.(query) ?? Promise.resolve([]),
+    liveQuery ? deps.searchCards(liveQuery, undefined, 'edhrec') : Promise.resolve([]),
+  ])
+  const localCards = local.status === 'fulfilled' ? local.value : []
+  if (live.status === 'rejected' && live.reason instanceof ScryfallRateLimitError) throw live.reason
+  const status: LocalIndexStatus | undefined = deps.localCardIndexStatus?.()
+  let recent: ScryfallCard[] = []
+  if (
+    liveQuery &&
+    status?.bulkUpdatedAt &&
+    (status.state === 'stale' || status.state === 'unchecked')
+  ) {
+    try {
+      // shortcut: one release-ordered page; paginate when stale-index recall needs more (#149).
+      recent = await deps.searchCards(
+        `${liveQuery} date>=${status.bulkUpdatedAt.slice(0, 10)}`,
+        undefined,
+        'released',
+      )
+    } catch (error) {
+      if (error instanceof ScryfallRateLimitError) throw error
+    }
+  }
+  if (live.status === 'rejected' && !localCards.length && !recent.length) throw live.reason
+  const liveCards = mergeLocalAndLiveCards(live.status === 'fulfilled' ? live.value : [], recent)
+  const current = new Set(liveCards)
+  return mergeLocalAndLiveCards(localCards, liveCards)
+    .filter(
+      (card) =>
+        !excludedByOptions(card, {
+          excludeGameChangers: deps.excludeGameChangers,
+          excludeTutors: deps.excludeTutors,
+          excludeExtraTurns: deps.excludeExtraTurns,
+          excludeUnreleased: deps.excludeUnreleased,
+          powerTarget: deps.powerTarget,
+        }),
+    )
+    .map((card) => ({
+      ...toCard(card, current.has(card) ? reason : 'Local card match'),
+      localIndexSnapshot: !current.has(card),
+    }))
+}
+
 export async function themeRecommendations(
   deps: ActionDeps,
   identityColours: string[],
   themes: string[],
 ) {
-  const {
-    excludeGameChangers,
-    excludeTutors,
-    excludeExtraTurns,
-    excludeUnreleased,
-    powerTarget,
-    searchCards,
-  } = deps
+  const { excludeGameChangers, excludeUnreleased } = deps
   const terms = [...new Set(themes.map(themeSearchTerm).filter(Boolean))]
-  if (!terms.length) return []
+  if (!themes.some(Boolean)) return []
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
@@ -247,19 +289,12 @@ export async function themeRecommendations(
     .filter(Boolean)
     .join(' ')
   const query = `id<=${identity} legal:commander (${terms.join(' or ')}) ${bracketFilters}`
-  const cards = await searchCards(query, undefined, 'edhrec')
-  return cards
-    .filter(
-      (card: ScryfallCard) =>
-        !excludedByOptions(card, {
-          excludeGameChangers,
-          excludeTutors,
-          excludeExtraTurns,
-          excludeUnreleased,
-          powerTarget,
-        }),
-    )
-    .map((card: ScryfallCard) => toCard(card, 'Interesting new pick'))
+  return localAndLiveCandidates(
+    deps,
+    { colours: identityColours, themes },
+    terms.length ? query : '',
+    'Interesting new pick',
+  )
 }
 
 // Scryfall Tagger tags for each spell role; results are re-checked with rolesForCard.
@@ -292,8 +327,7 @@ export async function roleGapRecommendations(
   offered: Card[],
 ) {
   if (!roles.length) return []
-  const { excludeGameChangers, excludeTutors, excludeExtraTurns, excludeUnreleased, powerTarget } =
-    deps
+  const { excludeGameChangers, excludeUnreleased } = deps
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
@@ -303,26 +337,20 @@ export async function roleGapRecommendations(
     .join(' ')
   const tags = roles.map((role) => roleSearchTags[role]).join(' or ')
   const query = `id<=${identity} legal:commander -t:land (${tags}) ${bracketFilters}`
-  const cards: ScryfallCard[] = await deps.searchCards(query, undefined, 'edhrec')
+  const cards = await localAndLiveCandidates(
+    deps,
+    { colours: identityColours, roles },
+    query,
+    'Popular inclusion',
+  )
   const owned = new Set([
-    ...offered.map(({ name }) => name),
+    ...offered.filter((card) => !card.localIndexSnapshot).map(({ name }) => name),
     ...[...(deps.deck ?? []), ...(deps.sideboard ?? [])].map(({ name }: Card) => name),
     ...(deps.ignoredCards ?? []),
   ])
   const taken = Object.fromEntries(roles.map((role) => [role, 0]))
   return cards
-    .filter(
-      (card) =>
-        !owned.has(card.name) &&
-        !excludedByOptions(card, {
-          excludeGameChangers,
-          excludeTutors,
-          excludeExtraTurns,
-          excludeUnreleased,
-          powerTarget,
-        }),
-    )
-    .map((card) => toCard(card, 'Popular inclusion'))
+    .filter((card) => !owned.has(card.name))
     .filter((card) => {
       const role = rolesForCard(card).find((key) => (taken[key] ?? roleGapLimit) < roleGapLimit)
       if (!role) return false
@@ -528,6 +556,29 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
   }
 }
 
+/** Keep live EDHREC evidence when another source finds the same Oracle identity. */
+export function mergeRecommendationCandidates(primary: Card[], additions: Card[]) {
+  const merged: Card[] = []
+  const oracles = new Map<string, number>()
+  const names = new Map<string, number>()
+  for (const card of [...primary, ...additions]) {
+    const name = card.name.toLowerCase()
+    const index = (card.oracleId ? oracles.get(card.oracleId) : undefined) ?? names.get(name)
+    if (index !== undefined) {
+      if (merged[index].localIndexSnapshot && !card.localIndexSnapshot) {
+        merged[index] = card
+        if (card.oracleId) oracles.set(card.oracleId, index)
+        names.set(name, index)
+      }
+      continue
+    }
+    if (card.oracleId) oracles.set(card.oracleId, merged.length)
+    names.set(name, merged.length)
+    merged.push(card)
+  }
+  return merged
+}
+
 async function coreRecommendations(
   deps: ActionDeps,
   commanders: CommanderCard[],
@@ -561,8 +612,7 @@ async function coreRecommendations(
       theme,
       ...(preserveDeck ? activeSubThemes : []),
     ])
-    const names = new Set(offeredCards.map((card: Card) => card.name))
-    offeredCards = [...offeredCards, ...themeCards.filter((card: Card) => !names.has(card.name))]
+    offeredCards = mergeRecommendationCandidates(offeredCards, themeCards)
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
   }
@@ -572,10 +622,10 @@ async function coreRecommendations(
       deps.deckTargets ?? defaultDeckTargets,
       offeredCards,
     )
-    return [
-      ...offeredCards,
-      ...(await roleGapRecommendations(deps, identityColours, gaps, offeredCards)),
-    ]
+    return mergeRecommendationCandidates(
+      offeredCards,
+      await roleGapRecommendations(deps, identityColours, gaps, offeredCards),
+    )
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
     return offeredCards

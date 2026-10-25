@@ -547,8 +547,32 @@ export async function searchScryfallPage(
   return result
 }
 
-export async function fetchScryfallSets(fetcher: ScryfallFetcher = fetch) {
-  const response = await requestScryfall('https://api.scryfall.com/sets', fetcher)
+export async function fetchScryfallCreatureTypes(
+  fetcher: ScryfallFetcher = fetch,
+  signal?: AbortSignal,
+) {
+  const response = await requestScryfall(
+    'https://api.scryfall.com/catalog/creature-types',
+    fetcher,
+    {
+      signal,
+    },
+  )
+  if (!response.ok) throw new Error('Scryfall creature-type catalog unavailable')
+  const result = (await response.json()) as { data?: unknown; total_values?: unknown }
+  if (
+    !Array.isArray(result.data) ||
+    !result.data.length ||
+    result.total_values !== result.data.length ||
+    !result.data.every((type) => typeof type === 'string' && type.trim().length > 0) ||
+    new Set(result.data).size !== result.data.length
+  )
+    throw new Error('Invalid Scryfall creature-type catalog')
+  return result.data as string[]
+}
+
+export async function fetchScryfallSets(fetcher: ScryfallFetcher = fetch, signal?: AbortSignal) {
+  const response = await requestScryfall('https://api.scryfall.com/sets', fetcher, { signal })
   if (!response.ok) throw new Error('Scryfall sets unavailable')
   const result = (await response.json()) as { data: ScryfallSet[] }
   return result.data

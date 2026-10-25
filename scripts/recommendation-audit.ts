@@ -1,4 +1,12 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { parseLocalCardIndex } from '../src/domain/local-card-index.ts'
+import { queryLocalCardIndex } from '../src/adapters/local-card-index.ts'
+import { searchScryfall } from '../src/adapters/scryfall.ts'
+import {
+  mergeRecommendationCandidates,
+  roleGapRecommendations,
+  uncoveredRoleGaps,
+} from '../src/app/recommendation-actions.ts'
 import { dirname } from 'node:path'
 import {
   analyseDeck,
@@ -82,13 +90,29 @@ async function productionRecommendations(commander: Commander, powerTarget: Powe
     cards.push(...result.data)
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
-  return buildEdhrecRecommendations(entries, cards, {
+  const options = {
     includeCreature: true,
     excludeGameChangers: true,
     excludeTutors: true,
     excludeExtraTurns: true,
     powerTarget,
-  })
+  }
+  const offered = buildEdhrecRecommendations(entries, cards, options)
+  if (!localIndex) return offered
+  const gaps = uncoveredRoleGaps([], defaultDeckTargets, offered)
+  const additions = await roleGapRecommendations(
+    {
+      ...options,
+      fetchLocalCards: (query: Parameters<typeof queryLocalCardIndex>[1]) =>
+        queryLocalCardIndex(localIndex, query),
+      searchCards: (query: string, signal?: AbortSignal, order?: string) =>
+        searchScryfall(query, fetch, signal, order),
+    },
+    commander.color_identity,
+    gaps,
+    offered,
+  )
+  return mergeRecommendationCandidates(offered, additions)
 }
 
 function cardType(card: { typeLine: string }) {
@@ -335,6 +359,9 @@ function markdown(
     `# Recommendation audit ${new Date().toISOString().slice(0, 10)}`,
     '',
     'Uses production `buildEdhrecRecommendations()`, role detection, scoring, and `advanceRecommendationQueue()`. Live Archidekt, EDHREC, and Scryfall data.',
+    localIndex
+      ? `Local role-gap breadth: bulk ${localIndex.metadata.bulkUpdatedAt}, newest set ${localIndex.metadata.newestSet.code}. Fixed index candidates; EDHREC evidence and Tagger searches remain live.`
+      : 'No local index supplied. Pass --local-index <path> to compare with a fixed local corpus.',
     '',
     '| Deck | Policy | Result | Batches | Offers | Rejects | Repeats | Ignored reoffers | Useful picks | 1-2 pick batches | No-pick batches | Avg score | Precon overlap |',
     '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
@@ -371,6 +398,11 @@ function markdown(
   return lines.join('\n') + '\n'
 }
 
+const indexArg = process.argv.indexOf('--local-index')
+const localIndex =
+  indexArg >= 0
+    ? parseLocalCardIndex(JSON.parse(await readFile(process.argv[indexArg + 1], 'utf8')))
+    : undefined
 const outputArg = process.argv.indexOf('--output')
 const output = outputArg >= 0 ? process.argv[outputArg + 1] : ''
 const rows = []
