@@ -1104,28 +1104,16 @@ async function resolveImportedPrinting(
   return printings.find((printing) => printing.finishes?.includes(entry.finish!)) ?? card
 }
 
-async function resolveImportedCards(
-  source: ImportedDeck,
-  signal: AbortSignal,
-  skipMissing: boolean,
-) {
-  let imported = source
-  const commanderEntries = imported.cards.filter(({ board }: any) => board === 'commander')
-  if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
-  if (commanderEntries.reduce((sum: any, card: any) => sum + card.quantity, 0) > 2)
-    throw new Error('Commander section must contain one commander or partner pair.')
-  const mainCount = mainDeckCardCount(imported)
-  if (mainCount > 100) throw new Error('Main deck exceeds 100 cards.')
-
-  const identifiers = imported.cards.map((card: any) =>
+async function fetchImportedCards(cards: ImportedDeck['cards'], signal: AbortSignal) {
+  const identifiers = cards.map((card: any) =>
     card.set && card.collectorNumber
       ? { set: card.set, collector_number: card.collectorNumber }
       : { name: card.name },
   )
   const fetched: ScryfallCard[] = []
-  const unresolved: typeof imported.cards = []
+  const unresolved: ImportedDeck['cards'] = []
   for (let index = 0; index < identifiers.length; index += 75) {
-    const entries = imported.cards.slice(index, index + 75)
+    const entries = cards.slice(index, index + 75)
     const result = await resolveScryfallIdentifiers(
       identifiers.slice(index, index + 75),
       fetch,
@@ -1147,6 +1135,23 @@ async function resolveImportedCards(
       if (card) fetched.push(card)
     }
   }
+  return fetched
+}
+
+async function resolveImportedCards(
+  source: ImportedDeck,
+  signal: AbortSignal,
+  skipMissing: boolean,
+) {
+  let imported = source
+  const commanderEntries = imported.cards.filter(({ board }: any) => board === 'commander')
+  if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
+  if (commanderEntries.reduce((sum: any, card: any) => sum + card.quantity, 0) > 2)
+    throw new Error('Commander section must contain one commander or partner pair.')
+  const mainCount = mainDeckCardCount(imported)
+  if (mainCount > 100) throw new Error('Main deck exceeds 100 cards.')
+
+  const fetched = await fetchImportedCards(imported.cards, signal)
   const missing = imported.cards.filter((entry) => !matchImportedCard(entry, fetched))
   if (missing.some(({ board }) => board === 'commander'))
     throw new Error(

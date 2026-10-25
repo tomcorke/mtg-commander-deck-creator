@@ -50,10 +50,6 @@ export function useUiState(
       initialDeckName ?? loadSavedDecks().find(({ id }) => id === saved?.savedDeckId)?.name ?? '',
   )
   const [pendingSavedDeckRemoval, setPendingSavedDeckRemoval] = usePendingConfirmation('')
-  const [importSource, setImportSource] = useState('')
-  const [importState, setImportState] = useState<'idle' | 'loading' | 'error' | 'missing'>('idle')
-  const [importError, setImportError] = useState('')
-  const [importFoundCount, setImportFoundCount] = useState(0)
   const historyReady = useRef(false)
 
   return {
@@ -96,6 +92,17 @@ export function useUiState(
     setDeckName,
     pendingSavedDeckRemoval,
     setPendingSavedDeckRemoval,
+    historyReady,
+    ...useImportState(),
+  }
+}
+
+function useImportState() {
+  const [importSource, setImportSource] = useState('')
+  const [importState, setImportState] = useState<'idle' | 'loading' | 'error' | 'missing'>('idle')
+  const [importError, setImportError] = useState('')
+  const [importFoundCount, setImportFoundCount] = useState(0)
+  return {
     importSource,
     setImportSource,
     importState,
@@ -104,7 +111,6 @@ export function useUiState(
     setImportError,
     importFoundCount,
     setImportFoundCount,
-    historyReady,
   }
 }
 

@@ -27,7 +27,7 @@ export function useDialogFocus(open: boolean, onClose: () => void) {
       ...event.currentTarget.querySelectorAll<HTMLElement>(
         'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex]:not([tabindex="-1"])',
       ),
-    // checkVisibility also skips closed <details> content, which keeps layout boxes in Chrome.
+      // checkVisibility also skips closed <details> content, which keeps layout boxes in Chrome.
     ].filter((control) => control.checkVisibility())
     const first = controls[0]
     const last = controls.at(-1)
