@@ -324,11 +324,11 @@ main > .workspace-alert .modal-close {
   --nav-arrow: #1b1930;
 }
 .nav-back::before {
-  content: '←';
+  content: '←' / '';
   margin-right: 14px;
 }
 .nav-forward::after {
-  content: '→';
+  content: '→' / '';
   margin-left: 14px;
 }
 .nav-back,
