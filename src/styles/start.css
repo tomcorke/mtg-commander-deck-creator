@@ -3,9 +3,6 @@
   padding-left: 24px;
   border-left: 1px solid #dedcea;
 }
-.recommendation-setup .section-title {
-  align-items: center;
-}
 .identity {
   display: flex;
   align-items: center;

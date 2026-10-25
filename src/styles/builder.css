@@ -1,13 +1,14 @@
+/* Builder, deck list, review and search share the 5vw page gutter so their edges line up. */
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) calc(310px + 5vw);
   min-height: calc(100vh - 213px);
 }
 .recommendations {
-  padding: 24px 6vw 60px 8vw;
+  padding: 24px 5vw 60px;
 }
 .analysis-panel {
-  padding: 40px 30px;
+  padding: 40px 5vw 40px 30px;
   border-left: 1px solid #dad8e6;
   background: #e9eaf7;
 }
@@ -88,6 +89,12 @@
   display: flex;
   justify-content: space-between;
   align-items: end;
+}
+/* Keep status labels such as "Batch 2" beside the heading they describe. */
+.section-title {
+  justify-content: flex-start;
+  align-items: last baseline;
+  gap: 16px;
 }
 .section-title h2,
 .deck-heading h2 {

@@ -434,7 +434,6 @@
   scroll-margin-top: 76px;
 }
 .doctor-intro {
-  max-width: 1280px;
   margin: 0;
   padding: 12px 16px;
   border-left: 3px solid var(--commander-accent, #7546a8);
@@ -1637,6 +1636,7 @@ main > .commander-header {
   font-weight: 650;
 }
 .doctor-intro p {
+  max-width: 75ch;
   margin-bottom: 0;
 }
 .deck-review-history-modal,
