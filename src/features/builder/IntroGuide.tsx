@@ -6,12 +6,15 @@ import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 const steps: Step[] = [
   {
     target: '[data-guide="decisions"]',
+    // The card's art and name sit below its buttons, so open above to keep them in view.
+    placement: 'top' as const,
     title: 'Choose what happens to each card',
     content:
       'Add puts the card in your deck. Later saves it for a future batch. Ignore removes it from future recommendations.',
   },
   {
     target: '[data-guide="more-like-this"]',
+    placement: 'top' as const,
     title: 'More like this',
     content: 'Use More like this to give related cards more weight in later batches.',
   },
