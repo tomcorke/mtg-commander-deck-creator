@@ -10,10 +10,10 @@ import { priorityLabels } from '../../domain/recommendation-tuning.ts'
 const powerLabels = { precon: 'Core', upgraded: 'Upgraded', high: 'High power' }
 
 // Art crops of chosen printings that hint at each tier, served by Scryfall (never stored here).
-// Smothering Tithe is a Game Changer (checked against mtg-knowledge-base, 2026-10-25).
+// Cyclonic Rift is a Game Changer (checked against mtg-knowledge-base, 2026-10-25).
 const presetArt: Record<PlayStyle, { card: string; art: string; tier: number }> = {
-  casual: { card: 'Forest (Bob Ross)', art: 'c/0/c0e38987-e257-4da0-b270-bc48404947cd', tier: 1 },
-  upgraded: { card: 'Smothering Tithe', art: '8/6/861b5889-0183-4bee-afeb-a4b2aa700a8e', tier: 2 },
+  casual: { card: 'Jumbo Cactuar', art: 'd/b/db01c222-8795-47e9-a789-e7f749a3ee7d', tier: 1 },
+  upgraded: { card: 'Cyclonic Rift', art: 'd/f/dfb7c4b9-f2f4-4d4e-baf2-86551c8150fe', tier: 2 },
   high: { card: 'Black Lotus', art: 'b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd', tier: 3 },
 }
 const artCrop = (path: string) => `https://cards.scryfall.io/art_crop/front/${path}.jpg`
