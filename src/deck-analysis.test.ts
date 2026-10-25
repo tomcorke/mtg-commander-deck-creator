@@ -363,3 +363,17 @@ test('role rules reject land-to-hand ramp, opponent-only draw, self-blink and re
   // Ambiguous: "return target creature" can bounce either side, so it still counts.
   assert.ok(roles('Return target creature to its owner’s hand.').includes('removal'))
 })
+
+test('basic lands go to colours that existing fixing does not already cover', () => {
+  const demand = { W: 1, U: 0, B: 0, R: 0, G: 1 }
+  // Even demand, but 10 existing lands already make white.
+  assert.deepEqual(basicLandPlan(['W', 'G'], demand, 25, 35, 90, { W: 10, G: 0 }), [
+    { name: 'Plains', colour: 'W', count: 3 },
+    { name: 'Forest', colour: 'G', count: 7 },
+  ])
+  // Without existing sources the split follows demand, as before.
+  assert.deepEqual(basicLandPlan(['W', 'G'], demand, 25, 35, 90), [
+    { name: 'Plains', colour: 'W', count: 5 },
+    { name: 'Forest', colour: 'G', count: 5 },
+  ])
+})

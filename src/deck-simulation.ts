@@ -41,7 +41,9 @@ function parseManaCost(value: string): ManaCost | null {
   return cost
 }
 
-function canPay(sources: DeckCard[], cost: ManaCost) {
+function canPay(played: DeckCard[], cost: ManaCost) {
+  // A land that produces no mana pays neither coloured nor generic costs.
+  const sources = played.filter((source) => source.producedMana.length > 0)
   if (sources.length < cost.pips.length + cost.generic) return false
   const pips = [...cost.pips].sort(
     (left, right) =>

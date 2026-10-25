@@ -441,7 +441,23 @@ test('mana fit favors castable creatures over expensive color-intensive creature
   assert.ok(affordable.manaFitPenalty > strained.manaFitPenalty)
   assert.ok(colorStrained.manaFitPenalty < 0)
   assert.equal(supported.manaFitPenalty, 0)
-  assert.equal(hybrid.manaFitPenalty, 0)
+  // Hybrid pips count: with only green sources, {W/U}{W/U} can't be cast.
+  assert.ok(hybrid.manaFitPenalty < 0)
+  assert.equal(
+    recommendationScoreBreakdown(
+      { ...expensive, manaValue: 2, manaCost: '{W/U}{W/U}' },
+      {
+        ...context,
+        manaSupport: {
+          ...context.manaSupport,
+          landCount: 35,
+          rampCount: 10,
+          producedMana: { W: 0, U: 15, B: 0, R: 0, G: 20 },
+        },
+      },
+    ).manaFitPenalty,
+    0,
+  )
   assert.equal(
     recommendationScoreBreakdown({ ...expensive, typeLine: 'Sorcery' }, context).manaFitPenalty,
     strained.manaFitPenalty,

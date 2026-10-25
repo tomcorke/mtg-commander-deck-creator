@@ -210,15 +210,23 @@ export function basicLandPlan(
   currentLands: number,
   targetLands: number,
   cardCount: number,
+  existingSources: Partial<Record<ManaColour, number>> = {},
 ) {
   const count = Math.min(Math.max(0, 100 - cardCount), Math.max(0, targetLands - currentLands))
   if (!count) return []
   const legalColours = colours.filter((colour) => identity.includes(colour))
   if (!legalColours.length) return [{ name: 'Wastes', colour: 'C', count }]
   const totalDemand = legalColours.reduce((sum, colour) => sum + demand[colour], 0)
-  const weights = legalColours.map((colour) =>
+  const shares = legalColours.map((colour) =>
     totalDemand ? demand[colour] / totalDemand : 1 / legalColours.length,
   )
+  // Split by the sources each colour still lacks once the finished mana base has its share,
+  // so colours already covered by duals and fixing get fewer basics.
+  const deficits = legalColours.map((colour, index) =>
+    Math.max(0, shares[index] * (currentLands + count) - (existingSources[colour] ?? 0)),
+  )
+  const totalDeficit = deficits.reduce((sum, value) => sum + value, 0)
+  const weights = totalDeficit ? deficits.map((value) => value / totalDeficit) : shares
   const base = weights.map((weight) => Math.floor(weight * count))
   let remainder = count - base.reduce((sum, value) => sum + value, 0)
   const order = legalColours
