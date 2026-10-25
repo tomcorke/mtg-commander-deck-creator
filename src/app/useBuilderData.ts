@@ -171,6 +171,7 @@ function buildDeckData(deps: BuilderDataDeps) {
     analysis.counts.lands,
     calculatedLandTarget,
     deck.length,
+    analysis.produced,
   )
   const landGap = basicLands.reduce((sum, land) => sum + land.count, 0)
   const nonbasicLands = nonbasicLandSuggestions(

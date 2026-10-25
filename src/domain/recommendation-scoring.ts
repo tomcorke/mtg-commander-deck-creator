@@ -94,19 +94,29 @@ function manaFitPenalty(card: RecommendationScoreCard, support?: ManaSupport) {
   const costPressure = Math.min(1, Math.max(0, ((card.manaValue ?? 0) - affordableManaValue) / 3))
   const sourcePenalty =
     sourceDeficit * costPressure * recommendationScoreFactorMaximums.manaFitPenalty
-  const pips = [...(card.manaCost ?? '').matchAll(/\{([^}]+)\}/g)]
-    .flatMap(([, symbol]) => (symbol.includes('/') ? [] : [symbol]))
-    .filter((symbol) => ['W', 'U', 'B', 'R', 'G'].includes(symbol))
+  const colourPips = [...(card.manaCost ?? '').matchAll(/\{([^}]+)\}/g)]
+    .map(([, symbol]) =>
+      symbol.split('/').filter((part) => ['W', 'U', 'B', 'R', 'G'].includes(part)),
+    )
+    .filter((options) => options.length)
+  const pips = colourPips.filter((options) => options.length === 1).map(([colour]) => colour)
   const pipsByColour = new Map<string, number>()
   for (const colour of pips) pipsByColour.set(colour, (pipsByColour.get(colour) ?? 0) + 1)
-  const missingPips = [...pipsByColour].reduce(
-    (missing, [colour, count]) =>
-      missing + Math.max(0, count - (support.producedMana[colour] ?? 0)),
-    0,
-  )
+  // A hybrid pip ({W/U}, {2/G}, {G/P}) is missing only when none of its colours has a source.
+  const missingHybrid = colourPips.filter(
+    (options) =>
+      options.length > 1 && options.every((colour) => !(support.producedMana[colour] ?? 0)),
+  ).length
+  const missingPips =
+    missingHybrid +
+    [...pipsByColour].reduce(
+      (missing, [colour, count]) =>
+        missing + Math.max(0, count - (support.producedMana[colour] ?? 0)),
+      0,
+    )
   const colorPenalty =
-    totalSources > 0 && pips.length
-      ? (missingPips / pips.length) * recommendationScoreFactorMaximums.manaFitPenalty
+    totalSources > 0 && colourPips.length
+      ? (missingPips / colourPips.length) * recommendationScoreFactorMaximums.manaFitPenalty
       : 0
   const penalty = Math.min(
     recommendationScoreFactorMaximums.manaFitPenalty,

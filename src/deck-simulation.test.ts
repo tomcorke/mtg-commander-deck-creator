@@ -108,3 +108,21 @@ test('a land-light list misses more land drops than a healthy list', () => {
 
   assert.ok(healthy.turns[4].landDropRate > landLight.turns[4].landDropRate)
 })
+
+test('lands that produce no mana never pay generic costs', () => {
+  const deck = [
+    card('Commander', 'Legendary Creature', ['G']),
+    ...Array.from({ length: 40 }, (_, index) => card(`Barren land ${index}`, 'Land')),
+    card('Two-mana spell', 'Sorcery', [], '{2}', 2),
+    ...Array.from({ length: 58 }, (_, index) => card(`Blank ${index}`, 'Sorcery')),
+  ]
+  const result = simulateManaAccess({
+    deck,
+    commanderCount: 1,
+    trials: 200,
+    random: seededRandom(7),
+  })
+  assert.ok(result.turns.at(-1)!.landDropRate > 0)
+  const spell = result.spellCastability.find(({ name }) => name === 'Two-mana spell')!
+  assert.ok(spell.whenDrawnByTurn.every((rate) => rate === 0))
+})
