@@ -4,6 +4,7 @@ import { useDialogFocus } from '../../shared/hooks.ts'
 import type { SavedDeck } from '../../deck-state.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
+import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import type { DeckCard } from '../../domain/card-model.ts'
 import type { AutosavedDraft, DeckWorkspace } from '../../autosaves.ts'
 import { confirmDialog } from '../../shared/ConfirmDialog.tsx'
@@ -117,24 +118,45 @@ export function SavedDecksModal({
         <div className="saved-deck-list autosaved-draft-list">
           {autosave.drafts.map((draft) => (
             <article key={draft.id}>
+              <button
+                className="saved-deck-art"
+                type="button"
+                tabIndex={-1}
+                aria-hidden="true"
+                onClick={() => openCard(draft.state.deck[0])}
+              >
+                <SmallCardImage image={draft.state.deck[0].image} />
+              </button>
               <div className="saved-deck-details">
                 {draft.name && draft.name !== draft.state.commander && <b>{draft.name}</b>}
                 <CardReference
                   card={draft.state.deck[0]}
-                  thumbnail
                   onOpen={() => openCard(draft.state.deck[0])}
                 />
-                <small>
-                  {draft.state.deck.length}/100 cards · Saved{' '}
-                  <DraftSavedTime updatedAt={draft.updatedAt} />
-                </small>
-                {draft.id === autosave.id ? (
-                  <small>Current workspace</small>
-                ) : (
-                  autosave.activeIds.includes(draft.id) && (
-                    <small>Open in another tab — opening makes a copy</small>
-                  )
-                )}
+                <p className="saved-deck-meta">
+                  {draft.id === autosave.id ? (
+                    <span className="saved-deck-badge">Editing in this tab</span>
+                  ) : (
+                    autosave.activeIds.includes(draft.id) && (
+                      <span className="saved-deck-badge" title="Opening makes a copy">
+                        Open in another tab
+                      </span>
+                    )
+                  )}
+                  <small>
+                    {draft.state.deck.length}/100 cards · Saved{' '}
+                    <DraftSavedTime updatedAt={draft.updatedAt} />
+                  </small>
+                  {draft.state.deck.length > 1 && (
+                    <span className="saved-deck-last">
+                      <small>· Last added</small>{' '}
+                      <CardReference
+                        card={draft.state.deck.at(-1)!}
+                        onOpen={() => openCard(draft.state.deck.at(-1)!)}
+                      />
+                    </span>
+                  )}
+                </p>
               </div>
               {(!showBuilder || draft.id !== autosave.id) && (
                 <button
@@ -190,67 +212,6 @@ export function SavedDecksModal({
             {autosave.draftDeleteError}
           </p>
         )}
-        <form
-          className="autosave-retention"
-          key={`${autosave.retention.maxCount}:${autosave.retention.maxAgeDays}`}
-          onSubmit={(event) => {
-            event.preventDefault()
-            const values = new FormData(event.currentTarget)
-            void applyLimits(values)
-          }}
-        >
-          <h4>Keep autosaves</h4>
-          <div>
-            <label>
-              Maximum drafts
-              <input
-                className="clearable-input"
-                type="number"
-                min="1"
-                max="200"
-                step="1"
-                required
-                name="maxCount"
-                defaultValue={autosave.retention.maxCount}
-                disabled={!autosave.cleanupAvailable}
-              />
-            </label>
-            <label>
-              Age limit (days)
-              <input
-                className="clearable-input"
-                type="number"
-                min="1"
-                max="365"
-                step="1"
-                required
-                name="maxAgeDays"
-                defaultValue={autosave.retention.maxAgeDays}
-                disabled={!autosave.cleanupAvailable}
-              />
-            </label>
-            <button
-              className="saved-deck-load"
-              disabled={!autosave.cleanupAvailable || autosave.busy}
-            >
-              Apply limits
-            </button>
-          </div>
-          <p className="draft-help">
-            Limits remove only inactive drafts. Decks open in any tab and manual saves are kept,
-            even above the maximum.
-          </p>
-          {retentionResult && (
-            <p className="draft-help" role="status">
-              {retentionResult}
-            </p>
-          )}
-          {!autosave.cleanupAvailable && (
-            <p className="draft-help">
-              Automatic cleanup is off because this browser cannot detect live workspaces safely.
-            </p>
-          )}
-        </form>
         <h3 className="draft-section-title">Manual saves</h3>
         {commander && (
           <>
@@ -309,16 +270,24 @@ export function SavedDecksModal({
         <div className="saved-deck-list">
           {savedDecks.map((saved) => (
             <article key={saved.id}>
+              <button
+                className="saved-deck-art"
+                type="button"
+                tabIndex={-1}
+                aria-hidden="true"
+                onClick={() => openCard(saved.state.deck[0])}
+              >
+                <SmallCardImage image={saved.state.deck[0].image} />
+              </button>
               <div className="saved-deck-details">
                 {saved.name !== saved.state.commander && <b>{saved.name}</b>}
                 <CardReference
                   card={saved.state.deck[0]}
-                  thumbnail
                   onOpen={() => openCard(saved.state.deck[0])}
                 />
-                <small>{saved.state.deck.length}/100 cards</small>
                 <small>
-                  Updated <DraftSavedTime updatedAt={saved.updatedAt} />
+                  {saved.state.deck.length}/100 cards · Updated{' '}
+                  <DraftSavedTime updatedAt={saved.updatedAt} />
                 </small>
               </div>
               <button
@@ -359,6 +328,69 @@ export function SavedDecksModal({
           ))}
         </div>
         {!savedDecks.length && <p className="saved-decks-empty">No saved decks yet.</p>}
+        <details className="autosave-retention-settings">
+          <summary>Autosave limits</summary>
+          <form
+            className="autosave-retention"
+            key={`${autosave.retention.maxCount}:${autosave.retention.maxAgeDays}`}
+            onSubmit={(event) => {
+              event.preventDefault()
+              const values = new FormData(event.currentTarget)
+              void applyLimits(values)
+            }}
+          >
+            <div>
+              <label>
+                Maximum drafts
+                <input
+                  className="clearable-input"
+                  type="number"
+                  min="1"
+                  max="200"
+                  step="1"
+                  required
+                  name="maxCount"
+                  defaultValue={autosave.retention.maxCount}
+                  disabled={!autosave.cleanupAvailable}
+                />
+              </label>
+              <label>
+                Age limit (days)
+                <input
+                  className="clearable-input"
+                  type="number"
+                  min="1"
+                  max="365"
+                  step="1"
+                  required
+                  name="maxAgeDays"
+                  defaultValue={autosave.retention.maxAgeDays}
+                  disabled={!autosave.cleanupAvailable}
+                />
+              </label>
+              <button
+                className="saved-deck-load"
+                disabled={!autosave.cleanupAvailable || autosave.busy}
+              >
+                Apply limits
+              </button>
+            </div>
+            <p className="draft-help">
+              Limits remove only inactive drafts. Decks open in any tab and manual saves are kept,
+              even above the maximum.
+            </p>
+            {retentionResult && (
+              <p className="draft-help" role="status">
+                {retentionResult}
+              </p>
+            )}
+            {!autosave.cleanupAvailable && (
+              <p className="draft-help">
+                Automatic cleanup is off because this browser cannot detect live workspaces safely.
+              </p>
+            )}
+          </form>
+        </details>
       </section>
     </div>
   )

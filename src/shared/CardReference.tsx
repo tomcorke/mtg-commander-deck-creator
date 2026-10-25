@@ -36,7 +36,17 @@ export function CardReference({
         onClick={onOpen}
       >
         {thumbnail && card.image && (
-          <img className="card-reference-thumbnail" src={card.image} alt="" loading="lazy" />
+          <img
+            className="card-reference-thumbnail"
+            src={card.image}
+            alt=""
+            loading="lazy"
+            // Keep the thumbnail's space as a plain placeholder when the image fails.
+            onError={({ currentTarget }) => {
+              currentTarget.removeAttribute('src')
+              currentTarget.classList.add('missing')
+            }}
+          />
         )}
         {card.name}
       </button>

@@ -575,6 +575,15 @@
 .card-reference-name:has(.card-reference-thumbnail):focus-visible {
   color: inherit;
 }
+.card-reference-thumbnail.missing,
+.small-card-image-thumbnail.missing {
+  aspect-ratio: 488 / 680;
+  background: #dedcea;
+}
+.dark .card-reference-thumbnail.missing,
+.dark .small-card-image-thumbnail.missing {
+  background: #36344f;
+}
 .card-reference-thumbnail {
   width: 32px;
   flex: none;
