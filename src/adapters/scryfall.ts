@@ -564,8 +564,6 @@ function collectionQuery(
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     filters.excludeGameChangers && '-is:gamechanger',
-    filters.excludeTutors && '-otag:tutor',
-    filters.excludeExtraTurns && '-otag:extra-turn',
     filters.excludeUnreleased && 'date<=today',
   ]
     .filter(Boolean)

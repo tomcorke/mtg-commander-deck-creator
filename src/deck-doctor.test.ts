@@ -53,7 +53,7 @@ test('reports theme support and flags cards that lack other connections', () => 
   })
   const utilityCard = deckCard('Utility Creature')
   const rampCard = deckCard('Ramp Creature', {
-    detail: 'Add {G}.',
+    detail: '{T}: Add {G}.',
     producedMana: ['G'],
   })
   const findings = analyzeDeckDoctor({

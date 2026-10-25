@@ -60,6 +60,7 @@ test('finding suggestions reuse provider exclusions, power, goal, price, set pre
     cmc: 2,
     mana_cost: '{1}{G}',
     produced_mana: ['G'],
+    oracle_text: '{T}: Add {G}.',
     color_identity: ['G'],
     legalities: { commander: 'legal' },
     set: 'tst',
@@ -224,7 +225,14 @@ test('shows basic-land fill and scores lands when the deck has a land gap', () =
     data.scoreCandidate(creature),
   )
 
-  const ramp = { ...creature, name: 'Ramp', manaValue: 1, manaCost: '{G}', producedMana: ['G'] }
+  const ramp = {
+    ...creature,
+    name: 'Ramp',
+    manaValue: 1,
+    manaCost: '{G}',
+    producedMana: ['G'],
+    detail: '{T}: Add {G}.',
+  }
   const supportedDeck = [...deps.deck, ramp]
   const supported = buildBuilderData({
     ...deps,
@@ -326,7 +334,12 @@ test('explains each recommendation in a plain sentence', () => {
   const popular = card('Popular', { inclusion: 41.4 })
   const rare = card('Rare', { inclusion: 0.4, reason: 'Interesting new pick' })
   const unknown = card('Unknown', { reason: 'Commander synergy' })
-  const ramp = card('Ramp', { producedMana: ['G'], manaValue: 1, inclusion: 27 })
+  const ramp = card('Ramp', {
+    producedMana: ['G'],
+    detail: '{T}: Add {G}.',
+    manaValue: 1,
+    inclusion: 27,
+  })
   const tokens = card('Tokens', { tags: ['Tokens'], source: 'scryfall' })
   const data = buildBuilderData(
     builderDeps([popular, rare, unknown, ramp], {

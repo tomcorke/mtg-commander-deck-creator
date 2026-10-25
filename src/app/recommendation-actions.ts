@@ -138,8 +138,6 @@ export async function fallbackRecommendations(deps: ActionDeps, identityColours:
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
-    excludeTutors && '-otag:tutor',
-    excludeExtraTurns && '-otag:extra-turn',
     excludeUnreleased && 'date<=today',
   ]
     .filter(Boolean)
@@ -244,8 +242,6 @@ export async function themeRecommendations(
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
-    excludeTutors && '-otag:tutor',
-    excludeExtraTurns && '-otag:extra-turn',
     excludeUnreleased && 'date<=today',
   ]
     .filter(Boolean)
@@ -301,8 +297,6 @@ export async function roleGapRecommendations(
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
-    excludeTutors && '-otag:tutor',
-    excludeExtraTurns && '-otag:extra-turn',
     excludeUnreleased && 'date<=today',
   ]
     .filter(Boolean)
@@ -656,8 +650,6 @@ export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[
   )
   const exclusions = [
     deps.excludeGameChangers && '-is:gamechanger',
-    deps.excludeTutors && '-otag:tutor',
-    deps.excludeExtraTurns && '-otag:extra-turn',
     deps.excludeUnreleased && 'date<=today',
   ]
     .filter(Boolean)
@@ -672,6 +664,13 @@ export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[
     .filter((card: ScryfallCard) => {
       if (
         seen.has(card.name) ||
+        excludedByOptions(card, {
+          excludeGameChangers: deps.excludeGameChangers,
+          excludeTutors: deps.excludeTutors,
+          excludeExtraTurns: deps.excludeExtraTurns,
+          excludeUnreleased: deps.excludeUnreleased,
+          powerTarget: deps.powerTarget,
+        }) ||
         ![...requiredColours].every((colour) => card.color_identity.includes(colour))
       )
         return false

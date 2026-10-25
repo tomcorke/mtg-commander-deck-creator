@@ -105,35 +105,53 @@ const isWipe = (text: string) =>
   /(?:destroy|exile|return) (?:all|each) (?:nonland )?(?:creature|artifact|enchantment|permanent)|each (?:creature|artifact|enchantment|player) (?:sacrifices|exiles) (?:all|any number)|deals? \d+ damage to each creature|all creatures get -[x\d]+\/-[x\d]+/i.test(
     text,
   )
-// Targets you control (self-blink, protection) and cards in your graveyard (recursion) aren't
-// interaction with opposing threats.
+// Targets you control and graveyard cards aren't interaction with opposing threats.
 const isRemoval = (text: string) =>
   !isWipe(text) &&
-  /(?:destroy|exile|return) target(?![^.]*(?:you control|from your graveyard))|target .* gets -(?:\d+|x)\/(?:-\d+|-x)|(?:deals?.* to|fights?) target|counter target/i.test(
-    text,
-  )
+  text
+    .split(/[.\n]/)
+    .some(
+      (effect) =>
+        !/you control|from [^.]*graveyard/i.test(effect) &&
+        /(?:destroy|exile|return) target|target .* gets -(?:\d+|x)\/(?:-\d+|-x)|(?:deals?.* to|fights?) target|counter target/i.test(
+          effect,
+        ),
+    )
 const landSearch =
   /search your library for [^.]*(?:\bland|Plains|Island|Swamp|Mountain|Forest) cards?/i
-// Draw that only an opponent gets ("target opponent draws", "each opponent may draw") isn't yours.
-const isDraw = (text: string) =>
-  /(?<!opponents? (?:may )?)draw (?:(?:a|one|two|three|\d+|that many|x) cards?|cards? equal to)/i.test(
-    text,
+const drawWords = /\bdraws?\b/i
+const withoutOpponentDraw = (text: string) =>
+  text.replace(
+    /\b(?:target|each|an?) opponents? (?:may )?draws? (?:up to )?(?:a|one|two|three|\d+|x|that many) cards?\b/gi,
+    '',
   )
+const ambiguousDraw =
+  /(?:target player|that player|its controller|their controller) (?:may )?draw|(?:can't|cannot|can’t|would) draw/i
+const cardDraw =
+  /\bdraws? (?:up to )?(?:(?:a|one|two|three|\d+|that many|x) cards?|cards? equal to)/i
+const rulesText = (card: AnalysisCard) => card.detail.replace(/\([^)]*\)/g, '').trim()
 
 /**
  * What a card does for the mana, card-flow and interaction roles. `unknown` means the wording
  * fits a rule only partly, so it gets no role credit.
  * - mana: land-ramp (land onto the battlefield), repeatable (rocks, dorks, Treasure engines),
- *   burst (rituals, one-shot Treasure, sacrifice-for-mana), fixing (land to hand).
- * - draw: net (more than one card, or a repeating draw), cantrip (one card, once), and two
- *   kinds of card flow that aren't draw: impulse (exile and play) and recursion (graveyard to hand).
+ *   burst (rituals, one-shot Treasure, sacrifice-for-mana), fixing and land-to-hand.
+ * - draw: net (more than one card, or a repeating draw), cantrip (one card, once), selection
+ *   (draw/discard or put-back), impulse (exile and play), and recursion (graveyard to hand).
  * - interaction: opposing (removal) or self (blink and protection of your own permanents).
  */
 export type CardFeatures = {
-  mana: 'land-ramp' | 'repeatable' | 'burst' | 'fixing' | 'unknown' | null
-  draw: 'net' | 'cantrip' | 'impulse' | 'recursion' | null
-  interaction: 'opposing' | 'self' | null
-  wipe: boolean
+  mana: 'land-ramp' | 'repeatable' | 'burst' | 'fixing' | 'land-to-hand' | 'unknown' | null
+  draw: 'net' | 'cantrip' | 'selection' | 'impulse' | 'recursion' | 'unknown' | null
+  interaction: 'opposing' | 'self' | 'unknown' | null
+  strategy: ('resource' | 'enabler' | 'payoff' | 'finisher' | 'unknown')[]
+  /** Beneficiary of the detected draw, not ownership of every effect on the card. */
+  beneficiary: 'you' | 'opponents' | 'unknown' | null
+  /** Explicit activated/additional costs, not a claim that the card can be afforded. */
+  costs: string[]
+  /** Full rules-text evidence; overrides retain it rather than inventing a parsed explanation. */
+  evidence: Partial<Record<'mana' | 'draw' | 'interaction' | 'strategy' | 'wipe', string>>
+  wipe: boolean | 'unknown'
   source: 'rules' | 'override'
 }
 
@@ -146,61 +164,138 @@ const featureOverrides: Record<string, Partial<CardFeatures>> = {
 
 function manaFeature(card: AnalysisCard): CardFeatures['mana'] {
   if (isLand(card)) return null
-  const text = card.detail
+  const text = rulesText(card)
   // A land search only ramps when the land goes onto the battlefield; land-to-hand is fixing.
   if (
     new RegExp(`${landSearch.source}[^.]*onto the battlefield`, 'i').test(text) ||
     /put .*\bland card.* onto the battlefield/i.test(text)
   )
     return 'land-ramp'
+  if (new RegExp(`${landSearch.source}[^.]*into your hand`, 'i').test(text)) return 'land-to-hand'
+  if (/\{1\}[^.:]*: add (?:one mana|\{[WUBRGC]\}(?!\{))/i.test(text)) return 'fixing'
   if (
-    card.producedMana.length > 0 ||
-    /add \{|create (?:a|one|two|\d+|x) treasure|lands? you control produce[s]? .*additional/i.test(
+    /add (?:\{|one mana)|create (?:a|one|two|\d+|x) treasure|lands? you control produces? .*additional/i.test(
       text,
     )
-  )
-    // Sacrificing the card itself for mana is a one-off; Treasure reminder text doesn't count.
-    return !isPermanent(card) ||
-      /sacrifice this \w+[^.:]*: add/i.test(
-        text.replace(/\([^)]*\)/g, '').replaceAll(card.name, 'this card'),
+  ) {
+    if (
+      !isPermanent(card) ||
+      /sacrifice this \w+[^.:]*: add/i.test(text.replaceAll(card.name, 'this card'))
+    )
+      return 'burst'
+    if (
+      /(?:whenever|at the beginning|:)[^.\n]*(?:add|create)|lands? you control produces? .*additional/i.test(
+        text,
       )
-      ? 'burst'
-      : 'repeatable'
-  if (new RegExp(`${landSearch.source}[^.]*into your hand`, 'i').test(text)) return 'fixing'
-  return landSearch.test(text) ? 'unknown' : null
+    )
+      return 'repeatable'
+    return /when [^.\n]*enters/i.test(text) ? 'burst' : 'unknown'
+  }
+  return landSearch.test(text) || card.producedMana.length > 0 ? 'unknown' : null
 }
 
 function drawFeature(text: string): CardFeatures['draw'] {
-  if (isDraw(text))
-    // Draw-then-discard (looting) and draw-then-put-back (Brainstorm) are card selection.
-    return /draw [^.]*cards?, then (?:discard|put) /i.test(text) ||
-      (/\bdraw a card\b/i.test(text) &&
-        !/draw (?:two|three|\d+|x|that many) cards|draw cards equal|whenever|at the beginning of/i.test(
-          text,
-        ))
-      ? 'cantrip'
-      : 'net'
+  const effects = withoutOpponentDraw(text)
+    .split(/[.\n]/)
+    .map((effect) => effect.trim())
+    .filter((effect) =>
+      drawWords.test(effect.replace(/^(?:when(?:ever)?|at the beginning)[^,]*,\s*/i, '')),
+    )
+  const yours = effects.filter((effect) => cardDraw.test(effect) && !ambiguousDraw.test(effect))
+  if (yours.length) {
+    if (
+      yours.some((effect) =>
+        /draw [^.]*cards?, then (?:discard|put) |discard [^:]*:.*draw/i.test(effect),
+      )
+    )
+      return 'selection'
+    if (
+      yours.some((effect) =>
+        /draws? (?:two|three|\d+|x|that many) cards|draws? cards equal|whenever|at the beginning of|:.*draw/i.test(
+          effect,
+        ),
+      )
+    )
+      return 'net'
+    return /\bdraws? (?:a|one) card\b/i.test(yours.join(' ')) ? 'cantrip' : 'unknown'
+  }
+  if (effects.length) return 'unknown'
   if (/exile the top [^.]*\.[^.]*you may (?:play|cast)/i.test(text)) return 'impulse'
   if (/return [^.]*cards? [^.]*from your graveyard to your hand/i.test(text)) return 'recursion'
   return null
 }
 
+// Strategy clues, not an engine parser or proof that a deck can supply the required resources.
+function strategyFeatures(
+  text: string,
+  features: Pick<CardFeatures, 'mana' | 'draw' | 'interaction' | 'wipe'>,
+): CardFeatures['strategy'] {
+  const strategy: CardFeatures['strategy'] = []
+  if (
+    /\bcreate\b[^.\n]*tokens?/i.test(text) ||
+    (features.mana && features.mana !== 'unknown') ||
+    (features.draw && features.draw !== 'unknown')
+  )
+    strategy.push('resource')
+  if (
+    /sacrifice (?:a|another) [^:]+:|you may (?:play|cast) [^.]*from your graveyard|triggers an additional time/i.test(
+      text,
+    )
+  )
+    strategy.push('enabler')
+  if (/whenever [^,\n]*(?:you control|you cast|you gain|you sacrifice)[^,\n]*,/i.test(text))
+    strategy.push('payoff')
+  if (/you win the game|(?:each|target) opponent loses the game/i.test(text))
+    strategy.push('finisher')
+  if (!strategy.length && text && !features.interaction && !features.wipe) strategy.push('unknown')
+  return strategy
+}
+
+function interactionFeature(text: string): CardFeatures['interaction'] {
+  if (isRemoval(text)) return 'opposing'
+  if (
+    /(?:exile|destroy|return) target [^.]*you control|target [^.]*you control (?:gains?|gets?) (?:hexproof|indestructible|protection)/i.test(
+      text,
+    )
+  )
+    return 'self'
+  return /\btarget\b/i.test(text) && !/from your graveyard/i.test(text) ? 'unknown' : null
+}
+
+function drawBeneficiary(text: string, draw: CardFeatures['draw']): CardFeatures['beneficiary'] {
+  if (!drawWords.test(text)) return null
+  if (draw && draw !== 'unknown') return 'you'
+  return ambiguousDraw.test(text) || drawWords.test(withoutOpponentDraw(text))
+    ? 'unknown'
+    : 'opponents'
+}
+
 export function cardFeatures(card: AnalysisCard): CardFeatures {
   const override = card.oracleId ? featureOverrides[card.oracleId] : undefined
+  const text = rulesText(card)
+  const draw = drawFeature(text)
   const features: CardFeatures = {
     mana: manaFeature(card),
-    draw: drawFeature(card.detail),
-    interaction: isRemoval(card.detail)
-      ? 'opposing'
-      : /(?:exile|destroy|return) target [^.]*you control|target [^.]*you control (?:gains?|gets?) (?:hexproof|indestructible|protection)/i.test(
-            card.detail,
-          )
-        ? 'self'
-        : null,
-    wipe: isWipe(card.detail),
+    draw,
+    interaction: interactionFeature(text),
+    strategy: [],
+    beneficiary: drawBeneficiary(text, draw),
+    costs: [...text.matchAll(/(?:^|\n)([^.\n:]+):|as an additional cost[^.]+/gi)].map((match) =>
+      (match[1] ?? match[0]).trim(),
+    ),
+    evidence: {},
+    wipe:
+      isWipe(text) ||
+      (/(?:destroy|exile|return|damage|sacrifice)[^.\n]*(?:all|each)/i.test(text)
+        ? 'unknown'
+        : false),
     source: 'rules',
   }
-  return override ? { ...features, ...override, source: 'override' } : features
+  const result = override ? { ...features, ...override, source: 'override' as const } : features
+  result.strategy = strategyFeatures(text, result)
+  for (const key of ['mana', 'draw', 'interaction', 'strategy', 'wipe'] as const)
+    if (key === 'strategy' ? result.strategy.length : result[key]) result.evidence[key] = text
+  return result
 }
 
 /**
@@ -220,7 +315,7 @@ export function rolesForCard(card: AnalysisCard) {
     (mana === 'land-ramp' || mana === 'repeatable' || mana === 'burst') && 'ramp',
     (draw === 'net' || draw === 'cantrip') && 'draw',
     interaction === 'opposing' && 'removal',
-    wipe && 'wipes',
+    wipe === true && 'wipes',
   ].filter(Boolean) as TargetKey[]
 }
 const manaCosts = (card: AnalysisCard) =>

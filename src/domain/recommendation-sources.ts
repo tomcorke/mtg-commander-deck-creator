@@ -100,10 +100,24 @@ export function toRecommendationCard(card: ScryfallCard, reason: string): Recomm
   }
 }
 
-/**
- * Local bracket-option check shared by every recommendation route. Scryfall queries pre-filter with
- * Tagger (`-otag:tutor`), so this matches its intent: land searches are ramp or fixing, not tutors.
- */
+// Preference heuristics, not Tagger equivalence or bracket validation. Keep remote queries broader
+// so EDHREC, Scryfall, signature results and Doctor all use this same local policy.
+const searchesForNonland = (text: string) =>
+  [...text.matchAll(/search your library for ([^.,\n]+)/gi)].some(
+    ([, object]) =>
+      !/\b(?:lands?|Plains|Island|Swamp|Mountain|Forest) cards?\b/i.test(object) ||
+      /\b(?:nonland|artifact|creature|enchantment|instant|sorcery)\b/i.test(object),
+  )
+const grantsExtraTurn = (text: string) =>
+  text
+    .split(/[.\n]/)
+    .some(
+      (effect) =>
+        !/can't|cannot|can’t|skip|instead/i.test(effect) &&
+        /\b(?:takes?|gets?) (?:an?|one|two|three|\d+|x) extra turns?\b/i.test(effect),
+    )
+
+/** Shared recommendation eligibility, independent of the source that returned the card. */
 export function excludedByOptions(
   card: ScryfallCard,
   options: Omit<RecommendationOptions, 'includeCreature' | 'maxPrice'>,
@@ -112,10 +126,9 @@ export function excludedByOptions(
   return (
     card.legalities?.commander !== 'legal' ||
     (options.excludeGameChangers && card.game_changer !== false) ||
-    (options.excludeTutors &&
-      /search your library for (?![^.]*\b(?:basic )?lands? cards?)/i.test(text)) ||
-    (options.excludeExtraTurns && /takes? an extra turn/i.test(text)) ||
-    (options.excludeUnreleased && !isReleased(card)) ||
+    (options.excludeTutors && searchesForNonland(text)) ||
+    (options.excludeExtraTurns && grantsExtraTurn(text)) ||
+    (options.excludeUnreleased && (!card.released_at || !isReleased(card))) ||
     (options.powerTarget === 'precon' && preconFastMana.has(card.name))
   )
 }
