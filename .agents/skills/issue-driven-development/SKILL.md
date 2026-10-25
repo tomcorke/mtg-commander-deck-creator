@@ -33,7 +33,7 @@ Done when the prioritisation and routing are agreed and you have a Herdr name.
 
 ## 2. Choose the next issue
 
-1. Run `gh issue list --state open --limit 200 --json number,title,labels` and shortlist by the agreed prioritisation. Read each shortlisted issue with `gh issue view <n> --comments`: comments carry scope changes, decisions and links to merged groundwork that change what an issue needs. Reading only the shortlist keeps your context free for the whole session.
+1. Run `gh issue list --state open --limit 200 --json number,title,labels` and shortlist by the agreed prioritisation. Read each shortlisted issue with `gh issue view <n> --json title,body,comments`: JSON includes both the issue body and comments in non-interactive output. Comments carry scope changes, decisions and links to merged groundwork that change what an issue needs. Reading only the shortlist keeps your context free for the whole session.
 2. Set aside issues that are blocked on another issue, or waiting on a decision only the user can make. List them separately so the user can unblock them.
 3. Rank the rest by the agreed prioritisation and recommend one, in two or three sentences: what it is, why now, and which agent routing it gets.
 4. Ask the user to confirm or pick another. When one issue is _very_ clearly next (it was agreed earlier, or it is the only unblocked candidate), say so and go ahead without asking.
@@ -47,8 +47,14 @@ Done when one issue and its routing are confirmed.
 3. Send the brief **without waiting**:
 
    ```text
-   herdr agent prompt issue-<n> "You are the delegate for issue #<n> in <repo path>. Read .agents/skills/issue-driven-development/DELEGATE.md and follow it. Scope: <one or two sentences from the issue and the user's choices>. Report to the Herdr agent named orchestrator when done."
+   herdr agent prompt issue-<n> "You are the delegate for issue #<n> in <repo path>. Read .agents/skills/issue-driven-development/DELEGATE.md and follow it. Report to the Herdr agent named orchestrator when done."
    ```
+
+   The delegate reads the issue and its comments itself; leave their contents there rather than repeating or summarising them in the brief. Append extra context only for:
+   - **Scope limits:** for example, “Implement part 1 of 2 only; leave part 2 for later.”
+   - **User clarifications from this chat:** instructions or decisions not yet recorded in the issue, including implementation choices the user supplied. Pass these on without making implementation decisions yourself.
+
+   Otherwise, send the brief as shown, with no scope section.
 
 4. Tell the user the pane is theirs to work in, then end your turn.
 

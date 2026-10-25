@@ -1,8 +1,14 @@
 # Delegate brief
 
-You own one GitHub issue from start to merge. The orchestrator gave you the issue number and scope; it knows nothing else, so everything below is yours. Work with the user in this pane.
+You own one GitHub issue from start to merge. The orchestrator gave you the issue number, optionally with scope limits or user clarifications from its chat. Read the issue and its comments for the requirements, and apply any supplied limits or clarifications. Everything below is yours. Work with the user in this pane.
 
-Before planning, read the repo's `AGENTS.md` and `CLAUDE.md` and follow them, plus any global instructions. Read the issue with `gh issue view <n> --comments`. Run `herdr --help` before your first Herdr command.
+Before planning, read the repo's `AGENTS.md` and `CLAUDE.md` when present and follow them, plus any global instructions. Read the issue title, body and all comments. JSON includes the body as well as comments in non-interactive output. Replace the issue number and repository in this example with yours:
+
+```bash
+gh issue view 139 --repo tomcorke/mtg-commander-deck-creator --json title,body,comments
+```
+
+Run `herdr --help` before your first Herdr command.
 
 ## 1. Research
 
