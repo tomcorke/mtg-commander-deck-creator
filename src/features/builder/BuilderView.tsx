@@ -2,7 +2,9 @@ import { finishLabel } from '../../domain/printing.ts'
 import { FinishFilters } from '../../shared/FinishFilters.tsx'
 import { creatureTypeForTheme } from '../../domain/creature-types.ts'
 import {
+  startTransition,
   useEffect,
+  useOptimistic,
   useRef,
   useState,
   type CSSProperties,
@@ -771,44 +773,13 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         data-guide={index === 0 ? 'decisions' : undefined}
                         className={`actions ${toSideboard ? 'sideboard-actions' : ''}`}
                       >
-                        <div>
-                          <button
-                            className="primary"
-                            type="button"
-                            aria-pressed={decisions[card.name] === 'add'}
-                            disabled={decisions[card.name] !== 'add' && Boolean(blocked)}
-                            onClick={() => decide(card, 'add')}
-                          >
-                            {toSideboard && decisions[card.name] !== 'add' ? 'Sideboard' : 'Add'}
-                          </button>
-                          <span className="action-help-wrap">
-                            <button
-                              type="button"
-                              aria-pressed={decisions[card.name] === 'later'}
-                              onClick={() => decide(card, 'later')}
-                              aria-describedby={`later-${card.name}`}
-                            >
-                              Later
-                            </button>
-                            <span className="action-help" id={`later-${card.name}`} role="tooltip">
-                              Skip for now. This card may return in a later batch.
-                            </span>
-                          </span>
-                          <span className="action-help-wrap">
-                            <button
-                              className="quiet"
-                              type="button"
-                              aria-pressed={decisions[card.name] === 'ignore'}
-                              onClick={() => decide(card, 'ignore')}
-                              aria-describedby={`ignore-${card.name}`}
-                            >
-                              Ignore
-                            </button>
-                            <span className="action-help" id={`ignore-${card.name}`} role="tooltip">
-                              Remove this card from all future recommendations.
-                            </span>
-                          </span>
-                        </div>
+                        <DecisionButtons
+                          card={card}
+                          decision={decisions[card.name]}
+                          blocked={Boolean(blocked)}
+                          toSideboard={toSideboard}
+                          decide={decide}
+                        />
                         <span
                           data-guide={index === 0 ? 'more-like-this' : undefined}
                           className="similar-wrap"
@@ -1532,5 +1503,69 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
         <FinishFilters />
       </div>
     </main>
+  )
+}
+
+type Decision = 'add' | 'later' | 'ignore'
+
+// Shows the clicked decision at once; the deck and recommendation re-render runs as a transition.
+function DecisionButtons({
+  card,
+  decision,
+  blocked,
+  toSideboard,
+  decide,
+}: {
+  card: Card
+  decision: Decision | undefined
+  blocked: boolean
+  toSideboard: boolean
+  decide: (card: Card, action: Decision) => void
+}) {
+  const [shown, setShown] = useOptimistic(decision)
+  const choose = (action: Decision) =>
+    startTransition(() => {
+      setShown(shown === action ? undefined : action)
+      decide(card, action)
+    })
+  return (
+    <div>
+      <button
+        className="primary"
+        type="button"
+        aria-pressed={shown === 'add'}
+        disabled={shown !== 'add' && blocked}
+        onClick={() => choose('add')}
+      >
+        {toSideboard && shown !== 'add' ? 'Sideboard' : 'Add'}
+      </button>
+      <span className="action-help-wrap">
+        <button
+          type="button"
+          aria-pressed={shown === 'later'}
+          onClick={() => choose('later')}
+          aria-describedby={`later-${card.name}`}
+        >
+          Later
+        </button>
+        <span className="action-help" id={`later-${card.name}`} role="tooltip">
+          Skip for now. This card may return in a later batch.
+        </span>
+      </span>
+      <span className="action-help-wrap">
+        <button
+          className="quiet"
+          type="button"
+          aria-pressed={shown === 'ignore'}
+          onClick={() => choose('ignore')}
+          aria-describedby={`ignore-${card.name}`}
+        >
+          Ignore
+        </button>
+        <span className="action-help" id={`ignore-${card.name}`} role="tooltip">
+          Remove this card from all future recommendations.
+        </span>
+      </span>
+    </div>
   )
 }
