@@ -33,7 +33,7 @@ Done when the prioritisation and routing are agreed and you have a Herdr name.
 
 ## 2. Choose the next issue
 
-1. Run `gh issue list --state open --limit 200 --json number,title,labels` and read each candidate with `gh issue view <n> --comments`. Comments carry scope changes, decisions and links to merged groundwork.
+1. Run `gh issue list --state open --limit 200 --json number,title,labels` and shortlist by the agreed prioritisation. Read each shortlisted issue with `gh issue view <n> --comments`: comments carry scope changes, decisions and links to merged groundwork that change what an issue needs. Reading only the shortlist keeps your context free for the whole session.
 2. Set aside issues that are blocked on another issue, or waiting on a decision only the user can make. List them separately so the user can unblock them.
 3. Rank the rest by the agreed prioritisation and recommend one, in two or three sentences: what it is, why now, and which agent routing it gets.
 4. Ask the user to confirm or pick another. When one issue is _very_ clearly next (it was agreed earlier, or it is the only unblocked candidate), say so and go ahead without asking.
@@ -52,13 +52,15 @@ Done when one issue and its routing are confirmed.
 
 4. Tell the user the pane is theirs to work in, then end your turn.
 
-Done when the delegate has the brief and you have handed over to the user.
+Done when `agent prompt` reports the brief submitted and you have handed over to the user.
+
+Run one delegate at a time unless the user asks for more: each delegate reviews its PR with the user, and parallel delegates compete for their attention.
 
 ## 4. When a delegate reports back
 
 A delegate's report arrives as a message from the `issue-<n>` agent.
 
-1. Close the delegate's pane: `herdr pane close <pane-id>`.
+1. Close the delegate's pane. Find its ID with `herdr agent get issue-<n>` if you no longer have it, then `herdr pane close <pane-id>`.
 2. Note any new issues it filed, then return to step 2. Refresh the issue list rather than reusing the old one.
 
 If the user abandons an issue instead, close the pane the same way and return to step 2.
