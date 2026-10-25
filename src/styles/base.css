@@ -305,6 +305,7 @@ main > .workspace-alert .modal-close {
   padding-right: 16px;
 }
 .nav-forward {
+  justify-content: space-between;
   padding-left: 16px;
 }
 .nav-back::before,
