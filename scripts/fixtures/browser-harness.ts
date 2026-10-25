@@ -148,6 +148,9 @@ async function mockScryfall(route: Route, provider: Provider) {
 
 async function mockRequest(route: Route, scenario: Scenario, base: string) {
   const url = new URL(route.request().url())
+  // Synthetic provider gates must not mix their fixture pools with a locally generated real corpus.
+  if (url.origin === new URL(base).origin && url.pathname === '/local-card-index.json')
+    return route.fulfill({ status: 404, body: 'No local index in this fixture' })
   if (url.origin === new URL(base).origin) return route.continue()
   if (url.hostname === 'cards.scryfall.io' || url.hostname === 'svgs.scryfall.io')
     return route.fulfill({ contentType: 'image/svg+xml', body: imageBody })

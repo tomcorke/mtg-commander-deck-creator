@@ -59,6 +59,7 @@ export type RecommendationCard = {
   toughness?: string
   reason: string
   source?: RecommendationSource
+  localIndexSnapshot?: boolean
   seedEvidence?: SeedEvidence[]
   inclusion?: number
   synergy?: number
@@ -101,7 +102,13 @@ export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'
   Partial<
     Pick<
       RecommendationCard,
-      'set' | 'collectionMatch' | 'typeLine' | 'manaCost' | 'manaValue' | 'synergy'
+      | 'set'
+      | 'collectionMatch'
+      | 'typeLine'
+      | 'manaCost'
+      | 'manaValue'
+      | 'synergy'
+      | 'localIndexSnapshot'
     >
   >
 export type ManaSupport = {

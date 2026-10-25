@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && pnpm build:card-index && vite build",
+    "build:card-index": "node --experimental-strip-types scripts/build-card-index.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"*.{json,md,ts}\" \"docs/**/*.md\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"*.{json,md,ts}\" \"docs/**/*.md\"",
     "lint": "pnpm format:check && oxlint && eslint src scripts --max-warnings=0",
@@ -20,7 +21,8 @@
     "typecheck": "tsc -b --noEmit",
     "check:b18:browser": "node --experimental-strip-types scripts/check-b18-browser.ts",
     "check:b10:browser": "node --experimental-strip-types scripts/check-b10-browser.ts",
-    "check:card-references:browser": "node --experimental-strip-types scripts/check-card-references-browser.ts"
+    "check:card-references:browser": "node --experimental-strip-types scripts/check-card-references-browser.ts",
+    "check:local-card-index:browser": "node --experimental-strip-types scripts/check-local-card-index-browser.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

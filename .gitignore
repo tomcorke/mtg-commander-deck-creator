@@ -23,5 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Generated provider data is rebuilt for publishing, never committed.
+/public/local-card-index.json
+/public/local-card-index.json.tmp
+
 # Notes from the dev foil feedback page
 dev-feedback

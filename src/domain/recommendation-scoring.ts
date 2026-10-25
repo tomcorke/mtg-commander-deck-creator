@@ -32,6 +32,7 @@ function evidenceScore(
   card: RecommendationScoreCard,
   style: RecommendationScoreContext['recommendationStyle'],
 ) {
+  if (card.localIndexSnapshot) return 0
   // EDHREC synergy (0.3 = played 30 points more often with this commander) adds up to 4, capped.
   const synergyBonus = Math.min(4, Math.max(0, Math.round((card.synergy ?? 0) * 10)))
   const base = Math.min(

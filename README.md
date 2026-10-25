@@ -11,7 +11,7 @@ pnpm install
 pnpm dev
 ```
 
-Vite prints the local URL and reloads the page after source changes.
+Vite prints the local URL and reloads the page after source changes. Live fetching works without generated data. Run `pnpm build:card-index` to enable the optional local card pool during development; `pnpm build` generates it automatically using a daily bulk-data cache and a validated previous-index fallback. See [local card index](docs/domain/local-card-index.md) for coverage, freshness and measured sizes.
 
 ## Checks
 
@@ -30,7 +30,7 @@ Run all three headless policies against four reference precons:
 pnpm audit:recommendations -- --output recommendation-audit.md
 ```
 
-The script fetches current Archidekt, EDHREC, and Scryfall data, then imports the same recommendation builder and queue transition functions used by the app. It does not automate or duplicate the UI implementation.
+The script fetches current Archidekt, EDHREC, and Scryfall data, then imports the same recommendation builder and queue transition functions used by the app. It does not automate or duplicate the UI implementation. Add `--local-index public/local-card-index.json` to include a pinned local corpus in production role-gap retrieval; live evidence remains live, not a full replay.
 
 ## MTG knowledge
 

@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
+import { generatedCreatureCatalog } from './scripts/generated-creature-catalog.ts'
 
 const publishCount = Number(
   execFileSync('git', ['rev-list', '--count', 'origin/publish'], {
@@ -53,7 +54,7 @@ const devFeedback: Plugin = {
 export default defineConfig({
   base: '/',
   define: { __APP_VERSION__: JSON.stringify(version) },
-  plugins: [react(), devFeedback],
+  plugins: [react(), devFeedback, generatedCreatureCatalog()],
   server: {
     watch: {
       // Windows file notifications can occasionally be dropped by editors or synced folders.

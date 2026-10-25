@@ -54,6 +54,7 @@ export function currentCardData<T extends DeckCard>(card: T, fetched: ScryfallCa
   // Gameplay data is current; printing, finish, evidence and player selections stay local.
   return {
     ...card,
+    ...(card.localIndexSnapshot !== undefined && { localIndexSnapshot: false }),
     oracleId: fresh.oracleId,
     commanderLegality: fresh.commanderLegality,
     colorIdentity: fresh.colorIdentity,
