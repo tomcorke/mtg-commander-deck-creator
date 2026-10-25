@@ -33,7 +33,7 @@ import {
   type DeckDoctorFinding,
   type DeckDoctorSwapRecord,
 } from '../../deck-doctor.ts'
-import { simulateManaAccess } from '../../deck-simulation.ts'
+import { simulateManaAccess, type ManaAccessSimulation } from '../../deck-simulation.ts'
 import {
   doctorSuggestionIsInPlan,
   toggleDoctorSuggestionInPlan,
@@ -221,13 +221,13 @@ function FindingCardReferences({
   deck,
   flaggedNames,
   openCard,
-  trials,
+  simulation,
 }: {
   finding: DeckDoctorFinding
   deck: DeckCard[]
   flaggedNames: Set<string>
   openCard: Props['openCard']
-  trials: number
+  simulation: ManaAccessSimulation
 }) {
   if (!finding.cardNames.length) return null
   return (
@@ -262,8 +262,12 @@ function FindingCardReferences({
                     <li>
                       When drawn, it was payable by turn {signal.simulation.turn} in{' '}
                       {Math.round(signal.simulation.castableChance * 100)}% of simulated hands (
-                      {trials} trials).
+                      {simulation.trials} trials, one free mulligan)
+                      {simulation.provisional ? '. Provisional until the deck has 100 cards.' : '.'}
                     </li>
+                  )}
+                  {simulation.unsupported.includes(card.name) && (
+                    <li>Its hybrid, X or Phyrexian cost isn't simulated.</li>
                   )}
                 </ul>
               </details>
@@ -1095,7 +1099,7 @@ export function DeckDoctorView({
                       deck={deck}
                       flaggedNames={flaggedNames}
                       openCard={openCard}
-                      trials={simulation.trials}
+                      simulation={simulation}
                     />
                     <div className="doctor-suggestions">
                       <h4>{mode === 'build' ? 'Suggested additions' : 'Suggested swaps'}</h4>

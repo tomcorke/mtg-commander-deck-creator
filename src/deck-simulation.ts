@@ -1,4 +1,4 @@
-import { rolesForCard } from './deck-analysis.ts'
+import { cardFeatures, rolesForCard } from './deck-analysis.ts'
 import type { DeckCard } from './domain/card-model.ts'
 
 const turnsToSimulate = 10
@@ -26,7 +26,35 @@ export type ManaAccessSimulation = {
   trials: number
   turns: ManaAccessTurn[]
   spellCastability: SpellCastability[]
+  /** Spells whose cost the model can't pay (hybrid, X, Phyrexian), so they aren't sampled. */
+  unsupported: string[]
+  /** The deck has fewer than 100 cards, so the results will shift as it fills. */
+  provisional: boolean
 }
+
+// Assumptions: one free mulligan (multiplayer Commander) when the opening seven has fewer than two
+// or more than five lands; the player draws every turn, plays the land that pays the most spells
+// in hand, then casts the cheapest repeatable ramp or land-ramp spell it can pay.
+const keepableLands = (hand: SimCard[]) => {
+  const lands = hand.filter(({ card }) => isLandCard(card)).length
+  return lands >= 2 && lands <= 5
+}
+// "enters tapped" without a condition ("unless", "if") makes the land useless on the turn it's played.
+const entersTapped = (card: DeckCard) =>
+  /enters(?: the battlefield)? tapped\./i.test(card.detail) &&
+  !/\bif\b[^.]*enters(?: the battlefield)? tapped\./i.test(card.detail)
+// Card text checks run every turn of every trial, so each card is classified once.
+const cached = <T>(read: (card: DeckCard) => T) => {
+  const results = new WeakMap<DeckCard, T>()
+  return (card: DeckCard) => {
+    if (!results.has(card)) results.set(card, read(card))
+    return results.get(card)!
+  }
+}
+const isLandCard = cached((card) => rolesForCard(card).includes('lands'))
+const tappedLand = cached(entersTapped)
+const rampKind = cached((card) => cardFeatures(card).mana)
+type Source = { card: DeckCard; readyTurn: number }
 
 function parseManaCost(value: string): ManaCost | null {
   if (!value || value.replace(/\{[^{}]+\}/g, '')) return null
@@ -74,6 +102,7 @@ function shuffledCards(cards: SimCard[], random: () => number) {
 }
 
 function chooseLand(hand: SimCard[], playedLands: DeckCard[], spellCosts: Map<number, ManaCost>) {
+  // Untapped lands first, so a tapped land is played when it costs nothing this turn.
   const spellsInHand = hand.flatMap(({ id }) => {
     const cost = spellCosts.get(id)
     return cost ? [{ cost }] : []
@@ -81,8 +110,9 @@ function chooseLand(hand: SimCard[], playedLands: DeckCard[], spellCosts: Map<nu
   let chosen = -1
   let bestScore = -1
   hand.forEach(({ card }, index) => {
-    if (!rolesForCard(card).includes('lands')) return
+    if (!isLandCard(card)) return
     const score =
+      Number(!tappedLand(card)) * 10_000 +
       spellsInHand.reduce(
         (count, spell) => count + Number(canPay([...playedLands, card], spell.cost)),
         0,
@@ -112,6 +142,33 @@ function recordSpellSamples(
   })
 }
 
+function castRamp(
+  hand: SimCard[],
+  library: SimCard[],
+  sources: Source[],
+  spellCosts: Map<number, ManaCost>,
+  turn: number,
+) {
+  const ready = sources.filter(({ readyTurn }) => readyTurn <= turn).map(({ card }) => card)
+  const options = hand
+    .map((held, index) => ({ held, index, cost: spellCosts.get(held.id) }))
+    .filter(({ held, cost }) => {
+      const mana = rampKind(held.card)
+      return cost && (mana === 'repeatable' || mana === 'land-ramp') && canPay(ready, cost)
+    })
+    .sort((left, right) => left.held.card.manaValue - right.held.card.manaValue)
+  const choice = options[0]
+  if (!choice) return
+  hand.splice(choice.index, 1)
+  if (rampKind(choice.held.card) === 'repeatable')
+    sources.push({ card: choice.held.card, readyTurn: turn + 1 })
+  else {
+    // Land ramp fetches the first basic still in the library; it enters tapped.
+    const basic = library.findIndex(({ card }) => /\bBasic\b/.test(card.typeLine))
+    if (basic >= 0) sources.push({ card: library.splice(basic, 1)[0].card, readyTurn: turn + 1 })
+  }
+}
+
 function simulateTrial(
   library: SimCard[],
   spells: SimCard[],
@@ -119,21 +176,23 @@ function simulateTrial(
   counts: SimulationCounts,
   random: () => number,
 ) {
-  const shuffled = shuffledCards(library, random)
-  let nextCard = 0
+  let shuffled = shuffledCards(library, random)
+  if (!keepableLands(shuffled.slice(0, 7))) shuffled = shuffledCards(library, random)
   const hand = shuffled.splice(0, 7)
-  const playedLands: DeckCard[] = []
+  const sources: Source[] = []
   for (let turn = 0; turn < turnsToSimulate; turn += 1) {
-    if (nextCard < shuffled.length) {
-      const drawn = shuffled[nextCard++]
-      hand.push(drawn)
-    }
-    const landIndex = chooseLand(hand, playedLands, spellCosts)
+    const drawn = shuffled.shift()
+    if (drawn) hand.push(drawn)
+    const lands = sources.map(({ card }) => card)
+    const landIndex = chooseLand(hand, lands, spellCosts)
     if (landIndex >= 0) {
-      playedLands.push(hand.splice(landIndex, 1)[0].card)
+      const land = hand.splice(landIndex, 1)[0].card
+      sources.push({ card: land, readyTurn: tappedLand(land) ? turn + 1 : turn })
       counts.landDrops[turn] += 1
     }
-    recordSpellSamples(hand, playedLands, spells, spellCosts, counts, turn)
+    const ready = sources.filter(({ readyTurn }) => readyTurn <= turn).map(({ card }) => card)
+    recordSpellSamples(hand, ready, spells, spellCosts, counts, turn)
+    castRamp(hand, shuffled, sources, spellCosts, turn)
   }
 }
 
@@ -149,9 +208,13 @@ function simulationResult(
   trials: number,
   spells: SimCard[],
   counts: SimulationCounts,
+  unsupported: string[],
+  provisional: boolean,
 ): ManaAccessSimulation {
   return {
     trials,
+    unsupported,
+    provisional,
     turns: counts.landDrops.map((landDropCount, turn) => ({
       turn: turn + 1,
       landDropRate: landDropCount / trials,
@@ -184,14 +247,17 @@ export function simulateManaAccess({
   const library = deck.slice(commanderCount).map((card, id) => ({ card, id }))
   const spellCosts = new Map(
     library.flatMap(({ card, id }) => {
-      if (rolesForCard(card).includes('lands')) return []
+      if (isLandCard(card)) return []
       const cost = parseManaCost(card.manaCost)
       return cost ? [[id, cost] as const] : []
     }),
   )
   const spells = library.filter(({ id }) => spellCosts.has(id))
+  const unsupported = library
+    .filter(({ card, id }) => !spellCosts.has(id) && !isLandCard(card) && card.manaCost !== '')
+    .map(({ card }) => card.name)
   const counts = initialCounts(spells.length)
   for (let trial = 0; trial < trials; trial += 1)
     simulateTrial(library, spells, spellCosts, counts, random)
-  return simulationResult(trials, spells, counts)
+  return simulationResult(trials, spells, counts, unsupported, deck.length < 100)
 }
