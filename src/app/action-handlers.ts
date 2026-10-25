@@ -5,6 +5,7 @@ import type {
   ExportFormat,
   ScryfallCard,
 } from '../domain/card-model.ts'
+import type { AddZone } from '../deck-analysis.ts'
 import type { SavedDeck } from '../deck-state.ts'
 import * as deckActions from './deck-actions.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
@@ -49,6 +50,7 @@ export function createActionHandlers(deps: ActionDeps) {
     removeSideboardCard: (index: number) => deckActions.removeSideboardCard(deps, index),
     moveSideboardCard: (index: number) => deckActions.moveSideboardCard(deps, index),
     moveSelectedDeckCard: () => deckActions.moveSelectedDeckCard(deps),
+    chooseAddZone: (zone: AddZone) => deckActions.chooseAddZone(deps, zone),
     storeDeck: (overwrite = false) => deckActions.storeDeck(deps, overwrite),
     loadSavedDeck: (saved: SavedDeck) => deckActions.loadSavedDeck(deps, saved),
     removeSavedDeck: (saved: SavedDeck) => deckActions.removeSavedDeck(deps, saved),

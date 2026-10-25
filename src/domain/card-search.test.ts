@@ -214,3 +214,11 @@ test('multi-add keeps filling the main deck past 100 when asked', () => {
   assert.equal(result.deck.length, 102)
   assert.equal(result.sideboardCount, 0)
 })
+
+test('multi-add sends every card to the sideboard when the main-deck limit is 0', () => {
+  const deck = [toDeckCard(card('Existing'))]
+  const result = addCardSearchCards([card('First'), card('Second')], deck, [], ['G'], 0)
+  assert.equal(result.deck.length, 1)
+  assert.equal(result.sideboard.length, 2)
+  assert.equal(result.mainCount, 0)
+})

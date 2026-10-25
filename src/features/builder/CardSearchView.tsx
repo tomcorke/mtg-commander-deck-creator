@@ -51,6 +51,9 @@ type Props = {
   openCard: (card: ScryfallCard) => void
   addCards: (cards: ScryfallCard[]) => string
   closePage: () => void
+  /** Main-deck size an add fills before the rest goes to the sideboard. */
+  mainLimit: number
+  zoneToggle: ReactNode
 }
 
 function MatchSelect({
@@ -351,6 +354,8 @@ export function CardSearchView({
   openCard,
   addCards,
   closePage,
+  mainLimit,
+  zoneToggle,
 }: Props) {
   const { darkMode, commanderStyling } = useVisualPreferences()
   const [filters, setFilters] = useState(defaultCardSearchFilters)
@@ -371,7 +376,8 @@ export function CardSearchView({
   const resultsHeading = useRef<HTMLHeadingElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const colours = commanderDetails?.colours ?? []
-  const targetBoard = deck.length < 100 ? deck : sideboard
+  const mainSlots = Math.max(0, mainLimit - deck.length)
+  const targetBoard = mainSlots ? deck : sideboard
   const usedNames = [...deck, ...sideboard].map(({ name }) => name)
   const available = cards.filter((card) => includeExisting || !usedNames.includes(card.name))
   const pages = Math.ceil(available.length / pageSize)
@@ -435,7 +441,7 @@ export function CardSearchView({
       setError(failure)
       return
     }
-    const mainCount = Math.min(chosen.length, Math.max(0, 100 - deck.length))
+    const mainCount = Math.min(chosen.length, mainSlots)
     setNotice(`Added ${mainCount} to deck and ${chosen.length - mainCount} to sideboard.`)
     setError('')
     setSelectedNames((current) =>
@@ -594,6 +600,7 @@ export function CardSearchView({
           {visible.length > 0 && (
             <>
               <div className="search-result-actions">
+                {zoneToggle}
                 <button
                   className="export"
                   type="button"
@@ -654,7 +661,7 @@ export function CardSearchView({
                       openCard(card)
                     }}
                     onAdd={() => add([card])}
-                    fullDeck={deck.length >= 100}
+                    fullDeck={!mainSlots}
                   />
                 ))}
               </div>
@@ -704,8 +711,8 @@ export function CardSearchView({
       {selected.length > 0 && (
         <div className="card-search-selection-bar" role="region" aria-label="Selected search cards">
           <span>
-            {selected.length} selected · {Math.min(selected.length, Math.max(0, 100 - deck.length))}{' '}
-            to deck · {Math.max(0, selected.length - Math.max(0, 100 - deck.length))} to sideboard
+            {selected.length} selected · {Math.min(selected.length, mainSlots)} to deck ·{' '}
+            {Math.max(0, selected.length - mainSlots)} to sideboard
           </span>
           <button className="export" type="button" onClick={() => setSelectedNames([])}>
             Clear selection

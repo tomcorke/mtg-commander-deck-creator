@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 
 import { loadSavedDecks, type PersistedDeckState } from '../deck-state.ts'
+import type { AddZoneChoice } from '../deck-analysis.ts'
 import type { AppHistoryState, AppModal } from './routes.ts'
 import { usePendingConfirmation, useStoredOption } from '../shared/hooks.ts'
 export function useUiState(
@@ -102,7 +103,7 @@ function useImportState() {
   const [importState, setImportState] = useState<'idle' | 'loading' | 'error' | 'missing'>('idle')
   const [importError, setImportError] = useState('')
   const [importFoundCount, setImportFoundCount] = useState(0)
-  const [keepAddingToMain, setKeepAddingToMain] = useState(false)
+  const [addZoneChoice, setAddZoneChoice] = useState<AddZoneChoice>(null)
   return {
     importSource,
     setImportSource,
@@ -111,8 +112,8 @@ function useImportState() {
     importError,
     setImportError,
     importFoundCount,
-    keepAddingToMain,
-    setKeepAddingToMain,
+    addZoneChoice,
+    setAddZoneChoice,
     setImportFoundCount,
   }
 }

@@ -5,7 +5,12 @@ import {
   fetchScryfallPrintings,
   ScryfallRateLimitError,
 } from '../adapters/scryfall.ts'
-import { addsToSideboard, defaultDeckTargets } from '../deck-analysis.ts'
+import {
+  addsToSideboard,
+  defaultDeckTargets,
+  mainDeckLimit,
+  type AddZone,
+} from '../deck-analysis.ts'
 import {
   undoDeckDoctorSwap as undoDoctorSwap,
   applyDeckDoctorSwapPlan as applyDoctorSwapPlan,
@@ -45,7 +50,6 @@ import {
   type SavedDeck,
 } from '../deck-state.ts'
 import {
-  mainDeckCardCount,
   ImportMissingCardsError,
   matchImportedCard,
   missingCardNames,
@@ -641,7 +645,7 @@ export function addSearchCards(deps: ActionDeps, cards: ScryfallCard[]) {
       deps.deck,
       deps.sideboard,
       deps.commanderDetails?.colours ?? [],
-      deps.keepAddingToMain ? Infinity : 100,
+      mainDeckLimit(deps),
     )
     deps.skipCompletionReviewDecks.current.add(result.deck)
     deps.setDeck(result.deck)
@@ -665,15 +669,13 @@ export function addManualCard(deps: ActionDeps) {
 export async function addOneBasic(deps: ActionDeps, name: string) {
   const job = deckJob(deps)
   const { deck, setBasicLandState, setDeck } = job.deps
-  if (addsToSideboard(deps)) return
   try {
     const added = await fetchBasic(name)
     if (!job.isCurrent() || (deps.getCurrentState?.() ?? deps).deck !== deck) return
     if (cardConstructionError(added, deps.deck, deps.commanderDetails?.colours ?? []))
       throw new Error('Cannot add this basic land.')
-    setDeck((current: any) =>
-      current.length < 100 || deps.keepAddingToMain ? [...current, added] : current,
-    )
+    // The + sits on a main-deck row, so it always adds there, even past 100.
+    setDeck((current: any) => [...current, added])
   } catch {
     setBasicLandState('error')
   }
@@ -884,6 +886,10 @@ export function moveDeckCardToSideboard(deps: ActionDeps, index: number) {
   const card = deps.deck[index]
   deps.setDeck((current: any) => current.filter((_: any, cardIndex: any) => cardIndex !== index))
   deps.setSideboard((current: any) => [...current, card])
+}
+
+export function chooseAddZone(deps: ActionDeps, zone: AddZone) {
+  deps.setAddZoneChoice({ zone, full: deps.deck.length >= 100 })
 }
 
 export function moveSelectedDeckCard(deps: ActionDeps) {
@@ -1165,8 +1171,6 @@ async function resolveImportedCards(
   if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
   if (commanderEntries.reduce((sum: any, card: any) => sum + card.quantity, 0) > 2)
     throw new Error('Commander section must contain one commander or partner pair.')
-  const mainCount = mainDeckCardCount(imported)
-  if (mainCount > 100) throw new Error('Main deck exceeds 100 cards.')
 
   const fetched = await fetchImportedCards(imported.cards, signal)
   const missing = imported.cards.filter((entry) => !matchImportedCard(entry, fetched))

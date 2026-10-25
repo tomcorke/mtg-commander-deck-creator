@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react'
+import type { Dispatch, ReactNode, SetStateAction } from 'react'
 
 import { cardConstructionError } from '../../domain/commander-construction.ts'
 import {
@@ -27,6 +27,8 @@ type Props = {
   onClose: () => void
   onOpenCard: (card: ScryfallCard) => void
   onAddCard: (card: ScryfallCard) => void
+  toSideboard: boolean
+  zoneToggle: ReactNode
 }
 
 // eslint-disable-next-line max-lines-per-function -- Preserve the established collection-browser markup while extracting it as one focused dialog.
@@ -46,6 +48,8 @@ export function CollectionBrowserDialog({
   onClose,
   onOpenCard,
   onAddCard,
+  toSideboard,
+  zoneToggle,
 }: Props) {
   return (
     <div
@@ -99,6 +103,7 @@ export function CollectionBrowserDialog({
               placeholder="Any"
             />
           </label>
+          {zoneToggle}
         </div>
         {state === 'loading' && <p role="status">Loading legal collection cards…</p>}
         {state === 'error' && (
@@ -130,13 +135,13 @@ export function CollectionBrowserDialog({
                   disabled={Boolean(
                     cardConstructionError(
                       toDeckCard(card),
-                      deck.length < 100 ? deck : sideboard,
+                      toSideboard ? sideboard : deck,
                       commanderDetails?.colours ?? [],
                     ),
                   )}
                   onClick={() => onAddCard(card)}
                 >
-                  Add to deck
+                  {toSideboard ? 'Add to sideboard' : 'Add to deck'}
                 </button>
               </article>
             ))}
