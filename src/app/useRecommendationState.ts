@@ -98,6 +98,10 @@ export function useRecommendationState(saved: PersistedDeckState | null) {
     'excludeGameChangers',
     () => true,
   )
+  const [limitGameChangers, setLimitGameChangers] = useStoredOption(
+    'limitGameChangers',
+    () => false,
+  )
   const [excludeTutors, setExcludeTutors] = useStoredOption('excludeTutors', () => true)
   const [excludeExtraTurns, setExcludeExtraTurns] = useStoredOption('excludeExtraTurns', () => true)
   const [excludeUnreleased, setExcludeUnreleased] = useStoredOption('excludeUnreleased', () => true)
@@ -138,6 +142,8 @@ export function useRecommendationState(saved: PersistedDeckState | null) {
     setPowerTarget,
     excludeGameChangers,
     setExcludeGameChangers,
+    limitGameChangers,
+    setLimitGameChangers,
     excludeTutors,
     setExcludeTutors,
     excludeExtraTurns,

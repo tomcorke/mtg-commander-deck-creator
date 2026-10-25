@@ -256,6 +256,7 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
       powerTarget: state.powerTarget,
       recommendationStyle: state.recommendationStyle,
       excludeGameChangers: state.excludeGameChangers,
+      limitGameChangers: state.limitGameChangers,
       excludeTutors: state.excludeTutors,
       excludeExtraTurns: state.excludeExtraTurns,
     }
@@ -264,6 +265,7 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
       state.setPowerTarget(settings.powerTarget)
       state.setRecommendationStyle(settings.recommendationStyle)
       state.setExcludeGameChangers(settings.excludeGameChangers)
+      state.setLimitGameChangers(settings.limitGameChangers)
       state.setExcludeTutors(settings.excludeTutors)
       state.setExcludeExtraTurns(settings.excludeExtraTurns)
     }

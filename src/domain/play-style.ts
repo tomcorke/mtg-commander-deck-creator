@@ -5,6 +5,7 @@ export type PlayStyleSettings = {
   powerTarget: PowerTarget
   recommendationStyle: RecommendationStyle
   excludeGameChangers: boolean
+  limitGameChangers: boolean
   excludeTutors: boolean
   excludeExtraTurns: boolean
 }
@@ -21,7 +22,8 @@ export const playStyles = [
     label: 'Upgraded',
     summary:
       'A balance of theme and strength. Strong cards and tutors are in; extra turns stay out.',
-    description: 'Upgraded · Balanced · Allows Game Changers and tutors · Excludes extra turns',
+    description:
+      'Upgraded · Balanced · Up to 3 Game Changers · Allows tutors · Excludes extra turns',
   },
   {
     id: 'high',
@@ -39,6 +41,7 @@ export function playStyleSettings(current: PlayStyleSettings, style: PlayStyle):
       powerTarget: 'upgraded',
       recommendationStyle: 'balanced',
       excludeGameChangers: false,
+      limitGameChangers: true,
       excludeTutors: false,
       excludeExtraTurns: true,
     }
@@ -48,10 +51,16 @@ export function playStyleSettings(current: PlayStyleSettings, style: PlayStyle):
     powerTarget: casual ? 'precon' : 'high',
     recommendationStyle: casual ? 'thematic' : 'competitive',
     excludeGameChangers: casual,
+    limitGameChangers: false,
     excludeTutors: casual,
     excludeExtraTurns: casual,
   }
 }
+/** Bracket 3 allows up to three Game Changers (mtg-knowledge-base format-policy, checked 2026-10-03). */
+export const gameChangerLimit = 3
+export const gameChangersAtLimit = (deck: { gameChanger?: boolean }[]) =>
+  deck.filter((card) => card.gameChanger).length >= gameChangerLimit
+
 export function matchingPlayStyle(current: PlayStyleSettings) {
   return playStyles.find(({ id }) => {
     const preset = playStyleSettings(current, id)

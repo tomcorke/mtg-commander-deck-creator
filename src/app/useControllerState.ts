@@ -1,3 +1,4 @@
+import { gameChangersAtLimit } from '../domain/play-style.ts'
 import { useMemo } from 'react'
 
 import { deckDelta, deckStateChanged, type PersistedDeckState } from '../deck-state.ts'
@@ -125,6 +126,11 @@ export function useControllerState(
     ...deck,
     ...ui,
     ...workspaceState,
+    // Once the main deck holds the limit, further Game Changers are excluded like the full filter.
+    excludeGameChangers:
+      recommendation.excludeGameChangers ||
+      (recommendation.limitGameChangers && gameChangersAtLimit(deck.deck)),
+    excludeGameChangersSetting: recommendation.excludeGameChangers,
   }
   const currentDeckState = useCurrentDeckState(state)
   const activeSavedDeck = state.savedDecks.find(({ id }: any) => id === state.activeSavedDeckId)
