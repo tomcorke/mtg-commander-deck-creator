@@ -23,6 +23,7 @@ import {
   releaseDeferred,
   releaseNextDeferred,
   selectSubTheme,
+  spreadRoles,
   sharedThemes,
   supportedThemes,
   tagsFor,
@@ -1137,4 +1138,40 @@ test('deck fit has diminishing returns once a tag is well covered', () => {
   assert.equal(deckFit(6), 5)
   assert.equal(deckFit(15), 2)
   assert.ok(deckFit(30) < deckFit(15))
+})
+
+test('complementary batches swap a repeated role for a nearby card that adds something new', () => {
+  const make = (name: string, role: string, typeLine = 'Sorcery') => ({
+    name,
+    reason: 'Interaction',
+    typeLine,
+    tags: [],
+    role,
+  })
+  const cards = [
+    make('Removal A', 'removal'),
+    make('Ramp A', 'ramp'),
+    make('Removal B', 'removal'),
+    make('Draw A', 'draw'),
+    make('Draw B', 'draw'),
+    make('Wipe', 'wipes'),
+  ]
+  const roles = (card: (typeof cards)[number]) => [card.role]
+  assert.deepEqual(
+    spreadRoles(cards, roles, new Set()).map(({ name }) => name),
+    ['Removal A', 'Ramp A', 'Wipe', 'Draw A', 'Draw B', 'Removal B'],
+  )
+  // The deck's most urgent role may repeat.
+  assert.deepEqual(
+    spreadRoles(cards, roles, new Set(['removal'])).map(({ name }) => name),
+    cards.map(({ name }) => name),
+  )
+  // A creature slot only swaps with another creature.
+  const creatures = cards.map((card, index) =>
+    index === 2 ? { ...card, typeLine: 'Creature' } : card,
+  )
+  assert.deepEqual(
+    spreadRoles(creatures, roles, new Set()).map(({ name }) => name),
+    creatures.map(({ name }) => name),
+  )
 })
