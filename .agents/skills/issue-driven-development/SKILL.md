@@ -23,7 +23,7 @@ Ask the user, in one round of questions, before starting:
    - Quick wins: lowest complexity first, to clear the queue.
    - Unblockers first: issues other issues depend on.
    - Theme: one area (UI, recommender, data) at a time.
-2. **Delegate agents.** Confirm or change the default routing:
+2. **Delegate agents.** Confirm or change the routing for this session. User changes to agent kind, model, effort or thinking apply only to this session unless the user explicitly asks to save them as defaults. Keep session choices in conversation context; do not edit this skill or other persistent configuration for them. Ask again at the start of each session. Suggested defaults:
 
    | Issue kind                                            | Kind     | Agent arguments                                      |
    | ----------------------------------------------------- | -------- | ---------------------------------------------------- |
