@@ -73,6 +73,8 @@ type RecommendationSettingsModalProps = {
   collectionPoolSize: number | null
   excludeGameChangers: boolean
   setExcludeGameChangers: Dispatch<SetStateAction<boolean>>
+  limitGameChangers: boolean
+  setLimitGameChangers: Dispatch<SetStateAction<boolean>>
   excludeTutors: boolean
   setExcludeTutors: Dispatch<SetStateAction<boolean>>
   excludeExtraTurns: boolean
@@ -114,6 +116,8 @@ export function RecommendationSettingsModal({
   collectionPoolSize,
   excludeGameChangers,
   setExcludeGameChangers,
+  limitGameChangers,
+  setLimitGameChangers,
   excludeTutors,
   setExcludeTutors,
   excludeExtraTurns,
@@ -424,6 +428,26 @@ export function RecommendationSettingsModal({
                 id="exclude-game-changers-help"
                 label="Exclude Game Changers"
                 description="Wizards' bracket guidance allows zero in Brackets 1–2 (Bracket 1 exceptions need pregame agreement), up to three in Bracket 3, and no limit in Brackets 4–5. This optional filter removes all Game Changers."
+              />
+            </div>
+            <div className="recommendation-setting-toggle">
+              <label htmlFor="limit-game-changers">
+                <input
+                  id="limit-game-changers"
+                  type="checkbox"
+                  checked={limitGameChangers || excludeGameChangers}
+                  disabled={excludeGameChangers}
+                  onChange={(event) => {
+                    setLimitGameChangers(event.target.checked)
+                    setRecommendationOptionsChanged(true)
+                  }}
+                />{' '}
+                Limit to 3 Game Changers
+              </label>
+              <SettingHelp
+                id="limit-game-changers-help"
+                label="Limit to 3 Game Changers"
+                description="Bracket 3 allows up to three Game Changers. Once the main deck holds three, no more are recommended or added from recommendations."
               />
             </div>
             <div className="recommendation-setting-toggle">

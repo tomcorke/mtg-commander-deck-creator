@@ -1,12 +1,18 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { matchingPlayStyle, playStyleSettings, type PlayStyleSettings } from './play-style.ts'
+import {
+  gameChangersAtLimit,
+  matchingPlayStyle,
+  playStyleSettings,
+  type PlayStyleSettings,
+} from './play-style.ts'
 
 test('presets map current preferences without mutating them or claiming a bracket', () => {
   const current: PlayStyleSettings = {
     powerTarget: 'precon',
     recommendationStyle: 'fun',
     excludeGameChangers: true,
+    limitGameChangers: false,
     excludeTutors: false,
     excludeExtraTurns: true,
   }
@@ -15,6 +21,7 @@ test('presets map current preferences without mutating them or claiming a bracke
     powerTarget: 'precon',
     recommendationStyle: 'thematic',
     excludeGameChangers: true,
+    limitGameChangers: false,
     excludeTutors: true,
     excludeExtraTurns: true,
   })
@@ -23,6 +30,7 @@ test('presets map current preferences without mutating them or claiming a bracke
     powerTarget: 'upgraded',
     recommendationStyle: 'balanced',
     excludeGameChangers: false,
+    limitGameChangers: true,
     excludeTutors: false,
     excludeExtraTurns: true,
   })
@@ -30,6 +38,7 @@ test('presets map current preferences without mutating them or claiming a bracke
     powerTarget: 'high',
     recommendationStyle: 'competitive',
     excludeGameChangers: false,
+    limitGameChangers: false,
     excludeTutors: false,
     excludeExtraTurns: false,
   })
@@ -41,4 +50,10 @@ test('presets map current preferences without mutating them or claiming a bracke
     matchingPlayStyle({ ...playStyleSettings(current, 'casual'), excludeTutors: false }),
     undefined,
   )
+})
+
+test('the Game Changer limit counts Game Changers in the deck', () => {
+  const gc = { gameChanger: true }
+  assert.equal(gameChangersAtLimit([gc, gc, { gameChanger: false }]), false)
+  assert.equal(gameChangersAtLimit([gc, gc, gc]), true)
 })

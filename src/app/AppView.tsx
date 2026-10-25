@@ -190,8 +190,10 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       browseCollection={() => void actions.browseCollection()}
       collectionError={state.collectionError}
       collectionPoolSize={state.collectionPoolSize}
-      excludeGameChangers={state.excludeGameChangers}
+      excludeGameChangers={state.excludeGameChangersSetting}
       setExcludeGameChangers={state.setExcludeGameChangers}
+      limitGameChangers={state.limitGameChangers}
+      setLimitGameChangers={state.setLimitGameChangers}
       excludeTutors={state.excludeTutors}
       setExcludeTutors={state.setExcludeTutors}
       excludeExtraTurns={state.excludeExtraTurns}
