@@ -27,8 +27,7 @@ Ask the user, in one round of questions, before starting:
 
    | Issue kind                                            | Kind     | Agent arguments                                      |
    | ----------------------------------------------------- | -------- | ---------------------------------------------------- |
-   | Any visual UI design                                  | `claude` | `--model claude-opus-5-5 --effort low` |
-   | Code only                                             | `pi`     | `--model gpt-6.1-sol --thinking medium`                |
+   | Implementation (visual UI or code)                     | `claude` | `--model claude-opus-5-5 --effort low`                  |
    | Research                                              | `pi`     | `--model gpt-6.1-sol --thinking low`                   |
    | Already well-scoped docs writing only                  | `pi`     | `--model gpt-6-luna --thinking max`                    |
 
