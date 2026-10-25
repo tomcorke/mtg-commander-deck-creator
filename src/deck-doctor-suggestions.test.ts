@@ -387,3 +387,32 @@ test('suggestion toggles remove only the exact pair, including additions-only pl
   assert(!doctorSuggestionIsInPlan(paired, build))
   assert.equal(toggleDoctorSuggestionInPlan(paired, build), paired)
 })
+
+test('suggestions are checked against the deck left by the swaps already suggested', () => {
+  // Draw sits one above target: either draw cut alone is safe, both together are not.
+  const options = input([
+    card('Low draw A', { detail: 'Draw two cards.' }),
+    card('Low draw B', { detail: 'Draw two cards.' }),
+  ])
+  for (let index = 0; index < 9; index += 1)
+    options.deck[90 + index] = card(`Draw filler ${index}`, { detail: 'Draw two cards.' })
+  options.rankedCandidates = [addition('Ramp A'), addition('Ramp B')].map((card) => ({
+    card,
+    fit: 50,
+  }))
+  const suggestions = rampSuggestions(options)
+  assert.equal(suggestions.length, 1)
+})
+
+test('a cut never removes the only card for an active sub-theme', () => {
+  const options = {
+    ...input([card('Only aristocrat', { tags: ['Aristocrats'] }), card('Low B')]),
+    activeSubThemes: ['Aristocrats'],
+  }
+  options.rankedCandidates = [addition('Ramp A'), addition('Ramp B')].map((card) => ({
+    card,
+    fit: 50,
+  }))
+  const cuts = rampSuggestions(options).map(({ cut }) => cut?.cutCard.name)
+  assert.deepEqual(cuts, ['Low B'])
+})
