@@ -222,39 +222,37 @@ export async function collectionRecommendations(
   }
 }
 
-/** Local breadth supplements every live query, including Tagger searches and stale-index refreshes. */
-async function localAndLiveCandidates(
-  deps: ActionDeps,
-  query: LocalCardQuery,
-  liveQuery: string,
-  reason: string,
-): Promise<Card[]> {
-  const [local, live] = await Promise.allSettled([
-    deps.fetchLocalCards?.(query) ?? Promise.resolve([]),
-    liveQuery ? deps.searchCards(liveQuery, undefined, 'edhrec') : Promise.resolve([]),
-  ])
-  const localCards = local.status === 'fulfilled' ? local.value : []
-  if (live.status === 'rejected' && live.reason instanceof ScryfallRateLimitError) throw live.reason
+/** Local queries the first batch skipped because the optional index was not ready yet. */
+export type PendingLocalQuery = { query: LocalCardQuery; liveQuery: string; reason: string }
+
+/** Stale or unchecked snapshots add one release-ordered live page so new cards stay visible. */
+async function recentLiveCards(deps: ActionDeps, liveQuery: string): Promise<ScryfallCard[]> {
   const status: LocalIndexStatus | undefined = deps.localCardIndexStatus?.()
-  let recent: ScryfallCard[] = []
   if (
-    liveQuery &&
-    status?.bulkUpdatedAt &&
-    (status.state === 'stale' || status.state === 'unchecked')
-  ) {
-    try {
-      // shortcut: one release-ordered page; paginate when stale-index recall needs more (#149).
-      recent = await deps.searchCards(
-        `${liveQuery} date>=${status.bulkUpdatedAt.slice(0, 10)}`,
-        undefined,
-        'released',
-      )
-    } catch (error) {
-      if (error instanceof ScryfallRateLimitError) throw error
-    }
+    !liveQuery ||
+    !status?.bulkUpdatedAt ||
+    (status.state !== 'stale' && status.state !== 'unchecked')
+  )
+    return []
+  try {
+    // shortcut: one release-ordered page; paginate when stale-index recall needs more (#149).
+    return await deps.searchCards(
+      `${liveQuery} date>=${status.bulkUpdatedAt.slice(0, 10)}`,
+      undefined,
+      'released',
+    )
+  } catch (error) {
+    if (error instanceof ScryfallRateLimitError) throw error
+    return []
   }
-  if (live.status === 'rejected' && !localCards.length && !recent.length) throw live.reason
-  const liveCards = mergeLocalAndLiveCards(live.status === 'fulfilled' ? live.value : [], recent)
+}
+
+function toLocalAndLiveCards(
+  deps: ActionDeps,
+  localCards: ScryfallCard[],
+  liveCards: ScryfallCard[],
+  reason: string,
+) {
   const current = new Set(liveCards)
   return mergeLocalAndLiveCards(localCards, liveCards)
     .filter(
@@ -271,6 +269,93 @@ async function localAndLiveCandidates(
       ...toCard(card, current.has(card) ? reason : 'Local card match'),
       localIndexSnapshot: !current.has(card),
     }))
+}
+
+/**
+ * Local breadth supplements every live query, including Tagger searches and stale-index refreshes.
+ * With `pendingLocal`, an index that is not ready never delays live results: the query is recorded
+ * for background enrichment instead.
+ */
+async function localAndLiveCandidates(
+  deps: ActionDeps,
+  query: LocalCardQuery,
+  liveQuery: string,
+  reason: string,
+): Promise<Card[]> {
+  const pending: PendingLocalQuery[] | undefined = deps.pendingLocal
+  const ready: ScryfallCard[] | undefined = pending ? deps.localCardsIfReady?.(query) : undefined
+  if (pending && !ready && deps.localCardsIfReady) pending.push({ query, liveQuery, reason })
+  const [local, live] = await Promise.allSettled([
+    pending ? Promise.resolve(ready ?? []) : (deps.fetchLocalCards?.(query) ?? Promise.resolve([])),
+    liveQuery ? deps.searchCards(liveQuery, undefined, 'edhrec') : Promise.resolve([]),
+  ])
+  const localCards = local.status === 'fulfilled' ? local.value : []
+  if (live.status === 'rejected' && live.reason instanceof ScryfallRateLimitError) throw live.reason
+  const recent = await recentLiveCards(deps, liveQuery)
+  if (live.status === 'rejected' && !localCards.length && !recent.length) throw live.reason
+  const liveCards = mergeLocalAndLiveCards(live.status === 'fulfilled' ? live.value : [], recent)
+  return toLocalAndLiveCards(deps, localCards, liveCards, reason)
+}
+
+/**
+ * Append background candidates without touching the visible batch: cards that would join a short
+ * active batch wait for the next pool build, and queued, decided or deferred cards never return.
+ */
+export function appendBackgroundCandidates(
+  queue: Card[],
+  additions: Card[],
+  blockedNames: string[],
+  focusedRole: TargetKey | null | undefined,
+) {
+  const visible = focusedRecommendations(queue, focusedRole, rolesForCard).slice(0, 4)
+  const names = new Set(
+    [...blockedNames, ...queue.map(({ name }) => name)].map((name) => name.toLowerCase()),
+  )
+  const oracles = new Set(queue.flatMap(({ oracleId }) => oracleId ?? []))
+  const fresh: Card[] = []
+  for (const card of additions) {
+    if (names.has(card.name.toLowerCase()) || (card.oracleId && oracles.has(card.oracleId)))
+      continue
+    // ponytail: cards that would fill a short visible batch are dropped until the next pool build.
+    if (visible.length < 4 && focusedRecommendations([card], focusedRole, rolesForCard).length)
+      continue
+    names.add(card.name.toLowerCase())
+    if (card.oracleId) oracles.add(card.oracleId)
+    fresh.push(card)
+  }
+  return fresh.length ? [...queue, ...fresh] : queue
+}
+
+/** Load the optional index after the first batch, then merge its extra candidates at the queue tail. */
+export async function enrichWithLocalCards(
+  deps: ActionDeps,
+  pending: PendingLocalQuery[],
+  identityColours: string[],
+  isCurrent: () => boolean,
+) {
+  if (!pending.length || !deps.fetchLocalCards) return
+  const found = await Promise.all(
+    pending.map(async ({ query, liveQuery, reason }) => {
+      try {
+        const local: ScryfallCard[] = await deps.fetchLocalCards(query)
+        return toLocalAndLiveCards(deps, local, await recentLiveCards(deps, liveQuery), reason)
+      } catch {
+        return []
+      }
+    }),
+  )
+  const additions = found.flat().filter((card) => !cardConstructionError(card, [], identityColours))
+  if (!additions.length || !isCurrent()) return
+  const current = deps.getCurrentState?.() ?? deps
+  const blocked = [
+    ...commanderNames(current.commander ?? ''),
+    ...(current.ignoredCards ?? []),
+    ...[...(current.deck ?? []), ...(current.sideboard ?? [])].map(({ name }: Card) => name),
+    ...(current.deferredCards ?? []).map(({ card }: DeferredCard<Card>) => card.name),
+  ]
+  deps.setQueue((queue: Card[]) =>
+    appendBackgroundCandidates(queue, additions, blocked, current.focusedRole),
+  )
 }
 
 export async function themeRecommendations(
@@ -891,6 +976,7 @@ export async function start(
     collectionSets: reset.activeCollectionSets,
     collectionMode: reset.activeCollectionMode,
   })
+  const pendingLocal: PendingLocalQuery[] = []
   try {
     const loaded = await loadCommanderCards(deps, chosen)
     if (!job.isCurrent()) return false
@@ -901,7 +987,7 @@ export async function start(
       return true
     }
     const offeredCards = await collectOfferedCards(
-      deps,
+      { ...deps, pendingLocal },
       loaded,
       preserveDeck,
       reset.activeCollectionSets,
@@ -920,6 +1006,7 @@ export async function start(
     if (deps.recommendationPoolKey) deps.recommendationPoolKey.current = poolKey
     deps.setRecommendationOptionsChanged?.(false)
     deps.setFirstBatchPending?.(false)
+    void enrichWithLocalCards(deps, pendingLocal, loaded.identityColours, job.isCurrent)
     return true
   } catch (error) {
     if (!job.isCurrent()) return false

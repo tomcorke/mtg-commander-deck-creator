@@ -92,6 +92,7 @@ export function createLocalCardSource({
   let pending: Promise<LocalCardIndex | undefined> | undefined
   let coverage: Promise<void> | undefined
   let checkedAt = -Infinity
+  let checked: LocalCardIndex | undefined
   let status: LocalIndexStatus = { state: 'unloaded', reasons: [] }
   const report = (next: LocalIndexStatus) => {
     status = next
@@ -131,10 +132,18 @@ export function createLocalCardSource({
       })
       await coverage
     }
+    checked = index
     return index
   }
   return {
     status: () => structuredClone(status),
+    /** Never waits: answers from a checked index, or starts loading and returns undefined. */
+    ifReady(query: LocalCardQuery) {
+      if (status.state === 'unavailable') return []
+      if (checked && now() - checkedAt < 15 * 60_000) return queryLocalCardIndex(checked, query)
+      void checkedIndex()
+      return undefined
+    },
     async query(query: LocalCardQuery) {
       const index = await checkedIndex()
       return index ? queryLocalCardIndex(index, query) : []
@@ -163,4 +172,5 @@ const source = createLocalCardSource({
 })
 export const fetchLocalCards = source.query
 export const countLocalCards = source.count
+export const localCardsIfReady = source.ifReady
 export const localCardIndexStatus = source.status
