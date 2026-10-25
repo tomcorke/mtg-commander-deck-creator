@@ -126,3 +126,104 @@ test('lands that produce no mana never pay generic costs', () => {
   const spell = result.spellCastability.find(({ name }) => name === 'Two-mana spell')!
   assert.ok(spell.whenDrawnByTurn.every((rate) => rate === 0))
 })
+
+const withDetail = (base: DeckCard, detail: string): DeckCard => ({ ...base, detail })
+const castableOnTurn = (deck: DeckCard[], name: string, turn: number) =>
+  simulateManaAccess({
+    deck,
+    commanderCount: 1,
+    trials: 1500,
+    random: seededRandom(7),
+  }).spellCastability.find((spell) => spell.name === name)!.whenDrawnByTurn[turn - 1]
+
+test('lands that enter tapped cannot pay on the turn they are played', () => {
+  const oneDrop = card('One-drop', 'Sorcery', [], '{G}', 1)
+  const tapped = withDetail(
+    card('Tapland', 'Land', ['G']),
+    'This land enters tapped.\n{T}: Add {G}.',
+  )
+  const deck = (land: DeckCard) => [
+    card('Commander', 'Legendary Creature'),
+    ...Array.from({ length: 40 }, (_, index) => ({ ...land, name: `${land.name} ${index}` })),
+    oneDrop,
+    ...Array.from({ length: 58 }, (_, index) => card(`Blank ${index}`, 'Sorcery')),
+  ]
+  assert.equal(castableOnTurn(deck(tapped), 'One-drop', 1), 0)
+  assert.ok(castableOnTurn(deck(card('Forest', 'Basic Land — Forest', ['G'])), 'One-drop', 1) > 0.9)
+  // A conditional tapped land ("if you control two or more other lands") isn't always tapped.
+  const fastland = withDetail(
+    card('Fastland', 'Land', ['G']),
+    'If you control two or more other lands, this land enters tapped.',
+  )
+  assert.ok(castableOnTurn(deck(fastland), 'One-drop', 1) > 0.9)
+})
+
+test('repeatable ramp cast early makes a later spell castable sooner', () => {
+  const fourDrop = card('Four-drop', 'Sorcery', [], '{3}{G}', 4)
+  const rock = withDetail(card('Rock', 'Artifact', ['C'], '{1}', 1), '{T}: Add {C}.')
+  const deck = (filler: (index: number) => DeckCard) => [
+    card('Commander', 'Legendary Creature'),
+    ...Array.from({ length: 30 }, (_, index) =>
+      card(`Forest ${index}`, 'Basic Land — Forest', ['G']),
+    ),
+    fourDrop,
+    ...Array.from({ length: 68 }, (_, index) => filler(index)),
+  ]
+  const withRamp = castableOnTurn(
+    deck((index) => ({ ...rock, name: `Rock ${index}` })),
+    'Four-drop',
+    3,
+  )
+  const without = castableOnTurn(
+    deck((index) => card(`Blank ${index}`, 'Sorcery')),
+    'Four-drop',
+    3,
+  )
+  assert.equal(without, 0)
+  assert.ok(withRamp > 0.5, String(withRamp))
+})
+
+test('reports unsupported costs and marks partial decks provisional', () => {
+  const result = simulateManaAccess({
+    deck: [
+      card('Commander', 'Legendary Creature'),
+      card('Forest', 'Basic Land — Forest', ['G']),
+      card('Hybrid', 'Sorcery', [], '{G/W}', 1),
+      card('X spell', 'Sorcery', [], '{X}{G}', 1),
+    ],
+    commanderCount: 1,
+    trials: 1,
+  })
+  assert.deepEqual(result.unsupported, ['Hybrid', 'X spell'])
+  assert.equal(result.provisional, true)
+  assert.equal(
+    simulateManaAccess({
+      deck: sampleDeck(35, 'G', card('S', 'Sorcery', [], '{G}', 1)),
+      commanderCount: 1,
+      trials: 1,
+    }).provisional,
+    false,
+  )
+})
+
+test('a spell/land MDFC is one choice: played as a land, never also sampled as a spell', () => {
+  const mdfc: DeckCard = {
+    ...card('Spell // Land', 'Sorcery // Land', ['G'], '{2}{G}', 3),
+    layout: 'modal_dfc',
+    faces: [
+      { typeLine: 'Sorcery', manaCost: '{2}{G}' },
+      { typeLine: 'Land', manaCost: '' },
+    ],
+  }
+  const result = simulateManaAccess({
+    deck: [
+      card('Commander', 'Legendary Creature'),
+      ...Array.from({ length: 99 }, (_, index) => ({ ...mdfc, name: `MDFC ${index}` })),
+    ],
+    commanderCount: 1,
+    trials: 20,
+    random: seededRandom(3),
+  })
+  assert.deepEqual(result.spellCastability, [])
+  assert.equal(result.turns[0].landDropRate, 1)
+})
