@@ -201,7 +201,7 @@ test('EDHREC slug uses canonical front face for double-faced commanders', () => 
   assert.equal(edhrecSlug(undefined, name), 'katilda-dawnhart-martyr')
 })
 
-test('EDHREC parser keeps first category for each unique card', () => {
+test('EDHREC parser merges each card across lists, keeping its strongest category', () => {
   assert.deepEqual(
     parseEdhrecEntries([
       {
@@ -1075,4 +1075,46 @@ test('deck needs prefer repeatable ramp over burst mana, and net draw over cantr
     rankRecommendationCards(cards, context, true, rolesForCard).map((card) => card.name)
   assert.deepEqual(ranked([ritual, rock]), ['Rock', 'Ritual'])
   assert.deepEqual(ranked([cantrip, engine]), ['Engine', 'Cantrip'])
+})
+
+test("reordering EDHREC lists does not change a card's evidence", () => {
+  const top = {
+    header: 'Top Cards',
+    tag: 'topcards',
+    cardviews: [{ name: 'Shared', num_decks: 60, potential_decks: 100, synergy: 0.1 }],
+  }
+  const synergy = {
+    header: 'High Synergy Cards',
+    tag: 'highsynergycards',
+    cardviews: [{ name: 'Shared', num_decks: 40, potential_decks: 100, synergy: 0.3 }],
+  }
+  const forward = parseEdhrecEntries([top, synergy])
+  assert.deepEqual(forward, parseEdhrecEntries([synergy, top]))
+  assert.deepEqual(forward, [
+    {
+      name: 'Shared',
+      tag: 'highsynergycards',
+      header: 'High Synergy Cards',
+      inclusion: 60,
+      synergy: 0.3,
+    },
+  ])
+})
+
+test('EDHREC synergy adds a small, capped evidence bonus', () => {
+  const context = {
+    theme: '',
+    activeSubThemes: [],
+    pickedTags: new Set<string>(),
+    preferenceScores: {},
+    neededRoles: new Set<string>(),
+    cardRoles: [],
+  }
+  const evidence = (synergy?: number) =>
+    recommendationScoreBreakdown({ reason: 'Creature synergy', tags: [], synergy }, context)
+      .evidence
+  assert.equal(evidence(), 12)
+  assert.equal(evidence(0.2), 14)
+  assert.equal(evidence(0.9), 16)
+  assert.equal(evidence(-0.5), 12)
 })

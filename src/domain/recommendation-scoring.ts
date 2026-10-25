@@ -32,14 +32,19 @@ function evidenceScore(
   card: RecommendationScoreCard,
   style: RecommendationScoreContext['recommendationStyle'],
 ) {
-  const base =
-    card.reason === 'Commander synergy'
-      ? 20
-      : card.reason === 'Commander favourite'
-        ? 15
-        : card.reason === 'Popular inclusion' || card.reason === 'Land or mana'
-          ? 8
-          : 12
+  // EDHREC synergy (0.3 = played 30 points more often with this commander) adds up to 4, capped.
+  const synergyBonus = Math.min(4, Math.max(0, Math.round((card.synergy ?? 0) * 10)))
+  const base = Math.min(
+    recommendationScoreFactorMaximums.evidence,
+    synergyBonus +
+      (card.reason === 'Commander synergy'
+        ? 20
+        : card.reason === 'Commander favourite'
+          ? 15
+          : card.reason === 'Popular inclusion' || card.reason === 'Land or mana'
+            ? 8
+            : 12),
+  )
   if (style === 'thematic') return Math.round(base * 0.65)
   if (style === 'fun' && card.reason === 'Interesting new pick')
     return Math.min(recommendationScoreFactorMaximums.evidence, base + 8)
