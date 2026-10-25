@@ -30,21 +30,23 @@ Done when you understand the problem and every fact you rely on is sourced.
 ## 2. Build
 
 1. Work on a branch in a worktree, as the repo and global instructions say.
-2. Make the change. For UI, follow the repo's UI rules, including rendered review in light, dark and narrow viewports.
+2. For UI changes, capture **before** screenshots before editing. Make the change and follow the repo's UI rules, including rendered review in light, dark and narrow viewports. Capture matching **after** screenshots using the same app state, theme and viewport.
 3. Run every check the repo requires before opening a PR.
-4. Open the PR. The description covers:
+4. Read and use the **`/pr` skill** to write the PR description in its required format. Include:
    - the problem and the changes;
-   - how it was checked, with screenshots for UI changes;
+   - how it was checked, with clearly labelled **Before** and **After** screenshots embedded in the PR for UI changes, not just local file paths;
+   - before/after test results or output for non-visual changes;
    - anything not done, each with a linked issue.
+5. Open the PR with that description.
 
-Done when the PR is open, its checks pass and the branch is on the latest default branch.
+Done when the PR is open, its description follows `/pr` and includes the required before/after evidence, its checks pass and the branch is on the latest default branch.
 
 ## 3. Review with the user
 
 Present the PR in plain language and ask: approve, or request changes?
 
 - **Questions:** answer them, checking the code or the issue rather than guessing.
-- **Changes:** make them, rerun the checks, push, and update the PR description.
+- **Changes:** make them, rerun the checks, push, and update the PR description using `/pr`. Refresh affected after screenshots or other evidence so it matches the current branch; retain the original before evidence.
 - **Follow-ups and ideas:** log each one as a new issue with the repo's labels, and link it from the PR or the related issue. Every deferred point gets an issue, so the work stays findable after this pane closes.
 
 Done when the user approves.
