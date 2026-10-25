@@ -84,6 +84,7 @@ type StateSetters = {
       | 'setDismissedSubThemes'
       | 'setIgnoredCards'
       | 'setImportError'
+      | 'setImportFoundCount'
       | 'setImportSource'
       | 'setImportState'
       | 'setLiked'

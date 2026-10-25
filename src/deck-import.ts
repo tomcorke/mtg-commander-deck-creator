@@ -45,8 +45,25 @@ export function matchImportedCard<
         entry.collectorNumber &&
         card.set === entry.set &&
         card.collector_number === entry.collectorNumber,
-    ) ?? cards.find((card) => card.name.toLowerCase() === entry.name.toLowerCase())
+    ) ??
+    cards.find((card) => {
+      // Lists often name double-faced, split and adventure cards by their front face only.
+      const name = entry.name.toLowerCase()
+      const full = card.name.toLowerCase()
+      return full === name || full.split(' // ')[0] === name
+    })
   )
+}
+
+/** Thrown when some cards are missing, so the player can import the cards that matched. */
+export class ImportMissingCardsError extends Error {
+  readonly missing: string[]
+  readonly foundCount: number
+  constructor(missing: string[], foundCount: number) {
+    super(`Not found: ${missing.join(', ')}. Check spelling, set, and collector number.`)
+    this.missing = missing
+    this.foundCount = foundCount
+  }
 }
 
 const sectionBoard = (line: string): ImportBoard | null => {

@@ -45,10 +45,13 @@ function ImportModalView({ state, actions }: AppViewProps) {
       importState={state.importState}
       importSource={state.importSource}
       importError={state.importError}
+      importFoundCount={state.importFoundCount}
       setImportSource={state.setImportSource}
       setImportState={state.setImportState}
       setImportError={state.setImportError}
-      importDeck={(openReviewAfterImport) => actions.importDeck(openReviewAfterImport)}
+      importDeck={(openReviewAfterImport, skipMissing) =>
+        actions.importDeck(openReviewAfterImport, skipMissing)
+      }
       closeModal={() => actions.closeModal()}
     />
   )

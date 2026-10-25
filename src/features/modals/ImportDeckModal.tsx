@@ -5,13 +5,14 @@ import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 
 type ImportDeckModalProps = {
   show: boolean
-  importState: 'idle' | 'loading' | 'error'
+  importState: 'idle' | 'loading' | 'error' | 'missing'
   importSource: string
   importError: string
+  importFoundCount: number
   setImportSource: (value: string) => void
-  setImportState: (value: 'idle' | 'loading' | 'error') => void
+  setImportState: (value: 'idle' | 'loading' | 'error' | 'missing') => void
   setImportError: (value: string) => void
-  importDeck: (openReviewAfterImport: boolean) => void
+  importDeck: (openReviewAfterImport: boolean, skipMissing?: boolean) => void
   closeModal: () => void
 }
 
@@ -21,6 +22,7 @@ export function ImportDeckModal({
   importState,
   importSource,
   importError,
+  importFoundCount,
   setImportSource,
   setImportState,
   setImportError,
@@ -110,9 +112,23 @@ export function ImportDeckModal({
           </p>
         )}
         <div className="export-actions">
-          <button type="button" onClick={() => closeModal()} disabled={importState === 'loading'}>
+          <button
+            className="export"
+            type="button"
+            onClick={() => closeModal()}
+            disabled={importState === 'loading'}
+          >
             Cancel
           </button>
+          {importState === 'missing' && (
+            <button
+              className="export"
+              type="button"
+              onClick={() => importDeck(openReviewAfterImport, true)}
+            >
+              Import {importFoundCount} found cards
+            </button>
+          )}
           <button
             className="primary"
             disabled={!importSource.trim() || importState === 'loading'}
