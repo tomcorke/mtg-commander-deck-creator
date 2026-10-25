@@ -127,6 +127,7 @@ function manaFitPenalty(card: RecommendationScoreCard, support?: ManaSupport) {
 
 function deckNeedsScore(
   cardRoles: string[],
+  credit: Partial<Record<string, number>>,
   neededRoles: Set<string>,
   roleBoosts: Record<string, number>,
   roleSupply: Record<string, number>,
@@ -137,8 +138,9 @@ function deckNeedsScore(
   const urgency = cardRoles.reduce(
     (score, role) =>
       score +
-      (roleBoosts[role] ?? 0) * (1 + 4 / Math.max(1, roleSupply[role] ?? 1)) +
-      ((roleBoosts[role] ?? 0) > 0 ? Math.min(12, batchNumber - 1) : 0),
+      (credit[role] ?? 1) *
+        ((roleBoosts[role] ?? 0) * (1 + 4 / Math.max(1, roleSupply[role] ?? 1)) +
+          ((roleBoosts[role] ?? 0) > 0 ? Math.min(12, batchNumber - 1) : 0)),
     0,
   )
   const ceiling = roleAware
@@ -154,7 +156,9 @@ function deckNeedsScore(
     : 1
   const base = roleAware
     ? recommendationScoreFactorMaximums.deckNeeds * Math.min(1, urgency / ceiling) ** 1.23
-    : cardRoles.filter((role) => neededRoles.has(role)).length * 10
+    : cardRoles
+        .filter((role) => neededRoles.has(role))
+        .reduce((sum, role) => sum + (credit[role] ?? 1) * 10, 0)
   const styleMultiplier =
     roleAware && style === 'thematic' ? 0.35 : roleAware && style === 'competitive' ? 1.25 : 1
   return Math.min(recommendationScoreFactorMaximums.deckNeeds, Math.floor(base * styleMultiplier))
@@ -169,6 +173,7 @@ export function recommendationScoreBreakdown(
     preferenceScores,
     neededRoles,
     cardRoles,
+    cardRoleCredit = {},
     recommendationStyle = 'balanced',
     collectionSets = [],
     collectionMode = 'none',
@@ -203,6 +208,7 @@ export function recommendationScoreBreakdown(
   )
   const deckNeeds = deckNeedsScore(
     cardRoles,
+    cardRoleCredit,
     neededRoles,
     roleBoosts,
     roleSupply,

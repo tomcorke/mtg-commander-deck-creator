@@ -189,6 +189,15 @@ export function cardFeatures(card: AnalysisCard): CardFeatures {
   return override ? { ...features, ...override, source: 'override' } : features
 }
 
+/**
+ * How much of a role need a card meets when ranking: one-shot mana and cantrips fill the ramp
+ * and draw roles, but a deck short on them gains less than from repeatable ramp or net draw.
+ */
+export function roleCredit(card: AnalysisCard): Partial<Record<TargetKey, number>> {
+  const { mana, draw } = cardFeatures(card)
+  return { ramp: mana === 'burst' ? 0.5 : 1, draw: draw === 'cantrip' ? 0.5 : 1 }
+}
+
 /** The five deck-target roles, projected from `cardFeatures`. */
 export function rolesForCard(card: AnalysisCard) {
   const { mana, draw, interaction, wipe } = cardFeatures(card)

@@ -113,6 +113,8 @@ export type RecommendationScoreContext = {
   preferenceScores: Record<string, number>
   neededRoles: Set<string>
   cardRoles: string[]
+  /** Share of each role need the card meets (default 1); see `roleCredit`. */
+  cardRoleCredit?: Partial<Record<string, number>>
   recommendationStyle?: RecommendationStyle
   collectionSets?: string[]
   collectionMode?: CollectionMode

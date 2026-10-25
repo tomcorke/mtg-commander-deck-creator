@@ -30,6 +30,7 @@ import {
   unsupportedCommanderThemes,
   updatePreferenceScores,
 } from './recommendations.ts'
+import { rolesForCard } from './deck-analysis.ts'
 
 test('ordinary tapped lands do not create false Landfall preferences', () => {
   assert.equal(
@@ -1021,4 +1022,57 @@ test('queue transition uses production ranking and cooldown rules', () => {
     ],
   )
   assert.equal(result.preferenceScores.Tokens, 6)
+})
+
+test('deck needs prefer repeatable ramp over burst mana, and net draw over cantrips', () => {
+  const base = {
+    reason: 'Popular inclusion',
+    tags: [],
+    layout: 'normal',
+    manaCost: '{1}',
+    manaValue: 1,
+    faces: [],
+  }
+  const rock = {
+    ...base,
+    name: 'Rock',
+    typeLine: 'Artifact',
+    detail: '{T}: Add {C}.',
+    producedMana: ['C'],
+  }
+  const ritual = {
+    ...base,
+    name: 'Ritual',
+    typeLine: 'Instant',
+    detail: 'Add {C}{C}{C}.',
+    producedMana: ['C'],
+  }
+  const engine = {
+    ...base,
+    name: 'Engine',
+    typeLine: 'Sorcery',
+    detail: 'Draw two cards.',
+    producedMana: [],
+  }
+  const cantrip = {
+    ...base,
+    name: 'Cantrip',
+    typeLine: 'Sorcery',
+    detail: 'Scry 1. Draw a card.',
+    producedMana: [],
+  }
+  const context = {
+    theme: '',
+    activeSubThemes: [],
+    pickedTags: new Set<string>(),
+    preferenceScores: {},
+    neededRoles: new Set(['ramp', 'draw']),
+    cardRoles: [],
+    roleBoosts: { ramp: 6, draw: 6 },
+    roleSupply: { ramp: 2, draw: 2 },
+  }
+  const ranked = (cards: (typeof rock)[]) =>
+    rankRecommendationCards(cards, context, true, rolesForCard).map((card) => card.name)
+  assert.deepEqual(ranked([ritual, rock]), ['Rock', 'Ritual'])
+  assert.deepEqual(ranked([cantrip, engine]), ['Engine', 'Cantrip'])
 })

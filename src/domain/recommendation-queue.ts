@@ -1,3 +1,4 @@
+import { roleCredit, type AnalysisCard } from '../deck-analysis.ts'
 import {
   compareRecommendationScores,
   recommendationScoreBreakdown,
@@ -145,7 +146,11 @@ export function rankRecommendationCards<
     if (!scores.has(card))
       scores.set(
         card,
-        recommendationScoreBreakdown(card, { ...context, cardRoles: cardRoles(card) }),
+        recommendationScoreBreakdown(card, {
+          ...context,
+          cardRoles: cardRoles(card),
+          cardRoleCredit: 'detail' in card ? roleCredit(card as unknown as AnalysisCard) : {},
+        }),
       )
     return scores.get(card)!
   }
