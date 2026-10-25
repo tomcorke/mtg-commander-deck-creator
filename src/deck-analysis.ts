@@ -24,6 +24,7 @@ export type AnalysisCard = {
   detail: string
   producedMana: string[]
   faces: { typeLine: string; manaCost: string }[]
+  oracleId?: string
 }
 
 export const defaultDeckTargets: DeckTargets = {
@@ -97,26 +98,106 @@ const isRemoval = (text: string) =>
   /(?:destroy|exile|return) target(?![^.]*(?:you control|from your graveyard))|target .* gets -(?:\d+|x)\/(?:-\d+|-x)|(?:deals?.* to|fights?) target|counter target/i.test(
     text,
   )
-const isRamp = (card: AnalysisCard) =>
-  !isLand(card) &&
-  (card.producedMana.length > 0 ||
-    // A land search only ramps when the land goes onto the battlefield; land-to-hand is fixing.
-    /search your library for [^.]*(?:\bland|Plains|Island|Swamp|Mountain|Forest) cards?[^.]*onto the battlefield|put .*\bland card.* onto the battlefield|add \{|create (?:a|one|two|\d+|x) treasure|lands? you control produce[s]? .*additional/i.test(
-      card.detail,
-    ))
+const landSearch =
+  /search your library for [^.]*(?:\bland|Plains|Island|Swamp|Mountain|Forest) cards?/i
 // Draw that only an opponent gets ("target opponent draws", "each opponent may draw") isn't yours.
 const isDraw = (text: string) =>
   /(?<!opponents? (?:may )?)draw (?:(?:a|one|two|three|\d+|that many|x) cards?|cards? equal to)/i.test(
     text,
   )
 
+/**
+ * What a card does for the mana, card-flow and interaction roles. `unknown` means the wording
+ * fits a rule only partly, so it gets no role credit.
+ * - mana: land-ramp (land onto the battlefield), repeatable (rocks, dorks, Treasure engines),
+ *   burst (rituals, one-shot Treasure, sacrifice-for-mana), fixing (land to hand).
+ * - draw: net (more than one card, or a repeating draw), cantrip (one card, once), and two
+ *   kinds of card flow that aren't draw: impulse (exile and play) and recursion (graveyard to hand).
+ * - interaction: opposing (removal) or self (blink and protection of your own permanents).
+ */
+export type CardFeatures = {
+  mana: 'land-ramp' | 'repeatable' | 'burst' | 'fixing' | 'unknown' | null
+  draw: 'net' | 'cantrip' | 'impulse' | 'recursion' | null
+  interaction: 'opposing' | 'self' | null
+  wipe: boolean
+  source: 'rules' | 'override'
+}
+
+// Reviewed corrections for wording the rules misread, keyed by Oracle ID. Keep this short.
+const featureOverrides: Record<string, Partial<CardFeatures>> = {
+  // Arcane Denial: "at the beginning of the next turn's upkeep" reads as a repeating draw, but
+  // you draw one card, once.
+  'ab1cc360-b9de-48d9-9983-4dfe4a7d2a37': { draw: 'cantrip' },
+}
+
+function manaFeature(card: AnalysisCard): CardFeatures['mana'] {
+  if (isLand(card)) return null
+  const text = card.detail
+  // A land search only ramps when the land goes onto the battlefield; land-to-hand is fixing.
+  if (
+    new RegExp(`${landSearch.source}[^.]*onto the battlefield`, 'i').test(text) ||
+    /put .*\bland card.* onto the battlefield/i.test(text)
+  )
+    return 'land-ramp'
+  if (
+    card.producedMana.length > 0 ||
+    /add \{|create (?:a|one|two|\d+|x) treasure|lands? you control produce[s]? .*additional/i.test(
+      text,
+    )
+  )
+    // Sacrificing the card itself for mana is a one-off; Treasure reminder text doesn't count.
+    return !isPermanent(card) ||
+      /sacrifice this \w+[^.:]*: add/i.test(
+        text.replace(/\([^)]*\)/g, '').replaceAll(card.name, 'this card'),
+      )
+      ? 'burst'
+      : 'repeatable'
+  if (new RegExp(`${landSearch.source}[^.]*into your hand`, 'i').test(text)) return 'fixing'
+  return landSearch.test(text) ? 'unknown' : null
+}
+
+function drawFeature(text: string): CardFeatures['draw'] {
+  if (isDraw(text))
+    // Draw-then-discard (looting) and draw-then-put-back (Brainstorm) are card selection.
+    return /draw [^.]*cards?, then (?:discard|put) /i.test(text) ||
+      (/\bdraw a card\b/i.test(text) &&
+        !/draw (?:two|three|\d+|x|that many) cards|draw cards equal|whenever|at the beginning of/i.test(
+          text,
+        ))
+      ? 'cantrip'
+      : 'net'
+  if (/exile the top [^.]*\.[^.]*you may (?:play|cast)/i.test(text)) return 'impulse'
+  if (/return [^.]*cards? [^.]*from your graveyard to your hand/i.test(text)) return 'recursion'
+  return null
+}
+
+export function cardFeatures(card: AnalysisCard): CardFeatures {
+  const override = card.oracleId ? featureOverrides[card.oracleId] : undefined
+  const features: CardFeatures = {
+    mana: manaFeature(card),
+    draw: drawFeature(card.detail),
+    interaction: isRemoval(card.detail)
+      ? 'opposing'
+      : /(?:exile|destroy|return) target [^.]*you control|target [^.]*you control (?:gains?|gets?) (?:hexproof|indestructible|protection)/i.test(
+            card.detail,
+          )
+        ? 'self'
+        : null,
+    wipe: isWipe(card.detail),
+    source: 'rules',
+  }
+  return override ? { ...features, ...override, source: 'override' } : features
+}
+
+/** The five deck-target roles, projected from `cardFeatures`. */
 export function rolesForCard(card: AnalysisCard) {
+  const { mana, draw, interaction, wipe } = cardFeatures(card)
   return [
     isLand(card) && 'lands',
-    isRamp(card) && 'ramp',
-    isDraw(card.detail) && 'draw',
-    isRemoval(card.detail) && 'removal',
-    isWipe(card.detail) && 'wipes',
+    (mana === 'land-ramp' || mana === 'repeatable' || mana === 'burst') && 'ramp',
+    (draw === 'net' || draw === 'cantrip') && 'draw',
+    interaction === 'opposing' && 'removal',
+    wipe && 'wipes',
   ].filter(Boolean) as TargetKey[]
 }
 const manaCosts = (card: AnalysisCard) =>
