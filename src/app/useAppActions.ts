@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef } from 'react'
-import { fetchLocalCards, localCardIndexStatus } from '../adapters/local-card-index.ts'
+import {
+  fetchLocalCards,
+  localCardIndexStatus,
+  localCardsIfReady,
+} from '../adapters/local-card-index.ts'
 import { type TargetKey } from '../deck-analysis.ts'
 
 import {
@@ -212,6 +216,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     searchCards: (query: string, signal?: AbortSignal, order?: string) =>
       searchScryfall(query, fetch, signal, order),
     fetchLocalCards,
+    localCardsIfReady,
     localCardIndexStatus,
     fetchCollection: fetchScryfallCollectionCards,
     fetchEdhrec: fetchEdhrecCommander,

@@ -28,6 +28,8 @@ export type Provider = {
   queries: string[]
   holdEdhrec?: Promise<void>
   failNamed?: boolean
+  /** Answers `/local-card-index.json`; the default is a 404 so fixture pools stay synthetic. */
+  localIndex?: (route: Route) => Promise<void>
 }
 export type Scenario = { page: Page; context: BrowserContext; errors: string[]; provider: Provider }
 const imageBody =
@@ -89,6 +91,8 @@ async function mockScryfall(route: Route, provider: Provider) {
         ],
       },
     })
+  if (url.pathname === '/catalog/creature-types')
+    return route.fulfill({ json: { data: ['Saproling'], total_values: 1 } })
   if (url.pathname === '/symbology')
     return route.fulfill({
       json: {
@@ -150,7 +154,9 @@ async function mockRequest(route: Route, scenario: Scenario, base: string) {
   const url = new URL(route.request().url())
   // Synthetic provider gates must not mix their fixture pools with a locally generated real corpus.
   if (url.origin === new URL(base).origin && url.pathname === '/local-card-index.json')
-    return route.fulfill({ status: 404, body: 'No local index in this fixture' })
+    return scenario.provider.localIndex
+      ? scenario.provider.localIndex(route)
+      : route.fulfill({ status: 404, body: 'No local index in this fixture' })
   if (url.origin === new URL(base).origin) return route.continue()
   if (url.hostname === 'cards.scryfall.io' || url.hostname === 'svgs.scryfall.io')
     return route.fulfill({ contentType: 'image/svg+xml', body: imageBody })
@@ -184,11 +190,17 @@ export async function openScenario(
   base: string,
   state: PersistedDeckState,
   records = baseCandidates,
+  localIndex?: Provider['localIndex'],
 ) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
   const page = await context.newPage()
   page.setDefaultTimeout(15_000)
-  const scenario: Scenario = { page, context, errors: [], provider: { records, queries: [] } }
+  const scenario: Scenario = {
+    page,
+    context,
+    errors: [],
+    provider: { records, queries: [], localIndex },
+  }
   page.on('pageerror', (error) => scenario.errors.push(error.message))
   // Record, never answer native dialogs. An unexpected dialog blocks the action and fails the gate.
   page.on('dialog', (dialog) =>

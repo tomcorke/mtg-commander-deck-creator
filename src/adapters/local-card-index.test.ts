@@ -164,3 +164,32 @@ test('live data wins by Oracle ID, including renamed cards, with a name fallback
   const legacy = { ...local, oracle_id: undefined }
   assert.deepEqual(mergeLocalAndLiveCards([legacy], [local]), [local])
 })
+
+test('ifReady never waits: it starts one background load and answers once coverage is checked', async () => {
+  let loads = 0
+  let release = () => {}
+  const loaded = new Promise<void>((resolve) => (release = resolve))
+  const source = createLocalCardSource({
+    load: async () => {
+      loads++
+      await loaded
+      return index
+    },
+    inventory: async () => ({ sets: index.metadata.sets, creatureTypes: ['Cat', 'Dog'] }),
+    log: () => {},
+  })
+  const query = { colours: ['W'], creatureTypes: ['Cat'] }
+  assert.equal(source.ifReady(query), undefined)
+  assert.equal(source.ifReady(query), undefined)
+  release()
+  await source.query(query)
+  assert.equal(loads, 1)
+  assert.equal(source.ifReady(query)?.length, 2)
+  const missing = createLocalCardSource({
+    load: async () => undefined,
+    inventory: async () => ({ sets: [], creatureTypes: [] }),
+    log: () => {},
+  })
+  await missing.query(query)
+  assert.deepEqual(missing.ifReady(query), [])
+})
