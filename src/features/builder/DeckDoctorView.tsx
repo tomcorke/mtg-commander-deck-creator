@@ -852,7 +852,7 @@ export function DeckDoctorView({
               Change history ({history.length})
             </button>
             <button
-              className="primary"
+              className="nav-back"
               type="button"
               onClick={() => {
                 requestExit(closePage)

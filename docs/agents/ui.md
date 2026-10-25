@@ -25,6 +25,12 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 - Use `ModalCloseButton`; it applies `.modal-close`, an `aria-label`, and `×` for dialog close controls. Do not create a text-only or browser-default close button.
 - Use an existing action style instead of copying padding, borders, colors, or hover rules into JSX or a new selector. `.primary` is a filled theme-accent action in light, dark, and commander-themed states; verify its rendered colors, not only its class name.
 - Give icon-only buttons an accessible name and keep visible keyboard focus.
+- Choose the style by what the button does:
+  - `.primary`: the main action in a region, such as the confirming action in a dialog, Search, or Add on a recommendation offer.
+  - `.nav-back` and `.nav-forward`: leaving the page or moving to the next step, such as "Back to builder" or "Next recommendations". Never use `.primary` for navigation. The CSS adds the direction arrow, so leave arrows out of the label.
+  - `.export`: secondary actions.
+  - Destructive actions such as Delete and Remove: their red outline style, never filled.
+  - Toggles and segmented choices: a selected state, not `.primary`.
 
 ## Dialogs and modes
 

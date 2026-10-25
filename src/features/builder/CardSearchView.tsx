@@ -475,7 +475,7 @@ export function CardSearchView({
             {deck.length}/100 in deck · {sideboard.length} in sideboard. Search stays open while you
             add cards.
           </p>
-          <button className="primary" type="button" onClick={closePage}>
+          <button className="nav-back" type="button" onClick={closePage}>
             Back to builder
           </button>
         </div>

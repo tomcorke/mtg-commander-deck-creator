@@ -606,8 +606,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               </button>
               {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && (
                 <div className="batch-controls">
-                  <button className="primary" type="button" onClick={() => void nextBatch()}>
-                    Next recommendations →
+                  <button className="nav-forward" type="button" onClick={() => void nextBatch()}>
+                    Next recommendations
                   </button>
                   {undecidedCount > 0 && (
                     <span className="batch-undecided">

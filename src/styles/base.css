@@ -282,6 +282,80 @@ main > .workspace-alert .modal-close {
   cursor: not-allowed;
   opacity: 0.55;
 }
+/* Navigation, not actions: a full button with a filled arrow segment on the side it travels to. */
+.nav-back,
+.nav-forward {
+  --nav-accent: var(--commander-accent, #36327f);
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0;
+  border: 1.5px solid var(--nav-accent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--nav-accent) 10%, transparent);
+  color: var(--nav-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+.dark .nav-back,
+.dark .nav-forward {
+  --nav-accent: color-mix(in srgb, var(--commander-accent, #7650ae) 45%, white);
+}
+.nav-back {
+  padding-right: 16px;
+}
+.nav-forward {
+  padding-left: 16px;
+}
+.nav-back::before,
+.nav-forward::after {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--nav-accent);
+  color: var(--nav-arrow, #fff);
+  font-size: 1.15em;
+  transition: padding 0.15s;
+}
+.dark .nav-back::before,
+.dark .nav-forward::after {
+  --nav-arrow: #1b1930;
+}
+.nav-back::before {
+  content: '←';
+  margin-right: 14px;
+}
+.nav-forward::after {
+  content: '→';
+  margin-left: 14px;
+}
+.nav-back,
+.nav-forward {
+  min-height: 42px;
+  line-height: 1.2;
+}
+.nav-back:hover,
+.nav-forward:hover {
+  background: color-mix(in srgb, var(--nav-accent) 18%, transparent);
+}
+.nav-back:hover::before {
+  padding: 0 16px 0 8px;
+}
+.nav-forward:hover::after {
+  padding: 0 8px 0 16px;
+}
+.nav-back:focus-visible,
+.nav-forward:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-back::before,
+  .nav-forward::after {
+    transition: none;
+  }
+}
 .primary {
   border: 1px solid var(--commander-accent, #36327f);
   border-radius: 7px;
