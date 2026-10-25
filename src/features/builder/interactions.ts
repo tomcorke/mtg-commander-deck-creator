@@ -202,7 +202,7 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
     loadPrintings,
   } = deps
   const batch = focusedRecommendations<Card>(queue, deps.focusedRole, rolesForCard).slice(0, 4)
-  const { roleBoosts, pickedTags, manaSupport } = buildRecommendationContext(deps, queue)
+  const { roleBoosts, pickedTags, tagCounts, manaSupport } = buildRecommendationContext(deps, queue)
   const next = advanceRecommendationQueue<Card>({
     queue,
     deferredCards,
@@ -211,6 +211,7 @@ export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = ''
     liked,
     preferenceScores,
     pickedTags,
+    tagCounts,
     activeSubThemes,
     extraSubTheme,
     theme,

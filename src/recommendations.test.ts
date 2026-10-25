@@ -1118,3 +1118,23 @@ test('EDHREC synergy adds a small, capped evidence bonus', () => {
   assert.equal(evidence(0.9), 16)
   assert.equal(evidence(-0.5), 12)
 })
+
+test('deck fit has diminishing returns once a tag is well covered', () => {
+  const context = {
+    theme: '',
+    activeSubThemes: [],
+    pickedTags: new Set(['Tokens']),
+    preferenceScores: {},
+    neededRoles: new Set<string>(),
+    cardRoles: [],
+  }
+  const deckFit = (count: number) =>
+    recommendationScoreBreakdown(
+      { reason: 'Creature synergy', tags: ['Tokens'] },
+      { ...context, tagCounts: { Tokens: count } },
+    ).deckFit
+  assert.equal(deckFit(1), 5)
+  assert.equal(deckFit(6), 5)
+  assert.equal(deckFit(15), 2)
+  assert.ok(deckFit(30) < deckFit(15))
+})

@@ -175,6 +175,7 @@ export function recommendationScoreBreakdown(
     theme: declaredTheme,
     activeSubThemes,
     pickedTags,
+    tagCounts = {},
     preferenceScores,
     neededRoles,
     cardRoles,
@@ -203,7 +204,14 @@ export function recommendationScoreBreakdown(
   )
   const deckFit = Math.min(
     recommendationScoreFactorMaximums.deckFit,
-    Math.round(card.tags.filter((tag) => pickedTags.has(tag)).length * 5 * goalThemeWeight),
+    Math.round(
+      card.tags
+        .filter((tag) => pickedTags.has(tag))
+        // Full credit while the deck has up to six cards on a tag, then it shrinks: the fifteenth
+        // payoff adds less than the second.
+        .reduce((sum, tag) => sum + 5 * Math.min(1, 6 / Math.max(1, tagCounts[tag] ?? 0)), 0) *
+        goalThemeWeight,
+    ),
   )
   const preferences = preferenceScore(
     card,
