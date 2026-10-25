@@ -45,6 +45,19 @@ test('falls back from missing printing to matching card name', () => {
   assert.equal(matchImportedCard({ ...entry, name: 'Missing' }, [fallback]), undefined)
 })
 
+test('matches double-faced and split cards by their front-face name', () => {
+  const entry = { name: 'Brightclimb Pathway', quantity: 1, board: 'mainboard' as const }
+  const pathway = {
+    name: 'Brightclimb Pathway // Grimclimb Pathway',
+    set: 'znr',
+    collector_number: '259',
+  }
+  assert.equal(matchImportedCard(entry, [pathway]), pathway)
+  const split = { name: 'Fire // Ice', set: 'mh2', collector_number: '290' }
+  assert.equal(matchImportedCard({ ...entry, name: 'Fire' }, [split]), split)
+  assert.equal(matchImportedCard({ ...entry, name: 'Ice' }, [split]), undefined)
+})
+
 test('reports missing name and printing identifiers as card names', () => {
   const cards = parseDeckList('1 Sol Ring\n1 Forest (M3C) 317').cards
   assert.deepEqual(

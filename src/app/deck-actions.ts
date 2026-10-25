@@ -46,6 +46,7 @@ import {
 } from '../deck-state.ts'
 import {
   mainDeckCardCount,
+  ImportMissingCardsError,
   matchImportedCard,
   missingCardNames,
   parseDeckImportSource,
@@ -1039,21 +1040,43 @@ function closeImportAndMaybeReview(
   if (shouldOpenReviewAfterImport(imported, openReviewAfterImport)) deps.openModal('review')
 }
 
-export async function importDeck(deps: ActionDeps, openReviewAfterImport = true) {
+export async function importDeck(
+  deps: ActionDeps,
+  openReviewAfterImport = true,
+  skipMissing = false,
+) {
   const job = deckJob(deps)
   const { importSource, setImportError, setImportSource, setImportState } = deps
+  if (
+    // A retry with skipMissing follows a replacement the player already confirmed.
+    !skipMissing &&
+    deps.commander &&
+    deps.deck.length > 0 &&
+    // Lazy import keeps this module loadable by node's test runner, which cannot parse TSX.
+    !(await (
+      await import('../shared/ConfirmDialog.tsx')
+    ).confirmDialog({
+      title: 'Replace the current deck?',
+      message: `"${deps.deckName || deps.commander}" (${deps.deck.length} cards) stays in Saved decks under Autosaved drafts. Manual saves are unchanged.`,
+      confirmLabel: 'Import and replace',
+    }))
+  )
+    return
   setImportState('loading')
   setImportError('')
   try {
     const imported = parseDeckImportSource(importSource)
-    await applyImportedDeck(deps, imported)
+    await applyImportedDeck(deps, imported, skipMissing)
     closeImportAndMaybeReview(deps, imported, openReviewAfterImport)
     setImportSource('')
     setImportState('idle')
   } catch (error) {
     if (!job.isCurrent()) return
     setImportError(error instanceof Error ? error.message : 'Could not import deck.')
-    setImportState('error')
+    if (error instanceof ImportMissingCardsError) {
+      deps.setImportFoundCount(error.foundCount)
+      setImportState('missing')
+    } else setImportState('error')
   }
 }
 
@@ -1081,7 +1104,12 @@ async function resolveImportedPrinting(
   return printings.find((printing) => printing.finishes?.includes(entry.finish!)) ?? card
 }
 
-async function resolveImportedCards(imported: ImportedDeck, signal: AbortSignal) {
+async function resolveImportedCards(
+  source: ImportedDeck,
+  signal: AbortSignal,
+  skipMissing: boolean,
+) {
+  let imported = source
   const commanderEntries = imported.cards.filter(({ board }: any) => board === 'commander')
   if (!commanderEntries.length) throw new Error('Mark commander with a COMMANDER section.')
   if (commanderEntries.reduce((sum: any, card: any) => sum + card.quantity, 0) > 2)
@@ -1113,10 +1141,26 @@ async function resolveImportedCards(imported: ImportedDeck, signal: AbortSignal)
       signal,
     )
     fetched.push(...result.data)
-    if (result.not_found?.length)
-      throw new Error(
-        `Not found: ${missingCardNames(result.not_found, unresolved).join(', ')}. Check spelling, set, and collector number.`,
+    // The named endpoint also finds a card by one face's name.
+    for (const name of missingCardNames(result.not_found ?? [], unresolved)) {
+      const card = await fetchScryfallCard(name, fetch, signal).catch(() => undefined)
+      if (card) fetched.push(card)
+    }
+  }
+  const missing = imported.cards.filter((entry) => !matchImportedCard(entry, fetched))
+  if (missing.some(({ board }) => board === 'commander'))
+    throw new Error(
+      `Commander not found: ${missing.find(({ board }) => board === 'commander')!.name}. Check spelling, set, and collector number.`,
+    )
+  if (missing.length) {
+    if (!skipMissing)
+      throw new ImportMissingCardsError(
+        missing.map(({ name }) => name),
+        imported.cards
+          .filter((entry) => !missing.includes(entry))
+          .reduce((sum, { quantity }) => sum + quantity, 0),
       )
+    imported = { ...imported, cards: imported.cards.filter((entry) => !missing.includes(entry)) }
   }
   const resolved = await Promise.all(
     imported.cards.map((entry) =>
@@ -1184,10 +1228,14 @@ async function importedRecommendationState(deps: ActionDeps, name: string) {
   return persistedDeckStateSchema.parse({ ...staged, savedDeckId: '' })
 }
 
-export async function applyImportedDeck(deps: ActionDeps, imported: ImportedDeck) {
+export async function applyImportedDeck(
+  deps: ActionDeps,
+  imported: ImportedDeck,
+  skipMissing = false,
+) {
   const job = deckJob(deps)
   const signal = AbortSignal.timeout(30_000)
-  const { expanded, commanderCards } = await resolveImportedCards(imported, signal)
+  const { expanded, commanderCards } = await resolveImportedCards(imported, signal, skipMissing)
   if (!job.isCurrent()) throw new Error('The workspace changed; import was not applied.')
   const name = commanderCards.map(({ card }: any) => card.name).join(' & ')
   const prepared = await importedRecommendationState(deps, name)

@@ -51,8 +51,9 @@ export function useUiState(
   )
   const [pendingSavedDeckRemoval, setPendingSavedDeckRemoval] = usePendingConfirmation('')
   const [importSource, setImportSource] = useState('')
-  const [importState, setImportState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [importState, setImportState] = useState<'idle' | 'loading' | 'error' | 'missing'>('idle')
   const [importError, setImportError] = useState('')
+  const [importFoundCount, setImportFoundCount] = useState(0)
   const historyReady = useRef(false)
 
   return {
@@ -101,6 +102,8 @@ export function useUiState(
     setImportState,
     importError,
     setImportError,
+    importFoundCount,
+    setImportFoundCount,
     historyReady,
   }
 }
