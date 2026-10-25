@@ -20,8 +20,10 @@ import {
   fetchDeckDoctorCandidates,
   fetchDeckDoctorCommanders,
   resetRecommendationState,
+  roleGapRecommendations,
   start,
   themeRecommendations,
+  uncoveredRoleGaps,
 } from './recommendation-actions.ts'
 
 const names = ["Kraum, Ludevic's Opus", 'Tymna the Weaver']
@@ -212,7 +214,7 @@ test('partner retry preserves commander sources and Scryfall rate-limit guidance
   const result = await start(deps, 'Kraum & Tymna', true)
   assert.deepEqual(edhrecSlugs, ['kraum-ludevics-opus-tymna-the-weaver'])
   assert.equal(result, true)
-  assert.deepEqual(fallbackQueries, [])
+  assert.ok(fallbackQueries.every((query) => query.includes('(otag:'))) // role-gap search only
 
   let message = ''
   const rateLimited = t.mock.fn(
@@ -234,7 +236,7 @@ test('partner retry preserves commander sources and Scryfall rate-limit guidance
   )
   assert.match(message, /Scryfall.*rate limit.*2 minutes/i)
   assert.equal(rateLimited.mock.callCount(), 1)
-  assert.deepEqual(fallbackQueries, [])
+  assert.ok(fallbackQueries.every((query) => query.includes('(otag:')))
 })
 
 test('settings refresh preserves the active workflow while an explicit restart navigates', (context) => {
@@ -731,4 +733,37 @@ test('every recommendation route applies the same tutor and extra-turn exclusion
   assert.deepEqual(names(await fallbackRecommendations(deps, [])), expected)
   assert.deepEqual(names(await themeRecommendations(deps, [], ['Graveyard'])), expected)
   assert.deepEqual(names(await fetchRecommendationCollectionCards(deps, [], [])), expected)
+})
+
+test('role-gap retrieval searches only roles the offered pool cannot cover, ten new cards each', async () => {
+  const offered = Array.from({ length: 20 }, (_, index) =>
+    toCard(
+      { ...card(`Rock ${index}`), oracle_text: '{T}: Add {C}.', produced_mana: ['C'] } as never,
+      'Land or mana',
+    ),
+  )
+  // Ramp is covered (20 offered for a 10 shortfall); draw, removal and wipes are not.
+  const gaps = uncoveredRoleGaps([], defaultDeckTargets, offered)
+  assert.deepEqual(gaps, ['draw', 'removal', 'wipes'])
+  const queries: string[] = []
+  const found = await roleGapRecommendations(
+    {
+      searchCards: async (query: string) => {
+        queries.push(query)
+        return Array.from({ length: 15 }, (_, index) => ({
+          ...card(`Draw ${index}`),
+          type_line: 'Sorcery',
+          oracle_text: 'Draw two cards.',
+          legalities: { commander: 'legal' },
+        }))
+      },
+      excludeTutors: true,
+    },
+    ['R'],
+    ['draw'],
+    offered,
+  )
+  assert.equal(queries.length, 1)
+  assert.match(queries[0], /id<=r legal:commander -t:land \(otag:draw\) -otag:tutor/)
+  assert.equal(found.length, 10)
 })

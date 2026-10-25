@@ -1,5 +1,5 @@
 import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
-import { rolesForCard } from '../deck-analysis.ts'
+import { analyseDeck, defaultDeckTargets, rolesForCard, type TargetKey } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import { deckJob } from './deck-job.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
@@ -266,6 +266,77 @@ export async function themeRecommendations(
     .map((card: ScryfallCard) => toCard(card, 'Interesting new pick'))
 }
 
+// Scryfall Tagger tags for each spell role; results are re-checked with rolesForCard.
+const roleSearchTags: Record<string, string> = {
+  ramp: 'otag:ramp',
+  draw: 'otag:draw',
+  removal: 'otag:removal',
+  wipes: 'otag:sweeper',
+}
+const roleGapLimit = 10
+
+/** Roles the deck is short on that the offered pool can't cover (fewer than twice the shortfall). */
+export function uncoveredRoleGaps(deck: Card[], targets: Record<string, number>, offered: Card[]) {
+  const { counts } = analyseDeck(deck)
+  return (Object.keys(roleSearchTags) as TargetKey[]).flatMap((role) => {
+    const shortfall = Math.max(0, (targets[role] ?? 0) - counts[role])
+    const supply = offered.filter((card) => rolesForCard(card).includes(role)).length
+    return shortfall > 0 && supply < shortfall * 2 ? [role] : []
+  })
+}
+
+/**
+ * Bounded retrieval for role gaps: one Scryfall search for the uncovered roles, keeping at most
+ * ten new cards per role, so missing cards can enter the pool when EDHREC lists are thin.
+ */
+export async function roleGapRecommendations(
+  deps: ActionDeps,
+  identityColours: string[],
+  roles: string[],
+  offered: Card[],
+) {
+  if (!roles.length) return []
+  const { excludeGameChangers, excludeTutors, excludeExtraTurns, excludeUnreleased, powerTarget } =
+    deps
+  const identity = identityColours.join('').toLowerCase() || 'c'
+  const bracketFilters = [
+    excludeGameChangers && '-is:gamechanger',
+    excludeTutors && '-otag:tutor',
+    excludeExtraTurns && '-otag:extra-turn',
+    excludeUnreleased && 'date<=today',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const tags = roles.map((role) => roleSearchTags[role]).join(' or ')
+  const query = `id<=${identity} legal:commander -t:land (${tags}) ${bracketFilters}`
+  const cards: ScryfallCard[] = await deps.searchCards(query, undefined, 'edhrec')
+  const owned = new Set([
+    ...offered.map(({ name }) => name),
+    ...[...(deps.deck ?? []), ...(deps.sideboard ?? [])].map(({ name }: Card) => name),
+    ...(deps.ignoredCards ?? []),
+  ])
+  const taken = Object.fromEntries(roles.map((role) => [role, 0]))
+  return cards
+    .filter(
+      (card) =>
+        !owned.has(card.name) &&
+        !excludedByOptions(card, {
+          excludeGameChangers,
+          excludeTutors,
+          excludeExtraTurns,
+          excludeUnreleased,
+          powerTarget,
+        }),
+    )
+    .map((card) => toCard(card, 'Popular inclusion'))
+    .filter((card) => {
+      const role = rolesForCard(card).find((key) => (taken[key] ?? roleGapLimit) < roleGapLimit)
+      if (!role) return false
+      taken[role] += 1
+      return true
+    })
+}
+
 export async function edhrecRecommendations(
   deps: ActionDeps,
   slug: string,
@@ -496,7 +567,20 @@ async function coreRecommendations(
       ...(preserveDeck ? activeSubThemes : []),
     ])
     const names = new Set(offeredCards.map((card: Card) => card.name))
-    return [...offeredCards, ...themeCards.filter((card: Card) => !names.has(card.name))]
+    offeredCards = [...offeredCards, ...themeCards.filter((card: Card) => !names.has(card.name))]
+  } catch (error) {
+    if (error instanceof ScryfallRateLimitError) throw error
+  }
+  try {
+    const gaps = uncoveredRoleGaps(
+      deps.deck ?? [],
+      deps.deckTargets ?? defaultDeckTargets,
+      offeredCards,
+    )
+    return [
+      ...offeredCards,
+      ...(await roleGapRecommendations(deps, identityColours, gaps, offeredCards)),
+    ]
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
     return offeredCards
