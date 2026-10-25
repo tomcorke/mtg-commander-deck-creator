@@ -30,6 +30,7 @@ import {
   targetKeys,
   targetLabels,
   type TargetKey,
+  addsToSideboard,
 } from '../../deck-analysis.ts'
 import {
   hasWaitingFocusedRecommendations,
@@ -133,6 +134,8 @@ type BuilderViewModel = {
   scoredBatch: { card: Card; score: RecommendationScoreBreakdown }[]
   search: string
   sideboard: DeckCard[]
+  keepAddingToMain: boolean
+  setKeepAddingToMain: Dispatch<SetStateAction<boolean>>
   showBasicLands: boolean
   showCollectionBrowser: boolean
   showSubThemePicker: boolean
@@ -350,7 +353,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     batchNumber,
     rolesForCard,
   )
-  const recommendationBoard = deck.length < 100 ? deck : sideboard
+  const toSideboard = addsToSideboard(model)
+  const recommendationBoard = toSideboard ? sideboard : deck
   const unrepresentedBasicNames = legalBasicNames.filter(
     (name) => !groupedBasics.some((group) => group.name === name),
   )
@@ -635,10 +639,22 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           {deck.length >= 100 && (
             <div className="completion sideboard-completion">
               <p className="eyebrow">
-                {model.deckComplete ? 'Main deck complete' : 'Main deck needs validation'}
+                {deck.length > 100
+                  ? `Main deck over 100 (${deck.length})`
+                  : model.deckComplete
+                    ? 'Main deck complete'
+                    : 'Main deck needs validation'}
               </p>
-              <h2>Build your sideboard</h2>
-              <p>Further picks go to sideboard. Move cards into main deck after removing a card.</p>
+              <h2>{toSideboard ? 'Build your sideboard' : 'Adding to the main deck'}</h2>
+              <p>Move any card between main deck and sideboard from its details.</p>
+              <label className="keep-adding-main">
+                <input
+                  type="checkbox"
+                  checked={model.keepAddingToMain}
+                  onChange={(event) => model.setKeepAddingToMain(event.target.checked)}
+                />
+                Keep adding to the main deck
+              </label>
             </div>
           )}
           {model.playStyleStep ? (
@@ -724,7 +740,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     </div>
                     <div
                       data-guide={index === 0 ? 'decisions' : undefined}
-                      className={`actions ${deck.length >= 100 ? 'sideboard-actions' : ''}`}
+                      className={`actions ${toSideboard ? 'sideboard-actions' : ''}`}
                     >
                       <div>
                         <button
@@ -734,9 +750,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           disabled={decisions[card.name] !== 'add' && Boolean(blocked)}
                           onClick={() => decide(card, 'add')}
                         >
-                          {deck.length >= 100 && decisions[card.name] !== 'add'
-                            ? 'Sideboard'
-                            : 'Add'}
+                          {toSideboard && decisions[card.name] !== 'add' ? 'Sideboard' : 'Add'}
                         </button>
                         <span className="action-help-wrap">
                           <button
@@ -1380,7 +1394,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                   <button
                                     className="deck-add"
                                     type="button"
-                                    disabled={deck.length >= 100}
+                                    disabled={toSideboard}
                                     onClick={() => void addOneBasic(card.name)}
                                     aria-label={`Add another ${card.name}`}
                                   >

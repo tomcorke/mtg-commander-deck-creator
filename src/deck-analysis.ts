@@ -1,6 +1,10 @@
 export const targetKeys = ['lands', 'ramp', 'draw', 'removal', 'wipes'] as const
 export type TargetKey = (typeof targetKeys)[number]
 export type DeckTargets = Record<TargetKey, number>
+/** New cards go to the sideboard once the main deck has 100, unless the player keeps adding to it. */
+// Takes the app's loosely typed state and action deps as well as plain objects.
+export const addsToSideboard = (state: Record<string, any>): boolean =>
+  (state.deck?.length ?? 0) >= 100 && !state.keepAddingToMain
 export const deckBecameComplete = (previousCount: number, nextCount: number) =>
   previousCount < 100 && nextCount >= 100
 export const shouldAutoOpenDeckReview = (

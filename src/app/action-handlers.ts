@@ -48,6 +48,7 @@ export function createActionHandlers(deps: ActionDeps) {
     removeDeckCard: (index: number) => deckActions.removeDeckCard(deps, index),
     removeSideboardCard: (index: number) => deckActions.removeSideboardCard(deps, index),
     moveSideboardCard: (index: number) => deckActions.moveSideboardCard(deps, index),
+    moveSelectedDeckCard: () => deckActions.moveSelectedDeckCard(deps),
     storeDeck: (overwrite = false) => deckActions.storeDeck(deps, overwrite),
     loadSavedDeck: (saved: SavedDeck) => deckActions.loadSavedDeck(deps, saved),
     removeSavedDeck: (saved: SavedDeck) => deckActions.removeSavedDeck(deps, saved),

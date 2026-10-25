@@ -5,7 +5,7 @@ import {
   fetchScryfallPrintings,
   ScryfallRateLimitError,
 } from '../adapters/scryfall.ts'
-import { defaultDeckTargets } from '../deck-analysis.ts'
+import { addsToSideboard, defaultDeckTargets } from '../deck-analysis.ts'
 import {
   undoDeckDoctorSwap as undoDoctorSwap,
   applyDeckDoctorSwapPlan as applyDoctorSwapPlan,
@@ -100,7 +100,7 @@ export function addRecommendationCard(deps: ActionDeps, card: Card) {
   const added = toDeckCardFromRecommendation(card)
   const error = recommendationDataError(
     added,
-    deck.length < 100 ? deck : deps.sideboard,
+    addsToSideboard(deps) ? deps.sideboard : deck,
     deps.commanderDetails?.colours ?? [],
     deps.excludeGameChangers,
   )
@@ -108,7 +108,7 @@ export function addRecommendationCard(deps: ActionDeps, card: Card) {
     setBatchAnnouncement(`${card.name}: ${error}`)
     return
   }
-  if (deck.length < 100) setDeck((list: DeckCard[]) => [...list, added])
+  if (!addsToSideboard(deps)) setDeck((list: DeckCard[]) => [...list, added])
   else setSideboard((list: DeckCard[]) => [...list, added])
   setQueue((current: any) => current.filter((item: any) => item.name !== card.name))
   setBatchAnnouncement(`${card.name} added from deck-health guidance.`)
@@ -127,14 +127,14 @@ export function addCollectionCard(deps: ActionDeps, card: ScryfallCard) {
   const added = toDeckCard(card)
   const error = cardConstructionError(
     added,
-    deck.length < 100 ? deck : sideboard,
+    addsToSideboard(deps) ? sideboard : deck,
     commanderDetails?.colours ?? [],
   )
   if (error) {
     setBatchAnnouncement(`${card.name}: ${error}`)
     return
   }
-  if (deck.length < 100) setDeck((current: any) => [...current, added])
+  if (!addsToSideboard(deps)) setDeck((current: any) => [...current, added])
   else setSideboard((current: any) => [...current, added])
   setQueue((current: any) => current.filter((item: any) => item.name !== added.name))
   setBatchAnnouncement(`${card.name} added from collection browsing.`)
@@ -143,7 +143,7 @@ export function addCollectionCard(deps: ActionDeps, card: ScryfallCard) {
 function additionError(deps: ActionDeps, card: Card | DeckCard) {
   const error = recommendationDataError(
     card,
-    deps.deck.length < 100 ? deps.deck : deps.sideboard,
+    addsToSideboard(deps) ? deps.sideboard : deps.deck,
     deps.commanderDetails?.colours ?? [],
     deps.excludeGameChangers,
   )
@@ -159,7 +159,7 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
     delete next[card.name]
     return next
   })
-  const { deck, setDecisions, setDeck, setIgnoredCards, setLiked, setSideboard } = deps
+  const { setDecisions, setDeck, setIgnoredCards, setLiked, setSideboard } = deps
   if (previous === action) {
     if (action === 'add') {
       setDeck((list: any) => list.filter((item: any) => item.name !== card.name))
@@ -180,7 +180,7 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
   }
   if (previous !== 'add' && action === 'add') {
     const added = toDeckCardFromRecommendation(card)
-    if (deck.length < 100) setDeck((list: DeckCard[]) => [...list, added])
+    if (!addsToSideboard(deps)) setDeck((list: DeckCard[]) => [...list, added])
     else setSideboard((list: DeckCard[]) => [...list, added])
   }
   if (action === 'ignore') {
@@ -641,6 +641,7 @@ export function addSearchCards(deps: ActionDeps, cards: ScryfallCard[]) {
       deps.deck,
       deps.sideboard,
       deps.commanderDetails?.colours ?? [],
+      deps.keepAddingToMain ? Infinity : 100,
     )
     deps.skipCompletionReviewDecks.current.add(result.deck)
     deps.setDeck(result.deck)
@@ -664,13 +665,15 @@ export function addManualCard(deps: ActionDeps) {
 export async function addOneBasic(deps: ActionDeps, name: string) {
   const job = deckJob(deps)
   const { deck, setBasicLandState, setDeck } = job.deps
-  if (deck.length >= 100) return
+  if (addsToSideboard(deps)) return
   try {
     const added = await fetchBasic(name)
     if (!job.isCurrent() || (deps.getCurrentState?.() ?? deps).deck !== deck) return
     if (cardConstructionError(added, deps.deck, deps.commanderDetails?.colours ?? []))
       throw new Error('Cannot add this basic land.')
-    setDeck((current: any) => (current.length < 100 ? [...current, added] : current))
+    setDeck((current: any) =>
+      current.length < 100 || deps.keepAddingToMain ? [...current, added] : current,
+    )
   } catch {
     setBasicLandState('error')
   }
@@ -877,6 +880,20 @@ export function removeSelectedDeckCard(deps: ActionDeps) {
   closeDeckCard(deps)
 }
 
+export function moveDeckCardToSideboard(deps: ActionDeps, index: number) {
+  const card = deps.deck[index]
+  deps.setDeck((current: any) => current.filter((_: any, cardIndex: any) => cardIndex !== index))
+  deps.setSideboard((current: any) => [...current, card])
+}
+
+export function moveSelectedDeckCard(deps: ActionDeps) {
+  const location = deps.selectedDeckCardLocation
+  if (!location) return
+  if (location.board === 'deck') moveDeckCardToSideboard(deps, location.index)
+  else moveSideboardCard(deps, location.index)
+  closeDeckCard(deps)
+}
+
 export function removeDeckCard(deps: ActionDeps, index: number) {
   const { deck, setDeck, setPendingRemoval } = deps
   const removed = deck[index]
@@ -892,9 +909,9 @@ export function removeSideboardCard(deps: ActionDeps, index: number) {
   clearAddedDecision(deps, removed.name)
 }
 
+// Moving between zones is free; the main deck may go over 100 (and so become illegal).
 export function moveSideboardCard(deps: ActionDeps, index: number) {
   const { deck, setDeck, setSideboard, sideboard } = deps
-  if (deck.length >= 100) return
   const card = sideboard[index]
   const error = cardConstructionError(card, deck, deps.commanderDetails?.colours ?? [])
   if (error) {

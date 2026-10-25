@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  addsToSideboard,
   analyseDeck,
   basicLandPlan,
   landFillReady,
@@ -376,4 +377,12 @@ test('basic lands go to colours that existing fixing does not already cover', ()
     { name: 'Plains', colour: 'W', count: 5 },
     { name: 'Forest', colour: 'G', count: 5 },
   ])
+})
+
+test('new cards go to the sideboard from 100 unless the player keeps adding to main', () => {
+  const deck = (length: number) => Array.from({ length }, () => ({}))
+  assert.equal(addsToSideboard({ deck: deck(99) }), false)
+  assert.equal(addsToSideboard({ deck: deck(100) }), true)
+  assert.equal(addsToSideboard({ deck: deck(100), keepAddingToMain: true }), false)
+  assert.equal(addsToSideboard({ deck: deck(104), keepAddingToMain: true }), false)
 })
