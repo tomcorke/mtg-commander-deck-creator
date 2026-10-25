@@ -15,6 +15,7 @@ import {
   defaultDeckTargets,
   requiredPipsForCard,
   rolesForCard,
+  cardFeatures,
   manaGuidanceSymbols,
   type AnalysisCard,
 } from './deck-analysis.ts'
@@ -385,4 +386,93 @@ test('new cards go to the sideboard from 100 unless the player keeps adding to m
   assert.equal(addsToSideboard({ deck: deck(100) }), true)
   assert.equal(addsToSideboard({ deck: deck(100), keepAddingToMain: true }), false)
   assert.equal(addsToSideboard({ deck: deck(104), keepAddingToMain: true }), false)
+})
+
+test('card features separate ramp, fixing and burst; draw from cantrips; and removal from self-targeting', () => {
+  const features = (detail: string, typeLine = 'Sorcery', extra: Partial<AnalysisCard> = {}) =>
+    cardFeatures(card({ detail, typeLine, ...extra }))
+  // Mana: positive, negative and ambiguous.
+  const mana = (detail: string, typeLine?: string, extra?: Partial<AnalysisCard>) =>
+    features(detail, typeLine, extra).mana
+  assert.equal(
+    mana('Search your library for a basic land card, put it onto the battlefield tapped.'),
+    'land-ramp',
+  )
+  assert.equal(mana('{T}: Add {C}{C}.', 'Artifact', { producedMana: ['C'] }), 'repeatable')
+  assert.equal(
+    mana('Whenever an opponent casts a spell, create a Treasure token.', 'Enchantment'),
+    'repeatable',
+  )
+  assert.equal(mana('Add {B}{B}{B}.', 'Instant'), 'burst')
+  assert.equal(
+    mana('{T}, Sacrifice Lotus Petal: Add one mana of any color.', 'Artifact', {
+      name: 'Lotus Petal',
+      producedMana: ['W', 'U', 'B', 'R', 'G'],
+    }),
+    'burst',
+  )
+  assert.equal(
+    mana('Search your library for a basic land card, reveal it, put it into your hand.'),
+    'fixing',
+  )
+  assert.equal(mana('Search your library for a land card.'), 'unknown')
+  assert.equal(mana('Draw two cards.'), null)
+  // Draw.
+  const draw = (detail: string, typeLine?: string) => features(detail, typeLine).draw
+  assert.equal(draw('Draw two cards.'), 'net')
+  assert.equal(draw('At the beginning of your upkeep, you draw a card.', 'Enchantment'), 'net')
+  assert.equal(draw('Destroy target artifact. Draw a card.', 'Instant'), 'cantrip')
+  assert.equal(
+    draw('Exile the top two cards of your library. Until end of turn, you may play them.'),
+    'impulse',
+  )
+  assert.equal(draw('Return target creature card from your graveyard to your hand.'), 'recursion')
+  assert.equal(draw('Target opponent draws a card.'), null)
+  // Interaction.
+  const interaction = (detail: string) => features(detail).interaction
+  assert.equal(interaction('Exile target creature an opponent controls.'), 'opposing')
+  assert.equal(
+    interaction('Exile target creature you control, then return it to the battlefield.'),
+    'self',
+  )
+  assert.equal(interaction('Target creature you control gains hexproof until end of turn.'), 'self')
+  assert.equal(interaction('Draw two cards.'), null)
+  // Card selection isn't card advantage.
+  assert.equal(draw('Draw two cards, then discard two cards.'), 'cantrip')
+  assert.equal(
+    draw(
+      'Draw three cards, then put two cards from your hand on top of your library in any order.',
+    ),
+    'cantrip',
+  )
+  // Treasure reminder text isn't self-sacrifice.
+  assert.equal(
+    mana(
+      'Whenever an opponent draws a card, create a Treasure token. (It’s an artifact with “{T}, Sacrifice this artifact: Add one mana of any color.”)',
+      'Enchantment',
+    ),
+    'repeatable',
+  )
+  assert.equal(
+    mana('Sacrifice a creature: Add {C}{C}.', 'Artifact', { producedMana: ['C'] }),
+    'repeatable',
+  )
+  // Reviewed override by Oracle ID: Arcane Denial's delayed draw reads as repeating.
+  const arcaneDenial = card({
+    detail:
+      "Counter target spell. Its controller may draw up to two cards at the beginning of the next turn's upkeep.\nYou draw a card at the beginning of the next turn's upkeep.",
+    typeLine: 'Instant',
+  })
+  assert.equal(cardFeatures(arcaneDenial).draw, 'net')
+  const overridden = cardFeatures({
+    ...arcaneDenial,
+    oracleId: 'ab1cc360-b9de-48d9-9983-4dfe4a7d2a37',
+  })
+  assert.equal(overridden.draw, 'cantrip')
+  assert.equal(overridden.source, 'override')
+  // Roles stay a projection: it still fills the draw and removal roles.
+  assert.deepEqual(
+    rolesForCard({ ...arcaneDenial, oracleId: 'ab1cc360-b9de-48d9-9983-4dfe4a7d2a37' }),
+    ['draw', 'removal'],
+  )
 })
