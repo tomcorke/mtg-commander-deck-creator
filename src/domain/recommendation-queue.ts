@@ -163,12 +163,69 @@ export function rankRecommendationCards<
   const style = context.recommendationStyle ?? 'balanced'
   const batches = batchRecommendations(ranked, includeCreature, canUse, style)
   if (style === 'competitive') return batches
-  const varied = balanceThemeCoverage(
-    batches,
+  const varied = spreadRoles(
+    balanceThemeCoverage(
+      batches,
+      [context.theme, ...context.activeSubThemes].filter(Boolean),
+      canUse,
+    ),
+    cardRoles,
+    mostUrgentRole(context.roleBoosts),
     [context.theme, ...context.activeSubThemes].filter(Boolean),
     canUse,
   )
   return style === 'thematic' ? keepThemeIdentity(varied, context, canUse) : varied
+}
+
+/**
+ * Complementary batches: a batch shouldn't offer two cards for the same role (two ramp spells, two
+ * removal spells) unless it's the deck's most urgent need. The later duplicate swaps with the best card
+ * from the next two batches that adds a role, or no role, the batch lacks.
+ */
+const mostUrgentRole = (roleBoosts: Record<string, number> = {}) => {
+  const [role, boost] =
+    Object.entries(roleBoosts).sort(([, left], [, right]) => right - left)[0] ?? []
+  return new Set(role && (boost ?? 0) > 0 ? [role] : [])
+}
+
+export function spreadRoles<T extends { reason: string; typeLine: string; tags: string[] }>(
+  cards: T[],
+  cardRoles: (card: T) => string[],
+  repeatableRoles: Set<string>,
+  themes: string[] = [],
+  canUse: (card: T) => boolean = () => true,
+) {
+  // Swaps keep the batch's creature and land slots, and never drop its only card for a theme.
+  const sameSlot = (left: T, right: T) =>
+    left.typeLine.includes('Creature') === right.typeLine.includes('Creature') &&
+    (left.reason === 'Land or mana') === (right.reason === 'Land or mana')
+  const roles = (card: T) => cardRoles(card).filter((role) => role !== 'lands')
+  const ordered = [...cards]
+  for (let start = 0; start < ordered.length; start += 4) {
+    const end = Math.min(start + 4, ordered.length)
+    for (let index = start + 1; index < end; index += 1) {
+      const others = ordered.slice(start, end).filter((_, offset) => offset !== index - start)
+      const repeated = roles(ordered[index]).some(
+        (role) => !repeatableRoles.has(role) && others.some((card) => roles(card).includes(role)),
+      )
+      const onlyThemeCard = themes.some(
+        (theme) =>
+          ordered[index].tags.includes(theme) && !others.some((card) => card.tags.includes(theme)),
+      )
+      if (!repeated || onlyThemeCard) continue
+      const replacement = ordered.findIndex(
+        (card, candidate) =>
+          candidate >= end &&
+          candidate < end + 8 &&
+          canUse(card) &&
+          sameSlot(card, ordered[index]) &&
+          roles(card).every((role) => !others.some((other) => roles(other).includes(role))),
+      )
+      if (replacement >= 0)
+        [ordered[index], ordered[replacement]] = [ordered[replacement], ordered[index]]
+    }
+  }
+  return ordered
 }
 
 export function selectSubTheme(activeSubThemes: string[], name: string) {
