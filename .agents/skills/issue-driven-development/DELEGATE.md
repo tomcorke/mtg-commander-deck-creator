@@ -16,18 +16,18 @@ Coordinate through explicit messages with `herdr agent prompt <name> "<message>"
 
 ## 1. Research
 
-Research only what the issue needs. Handle small lookups directly. Optionally delegate a substantial, bounded research question to a **luna** agent when it would help; spawning a researcher is not a required step:
+Research only what the issue needs. Handle small lookups directly. Optionally delegate a substantial, bounded research question to **gpt-6.1-sol with low thinking** when it would help; spawning a researcher is not a required step. Use Luna only for already well-scoped docs writing with settled source material, not research:
 
 ```text
 herdr pane split --current --direction right --cwd "$PWD" --no-focus
-herdr agent start research-<n> --kind pi --pane <pane-id> -- --model gpt-6-luna --thinking max
+herdr agent start research-<n> --kind pi --pane <pane-id> -- --model gpt-6.1-sol --thinking low
 herdr agent prompt research-<n> "<question>. Coordinate through explicit messages, not other panes' chat or terminal logs. Write concise, sourced findings to <absolute-file-path>, then message <your-agent-name> with the path and a short summary using herdr agent prompt."
 ```
 
 - Put the findings file where the global instructions keep research, outside the repo.
 - If implementation depends on the answer, wait for the researcher's explicit message, then read the findings file. Close its pane once the researcher reports completion.
 
-Persist research worth keeping to the knowledge base the repo's `AGENTS.md` names. Delegate this as **fire-and-forget**: send the findings path and maintenance scope without `--wait`. Tell the KB agent to follow that repo's instructions, use explicit message/file handoffs, and report its commit or blockers directly to the orchestrator. Leave its pane running; KB persistence must not gate the PR, issue completion, or cleanup of your own work.
+Persist research worth keeping to the knowledge base the repo's `AGENTS.md` names. Delegate this as **fire-and-forget**: send the findings path and maintenance scope without `--wait`. Luna is suitable for writing up settled findings; use gpt-6.1-sol with low thinking if further research is needed. Tell the KB agent to follow that repo's instructions, use explicit message/file handoffs, and report its commit or blockers directly to the orchestrator. Leave its pane running; KB persistence must not gate the PR, issue completion, or cleanup of your own work.
 
 Done when the facts needed for this issue are checked; no unrelated research or KB completion is required.
 

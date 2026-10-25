@@ -29,7 +29,10 @@ Ask the user, in one round of questions, before starting:
    | ----------------------------------------------------- | -------- | ---------------------------------------------------- |
    | Any visual UI design                                  | `claude` | `--model claude-opus-5-5 --effort low` |
    | Code only                                             | `pi`     | `--model gpt-6.1-sol --thinking medium`                |
-   | Docs only, or an extremely specific, well-scoped task | `pi`     | `--model gpt-6-luna --thinking max`                  |
+   | Research                                              | `pi`     | `--model gpt-6.1-sol --thinking low`                   |
+   | Already well-scoped docs writing only                  | `pi`     | `--model gpt-6-luna --thinking max`                    |
+
+   Use Luna only for writing docs whose scope and source material are already settled. Route fact-finding and open-ended investigation to the research agent, even when the deliverable is a document.
 
 Name yourself so delegates can report back: `herdr agent rename "$HERDR_PANE_ID" orchestrator`. If that name is taken, pick another and use it in every brief.
 
