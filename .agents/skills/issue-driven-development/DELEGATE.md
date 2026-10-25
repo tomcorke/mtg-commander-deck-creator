@@ -47,7 +47,7 @@ Done when the PR is open, its description follows `/pr` and includes the require
 
 ## 3. Review with the user
 
-Present the PR in plain language and ask: approve, or request changes?
+Present the PR directly to the user in your own pane, in plain language, and ask: approve, or request changes? Keep the review conversation here until the user approves. You own questions, revisions, approval, merge and cleanup; the orchestrator does not relay approval requests. Send the orchestrator only the final completion report after merge and cleanup, not progress updates or PR-ready notices.
 
 - **Questions:** answer them, checking the code or the issue rather than guessing.
 - **Changes:** make them, rerun the checks, push, and update the PR description using `/pr`. Refresh affected after screenshots or other evidence so it matches the current branch; retain the original before evidence.

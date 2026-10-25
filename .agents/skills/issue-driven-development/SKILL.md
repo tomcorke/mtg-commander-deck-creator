@@ -71,7 +71,7 @@ Run one delegate at a time unless the user asks for more: each delegate reviews 
 
 ## 4. When a delegate reports back
 
-A delegate's report arrives as a message from the `issue-<n>` agent.
+The delegate handles PR review and approval directly with the user in its own pane, then merges and cleans up. Its only handback is a final completion message from `issue-<n>`. If it sends a progress update or asks you to relay PR approval, redirect it to continue in its own pane; keep that pane open and wait for completion.
 
 1. Close the delegate's pane. Find its ID with `herdr agent get issue-<n>` if you no longer have it, then `herdr pane close <pane-id>`.
 2. Note any new issues and any fire-and-forget KB agents it reports, then return to step 2. Refresh the issue list rather than reusing the old one. KB work does not block the next issue; close each KB pane only after its agent sends an explicit completion message. If it reports a blocker, surface that message to the user.
