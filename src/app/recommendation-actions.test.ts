@@ -893,6 +893,7 @@ test('mechanic retrieval searches the commander text once, ten new cards at most
     ['Tokens', 'Sacrifice', 'Death triggers'],
   )
   const queries: string[] = []
+  const pending: unknown[] = []
   const commander = {
     ...card('Pawn Broker', 'Legendary Creature — Human'),
     oracle_text: 'Sacrifice another creature: create a Treasure token.',
@@ -900,7 +901,7 @@ test('mechanic retrieval searches the commander text once, ten new cards at most
   const found = await mechanicRecommendations(
     {
       theme: 'Tokens',
-      pendingLocal: [],
+      pendingLocal: pending,
       localCardsIfReady: () => undefined,
       fetchLocalCards: assert.fail,
       deck: [toCard(card('Fodder 0'), 'Popular inclusion')],
@@ -919,6 +920,7 @@ test('mechanic retrieval searches the commander text once, ten new cards at most
   assert.equal(queries.length, 1)
   assert.match(queries[0], /id<=b legal:commander -t:land \(\(o:sacrifice\)\)/)
   assert.equal(found.length, 10)
+  assert.deepEqual(pending, []) // no enrichment query can bypass the cap
   assert.ok(found.every((card) => card.reason === 'Matches commander text'))
   assert.ok(!found.some((card) => card.name === 'Fodder 0'))
   assert.deepEqual(await mechanicRecommendations({ searchCards: assert.fail }, [], [], []), [])
