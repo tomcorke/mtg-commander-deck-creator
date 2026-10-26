@@ -834,6 +834,14 @@ test('role-gap retrieval searches only roles the offered pool cannot cover, ten 
   // Ramp is covered (20 offered for a 10 shortfall); draw, removal and wipes are not.
   const gaps = uncoveredRoleGaps([], defaultDeckTargets, offered)
   assert.deepEqual(gaps, ['draw', 'removal', 'wipes'])
+  // Local snapshot supply never stands in for the live Tagger search.
+  const snapshots = offered.map((rock) => ({ ...rock, localIndexSnapshot: true }))
+  assert.deepEqual(uncoveredRoleGaps([], defaultDeckTargets, snapshots), [
+    'ramp',
+    'draw',
+    'removal',
+    'wipes',
+  ])
   const queries: string[] = []
   const found = await roleGapRecommendations(
     {
