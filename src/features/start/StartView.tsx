@@ -87,20 +87,14 @@ function CreatureTypeChips({
   )
 }
 import type { AppModal, AppView } from '../../app/routes.ts'
-import {
-  toDeckCard,
-  scryfallBackImage,
-  scryfallImage,
-  type DeckCard,
-} from '../../domain/card-model.ts'
+import type { DeckCard } from '../../domain/card-model.ts'
 import type { DeckWorkspace } from '../../autosaves.ts'
 import { useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
-import { FinishedCardImage } from '../../shared/CardArt.tsx'
+import { ColourPicker, CommanderChoiceTile } from '../../shared/CommanderChoice.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { CardTile } from '../../shared/CardTile.tsx'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
-import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
@@ -289,20 +283,7 @@ export function StartView(props: StartViewProps) {
             </button>
           )}
           <h3 className="filter-heading">Colour identity</h3>
-          <div className="colour-picker">
-            {Object.entries(colourNames).map(([symbol, name]) => (
-              <button
-                className={props.colours.includes(symbol) ? 'selected' : ''}
-                key={symbol}
-                type="button"
-                onClick={() => props.toggleColour(symbol)}
-                aria-label={name}
-                aria-pressed={props.colours.includes(symbol)}
-              >
-                <ManaSymbols symbols={[symbol]} decorative />
-              </button>
-            ))}
-          </div>
+          <ColourPicker colours={props.colours} toggleColour={props.toggleColour} />
           <label className="commander-search">
             Name
             <input
@@ -371,46 +352,23 @@ export function StartView(props: StartViewProps) {
                   />
                 </div>
               ))}
-            {discovery.suggestions.map(({ card }) => {
-              const converted = toDeckCard(card)
-              const image = scryfallImage(card)
-              return (
-                <CardTile
-                  className="commander-tile"
-                  key={card.oracle_id ?? card.name}
-                  art={
-                    <div className="commander-discovery-art">
-                      <FinishedCardImage
-                        image={image}
-                        backImage={scryfallBackImage(card)}
-                        alt={`${card.name} card`}
-                        cardName={card.name}
-                        set={card.set}
-                        collectorNumber={card.collector_number}
-                        showFlipButton
-                      />
-                    </div>
-                  }
-                  name={
-                    <CardReference
-                      card={converted}
-                      onOpen={() => props.openCardReference(converted)}
-                    />
-                  }
-                  cost={card.mana_cost ?? card.card_faces?.[0]?.mana_cost}
-                  actions={
-                    <button
-                      className="export commander-choose"
-                      type="button"
-                      aria-label={`Choose ${card.name}`}
-                      onClick={() => void props.chooseCommander(card.name)}
-                    >
-                      Choose
-                    </button>
-                  }
-                />
-              )
-            })}
+            {discovery.suggestions.map(({ card }) => (
+              <CommanderChoiceTile
+                key={card.oracle_id ?? card.name}
+                card={card}
+                openCard={props.openCardReference}
+                action={
+                  <button
+                    className="export commander-choose"
+                    type="button"
+                    aria-label={`Choose ${card.name}`}
+                    onClick={() => void props.chooseCommander(card.name)}
+                  >
+                    Choose
+                  </button>
+                }
+              />
+            ))}
           </div>
           {discovery.status === 'loading' && (
             <p className="discovery-status" role="status">

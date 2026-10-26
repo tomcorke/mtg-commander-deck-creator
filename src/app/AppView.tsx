@@ -23,6 +23,7 @@ import {
   reviewSteps,
   type DeckReviewStep,
 } from './routes.ts'
+import { ChangeCommander } from '../features/modals/ChangeCommanderModal.tsx'
 import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
 import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
@@ -234,6 +235,14 @@ function renderModals(props: AppViewProps) {
     savedDecksModal: <SavedDecksModalView {...props} />,
     deckCardModal: <DeckCardModalView {...props} />,
     recommendationSettingsModal: <RecommendationSettingsView {...props} />,
+    changeCommander: (
+      <ChangeCommander
+        commander={props.state.commander}
+        deck={props.state.deck}
+        openCard={props.actions.openCardReference}
+        changeCommander={props.actions.promoteToCommander}
+      />
+    ),
   }
 }
 
@@ -260,7 +269,7 @@ function CardSearchScreen({
         sideboard={state.sideboard}
         excludeUnreleased={state.excludeUnreleased}
         cycleCommanderPrinting={actions.cycleCommanderPrinting}
-        startOver={actions.startOver}
+        changeCommander={modals.changeCommander}
         openCard={(card) => {
           const existing = [...state.deck, ...state.sideboard].find(
             ({ name }) => name === card.name,
@@ -505,7 +514,7 @@ function DeckReviewScreen({
         fetchCommanderAlternatives={() => actions.fetchDeckDoctorCommanders()}
         openCard={actions.openCardReference}
         cycleCommanderPrinting={actions.cycleCommanderPrinting}
-        startOver={actions.startOver}
+        changeCommander={modals.changeCommander}
         applySwapPlan={actions.applyDeckDoctorSwapPlan}
         closePage={closePage}
         undoSwap={actions.undoDeckDoctorSwap}

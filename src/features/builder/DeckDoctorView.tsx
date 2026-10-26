@@ -95,7 +95,7 @@ type Props = {
   fetchCommanderAlternatives: () => Promise<Card[]>
   openCard: (card: DoctorCard) => void
   cycleCommanderPrinting: (index: number) => void | Promise<void>
-  startOver: () => void
+  changeCommander: ReactNode
   applySwapPlan: (
     cuts: { cutIndex: number; cutCard: DeckCard }[],
     additions: Card[],
@@ -318,7 +318,7 @@ export function DeckDoctorView({
   fetchCommanderAlternatives,
   openCard,
   cycleCommanderPrinting,
-  startOver,
+  changeCommander,
   applySwapPlan,
   undoSwap,
   chooseTheme,
@@ -817,7 +817,7 @@ export function DeckDoctorView({
           colours={commanderDetails?.colours ?? null}
           headingLevel="h2"
           onOpenCommander={() => currentCommander && openCard(currentCommander)}
-          onChangeCommander={startOver}
+          changeCommander={changeCommander}
           onCompareCommanders={() => void findCommanderAlternatives(true)}
         />
         <div className="doctor-page-context">

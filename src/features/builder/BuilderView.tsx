@@ -74,6 +74,7 @@ type BuilderViewModel = {
   [key: string]: any
   appHeader: ReactNode
   exportModal: ReactNode
+  changeCommander: ReactNode
   activeModal: string | null
   activeSubThemes: string[]
   analysis: ReturnType<typeof analyseDeck>
@@ -316,7 +317,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     showCollectionBrowser,
     showSubThemePicker,
     sideboard,
-    startOver,
+    changeCommander,
     subThemeSearch,
     pairCards,
     synergyPair,
@@ -417,7 +418,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           commander={commander}
           colours={commanderDetails?.colours ?? null}
           onOpenCommander={() => openCommanderCard(0)}
-          onChangeCommander={startOver}
+          changeCommander={changeCommander}
         />
         <div className="recommendation-setup">
           <div className="section-title">

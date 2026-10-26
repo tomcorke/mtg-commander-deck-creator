@@ -23,7 +23,8 @@ export function createActionHandlers(deps: ActionDeps) {
     addCollectionCard: (card: ScryfallCard) => deckActions.addCollectionCard(deps, card),
     decide: (card: Card, action: 'add' | 'later' | 'ignore') =>
       deckActions.decide(deps, card, action),
-    promoteToCommander: (card: Card | DeckCard) => void deckActions.promoteToCommander(deps, card),
+    promoteToCommander: (card: Card | DeckCard, keepOutgoing?: boolean) =>
+      void deckActions.promoteToCommander(deps, card, keepOutgoing),
     cycleCommanderPrinting: (index: number) => deckActions.cycleCommanderPrinting(deps, index),
     cyclePrinting: (card: Card) => deckActions.cyclePrinting(deps, card),
     cycleDeckPrinting: (index: number) => deckActions.cycleDeckPrinting(deps, index),

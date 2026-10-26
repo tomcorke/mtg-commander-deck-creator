@@ -651,3 +651,31 @@ test('held art never changes a replacement card at the same index or a different
     assert.equal(deps.loadingArt, '')
   }
 })
+
+test('changing commander can drop the outgoing commander or keep it as a deck card', async () => {
+  for (const keepOutgoing of [true, false]) {
+    const deps = fixture()
+    deps.start = async () => true
+    const promoted = toDeckCard({ ...raw('New commander'), type_line: 'Legendary Creature' })
+    await promoteToCommander(deps, promoted, keepOutgoing)
+    assert.deepEqual(
+      deps.deck.map(({ name }) => name),
+      keepOutgoing ? ['New commander', 'Commander', 'Added'] : ['New commander', 'Added'],
+    )
+  }
+})
+
+test('dropping the outgoing commander frees its colours for the new one', async () => {
+  const deps = fixture()
+  deps.start = async () => true
+  deps.commanderDetails = { ...deps.commanderDetails!, colours: ['B', 'G'] }
+  deps.deck = [{ ...deps.deck[0], colorIdentity: ['B', 'G'] }, deps.deck[1]]
+  const mono = toDeckCard({ ...raw('Mono green'), type_line: 'Legendary Creature' })
+  await promoteToCommander(deps, mono)
+  assert.equal(deps.deck[0].name, 'Commander')
+  await promoteToCommander(deps, mono, false)
+  assert.deepEqual(
+    deps.deck.map(({ name }) => name),
+    ['Mono green', 'Added'],
+  )
+})
