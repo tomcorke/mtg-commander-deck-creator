@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 
 import type { Card } from '../../domain/card-model.ts'
+import type { LandSuggestion } from '../../land-suggestions.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 
@@ -9,7 +10,7 @@ type Props = {
   basicLands: { name: string; count: number }[]
   landGap: number
   calculatedLandTarget: number
-  nonbasicLands: Card[]
+  nonbasicLands: LandSuggestion<Card>[]
   cardSearchButton: RefObject<HTMLButtonElement | null>
   opener: RefObject<HTMLButtonElement | null>
   onClose: () => void
@@ -97,9 +98,12 @@ export function BasicLandDialog({
         {nonbasicLands.length > 0 && (
           <section className="land-fill-step" aria-labelledby="nonbasic-land-title">
             <h3 id="nonbasic-land-title">Start with nonbasic lands</h3>
-            <p>Recommended for this commander. Each one you add replaces a basic.</p>
+            <p>
+              Ranked against your current colour sources; only lands that beat a basic are shown.
+              Each one you add replaces a basic.
+            </p>
             <ul className="nonbasic-land-list">
-              {nonbasicLands.map((card) => (
+              {nonbasicLands.map(({ card, benefit, drawback }) => (
                 <li key={card.name}>
                   <CardReference
                     card={card}
@@ -107,6 +111,9 @@ export function BasicLandDialog({
                     thumbnail
                     disabled={basicLandState === 'loading'}
                   />
+                  <p className="land-trade-off">
+                    <span>{benefit}.</span> <span>{drawback}.</span>
+                  </p>
                   <button
                     type="button"
                     className="compact-action"

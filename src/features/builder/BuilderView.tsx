@@ -64,6 +64,7 @@ import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { openSectionsWithHighlights } from './deck-section-highlight.ts'
 
 import { recommendationDataError } from '../../domain/deck-data-status.ts'
+import type { LandSuggestion } from '../../land-suggestions.ts'
 
 type AnyFunction = (...args: any[]) => any
 
@@ -81,7 +82,7 @@ type BuilderViewModel = {
   basicLandState: 'idle' | 'loading' | 'error'
   basicLands: { name: string; count: number }[]
   landGap: number
-  nonbasicLands: Card[]
+  nonbasicLands: LandSuggestion<Card>[]
   showLandFill: boolean
   batchAnnouncement: string
   batchNumber: number
