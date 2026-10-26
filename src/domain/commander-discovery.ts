@@ -1,5 +1,5 @@
 import { fetchScryfallCardsByIdentifiers, searchScryfallCached } from '../adapters/scryfall.ts'
-import { themeCommanders, randomItems, themeSearchTerm } from './commander-catalog.ts'
+import { themeCommanders, themeSearchTerm } from './commander-catalog.ts'
 import { creatureTypeForTheme, creatureTypeTags } from './creature-types.ts'
 import { commanderConstructionError } from './commander-construction.ts'
 import { toDeckCard, type ScryfallCard } from './card-model.ts'
@@ -13,6 +13,11 @@ export type DiscoveryFilters = {
 }
 /** `coverage`: how many of several chosen creature types the commander is or mentions. */
 export type CommanderSuggestion = { card: ScryfallCard; reason: string; coverage?: number }
+/** `more`: the search filled Scryfall's one-page limit, so further matches were not loaded. */
+export type CommanderDiscovery = { commanders: CommanderSuggestion[]; more: boolean }
+
+/** Cards in one Scryfall search page; discovery loads only the first. */
+export const scryfallPageSize = 175
 
 const coveredTypes = (card: ScryfallCard, types: string[]) => {
   const tags = creatureTypeTags(
@@ -111,7 +116,7 @@ export async function discoverCommanders(
   filters: DiscoveryFilters,
   signal?: AbortSignal,
   providers = { search: searchScryfallCached, hydrate: fetchScryfallCardsByIdentifiers },
-): Promise<CommanderSuggestion[]> {
+): Promise<CommanderDiscovery> {
   const types = creatureTypeForTheme(filters.theme)
     ? [filters.theme, ...(filters.creatureTypes ?? [])]
     : []
@@ -142,21 +147,22 @@ export async function discoverCommanders(
       : term
         ? `Commanders whose rules text mentions ${filters.theme}`
         : ''
-  const commanders = filterCommanders(cards, filters)
-  if (types.length < 2) return commanders.map((card) => ({ card, reason }))
-  return commanders.map((card) => {
-    const covered = coveredTypes(card, types)
-    return {
-      card,
-      reason: covered.length ? `Covers ${covered.join(' and ')}` : reason,
-      coverage: covered.length,
-    }
-  })
+  const more = !curated && cards.length >= scryfallPageSize
+  const commanders = filterCommanders(cards, filters).map((card) =>
+    types.length < 2 ? { card, reason } : coverageSuggestion(card, types, reason),
+  )
+  return { commanders: orderCommanders(commanders), more }
 }
 
-/** Twelve at random, keeping commanders that cover more of the chosen creature types first. */
-export function shuffleCommanders(cards: CommanderSuggestion[]) {
-  return randomItems(cards, cards.length)
-    .sort((left, right) => (right.coverage ?? 0) - (left.coverage ?? 0))
-    .slice(0, 12)
+function coverageSuggestion(card: ScryfallCard, types: string[], reason: string) {
+  const covered = coveredTypes(card, types)
+  return {
+    card,
+    reason: covered.length ? `Covers ${covered.join(' and ')}` : reason,
+    coverage: covered.length,
+  }
 }
+
+/** Commanders covering more of the chosen creature types first; otherwise search order is kept. */
+export const orderCommanders = (cards: CommanderSuggestion[]) =>
+  cards.toSorted((left, right) => (right.coverage ?? 0) - (left.coverage ?? 0))

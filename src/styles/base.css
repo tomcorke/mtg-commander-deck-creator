@@ -488,3 +488,14 @@ main > header:has(.display-settings-panel) {
 .recommendations > .add-zone-toggle {
   margin-top: 10px;
 }
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  font-size: 13px;
+}
+.pagination p {
+  margin: 0;
+}

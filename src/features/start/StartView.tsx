@@ -89,7 +89,8 @@ function CreatureTypeChips({
 import type { AppModal, AppView } from '../../app/routes.ts'
 import type { DeckCard } from '../../domain/card-model.ts'
 import type { DeckWorkspace } from '../../autosaves.ts'
-import { useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
+import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
+import { Pagination } from '../../shared/Pagination.tsx'
 import { ColourPicker, CommanderChoiceTile } from '../../shared/CommanderChoice.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
@@ -390,10 +391,18 @@ export function StartView(props: StartViewProps) {
               </button>
             </div>
           )}
-          {discovery.status === 'idle' && discovery.suggestions.length > 0 && (
-            <button className="reroll" type="button" onClick={discovery.reshuffle}>
-              Show different commanders
-            </button>
+          {discovery.status === 'idle' && (
+            <Pagination
+              label="Commander result pages"
+              noun="commanders"
+              count={discovery.count}
+              pageSize={commanderPageSize}
+              page={discovery.page}
+              onPage={discovery.setPage}
+              partial={discovery.more}
+            >
+              {discovery.more && <span>Narrow the filters to reach more commanders.</span>}
+            </Pagination>
           )}
         </section>
       </section>

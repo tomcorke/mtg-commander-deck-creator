@@ -6,7 +6,8 @@ import {
   discoveryNames,
   discoveryQueries,
   filterCommanders,
-  shuffleCommanders,
+  orderCommanders,
+  scryfallPageSize,
 } from './commander-discovery.ts'
 import { selectableThemes } from './commander-catalog.ts'
 
@@ -46,12 +47,8 @@ test('combined exact identity/name filters fail closed and deduplicate Oracle id
     filterCommanders(cards, { theme: 'Tokens', colours: ['G', 'W'], search: 'token' }),
     [good],
   )
-  assert.equal(
-    shuffleCommanders(
-      Array.from({ length: 20 }, (_, n) => ({ card: card(String(n)), reason: 'Test' })),
-    ).length,
-    12,
-  )
+  const pool = Array.from({ length: 20 }, (_, n) => ({ card: card(String(n)), reason: 'Test' }))
+  assert.deepEqual(orderCommanders(pool), pool, 'search order is kept so pages never repeat')
 })
 
 test('every start theme has a bounded query or an expanded curated fallback', () => {
@@ -80,7 +77,7 @@ test('source labels are honest and name search never bypasses theme/identity', a
     providers,
   )
   assert.deepEqual(
-    result.map(({ card: c, reason }) => [c.name, reason]),
+    result.commanders.map(({ card: c, reason }) => [c.name, reason]),
     [['Token leader', 'Picked for Tokens decks']],
   )
   assert.equal(queries.length, 0)
@@ -93,7 +90,8 @@ test('source labels are honest and name search never bypasses theme/identity', a
   assert.match(queries[0], /id=gw/)
   assert.match(queries[0], /name:"Equipment leader"/)
   assert.match(queries[0], /o:equipment/)
-  assert.equal(query[0].reason, 'Commanders whose rules text mentions Equipment')
+  assert.equal(query.more, false)
+  assert.equal(query.commanders[0].reason, 'Commanders whose rules text mentions Equipment')
   const aborted = new AbortController()
   aborted.abort()
   await assert.rejects(
@@ -124,10 +122,31 @@ test('several creature types find commanders for any of them, covering more type
   )
   assert.match(queries[0], /\(t:"Cat" .*\) or \(t:"Dog" .*\)/)
   assert.deepEqual(
-    shuffleCommanders(found).map(({ card: { name }, reason }) => [name, reason]),
+    found.commanders.map(({ card: { name }, reason }) => [name, reason]),
     [
       ['Both leader', 'Covers Cats and Dogs'],
       ['Cat leader', 'Covers Cats'],
     ],
   )
+})
+
+test('a search filling the Scryfall page limit reports that more commanders match', async () => {
+  const full = Array.from({ length: scryfallPageSize }, (_, n) => card(`Leader ${n}`))
+  const providers = { search: async () => full, hydrate: async () => full }
+  const searched = await discoverCommanders(
+    { theme: '', colours: [], search: '' },
+    undefined,
+    providers,
+  )
+  assert.equal(searched.more, true)
+  assert.deepEqual(
+    searched.commanders.map(({ card: { name } }) => name),
+    full.map(({ name }) => name),
+  )
+  const curated = await discoverCommanders(
+    { theme: 'Tokens', colours: [], search: '' },
+    undefined,
+    providers,
+  )
+  assert.equal(curated.more, false)
 })
