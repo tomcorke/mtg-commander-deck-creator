@@ -8,6 +8,7 @@ import {
 import type { BuilderState } from './builder-state.ts'
 import type { Card, DeckCard } from './card-model.ts'
 import { commanderNames } from './commander-catalog.ts'
+import { countRoleSupply } from './recommendation-queue.ts'
 import { manaSupportFromAnalysis } from './recommendation-scoring.ts'
 import type { RecommendationScoreContext } from './recommendation-types.ts'
 
@@ -57,12 +58,7 @@ export function buildRecommendationContext(
     collectionSets: settings.collectionSets,
     collectionMode: settings.collectionMode,
     roleBoosts,
-    roleSupply: Object.fromEntries(
-      targetKeys.map((role) => [
-        role,
-        candidates.filter((card) => rolesForCard(card).includes(role)).length,
-      ]),
-    ),
+    roleSupply: countRoleSupply(targetKeys, candidates, rolesForCard),
     batchNumber: settings.batchNumber,
     manaSupport: manaSupportFromAnalysis(analysis, targets),
     maxPrice: settings.maxPrice as number | null | undefined,
