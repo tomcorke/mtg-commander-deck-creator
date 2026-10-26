@@ -7,7 +7,11 @@ import { z } from 'zod'
 import { cardFeatures, rolesForCard } from '../src/deck-analysis.ts'
 import { isScryfallCard, toCard, type ScryfallCard } from '../src/domain/card-model.ts'
 import { creatureTypePlural } from '../src/domain/creature-types.ts'
-import { parseLocalCardIndex, type LocalCardIndex } from '../src/domain/local-card-index.ts'
+import {
+  parseLocalCardIndex,
+  serializeLocalCardIndex,
+  type LocalCardIndex,
+} from '../src/domain/local-card-index.ts'
 
 const day = 24 * 60 * 60 * 1000
 const sourceSetSchema = z.object({
@@ -295,7 +299,7 @@ export async function generateLocalCardIndex({
     console.warn('Local card index generation failed; trying a previous validated artifact.', error)
     index = await previousIndex([outputPath, previousPath])
   }
-  const json = JSON.stringify(index)
+  const json = serializeLocalCardIndex(index)
   await atomicWrite(outputPath, json)
   await atomicWrite(previousPath, json)
   const sizes = {
