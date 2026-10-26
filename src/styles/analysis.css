@@ -563,6 +563,21 @@
   padding: 6px 0;
   border-bottom: 1px solid #d5d3e1;
 }
+.land-trade-off {
+  flex: 1;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+@media (max-width: 620px) {
+  .nonbasic-land-list li {
+    flex-wrap: wrap;
+  }
+  .land-trade-off {
+    flex-basis: 100%;
+    order: 1;
+  }
+}
 .card-reference-name:has(.card-reference-thumbnail) {
   display: inline-flex;
   align-items: center;

@@ -504,22 +504,6 @@ export function basicLandPlan(
 export const landFillReady = (cardCount: number, landCount: number, landTarget: number) =>
   cardCount - landCount >= 100 - landTarget - 10
 
-export function nonbasicLandSuggestions<T extends AnalysisCard>(
-  candidates: T[],
-  ownedNames: string[],
-  limit: number,
-) {
-  return candidates
-    .filter(
-      (card) =>
-        rolesForCard(card).includes('lands') &&
-        !/\bBasic\b/.test(card.typeLine) &&
-        !isBasicLandName(card.name) &&
-        !ownedNames.includes(card.name),
-    )
-    .slice(0, Math.max(0, limit))
-}
-
 export function deckRoleBoosts(cardCount: number, counts: DeckTargets, targets: DeckTargets) {
   const urgency = cardCount >= 85 ? 3 : cardCount >= 70 ? 2 : 1
   return Object.fromEntries(

@@ -251,7 +251,8 @@ test('defers land fill, respects current decisions, and recalculates after a non
     typeLine,
     manaCost: typeLine === 'Land' ? '' : '{G}',
     manaValue: typeLine === 'Land' ? 0 : 1,
-    detail: '',
+    // A utility ability lets these lands beat the untapped Forest they replace.
+    detail: typeLine === 'Land' ? '{T}: Add {G}.\n{2}, {T}: Scry 1.' : '',
     producedMana: ['G'],
     faces: [],
     reason: 'Land or mana',
@@ -275,7 +276,7 @@ test('defers land fill, respects current decisions, and recalculates after a non
   assert.equal(early.showLandFill, false)
   assert.equal(early.landGap, 32)
   assert.deepEqual(
-    early.nonbasicLands.map(({ name }) => name),
+    early.nonbasicLands.map(({ card }) => card.name),
     ['First land', 'Second land'],
   )
 
@@ -288,7 +289,7 @@ test('defers land fill, respects current decisions, and recalculates after a non
   assert.equal(updated.landGap, 31)
   assert.deepEqual(updated.basicLands, [{ name: 'Forest', colour: 'G', count: 31 }])
   assert.deepEqual(
-    updated.nonbasicLands.map(({ name }) => name),
+    updated.nonbasicLands.map(({ card }) => card.name),
     ['Second land'],
   )
 

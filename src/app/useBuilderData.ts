@@ -4,7 +4,6 @@ import {
   basicLandNames,
   basicLandPlan,
   landFillReady,
-  nonbasicLandSuggestions,
   cardTypes,
   deckGuidance,
   deckSection,
@@ -13,6 +12,7 @@ import {
   targetKeys,
   targetLabels,
 } from '../deck-analysis.ts'
+import { rankLandSuggestions } from '../land-suggestions.ts'
 import { colourThemes, commanderNames, deckColumnSections } from '../domain/commander-catalog.ts'
 import type { Card, DeckCard, ScryfallCard } from '../domain/card-model.ts'
 import {
@@ -175,13 +175,14 @@ function buildDeckData(deps: BuilderDataDeps) {
     analysis.produced,
   )
   const landGap = basicLands.reduce((sum, land) => sum + land.count, 0)
-  const nonbasicLands = nonbasicLandSuggestions(
-    deps.queue,
-    [...deck, ...deps.sideboard]
+  const nonbasicLands = rankLandSuggestions(deps.queue, deck, {
+    excluded: [...deck, ...deps.sideboard]
       .map((card: Card) => card.name)
       .concat(deps.ignoredCards ?? [], Object.keys(deps.decisions ?? {})),
-    Math.min(6, landGap),
-  )
+    identity: commanderDetails?.colours ?? [],
+    landTarget: calculatedLandTarget,
+    limit: Math.min(6, landGap),
+  })
   const showLandFill = landFillReady(deck.length, analysis.counts.lands, calculatedLandTarget)
   const indexedDeck: { card: DeckCard; index: number }[] = deck.map(
     (card: DeckCard, index: number) => ({ card, index }),
