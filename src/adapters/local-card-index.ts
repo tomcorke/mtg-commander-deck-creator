@@ -1,6 +1,6 @@
 import type { ScryfallCard, ScryfallSet } from '../domain/card-model.ts'
 import { cardNameKey } from '../domain/card-model.ts'
-import { creatureTypeForTheme } from '../domain/creature-types.ts'
+import { creatureTypeForTheme, everyCreatureTypeTag } from '../domain/creature-types.ts'
 import { parseLocalCardIndex, type LocalCardIndex } from '../domain/local-card-index.ts'
 import { fetchScryfallCreatureTypes, fetchScryfallSets } from './scryfall.ts'
 
@@ -47,10 +47,13 @@ export function queryLocalCardIndex(index: LocalCardIndex, query: LocalCardQuery
     for (const key of keys) for (const id of table[key] ?? []) ids.add(id)
   }
   add(index.indexes.tags, query.themes)
-  add(index.indexes.creatureTypes, [
+  const types = [
     ...(query.creatureTypes ?? []),
     ...(query.themes ?? []).flatMap((theme) => creatureTypeForTheme(theme) ?? []),
-  ])
+  ]
+  add(index.indexes.creatureTypes, types)
+  // Every-type cards match any creature type through their shared tag posting.
+  if (types.length) add(index.indexes.tags, [everyCreatureTypeTag])
   add(index.indexes.roles, query.roles)
   add(index.indexes.features, query.features)
   const colours = new Set(query.colours)

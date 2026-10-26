@@ -1,3 +1,4 @@
+import { hasTag } from './domain/creature-types.ts'
 import {
   analyseDeck,
   curveBucket,
@@ -59,7 +60,7 @@ function suggestionImpact(pair: CandidatePair, context: FindingContext) {
     return next === counts[role] ? [] : [`${targetLabels[role]} ${counts[role]} → ${next}`]
   })
   if (tag) {
-    const before = deck.slice(commanderCount).filter((card) => card.tags.includes(tag)).length
+    const before = deck.slice(commanderCount).filter((card) => hasTag(card, tag)).length
     changes.push(`${tag} support ${before} → ${before + 1}`)
   }
   const beforeBucket = cut ? curveBucket(cut) : null
@@ -88,7 +89,7 @@ function eligibleCut(card: DeckCard, index: number, context: FindingContext) {
     index >= commanderCount &&
     (flagged.has(card.name) || (cutFits.get(card) ?? Infinity) <= lowFitCeiling) &&
     !(role && roles.includes(role)) &&
-    !(tag && card.tags.includes(tag)) &&
+    !(tag && hasTag(card, tag)) &&
     !(roles.includes('lands') && counts.lands <= deckTargets.lands) &&
     !roles.some((key) => counts[key] <= 1 && counts[key] <= deckTargets[key]) &&
     (!findingFlags || finding.cardNames.includes(card.name))
@@ -97,7 +98,7 @@ function eligibleCut(card: DeckCard, index: number, context: FindingContext) {
 
 function connects(card: Card, context: FindingContext, cut?: DeckCard) {
   return (
-    [context.theme, ...context.activeSubThemes].some((tag) => tag && card.tags.includes(tag)) ||
+    [context.theme, ...context.activeSubThemes].some((tag) => tag && hasTag(card, tag)) ||
     rolesForCard(card).some((role) => context.counts[role] < context.deckTargets[role]) ||
     context.deck.some((other) => other !== cut && findSynergyPair([card, other]))
   )
@@ -115,7 +116,7 @@ function addressesFinding(card: Card, context: FindingContext) {
   const { role, tag, finding } = context
   return (
     (!role || (targetKeys.includes(role) && rolesForCard(card).includes(role))) &&
-    (!tag || card.tags.includes(tag)) &&
+    (!tag || hasTag(card, tag)) &&
     (finding.kind !== 'weak-connection' || connects(card, context))
   )
 }
@@ -207,7 +208,7 @@ function keepsDeckWorking(
   })
   const themesHold = [...remaining.themes].every(
     ([theme, count]) =>
-      !pair.cut!.cutCard.tags.includes(theme) || pair.addCard.tags.includes(theme) || count > 1,
+      !hasTag(pair.cut!.cutCard, theme) || hasTag(pair.addCard, theme) || count > 1,
   )
   return rolesHold && themesHold
 }
@@ -224,9 +225,7 @@ function applyToRemaining(
   for (const [theme, count] of remaining.themes)
     remaining.themes.set(
       theme,
-      count +
-        Number(pair.addCard.tags.includes(theme)) -
-        Number(pair.cut.cutCard.tags.includes(theme)),
+      count + Number(hasTag(pair.addCard, theme)) - Number(hasTag(pair.cut.cutCard, theme)),
     )
 }
 
@@ -240,7 +239,7 @@ function bestSuggestions(pairs: CandidatePair[], context: FindingContext) {
     themes: new Map(
       [context.theme, ...context.activeSubThemes]
         .filter(Boolean)
-        .map((theme) => [theme, mainDeck.filter((card) => card.tags.includes(theme)).length]),
+        .map((theme) => [theme, mainDeck.filter((card) => hasTag(card, theme)).length]),
     ),
   }
   for (const pair of pairs.sort((left, right) => right.priority - left.priority)) {

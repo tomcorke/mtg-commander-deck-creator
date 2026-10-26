@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { ScryfallCard } from '../domain/card-model.ts'
 import type { LocalCardIndex } from '../domain/local-card-index.ts'
+import { hasTag } from '../domain/creature-types.ts'
+import { tagsFor } from '../domain/recommendation-themes.ts'
 import {
   createLocalCardSource,
   localIndexStaleness,
@@ -192,4 +194,17 @@ test('ifReady never waits: it starts one background load and answers once covera
   })
   await missing.query(query)
   assert.deepEqual(missing.ifReady(query), [])
+})
+
+test('every-type cards join creature-type queries, and hasTag counts them for any type theme', () => {
+  const changelings = { ...index, indexes: { ...index.indexes, tags: { Changeling: [2] } } }
+  assert.deepEqual(
+    queryLocalCardIndex(changelings, { colours: [], themes: ['Dogs'] }).map(({ name }) => name),
+    ['Colourless Cat'],
+  )
+  assert.deepEqual(queryLocalCardIndex(changelings, { colours: [], themes: ['Tokens'] }), [])
+  assert.ok(tagsFor('Changeling (This card is every creature type.)', '').includes('Changeling'))
+  assert.ok(tagsFor('As this enters, choose a creature type.', '').includes('Changeling'))
+  assert.ok(hasTag({ tags: ['Changeling'] }, 'Elves'))
+  assert.ok(!hasTag({ tags: ['Changeling'] }, 'Tokens'))
 })

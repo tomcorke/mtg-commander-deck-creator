@@ -1,3 +1,4 @@
+import { hasTag } from './creature-types.ts'
 import { roleCredit, type AnalysisCard } from '../deck-analysis.ts'
 import {
   compareRecommendationScores,
@@ -95,7 +96,7 @@ function keepThemeIdentity<T extends { tags: string[]; set?: string; collectionM
       (card.set && context.collectionSets?.includes(card.set)) ||
       [context.theme, ...context.activeSubThemes]
         .filter(Boolean)
-        .some((theme) => card.tags.includes(theme)),
+        .some((theme) => hasTag(card, theme)),
     )
   const ordered = [...cards]
   for (let start = 0; start < ordered.length; start += 4) {
@@ -215,8 +216,7 @@ export function spreadRoles<T extends { reason: string; typeLine: string; tags: 
         (role) => !repeatableRoles.has(role) && others.some((card) => roles(card).includes(role)),
       )
       const onlyThemeCard = themes.some(
-        (theme) =>
-          ordered[index].tags.includes(theme) && !others.some((card) => card.tags.includes(theme)),
+        (theme) => hasTag(ordered[index], theme) && !others.some((card) => hasTag(card, theme)),
       )
       if (!repeated || onlyThemeCard) continue
       const replacement = ordered.findIndex(
@@ -250,13 +250,13 @@ export function balanceThemeCoverage<T extends { tags: string[]; reason: string 
   const ordered = [...cards]
   for (let start = 0; start < ordered.length; start += 4)
     for (const theme of themes) {
-      if (ordered.slice(start, start + 4).some((card) => card.tags.includes(theme))) continue
+      if (ordered.slice(start, start + 4).some((card) => hasTag(card, theme))) continue
       const batch = ordered.slice(start, start + 4)
       const replacement = ordered.findIndex(
         (card, index) =>
           index >= start + 4 &&
           canUse(card) &&
-          card.tags.includes(theme) &&
+          hasTag(card, theme) &&
           card.reason !== 'Land or mana' &&
           (card.reason !== 'Interesting new pick' ||
             !batch.some((item) => item.reason === 'Interesting new pick')),
@@ -264,12 +264,12 @@ export function balanceThemeCoverage<T extends { tags: string[]; reason: string 
       const displaced = batch.findLastIndex(
         (card) =>
           card.reason !== 'Land or mana' &&
-          !card.tags.includes(theme) &&
+          !hasTag(card, theme) &&
           !themes.some(
             (other) =>
               other !== theme &&
-              card.tags.includes(other) &&
-              batch.filter((item) => item.tags.includes(other)).length === 1,
+              hasTag(card, other) &&
+              batch.filter((item) => hasTag(item, other)).length === 1,
           ),
       )
       if (replacement >= 0 && displaced >= 0)

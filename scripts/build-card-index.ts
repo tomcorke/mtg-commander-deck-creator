@@ -87,7 +87,7 @@ function featureLabels(card: ReturnType<typeof toCard>) {
 function addPostings(index: Record<string, number[]>, labels: string[], offset: number) {
   for (const label of new Set(labels)) (index[label] ??= []).push(offset)
 }
-// shortcut: subtype postings use printed type lines; extend with shared every-type matching in #136.
+// Printed subtypes only; every-type cards join creature-type queries through the Changeling tag.
 function actualCreatureTypes(card: ScryfallCard, types: string[]) {
   const lines = card.card_faces?.map((face) => face.type_line ?? '') ?? [card.type_line]
   const subtypes = lines.flatMap((line) =>

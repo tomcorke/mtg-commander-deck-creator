@@ -1,6 +1,6 @@
 import { finishLabel } from '../../domain/printing.ts'
 import { FinishFilters } from '../../shared/FinishFilters.tsx'
-import { creatureTypeForTheme } from '../../domain/creature-types.ts'
+import { creatureTypeForTheme, hasTag } from '../../domain/creature-types.ts'
 import {
   startTransition,
   useEffect,
@@ -593,7 +593,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           (item) =>
                             !item.startsWith(`${inferredSubTheme}:`) && item !== inferredSubTheme,
                         ),
-                        `${inferredSubTheme}:${deckCards.filter((card) => card.tags.includes(inferredSubTheme)).length}`,
+                        `${inferredSubTheme}:${deckCards.filter((card) => hasTag(card, inferredSubTheme)).length}`,
                       ])
                     }
                     aria-label={`Dismiss ${inferredSubTheme} sub-theme`}

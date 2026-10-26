@@ -1,3 +1,4 @@
+import { hasTag } from './creature-types.ts'
 import type { PrintingLike, ScryfallCard } from './card-model.ts'
 import {
   recommendationScoreFactorMaximums,
@@ -194,14 +195,12 @@ export function recommendationScoreBreakdown(
   const evidence = evidenceScore(card, recommendationStyle)
   const goalThemeWeight = recommendationStyle === 'competitive' ? 0.5 : 1
   const theme =
-    declaredTheme && card.tags.includes(declaredTheme)
+    declaredTheme && hasTag(card, declaredTheme)
       ? Math.round(recommendationScoreFactorMaximums.theme * goalThemeWeight)
       : 0
   const subThemes = Math.min(
     recommendationScoreFactorMaximums.subThemes,
-    Math.round(
-      card.tags.filter((tag) => activeSubThemes.includes(tag)).length * 4 * goalThemeWeight,
-    ),
+    Math.round(activeSubThemes.filter((tag) => hasTag(card, tag)).length * 4 * goalThemeWeight),
   )
   const deckFit = Math.min(
     recommendationScoreFactorMaximums.deckFit,

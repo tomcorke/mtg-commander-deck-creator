@@ -1,3 +1,4 @@
+import { hasTag } from './creature-types.ts'
 import type { Card, DeckCard, ScryfallCard } from './card-model.ts'
 import { focusedRecommendations, withinPriceCap } from './recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
@@ -165,7 +166,7 @@ export function selectSignatureSeeds(
         selected: Math.max(
           0,
           ...[context.theme, ...context.activeSubThemes].map((theme) =>
-            mechanic.aliases.includes(theme) ? 2 : Number(card.tags.includes(theme)),
+            mechanic.aliases.includes(theme) ? 2 : Number(hasTag(card, theme)),
           ),
         ),
       }))
@@ -225,15 +226,12 @@ export function signatureEntries(
 }
 
 export function supportsSignature(card: Card, seed: SignatureSeed, main: DeckCard[]) {
-  if (
-    card.tags.includes('Energy') &&
-    main.filter((peer) => peer.tags.includes('Energy')).length < 2
-  )
+  if (hasTag(card, 'Energy') && main.filter((peer) => hasTag(peer, 'Energy')).length < 2)
     return false
   if (/choose a creature type|(?:angel|zombie)s? you control/i.test(card.detail)) return false
   if (
     /whenever (?:a|one or more) tokens?/i.test(card.detail) &&
-    main.filter((peer) => peer.tags.includes('Tokens')).length < 2
+    main.filter((peer) => hasTag(peer, 'Tokens')).length < 2
   )
     return false
   const mechanic = mechanics.find(({ theme }) => theme === seed.theme)
