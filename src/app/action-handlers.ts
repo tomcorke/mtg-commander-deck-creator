@@ -8,9 +8,13 @@ import type {
 import type { AddZone } from '../deck-analysis.ts'
 import type { SavedDeck } from '../deck-state.ts'
 import * as deckActions from './deck-actions.ts'
-import type { ActionDeps } from './recommendation-actions.ts'
+import type { AppActionContext } from './recommendation-actions.ts'
 
-export function createActionHandlers(deps: ActionDeps) {
+export function createActionHandlers(deps: AppActionContext) {
+  const withBuildIdentity = () => ({
+    ...deps,
+    buildIdentity: { id: crypto.randomUUID(), today: new Date().toISOString().slice(0, 10) },
+  })
   return {
     retryCurrentCardData: () => deckActions.retryCurrentCardData(deps),
     addRecommendationCard: (card: Card) => deckActions.addRecommendationCard(deps, card),
@@ -18,7 +22,14 @@ export function createActionHandlers(deps: ActionDeps) {
       cuts: { cutIndex: number; cutCard: DeckCard }[],
       additions: Card[],
       moveCutToSideboard: boolean,
-    ) => deckActions.applyDeckDoctorSwapPlan(deps, cuts, additions, moveCutToSideboard),
+    ) =>
+      deckActions.applyDeckDoctorSwapPlan(
+        deps,
+        cuts,
+        additions,
+        moveCutToSideboard,
+        crypto.randomUUID(),
+      ),
     undoDeckDoctorSwap: (id: string) => deckActions.undoDeckDoctorSwap(deps, id),
     addCollectionCard: (card: ScryfallCard) => deckActions.addCollectionCard(deps, card),
     decide: (card: Card, action: 'add' | 'later' | 'ignore') =>
@@ -53,11 +64,11 @@ export function createActionHandlers(deps: ActionDeps) {
     moveSelectedDeckCard: () => deckActions.moveSelectedDeckCard(deps),
     chooseAddZone: (zone: AddZone) => deckActions.chooseAddZone(deps, zone),
     storeDeck: (overwrite = false) => deckActions.storeDeck(deps, overwrite),
-    loadSavedDeck: (saved: SavedDeck) => deckActions.loadSavedDeck(deps, saved),
+    loadSavedDeck: (saved: SavedDeck) => deckActions.loadSavedDeck(withBuildIdentity(), saved),
     removeSavedDeck: (saved: SavedDeck) => deckActions.removeSavedDeck(deps, saved),
     importDeck: (openReviewAfterImport: boolean, skipMissing = false) =>
-      deckActions.importDeck(deps, openReviewAfterImport, skipMissing),
-    startOver: () => deckActions.startOver(deps),
+      deckActions.importDeck(withBuildIdentity(), openReviewAfterImport, skipMissing),
+    startOver: () => deckActions.startOver(withBuildIdentity()),
     openSavedDecks: () => deckActions.openSavedDecks(deps),
   }
 }

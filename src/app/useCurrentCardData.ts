@@ -1,29 +1,7 @@
 import { useEffect, useEffectEvent } from 'react'
-import type { Card, DeckCard, ScryfallCard } from '../domain/card-model.ts'
-import { commanderNames } from '../domain/commander-catalog.ts'
-import { applyCurrentCardData, cardDataKey, refreshCardData } from '../domain/current-card-data.ts'
+import type { ScryfallCard } from '../domain/card-model.ts'
+import { cardDataKey, refreshCardData } from '../domain/current-card-data.ts'
 import type { ControllerState } from './useControllerState.ts'
-
-function applyRefreshedData(state: ControllerState, results: ReadonlyMap<string, ScryfallCard>) {
-  const update = <T extends DeckCard>(card: T): T =>
-    card.dataStatus === 'pending' ? applyCurrentCardData(card, results) : card
-  state.setDeck((current) => current.map(update))
-  state.setSideboard((current) => current.map(update))
-  state.setQueue((current: Card[]) => current.map(update))
-  state.setDeferredCards((current) =>
-    current.map((entry) => ({ ...entry, card: update(entry.card) })),
-  )
-  const commanders = state.deck.slice(0, commanderNames(state.commander).length).map(update)
-  if (commanders.every((card) => card.colorIdentity && !card.dataStatus))
-    state.setCommanderDetails((current) =>
-      current
-        ? {
-            ...current,
-            colours: [...new Set(commanders.flatMap((card) => card.colorIdentity!))],
-          }
-        : current,
-    )
-}
 
 export function useCurrentCardData(state: ControllerState) {
   const cards = [
@@ -48,7 +26,7 @@ export function useCurrentCardData(state: ControllerState) {
         state.commander !== commander
       )
         return
-      applyRefreshedData(state, results)
+      state.dispatchBuilder({ type: 'hydrate', results: [...results] })
     },
   )
   const refresh = useEffectEvent(async (id: string, signal: AbortSignal) => {

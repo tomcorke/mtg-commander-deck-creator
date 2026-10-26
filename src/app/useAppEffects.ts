@@ -1,3 +1,4 @@
+import { builderAction, type BuilderActionHost } from './builder-action.ts'
 import { useEffect, useRef } from 'react'
 
 import { deckDataStatus } from '../domain/deck-data-status.ts'
@@ -8,7 +9,7 @@ import { commanderNames } from '../domain/commander-catalog.ts'
 import { printingOptions, needsPrintingRepair } from '../domain/printing.ts'
 import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
 
-export type AppEffectsDeps = Record<string, any>
+export type AppEffectsDeps = Record<string, any> & BuilderActionHost
 
 export function useRouteEffects(deps: AppEffectsDeps) {
   const currentRoute = useRef<AppHistoryState | null>(null)
@@ -173,16 +174,7 @@ function updatedDeckPrintings(current: any[], printings: any[][], names: string[
 }
 
 export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
-  const {
-    commander,
-    commanderDetails,
-    deck,
-    setCommanderDetails,
-    setDeck,
-    fetchCard,
-    fetchPrintings,
-    workspace,
-  } = deps
+  const { commander, commanderDetails, deck, fetchCard, fetchPrintings, workspace } = deps
   const workspaceId = workspace?.getSnapshot().id
   useEffect(() => {
     let cancelled = false
@@ -208,8 +200,18 @@ export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
     )
       .then((printings) => {
         if (cancelled || (workspace && workspace.getSnapshot().id !== workspaceId)) return
-        setCommanderDetails((current: any) => updatedCommanderDetails(current, printings))
-        setDeck((current: any[]) => updatedDeckPrintings(current, printings, names))
+        builderAction(deps, (builder) => ({
+          type: 'data',
+          changes: {
+            commanderDetails: updatedCommanderDetails(builder.commanderDetails, printings),
+          },
+        }))
+        builderAction(deps, (builder) => ({
+          type: 'data',
+          changes: {
+            deck: updatedDeckPrintings(builder.deck, printings, names),
+          },
+        }))
       })
       .catch(() => undefined)
     return () => {
@@ -246,6 +248,7 @@ export function useCollectionCountEffect(deps: AppEffectsDeps) {
     excludeTutors,
     excludeExtraTurns,
     excludeUnreleased,
+    today,
     setCollectionPoolSize,
     fetchCollectionCount,
   } = deps
@@ -254,7 +257,13 @@ export function useCollectionCountEffect(deps: AppEffectsDeps) {
   useEffect(() => {
     if (activeModal !== 'recommendation-settings' || !collectionSets.length || !colours) return
     const controller = new AbortController()
-    const filters = { excludeGameChangers, excludeTutors, excludeExtraTurns, excludeUnreleased }
+    const filters = {
+      excludeGameChangers,
+      excludeTutors,
+      excludeExtraTurns,
+      excludeUnreleased,
+      today,
+    }
     void fetchCollectionCount(colours, collectionSets, filters, fetch, controller.signal)
       .then((count: number) => {
         if (!controller.signal.aborted) setCollectionPoolSize(count)
@@ -270,6 +279,7 @@ export function useCollectionCountEffect(deps: AppEffectsDeps) {
     excludeTutors,
     excludeExtraTurns,
     excludeUnreleased,
+    today,
   ])
 }
 

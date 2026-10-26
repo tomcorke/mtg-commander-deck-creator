@@ -5,7 +5,7 @@ import {
   rolesForCard,
   targetKeys,
 } from '../deck-analysis.ts'
-import type { PersistedDeckState } from '../deck-state.ts'
+import type { BuilderState } from './builder-state.ts'
 import type { Card, DeckCard } from './card-model.ts'
 import { commanderNames } from './commander-catalog.ts'
 import { manaSupportFromAnalysis } from './recommendation-scoring.ts'
@@ -13,7 +13,22 @@ import type { RecommendationScoreContext } from './recommendation-types.ts'
 
 // All recommendation surfaces use the same deck, preference, and candidate-supply signals.
 export function buildRecommendationContext(
-  settings: Partial<PersistedDeckState> & Record<string, unknown>,
+  settings: Partial<
+    Pick<
+      BuilderState,
+      | 'commander'
+      | 'deck'
+      | 'deckTargets'
+      | 'theme'
+      | 'activeSubThemes'
+      | 'preferenceScores'
+      | 'recommendationStyle'
+      | 'collectionSets'
+      | 'collectionMode'
+      | 'batchNumber'
+      | 'maxPrice'
+    >
+  > & { prioritizeDeckHealth?: boolean } & Record<string, unknown>,
   candidates: Card[],
   deck: DeckCard[] = settings.deck ?? [],
 ): RecommendationScoreContext {

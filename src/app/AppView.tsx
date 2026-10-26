@@ -174,6 +174,7 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
   return (
     <RecommendationSettingsModal
       show={state.showRecommendationSettings}
+      chooseOptions={actions.chooseOptions}
       focusSets={state.awaitingPlayStyle}
       recommendationStyle={state.recommendationStyle}
       chooseRecommendationStyle={actions.chooseRecommendationStyle}
@@ -182,7 +183,6 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       maxPrice={state.maxPrice}
       chooseMaxPrice={actions.chooseMaxPrice}
       includeCreature={state.includeCreature}
-      setIncludeCreature={state.setIncludeCreature}
       collectionSearch={state.collectionSearch}
       setCollectionSearch={state.setCollectionSearch}
       collectionSets={state.collectionSets}
@@ -199,17 +199,11 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       collectionError={state.collectionError}
       collectionPoolSize={state.collectionPoolSize}
       excludeGameChangers={state.excludeGameChangersSetting}
-      setExcludeGameChangers={state.setExcludeGameChangers}
       limitGameChangers={state.limitGameChangers}
-      setLimitGameChangers={state.setLimitGameChangers}
       excludeTutors={state.excludeTutors}
-      setExcludeTutors={state.setExcludeTutors}
       excludeExtraTurns={state.excludeExtraTurns}
-      setExcludeExtraTurns={state.setExcludeExtraTurns}
       excludeUnreleased={state.excludeUnreleased}
-      setExcludeUnreleased={state.setExcludeUnreleased}
       recommendationOptionsChanged={state.recommendationOptionsChanged}
-      setRecommendationOptionsChanged={state.setRecommendationOptionsChanged}
       recommendationSettingsSummary={builderData.recommendationSettingsSummary}
       closeModal={() => actions.closeModal()}
     />
@@ -268,6 +262,7 @@ function CardSearchScreen({
         deck={state.deck}
         sideboard={state.sideboard}
         excludeUnreleased={state.excludeUnreleased}
+        today={state.today}
         cycleCommanderPrinting={actions.cycleCommanderPrinting}
         changeCommander={modals.changeCommander}
         openCard={(card) => {
@@ -480,10 +475,7 @@ function DeckReviewScreen({
         theme={state.theme}
         activeSubThemes={state.activeSubThemes}
         deckTargets={state.deckTargets}
-        setDeckTargets={(update) => {
-          state.setDeckTargets(update)
-          state.setRecommendationOptionsChanged(true)
-        }}
+        chooseDeckTarget={(key, value) => actions.chooseDeckTarget(key, value)}
         analysis={builderData.analysis}
         displayedTypeCounts={builderData.displayedTypeCounts}
         selectManaValue={(value) => {

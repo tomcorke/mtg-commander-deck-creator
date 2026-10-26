@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { withBuilderActions } from './builder-test-fixture.ts'
 import test from 'node:test'
 import { a14BaseState } from '../../scripts/fixtures/a14.ts'
 import { toCard, toDeckCard, type DeckCard, type ScryfallCard } from '../domain/card-model.ts'
@@ -16,7 +17,7 @@ import {
   undoDeckDoctorSwap,
 } from './deck-actions.ts'
 import { loadPrintings } from './printing-actions.ts'
-import type { ActionDeps } from './recommendation-actions.ts'
+import type { AppActionContext } from './recommendation-actions.ts'
 
 const raw = (name: string): ScryfallCard => ({
   name,
@@ -34,7 +35,7 @@ const raw = (name: string): ScryfallCard => ({
 
 function fixture() {
   let workspaceId = 'first'
-  const state: ActionDeps = {
+  const state: AppActionContext = {
     ...a14BaseState,
     commander: 'Commander',
     commanderDetails: { images: [], art: [], colours: ['G'], printings: [], selections: [] },
@@ -113,7 +114,7 @@ function fixture() {
       state[field] = typeof value === 'function' ? value(state[field]) : value
     }
   state.getCurrentState = () => state
-  return state
+  return withBuilderActions(state)
 }
 
 test('named-save and recovery loads mark every persisted card pending without altering the source or choices', () => {

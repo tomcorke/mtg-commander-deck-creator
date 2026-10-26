@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { withBuilderFixture } from './builder-test-fixture.ts'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
 import { parseDeckImportSource, mainDeckCardCount } from '../deck-import.ts'
@@ -26,8 +27,9 @@ import {
   signatureBudget,
   bindSignatureBudget,
   tabSignatureBudget,
-  resetSignatureContext,
+  resetSignatureContext as resetSignatureContextAction,
 } from './signature-actions.ts'
+const resetSignatureContext = withBuilderFixture(resetSignatureContextAction)
 import { advanceRecommendationQueue } from '../domain/recommendation-queue.ts'
 import { fetchEdhrecPage } from '../adapters/edhrec.ts'
 import {

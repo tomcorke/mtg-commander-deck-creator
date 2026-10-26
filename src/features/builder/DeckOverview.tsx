@@ -1,4 +1,5 @@
-import type { Dispatch, ReactNode, SetStateAction } from 'react'
+import type { ReactNode } from 'react'
+import type { TargetKey } from '../../deck-analysis.ts'
 
 import { colourNames } from '../../domain/commander-catalog.ts'
 import type { DeckCard } from '../../domain/card-model.ts'
@@ -27,7 +28,7 @@ type DeckOverviewProps = {
   activeSubThemes: string[]
   analysis: ReturnType<typeof analyseDeck>
   deckTargets: DeckTargets
-  setDeckTargets: Dispatch<SetStateAction<DeckTargets>>
+  chooseDeckTarget: (key: TargetKey, value: number) => void
   displayedTypeCounts: readonly (readonly [string, number])[]
   selectManaValue: (value: number) => void
   selectCards: (label: string, cardNames: string[]) => void
@@ -98,7 +99,7 @@ export function DeckOverview({
   activeSubThemes,
   analysis,
   deckTargets,
-  setDeckTargets,
+  chooseDeckTarget,
   displayedTypeCounts,
   selectManaValue,
   selectCards,
@@ -302,10 +303,7 @@ export function DeckOverview({
                       aria-label={`${targetLabels[key]} target`}
                       value={target}
                       onChange={(event) =>
-                        setDeckTargets((current) => ({
-                          ...current,
-                          [key]: Math.max(0, Number(event.target.value)),
-                        }))
+                        chooseDeckTarget(key, Math.max(0, Number(event.target.value)))
                       }
                     />
                   </label>

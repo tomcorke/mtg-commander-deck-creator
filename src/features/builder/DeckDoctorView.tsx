@@ -1,14 +1,5 @@
 import { hasTag } from '../../domain/creature-types.ts'
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-} from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import type { Card, CommanderDetails, DeckCard } from '../../domain/card-model.ts'
 import { cardConstructionError } from '../../domain/commander-construction.ts'
@@ -69,7 +60,7 @@ type Props = {
   theme: string
   activeSubThemes: string[]
   deckTargets: DeckTargets
-  setDeckTargets: Dispatch<SetStateAction<DeckTargets>>
+  chooseDeckTarget: (key: TargetKey, value: number) => void
   analysis: ReturnType<typeof analyseDeck>
   displayedTypeCounts: readonly (readonly [string, number])[]
   selectManaValue: (value: number) => void
@@ -298,7 +289,7 @@ export function DeckDoctorView({
   theme,
   activeSubThemes,
   deckTargets,
-  setDeckTargets,
+  chooseDeckTarget,
   analysis,
   displayedTypeCounts,
   selectManaValue,
@@ -1012,7 +1003,7 @@ export function DeckDoctorView({
                 activeSubThemes={activeSubThemes}
                 analysis={analysis}
                 deckTargets={deckTargets}
-                setDeckTargets={setDeckTargets}
+                chooseDeckTarget={chooseDeckTarget}
                 displayedTypeCounts={displayedTypeCounts}
                 selectManaValue={(value) => {
                   requestExit(() => selectManaValue(value))

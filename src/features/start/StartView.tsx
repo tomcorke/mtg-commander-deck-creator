@@ -18,12 +18,12 @@ const creatureThemeNames = [...new Set(creatureTypeThemes.values())].sort()
 function CreatureTypeChips({
   theme,
   extras,
-  setTheme,
+  declareTheme,
   setExtras,
 }: {
   theme: string
   extras: string[]
-  setTheme: (name: string) => void
+  declareTheme: (name: string) => void
   setExtras: (names: string[]) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -31,12 +31,12 @@ function CreatureTypeChips({
   const chosen = [...(creatureTypeForTheme(theme) ? [theme] : []), ...extras]
   const choose = (name: string) => {
     if (chosen.includes(name)) return
-    if (!theme) setTheme(name)
+    if (!theme) declareTheme(name)
     else setExtras([...extras, name].slice(0, 2))
   }
   const remove = (name: string) => {
     if (name !== theme) return setExtras(extras.filter((extra) => extra !== name))
-    setTheme(extras[0] ?? '')
+    declareTheme(extras[0] ?? '')
     setExtras(extras.slice(1))
   }
   return (
@@ -114,7 +114,7 @@ type StartViewProps = {
   visibleThemes: string[]
   setVisibleThemes: Dispatch<SetStateAction<string[]>>
   theme: string
-  setTheme: Dispatch<SetStateAction<string>>
+  declareTheme: (name: string) => void
   chooseTheme: (name: string) => void
   colours: string[]
   setColours: Dispatch<SetStateAction<string[]>>
@@ -147,7 +147,7 @@ export function StartView(props: StartViewProps) {
   const chooseCuratedTheme = (name: string) => {
     const extras = props.extraCreatureTypes
     if (name === props.theme && extras.length) {
-      props.setTheme(extras[0])
+      props.declareTheme(extras[0])
       return props.setExtraCreatureTypes(extras.slice(1))
     }
     if (creatureTypeForTheme(props.theme) && name !== props.theme)
@@ -156,7 +156,7 @@ export function StartView(props: StartViewProps) {
   }
   const clearFilters = () => {
     props.setExtraCreatureTypes([])
-    props.setTheme('')
+    props.declareTheme('')
     props.setColours([])
     props.setSearch('')
   }
@@ -262,7 +262,7 @@ export function StartView(props: StartViewProps) {
             <CreatureTypeChips
               theme={props.theme}
               extras={props.extraCreatureTypes}
-              setTheme={props.setTheme}
+              declareTheme={props.declareTheme}
               setExtras={props.setExtraCreatureTypes}
             />
           </div>

@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 
 import { loadSavedDecks, type PersistedDeckState } from '../deck-state.ts'
-import type { AddZoneChoice } from '../deck-analysis.ts'
 import type { AppHistoryState, AppModal } from './routes.ts'
 import { usePendingConfirmation, useStoredOption } from '../shared/hooks.ts'
 export function useUiState(
@@ -36,7 +35,6 @@ export function useUiState(
     setFirstBatchFocusPending(false)
     setFirstBatchPending(false)
   }, [])
-  const [recommendationOptionsChanged, setRecommendationOptionsChanged] = useState(false)
   const [pendingSubThemes, setPendingSubThemes] = useState<string[]>([])
   const pendingReviewChanges = useRef(false)
   const setPendingReviewChanges = useCallback((pending: boolean) => {
@@ -78,8 +76,6 @@ export function useUiState(
     setNewDeckGuidePending,
     firstBatchFocusPending,
     setFirstBatchFocusPending,
-    recommendationOptionsChanged,
-    setRecommendationOptionsChanged,
     pendingSubThemes,
     setPendingSubThemes,
     pendingReviewChanges,
@@ -106,7 +102,6 @@ function useImportState() {
   const [importState, setImportState] = useState<'idle' | 'loading' | 'error' | 'missing'>('idle')
   const [importError, setImportError] = useState('')
   const [importFoundCount, setImportFoundCount] = useState(0)
-  const [addZoneChoice, setAddZoneChoice] = useState<AddZoneChoice>(null)
   return {
     importSource,
     setImportSource,
@@ -115,8 +110,6 @@ function useImportState() {
     importError,
     setImportError,
     importFoundCount,
-    addZoneChoice,
-    setAddZoneChoice,
     setImportFoundCount,
   }
 }

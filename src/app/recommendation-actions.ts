@@ -1,3 +1,4 @@
+import { builderAction, type AppActionContext } from './builder-action.ts'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import { analyseDeck, defaultDeckTargets, rolesForCard, type TargetKey } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
@@ -18,6 +19,7 @@ import {
   parseEdhrecEntries,
   releasedBy,
   type CollectionMode,
+  type BuilderProgress,
   type DeferredCard,
   type ScryfallCard,
 } from '../recommendations.ts'
@@ -42,101 +44,17 @@ import {
   commanderConstructionError,
 } from '../domain/commander-construction.ts'
 
-type StateSetter = (value: any) => void
-
 /** Queue progress carried across a settings change that re-fetches the candidate pool. */
-export type RecommendationProgress = {
-  deferredCards: DeferredCard<Card>[]
-  batchNumber: number
-  preferenceScores: Record<string, number>
-}
+export type RecommendationProgress = BuilderProgress
 
-/** Settings that decide which cards are fetched; other settings only re-rank the pool. */
-export function recommendationPoolKey(deps: Record<string, any>) {
-  const { collectionMode = 'none', collectionSets = [] } = deps
-  return JSON.stringify([
-    deps.commander,
-    deps.powerTarget,
-    deps.maxPrice ?? null,
-    deps.excludeGameChangers,
-    deps.excludeTutors,
-    deps.excludeExtraTurns,
-    deps.excludeUnreleased,
-    deps.theme,
-    [...(deps.activeSubThemes ?? [])].sort(),
-    collectionMode,
-    [...collectionSets].sort(),
-  ])
-}
+import { builderPoolKey as recommendationPoolKey } from '../domain/builder-settings.ts'
+export { builderPoolKey as recommendationPoolKey } from '../domain/builder-settings.ts'
 
-type StateSetters = {
-  [
-    key in
-      | 'setActiveSavedDeckId'
-      | 'setActiveSubThemes'
-      | 'setBatchAnnouncement'
-      | 'setBatchNumber'
-      | 'setCollectionError'
-      | 'setCollectionGroups'
-      | 'setCollectionMode'
-      | 'setCollectionPoolSize'
-      | 'setCollectionSearch'
-      | 'setCollectionSets'
-      | 'setCollectionState'
-      | 'setCommanderDetails'
-      | 'setCommanderSubThemes'
-      | 'setCommander'
-      | 'setDecisions'
-      | 'setDeckName'
-      | 'setDeck'
-      | 'setDeferredCards'
-      | 'setDismissedSubThemes'
-      | 'setIgnoredCards'
-      | 'setImportError'
-      | 'setImportFoundCount'
-      | 'setImportSource'
-      | 'setImportState'
-      | 'setLiked'
-      | 'setLimitedRecommendations'
-      | 'setManualPrintings'
-      | 'setManualPrinting'
-      | 'setPendingCardRemoval'
-      | 'setPendingRemoval'
-      | 'setPreferenceScores'
-      | 'setPreferredPrintSet'
-      | 'setQueue'
-      | 'setRecommendationLoadingStep'
-      | 'setRecommendationLoadingTitle'
-      | 'setRecommendationOptionsChanged'
-      | 'setRecommendationState'
-      | 'setRecommendationStyle'
-      | 'setSavedDecks'
-      | 'setSelectedCollectionCard'
-      | 'setSelectedDeckCardLocation'
-      | 'setSelectedGuidanceCard'
-      | 'setSelectedCardReference'
-      | 'setSelectedManualCard'
-      | 'setSideboard'
-      | 'setSubThemeSearch'
-      | 'setTheme'
-      | 'setLoadingArt'
-      | 'setCopied'
-      | 'setBasicLandState'
-      | 'setDeckTargets'
-      | 'setShowCollectionBrowser'
-      | 'setShowBuilder'
-      | 'setPowerTarget'
-      | 'setCollectionBrowserCards'
-      | 'setCollectionBrowserError'
-      | 'setCollectionBrowserState'
-  ]: StateSetter
-}
-
-export type ActionDeps = Record<string, any> & StateSetters
+export type { AppActionContext } from './builder-action.ts'
 
 export { mergeRecommendationCandidates }
 
-export async function fallbackRecommendations(deps: ActionDeps, identityColours: string[]) {
+export async function fallbackRecommendations(deps: AppActionContext, identityColours: string[]) {
   const { excludeGameChangers, excludeUnreleased, includeCreature } = deps
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
@@ -168,7 +86,7 @@ export async function fallbackRecommendations(deps: ActionDeps, identityColours:
 }
 
 export async function fetchRecommendationCollectionCards(
-  deps: ActionDeps,
+  deps: AppActionContext,
   identityColours: string[],
   selectedSets: string[],
 ) {
@@ -201,7 +119,7 @@ export async function fetchRecommendationCollectionCards(
 }
 
 export async function collectionRecommendations(
-  deps: ActionDeps,
+  deps: AppActionContext,
   identityColours: string[],
   selectedSets: string[],
 ) {
@@ -228,7 +146,7 @@ export async function collectionRecommendations(
 export type PendingLocalQuery = { query: LocalCardQuery; liveQuery: string; reason: string }
 
 /** Stale or unchecked snapshots add one release-ordered live page so new cards stay visible. */
-async function recentLiveCards(deps: ActionDeps, liveQuery: string): Promise<ScryfallCard[]> {
+async function recentLiveCards(deps: AppActionContext, liveQuery: string): Promise<ScryfallCard[]> {
   const status: LocalIndexStatus | undefined = deps.localCardIndexStatus?.()
   if (
     !liveQuery ||
@@ -250,7 +168,7 @@ async function recentLiveCards(deps: ActionDeps, liveQuery: string): Promise<Scr
 }
 
 function toLocalAndLiveCards(
-  deps: ActionDeps,
+  deps: AppActionContext,
   localCards: ScryfallCard[],
   liveCards: ScryfallCard[],
   reason: string,
@@ -280,7 +198,7 @@ function toLocalAndLiveCards(
  * for background enrichment instead.
  */
 async function localAndLiveCandidates(
-  deps: ActionDeps,
+  deps: AppActionContext,
   query: LocalCardQuery,
   liveQuery: string,
   reason: string,
@@ -331,7 +249,7 @@ export function appendBackgroundCandidates(
 
 /** Load the optional index after the first batch, then merge its extra candidates at the queue tail. */
 export async function enrichWithLocalCards(
-  deps: ActionDeps,
+  deps: AppActionContext,
   pending: PendingLocalQuery[],
   identityColours: string[],
   isCurrent: () => boolean,
@@ -353,16 +271,19 @@ export async function enrichWithLocalCards(
   const blocked = [
     ...commanderNames(current.commander ?? ''),
     ...(current.ignoredCards ?? []),
-    ...[...(current.deck ?? []), ...(current.sideboard ?? [])].map(({ name }: Card) => name),
+    ...[...(current.deck ?? []), ...(current.sideboard ?? [])].map(({ name }) => name),
     ...(current.deferredCards ?? []).map(({ card }: DeferredCard<Card>) => card.name),
   ]
-  deps.setQueue((queue: Card[]) =>
-    appendBackgroundCandidates(queue, additions, blocked, current.focusedRole),
-  )
+  builderAction(deps, (builder) => ({
+    type: 'data',
+    changes: {
+      queue: appendBackgroundCandidates(builder.queue, additions, blocked, current.focusedRole),
+    },
+  }))
 }
 
 export async function themeRecommendations(
-  deps: ActionDeps,
+  deps: AppActionContext,
   identityColours: string[],
   themes: string[],
 ) {
@@ -398,7 +319,11 @@ const roleGapLimit = 10
  * Roles the deck is short on that the offered pool can't cover (fewer than twice the shortfall).
  * Only live candidates count, so local snapshot breadth never skips the live Tagger search (#154).
  */
-export function uncoveredRoleGaps(deck: Card[], targets: Record<string, number>, offered: Card[]) {
+export function uncoveredRoleGaps(
+  deck: DeckCard[],
+  targets: Record<string, number>,
+  offered: Card[],
+) {
   const { counts } = analyseDeck(deck)
   return (Object.keys(roleSearchTags) as TargetKey[]).flatMap((role) => {
     const shortfall = Math.max(0, (targets[role] ?? 0) - counts[role])
@@ -414,7 +339,7 @@ export function uncoveredRoleGaps(deck: Card[], targets: Record<string, number>,
  * ten new cards per role, so missing cards can enter the pool when EDHREC lists are thin.
  */
 export async function roleGapRecommendations(
-  deps: ActionDeps,
+  deps: AppActionContext,
   identityColours: string[],
   roles: string[],
   offered: Card[],
@@ -438,7 +363,7 @@ export async function roleGapRecommendations(
   )
   const owned = new Set([
     ...offered.filter((card) => !card.localIndexSnapshot).map(({ name }) => name),
-    ...[...(deps.deck ?? []), ...(deps.sideboard ?? [])].map(({ name }: Card) => name),
+    ...[...(deps.deck ?? []), ...(deps.sideboard ?? [])].map(({ name }) => name),
     ...(deps.ignoredCards ?? []),
   ])
   const taken = Object.fromEntries(roles.map((role) => [role, 0]))
@@ -453,14 +378,13 @@ export async function roleGapRecommendations(
 }
 
 export async function edhrecRecommendations(
-  deps: ActionDeps,
+  deps: AppActionContext,
   slug: string,
   identityColours: string[],
   excludedNames: string[] = [],
 ) {
   const {
     fetchEdhrec,
-    setCommanderSubThemes,
     includeCreature,
     excludeGameChangers,
     excludeTutors,
@@ -470,7 +394,10 @@ export async function edhrecRecommendations(
     fetchCards,
   } = deps
   const result = await fetchEdhrec(slug)
-  setCommanderSubThemes(commanderThemes(result.tag_counts ?? []))
+  builderAction(deps, {
+    type: 'data',
+    changes: { commanderSubThemes: commanderThemes(result.tag_counts ?? []) },
+  })
   const lists = result.container?.json_dict?.cardlists ?? []
   const allEntries = parseEdhrecEntries(lists)
   if (!allEntries.length) throw new Error('No EDHREC cards')
@@ -492,7 +419,7 @@ export async function edhrecRecommendations(
   })
 }
 
-export async function loadCommanderCards(deps: ActionDeps, chosen: string) {
+export async function loadCommanderCards(deps: AppActionContext, chosen: string) {
   const { fetchCard, fetchPrintings } = deps
   const commanders = await Promise.all(
     commanderNames(chosen).map((name) => fetchCard(name) as Promise<CommanderCard>),
@@ -528,130 +455,98 @@ export async function loadCommanderCards(deps: ActionDeps, chosen: string) {
 }
 
 export function resetRecommendationState(
-  deps: ActionDeps,
+  deps: AppActionContext,
   preserveDeck: boolean,
   progress?: RecommendationProgress,
+  commander = deps.commander,
 ) {
-  resetSignatureContext(deps, preserveDeck ? undefined : crypto.randomUUID())
-  const {
-    navigateView,
-    activeModal,
-    setDeferredCards,
-    setBatchNumber,
-    setDecisions,
-    setLiked,
-    setBatchAnnouncement,
-    setCommanderSubThemes,
-    setDeck,
-    setSideboard,
-    setIgnoredCards,
-    setActiveSubThemes,
-    setDismissedSubThemes,
-    setPreferenceScores,
-    setCollectionSets,
-    setCollectionGroups,
-    setCollectionMode,
-    setCollectionSearch,
-    setCollectionPoolSize,
-    setShowCollectionBrowser,
-    setCommanderDetails,
-    setQueue,
-    setLimitedRecommendations,
-    setCollectionState,
-    setCollectionError,
-    setPreferredPrintSet,
-    setRecommendationLoadingStep,
-    setRecommendationLoadingTitle,
-    setRecommendationState,
-    collectionSets,
-    collectionMode,
-  } = deps
-  const activeCollectionSets = preserveDeck ? collectionSets : []
-  const activeCollectionMode = preserveDeck ? collectionMode : 'none'
+  const activeCollectionSets = preserveDeck ? deps.collectionSets : []
+  const activeCollectionMode = preserveDeck ? deps.collectionMode : 'none'
+  resetSignatureContext(deps)
+  const identity = deps.getBuilderState()
+  builderAction(deps, {
+    type: 'beginRecommendations',
+    commander,
+    preserveDeck,
+    progress,
+    extraCreatureTypes: deps.extraCreatureTypes ?? [],
+    today: deps.buildIdentity?.today ?? identity.today,
+    signatureDeckKey: deps.buildIdentity?.id ?? identity.signatureDeckKey,
+  })
   // A settings refresh keeps the current builder workflow and its pending choices open.
-  if (!progress) navigateView('builder', null, activeModal !== null)
-  const cycle = progress ?? deps.freshRecommendationCycle()
-  setDeferredCards(cycle.deferredCards)
-  setBatchNumber(cycle.batchNumber)
-  setDecisions({})
-  deps.setIgnoreReasons?.({})
-  if (!preserveDeck) deps.setFocusedRole?.(null)
-  setLiked((current: string[]) => (progress ? current : []))
-  setBatchAnnouncement('')
-  setCommanderSubThemes([])
+  if (!progress) deps.navigateView('builder', null, deps.activeModal !== null)
+  deps.setBatchAnnouncement('')
   if (!preserveDeck) {
-    setDeck([])
-    setSideboard([])
-    deps.setDeckDoctorHistory([])
     deps.setDeckDoctorError('')
-    setIgnoredCards([])
-    // Extra creature types picked on the start screen carry over as sub-themes.
-    setActiveSubThemes(deps.extraCreatureTypes?.slice(0, 2) ?? [])
-    setDismissedSubThemes([])
-    setPreferenceScores({})
-    setCollectionSets([])
-    setCollectionGroups([])
-    setCollectionMode('none')
-    setCollectionSearch('')
-    setCollectionPoolSize(null)
-    setShowCollectionBrowser(false)
+    deps.setCollectionSearch('')
+    deps.setCollectionPoolSize(null)
+    deps.setShowCollectionBrowser(false)
   }
-  setCommanderDetails(null)
-  setQueue([])
-  setLimitedRecommendations(false)
-  setCollectionState('idle')
-  setCollectionError('')
-  if (!preserveDeck) setPreferredPrintSet('')
-  setRecommendationLoadingStep('commander')
-  setRecommendationLoadingTitle(
+  deps.setLimitedRecommendations(false)
+  deps.setCollectionState('idle')
+  deps.setCollectionError('')
+  deps.setRecommendationLoadingStep('commander')
+  deps.setRecommendationLoadingTitle(
     preserveDeck ? 'Updating recommendations' : 'Building your first batch',
   )
-  setRecommendationState('loading')
+  deps.setRecommendationState('loading')
   return { activeCollectionSets, activeCollectionMode }
 }
 
-export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: boolean) {
-  const { setCommanderDetails, setDeck } = deps
+export function addCommanderCards(deps: AppActionContext, loaded: any, preserveDeck: boolean) {
   const { commanders, images, art, identityColours, printings } = loaded
   if (
     preserveDeck &&
     deps.commanderDetails &&
     commanders.every((card: CommanderCard, index: number) => deps.deck[index]?.name === card.name)
   )
-    setCommanderDetails({ ...deps.commanderDetails, colours: identityColours })
+    builderAction(deps, {
+      type: 'data',
+      changes: { commanderDetails: { ...deps.commanderDetails, colours: identityColours } },
+    })
   else if (images.length)
-    setCommanderDetails({
-      images,
-      art,
-      colours: identityColours,
-      printings,
-      selections: commanders.map(() => 0),
+    builderAction(deps, {
+      type: 'data',
+      changes: {
+        commanderDetails: {
+          images,
+          art,
+          colours: identityColours,
+          printings,
+          selections: commanders.map(() => 0),
+        },
+      },
     })
   if (
     preserveDeck &&
-    setDeck &&
     commanders.every((card: CommanderCard, index: number) => deps.deck[index]?.name === card.name)
   ) {
-    setDeck((current: DeckCard[]) =>
-      current.map((card, index) =>
-        index < commanders.length ? currentCardData(card, commanders[index]) : card,
-      ),
-    )
+    builderAction(deps, (builder) => ({
+      type: 'data',
+      changes: {
+        deck: builder.deck.map((card, index) =>
+          index < commanders.length ? currentCardData(card, commanders[index]) : card,
+        ),
+      },
+    }))
   } else if (!preserveDeck) {
-    setDeck(
-      commanders.map((card: CommanderCard, index: number) => ({
-        ...toDeckCard(card),
-        printings: printings[index],
-        printing: 0,
-        finish: printings[index][0].finish,
-        foilType: printings[index][0].foilType,
-      })),
-    )
+    builderAction(deps, {
+      type: 'data',
+      changes: {
+        deck: commanders.map((card: CommanderCard, index: number) => ({
+          ...toDeckCard(card),
+          printings: printings[index],
+          printing: 0,
+          finish: printings[index][0].finish,
+          foilType: printings[index][0].foilType,
+        })),
+      },
+    })
   }
 }
 
 async function coreRecommendations(
-  deps: ActionDeps,
+  deps: AppActionContext,
   commanders: CommanderCard[],
   identityColours: string[],
   preserveDeck: boolean,
@@ -665,9 +560,7 @@ async function coreRecommendations(
     const excludedNames = [
       ...commanders.map(({ name }) => name),
       ...(preserveDeck
-        ? [...deps.deck, ...deps.sideboard]
-            .map(({ name }: Card) => name)
-            .concat(deps.ignoredCards ?? [])
+        ? [...deps.deck, ...deps.sideboard].map(({ name }) => name).concat(deps.ignoredCards ?? [])
         : []),
     ]
     offeredCards = await edhrecRecommendations(deps, slug, identityColours, excludedNames)
@@ -704,7 +597,7 @@ async function coreRecommendations(
 }
 
 async function addCollectionRecommendations(
-  deps: ActionDeps,
+  deps: AppActionContext,
   offeredCards: Card[],
   identityColours: string[],
   activeCollectionSets: string[],
@@ -725,7 +618,8 @@ async function addCollectionRecommendations(
   }
 }
 
-export async function fetchDeckDoctorCandidates(deps: ActionDeps) {
+export async function fetchDeckDoctorCandidates(deps: AppActionContext) {
+  builderAction(deps, { type: 'discoverDoctor' })
   const { commander, commanderDetails, collectionSets, collectionMode, fetchCard } = deps
   if (!commanderDetails) return []
   const commanders = await Promise.all(
@@ -752,7 +646,7 @@ export async function fetchDeckDoctorCandidates(deps: ActionDeps) {
     .filter((card) => !cardConstructionError(card, deps.deck, identityColours))
 }
 
-export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[]> {
+export async function fetchDeckDoctorCommanders(deps: AppActionContext): Promise<Card[]> {
   const currentNames = commanderNames(deps.commander)
   if (currentNames.length !== 1) return []
   const themes = [...new Set([deps.theme, ...deps.activeSubThemes].filter(Boolean))]
@@ -799,7 +693,7 @@ export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[
 }
 
 async function collectOfferedCards(
-  deps: ActionDeps,
+  deps: AppActionContext,
   loaded: any,
   preserveDeck: boolean,
   activeCollectionSets: string[],
@@ -825,7 +719,7 @@ async function collectOfferedCards(
 }
 
 export function rankInitialRecommendations(
-  deps: ActionDeps,
+  deps: AppActionContext,
   offeredCards: Card[],
   chosen: string,
   preserveDeck: boolean,
@@ -833,7 +727,7 @@ export function rankInitialRecommendations(
   activeCollectionMode: CollectionMode,
   progress?: RecommendationProgress,
 ) {
-  const { setQueue, setRecommendationState, loadPrintings, preferredPrintSet } = deps
+  const { setRecommendationState, loadPrintings, preferredPrintSet } = deps
   const result = recommend(
     {
       commander: chosen,
@@ -859,8 +753,18 @@ export function rankInitialRecommendations(
     deps.rankRecommendationCards,
   )
   if (result.error) throw new Error(result.error)
-  if (progress) deps.setDeferredCards(result.deferredCards)
-  setQueue(result.queue)
+  builderAction(deps, {
+    type: 'poolLoaded',
+    queue: result.queue,
+    deferredCards: result.deferredCards,
+    poolKey: recommendationPoolKey({
+      ...deps,
+      commander: chosen,
+      activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
+      collectionSets: activeCollectionSets,
+      collectionMode: activeCollectionMode,
+    }),
+  })
   if (progress)
     deps.setBatchAnnouncement(`Recommendations updated for batch ${progress.batchNumber}.`)
   setRecommendationState('idle')
@@ -874,7 +778,7 @@ export function rankInitialRecommendations(
 }
 
 export async function start(
-  deps: ActionDeps,
+  deps: AppActionContext,
   name: string,
   preserveDeck = false,
   progress?: RecommendationProgress,
@@ -891,15 +795,7 @@ export async function start(
       batchNumber: deps.batchNumber ?? 1,
       preferenceScores: deps.preferenceScores ?? {},
     }
-  const reset = resetRecommendationState(deps, preserveDeck, progress)
-  deps.setCommander(chosen)
-  const poolKey = recommendationPoolKey({
-    ...deps,
-    commander: chosen,
-    activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
-    collectionSets: reset.activeCollectionSets,
-    collectionMode: reset.activeCollectionMode,
-  })
+  const reset = resetRecommendationState(deps, preserveDeck, progress, chosen)
   const pendingLocal: PendingLocalQuery[] = []
   try {
     const loaded = await loadCommanderCards(deps, chosen)
@@ -907,7 +803,7 @@ export async function start(
     addCommanderCards(deps, loaded, preserveDeck)
     if (deps.prepareFirstBatch) {
       deps.setRecommendationState('idle')
-      deps.setRecommendationOptionsChanged?.(false)
+      builderAction(deps, { type: 'data', changes: { recommendationOptionsChanged: false } })
       return true
     }
     const offeredCards = await collectOfferedCards(
@@ -919,7 +815,16 @@ export async function start(
     )
     if (!job.isCurrent()) return false
     rankInitialRecommendations(
-      { ...deps, commanderDetails: { ...deps.commanderDetails, colours: loaded.identityColours } },
+      {
+        ...deps,
+        commanderDetails: {
+          images: loaded.images,
+          art: loaded.art,
+          printings: loaded.printings,
+          selections: loaded.commanders.map(() => 0),
+          colours: loaded.identityColours,
+        },
+      },
       offeredCards,
       chosen,
       preserveDeck,
@@ -927,8 +832,6 @@ export async function start(
       reset.activeCollectionMode,
       progress,
     )
-    if (deps.recommendationPoolKey) deps.recommendationPoolKey.current = poolKey
-    deps.setRecommendationOptionsChanged?.(false)
     deps.setFirstBatchPending?.(false)
     void enrichWithLocalCards(deps, pendingLocal, loaded.identityColours, job.isCurrent)
     return true

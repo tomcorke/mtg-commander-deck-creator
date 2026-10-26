@@ -16,20 +16,35 @@ import {
 import { fetchScryfallCardsByIdentifiers, fetchScryfallPrintings } from '../adapters/scryfall.ts'
 import { toDeckCard, toCard, type Card } from '../domain/card-model.ts'
 import { cyclePrinting } from './deck-actions.ts'
-import { loadPrintings } from './printing-actions.ts'
+import { loadPrintings as loadPrintingsAction } from './printing-actions.ts'
+import { withBuilderActions, withBuilderFixture } from './builder-test-fixture.ts'
+const loadPrintings = (...[deps, ...args]: Parameters<typeof loadPrintingsAction>) =>
+  loadPrintingsAction(withBuilderActions(deps), ...args)
 import {
-  addCommanderCards,
-  edhrecRecommendations,
-  fallbackRecommendations,
-  fetchRecommendationCollectionCards,
-  fetchDeckDoctorCandidates,
-  fetchDeckDoctorCommanders,
-  resetRecommendationState,
-  roleGapRecommendations,
-  start,
-  themeRecommendations,
+  addCommanderCards as addCommanderCardsAction,
+  edhrecRecommendations as edhrecRecommendationsAction,
+  fallbackRecommendations as fallbackRecommendationsAction,
+  fetchRecommendationCollectionCards as fetchRecommendationCollectionCardsAction,
+  fetchDeckDoctorCandidates as fetchDeckDoctorCandidatesAction,
+  fetchDeckDoctorCommanders as fetchDeckDoctorCommandersAction,
+  resetRecommendationState as resetRecommendationStateAction,
+  roleGapRecommendations as roleGapRecommendationsAction,
+  start as startAction,
+  themeRecommendations as themeRecommendationsAction,
   uncoveredRoleGaps,
 } from './recommendation-actions.ts'
+const addCommanderCards = withBuilderFixture(addCommanderCardsAction)
+const edhrecRecommendations = withBuilderFixture(edhrecRecommendationsAction)
+const fallbackRecommendations = withBuilderFixture(fallbackRecommendationsAction)
+const fetchRecommendationCollectionCards = withBuilderFixture(
+  fetchRecommendationCollectionCardsAction,
+)
+const fetchDeckDoctorCandidates = withBuilderFixture(fetchDeckDoctorCandidatesAction)
+const fetchDeckDoctorCommanders = withBuilderFixture(fetchDeckDoctorCommandersAction)
+const resetRecommendationState = withBuilderFixture(resetRecommendationStateAction)
+const roleGapRecommendations = withBuilderFixture(roleGapRecommendationsAction)
+const start = withBuilderFixture(startAction)
+const themeRecommendations = withBuilderFixture(themeRecommendationsAction)
 
 const names = ["Kraum, Ludevic's Opus", 'Tymna the Weaver']
 const recommendationNames = ['Sol Ring', 'Arcane Signet', 'Rhystic Study', 'Smothering Tithe']

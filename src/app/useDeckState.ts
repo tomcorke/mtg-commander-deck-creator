@@ -1,19 +1,14 @@
 import { useRef, useState } from 'react'
 
-import type { PersistedDeckState } from '../deck-state.ts'
 import type { DeckReviewFilter } from '../deck-review.ts'
 import type { Card, DeckCard, DeckCardLocation, ScryfallCard } from '../domain/card-model.ts'
 import type { ExportFormat } from '../domain/card-model.ts'
-import { defaultDeckTargets, type DeckTargets } from '../deck-analysis.ts'
-import type { DeckDoctorSwapRecord } from '../deck-doctor.ts'
 import { usePendingConfirmation, useStoredOption } from '../shared/hooks.ts'
 
 type BuilderModeReturn =
   'review' | 'review-changes' | 'review-confirm' | 'doctor' | 'doctor-history' | 'search' | null
 
-export function useDeckState(saved: PersistedDeckState | null) {
-  const [deck, setDeck] = useState<DeckCard[]>(saved?.deck ?? [])
-  const [sideboard, setSideboard] = useState<DeckCard[]>(saved?.sideboard ?? [])
+export function useDeckState() {
   const [selectedDeckCardLocation, setSelectedDeckCardLocation] = useState<DeckCardLocation | null>(
     null,
   )
@@ -36,23 +31,14 @@ export function useDeckState(saved: PersistedDeckState | null) {
     () => 'moxfield',
   )
   const [copied, setCopied] = useState(false)
-  const [preferredPrintSet, setPreferredPrintSet] = useState(saved?.preferredPrintSet ?? '')
   const [loadingArt, setLoadingArt] = useState('')
-  const [deckTargets, setDeckTargets] = useState<DeckTargets>(
-    saved?.deckTargets ?? defaultDeckTargets,
-  )
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [deckReviewFilter, setDeckReviewFilter] = useState<DeckReviewFilter | null>(null)
   const [pendingRemoval, setPendingRemoval] = usePendingConfirmation<number | null>(null)
-  const [deckDoctorHistory, setDeckDoctorHistory] = useState<DeckDoctorSwapRecord[]>([])
   const [deckDoctorError, setDeckDoctorError] = useState('')
   const [builderModeReturn, setBuilderModeReturn] = useState<BuilderModeReturn>(null)
 
   return {
-    deck,
-    setDeck,
-    sideboard,
-    setSideboard,
     selectedDeckCardLocation,
     setSelectedDeckCardLocation,
     selectedCollectionCard,
@@ -81,20 +67,14 @@ export function useDeckState(saved: PersistedDeckState | null) {
     setExportFormat,
     copied,
     setCopied,
-    preferredPrintSet,
-    setPreferredPrintSet,
     loadingArt,
     setLoadingArt,
-    deckTargets,
-    setDeckTargets,
     highlightedManaValue,
     setHighlightedManaValue,
     deckReviewFilter,
     setDeckReviewFilter,
     pendingRemoval,
     setPendingRemoval,
-    deckDoctorHistory,
-    setDeckDoctorHistory,
     deckDoctorError,
     setDeckDoctorError,
     builderModeReturn,

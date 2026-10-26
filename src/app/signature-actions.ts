@@ -1,3 +1,4 @@
+import { builderAction, type BuilderActionHost } from './builder-action.ts'
 import { fetchEdhrecPage, type EdhrecCommanderPage } from '../adapters/edhrec.ts'
 import { fetchScryfallCardsByIdentifiers } from '../adapters/scryfall.ts'
 import {
@@ -32,9 +33,12 @@ export const signatureBudget = (clock = Date.now, random = Math.random) => ({
 export type SignatureBudget = ReturnType<typeof signatureBudget>
 // ponytail: tab-local work and rolling budgets; persist checkpoints only if reload recovery becomes necessary.
 export const tabSignatureBudget = signatureBudget()
-export function resetSignatureContext(deps: Record<string, any>, deckKey?: string) {
+export function resetSignatureContext(
+  deps: Record<string, any> & BuilderActionHost,
+  deckKey?: string,
+) {
   deps.setSignatureEpoch?.((epoch: number) => epoch + 1)
-  if (deckKey) deps.setSignatureDeckKey?.(deckKey)
+  if (deckKey) builderAction(deps, { type: 'data', changes: { signatureDeckKey: deckKey } })
 }
 export function bindSignatureBudget(from: string, to: string) {
   const budget = tabSignatureBudget.decks.get(from)

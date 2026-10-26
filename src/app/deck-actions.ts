@@ -1,22 +1,14 @@
-import { migrateRecommendationPriority } from '../domain/recommendation-tuning.ts'
+import { builderAction } from './builder-action.ts'
+import { restoreBuilderState } from './builder-restore.ts'
+import { withBuilderPrinting } from '../domain/builder-data.ts'
 import {
   fetchScryfallCard,
   resolveScryfallIdentifiers,
   fetchScryfallPrintings,
   ScryfallRateLimitError,
 } from '../adapters/scryfall.ts'
-import {
-  addsToSideboard,
-  defaultDeckTargets,
-  mainDeckLimit,
-  type AddZone,
-} from '../deck-analysis.ts'
-import {
-  undoDeckDoctorSwap as undoDoctorSwap,
-  applyDeckDoctorSwapPlan as applyDoctorSwapPlan,
-} from '../deck-doctor.ts'
+import { type AddZone } from '../deck-analysis.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
-import { addCardSearchCards } from '../domain/card-search.ts'
 import { defaultFinish, finishPrice, foilTypeFor, printingOptions } from '../domain/printing.ts'
 import type {
   Card,
@@ -38,11 +30,9 @@ import {
   refreshCardData,
 } from '../domain/current-card-data.ts'
 import { deckJob } from './deck-job.ts'
-import { recommendationDataError } from '../domain/deck-data-status.ts'
-import { orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
+import { applyBuilderAction, orderedPrintings } from '../recommendations.ts'
 import {
   deleteSavedDeck,
-  restoredRecommendationDecisions,
   saveSavedDeck,
   suggestedDeckName,
   persistedDeckStateSchema,
@@ -58,8 +48,8 @@ import {
   type ImportedCard,
   type ImportedDeck,
 } from '../deck-import.ts'
-import { commanderPromotionInfo, promoteDeckCard } from '../domain/commander-promotion.ts'
-import { start as startRecommendations, type ActionDeps } from './recommendation-actions.ts'
+import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
+import { start as startRecommendations, type AppActionContext } from './recommendation-actions.ts'
 import { bindSignatureBudget, resetSignatureContext } from './signature-actions.ts'
 import {
   cardConstructionError,
@@ -82,138 +72,43 @@ function preloadArt(sources: (string | undefined)[]) {
 const cardCanHavePowerToughness = (card: Pick<DeckCard, 'typeLine'>) =>
   /Creature|Vehicle/.test(card.typeLine)
 
-export function retryCurrentCardData(deps: ActionDeps) {
-  const retry = <T extends DeckCard>(card: T): T =>
-    card.dataStatus === 'unavailable' ||
-    card.commanderLegality === undefined ||
-    card.colorIdentity === undefined ||
-    !card.manaValueKnown ||
-    card.gameChanger === undefined
-      ? { ...card, dataStatus: 'pending' }
-      : card
-  deps.setDeck((cards: DeckCard[]) => cards.map(retry))
-  deps.setSideboard((cards: DeckCard[]) => cards.map(retry))
-  deps.setQueue((cards: Card[]) => cards.map(retry))
-  deps.setDeferredCards((entries: { card: Card }[]) =>
-    entries.map((entry) => ({ ...entry, card: retry(entry.card) })),
-  )
+export function retryCurrentCardData(deps: AppActionContext) {
+  builderAction(deps, { type: 'retryData' })
 }
 
-export function addRecommendationCard(deps: ActionDeps, card: Card) {
-  const { deck, setBatchAnnouncement, setDeck, setQueue, setSideboard } = deps
-  const added = toDeckCardFromRecommendation(card)
-  const error = recommendationDataError(
-    added,
-    addsToSideboard(deps) ? deps.sideboard : deck,
-    deps.commanderDetails?.colours ?? [],
-    deps.excludeGameChangers,
-  )
-  if (error) {
-    setBatchAnnouncement(`${card.name}: ${error}`)
-    return
-  }
-  if (!addsToSideboard(deps)) setDeck((list: DeckCard[]) => [...list, added])
-  else setSideboard((list: DeckCard[]) => [...list, added])
-  setQueue((current: any) => current.filter((item: any) => item.name !== card.name))
-  setBatchAnnouncement(`${card.name} added from deck-health guidance.`)
-}
-
-export function addCollectionCard(deps: ActionDeps, card: ScryfallCard) {
-  const {
-    commanderDetails,
-    deck,
-    sideboard,
-    setBatchAnnouncement,
-    setDeck,
-    setQueue,
-    setSideboard,
-  } = deps
-  const added = toDeckCard(card)
-  const error = cardConstructionError(
-    added,
-    addsToSideboard(deps) ? sideboard : deck,
-    commanderDetails?.colours ?? [],
-  )
-  if (error) {
-    setBatchAnnouncement(`${card.name}: ${error}`)
-    return
-  }
-  if (!addsToSideboard(deps)) setDeck((current: any) => [...current, added])
-  else setSideboard((current: any) => [...current, added])
-  setQueue((current: any) => current.filter((item: any) => item.name !== added.name))
-  setBatchAnnouncement(`${card.name} added from collection browsing.`)
-}
-
-function additionError(deps: ActionDeps, card: Card | DeckCard) {
-  const error = recommendationDataError(
+export function addRecommendationCard(deps: AppActionContext, card: Card) {
+  const result = builderAction(deps, {
+    type: 'addGuidance',
     card,
-    addsToSideboard(deps) ? deps.sideboard : deps.deck,
-    deps.commanderDetails?.colours ?? [],
-    deps.excludeGameChangers,
-  )
-  if (error) deps.setBatchAnnouncement(`${card.name}: ${error}`)
-  return error
-}
-
-export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | 'ignore') {
-  const previous = deps.decisions[card.name]
-  if (previous !== 'add' && action === 'add' && additionError(deps, card)) return
-  deps.setIgnoreReasons?.((current: Record<string, unknown>) => {
-    const next = { ...current }
-    delete next[card.name]
-    return next
   })
-  const { setDecisions, setDeck, setIgnoredCards, setLiked, setSideboard } = deps
-  if (previous === action) {
-    if (action === 'add') {
-      setDeck((list: any) => list.filter((item: any) => item.name !== card.name))
-      setSideboard((list: any) => list.filter((item: any) => item.name !== card.name))
-    }
-    if (action === 'ignore')
-      setIgnoredCards((current: any) => current.filter((name: any) => name !== card.name))
-    setDecisions((current: any) => {
-      const next = { ...current }
-      delete next[card.name]
-      return next
-    })
-    return
-  }
-  if (previous === 'add') {
-    setDeck((list: any) => list.filter((item: any) => item.name !== card.name))
-    setSideboard((list: any) => list.filter((item: any) => item.name !== card.name))
-  }
-  if (previous !== 'add' && action === 'add') {
-    const added = toDeckCardFromRecommendation(card)
-    if (!addsToSideboard(deps)) setDeck((list: DeckCard[]) => [...list, added])
-    else setSideboard((list: DeckCard[]) => [...list, added])
-  }
-  if (action === 'ignore') {
-    setLiked((current: any) => current.filter((name: any) => name !== card.name))
-    setIgnoredCards((current: any) =>
-      current.includes(card.name) ? current : [...current, card.name],
-    )
-  } else setIgnoredCards((current: any) => current.filter((name: any) => name !== card.name))
-  setDecisions((current: any) => ({ ...current, [card.name]: action }))
+  deps.setBatchAnnouncement(result.error ?? `${card.name} added from deck-health guidance.`)
 }
 
+export function addCollectionCard(deps: AppActionContext, card: ScryfallCard) {
+  const result = builderAction(deps, {
+    type: 'addCollection',
+    card,
+  })
+  deps.setBatchAnnouncement(result.error ?? `${card.name} added from collection browsing.`)
+}
+
+export function decide(deps: AppActionContext, card: Card, action: 'add' | 'later' | 'ignore') {
+  const result = builderAction(deps, {
+    type: 'decide',
+    card,
+    decision: action,
+  })
+  if (result.error) deps.setBatchAnnouncement(result.error)
+}
 // The outgoing commander stays as a deck card unless `keepOutgoing` is false.
 export async function promoteToCommander(
-  deps: ActionDeps,
+  deps: AppActionContext,
   candidate: Card | DeckCard,
   keepOutgoing = true,
 ) {
   const job = deckJob(deps)
   deps = job.deps
-  const {
-    commander,
-    commanderDetails,
-    deck,
-    setBatchAnnouncement,
-    setDeck,
-    setQueue,
-    setSideboard,
-    start,
-  } = deps
+  const { commander, commanderDetails, deck, setBatchAnnouncement, start } = deps
   const outgoing = commanderNames(commander)
   if (outgoing.includes(candidate.name)) return
   const withoutOutgoing = (cards: DeckCard[]) =>
@@ -236,15 +131,22 @@ export async function promoteToCommander(
     (card: DeckCard) => card.name === candidate.name,
   )
   const promoted = existing ?? toDeckCardFromRecommendation(candidate as Card)
-  const next = promoteDeckCard(withoutOutgoing(current.deck), current.sideboard, promoted)
-  setDeck(next.deck)
-  setSideboard(next.sideboard)
-  setQueue((current: Card[]) => current.filter((card) => card.name !== candidate.name))
+  const result = builderAction(deps, {
+    type: 'promote',
+    candidate: promoted,
+    outgoingNames: outgoing,
+    keepOutgoing,
+    details: deps.getBuilderState().commanderDetails,
+  })
+  if (result.error) {
+    setBatchAnnouncement(result.error)
+    return
+  }
   setBatchAnnouncement(`${candidate.name} is now your commander.`)
 }
 
 export async function changeArt(
-  deps: ActionDeps,
+  deps: AppActionContext,
   name: string,
   sources: (string | undefined)[],
   apply: () => void,
@@ -268,227 +170,86 @@ export async function changeArt(
   setLoadingArt('')
 }
 
-export async function cycleCommanderPrinting(deps: ActionDeps, commanderIndex: number) {
-  const {
-    commander,
-    commanderDetails,
-    loadingArt,
-    setCommanderDetails,
-    setDeck,
-    setPreferredPrintSet,
-    setQueue,
-  } = deps
-  if (!commanderDetails || commanderDetails.printings[commanderIndex].length < 2 || loadingArt)
-    return
-  const selection =
-    (commanderDetails.selections[commanderIndex] + 1) %
-    commanderDetails.printings[commanderIndex].length
-  const selected = commanderDetails.printings[commanderIndex][selection]
-  const name = commanderNames(commander)[commanderIndex]
+export async function cycleCommanderPrinting(deps: AppActionContext, index: number) {
+  const details = deps.commanderDetails
+  const printings = details?.printings[index]
+  if (!printings || printings.length < 2 || deps.loadingArt) return
+  const selection = (details.selections[index] + 1) % printings.length
+  const selected = printings[selection]
+  const name = commanderNames(deps.commander)[index]
   await changeArt(deps, name, [selected.image, selected.art], () => {
-    setPreferredPrintSet(selected.set)
-    setCommanderDetails(
-      (current: any) =>
-        current && {
-          ...current,
-          images: current.images.map((image: any, index: any) =>
-            index === commanderIndex ? selected.image : image,
-          ),
-          art: current.art.map((image: any, index: any) =>
-            index === commanderIndex ? (selected.art ?? image) : image,
-          ),
-          selections: current.selections.map((value: any, index: any) =>
-            index === commanderIndex ? selection : value,
-          ),
-        },
-    )
-    setDeck((current: any) =>
-      current.map((card: any, index: any) =>
-        index === commanderIndex
-          ? {
-              ...card,
-              image: selected.image,
-              backImage: selected.backImage,
-              set: selected.set,
-              setName: selected.setName,
-              collectorNumber: selected.collectorNumber,
-              scryfallUri: selected.scryfallUri,
-              price: selected.price,
-              priceUri: selected.priceUri,
-              printing: selection,
-              finish: selected.finish,
-              foilType: selected.foilType,
-            }
-          : card,
-      ),
-    )
-    setQueue((current: any) =>
-      current.map((card: any) => {
-        if (!card.printings?.length) return card
-        const matching = preferredPrintingIndex(
-          card.printings,
-          selected.set,
-          card.printing,
-          card.printingManuallySelected,
-        )
-        const printing = card.printings[matching]
-        return {
-          ...card,
-          image: printing.image,
-          backImage: printing.backImage,
-          set: printing.set,
-          setName: printing.setName,
-          collectorNumber: printing.collectorNumber,
-          scryfallUri: printing.scryfallUri,
-          price: printing.price,
-          priceUri: printing.priceUri,
-          printing: matching,
-          finish: printing.finish,
-          foilType: printing.foilType,
-        }
-      }),
-    )
+    builderAction(deps, {
+      type: 'printing',
+      board: 'deck',
+      index,
+      name,
+      printings,
+      selection,
+      automatic: false,
+    })
   })
 }
 
-export async function cyclePrinting(deps: ActionDeps, card: Card) {
-  const { decisions, loadingArt, setDeck, setQueue, setSelectedGuidanceCard, setSideboard } = deps
-  if (!card.printings || card.printings.length < 2 || loadingArt) return
-  const index = ((card.printing ?? 0) + 1) % card.printings.length
-  const selected = card.printings[index]
-  await changeArt(deps, card.name, [selected.image], () => {
-    setQueue((current: any) =>
-      current.map((item: any) =>
-        item.name === card.name
-          ? {
-              ...item,
-              printing: index,
-              image: selected.image,
-              backImage: selected.backImage,
-              set: selected.set,
-              setName: selected.setName,
-              collectorNumber: selected.collectorNumber,
-              scryfallUri: selected.scryfallUri,
-              price: selected.price,
-              priceUri: selected.priceUri,
-              printingManuallySelected: true,
-              finish: selected.finish,
-              foilType: selected.foilType,
-            }
-          : item,
-      ),
-    )
-    setSelectedGuidanceCard((current: Card | null) =>
+export async function cyclePrinting(deps: AppActionContext, card: Card) {
+  const printings = card.printings
+  if (!printings || printings.length < 2 || deps.loadingArt) return
+  const selection = ((card.printing ?? 0) + 1) % printings.length
+  await changeArt(deps, card.name, [printings[selection].image], () => {
+    builderAction(deps, {
+      type: 'printing',
+      board: 'queue',
+      index: deps.queue.findIndex((item: Card) => item.name === card.name),
+      name: card.name,
+      printings,
+      selection,
+      automatic: false,
+    })
+    deps.setSelectedGuidanceCard((current: Card | null) =>
       current?.name === card.name
-        ? {
-            ...current,
-            printing: index,
-            image: selected.image,
-            backImage: selected.backImage,
-            set: selected.set,
-            setName: selected.setName,
-            collectorNumber: selected.collectorNumber,
-            scryfallUri: selected.scryfallUri,
-            price: selected.price,
-            priceUri: selected.priceUri,
-            printingManuallySelected: true,
-            finish: selected.finish,
-            foilType: selected.foilType,
-          }
+        ? withBuilderPrinting(current, printings, selection, true)
         : current,
     )
-    if (decisions[card.name] === 'add') {
-      const update = (item: DeckCard) =>
-        item.name === card.name
-          ? {
-              ...item,
-              set: selected.set,
-              setName: selected.setName,
-              collectorNumber: selected.collectorNumber,
-              scryfallUri: selected.scryfallUri,
-              image: selected.image,
-              backImage: selected.backImage,
-              price: selected.price,
-              priceUri: selected.priceUri,
-              printing: index,
-              printingManuallySelected: true,
-              finish: selected.finish,
-              foilType: selected.foilType,
-            }
-          : item
-      setDeck((current: any) => current.map(update))
-      setSideboard((current: any) => current.map(update))
-    }
   })
 }
 
-export async function cycleDeckPrinting(deps: ActionDeps, cardIndex: number) {
-  const { commander, deck, loadingArt, setDeck } = deps
-  if (cardIndex < commanderNames(commander).length) {
-    await cycleCommanderPrinting(deps, cardIndex)
-    return
-  }
-  const card = deck[cardIndex]
-  if (!card.printings || card.printings.length < 2 || loadingArt) return
-  const printing = ((card.printing ?? 0) + 1) % card.printings.length
-  const selected = card.printings[printing]
-  await changeArt(deps, card.name, [selected.image], () =>
-    setDeck((current: any) =>
-      current.map((item: any, index: any) =>
-        index === cardIndex
-          ? {
-              ...item,
-              image: selected.image,
-              backImage: selected.backImage,
-              set: selected.set,
-              setName: selected.setName,
-              collectorNumber: selected.collectorNumber,
-              scryfallUri: selected.scryfallUri,
-              price: selected.price,
-              priceUri: selected.priceUri,
-              printing,
-              printingManuallySelected: true,
-              finish: selected.finish,
-              foilType: selected.foilType,
-            }
-          : item,
-      ),
-    ),
-  )
+export async function cycleDeckPrinting(deps: AppActionContext, index: number) {
+  if (index < commanderNames(deps.commander).length) return cycleCommanderPrinting(deps, index)
+  const card: DeckCard | undefined = deps.deck[index]
+  const printings = card?.printings
+  if (!card || !printings || printings.length < 2 || deps.loadingArt) return
+  const selection = ((card.printing ?? 0) + 1) % printings.length
+  await changeArt(deps, card.name, [printings[selection].image], () => {
+    builderAction(deps, {
+      type: 'printing',
+      board: 'deck',
+      index,
+      name: card.name,
+      printings,
+      selection,
+      automatic: false,
+    })
+  })
 }
 
-export async function cycleSideboardPrinting(deps: ActionDeps, cardIndex: number) {
-  const { loadingArt, setSideboard, sideboard } = deps
-  const card = sideboard[cardIndex]
-  if (!card?.printings || card.printings.length < 2 || loadingArt) return
-  const printing = ((card.printing ?? 0) + 1) % card.printings.length
-  const selected = card.printings[printing]
-  await changeArt(deps, card.name, [selected.image], () =>
-    setSideboard((current: any) =>
-      current.map((item: any, index: any) =>
-        index === cardIndex
-          ? {
-              ...item,
-              image: selected.image,
-              backImage: selected.backImage,
-              set: selected.set,
-              setName: selected.setName,
-              collectorNumber: selected.collectorNumber,
-              scryfallUri: selected.scryfallUri,
-              price: selected.price,
-              priceUri: selected.priceUri,
-              printing,
-              printingManuallySelected: true,
-              finish: selected.finish,
-              foilType: selected.foilType,
-            }
-          : item,
-      ),
-    ),
-  )
+export async function cycleSideboardPrinting(deps: AppActionContext, index: number) {
+  const card: DeckCard | undefined = deps.sideboard[index]
+  const printings = card?.printings
+  if (!card || !printings || printings.length < 2 || deps.loadingArt) return
+  const selection = ((card.printing ?? 0) + 1) % printings.length
+  await changeArt(deps, card.name, [printings[selection].image], () => {
+    builderAction(deps, {
+      type: 'printing',
+      board: 'sideboard',
+      index,
+      name: card.name,
+      printings,
+      selection,
+      automatic: false,
+    })
+  })
 }
 
-export async function cycleSelectedDeckCardPrinting(deps: ActionDeps) {
+export async function cycleSelectedDeckCardPrinting(deps: AppActionContext) {
   const { selectedDeckCardLocation, selectedGuidanceCard } = deps
   if (selectedGuidanceCard) {
     await cyclePrinting(deps, selectedGuidanceCard)
@@ -500,7 +261,7 @@ export async function cycleSelectedDeckCardPrinting(deps: ActionDeps) {
   else await cycleSideboardPrinting(deps, selectedDeckCardLocation.index)
 }
 
-export function deckList(deps: ActionDeps, format: ExportFormat) {
+export function deckList(deps: AppActionContext, format: ExportFormat) {
   const { commander, deck, sideboard } = deps
   const commanderCount = commanderNames(commander).length
   const section = (cards: DeckCard[], board: string) => {
@@ -533,14 +294,14 @@ export function deckList(deps: ActionDeps, format: ExportFormat) {
   return `${main}${side ? `\n\nSIDEBOARD:\n${side}` : ''}`
 }
 
-export async function copyDeck(deps: ActionDeps) {
+export async function copyDeck(deps: AppActionContext) {
   const { exportFormat, setCopied } = deps
   await navigator.clipboard.writeText(deckList(deps, exportFormat))
   setCopied(true)
   setTimeout(() => setCopied(false), 1500)
 }
 
-export function openCollectionCard(deps: ActionDeps, card: ScryfallCard) {
+export function openCollectionCard(deps: AppActionContext, card: ScryfallCard) {
   const {
     openModal,
     setSelectedCollectionCard,
@@ -563,9 +324,12 @@ export async function fetchBasic(name: string) {
   }
 }
 
-export async function addBasicLands(deps: ActionDeps, plan: { name: string; count: number }[]) {
+export async function addBasicLands(
+  deps: AppActionContext,
+  plan: { name: string; count: number }[],
+) {
   const job = deckJob(deps)
-  const { closeModal, setBasicLandState, setDeck } = job.deps
+  const { closeModal, setBasicLandState } = job.deps
   const expectedDeck = deps.deck
   setBasicLandState('loading')
   try {
@@ -580,17 +344,8 @@ export async function addBasicLands(deps: ActionDeps, plan: { name: string; coun
       setBasicLandState('idle')
       return
     }
-    for (const { card, count } of cards) {
-      if (!Number.isInteger(count) || count < 0 || count > 100)
-        throw new Error('Invalid basic-land count.')
-      if (!/\bBasic\b/.test(card.typeLine)) throw new Error('Choose a basic land.')
-      const error = cardConstructionError(card, deps.deck, deps.commanderDetails?.colours ?? [])
-      if (error) throw new Error(error)
-    }
-    const additions = cards.flatMap(({ card, count }) =>
-      Array.from({ length: count }, () => ({ ...card })),
-    )
-    setDeck((current: DeckCard[]) => [...current, ...additions].slice(0, 100))
+    const result = builderAction(deps, { type: 'addBasics', cards })
+    if (result.error) throw new Error(result.error)
     setBasicLandState('idle')
     closeModal()
   } catch {
@@ -598,7 +353,7 @@ export async function addBasicLands(deps: ActionDeps, plan: { name: string; coun
   }
 }
 
-export async function selectManualCard(deps: ActionDeps, card: ScryfallCard) {
+export async function selectManualCard(deps: AppActionContext, card: ScryfallCard) {
   deps.manualPrintingRequest.current?.abort()
   const controller = new AbortController()
   deps.manualPrintingRequest.current = controller
@@ -635,7 +390,7 @@ export async function selectManualCard(deps: ActionDeps, card: ScryfallCard) {
   }
 }
 
-export async function cycleManualPrinting(deps: ActionDeps) {
+export async function cycleManualPrinting(deps: AppActionContext) {
   const { loadingArt, manualPrinting, manualPrintings, setManualPrinting, setSelectedManualCard } =
     deps
   if (manualPrintings.length < 2 || loadingArt) return
@@ -649,63 +404,45 @@ export async function cycleManualPrinting(deps: ActionDeps) {
   })
 }
 
-export function addSearchCards(deps: ActionDeps, cards: ScryfallCard[]) {
-  if (!cards.length) return 'Select at least one card.'
-  try {
-    const result = addCardSearchCards(
-      cards,
-      deps.deck,
-      deps.sideboard,
-      deps.commanderDetails?.colours ?? [],
-      mainDeckLimit(deps),
-    )
-    deps.skipCompletionReviewDecks.current.add(result.deck)
-    deps.setDeck(result.deck)
-    deps.setSideboard(result.sideboard)
-    const names = new Set(cards.map(({ name }) => name))
-    deps.setQueue((current: Card[]) => current.filter(({ name }) => !names.has(name)))
-    deps.setBatchAnnouncement(
-      `Added ${result.mainCount} to deck and ${result.sideboardCount} to sideboard from search.`,
-    )
-    return ''
-  } catch (error) {
-    return error instanceof Error ? error.message : 'Could not add the selected cards.'
-  }
+export function addSearchCards(deps: AppActionContext, cards: ScryfallCard[]) {
+  const previousMainCount = deps.deck.length
+  const previousSideboardCount = deps.sideboard.length
+  const result = builderAction(deps, {
+    type: 'addSearch',
+    cards,
+  })
+  if (result.error) return result.error
+  deps.skipCompletionReviewDecks.current.add(result.state.deck)
+  const mainCount = result.state.deck.length - previousMainCount
+  const sideboardCount = result.state.sideboard.length - previousSideboardCount
+  deps.setBatchAnnouncement(
+    `Added ${mainCount} to deck and ${sideboardCount} to sideboard from search.`,
+  )
+  return ''
 }
 
-export function addManualCard(deps: ActionDeps) {
+export function addManualCard(deps: AppActionContext) {
   if (deps.selectedManualCard) return addSearchCards(deps, [deps.selectedManualCard])
   return 'Select a card first.'
 }
 
-export async function addOneBasic(deps: ActionDeps, name: string) {
+export async function addOneBasic(deps: AppActionContext, name: string) {
   const job = deckJob(deps)
-  const { deck, setBasicLandState, setDeck } = job.deps
+  const { deck, setBasicLandState } = job.deps
   try {
     const added = await fetchBasic(name)
     if (!job.isCurrent() || (deps.getCurrentState?.() ?? deps).deck !== deck) return
-    if (cardConstructionError(added, deps.deck, deps.commanderDetails?.colours ?? []))
-      throw new Error('Cannot add this basic land.')
     // The + sits on a main-deck row, so it always adds there, even past 100.
-    setDeck((current: any) => [...current, added])
+    const result = builderAction(deps, { type: 'addOneBasic', card: added })
+    if (result.error) throw new Error(result.error)
   } catch {
     setBasicLandState('error')
   }
 }
 
-export function clearAddedDecision(deps: ActionDeps, name: string) {
-  const { setDecisions } = deps
-  setDecisions((current: any) => {
-    if (current[name] !== 'add') return current
-    const next = { ...current }
-    delete next[name]
-    return next
-  })
-}
-
-export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
+export async function hydrateDeckCardDetails(deps: AppActionContext, card: DeckCard) {
   const job = deckJob(deps)
-  const { setDeck, setSideboard } = job.deps
+
   try {
     let fetched: ScryfallCard | undefined
     if (
@@ -757,18 +494,27 @@ export async function hydrateDeckCardDetails(deps: ActionDeps, card: DeckCard) {
       foilType: selected ? selected.foilType : card.foilType,
     }
     // Enrich only the captured card; newer printing choices and gameplay refreshes win.
-    setDeck((current: any) =>
-      current.map((item: any) => (item === card ? { ...item, ...metadata } : item)),
-    )
-    setSideboard((current: any) =>
-      current.map((item: any) => (item === card ? { ...item, ...metadata } : item)),
-    )
+    if (!job.isCurrent()) return
+    builderAction(deps, (builder) => ({
+      type: 'data',
+      changes: {
+        deck: builder.deck.map((item: any) => (item === card ? { ...item, ...metadata } : item)),
+      },
+    }))
+    builderAction(deps, (builder) => ({
+      type: 'data',
+      changes: {
+        sideboard: builder.sideboard.map((item: any) =>
+          item === card ? { ...item, ...metadata } : item,
+        ),
+      },
+    }))
   } catch {
     // The modal still shows the locally stored card details when Scryfall is unavailable.
   }
 }
 
-export function openGuidanceCard(deps: ActionDeps, card: Card) {
+export function openGuidanceCard(deps: AppActionContext, card: Card) {
   const {
     openModal,
     setSelectedCollectionCard,
@@ -783,14 +529,14 @@ export function openGuidanceCard(deps: ActionDeps, card: Card) {
   openModal(deps, 'card')
 }
 
-export function addSelectedGuidanceCard(deps: ActionDeps) {
+export function addSelectedGuidanceCard(deps: AppActionContext) {
   const { selectedGuidanceCard } = deps
   if (!selectedGuidanceCard) return
   addRecommendationCard(deps, selectedGuidanceCard)
   closeDeckCard(deps)
 }
 
-export function openDeckCard(deps: ActionDeps, card: DeckCard, location: DeckCardLocation) {
+export function openDeckCard(deps: AppActionContext, card: DeckCard, location: DeckCardLocation) {
   const {
     openModal,
     setSelectedCollectionCard,
@@ -815,13 +561,13 @@ export function openDeckCard(deps: ActionDeps, card: DeckCard, location: DeckCar
     void hydrateDeckCardDetails(deps, card)
 }
 
-export function openCommanderCard(deps: ActionDeps, index: number) {
+export function openCommanderCard(deps: AppActionContext, index: number) {
   const { deck } = deps
   const card = deck[index]
   if (card) openDeckCard(deps, card, { board: 'deck', index })
 }
 
-export function openCardReference(deps: ActionDeps, card: Card | DeckCard) {
+export function openCardReference(deps: AppActionContext, card: Card | DeckCard) {
   if (
     ['review', 'review-changes', 'review-confirm', 'doctor', 'doctor-history', 'search'].includes(
       deps.activeModal,
@@ -858,7 +604,7 @@ export function openCardReference(deps: ActionDeps, card: Card | DeckCard) {
   deps.openModal(deps, 'card')
 }
 
-export function closeDeckCard(deps: ActionDeps) {
+export function closeDeckCard(deps: AppActionContext) {
   const {
     closeModal,
     setPendingCardRemoval,
@@ -879,7 +625,7 @@ export function closeDeckCard(deps: ActionDeps) {
   closeModal()
 }
 
-export function removeSelectedDeckCard(deps: ActionDeps) {
+export function removeSelectedDeckCard(deps: AppActionContext) {
   const { pendingCardRemoval, selectedDeckCardLocation, setPendingCardRemoval } = deps
   const location = selectedDeckCardLocation
   if (!location) return
@@ -894,17 +640,15 @@ export function removeSelectedDeckCard(deps: ActionDeps) {
   closeDeckCard(deps)
 }
 
-export function moveDeckCardToSideboard(deps: ActionDeps, index: number) {
-  const card = deps.deck[index]
-  deps.setDeck((current: any) => current.filter((_: any, cardIndex: any) => cardIndex !== index))
-  deps.setSideboard((current: any) => [...current, card])
+export function moveDeckCardToSideboard(deps: AppActionContext, index: number) {
+  builderAction(deps, { type: 'moveCard', board: 'deck', index })
 }
 
-export function chooseAddZone(deps: ActionDeps, zone: AddZone) {
-  deps.setAddZoneChoice({ zone, full: deps.deck.length >= 100 })
+export function chooseAddZone(deps: AppActionContext, zone: AddZone) {
+  builderAction(deps, { type: 'chooseZone', zone })
 }
 
-export function moveSelectedDeckCard(deps: ActionDeps) {
+export function moveSelectedDeckCard(deps: AppActionContext) {
   const location = deps.selectedDeckCardLocation
   if (!location) return
   if (location.board === 'deck') moveDeckCardToSideboard(deps, location.index)
@@ -912,40 +656,26 @@ export function moveSelectedDeckCard(deps: ActionDeps) {
   closeDeckCard(deps)
 }
 
-export function removeDeckCard(deps: ActionDeps, index: number) {
-  const { deck, setDeck, setPendingRemoval } = deps
-  const removed = deck[index]
-  setPendingRemoval(null)
-  setDeck((current: any) => current.filter((_: any, cardIndex: any) => cardIndex !== index))
-  clearAddedDecision(deps, removed.name)
+export function removeDeckCard(deps: AppActionContext, index: number) {
+  deps.setPendingRemoval(null)
+  builderAction(deps, { type: 'removeCard', board: 'deck', index })
 }
 
-export function removeSideboardCard(deps: ActionDeps, index: number) {
-  const { setSideboard, sideboard } = deps
-  const removed = sideboard[index]
-  setSideboard((current: any) => current.filter((_: any, cardIndex: any) => cardIndex !== index))
-  clearAddedDecision(deps, removed.name)
+export function removeSideboardCard(deps: AppActionContext, index: number) {
+  builderAction(deps, { type: 'removeCard', board: 'sideboard', index })
 }
-
 // Moving between zones is free; the main deck may go over 100 (and so become illegal).
-export function moveSideboardCard(deps: ActionDeps, index: number) {
-  const { deck, setDeck, setSideboard, sideboard } = deps
-  const card = sideboard[index]
-  const error = cardConstructionError(card, deck, deps.commanderDetails?.colours ?? [])
-  if (error) {
-    deps.setBatchAnnouncement(`${card.name}: ${error}`)
-    return
-  }
-  setSideboard((current: any) => current.filter((_: any, cardIndex: any) => cardIndex !== index))
-  setDeck((current: any) => [...current, card])
+export function moveSideboardCard(deps: AppActionContext, index: number) {
+  const result = builderAction(deps, { type: 'moveCard', board: 'sideboard', index })
+  if (result.error) deps.setBatchAnnouncement(result.error)
 }
 
-export function currentState(deps: ActionDeps): PersistedDeckState | null {
+export function currentState(deps: AppActionContext): PersistedDeckState | null {
   const { currentDeckState } = deps
   return currentDeckState
 }
 
-export function openSavedDecks(deps: ActionDeps) {
+export function openSavedDecks(deps: AppActionContext) {
   const { activeSavedDeckId, activeSubThemes, commander, deckName, openModal, setDeckName, theme } =
     deps
   if (commander && !activeSavedDeckId && !deckName)
@@ -953,7 +683,7 @@ export function openSavedDecks(deps: ActionDeps) {
   openModal(deps, 'saved')
 }
 
-export function storeDeck(deps: ActionDeps, overwrite = false) {
+export function storeDeck(deps: AppActionContext, overwrite = false) {
   const { activeSavedDeckId, deckName, savedDecks, setActiveSavedDeckId, setSavedDecks } = deps
   const state = currentState(deps)
   const name = deckName.trim()
@@ -979,78 +709,29 @@ export function storeDeck(deps: ActionDeps, overwrite = false) {
   setActiveSavedDeckId(id)
 }
 
-export function loadSavedDeck(deps: ActionDeps, saved: SavedDeck, checkCurrentData = true) {
-  const {
-    navigateView,
-    setActiveSavedDeckId,
-    setActiveSubThemes,
-    setBatchNumber,
-    setCollectionGroups,
-    setCollectionMode,
-    setCollectionPoolSize,
-    setCollectionSets,
-    setCommander,
-    setCommanderDetails,
-    setCommanderSubThemes,
-    setDecisions,
-    setDeck,
-    setDeckName,
-    setDeckTargets,
-    setDeferredCards,
-    setDismissedSubThemes,
-    setIgnoredCards,
-    setLiked,
-    setLimitedRecommendations,
-    setPreferenceScores,
-    setPreferredPrintSet,
-    setQueue,
-    setRecommendationStyle,
-    setSideboard,
-    setTheme,
-  } = deps
+export function loadSavedDeck(deps: AppActionContext, saved: SavedDeck, checkCurrentData = true) {
   const state = checkCurrentData ? pendingDeckData(saved.state) : saved.state
   deps.setFirstBatchPending?.(state.firstBatchPending ?? false)
-
-  resetSignatureContext(deps, state.savedDeckId || saved.id || crypto.randomUUID())
-  setCommander(state.commander)
-  setCommanderDetails(state.commanderDetails)
-  setTheme(state.theme)
-  setRecommendationStyle(
-    migrateRecommendationPriority(state.recommendationStyle, state.prioritizeDeckHealth),
-  )
-  deps.setMaxPrice?.(state.maxPrice ?? null)
-  deps.setIgnoreReasons?.(state.ignoreReasons ?? {})
-  deps.setFocusedRole?.(null)
-  setCollectionSets(state.collectionSets)
-  setCollectionGroups(state.collectionGroups)
-  setCollectionMode(state.collectionMode)
-  setCollectionPoolSize(null)
-  setQueue(state.queue)
+  const signatureDeckKey =
+    state.savedDeckId || saved.id || deps.buildIdentity?.id || deps.builderState.signatureDeckKey
+  const today = deps.buildIdentity?.today ?? deps.builderState.today
+  const restored = restoreBuilderState(state, today, signatureDeckKey, deps.builderState)
+  builderAction(deps, {
+    type: 'restore',
+    state: { ...restored, collectionMode: state.collectionMode },
+  })
+  resetSignatureContext(deps)
+  deps.setCollectionPoolSize(null)
   deps.setRecommendationState('idle')
-  deps.setRecommendationOptionsChanged(false)
   deps.setCollectionError('')
-  setLimitedRecommendations(state.limitedRecommendations)
-  setDecisions(restoredRecommendationDecisions(state))
-  setIgnoredCards(state.ignoredCards)
-  setLiked(state.liked)
-  setActiveSubThemes(state.activeSubThemes)
-  setDismissedSubThemes(state.dismissedSubThemes)
-  setPreferenceScores(state.preferenceScores)
-  setCommanderSubThemes(state.commanderSubThemes)
-  setDeferredCards(state.deferredCards)
-  setBatchNumber(state.batchNumber)
-  setDeck(state.deck)
-  setSideboard(state.sideboard)
-  setPreferredPrintSet(state.preferredPrintSet)
-  setDeckTargets(state.deckTargets)
-  deps.setDeckDoctorHistory([])
+  deps.setLimitedRecommendations(state.limitedRecommendations)
   deps.setDeckDoctorError('')
-  setActiveSavedDeckId(state.savedDeckId || saved.id)
-  setDeckName(saved.name)
-  navigateView(deps, 'builder', null, true)
+  deps.setActiveSavedDeckId(state.savedDeckId || saved.id)
+  deps.setDeckName(saved.name)
+  deps.navigateView(deps, 'builder', null, true)
 }
 
-export function removeSavedDeck(deps: ActionDeps, saved: SavedDeck) {
+export function removeSavedDeck(deps: AppActionContext, saved: SavedDeck) {
   const {
     activeSavedDeckId,
     setActiveSavedDeckId,
@@ -1067,7 +748,7 @@ export function removeSavedDeck(deps: ActionDeps, saved: SavedDeck) {
 }
 
 function closeImportAndMaybeReview(
-  deps: ActionDeps,
+  deps: AppActionContext,
   imported: ImportedDeck,
   openReviewAfterImport: boolean,
 ) {
@@ -1076,7 +757,7 @@ function closeImportAndMaybeReview(
 }
 
 export async function importDeck(
-  deps: ActionDeps,
+  deps: AppActionContext,
   openReviewAfterImport = true,
   skipMissing = false,
 ) {
@@ -1246,13 +927,22 @@ function importedDeckCard({ card, entry }: { card: ScryfallCard; entry: Imported
   }
 }
 
-async function importedRecommendationState(deps: ActionDeps, name: string) {
-  const staged: ActionDeps = {
+async function importedRecommendationState(deps: AppActionContext, name: string) {
+  const staged: AppActionContext = {
     ...deps,
+    today: deps.buildIdentity?.today ?? deps.today,
     navigateView: () => undefined,
     loadPrintings: async () => undefined,
-    recommendationPoolKey: { current: '' },
     recommendationRequest: { current: 0 },
+  }
+  let builderState = deps.getBuilderState()
+  staged.getBuilderState = () => builderState
+  staged.getCurrentState = () => staged
+  staged.dispatchBuilder = (action) => {
+    const result = applyBuilderAction(builderState, action)
+    builderState = result.state
+    Object.assign(staged, builderState)
+    return result
   }
   for (const key of Object.keys(deps).filter((key) => /^set[A-Z]/.test(key))) {
     const field = key[3].toLowerCase() + key.slice(4)
@@ -1267,7 +957,7 @@ async function importedRecommendationState(deps: ActionDeps, name: string) {
 }
 
 export async function applyImportedDeck(
-  deps: ActionDeps,
+  deps: AppActionContext,
   imported: ImportedDeck,
   skipMissing = false,
 ) {
@@ -1340,33 +1030,7 @@ export async function applyImportedDeck(
   )
 }
 
-export async function startOver(deps: ActionDeps) {
-  const {
-    navigateView,
-    setActiveSavedDeckId,
-    setActiveSubThemes,
-    setBatchNumber,
-    setCollectionGroups,
-    setCollectionMode,
-    setCollectionPoolSize,
-    setCollectionSets,
-    setCommander,
-    setCommanderDetails,
-    setCommanderSubThemes,
-    setDecisions,
-    setDeck,
-    setDeckName,
-    setDeckTargets,
-    setDeferredCards,
-    setDismissedSubThemes,
-    setIgnoredCards,
-    setLiked,
-    setPreferenceScores,
-    setPreferredPrintSet,
-    setQueue,
-    setSideboard,
-    setTheme,
-  } = deps
+export async function startOver(deps: AppActionContext) {
   if (
     // Lazy import keeps this module loadable by node's test runner, which cannot parse TSX.
     !(await (
@@ -1380,75 +1044,39 @@ export async function startOver(deps: ActionDeps) {
     return
   if (deps.beginWorkspace && !(await deps.beginWorkspace())) return
   deps.resetFirstUse?.()
-  resetSignatureContext(deps, crypto.randomUUID())
-  setCommander('')
-  setCommanderDetails(null)
-  setTheme('')
-  setCollectionSets([])
-  setCollectionGroups([])
-  setCollectionMode('none')
-  setCollectionPoolSize(null)
-  setDeck([])
-  setSideboard([])
-  deps.setDeckDoctorHistory([])
+  resetSignatureContext(deps)
+  const identity = deps.getBuilderState()
+  builderAction(deps, {
+    type: 'startOver',
+    today: deps.buildIdentity?.today ?? identity.today,
+    signatureDeckKey: deps.buildIdentity?.id ?? identity.signatureDeckKey,
+  })
+  deps.setCollectionPoolSize(null)
   deps.setDeckDoctorError('')
-  setQueue([])
-  setDecisions({})
-  deps.setIgnoreReasons?.({})
-  deps.setFocusedRole?.(null)
-  setIgnoredCards([])
-  setLiked([])
-  setActiveSubThemes([])
-  setDismissedSubThemes([])
-  setPreferenceScores({})
-  setCommanderSubThemes([])
-  setDeferredCards([])
-  setBatchNumber(1)
-  setPreferredPrintSet('')
-  setDeckTargets(defaultDeckTargets)
-  setActiveSavedDeckId('')
-  setDeckName('')
-  navigateView(deps, 'start', null, true)
+  deps.setActiveSavedDeckId('')
+  deps.setDeckName('')
+  deps.navigateView(deps, 'start', null, true)
 }
 
 export function applyDeckDoctorSwapPlan(
-  deps: ActionDeps,
+  deps: AppActionContext,
   cuts: { cutIndex: number; cutCard: DeckCard }[],
   additions: Card[],
   moveCutToSideboard: boolean,
+  id: string,
 ) {
-  try {
-    for (const card of additions) {
-      const error = recommendationDataError(
-        card,
-        [],
-        deps.commanderDetails?.colours ?? [],
-        deps.excludeGameChangers,
-      )
-      if (error) throw new Error(error)
-    }
-    const result = applyDoctorSwapPlan({
-      id: crypto.randomUUID(),
-      deck: deps.deck,
-      sideboard: deps.sideboard,
-      commanderCount: commanderNames(deps.commander).length,
-      commanderColours: deps.commanderDetails?.colours ?? [],
-      cuts,
-      additions,
-      moveCutToSideboard,
-    })
-    deps.setDeck(result.deck)
-    deps.setSideboard(result.sideboard)
-    deps.setDeckDoctorHistory((current: any[]) => [...current, ...result.records])
-    deps.setDeckDoctorError('')
-    return true
-  } catch (error) {
-    deps.setDeckDoctorError(error instanceof Error ? error.message : 'Could not apply the changes.')
-    return false
-  }
+  const result = builderAction(deps, {
+    type: 'doctorApply',
+    id,
+    cuts,
+    additions,
+    moveCutToSideboard,
+  })
+  deps.setDeckDoctorError(result.error ?? '')
+  return !result.error
 }
 
-export async function undoDeckDoctorSwap(deps: ActionDeps, id: string) {
+export async function undoDeckDoctorSwap(deps: AppActionContext, id: string) {
   const job = deckJob(deps)
   const record = deps.deckDoctorHistory.find((swap: any) => swap.id === id)
   if (!record) return false
@@ -1466,16 +1094,8 @@ export async function undoDeckDoctorSwap(deps: ActionDeps, id: string) {
     if (!job.isCurrent()) return false
     const current = deps.getCurrentState?.() ?? deps
     if (!current.deckDoctorHistory.includes(record)) return false
-    const result = undoDoctorSwap({
-      deck: current.deck,
-      sideboard: current.sideboard,
-      commanderCount: commanderNames(current.commander).length,
-      commanderColours: current.commanderDetails?.colours ?? [],
-      record: { ...record, cutCard: refreshed },
-    })
-    deps.setDeck(result.deck)
-    deps.setSideboard(result.sideboard)
-    deps.setDeckDoctorHistory((current: any[]) => current.filter((swap: any) => swap.id !== id))
+    const result = builderAction(current, { type: 'doctorUndo', id, refreshedCut: refreshed })
+    if (result.error) throw new Error(result.error)
     deps.setDeckDoctorError('')
     return true
   } catch (error) {

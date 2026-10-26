@@ -1,3 +1,4 @@
+import type { BuilderSettings } from '../../domain/builder-state.ts'
 import { type Dispatch, type SetStateAction, useEffect } from 'react'
 import { useDialogFocus } from '../../shared/hooks.ts'
 
@@ -47,6 +48,7 @@ function SettingHelp({ id, label, description }: SettingHelpProps) {
 
 type RecommendationSettingsModalProps = {
   show: boolean
+  chooseOptions: (settings: Partial<BuilderSettings>) => void
   focusSets?: boolean
   recommendationStyle: RecommendationStyle
   chooseRecommendationStyle: (value: RecommendationStyle) => void
@@ -55,7 +57,6 @@ type RecommendationSettingsModalProps = {
   maxPrice: number | null
   chooseMaxPrice: (value: number | null) => void
   includeCreature: boolean
-  setIncludeCreature: Dispatch<SetStateAction<boolean>>
   collectionSearch: string
   setCollectionSearch: Dispatch<SetStateAction<string>>
   collectionSets: string[]
@@ -72,17 +73,11 @@ type RecommendationSettingsModalProps = {
   collectionError: string
   collectionPoolSize: number | null
   excludeGameChangers: boolean
-  setExcludeGameChangers: Dispatch<SetStateAction<boolean>>
   limitGameChangers: boolean
-  setLimitGameChangers: Dispatch<SetStateAction<boolean>>
   excludeTutors: boolean
-  setExcludeTutors: Dispatch<SetStateAction<boolean>>
   excludeExtraTurns: boolean
-  setExcludeExtraTurns: Dispatch<SetStateAction<boolean>>
   excludeUnreleased: boolean
-  setExcludeUnreleased: Dispatch<SetStateAction<boolean>>
   recommendationOptionsChanged: boolean
-  setRecommendationOptionsChanged: Dispatch<SetStateAction<boolean>>
   recommendationSettingsSummary: string
   closeModal: () => void
 }
@@ -90,6 +85,7 @@ type RecommendationSettingsModalProps = {
 // eslint-disable-next-line max-lines-per-function -- The settings form markup stays together.
 export function RecommendationSettingsModal({
   show,
+  chooseOptions,
   focusSets = false,
   recommendationStyle,
   chooseRecommendationStyle,
@@ -98,7 +94,6 @@ export function RecommendationSettingsModal({
   maxPrice,
   chooseMaxPrice,
   includeCreature,
-  setIncludeCreature,
   collectionSearch,
   setCollectionSearch,
   collectionSets,
@@ -115,17 +110,11 @@ export function RecommendationSettingsModal({
   collectionError,
   collectionPoolSize,
   excludeGameChangers,
-  setExcludeGameChangers,
   limitGameChangers,
-  setLimitGameChangers,
   excludeTutors,
-  setExcludeTutors,
   excludeExtraTurns,
-  setExcludeExtraTurns,
   excludeUnreleased,
-  setExcludeUnreleased,
   recommendationOptionsChanged,
-  setRecommendationOptionsChanged,
   recommendationSettingsSummary,
   closeModal,
 }: RecommendationSettingsModalProps) {
@@ -244,8 +233,7 @@ export function RecommendationSettingsModal({
                 type="checkbox"
                 checked={includeCreature}
                 onChange={(event) => {
-                  setIncludeCreature(event.target.checked)
-                  setRecommendationOptionsChanged(true)
+                  chooseOptions({ includeCreature: event.target.checked })
                 }}
               />{' '}
               Include a creature when possible
@@ -418,8 +406,7 @@ export function RecommendationSettingsModal({
                   type="checkbox"
                   checked={excludeGameChangers}
                   onChange={(event) => {
-                    setExcludeGameChangers(event.target.checked)
-                    setRecommendationOptionsChanged(true)
+                    chooseOptions({ excludeGameChangers: event.target.checked })
                   }}
                 />{' '}
                 Exclude Game Changers
@@ -438,8 +425,7 @@ export function RecommendationSettingsModal({
                   checked={limitGameChangers || excludeGameChangers}
                   disabled={excludeGameChangers}
                   onChange={(event) => {
-                    setLimitGameChangers(event.target.checked)
-                    setRecommendationOptionsChanged(true)
+                    chooseOptions({ limitGameChangers: event.target.checked })
                   }}
                 />{' '}
                 Limit to 3 Game Changers
@@ -457,8 +443,7 @@ export function RecommendationSettingsModal({
                   type="checkbox"
                   checked={excludeTutors}
                   onChange={(event) => {
-                    setExcludeTutors(event.target.checked)
-                    setRecommendationOptionsChanged(true)
+                    chooseOptions({ excludeTutors: event.target.checked })
                   }}
                 />{' '}
                 Exclude tutors (preference)
@@ -476,8 +461,7 @@ export function RecommendationSettingsModal({
                   type="checkbox"
                   checked={excludeExtraTurns}
                   onChange={(event) => {
-                    setExcludeExtraTurns(event.target.checked)
-                    setRecommendationOptionsChanged(true)
+                    chooseOptions({ excludeExtraTurns: event.target.checked })
                   }}
                 />{' '}
                 Exclude extra turns (preference)
@@ -495,8 +479,7 @@ export function RecommendationSettingsModal({
                   type="checkbox"
                   checked={excludeUnreleased}
                   onChange={(event) => {
-                    setExcludeUnreleased(event.target.checked)
-                    setRecommendationOptionsChanged(true)
+                    chooseOptions({ excludeUnreleased: event.target.checked })
                   }}
                 />{' '}
                 Exclude unreleased cards (preference)

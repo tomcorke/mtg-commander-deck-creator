@@ -1,5 +1,6 @@
 import { finishLabel } from '../../domain/printing.ts'
 import { FinishFilters } from '../../shared/FinishFilters.tsx'
+import type { BuilderAction } from '../../domain/builder-state.ts'
 import { creatureTypeForTheme, hasTag } from '../../domain/creature-types.ts'
 import {
   startTransition,
@@ -102,7 +103,6 @@ type BuilderViewModel = {
   deckReviewFilter: DeckReviewFilter | null
   decisions: Record<string, 'add' | 'later' | 'ignore'>
   ignoreReasons: Record<string, IgnoreReason>
-  setIgnoreReasons: Dispatch<SetStateAction<Record<string, IgnoreReason>>>
   focusedRole: TargetKey | null
   chooseRoleFocus: (role: TargetKey | null) => Promise<void>
   chooseMaxPrice: (price: number | null) => void
@@ -151,22 +151,17 @@ type BuilderViewModel = {
   theme: string
   toggleCollectionSet: (code: string) => void
   start: AnyFunction
-  setActiveSubThemes: Dispatch<SetStateAction<string[]>>
   pendingSubThemes: string[]
+  dispatchBuilder: (action: BuilderAction) => void
   setBasicLandState: (value: 'idle' | 'loading' | 'error') => void
   setCollectionBrowserMana: Dispatch<SetStateAction<string>>
   setCollectionBrowserType: Dispatch<SetStateAction<string>>
   setDeckReviewFilter: Dispatch<SetStateAction<DeckReviewFilter | null>>
-  setDeckTargets: Dispatch<SetStateAction<DeckTargets>>
-  setDismissedSubThemes: Dispatch<SetStateAction<string[]>>
   setHighlightedManaValue: Dispatch<SetStateAction<number | null>>
-  setLiked: Dispatch<SetStateAction<string[]>>
   setPendingRemoval: Dispatch<SetStateAction<number | null>>
-  setRecommendationOptionsChanged: Dispatch<SetStateAction<boolean>>
   setShowCollectionBrowser: Dispatch<SetStateAction<boolean>>
   setShowSubThemePicker: Dispatch<SetStateAction<boolean>>
   setSubThemeSearch: Dispatch<SetStateAction<string>>
-  setTheme: Dispatch<SetStateAction<string>>
 }
 
 /** The unmet role target with the lowest share filled, for the narrow-screen deck bar. */
@@ -246,7 +241,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     decide,
     decisions,
     ignoreReasons,
-    setIgnoreReasons,
     focusedRole,
     chooseRoleFocus,
     chooseMaxPrice,
@@ -295,25 +289,20 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     removeDeckCard,
     removeSideboardCard,
     resetFan,
+    dispatchBuilder,
     retryEdhrec,
     savedDecksModal,
     scoredBatch,
-    setActiveSubThemes,
     setBasicLandState,
     setCollectionBrowserMana,
     setCollectionBrowserType,
     setDeckReviewFilter,
     setDeckDoctorError,
-    setDeckTargets,
-    setDismissedSubThemes,
     setHighlightedManaValue,
-    setLiked,
     setPendingRemoval,
-    setRecommendationOptionsChanged,
     setShowCollectionBrowser,
     setShowSubThemePicker,
     setSubThemeSearch,
-    setTheme,
     showBasicLands,
     showCollectionBrowser,
     showSubThemePicker,
@@ -555,10 +544,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               {theme && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setTheme('')
-                    setRecommendationOptionsChanged(true)
-                  }}
+                  onClick={() => dispatchBuilder({ type: 'theme', theme: '' })}
                   title="Remove declared theme"
                 >
                   {theme} <span>×</span>
@@ -567,10 +553,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               {activeSubThemes.map((name) => (
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveSubThemes((current) => current.filter((item) => item !== name))
-                    setRecommendationOptionsChanged(true)
-                  }}
+                  onClick={() => dispatchBuilder({ type: 'removeSubTheme', name })}
                   title={`Remove ${name} sub-theme`}
                   key={name}
                 >
@@ -590,13 +573,12 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   <button
                     type="button"
                     onClick={() =>
-                      setDismissedSubThemes((current) => [
-                        ...current.filter(
-                          (item) =>
-                            !item.startsWith(`${inferredSubTheme}:`) && item !== inferredSubTheme,
-                        ),
-                        `${inferredSubTheme}:${deckCards.filter((card) => hasTag(card, inferredSubTheme)).length}`,
-                      ])
+                      dispatchBuilder({
+                        type: 'dismissSubTheme',
+                        name: inferredSubTheme,
+                        evidenceCount: deckCards.filter((card) => hasTag(card, inferredSubTheme))
+                          .length,
+                      })
                     }
                     aria-label={`Dismiss ${inferredSubTheme} sub-theme`}
                   >
@@ -804,13 +786,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             type="button"
                             disabled={decisions[card.name] === 'ignore'}
                             aria-pressed={liked.includes(card.name)}
-                            onClick={() =>
-                              setLiked((current) =>
-                                current.includes(card.name)
-                                  ? current.filter((name) => name !== card.name)
-                                  : [...current, card.name],
-                              )
-                            }
+                            onClick={() => dispatchBuilder({ type: 'like', name: card.name })}
                             aria-describedby={`similar-${card.name}`}
                           >
                             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -837,11 +813,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 key={reason}
                                 aria-pressed={ignoreReasons[card.name] === reason}
                                 onClick={() =>
-                                  setIgnoreReasons((current) => {
-                                    const next = { ...current }
-                                    if (next[card.name] === reason) delete next[card.name]
-                                    else next[card.name] = reason
-                                    return next
+                                  dispatchBuilder({
+                                    type: 'ignoreReason',
+                                    name: card.name,
+                                    reason: ignoreReasons[card.name] === reason ? null : reason,
                                   })
                                 }
                               >
@@ -1144,7 +1119,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   type="button"
                   className="compact-action"
                   onClick={() =>
-                    setDeckTargets((current) => ({ ...current, lands: suggestedLands }))
+                    dispatchBuilder({ type: 'targets', targets: { lands: suggestedLands } })
                   }
                 >
                   Use {suggestedLands}
@@ -1221,10 +1196,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       max="99"
                       value={deckTargets[key]}
                       onChange={(event) =>
-                        setDeckTargets((current) => ({
-                          ...current,
-                          [key]: Math.max(0, Number(event.target.value)),
-                        }))
+                        dispatchBuilder({
+                          type: 'targets',
+                          targets: { [key]: Math.max(0, Number(event.target.value)) },
+                        })
                       }
                       aria-label={`${targetLabels[key]} target`}
                     />

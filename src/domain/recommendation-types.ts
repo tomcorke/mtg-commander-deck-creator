@@ -16,6 +16,9 @@ export function normalizeRecommendationStyle(value: unknown): RecommendationStyl
 }
 export type CollectionMode = 'none' | 'prefer' | 'only'
 export type RecommendationSource = 'edhrec' | 'scryfall'
+export type BatchPlacementReason =
+  'creature-slot' | 'mana-slot' | 'diversity' | 'theme-coverage' | 'focus'
+export type PlacementObserver<T> = (card: T, reason: BatchPlacementReason) => void
 export type CuratedCollection = { id: string; name: string; setCodes: string[] }
 export const curatedCollections: CuratedCollection[] = [
   { id: 'middle-earth', name: 'Middle-earth', setCodes: ['ltr', 'ltc'] },

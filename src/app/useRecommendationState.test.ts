@@ -5,8 +5,10 @@ import { renderToString } from 'react-dom/server'
 import { loadDeckState, persistedDeckStateSchema, saveDeckState } from '../deck-state.ts'
 import { toCard, toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
 import { decide } from './deck-actions.ts'
-import type { ActionDeps } from './recommendation-actions.ts'
-import { useRecommendationState, type RecommendationState } from './useRecommendationState.ts'
+import type { AppActionContext } from './recommendation-actions.ts'
+import { useBuilderState as useRecommendationState } from './useBuilderState.ts'
+import { withBuilderActions } from './builder-test-fixture.ts'
+type RecommendationState = ReturnType<typeof useRecommendationState>
 
 const raw = (name: string): ScryfallCard => ({
   name,
@@ -108,14 +110,14 @@ test('reload restores current-batch choices and the first Add click removes an a
       deps[name] = update(deps[name])
     }
   }
-  decide(deps as ActionDeps, restored.queue[0], 'add')
+  decide(withBuilderActions(deps) as AppActionContext, restored.queue[0], 'add')
   assert.equal(deps.deck.length, 99)
   assert(!deps.deck.some(({ name }: { name: string }) => name === liliana))
   assert.deepEqual(deps.sideboard, saved.sideboard)
   assert.equal(deps.decisions[liliana], undefined)
   assert.equal(deps.decisions['Later card'], 'later')
   assert.equal(deps.decisions['Ignored card'], 'ignore')
-  decide(deps as ActionDeps, restored.queue[3], 'add')
+  decide(withBuilderActions(deps) as AppActionContext, restored.queue[3], 'add')
   assert.equal(deps.sideboard.length, 0)
   assert.equal(deps.decisions['Sideboard card'], undefined)
   const damagedSave = { ...saved, decisions: {} }

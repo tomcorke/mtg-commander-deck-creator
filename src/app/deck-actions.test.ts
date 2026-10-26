@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { withBuilderActions } from './builder-test-fixture.ts'
 import test from 'node:test'
 
 import { toCard, toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
@@ -16,7 +17,7 @@ import {
   openCardReference,
   selectManualCard,
 } from './deck-actions.ts'
-import type { ActionDeps } from './recommendation-actions.ts'
+import type { AppActionContext } from './recommendation-actions.ts'
 
 const card = (name: string): ScryfallCard => ({
   name,
@@ -63,7 +64,7 @@ function searchDeps() {
       deps[name] = typeof value === 'function' ? value(deps[name]) : value
     }
   }
-  return deps as ActionDeps
+  return withBuilderActions(deps) as AppActionContext
 }
 
 test('applying a finding suggestion updates deck and history once, refreshes findings and supports undo', async () => {
@@ -102,7 +103,10 @@ test('applying a finding suggestion updates deck and history once, refreshes fin
     rankedCandidates: [{ card: replacement, fit: 50 }],
   })['role-gap:ramp'][0]
   const before = deps.deck
-  assert.equal(applyDeckDoctorSwapPlan(deps, [suggestion.cut!], [suggestion.addCard], false), true)
+  assert.equal(
+    applyDeckDoctorSwapPlan(deps, [suggestion.cut!], [suggestion.addCard], false, 'fixture-swap'),
+    true,
+  )
   assert.equal(deps.deck.length, 100)
   assert.equal(historyWrites, 1)
   assert.equal(deps.deckDoctorHistory.length, 1)

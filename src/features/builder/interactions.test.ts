@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { withBuilderActions } from '../../app/builder-test-fixture.ts'
 import test from 'node:test'
 
 import { defaultDeckTargets, rolesForCard } from '../../deck-analysis.ts'
@@ -11,7 +12,7 @@ import { buildRecommendationContext } from '../../domain/recommendation-context.
 import {
   recommendationPoolKey,
   start,
-  type ActionDeps,
+  type AppActionContext,
   type RecommendationProgress,
 } from '../../app/recommendation-actions.ts'
 import {
@@ -88,7 +89,6 @@ function fixture() {
     preferredPrintSet: '',
     recommendationRefreshInFlight: { current: false },
   }
-  state.recommendationPoolKey = { current: recommendationPoolKey(state) }
   for (const key of [
     ...Object.keys(state),
     'batchAnnouncement',
@@ -119,13 +119,13 @@ function fixture() {
   state.fetchCollection = async () => records.filter(({ set }) => set === 'tst')
   state.rankRecommendationCards = rankRecommendationCards
   state.loadPrintings = async () => {}
-  const deps = state as BuilderInteractionDeps & ActionDeps
+  const deps = withBuilderActions(state) as BuilderInteractionDeps & AppActionContext
   state.start = (name: string, preserveDeck?: boolean, progress?: RecommendationProgress) =>
     start({ ...deps }, name, preserveDeck, progress)
   return deps
 }
 
-function chooseBatch(deps: BuilderInteractionDeps & ActionDeps) {
+function chooseBatch(deps: BuilderInteractionDeps & AppActionContext) {
   const batch: Card[] = deps.queue.slice(0, 4)
   decide(deps, batch[0], 'later')
   decide(deps, batch[1], 'add')
@@ -232,7 +232,7 @@ test('Only refresh keeps ignores and all deferrals, including cards temporarily 
   assert.equal(fetches, 1)
   assert.equal(deps.batchNumber, 7)
   assert.equal(deps.recommendationOptionsChanged, false)
-  assert.equal(deps.recommendationPoolKey.current, recommendationPoolKey(deps))
+  assert.equal(deps.committedPoolKey, recommendationPoolKey(deps))
   assert.ok(deps.queue.every((card: Card) => card.collectionMatch))
   assert.ok(
     !['Later', 'Added', 'Ignored', 'Outside', 'Existing deferred'].some((name) =>
@@ -310,7 +310,7 @@ test('Prefer on and off re-fetch because selected collection cards change the ca
 test('pool refresh failure and Retry retain progress and do not record feedback twice', async () => {
   const deps = fixture()
   chooseBatch(deps)
-  const previousKey = deps.recommendationPoolKey.current
+  const previousKey = deps.committedPoolKey
   const fetchCollection = deps.fetchCollection
   let attempts = 0
   deps.fetchCollection = async () => {
@@ -324,7 +324,7 @@ test('pool refresh failure and Retry retain progress and do not record feedback 
   assert.equal(attempts, 1)
   assert.equal(deps.recommendationState, 'error')
   assert.equal(deps.recommendationOptionsChanged, true)
-  assert.equal(deps.recommendationPoolKey.current, previousKey)
+  assert.equal(deps.committedPoolKey, previousKey)
   assert.equal(deps.batchNumber, 7)
   assert.equal(deps.preferenceScores['Added tag'], 6)
   assert.equal(deps.preferenceScores['Liked tag'], 4)
