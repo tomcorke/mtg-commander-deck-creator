@@ -9,6 +9,7 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 - Model content or semantic differences, such as heading level or available actions, as props. Keep shared structure and base sizing in the component; add screen-specific styles only for deliberate visual variants.
 - Compare shared components across routes during rendered review. Typography and spacing stay consistent unless an intentional variant requires otherwise.
 - Keep styles in the owning `src/styles/` file; every new surface and control needs light and dark states.
+- Text inputs, selects and textareas take border, background, text colour and font from the `--input-*` tokens in `src/styles/base.css`. Component rules set only size, spacing and radius; never set an input's colours per component unless it is a deliberate themed variant built on CSS variables.
 
 ## Card references and layouts
 

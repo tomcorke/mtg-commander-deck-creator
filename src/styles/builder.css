@@ -155,18 +155,8 @@
 .price-limit-input input {
   width: 110px;
   padding: 5px 8px;
-  border: 1px solid #bbb9cd;
   border-radius: 5px;
-  background: #fff;
-  color: #28273b;
   font: inherit;
-  color-scheme: light;
-}
-.dark .price-limit-input input {
-  border-color: #4b4867;
-  background: #121121;
-  color: #ccc9df;
-  color-scheme: dark;
 }
 .settings-help {
   margin: 5px 0 0;
@@ -243,16 +233,7 @@
 }
 .recommendation-options select {
   padding: 5px 8px;
-  border: 1px solid #bbb9cd;
   border-radius: 5px;
-  background: #fff;
-  color: #28273b;
-  color-scheme: light;
-}
-.recommendation-options select option,
-.collection-browser-filters select option {
-  background: #fff;
-  color: #28273b;
 }
 .recommendation-options fieldset {
   display: flex;
@@ -646,11 +627,7 @@
 .collection-browser-filters input {
   width: auto;
   padding: 6px 8px;
-  border: 1px solid #bbb9cd;
   border-radius: 5px;
-  background: white;
-  color: #28273b;
-  color-scheme: light;
 }
 .collection-browser-filters input {
   width: 76px;
@@ -949,10 +926,7 @@
 .subtheme-picker input {
   width: 100%;
   padding: 9px 11px;
-  border: 1px solid #bbb9cd;
   border-radius: 6px;
-  background: white;
-  color: #28273b;
 }
 .subtheme-picker div {
   display: flex;

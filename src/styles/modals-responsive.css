@@ -41,27 +41,14 @@
 .dark .export-actions a:hover {
   color: #d1b0ff;
 }
-.dark .recommendation-options fieldset,
-.dark .recommendation-options select {
+.dark .recommendation-options fieldset {
   border-color: #4b4867;
   color: #ccc9df;
-}
-.dark .recommendation-options select {
-  background: #121121;
-  color-scheme: dark;
-}
-.dark .recommendation-options select option {
-  background: #121121;
-  color: #e5e3f0;
 }
 .dark .export-actions .primary {
   border-color: #7169ca;
   background: #5851a6;
   color: white;
-}
-.dark .export-modal textarea {
-  color: #e5e3f0;
-  background: #121121;
 }
 .dark .modal-close {
   color: #c4c1d5;

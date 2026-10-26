@@ -187,10 +187,7 @@
   min-height: 340px;
   resize: vertical;
   padding: 16px;
-  border: 1px solid #bbb9cd;
   border-radius: 7px;
-  background: white;
-  color: #28273b;
   font:
     13px/1.5 ui-monospace,
     Consolas,
@@ -1019,11 +1016,7 @@
 .deck-review-target input {
   width: 43px;
   padding: 5px 2px;
-  border: 1px solid #bbb9cd;
   border-radius: 5px;
-  background: white;
-  color: #25243a;
-  font: inherit;
   font-size: 12px;
   text-align: center;
 }
@@ -1120,11 +1113,6 @@
 }
 .dark .deck-review-ratio {
   background: #39374f;
-}
-.dark .deck-review-target input {
-  border-color: #4b4867;
-  background: #121121;
-  color: #e5e3f0;
 }
 .dark .deck-review-colour-counts {
   color: #aaa8c2;
@@ -1281,11 +1269,7 @@
   min-width: 0;
   width: 100%;
   padding: 12px 38px 12px 12px;
-  border: 1px solid #bbb9cd;
   border-radius: 6px;
-  background: white;
-  color: #28273b;
-  font: inherit;
 }
 .save-deck-form input[aria-invalid='true'] {
   border-color: #a13e4c;

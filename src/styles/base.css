@@ -28,6 +28,30 @@ button,
 a {
   font: inherit;
 }
+/* Every text field takes its colours from these tokens; style size and spacing per component, not colour. */
+:root {
+  --input-border: #bbb9cd;
+  --input-background: #fff;
+  --input-text: #28273b;
+  --input-scheme: light;
+}
+.dark {
+  --input-border: #4b4867;
+  --input-background: #121121;
+  --input-text: #e5e3f0;
+  --input-scheme: dark;
+}
+:where(input:not([type='checkbox'], [type='radio'], [type='range']), select, textarea) {
+  border: 1px solid var(--input-border);
+  background: var(--input-background);
+  color: var(--input-text);
+  font: inherit;
+  color-scheme: var(--input-scheme);
+}
+:where(select option) {
+  background: var(--input-background);
+  color: var(--input-text);
+}
 button {
   cursor: pointer;
 }
