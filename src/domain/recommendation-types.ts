@@ -87,9 +87,11 @@ export type RecommendationOptions = {
   excludeUnreleased: boolean
   powerTarget: PowerTarget
   maxPrice?: number | null
+  /** ISO date for release checks; omitted means the current date. */
+  today?: string
 }
 export const recommendedScoreThreshold = 45
-export const recommendationScoreFactorMaximums = {
+export const recommendationScoreFactorMaximums = Object.freeze({
   evidence: 20,
   theme: 10,
   subThemes: 8,
@@ -99,7 +101,7 @@ export const recommendationScoreFactorMaximums = {
   deckNeeds: 30,
   manaFitPenalty: 10,
   popularityPenalty: 15,
-} as const
+} as const)
 export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> &
   Partial<
     Pick<

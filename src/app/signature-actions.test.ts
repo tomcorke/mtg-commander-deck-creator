@@ -17,7 +17,7 @@ import {
   type SignatureSeed,
   type SignatureSettings,
 } from '../domain/signature-recommendations.ts'
-import { buildRecommendationContext } from './recommendation-context.ts'
+import { buildRecommendationContext } from '../domain/recommendation-context.ts'
 import {
   loadSignatureResults,
   completeSignatureResults,

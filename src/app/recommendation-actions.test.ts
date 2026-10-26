@@ -7,7 +7,7 @@ import {
   rankRecommendationCards,
   recommendationScore,
 } from '../recommendations.ts'
-import { buildRecommendationContext } from './recommendation-context.ts'
+import { buildRecommendationContext } from '../domain/recommendation-context.ts'
 import {
   mergeSignatureResults,
   type SignatureSettings,

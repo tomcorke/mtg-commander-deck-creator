@@ -41,13 +41,13 @@ export type AnalysisCard = {
   oracleId?: string
 }
 
-export const defaultDeckTargets: DeckTargets = {
+export const defaultDeckTargets: Readonly<DeckTargets> = Object.freeze({
   lands: 35,
   ramp: 10,
   draw: 10,
   removal: 8,
   wipes: 3,
-}
+})
 export const targetLabels: Record<TargetKey, string> = {
   lands: 'Lands',
   ramp: 'Ramp',

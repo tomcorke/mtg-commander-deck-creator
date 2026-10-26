@@ -7,7 +7,7 @@ import { toCard, toDeckCard, type Card, type ScryfallCard } from '../../domain/c
 import { focusedRecommendations } from '../../domain/recommendation-tuning.ts'
 import { rankRecommendationCards, releaseNextDeferred } from '../../recommendations.ts'
 import { decide } from '../../app/deck-actions.ts'
-import { buildRecommendationContext } from '../../app/recommendation-context.ts'
+import { buildRecommendationContext } from '../../domain/recommendation-context.ts'
 import {
   recommendationPoolKey,
   start,

@@ -1,4 +1,4 @@
-import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
+import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import { analyseDeck, defaultDeckTargets, rolesForCard, type TargetKey } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import {
@@ -8,17 +8,15 @@ import {
 } from '../adapters/local-card-index.ts'
 import { deckJob } from './deck-job.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
-import { buildRecommendationContext } from './recommendation-context.ts'
 import { resetSignatureContext } from './signature-actions.ts'
 import { commanderNames, themeSearchTerm } from '../domain/commander-catalog.ts'
 import { defaultFinish, printingOptions } from '../domain/printing.ts'
 import {
-  batchRecommendations,
   buildEdhrecRecommendations,
   commanderThemes,
   excludedByOptions,
   parseEdhrecEntries,
-  releaseDeferred,
+  releasedBy,
   type CollectionMode,
   type DeferredCard,
   type ScryfallCard,
@@ -33,6 +31,12 @@ import {
   type CommanderCard,
 } from '../domain/card-model.ts'
 
+import {
+  fallbackPool,
+  mergeCollectionCandidates,
+  mergeRecommendationCandidates,
+  recommend,
+} from '../domain/recommender.ts'
 import {
   cardConstructionError,
   commanderConstructionError,
@@ -130,12 +134,14 @@ type StateSetters = {
 
 export type ActionDeps = Record<string, any> & StateSetters
 
+export { mergeRecommendationCandidates }
+
 export async function fallbackRecommendations(deps: ActionDeps, identityColours: string[]) {
   const { excludeGameChangers, excludeUnreleased, includeCreature } = deps
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
-    excludeUnreleased && 'date<=today',
+    excludeUnreleased && releasedBy(deps.today),
   ]
     .filter(Boolean)
     .join(' ')
@@ -158,13 +164,7 @@ export async function fallbackRecommendations(deps: ActionDeps, identityColours:
       'Land or mana',
     ),
   ])
-  return batchRecommendations(
-    mergeRecommendationCandidates(
-      mainCards.sort(() => Math.random() - 0.5),
-      manaCards.sort(() => Math.random() - 0.5),
-    ),
-    includeCreature,
-  )
+  return fallbackPool(mainCards, manaCards, includeCreature, recommendationPoolKey(deps))
 }
 
 export async function fetchRecommendationCollectionCards(
@@ -185,6 +185,7 @@ export async function fetchRecommendationCollectionCards(
     excludeTutors,
     excludeExtraTurns,
     excludeUnreleased,
+    today: deps.today,
   })
   return cards.filter(
     (card: ScryfallCard) =>
@@ -194,6 +195,7 @@ export async function fetchRecommendationCollectionCards(
         excludeExtraTurns,
         excludeUnreleased,
         powerTarget,
+        today: deps.today,
       }),
   )
 }
@@ -263,6 +265,7 @@ function toLocalAndLiveCards(
           excludeExtraTurns: deps.excludeExtraTurns,
           excludeUnreleased: deps.excludeUnreleased,
           powerTarget: deps.powerTarget,
+          today: deps.today,
         }),
     )
     .map((card) => ({
@@ -369,7 +372,7 @@ export async function themeRecommendations(
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
-    excludeUnreleased && 'date<=today',
+    excludeUnreleased && releasedBy(deps.today),
   ]
     .filter(Boolean)
     .join(' ')
@@ -421,7 +424,7 @@ export async function roleGapRecommendations(
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     excludeGameChangers && '-is:gamechanger',
-    excludeUnreleased && 'date<=today',
+    excludeUnreleased && releasedBy(deps.today),
   ]
     .filter(Boolean)
     .join(' ')
@@ -485,6 +488,7 @@ export async function edhrecRecommendations(
     excludeExtraTurns,
     excludeUnreleased,
     powerTarget,
+    today: deps.today,
   })
 }
 
@@ -646,29 +650,6 @@ export function addCommanderCards(deps: ActionDeps, loaded: any, preserveDeck: b
   }
 }
 
-/** Keep live EDHREC evidence when another source finds the same Oracle identity. */
-export function mergeRecommendationCandidates(primary: Card[], additions: Card[]) {
-  const merged: Card[] = []
-  const oracles = new Map<string, number>()
-  const names = new Map<string, number>()
-  for (const card of [...primary, ...additions]) {
-    const name = card.name.toLowerCase()
-    const index = (card.oracleId ? oracles.get(card.oracleId) : undefined) ?? names.get(name)
-    if (index !== undefined) {
-      if (merged[index].localIndexSnapshot && !card.localIndexSnapshot) {
-        merged[index] = card
-        if (card.oracleId) oracles.set(card.oracleId, index)
-        names.set(name, index)
-      }
-      continue
-    }
-    if (card.oracleId) oracles.set(card.oracleId, merged.length)
-    names.set(name, merged.length)
-    merged.push(card)
-  }
-  return merged
-}
-
 async function coreRecommendations(
   deps: ActionDeps,
   commanders: CommanderCard[],
@@ -727,7 +708,7 @@ async function addCollectionRecommendations(
   offeredCards: Card[],
   identityColours: string[],
   activeCollectionSets: string[],
-  activeCollectionMode: string,
+  activeCollectionMode: CollectionMode,
 ) {
   if (activeCollectionMode === 'only' && !activeCollectionSets.length) return []
   if (activeCollectionMode === 'none' || !activeCollectionSets.length) return offeredCards
@@ -737,12 +718,7 @@ async function addCollectionRecommendations(
       identityColours,
       activeCollectionSets,
     )
-    if (activeCollectionMode === 'only') return collectionCards
-    const collectionNames = new Set(collectionCards.map((card: Card) => card.name))
-    return [
-      ...collectionCards,
-      ...offeredCards.filter((card: Card) => !collectionNames.has(card.name)),
-    ]
+    return mergeCollectionCandidates(offeredCards, collectionCards, activeCollectionMode)
   } catch (error) {
     if (error instanceof ScryfallRateLimitError || activeCollectionMode === 'only') throw error
     return offeredCards
@@ -790,7 +766,7 @@ export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[
   )
   const exclusions = [
     deps.excludeGameChangers && '-is:gamechanger',
-    deps.excludeUnreleased && 'date<=today',
+    deps.excludeUnreleased && releasedBy(deps.today),
   ]
     .filter(Boolean)
     .join(' ')
@@ -810,6 +786,7 @@ export async function fetchDeckDoctorCommanders(deps: ActionDeps): Promise<Card[
           excludeExtraTurns: deps.excludeExtraTurns,
           excludeUnreleased: deps.excludeUnreleased,
           powerTarget: deps.powerTarget,
+          today: deps.today,
         }) ||
         ![...requiredColours].every((colour) => card.color_identity.includes(colour))
       )
@@ -826,7 +803,7 @@ async function collectOfferedCards(
   loaded: any,
   preserveDeck: boolean,
   activeCollectionSets: string[],
-  activeCollectionMode: string,
+  activeCollectionMode: CollectionMode,
 ) {
   const { commanders, identityColours } = loaded
   const { setRecommendationLoadingStep, setLimitedRecommendations } = deps
@@ -847,48 +824,6 @@ async function collectOfferedCards(
   )
 }
 
-function filterInitialRecommendations(
-  offeredCards: Card[],
-  deps: ActionDeps,
-  preserveDeck: boolean,
-  progress?: RecommendationProgress,
-) {
-  if (!preserveDeck) return offeredCards
-  const { ignoredCards, deck, sideboard } = deps
-  const deferred = new Set(progress?.deferredCards.map(({ card }) => card.name))
-  return offeredCards.filter(
-    (card) =>
-      !ignoredCards.includes(card.name) &&
-      !deferred.has(card.name) &&
-      ![...deck, ...sideboard].some((deckCard: Card) => deckCard.name === card.name),
-  )
-}
-
-function buildInitialRankingContext(
-  deps: ActionDeps,
-  offeredCards: Card[],
-  chosen: string,
-  preserveDeck: boolean,
-  activeCollectionSets: string[],
-  activeCollectionMode: CollectionMode,
-  progress?: RecommendationProgress,
-) {
-  return buildRecommendationContext(
-    {
-      ...deps,
-      commander: chosen,
-      activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
-      preferenceScores: progress?.preferenceScores ?? (preserveDeck ? deps.preferenceScores : {}),
-      prioritizeDeckHealth: deps.prioritizeDeckHealth,
-      collectionSets: activeCollectionSets,
-      collectionMode: activeCollectionMode,
-      batchNumber: progress?.batchNumber ?? 1,
-    },
-    offeredCards,
-    preserveDeck ? deps.deck : [],
-  )
-}
-
 export function rankInitialRecommendations(
   deps: ActionDeps,
   offeredCards: Card[],
@@ -898,55 +833,39 @@ export function rankInitialRecommendations(
   activeCollectionMode: CollectionMode,
   progress?: RecommendationProgress,
 ) {
-  const { includeCreature, setQueue, setRecommendationState, loadPrintings, preferredPrintSet } =
-    deps
-  offeredCards = offeredCards.filter(
-    (card) => !cardConstructionError(card, [], deps.commanderDetails?.colours ?? []),
+  const { setQueue, setRecommendationState, loadPrintings, preferredPrintSet } = deps
+  const result = recommend(
+    {
+      commander: chosen,
+      theme: deps.theme,
+      recommendationStyle: deps.recommendationStyle,
+      prioritizeDeckHealth: deps.prioritizeDeckHealth,
+      includeCreature: deps.includeCreature,
+      maxPrice: deps.maxPrice ?? null,
+      deckTargets: deps.deckTargets,
+      focusedRole: deps.focusedRole,
+      identity: deps.commanderDetails?.colours ?? [],
+      pool: offeredCards,
+      deck: preserveDeck ? deps.deck : [],
+      sideboard: preserveDeck ? deps.sideboard : [],
+      ignoredCards: preserveDeck ? deps.ignoredCards : [],
+      deferredCards: progress?.deferredCards ?? [],
+      batchNumber: progress?.batchNumber ?? 1,
+      preferenceScores: progress?.preferenceScores ?? (preserveDeck ? deps.preferenceScores : {}),
+      activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
+      collectionSets: activeCollectionSets,
+      collectionMode: activeCollectionMode,
+    },
+    deps.rankRecommendationCards,
   )
-  if (offeredCards.length < 4)
-    throw new Error(
-      activeCollectionMode === 'only'
-        ? 'Your chosen sets have too few legal cards.'
-        : 'Too few recommendation cards',
-    )
-  if (progress) {
-    const offered = new Map(offeredCards.map((card) => [card.name, card]))
-    // Keep off-pool deferrals so restoring settings also restores their original waiting period.
-    const deferred = progress.deferredCards.map((entry) => ({
-      ...entry,
-      card: offered.get(entry.card.name) ?? entry.card,
-      available:
-        offered.has(entry.card.name) &&
-        withinPriceCap(offered.get(entry.card.name)!, deps.maxPrice),
-    }))
-    progress = {
-      ...progress,
-      deferredCards: releaseDeferred(deferred, progress.batchNumber).waiting,
-    }
-    deps.setDeferredCards(progress.deferredCards)
-  }
-  offeredCards = filterInitialRecommendations(offeredCards, deps, preserveDeck, progress)
-  const rankingContext = buildInitialRankingContext(
-    deps,
-    offeredCards,
-    chosen,
-    preserveDeck,
-    activeCollectionSets,
-    activeCollectionMode,
-    progress,
-  )
-  const ranked = deps.rankRecommendationCards(
-    offeredCards,
-    rankingContext,
-    includeCreature,
-    rolesForCard,
-  )
-  setQueue(ranked)
+  if (result.error) throw new Error(result.error)
+  if (progress) deps.setDeferredCards(result.deferredCards)
+  setQueue(result.queue)
   if (progress)
     deps.setBatchAnnouncement(`Recommendations updated for batch ${progress.batchNumber}.`)
   setRecommendationState('idle')
   void loadPrintings(
-    focusedRecommendations(ranked, deps.focusedRole, rolesForCard).slice(0, 8),
+    focusedRecommendations(result.queue, deps.focusedRole, rolesForCard).slice(0, 8),
     activeCollectionSets[0] || (preserveDeck ? preferredPrintSet : ''),
     activeCollectionSets,
     activeCollectionMode,

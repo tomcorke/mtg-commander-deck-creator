@@ -7,7 +7,7 @@ import {
 } from './creature-types.ts'
 import type { EdhrecThemeCount, TaggedCard } from './recommendation-types.ts'
 
-export const themeMatchers: [string, RegExp][] = [
+export const themeMatchers: ReadonlyArray<readonly [string, RegExp]> = Object.freeze([
   ['Tokens', /create[s]? (?:one|two|three|a|an|x|that many|\d+) .* token|tokens? you control/i],
   ['+1/+1 counters', /\+1\/\+1 counter/i],
   ['Enchantments', /enchantment|constellation/i],
@@ -100,7 +100,7 @@ export const themeMatchers: [string, RegExp][] = [
     'Topdeck',
     /top (?:card|\d+ cards) of (?:your|a|target player’s|target player's) library|look at the top/i,
   ],
-]
+])
 
 // Curated themes first, then every other creature type (Cats, Pirates, Wizards…).
 export const supportedThemes = [

@@ -2,7 +2,7 @@ import type { MouseEvent } from 'react'
 
 import { focusedRecommendations, type IgnoreReason } from '../../domain/recommendation-tuning.ts'
 import { analyseDeck, rolesForCard, targetLabels, type TargetKey } from '../../deck-analysis.ts'
-import { buildRecommendationContext } from '../../app/recommendation-context.ts'
+import { buildRecommendationContext } from '../../domain/recommendation-context.ts'
 import {
   recommendationPoolKey,
   type RecommendationProgress,

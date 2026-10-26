@@ -13,6 +13,7 @@ import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
 import type {
   CollectionMode,
   DeferredCard,
+  RecommendationScoreCard,
   RecommendationScoreContext,
   RecommendationStyle,
 } from './recommendation-types.ts'
@@ -118,6 +119,19 @@ function keepThemeIdentity<T extends { tags: string[]; set?: string; collectionM
   return ordered
 }
 
+/** The breakdown ranking uses for one card, with its roles and role credit filled in. */
+export function cardScoreBreakdown<T extends { reason: string; tags: string[] }>(
+  card: T,
+  context: RecommendationScoreContext,
+  cardRoles: (card: T) => string[] = () => [],
+) {
+  return recommendationScoreBreakdown(card as T & RecommendationScoreCard, {
+    ...context,
+    cardRoles: cardRoles(card),
+    cardRoleCredit: 'detail' in card ? roleCredit(card as unknown as AnalysisCard) : {},
+  })
+}
+
 export function rankRecommendationCards<
   T extends {
     name: string
@@ -144,15 +158,7 @@ export function rankRecommendationCards<
   const affordable = eligible.filter((card) => withinPriceCap(card, context.maxPrice))
   const scores = new Map<T, ReturnType<typeof recommendationScoreBreakdown>>()
   const score = (card: T) => {
-    if (!scores.has(card))
-      scores.set(
-        card,
-        recommendationScoreBreakdown(card, {
-          ...context,
-          cardRoles: cardRoles(card),
-          cardRoleCredit: 'detail' in card ? roleCredit(card as unknown as AnalysisCard) : {},
-        }),
-      )
+    if (!scores.has(card)) scores.set(card, cardScoreBreakdown(card, context, cardRoles))
     return scores.get(card)!
   }
   // Skipped cards rank lower, unless they fill the deck's most urgent gap.

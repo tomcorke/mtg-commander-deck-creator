@@ -5,6 +5,7 @@ import {
   type ScryfallSet,
 } from '../domain/card-model.ts'
 import type { ScryfallManaSymbol } from '../domain/mana-symbols.ts'
+import { releasedBy } from '../domain/recommendation-sources.ts'
 import {
   ProviderRequestError,
   retryTime,
@@ -25,6 +26,7 @@ export type CollectionFilters = {
   excludeTutors: boolean
   excludeExtraTurns: boolean
   excludeUnreleased: boolean
+  today?: string
 }
 
 export type CardCollectionResponse = {
@@ -588,7 +590,7 @@ function collectionQuery(
   const identity = identityColours.join('').toLowerCase() || 'c'
   const bracketFilters = [
     filters.excludeGameChangers && '-is:gamechanger',
-    filters.excludeUnreleased && 'date<=today',
+    filters.excludeUnreleased && releasedBy(filters.today),
   ]
     .filter(Boolean)
     .join(' ')

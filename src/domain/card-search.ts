@@ -2,6 +2,7 @@ import type { DeckCard, ScryfallCard } from './card-model.ts'
 import { toDeckCard } from './card-model.ts'
 import { defaultFinish, foilTypeFor } from './printing.ts'
 import { cardConstructionError } from './commander-construction.ts'
+import { releasedBy } from './recommendation-sources.ts'
 
 export type SearchMatch = 'any' | 'need' | 'exclude'
 export type CardSearchFilters = {
@@ -96,6 +97,7 @@ export function buildCardSearchQuery(
   filters: CardSearchFilters,
   commanderColours: string[],
   excludeUnreleased: boolean,
+  today?: string,
 ) {
   const range = manaValueTerms(filters)
   const manaOptions = cardSearchManaOptions(
@@ -110,7 +112,7 @@ export function buildCardSearchQuery(
   const query = [
     'legal:commander',
     filters.filterIdentity ? `id<=${commanderColours.join('').toLowerCase() || 'c'}` : '',
-    excludeUnreleased ? 'date<=today' : '',
+    excludeUnreleased ? releasedBy(today) : '',
     filters.name.trim() ? matchTerm(`name:${quoted(filters.name.trim())}`, filters.nameMatch) : '',
     ...phrases('t', filters.typeLine, filters.typeLineMatch),
     range ? matchTerm(range, filters.manaValueMatch) : '',
