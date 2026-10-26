@@ -27,6 +27,7 @@ import {
   fetchScryfallPrintings,
   fetchScryfallSets,
   searchScryfall,
+  searchScryfallCached,
 } from '../adapters/scryfall.ts'
 import {
   clickCardImage as clickCardImageAction,
@@ -44,6 +45,7 @@ import {
   fetchDeckDoctorCommanders,
   start as startRecommendations,
   recommendationPoolKey,
+  themeRecommendations,
   type RecommendationProgress,
 } from './recommendation-actions.ts'
 import { useAppEffects, usePrintingRepairEffect } from './useAppEffects.ts'
@@ -213,8 +215,9 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     ...routing,
     activeModal: state.activeModal,
     freshRecommendationCycle,
+    // Cached so a sub-theme prefetch is reused when the pool rebuilds.
     searchCards: (query: string, signal?: AbortSignal, order?: string) =>
-      searchScryfall(query, fetch, signal, order),
+      searchScryfallCached(query, fetch, signal, order),
     fetchLocalCards,
     localCardsIfReady,
     localCardIndexStatus,
@@ -369,11 +372,26 @@ function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
   }
 }
 
+// The pool rebuilds on Next recommendations; warm the search cache now so that rebuild is quick.
+function queueSubTheme(
+  state: AppState,
+  remote: RemoteActions,
+  name: string,
+  { activeSubThemes }: { activeSubThemes: string[] },
+) {
+  state.setPendingSubThemes((t: string[]) => [...t, name])
+  void themeRecommendations(
+    { ...remote.recommendationDeps, activeSubThemes, pendingLocal: [] },
+    state.commanderDetails?.colours ?? [],
+    [state.theme, ...activeSubThemes],
+  ).catch(() => {})
+}
+
 function useBuilderActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
   const chooseSubTheme = (name: string) => {
     const selection = selectSubTheme(state.activeSubThemes, name)
     state.setActiveSubThemes(selection.activeSubThemes)
-    if (selection.refreshRecommendations) state.setPendingSubThemes((t: string[]) => [...t, name])
+    if (selection.refreshRecommendations) queueSubTheme(state, remote, name, selection)
     state.setShowSubThemePicker(false)
     state.setSubThemeSearch('')
   }
