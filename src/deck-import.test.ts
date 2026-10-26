@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { readFileSync } from 'node:fs'
 import {
   fetchScryfallCollection,
   mainDeckCardCount,
@@ -9,6 +10,65 @@ import {
   parseDeckList,
   shouldOpenReviewAfterImport,
 } from './deck-import.ts'
+
+test('reads app CSV with a BOM or leading whitespace', () => {
+  const csv = 'Quantity,Name,Set,Collector Number,Foil,Board\n1,Sol Ring,CMM,396,,Mainboard'
+  for (const prefix of ['', '\n', '\uFEFF', '  \r\n'])
+    assert.deepEqual(parseDeckList(prefix + csv), parseDeckList(csv))
+})
+
+test('native Moxfield exports retain all cards and allow explicit commander selection', () => {
+  for (const format of ['full', 'mtgo', 'plaintext']) {
+    const source = readFileSync(
+      new URL(`../scripts/fixtures/178-moxfield-${format}.txt`, import.meta.url),
+      'utf8',
+    )
+    const deck = parseDeckImportSource(source, ['Captain Kirk, Boldly Going'])
+    assert.equal(mainDeckCardCount(deck), 100)
+    assert.equal(deck.cards.length, 91)
+    assert.deepEqual(
+      deck.cards
+        .filter(({ board }) => board === 'commander')
+        .map(({ name, quantity }) => [name, quantity]),
+      [['Captain Kirk, Boldly Going', 1]],
+    )
+    assert.equal(deck.cards.find(({ name }) => name === 'Forest')?.quantity, 6)
+    assert.equal(deck.cards.find(({ name }) => name === 'Island')?.quantity, 4)
+    const commander = deck.cards.find(({ board }) => board === 'commander')!
+    assert.equal(commander.set, format === 'full' ? 'trc' : undefined)
+    assert.equal(commander.collectorNumber, format === 'full' ? '85' : undefined)
+  }
+})
+
+test('Moxfield Arena export is a filtered list, not a complete Commander deck', () => {
+  const source = readFileSync(
+    new URL('../scripts/fixtures/178-moxfield-mtga.txt', import.meta.url),
+    'utf8',
+  )
+  const deck = parseDeckList(source)
+  assert.equal(mainDeckCardCount(deck), 67)
+  assert.ok(!deck.cards.some(({ name }) => name === 'Captain Kirk, Boldly Going'))
+})
+
+test('explicit commander selection preserves quantities, finishes and sideboard', () => {
+  const source = '1 First (TST) 1 *F*\n1 Second (TST) 2 *E*\n20 Forest\nSIDEBOARD:\n1 Sol Ring'
+  const deck = parseDeckImportSource(source, ['First', 'Second'])
+  assert.deepEqual(
+    deck.cards.map(({ name, board, finish, quantity }) => [name, board, finish, quantity]),
+    [
+      ['First', 'commander', 'foil', 1],
+      ['Second', 'commander', 'etched', 1],
+      ['Forest', 'mainboard', undefined, 20],
+      ['Sol Ring', 'sideboard', undefined, 1],
+    ],
+  )
+  assert.throws(() => parseDeckImportSource(source, ['Missing']), /Choose commanders/)
+  assert.throws(() => parseDeckImportSource(source, ['Sol Ring']), /Choose commanders/)
+  assert.deepEqual(
+    parseDeckImportSource('Commander\n1 First\nDeck\n1 Second').cards.map(({ board }) => board),
+    ['commander', 'mainboard'],
+  )
+})
 
 test('retries transient Scryfall collection failures', async () => {
   let attempts = 0

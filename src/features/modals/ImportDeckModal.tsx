@@ -12,7 +12,7 @@ type ImportDeckModalProps = {
   setImportSource: (value: string) => void
   setImportState: (value: 'idle' | 'loading' | 'error' | 'missing') => void
   setImportError: (value: string) => void
-  importDeck: (openReviewAfterImport: boolean, skipMissing?: boolean) => void
+  importDeck: (openReviewAfterImport: boolean, skipMissing?: boolean, commanders?: string[]) => void
   closeModal: () => void
 }
 
@@ -30,7 +30,17 @@ export function ImportDeckModal({
   closeModal,
 }: ImportDeckModalProps) {
   const [openReviewAfterImport, setOpenReviewAfterImport] = useState(true)
-  const mainDeckCount = mainDeckCardCount(parseDeckList(importSource))
+  const [commanders, setCommanders] = useState(['', ''])
+  const parsed = parseDeckList(importSource)
+  const needsCommander =
+    parsed.cards.length > 0 && !parsed.cards.some((card) => card.board === 'commander')
+  const choices = [
+    ...new Set(parsed.cards.filter((card) => card.board === 'mainboard').map((card) => card.name)),
+  ]
+  const selectedCommanders = needsCommander
+    ? commanders.filter((name) => choices.includes(name))
+    : []
+  const mainDeckCount = mainDeckCardCount(parsed)
   const completeMainDeck = mainDeckCount === 100
 
   if (!show) return null
@@ -60,12 +70,14 @@ export function ImportDeckModal({
           />
         </div>
         <p className="import-help">
-          Paste an exported deck list. Put commander cards below a <b>COMMANDER:</b> heading. Set
-          and collector number syntax is preserved.
+          Paste a text deck list or this app’s CSV. Commander headings are read automatically; for
+          lists without them, choose your commander below. Set and collector numbers are preserved
+          when included. Other sites’ CSV and custom categories are not supported.
         </p>
         <p className="import-note">
-          Moxfield and Archidekt URLs are not supported because this is a client-only app and those
-          sites block browser access. Export the deck as text, then paste it here.
+          Deck URLs are not supported. In Moxfield, use Download → Copy for Moxfield to keep
+          printings. Arena exports can omit cards that Arena does not support. Archidekt exports
+          with custom categories need conversion to the heading format shown below.
         </p>
         <textarea
           value={importSource}
@@ -73,12 +85,47 @@ export function ImportDeckModal({
             setImportSource(event.target.value)
             setImportState('idle')
             setImportError('')
+            setCommanders(['', ''])
           }}
           placeholder={
             'COMMANDER:\n1 Commander Name (SET) 123\n\nMAINBOARD:\n1 Card Name (SET) 456'
           }
           aria-label="Exported deck list"
         />
+        {needsCommander && (
+          <fieldset className="import-commanders">
+            <legend>This list has no commander designation</legend>
+            <p className="import-help">
+              Choose the commander and optional second commander. The app checks whether they can
+              lead the deck together.
+            </p>
+            {commanders.map((name, index) => (
+              <label key={index}>
+                {index === 0 ? 'Commander' : 'Second commander (optional)'}
+                <select
+                  aria-label={index === 0 ? 'Commander' : 'Second commander (optional)'}
+                  value={choices.includes(name) ? name : ''}
+                  onChange={(event) =>
+                    setCommanders(
+                      commanders.map((value, slot) =>
+                        slot === index ? event.target.value : value,
+                      ),
+                    )
+                  }
+                >
+                  <option value="">{index === 0 ? 'Choose commander' : 'None'}</option>
+                  {choices
+                    .filter((choice) => choice !== commanders[1 - index])
+                    .map((choice) => (
+                      <option key={choice} value={choice}>
+                        {choice}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ))}
+          </fieldset>
+        )}
         {importSource.trim() && (
           <div className="import-review-option">
             <p className="import-note" role="status">
@@ -124,16 +171,20 @@ export function ImportDeckModal({
             <button
               className="export"
               type="button"
-              onClick={() => importDeck(openReviewAfterImport, true)}
+              onClick={() => importDeck(openReviewAfterImport, true, selectedCommanders)}
             >
               Import {importFoundCount} found cards
             </button>
           )}
           <button
             className="primary"
-            disabled={!importSource.trim() || importState === 'loading'}
+            disabled={
+              !importSource.trim() ||
+              importState === 'loading' ||
+              (needsCommander && !selectedCommanders.length)
+            }
             type="button"
-            onClick={() => importDeck(openReviewAfterImport)}
+            onClick={() => importDeck(openReviewAfterImport, false, selectedCommanders)}
           >
             {importState === 'loading'
               ? 'Importing…'

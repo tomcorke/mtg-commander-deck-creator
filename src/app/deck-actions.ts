@@ -760,6 +760,7 @@ export async function importDeck(
   deps: AppActionContext,
   openReviewAfterImport = true,
   skipMissing = false,
+  commanders: string[] = [],
 ) {
   const job = deckJob(deps)
   const { importSource, setImportError, setImportSource, setImportState } = deps
@@ -781,7 +782,7 @@ export async function importDeck(
   setImportState('loading')
   setImportError('')
   try {
-    const imported = parseDeckImportSource(importSource)
+    const imported = parseDeckImportSource(importSource, commanders)
     await applyImportedDeck(deps, imported, skipMissing)
     closeImportAndMaybeReview(deps, imported, openReviewAfterImport)
     setImportSource('')

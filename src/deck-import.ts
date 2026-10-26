@@ -75,7 +75,7 @@ const sectionBoard = (line: string): ImportBoard | null => {
 }
 
 export function parseDeckList(text: string): ImportedDeck {
-  if (/^s*quantity,name,/i.test(text)) return parseDeckCsv(text)
+  if (/^\s*quantity,name,/i.test(text)) return parseDeckCsv(text)
   let board: ImportBoard = 'mainboard'
   const cards: ImportedCard[] = []
   for (const rawLine of text.split(/\r?\n/)) {
@@ -145,10 +145,25 @@ function parseDeckCsv(text: string): ImportedDeck {
   return { cards }
 }
 
-export function parseDeckImportSource(source: string) {
+export function parseDeckImportSource(source: string, commanders: string[] = []) {
   if (/^https?:\/\//i.test(source.trim()))
     throw new Error(
       'URL import is unavailable in this client-only app. Paste the exported deck list instead.',
     )
-  return parseDeckList(source)
+  const imported = parseDeckList(source)
+  if (!commanders.length) return imported
+  if (
+    commanders.some(
+      (name) => !imported.cards.some((card) => card.name === name && card.board === 'mainboard'),
+    )
+  )
+    throw new Error('Choose commanders from the mainboard cards in this list.')
+  return {
+    ...imported,
+    cards: imported.cards.map((card) =>
+      card.board === 'mainboard' && commanders.includes(card.name)
+        ? { ...card, board: 'commander' as const }
+        : card,
+    ),
+  }
 }
