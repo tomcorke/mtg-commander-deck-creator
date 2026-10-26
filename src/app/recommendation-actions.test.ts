@@ -8,6 +8,7 @@ import {
   recommendationScore,
 } from '../recommendations.ts'
 import { buildRecommendationContext } from '../domain/recommendation-context.ts'
+import { commanderMechanicThemes } from '../domain/commander-catalog.ts'
 import {
   mergeSignatureResults,
   type SignatureSettings,
@@ -29,6 +30,7 @@ import {
   fetchDeckDoctorCommanders as fetchDeckDoctorCommandersAction,
   resetRecommendationState as resetRecommendationStateAction,
   roleGapRecommendations as roleGapRecommendationsAction,
+  mechanicRecommendations as mechanicRecommendationsAction,
   start as startAction,
   themeRecommendations as themeRecommendationsAction,
   uncoveredRoleGaps,
@@ -43,6 +45,7 @@ const fetchDeckDoctorCandidates = withBuilderFixture(fetchDeckDoctorCandidatesAc
 const fetchDeckDoctorCommanders = withBuilderFixture(fetchDeckDoctorCommandersAction)
 const resetRecommendationState = withBuilderFixture(resetRecommendationStateAction)
 const roleGapRecommendations = withBuilderFixture(roleGapRecommendationsAction)
+const mechanicRecommendations = withBuilderFixture(mechanicRecommendationsAction)
 const start = withBuilderFixture(startAction)
 const themeRecommendations = withBuilderFixture(themeRecommendationsAction)
 
@@ -157,6 +160,9 @@ test('Scryfall recommendations include commander-eligible cards and use document
   assert.ok(themed.some(({ name }) => name === support.name))
 })
 
+// A working EDHREC pool adds at most the mechanic and role-gap searches (#134); no fallback.
+const boundedQuery = (query: string) => /-t:land \((?:otag:|\(o:)/.test(query)
+
 test('partner retry preserves commander sources and Scryfall rate-limit guidance', async (t) => {
   const edhrecSlugs: string[] = []
   const fallbackQueries: string[] = []
@@ -235,7 +241,7 @@ test('partner retry preserves commander sources and Scryfall rate-limit guidance
   const result = await start(deps, 'Kraum & Tymna', true)
   assert.deepEqual(edhrecSlugs, ['kraum-ludevics-opus-tymna-the-weaver'])
   assert.equal(result, true)
-  assert.ok(fallbackQueries.every((query) => query.includes('(otag:'))) // role-gap search only
+  assert.ok(fallbackQueries.length <= 2 && fallbackQueries.every(boundedQuery))
 
   let message = ''
   const rateLimited = t.mock.fn(
@@ -257,7 +263,7 @@ test('partner retry preserves commander sources and Scryfall rate-limit guidance
   )
   assert.match(message, /Scryfall.*rate limit.*2 minutes/i)
   assert.equal(rateLimited.mock.callCount(), 1)
-  assert.ok(fallbackQueries.every((query) => query.includes('(otag:')))
+  assert.ok(fallbackQueries.every(boundedQuery))
 })
 
 test('settings refresh preserves the active workflow while an explicit restart navigates', (context) => {
@@ -879,4 +885,38 @@ test('role-gap retrieval searches only roles the offered pool cannot cover, ten 
   assert.match(queries[0], /id<=r legal:commander -t:land \(otag:draw\)/)
   assert.doesNotMatch(queries[0], /-otag:(?:tutor|extra-turn)/)
   assert.equal(found.length, 10)
+})
+
+test('mechanic retrieval searches the commander text once, ten new cards at most', async () => {
+  assert.deepEqual(
+    commanderMechanicThemes('Whenever a creature dies, create a 1/1 token. Sacrifice a creature:'),
+    ['Tokens', 'Sacrifice', 'Death triggers'],
+  )
+  const queries: string[] = []
+  const commander = {
+    ...card('Pawn Broker', 'Legendary Creature — Human'),
+    oracle_text: 'Sacrifice another creature: create a Treasure token.',
+  }
+  const found = await mechanicRecommendations(
+    {
+      theme: 'Tokens',
+      deck: [toCard(card('Fodder 0'), 'Popular inclusion')],
+      searchCards: async (query: string) => {
+        queries.push(query)
+        return Array.from({ length: 15 }, (_, index) => ({
+          ...card(`Fodder ${index}`),
+          legalities: { commander: 'legal' },
+        }))
+      },
+    },
+    ['B'],
+    [commander as never],
+    [],
+  )
+  assert.equal(queries.length, 1)
+  assert.match(queries[0], /id<=b legal:commander -t:land \(\(o:sacrifice\)\)/)
+  assert.equal(found.length, 10)
+  assert.ok(found.every((card) => card.reason === 'Matches commander text'))
+  assert.ok(!found.some((card) => card.name === 'Fodder 0'))
+  assert.deepEqual(await mechanicRecommendations({ searchCards: assert.fail }, [], [], []), [])
 })

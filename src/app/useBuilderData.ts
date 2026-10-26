@@ -281,6 +281,8 @@ function evidenceSentence(card: Card, commander: string) {
     'Interesting new pick': 'A less common card that fits your deck’s themes.',
     'Land or mana': 'A popular land or mana source in your colours.',
     'Popular inclusion': 'A popular Commander card in your colours.',
+    'Fills a role gap': 'Scryfall tags it for a role your deck is short on.',
+    'Matches commander text': 'Its text matches a mechanic on your commander.',
     'Collection match': 'Comes from a set you chose to build with.',
     'Theme-compatible commander': 'A commander that shares your deck’s theme.',
   }
