@@ -20,14 +20,14 @@ const rulesText = (text: string) => text.replace(/\([^)]*\)/g, '')
 // Opponent-triggered sentences (Smothering Tithe) are not deck engines; later sentences still count.
 const engineText = (text: string) =>
   rulesText(text).replace(/whenever (?:an?|each) opponent\b[^.\n]*\.?/gi, '')
-export const signatureLimits = {
+export const signatureLimits = Object.freeze({
   seedsPerPass: 3,
   namesPerSeed: 24,
   seedsPerDeck: 8,
   postsPerDeck: 4,
   seedsPerTab: 24,
   postsPerTab: 12,
-}
+})
 
 type Mechanic = {
   theme: string

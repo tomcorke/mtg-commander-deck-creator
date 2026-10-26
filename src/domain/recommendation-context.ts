@@ -6,9 +6,10 @@ import {
   targetKeys,
 } from '../deck-analysis.ts'
 import type { PersistedDeckState } from '../deck-state.ts'
-import type { Card, DeckCard } from '../domain/card-model.ts'
-import { commanderNames } from '../domain/commander-catalog.ts'
-import { manaSupportFromAnalysis, type RecommendationScoreContext } from '../recommendations.ts'
+import type { Card, DeckCard } from './card-model.ts'
+import { commanderNames } from './commander-catalog.ts'
+import { manaSupportFromAnalysis } from './recommendation-scoring.ts'
+import type { RecommendationScoreContext } from './recommendation-types.ts'
 
 // All recommendation surfaces use the same deck, preference, and candidate-supply signals.
 export function buildRecommendationContext(

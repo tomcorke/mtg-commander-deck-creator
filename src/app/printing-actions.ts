@@ -2,7 +2,7 @@ import { withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import { printingOptions } from '../domain/printing.ts'
-import { buildRecommendationContext } from './recommendation-context.ts'
+import { buildRecommendationContext } from '../domain/recommendation-context.ts'
 import {
   orderedPrintings,
   preferredPrintingIndex,
@@ -12,6 +12,7 @@ import type { Card, ScryfallCard } from '../domain/card-model.ts'
 import { recommendedScoreThreshold, type CollectionMode } from '../recommendations.ts'
 import type { ActionDeps } from './recommendation-actions.ts'
 import { deckJob } from './deck-job.ts'
+import { seededFraction } from '../domain/recommender.ts'
 
 function scoringContext(
   deps: ActionDeps,
@@ -33,7 +34,9 @@ function scoringContext(
           (best, card) => (!best || score(card) > score(best) ? card : best),
           null,
         )
-      return recommended && score(recommended) >= recommendedScoreThreshold && Math.random() < 0.5
+      return recommended &&
+        score(recommended) >= recommendedScoreThreshold &&
+        seededFraction(`${deps.commander}:${recommended.name}`) < 0.5
         ? [recommended]
         : []
     }),
@@ -72,7 +75,7 @@ function selectedPrintingIndex(
     .filter((index) => index >= 0)
   const special =
     specialCards.has(card) && specialOptions.length
-      ? specialOptions[Math.floor(Math.random() * specialOptions.length)]
+      ? specialOptions[Math.floor(seededFraction(`${card.name}:finish`) * specialOptions.length)]
       : -1
   const collectionPrinting =
     !card.printingManuallySelected &&

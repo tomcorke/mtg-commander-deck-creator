@@ -8,7 +8,7 @@ import {
 } from 'react'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
-import { buildRecommendationContext } from './recommendation-context.ts'
+import { buildRecommendationContext } from '../domain/recommendation-context.ts'
 import {
   completeSignatureResults,
   loadSignatureResults,

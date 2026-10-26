@@ -117,6 +117,9 @@ const grantsExtraTurn = (text: string) =>
         /\b(?:takes?|gets?) (?:an?|one|two|three|\d+|x) extra turns?\b/i.test(effect),
     )
 
+/** Scryfall release filter: a fixed date when supplied, otherwise the provider's own today. */
+export const releasedBy = (today?: string) => `date<=${today ?? 'today'}`
+
 /** Shared recommendation eligibility, independent of the source that returned the card. */
 export function excludedByOptions(
   card: ScryfallCard,
@@ -128,7 +131,7 @@ export function excludedByOptions(
     (options.excludeGameChangers && card.game_changer !== false) ||
     (options.excludeTutors && searchesForNonland(text)) ||
     (options.excludeExtraTurns && grantsExtraTurn(text)) ||
-    (options.excludeUnreleased && (!card.released_at || !isReleased(card))) ||
+    (options.excludeUnreleased && (!card.released_at || !isReleased(card, options.today))) ||
     (options.powerTarget === 'precon' && preconFastMana.has(card.name))
   )
 }

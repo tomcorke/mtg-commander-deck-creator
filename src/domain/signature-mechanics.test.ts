@@ -6,7 +6,7 @@ import {
   supportsSignature,
   signatureLimits,
 } from './signature-recommendations.ts'
-import { buildRecommendationContext } from '../app/recommendation-context.ts'
+import { buildRecommendationContext } from './recommendation-context.ts'
 
 const raw = (name: string, oracle_text: string, type_line = 'Creature'): ScryfallCard => ({
   name,

@@ -284,7 +284,7 @@ export function recommendationScoreRating(score: number): RecommendationScoreRat
   return 'low'
 }
 
-export const recommendationReasons: Record<string, string> = {
+export const recommendationReasons: Readonly<Record<string, string>> = Object.freeze({
   highliftcards: 'Commander synergy',
   highsynergycards: 'Commander synergy',
   topcards: 'Commander favourite',
@@ -300,9 +300,9 @@ export const recommendationReasons: Record<string, string> = {
   lands: 'Land or mana',
   utilitylands: 'Land or mana',
   manafixing: 'Land or mana',
-}
+})
 
-export const preconFastMana = new Set([
+export const preconFastMana: ReadonlySet<string> = new Set([
   'Chrome Mox',
   'Grim Monolith',
   'Jeweled Lotus',

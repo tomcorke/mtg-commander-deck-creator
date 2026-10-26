@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { resolveScryfallIdentifiers } from '../src/adapters/scryfall.ts'
-import { buildRecommendationContext } from '../src/app/recommendation-context.ts'
+import { buildRecommendationContext } from '../src/domain/recommendation-context.ts'
 import { toCard, type Card, type ScryfallCard } from '../src/domain/card-model.ts'
 import { isCommanderCandidate } from '../src/domain/commander-promotion.ts'
 import { advanceRecommendationQueue } from '../src/domain/recommendation-queue.ts'

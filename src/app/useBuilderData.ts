@@ -31,7 +31,7 @@ import {
   withinPriceCap,
 } from '../domain/recommendation-tuning.ts'
 import { setPickerRows } from '../domain/set-picker.ts'
-import { buildRecommendationContext } from './recommendation-context.ts'
+import { buildRecommendationContext } from '../domain/recommendation-context.ts'
 import type { DeckDoctorFinding } from '../deck-doctor.ts'
 import { suggestDeckDoctorChanges } from '../deck-doctor-suggestions.ts'
 import { deckDataStatus, recommendationDataError } from '../domain/deck-data-status.ts'
