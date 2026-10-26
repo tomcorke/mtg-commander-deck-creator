@@ -145,7 +145,10 @@ export async function collectionRecommendations(
 /** Local queries the first batch skipped because the optional index was not ready yet. */
 export type PendingLocalQuery = { query: LocalCardQuery; liveQuery: string; reason: string }
 
-/** Stale or unchecked snapshots add one release-ordered live page so new cards stay visible. */
+/** Bounded so a long-stale index costs at most this many release-ordered pages (175 cards each). */
+export const RECENT_CARD_PAGES = 4
+
+/** Stale or unchecked snapshots add release-ordered live pages so new cards stay visible. */
 async function recentLiveCards(deps: AppActionContext, liveQuery: string): Promise<ScryfallCard[]> {
   const status: LocalIndexStatus | undefined = deps.localCardIndexStatus?.()
   if (
@@ -155,11 +158,12 @@ async function recentLiveCards(deps: AppActionContext, liveQuery: string): Promi
   )
     return []
   try {
-    // shortcut: one release-ordered page; paginate when stale-index recall needs more (#149).
+    // ponytail: newest RECENT_CARD_PAGES pages only; older new cards wait for an index refresh.
     return await deps.searchCards(
       `${liveQuery} date>=${status.bulkUpdatedAt.slice(0, 10)}`,
       undefined,
       'released',
+      RECENT_CARD_PAGES,
     )
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error

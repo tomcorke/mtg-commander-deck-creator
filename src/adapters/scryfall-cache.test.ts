@@ -342,6 +342,26 @@ test('search records warm exact-printing lookups without caching query eligibili
   assert.equal(calls, 2, 'Changed eligibility must still run the current search query')
 })
 
+test('multi-page searches follow pages up to the bound and stop when results run out', async () => {
+  const pages: string[] = []
+  const fetcher: typeof fetch = async (input) => {
+    const page = new URL(String(input)).searchParams.get('page')!
+    pages.push(page)
+    return response({ data: [card(`P${page}`, 'new')], has_more: page !== '3' })
+  }
+  const capped = await searchScryfallCached('date>=2026-01-01', fetcher, undefined, 'released', 2)
+  assert.deepEqual(
+    capped.map(({ name }) => name),
+    ['P1', 'P2'],
+  )
+  const all = await searchScryfall('t:elf', fetcher, undefined, 'released', 5)
+  assert.deepEqual(
+    all.map(({ name }) => name),
+    ['P1', 'P2', 'P3'],
+  )
+  assert.deepEqual(pages, ['1', '2', '1', '2', '3'])
+})
+
 test('an old search cannot repopulate a cleared cache, and warm lookups still honor cancellation', async () => {
   const old = Promise.withResolvers<Response>()
   let calls = 0

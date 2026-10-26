@@ -225,8 +225,8 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     ...routing,
     activeModal: state.activeModal,
     // Cached so a sub-theme prefetch is reused when the pool rebuilds.
-    searchCards: (query: string, signal?: AbortSignal, order?: string) =>
-      searchScryfallCached(query, fetch, signal, order),
+    searchCards: (query: string, signal?: AbortSignal, order?: string, maxPages?: number) =>
+      searchScryfallCached(query, fetch, signal, order, maxPages),
     fetchLocalCards,
     localCardsIfReady,
     localCardIndexStatus,
