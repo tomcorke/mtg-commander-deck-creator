@@ -5,3 +5,8 @@ export function pageWindow(count: number, pageSize: number, page: number) {
   const start = current * pageSize
   return { page: current, pages, start, end: Math.min(count, start + pageSize) }
 }
+
+/** Card-grid page size that fills whole rows: at least three rows and about twelve cards per page. */
+export function searchPageSize(columns: number) {
+  return columns * Math.max(3, Math.ceil(12 / columns))
+}

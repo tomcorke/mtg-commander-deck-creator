@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { pageWindow } from './pagination.ts'
+import { pageWindow, searchPageSize } from './pagination.ts'
 
 test('page windows cover every result once and clamp out-of-range pages', () => {
   assert.deepEqual(pageWindow(0, 12, 3), { page: 0, pages: 0, start: 0, end: 0 })
@@ -16,4 +16,12 @@ test('page windows cover every result once and clamp out-of-range pages', () => 
     seen,
     Array.from({ length: 30 }, (_, index) => index),
   )
+})
+
+test('card-grid pages fill whole rows of at least three', () => {
+  assert.equal(searchPageSize(9), 27)
+  assert.equal(searchPageSize(4), 12)
+  assert.equal(searchPageSize(2), 12)
+  assert.equal(searchPageSize(1), 12)
+  assert.equal(searchPageSize(5), 15)
 })

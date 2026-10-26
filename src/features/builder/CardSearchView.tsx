@@ -9,7 +9,7 @@ import {
 
 import { searchScryfallPage } from '../../adapters/scryfall.ts'
 import { Pagination } from '../../shared/Pagination.tsx'
-import { pageWindow } from '../../shared/pagination.ts'
+import { pageWindow, searchPageSize } from '../../shared/pagination.ts'
 import {
   toDeckCard,
   type CommanderDetails,
@@ -34,8 +34,6 @@ import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
 import { mergeSearchCards } from './interactions.ts'
-
-const pageSize = 12
 
 type SearchRequest = { query: string; order: string; page: number; signature: string }
 type Props = {
@@ -373,7 +371,10 @@ export function CardSearchView({
   const [notice, setNotice] = useState('')
   const [selectedNames, setSelectedNames] = useState<string[]>([])
   const [bulk, setBulk] = useState(false)
-  const [page, setPage] = useState(0)
+  // First card shown, so a column-count change keeps the current cards in view.
+  const [first, setFirst] = useState(0)
+  const [columns, setColumns] = useState(4)
+  const gridObserver = useRef<ResizeObserver | null>(null)
   const controllerRef = useRef<AbortController | null>(null)
   const resultsHeading = useRef<HTMLHeadingElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
@@ -382,7 +383,10 @@ export function CardSearchView({
   const targetBoard = mainSlots ? deck : sideboard
   const usedNames = [...deck, ...sideboard].map(({ name }) => name)
   const available = cards.filter((card) => includeExisting || !usedNames.includes(card.name))
+  const pageSize = searchPageSize(columns)
+  const page = Math.floor(first / pageSize)
   const { start, end } = pageWindow(available.length, pageSize, page)
+  const hidden = cards.length - available.length
   const visible = available.slice(start, end)
   const selected = cards.filter(
     (card) => selectedNames.includes(card.name) && !cardSearchError(card, targetBoard, colours),
@@ -423,7 +427,7 @@ export function CardSearchView({
       controllerRef.current?.abort()
       setCards([])
       setSelectedNames([])
-      setPage(0)
+      setFirst(0)
       setHasMore(false)
       setTotal(0)
       setWarnings([])
@@ -450,8 +454,24 @@ export function CardSearchView({
     )
   }
 
+  function loadMore() {
+    if (!request) return
+    setStatus('loading')
+    setError('')
+    setRequest({ ...request, page: request.page + 1 })
+  }
+
+  function observeGrid(grid: HTMLDivElement | null) {
+    gridObserver.current?.disconnect()
+    if (!grid) return
+    gridObserver.current = new ResizeObserver(() =>
+      setColumns(getComputedStyle(grid).gridTemplateColumns.split(' ').length),
+    )
+    gridObserver.current.observe(grid)
+  }
+
   function goToPage(next: number) {
-    setPage(next)
+    setFirst(next * pageSize)
     resultsHeading.current?.focus()
     resultsHeading.current?.scrollIntoView({ block: 'start' })
   }
@@ -524,9 +544,9 @@ export function CardSearchView({
               </h2>
               {request && (
                 <p>
-                  {total} {total === 1 ? 'card' : 'cards'}
-                  {cards.length > available.length &&
-                    ` · ${cards.length - available.length} already in your deck, hidden`}
+                  {total} matching {total === 1 ? 'card' : 'cards'}
+                  {hasMore && ` · ${cards.length} loaded`}
+                  {hidden > 0 && ` · ${hidden} already in your deck or sideboard, hidden`}
                 </p>
               )}
             </div>
@@ -550,7 +570,7 @@ export function CardSearchView({
               checked={includeExisting}
               onChange={(event) => {
                 setIncludeExisting(event.target.checked)
-                setPage(0)
+                setFirst(0)
               }}
             />
             Show cards already in deck or sideboard
@@ -642,7 +662,7 @@ export function CardSearchView({
                   </a>
                 )}
               </div>
-              <div className="card-search-grid">
+              <div className="card-search-grid" ref={observeGrid}>
                 {visible.map((card) => (
                   <SearchCard
                     key={card.name}
@@ -676,17 +696,14 @@ export function CardSearchView({
             page={page}
             onPage={goToPage}
             partial={hasMore}
+            onMore={status === 'idle' ? loadMore : undefined}
           >
             {hasMore && request && (
               <button
                 className="export"
                 type="button"
                 disabled={status !== 'idle'}
-                onClick={() => {
-                  setStatus('loading')
-                  setError('')
-                  setRequest({ ...request, page: request.page + 1 })
-                }}
+                onClick={loadMore}
               >
                 Load more results
               </button>
