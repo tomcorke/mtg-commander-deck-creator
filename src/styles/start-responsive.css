@@ -47,7 +47,8 @@
   padding: 14px 16px;
 }
 .dark .suggestion-select,
-.dark .start-panel input {
+.dark .start-panel input,
+.dark .commander-search input {
   color: #e5e3f0;
   background: #121121;
 }
