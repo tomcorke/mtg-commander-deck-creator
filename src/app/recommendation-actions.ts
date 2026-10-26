@@ -391,12 +391,17 @@ const roleSearchTags: Record<string, string> = {
 }
 const roleGapLimit = 10
 
-/** Roles the deck is short on that the offered pool can't cover (fewer than twice the shortfall). */
+/**
+ * Roles the deck is short on that the offered pool can't cover (fewer than twice the shortfall).
+ * Only live candidates count, so local snapshot breadth never skips the live Tagger search (#154).
+ */
 export function uncoveredRoleGaps(deck: Card[], targets: Record<string, number>, offered: Card[]) {
   const { counts } = analyseDeck(deck)
   return (Object.keys(roleSearchTags) as TargetKey[]).flatMap((role) => {
     const shortfall = Math.max(0, (targets[role] ?? 0) - counts[role])
-    const supply = offered.filter((card) => rolesForCard(card).includes(role)).length
+    const supply = offered.filter(
+      (card) => !card.localIndexSnapshot && rolesForCard(card).includes(role),
+    ).length
     return shortfall > 0 && supply < shortfall * 2 ? [role] : []
   })
 }
