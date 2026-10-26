@@ -452,12 +452,14 @@ const singularByTheme = new Map(creatureTypes.map((type) => [creatureTypePlural(
 export const creatureTypeForTheme = (theme: string) => singularByTheme.get(theme)
 
 /**
- * Tag on changelings and every-type cards ("is every creature type", CR 702.73a) and on
- * "choose a creature type" payoffs. It matches every creature-type theme without one tag per type.
+ * Tag on changelings and every-type cards ("is every creature type", CR 702.73a), including
+ * makers and grantors of such bodies. It matches every creature-type theme without one tag per
+ * type. "Choose a creature type" cards pick one type (CR 205.3e) and are often hosers, so they
+ * get only the `Tribal` role tag.
  */
 export const everyCreatureTypeTag = 'Changeling'
 export const everyCreatureTypePattern =
-  /\bchangeling\b|\b(?:is|are) (?:also )?every creature type|\ball creature types\b|\bchooses? a creature type\b|\bcreature type of (?:your|their) choice\b/i
+  /\bchangeling\b|\b(?:is|are) (?:also )?every creature type|\b(?:is|has|have|with|and|gains?) all creature types\b/i
 
 /** Whether a card carries a theme tag, counting every-type cards for any creature-type theme. */
 export const hasTag = (card: { tags: string[] }, tag: string) =>

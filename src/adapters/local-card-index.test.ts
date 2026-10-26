@@ -204,7 +204,20 @@ test('every-type cards join creature-type queries, and hasTag counts them for an
   )
   assert.deepEqual(queryLocalCardIndex(changelings, { colours: [], themes: ['Tokens'] }), [])
   assert.ok(tagsFor('Changeling (This card is every creature type.)', '').includes('Changeling'))
-  assert.ok(tagsFor('As this enters, choose a creature type.', '').includes('Changeling'))
+  assert.ok(
+    tagsFor('{1}: This land becomes a 2/2 creature with all creature types.', '').includes(
+      'Changeling',
+    ),
+  )
+  // One chosen type or a hoser isn't an every-type body (#168); payoffs keep the Tribal tag.
+  const payoff = tagsFor('As this enters, choose a creature type.', '')
+  assert.ok(!payoff.includes('Changeling') && payoff.includes('Tribal'))
+  assert.ok(
+    !tagsFor('Destroy all creatures of the creature type of your choice.', '').includes(
+      'Changeling',
+    ),
+  )
+  assert.ok(!tagsFor('Nonlegendary creatures lose all creature types.', '').includes('Changeling'))
   assert.ok(hasTag({ tags: ['Changeling'] }, 'Elves'))
   assert.ok(!hasTag({ tags: ['Changeling'] }, 'Tokens'))
 })
