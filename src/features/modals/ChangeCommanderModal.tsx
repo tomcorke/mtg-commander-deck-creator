@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
-import { useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
+import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
+import { Pagination } from '../../shared/Pagination.tsx'
 import { commanderNames } from '../../domain/commander-catalog.ts'
 import { toDeckCard, type DeckCard } from '../../domain/card-model.ts'
 import {
@@ -144,10 +145,18 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
             {discovery.status === 'idle' && !discovery.suggestions.length && (
               <p role="status">No commanders match these colours and name.</p>
             )}
-            {discovery.status === 'idle' && discovery.suggestions.length > 0 && (
-              <button className="reroll" type="button" onClick={discovery.reshuffle}>
-                Show different commanders
-              </button>
+            {discovery.status === 'idle' && (
+              <Pagination
+                label="Commander result pages"
+                noun="commanders"
+                count={discovery.count}
+                pageSize={commanderPageSize}
+                page={discovery.page}
+                onPage={discovery.setPage}
+                partial={discovery.more}
+              >
+                {discovery.more && <span>Narrow the filters to reach more commanders.</span>}
+              </Pagination>
             )}
             {selected && (
               <div className="change-commander-confirm">

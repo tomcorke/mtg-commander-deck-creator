@@ -8,6 +8,8 @@ import {
 } from 'react'
 
 import { searchScryfallPage } from '../../adapters/scryfall.ts'
+import { Pagination } from '../../shared/Pagination.tsx'
+import { pageWindow } from '../../shared/pagination.ts'
 import {
   toDeckCard,
   type CommanderDetails,
@@ -380,9 +382,8 @@ export function CardSearchView({
   const targetBoard = mainSlots ? deck : sideboard
   const usedNames = [...deck, ...sideboard].map(({ name }) => name)
   const available = cards.filter((card) => includeExisting || !usedNames.includes(card.name))
-  const pages = Math.ceil(available.length / pageSize)
-  const activePage = Math.min(page, Math.max(0, pages - 1))
-  const visible = available.slice(activePage * pageSize, (activePage + 1) * pageSize)
+  const { start, end } = pageWindow(available.length, pageSize, page)
+  const visible = available.slice(start, end)
   const selected = cards.filter(
     (card) => selectedNames.includes(card.name) && !cardSearchError(card, targetBoard, colours),
   )
@@ -667,30 +668,15 @@ export function CardSearchView({
               </div>
             </>
           )}
-          <div className="search-pagination" aria-label="Search result pages">
-            {pages > 1 && (
-              <>
-                <button
-                  className="export"
-                  type="button"
-                  disabled={activePage === 0}
-                  onClick={() => goToPage(activePage - 1)}
-                >
-                  Previous page
-                </button>
-                <span>
-                  Page {activePage + 1} of {pages}
-                </span>
-                <button
-                  className="export"
-                  type="button"
-                  disabled={activePage === pages - 1}
-                  onClick={() => goToPage(activePage + 1)}
-                >
-                  Next page
-                </button>
-              </>
-            )}
+          <Pagination
+            label="Search result pages"
+            noun="cards"
+            count={available.length}
+            pageSize={pageSize}
+            page={page}
+            onPage={goToPage}
+            partial={hasMore}
+          >
             {hasMore && request && (
               <button
                 className="export"
@@ -705,7 +691,7 @@ export function CardSearchView({
                 Load more results
               </button>
             )}
-          </div>
+          </Pagination>
         </section>
       </div>
       {selected.length > 0 && (

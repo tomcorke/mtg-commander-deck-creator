@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
 import {
   discoverCommanders,
-  shuffleCommanders,
   type CommanderSuggestion,
   type DiscoveryFilters,
 } from '../domain/commander-discovery.ts'
+import { pageWindow } from '../shared/pagination.ts'
+
+export const commanderPageSize = 12
 
 export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean) {
   const [pool, setPool] = useState<CommanderSuggestion[]>([])
-  const [suggestions, setSuggestions] = useState<CommanderSuggestion[]>([])
+  const [more, setMore] = useState(false)
+  const [page, setPage] = useState(0)
   const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading')
   const [error, setError] = useState('')
   const identity = [...filters.colours].sort().join('')
@@ -18,7 +21,9 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     if (!active) return
     const controller = new AbortController()
     setStatus('loading')
-    setSuggestions([])
+    setPool([])
+    setMore(false)
+    setPage(0)
     setError('')
     const timer = setTimeout(
       () => {
@@ -26,16 +31,14 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
           { theme: filters.theme, colours: [...identity], search, creatureTypes },
           controller.signal,
         )
-          .then((cards) => {
+          .then((found) => {
             if (controller.signal.aborted) return
-            setPool(cards)
-            setSuggestions(shuffleCommanders(cards))
+            setPool(found.commanders)
+            setMore(found.more)
             setStatus('idle')
           })
           .catch((error: unknown) => {
             if (controller.signal.aborted) return
-            setPool([])
-            setSuggestions([])
             setStatus('error')
             setError(error instanceof Error ? error.message : 'Commander suggestions unavailable.')
           })
@@ -47,5 +50,14 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
       controller.abort()
     }
   }, [active, filters.theme, identity, search, creatureTypes.join('|')])
-  return { suggestions, status, error, reshuffle: () => setSuggestions(shuffleCommanders(pool)) }
+  const { start, end } = pageWindow(pool.length, commanderPageSize, page)
+  return {
+    suggestions: pool.slice(start, end),
+    count: pool.length,
+    more,
+    page,
+    setPage,
+    status,
+    error,
+  }
 }

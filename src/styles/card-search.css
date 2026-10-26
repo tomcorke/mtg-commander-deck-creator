@@ -143,8 +143,7 @@
   accent-color: var(--commander-accent, #36327f);
 }
 .search-results-heading,
-.search-result-actions,
-.search-pagination {
+.search-result-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -217,11 +216,6 @@
 .search-card-rules {
   padding-top: 8px;
   white-space: pre-line;
-}
-.search-pagination {
-  justify-content: flex-start;
-  margin-top: 24px;
-  font-size: 13px;
 }
 .card-search-shell > .card-search-selection-bar {
   position: fixed;
