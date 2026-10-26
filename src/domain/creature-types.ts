@@ -461,6 +461,12 @@ export const everyCreatureTypeTag = 'Changeling'
 export const everyCreatureTypePattern =
   /\bchangeling\b|\b(?:is|are) (?:also )?every creature type|\b(?:is|has|have|with|and|gains?) all creature types\b/i
 
-/** Whether a card carries a theme tag, counting every-type cards for any creature-type theme. */
-export const hasTag = (card: { tags: string[] }, tag: string) =>
-  card.tags.includes(tag) || (card.tags.includes(everyCreatureTypeTag) && singularByTheme.has(tag))
+/**
+ * Whether a card carries a theme tag, counting every-type cards for any creature-type theme.
+ * Every-type lands (Mutavault, Soulstone Sanctuary) stay retrievable but aren't theme picks (#174).
+ */
+export const hasTag = (card: { tags: string[]; typeLine?: string }, tag: string) =>
+  card.tags.includes(tag) ||
+  (card.tags.includes(everyCreatureTypeTag) &&
+    singularByTheme.has(tag) &&
+    !/\bLand\b/.test(card.typeLine ?? ''))

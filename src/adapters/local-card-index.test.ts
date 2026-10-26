@@ -220,4 +220,5 @@ test('every-type cards join creature-type queries, and hasTag counts them for an
   assert.ok(!tagsFor('Nonlegendary creatures lose all creature types.', '').includes('Changeling'))
   assert.ok(hasTag({ tags: ['Changeling'] }, 'Elves'))
   assert.ok(!hasTag({ tags: ['Changeling'] }, 'Tokens'))
+  assert.ok(!hasTag({ tags: ['Changeling'], typeLine: 'Land' }, 'Elves'))
 })
