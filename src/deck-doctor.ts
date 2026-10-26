@@ -1,3 +1,4 @@
+import { hasTag } from './domain/creature-types.ts'
 import {
   analyseDeck,
   deckGuidance,
@@ -71,7 +72,7 @@ function hasKnownSynergy(card: DeckCard, deck: DeckCard[]) {
 
 function unconnectedCards(deck: DeckCard[], themeTags: string[], synergyDeck: DeckCard[]) {
   return deck.flatMap((card, index) =>
-    themeTags.some((tag) => card.tags.includes(tag)) ||
+    themeTags.some((tag) => hasTag(card, tag)) ||
     rolesForCard(card).length ||
     hasKnownSynergy(card, synergyDeck)
       ? []
@@ -82,7 +83,7 @@ function unconnectedCards(deck: DeckCard[], themeTags: string[], synergyDeck: De
 function themeSupportFindings(context: DiagnosisContext): DeckDoctorFinding[] {
   const { mainboard, themeTags } = context
   return themeTags.flatMap((tag) => {
-    const support = mainboard.filter((card) => card.tags.includes(tag))
+    const support = mainboard.filter((card) => hasTag(card, tag))
     if (support.length > 1) return []
     return [
       {

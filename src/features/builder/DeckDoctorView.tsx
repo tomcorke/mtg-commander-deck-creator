@@ -1,3 +1,4 @@
+import { hasTag } from '../../domain/creature-types.ts'
 import {
   useEffect,
   useLayoutEffect,
@@ -119,7 +120,7 @@ function matchesCardFilter(card: DoctorCard, filter: string) {
   const [kind, value] = filter.split(/:(.*)/)
   if (kind === 'type') return cardTypeLines(card).some((line) => line.includes(value))
   if (kind === 'role') return rolesForCard(card).includes(value as TargetKey)
-  if (kind === 'tag') return card.tags.includes(value)
+  if (kind === 'tag') return hasTag(card, value)
   return true
 }
 function hasCardError(card: Card, deck: DeckCard[], commanderColours: string[]) {
@@ -456,9 +457,8 @@ export function DeckDoctorView({
   const projectedAnalysis = projectedDeck ? analyseDeck(projectedDeck) : null
   const selectedThemes = [theme, ...activeSubThemes].filter(Boolean)
   const themeCount = (cards: DoctorCard[]) =>
-    cards
-      .slice(commanderCount)
-      .filter((card) => selectedThemes.some((tag) => card.tags.includes(tag))).length
+    cards.slice(commanderCount).filter((card) => selectedThemes.some((tag) => hasTag(card, tag)))
+      .length
 
   useEffect(() => {
     if (previousQueryKey.current === recommendationQueryKey) return

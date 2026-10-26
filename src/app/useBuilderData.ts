@@ -1,3 +1,4 @@
+import { hasTag } from '../domain/creature-types.ts'
 import {
   analyseDeck,
   basicLandNames,
@@ -69,7 +70,7 @@ function buildThemeData(deps: BuilderDataDeps) {
       ? sharedThemes(deckCards, [theme, ...activeSubThemes])
           .filter(
             (name) =>
-              deckCards.filter((card: Card) => card.tags.includes(name)).length >
+              deckCards.filter((card: Card) => hasTag(card, name)).length >
               (dismissedThemeCounts.get(name) ?? -1),
           )
           .slice(0, 1)
@@ -296,13 +297,13 @@ function recommendationExplainer(
     .map((name) => name.split(',')[0])
     .join(' and ')
   const deckReason = (card: Card) => {
-    const subThemes = activeSubThemes.filter((tag: string) => card.tags.includes(tag))
+    const subThemes = activeSubThemes.filter((tag: string) => hasTag(card, tag))
     if (subThemes.length)
       return {
         label: `${subThemes.join(' + ')} sub-theme`,
         sentence: `Supports your ${subThemes.join(' and ')} sub-theme${subThemes.length > 1 ? 's' : ''}.`,
       }
-    if (theme && card.tags.includes(theme))
+    if (theme && hasTag(card, theme))
       return { label: `${theme} theme`, sentence: `Fits your ${theme} theme.` }
     if (collectionMode !== 'none' && card.collectionMatch)
       return {

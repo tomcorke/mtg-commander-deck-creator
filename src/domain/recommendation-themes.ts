@@ -1,4 +1,10 @@
-import { creatureTypeTags, creatureTypes, creatureTypePlural } from './creature-types.ts'
+import {
+  creatureTypeTags,
+  everyCreatureTypePattern,
+  everyCreatureTypeTag,
+  creatureTypes,
+  creatureTypePlural,
+} from './creature-types.ts'
 import type { EdhrecThemeCount, TaggedCard } from './recommendation-types.ts'
 
 export const themeMatchers: [string, RegExp][] = [
@@ -197,6 +203,7 @@ export function tagsFor(source: string, typeLine: string) {
     ...new Set([
       ...themeMatchers.filter(([, matcher]) => matcher.test(source)).map(([tag]) => tag),
       ...creatureTypeTags(source),
+      ...(everyCreatureTypePattern.test(source) ? [everyCreatureTypeTag] : []),
     ]),
   ]
   for (const type of ['Creature', 'Artifact', 'Enchantment', 'Land'])
