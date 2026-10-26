@@ -12,6 +12,7 @@ import { useUiState } from './useUiState.ts'
 import type { AppHistoryState } from './routes.ts'
 import type { DeckWorkspace } from '../autosaves.ts'
 import { useWorkspaceState } from './useWorkspaceState.ts'
+import { useBuilderState } from './useBuilderState.ts'
 
 function useCurrentDeckState(state: Record<string, any>) {
   const {
@@ -113,10 +114,11 @@ export function useControllerState(
   initialRoute: Pick<AppHistoryState, 'view' | 'modal'> | null,
   workspace: DeckWorkspace,
 ) {
-  const commander = useCommanderState(saved)
-  const collection = useCollectionState(saved)
-  const recommendation = useRecommendationState(saved)
-  const deck = useDeckState(saved)
+  const commander = useCommanderState()
+  const collection = useCollectionState()
+  const recommendation = useRecommendationState(saved?.limitedRecommendations ?? false)
+  const builder = useBuilderState(saved)
+  const deck = useDeckState()
   const ui = useUiState(saved, initialRoute, workspace.initialName)
   const workspaceState = useWorkspaceState(workspace, ui.setSavedDecks)
   const state = {
@@ -126,11 +128,12 @@ export function useControllerState(
     ...deck,
     ...ui,
     ...workspaceState,
+    ...builder,
     // Once the main deck holds the limit, further Game Changers are excluded like the full filter.
     excludeGameChangers:
-      recommendation.excludeGameChangers ||
-      (recommendation.limitGameChangers && gameChangersAtLimit(deck.deck)),
-    excludeGameChangersSetting: recommendation.excludeGameChangers,
+      builder.excludeGameChangers ||
+      (builder.limitGameChangers && gameChangersAtLimit(builder.deck)),
+    excludeGameChangersSetting: builder.excludeGameChangers,
   }
   const currentDeckState = useCurrentDeckState(state)
   const activeSavedDeck = state.savedDecks.find(({ id }: any) => id === state.activeSavedDeckId)

@@ -16,6 +16,8 @@ import type {
   RecommendationScoreCard,
   RecommendationScoreContext,
   RecommendationStyle,
+  PlacementObserver,
+  BatchPlacementReason,
 } from './recommendation-types.ts'
 
 function takeNextRecommendation<T extends { reason: string }>(
@@ -23,6 +25,7 @@ function takeNextRecommendation<T extends { reason: string }>(
   picks: T[],
   test: (card: T) => boolean,
   style: RecommendationStyle,
+  observe?: PlacementObserver<T>,
 ) {
   const allowedNewCard = (card: T) =>
     style === 'competitive' ||
@@ -34,7 +37,10 @@ function takeNextRecommendation<T extends { reason: string }>(
   let index = remaining.findIndex((card) => test(card) && allowedNewCard(card) && newReason(card))
   if (index < 0) index = remaining.findIndex((card) => test(card) && allowedNewCard(card))
   if (index < 0) index = remaining.findIndex(test)
-  if (index >= 0) picks.push(...remaining.splice(index, 1))
+  if (index >= 0) {
+    if (index !== remaining.findIndex(test)) observe?.(remaining[index], 'diversity')
+    picks.push(...remaining.splice(index, 1))
+  }
 }
 
 function nextRecommendationBatch<T extends { reason: string; typeLine: string }>(
@@ -42,13 +48,21 @@ function nextRecommendationBatch<T extends { reason: string; typeLine: string }>
   includeCreature: boolean,
   canUse: (card: T) => boolean,
   style: RecommendationStyle,
+  observe?: PlacementObserver<T>,
 ) {
   const picks: T[] = []
-  const take = (test: (card: T) => boolean) => takeNextRecommendation(remaining, picks, test, style)
+  const take = (test: (card: T) => boolean) =>
+    takeNextRecommendation(remaining, picks, test, style, observe)
+  const takeSlot = (test: (card: T) => boolean, reason: BatchPlacementReason) => {
+    const count = picks.length
+    take(test)
+    if (picks.length > count) observe?.(picks[count], reason)
+  }
   if (includeCreature)
-    take(
+    takeSlot(
       (card) =>
         canUse(card) && card.reason !== 'Land or mana' && card.typeLine.includes('Creature'),
+      'creature-slot',
     )
   while (
     style !== 'competitive' &&
@@ -58,7 +72,7 @@ function nextRecommendationBatch<T extends { reason: string; typeLine: string }>
     take((card) => canUse(card) && card.reason !== 'Land or mana')
     if (picks.length === count) break
   }
-  if (style !== 'competitive') take((card) => card.reason === 'Land or mana')
+  if (style !== 'competitive') takeSlot((card) => card.reason === 'Land or mana', 'mana-slot')
   while (picks.length < 4) {
     const count = picks.length
     take(style === 'competitive' ? () => true : canUse)
@@ -73,11 +87,12 @@ export function batchRecommendations<T extends { name: string; reason: string; t
   includeCreature: boolean,
   canUse: (card: T) => boolean = () => true,
   style: RecommendationStyle = 'balanced',
+  observe?: PlacementObserver<T>,
 ) {
   const remaining = [...cards]
   const ordered: T[] = []
   while (remaining.length)
-    ordered.push(...nextRecommendationBatch(remaining, includeCreature, canUse, style))
+    ordered.push(...nextRecommendationBatch(remaining, includeCreature, canUse, style, observe))
   if (
     ordered.length !== cards.length ||
     new Set(ordered.map((card) => card.name)).size !== cards.length
@@ -90,6 +105,7 @@ function keepThemeIdentity<T extends { tags: string[]; set?: string; collectionM
   cards: T[],
   context: RecommendationScoreContext,
   canUse: (card: T) => boolean = () => true,
+  observe?: PlacementObserver<T>,
 ) {
   const isIdentity = (card: T) =>
     Boolean(
@@ -109,6 +125,7 @@ function keepThemeIdentity<T extends { tags: string[]; set?: string; collectionM
       )
       const displaced = batch.findLastIndex((card) => !isIdentity(card))
       if (replacement < 0 || displaced < 0) break
+      observe?.(ordered[replacement], 'theme-coverage')
       ;[ordered[start + displaced], ordered[replacement]] = [
         ordered[replacement],
         ordered[start + displaced],
@@ -147,6 +164,7 @@ export function rankRecommendationCards<
   context: RecommendationScoreContext,
   includeCreature: boolean,
   cardRoles: (card: T) => string[] = () => [],
+  observe?: PlacementObserver<T>,
 ) {
   const eligible =
     context.collectionMode === 'only' && context.collectionSets?.length
@@ -174,20 +192,22 @@ export function rankRecommendationCards<
     !card.typeLine.includes('Creature') ||
     score(card).manaFitPenalty > -recommendationScoreFactorMaximums.manaFitPenalty / 2
   const style = context.recommendationStyle ?? 'balanced'
-  const batches = batchRecommendations(ranked, includeCreature, canUse, style)
+  const batches = batchRecommendations(ranked, includeCreature, canUse, style, observe)
   if (style === 'competitive') return batches
   const varied = spreadRoles(
     balanceThemeCoverage(
       batches,
       [context.theme, ...context.activeSubThemes].filter(Boolean),
       canUse,
+      observe,
     ),
     cardRoles,
     mostUrgentRole(context.roleBoosts),
     [context.theme, ...context.activeSubThemes].filter(Boolean),
     canUse,
+    observe,
   )
-  return style === 'thematic' ? keepThemeIdentity(varied, context, canUse) : varied
+  return style === 'thematic' ? keepThemeIdentity(varied, context, canUse, observe) : varied
 }
 
 /**
@@ -207,6 +227,7 @@ export function spreadRoles<T extends { reason: string; typeLine: string; tags: 
   repeatableRoles: Set<string>,
   themes: string[] = [],
   canUse: (card: T) => boolean = () => true,
+  observe?: PlacementObserver<T>,
 ) {
   // Swaps keep the batch's creature and land slots, and never drop its only card for a theme.
   const sameSlot = (left: T, right: T) =>
@@ -233,8 +254,10 @@ export function spreadRoles<T extends { reason: string; typeLine: string; tags: 
           sameSlot(card, ordered[index]) &&
           roles(card).every((role) => !others.some((other) => roles(other).includes(role))),
       )
-      if (replacement >= 0)
-        [ordered[index], ordered[replacement]] = [ordered[replacement], ordered[index]]
+      if (replacement >= 0) {
+        observe?.(ordered[replacement], 'diversity')
+        ;[ordered[index], ordered[replacement]] = [ordered[replacement], ordered[index]]
+      }
     }
   }
   return ordered
@@ -251,6 +274,7 @@ export function balanceThemeCoverage<T extends { tags: string[]; reason: string 
   cards: T[],
   themes: string[],
   canUse: (card: T) => boolean = () => true,
+  observe?: PlacementObserver<T>,
 ) {
   if (themes.length < 2) return cards
   const ordered = [...cards]
@@ -278,11 +302,13 @@ export function balanceThemeCoverage<T extends { tags: string[]; reason: string 
               batch.filter((item) => hasTag(item, other)).length === 1,
           ),
       )
-      if (replacement >= 0 && displaced >= 0)
-        [ordered[start + displaced], ordered[replacement]] = [
+      if (replacement >= 0 && displaced >= 0) {
+        observe?.(ordered[replacement], 'theme-coverage')
+        ;[ordered[start + displaced], ordered[replacement]] = [
           ordered[replacement],
           ordered[start + displaced],
         ]
+      }
     }
   return ordered
 }

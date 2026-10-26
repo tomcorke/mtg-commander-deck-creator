@@ -1,3 +1,4 @@
+import { builderAction } from './builder-action.ts'
 import {
   useEffect,
   useEffectEvent,
@@ -26,6 +27,7 @@ import type { ControllerState } from './useControllerState.ts'
 export function signatureContextKey(state: ControllerState) {
   return JSON.stringify([
     state.signatureDeckKey,
+    state.today,
     state.signatureEpoch,
     state.commander,
     state.deck.map(({ name }) => name),
@@ -111,7 +113,12 @@ export function useSignatureRecommendations(state: ControllerState) {
   useLayoutEffect(() => {
     if (!completed || completed.key !== key || !enabled || applied.current === completed) return
     applied.current = completed // Apply once; a later queue removal must not resurrect these cards.
-    state.setQueue((queue) => mergeSignatureResults(queue, completed.results, state))
+    builderAction(state, (builder) => ({
+      type: 'data',
+      changes: {
+        queue: mergeSignatureResults(builder.queue, completed.results, state),
+      },
+    }))
     completeSignatureResults(state.signatureDeckKey, completed.results)
   }, [completed, enabled, key, state])
 }

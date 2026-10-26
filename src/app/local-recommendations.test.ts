@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { withBuilderFixture } from './builder-test-fixture.ts'
 import test from 'node:test'
 import type { ScryfallCard } from '../domain/card-model.ts'
 import { toCard } from '../domain/card-model.ts'
@@ -7,13 +8,15 @@ import { recommendationScoreBreakdown } from '../domain/recommendation-scoring.t
 import { currentCardData } from '../domain/current-card-data.ts'
 import {
   appendBackgroundCandidates,
-  enrichWithLocalCards,
+  enrichWithLocalCards as enrichWithLocalCardsAction,
   fallbackRecommendations,
-  fetchDeckDoctorCandidates,
+  fetchDeckDoctorCandidates as fetchDeckDoctorCandidatesAction,
   mergeRecommendationCandidates,
   roleGapRecommendations,
   themeRecommendations,
 } from './recommendation-actions.ts'
+const enrichWithLocalCards = withBuilderFixture(enrichWithLocalCardsAction)
+const fetchDeckDoctorCandidates = withBuilderFixture(fetchDeckDoctorCandidatesAction)
 
 const card = (name: string, text = 'Create a 1/1 white Cat creature token.'): ScryfallCard => ({
   name,
@@ -274,6 +277,7 @@ test('background enrichment keeps the active batch and every decision, appending
   await enrichWithLocalCards(
     {
       ...options,
+      queue,
       fetchLocalCards: async () =>
         ['A', 'Ignored', 'In deck', 'Deferred', 'New', 'E'].map((name) => card(name)),
       getCurrentState: () => ({

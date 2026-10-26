@@ -1,3 +1,4 @@
+import { builderAction } from './builder-action.ts'
 import { withinPriceCap } from '../domain/recommendation-tuning.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
@@ -8,14 +9,14 @@ import {
   preferredPrintingIndex,
   recommendationScore,
 } from '../recommendations.ts'
-import type { Card, ScryfallCard } from '../domain/card-model.ts'
+import type { Card, Printing, ScryfallCard } from '../domain/card-model.ts'
 import { recommendedScoreThreshold, type CollectionMode } from '../recommendations.ts'
-import type { ActionDeps } from './recommendation-actions.ts'
+import type { AppActionContext } from './recommendation-actions.ts'
 import { deckJob } from './deck-job.ts'
 import { seededFraction } from '../domain/recommender.ts'
 
 function scoringContext(
-  deps: ActionDeps,
+  deps: AppActionContext,
   cards: Card[],
   selectedCollectionSets: string[],
   selectedCollectionMode: CollectionMode,
@@ -95,41 +96,25 @@ function selectedPrintingIndex(
 }
 
 function updateQueuedCard(
-  deps: ActionDeps,
+  deps: AppActionContext,
   offered: Card,
-  printings: any[],
+  printings: Printing[],
   selectedIndex: number,
 ) {
-  const { setQueue } = deps
-  const selected = printings[selectedIndex]
-  if (!selected) return
-  setQueue((current: Card[]) =>
-    current.map((item) =>
-      item.name === offered.name &&
-      (!item.printingManuallySelected ||
-        (item.image === selected.image && item.finish === selected.finish))
-        ? {
-            ...item,
-            printings,
-            image: selected.image,
-            backImage: selected.backImage,
-            set: selected.set,
-            setName: selected.setName,
-            collectorNumber: selected.collectorNumber,
-            scryfallUri: selected.scryfallUri,
-            price: selected.price,
-            priceUri: selected.priceUri,
-            finish: selected.finish,
-            foilType: selected.foilType,
-            printing: selectedIndex,
-          }
-        : item,
-    ),
-  )
+  const current = deps.getCurrentState?.() ?? deps
+  builderAction(current, {
+    type: 'printing',
+    board: 'queue',
+    index: current.queue.findIndex((card: Card) => card.name === offered.name),
+    name: offered.name,
+    printings,
+    selection: selectedIndex,
+    automatic: true,
+  })
 }
 
 export async function loadPrintings(
-  deps: ActionDeps,
+  deps: AppActionContext,
   cards: Card[],
   preferredSet = '',
   selectedCollectionSets: string[] = deps.collectionSets,
@@ -167,6 +152,7 @@ export async function loadPrintings(
       if (error instanceof ScryfallRateLimitError) return
       throw error
     }
+    if (!job.isCurrent()) return
     if (!result.length) continue
     const printings = buildPrintings(offered, result)
     const selectedIndex = selectedPrintingIndex(

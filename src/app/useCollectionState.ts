@@ -1,15 +1,8 @@
 import { useState } from 'react'
 
-import type { PersistedDeckState } from '../deck-state.ts'
-import type { CollectionMode } from '../recommendations.ts'
 import type { ScryfallCard, ScryfallSet } from '../domain/card-model.ts'
 
-export function useCollectionState(saved: PersistedDeckState | null) {
-  const [collectionSets, setCollectionSets] = useState<string[]>(saved?.collectionSets ?? [])
-  const [collectionGroups, setCollectionGroups] = useState<string[]>(saved?.collectionGroups ?? [])
-  const [collectionMode, setCollectionMode] = useState<CollectionMode>(
-    saved?.collectionSets?.length ? (saved.collectionMode ?? 'none') : 'none',
-  )
+export function useCollectionState() {
   const [setOptions, setSetOptions] = useState<ScryfallSet[]>([])
   const [collectionSearch, setCollectionSearch] = useState('')
   const [showSupplementalSets, setShowSupplementalSets] = useState(false)
@@ -26,12 +19,6 @@ export function useCollectionState(saved: PersistedDeckState | null) {
   const [showCollectionBrowser, setShowCollectionBrowser] = useState(false)
 
   return {
-    collectionSets,
-    setCollectionSets,
-    collectionGroups,
-    setCollectionGroups,
-    collectionMode,
-    setCollectionMode,
     setOptions,
     setSetOptions,
     collectionSearch,

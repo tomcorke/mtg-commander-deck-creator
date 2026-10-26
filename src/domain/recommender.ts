@@ -15,6 +15,7 @@ import type {
   DeferredCard,
   RecommendationScoreBreakdown,
   RecommendationStyle,
+  BatchPlacementReason,
 } from './recommendation-types.ts'
 
 /** Bumped whenever scoring or ranking changes the order produced from the same inputs. */
@@ -173,7 +174,7 @@ export type RecommendState = {
   identity: string[]
   pool: Card[]
   deck: DeckCard[]
-  sideboard: Card[]
+  sideboard: DeckCard[]
   ignoredCards: string[]
   deferredCards: DeferredCard<Card>[]
   batchNumber: number
@@ -201,6 +202,8 @@ export type ScoredCard = {
   breakdown: RecommendationScoreBreakdown
   /** Score factors that contributed, in breakdown order. */
   codes: (keyof RecommendationScoreBreakdown)[]
+  /** Selection and rearrangement steps that affected this card, in algorithm order. */
+  placementReasons: BatchPlacementReason[]
 }
 
 export type Recommendation = {
@@ -269,7 +272,15 @@ export function recommend(
     candidates,
     state.deck,
   )
-  const queue = rank(candidates, context, state.includeCreature, rolesForCard)
+  const placements = new Map<Card, BatchPlacementReason[]>()
+  const queue = rank(candidates, context, state.includeCreature, rolesForCard, (card, reason) => {
+    const reasons = placements.get(card) ?? []
+    if (!reasons.includes(reason)) reasons.push(reason)
+    placements.set(card, reasons)
+  })
+  const batch = focusedRecommendations(queue, state.focusedRole, rolesForCard).slice(0, 4)
+  if (state.focusedRole)
+    for (const card of batch) placements.set(card, [...(placements.get(card) ?? []), 'focus'])
   const queued = new Set(queue)
   for (const card of candidates)
     if (!queued.has(card))
@@ -285,6 +296,7 @@ export function recommend(
       scoringVersion: recommendationScoringVersion,
       source: card.reason,
       breakdown,
+      placementReasons: placements.get(card) ?? [],
       codes: (Object.keys(breakdown) as (keyof RecommendationScoreBreakdown)[]).filter(
         (key) => key !== 'total' && breakdown[key] !== 0,
       ),
@@ -292,7 +304,7 @@ export function recommend(
   })
   return {
     queue,
-    batch: focusedRecommendations(queue, state.focusedRole, rolesForCard).slice(0, 4),
+    batch,
     deferredCards,
     scores,
     exclusions,

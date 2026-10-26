@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { withBuilderFixture } from './app/builder-test-fixture.ts'
 import test from 'node:test'
 import { a14BaseState as state, printingHeavyFixture } from '../scripts/fixtures/a14.ts'
 
@@ -21,8 +22,13 @@ import {
   saveSavedDeck,
   savedDecksKey,
 } from './deck-state.ts'
-import { loadSavedDeck, storeDeck } from './app/deck-actions.ts'
-import type { ActionDeps } from './app/recommendation-actions.ts'
+import {
+  loadSavedDeck as loadSavedDeckAction,
+  storeDeck as storeDeckAction,
+} from './app/deck-actions.ts'
+const loadSavedDeck = withBuilderFixture(loadSavedDeckAction)
+const storeDeck = withBuilderFixture(storeDeckAction)
+import type { AppActionContext } from './app/recommendation-actions.ts'
 import { pendingDeckData } from './domain/current-card-data.ts'
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -430,7 +436,7 @@ test('manual saves and autosaved copies both restore an idle, persistable editin
       deps[`set${key[0].toUpperCase() + key.slice(1)}`] = (value: unknown) => {
         deps[key] = value
       }
-    loadSavedDeck(deps as ActionDeps, {
+    loadSavedDeck(deps as AppActionContext, {
       id,
       name: 'Restored',
       updatedAt: '2026-10-03T12:00:00Z',
@@ -557,9 +563,9 @@ test('a taken manual-save name requires explicit overwrite and reuses the existi
         deps.activeSavedDeckId = value
       },
     }
-    storeDeck(deps as ActionDeps)
+    storeDeck(deps as AppActionContext)
     assert.equal(storage.getItem(savedDecksKey), original)
-    storeDeck(deps as ActionDeps, true)
+    storeDeck(deps as AppActionContext, true)
     assert.equal(loadSavedDecks(storage).length, 1)
     assert.equal(loadSavedDecks(storage)[0].id, 'manual')
     assert.equal(loadSavedDecks(storage)[0].state.theme, 'Changed deck')
@@ -591,7 +597,7 @@ test('saving the active deck under a new name keeps the original save', () => {
         deps.activeSavedDeckId = value
       },
     }
-    storeDeck(deps as ActionDeps)
+    storeDeck(deps as AppActionContext)
     const saves = loadSavedDecks(storage)
     assert.equal(saves.length, 2)
     assert.equal(saves.find(({ id }) => id === 'manual')?.state.commander, state.commander)

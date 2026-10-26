@@ -1,3 +1,5 @@
+import { builderAction } from './builder-action.ts'
+import type { BuilderSettings } from '../domain/builder-state.ts'
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef } from 'react'
 import {
   fetchLocalCards,
@@ -8,7 +10,6 @@ import { type TargetKey } from '../deck-analysis.ts'
 
 import {
   cardText,
-  freshRecommendationCycle,
   rankRecommendationCards,
   selectSubTheme,
   type RecommendationStyle,
@@ -44,7 +45,6 @@ import {
   fetchDeckDoctorCandidates,
   fetchDeckDoctorCommanders,
   start as startRecommendations,
-  recommendationPoolKey,
   themeRecommendations,
   type RecommendationProgress,
 } from './recommendation-actions.ts'
@@ -143,7 +143,15 @@ async function startInWorkspace(
     state.setDeckName('')
     if (!deps.prepareFirstBatch) state.resetFirstUse()
   }
-  return startRecommendations(deps, name, preserveDeck, progress)
+  const buildIdentity = preserveDeck
+    ? undefined
+    : { id: crypto.randomUUID(), today: new Date().toISOString().slice(0, 10) }
+  return startRecommendations(
+    { ...deps, buildIdentity, today: buildIdentity?.today ?? deps.today },
+    name,
+    preserveDeck,
+    progress,
+  )
 }
 
 function useRemoteActions(state: AppState, routing: RoutingActions) {
@@ -190,8 +198,9 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     savedDeckChanged: state.savedDeckChanged,
     deckPageTitle,
     commanderDetails: state.commanderDetails,
-    setCommanderDetails: state.setCommanderDetails,
-    setDeck: state.setDeck,
+    builderState: state.builderState,
+    getBuilderState: state.getBuilderState,
+    dispatchBuilder: state.dispatchBuilder,
     fetchCard: (name: string, signal?: AbortSignal) => fetchScryfallCard(name, fetch, signal),
     fetchPrintings: fetchScryfallPrintings,
     fetchCards: fetchScryfallCardsByIdentifiers,
@@ -203,6 +212,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     excludeTutors: state.excludeTutors,
     excludeExtraTurns: state.excludeExtraTurns,
     excludeUnreleased: state.excludeUnreleased,
+    today: state.today,
     setCollectionPoolSize: state.setCollectionPoolSize,
     fetchCollectionCount: fetchScryfallCollectionCount,
     fetchSearch: (query: string, signal?: AbortSignal, order?: string) =>
@@ -214,7 +224,6 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     recommendationRequest,
     ...routing,
     activeModal: state.activeModal,
-    freshRecommendationCycle,
     // Cached so a sub-theme prefetch is reused when the pool rebuilds.
     searchCards: (query: string, signal?: AbortSignal, order?: string) =>
       searchScryfallCached(query, fetch, signal, order),
@@ -245,7 +254,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
 
 function useStartActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
   function chooseTheme(name: string) {
-    state.setTheme(state.theme === name ? '' : name)
+    builderAction(state, { type: 'theme', theme: state.theme === name ? '' : name })
   }
   function toggleColour(colour: string) {
     state.setColours((selected: string[]) =>
@@ -272,22 +281,14 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
       excludeExtraTurns: state.excludeExtraTurns,
     }
     const settings = style ? playStyleSettings(current, style) : current
-    if (style) {
-      state.setPowerTarget(settings.powerTarget)
-      state.setRecommendationStyle(settings.recommendationStyle)
-      state.setExcludeGameChangers(settings.excludeGameChangers)
-      state.setLimitGameChangers(settings.limitGameChangers)
-      state.setExcludeTutors(settings.excludeTutors)
-      state.setExcludeExtraTurns(settings.excludeExtraTurns)
-    }
+    if (style) builderAction(state, { type: 'settings', settings })
     state.setAwaitingPlayStyle(false)
     state.setNewDeckGuidePending(true)
     state.setFirstBatchFocusPending(true)
     return remote.firstBatch(settings)
   }
   function choosePowerTarget(target: 'precon' | 'upgraded' | 'high') {
-    state.setPowerTarget(target)
-    state.setRecommendationOptionsChanged(true)
+    builderAction(state, { type: 'settings', settings: { powerTarget: target } })
   }
   async function retryEdhrec() {
     if (
@@ -309,6 +310,7 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
     ...routing,
     ...remote,
     chooseTheme,
+    declareTheme: (theme: string) => builderAction(state, { type: 'theme', theme }),
     toggleColour,
     chooseCommander,
     beginFirstBatch,
@@ -390,34 +392,22 @@ function queueSubTheme(
 function useBuilderActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
   const chooseSubTheme = (name: string) => {
     const selection = selectSubTheme(state.activeSubThemes, name)
-    state.setActiveSubThemes(selection.activeSubThemes)
+    builderAction(state, { type: 'selectSubTheme', name })
     if (selection.refreshRecommendations) queueSubTheme(state, remote, name, selection)
     state.setShowSubThemePicker(false)
     state.setSubThemeSearch('')
   }
-  const chooseRecommendationStyle = (style: RecommendationStyle) => {
-    state.setRecommendationStyle(style)
-    state.setRecommendationOptionsChanged(true)
-  }
+  const chooseOptions = (settings: Partial<BuilderSettings>) =>
+    builderAction(state, { type: 'settings', settings })
+  const chooseRecommendationStyle = (style: RecommendationStyle) =>
+    chooseOptions({ recommendationStyle: style })
   const chooseCollectionMode = (mode: 'none' | 'prefer' | 'only') => {
-    state.setCollectionMode(mode)
-    if (mode === 'none') {
-      state.setCollectionSets([])
-      state.setCollectionGroups([])
-    }
+    builderAction(state, { type: 'collectionMode', mode })
     state.setCollectionPoolSize(null)
-    state.setRecommendationOptionsChanged(true)
   }
   function toggleCollectionSet(code: string) {
-    const removingLastSet = state.collectionSets.length === 1 && state.collectionSets.includes(code)
-    state.setCollectionSets((current: string[]) =>
-      current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
-    )
-    state.setCollectionGroups([])
-    if (removingLastSet) state.setCollectionMode('none')
-    else if (state.collectionMode === 'none') state.setCollectionMode('prefer')
+    builderAction(state, { type: 'toggleSet', code })
     state.setCollectionPoolSize(null)
-    state.setRecommendationOptionsChanged(true)
   }
   async function browseCollection() {
     if (!state.collectionSets.length) return
@@ -433,6 +423,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
           excludeTutors: state.excludeTutors,
           excludeExtraTurns: state.excludeExtraTurns,
           excludeUnreleased: state.excludeUnreleased,
+          today: state.today,
         },
       )
       state.setCollectionBrowserCards(randomItems(cards, cards.length))
@@ -470,10 +461,17 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     loadSavedDeck: loadWorkspaceDeck,
     chooseSubTheme,
     chooseRecommendationStyle,
+    chooseOptions,
+    chooseDeckTarget: (key: TargetKey, value: number) =>
+      builderAction(state, (builder) => ({
+        type: 'settings',
+        settings: {
+          deckTargets: { ...builder.deckTargets, [key]: value },
+        },
+      })),
     chooseMaxPrice: (price: number | null) => {
       interactionDeps.announcePriceCap(price)
-      state.setMaxPrice(price)
-      state.setRecommendationOptionsChanged(true)
+      chooseOptions({ maxPrice: price })
     },
     chooseRoleFocus: (role: TargetKey | null) => chooseRoleFocus(interactionDeps, role),
     chooseCollectionMode,
@@ -496,8 +494,7 @@ export function useAppActions(state: AppState) {
   const getCurrentState = useCallback(() => latest.current, [])
   const appState = { ...state, getCurrentState }
   const routing = useRoutingActions(appState)
-  const poolKey = useRef(recommendationPoolKey(state))
-  const remote = useRemoteActions({ ...appState, recommendationPoolKey: poolKey }, routing)
+  const remote = useRemoteActions(appState, routing)
   const resumeFirstBatch = useEffectEvent(() => remote.start(state.commander, true))
   useEffect(() => {
     // A14 restores a prepared draft without showing a new-deck play-style step again.

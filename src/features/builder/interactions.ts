@@ -1,21 +1,12 @@
 import type { MouseEvent } from 'react'
 
-import { focusedRecommendations, type IgnoreReason } from '../../domain/recommendation-tuning.ts'
-import { analyseDeck, rolesForCard, targetLabels, type TargetKey } from '../../deck-analysis.ts'
-import { buildRecommendationContext } from '../../domain/recommendation-context.ts'
-import {
-  recommendationPoolKey,
-  type RecommendationProgress,
-} from '../../app/recommendation-actions.ts'
+import { focusedRecommendations } from '../../domain/recommendation-tuning.ts'
+import { rolesForCard, targetLabels, type TargetKey } from '../../deck-analysis.ts'
+import { builderAction, type BuilderActionHost } from '../../app/builder-action.ts'
+import type { BuilderAction, BuilderActionResult } from '../../domain/builder-state.ts'
+import type { RecommendationProgress } from '../../app/recommendation-actions.ts'
 import type { Card, ScryfallCard } from '../../domain/card-model.ts'
-import {
-  advanceRecommendationQueue,
-  deferBatch,
-  rankRecommendationCards,
-  updatePreferenceScores,
-  type CollectionMode,
-  type RecommendationStyle,
-} from '../../recommendations.ts'
+import { type CollectionMode } from '../../recommendations.ts'
 export function mergeSearchCards(
   current: ScryfallCard[],
   incoming: ScryfallCard[],
@@ -28,19 +19,20 @@ export function mergeSearchCards(
   ]
 }
 
-export type BuilderInteractionDeps = Record<string, any> & {
-  start: (
-    name: string,
-    preserveDeck?: boolean,
-    progress?: RecommendationProgress,
-  ) => Promise<boolean>
-  loadPrintings: (
-    cards: Card[],
-    preferredSet?: string,
-    collectionSets?: string[],
-    collectionMode?: CollectionMode,
-  ) => Promise<void>
-}
+export type BuilderInteractionDeps = Record<string, any> &
+  BuilderActionHost & {
+    start: (
+      name: string,
+      preserveDeck?: boolean,
+      progress?: RecommendationProgress,
+    ) => Promise<boolean>
+    loadPrintings: (
+      cards: Card[],
+      preferredSet?: string,
+      collectionSets?: string[],
+      collectionMode?: CollectionMode,
+    ) => Promise<void>
+  }
 
 export function fanCards(event: MouseEvent<HTMLDivElement>) {
   const cards = event.currentTarget.querySelectorAll<HTMLElement>('.card-offer')
@@ -88,172 +80,100 @@ export function clickCardImage(
     decide(card, 'add')
 }
 
-export async function refreshRecommendationSettings(
+async function settleInteractionSettings(
   deps: BuilderInteractionDeps,
+  result: BuilderActionResult,
+  previewRole = result.state.focusedRole,
+) {
+  const next = result.state
+  if (result.fetchRequests.length) {
+    deps.setPendingSubThemes?.([])
+    await deps.start(deps.commander, true, {
+      batchNumber: next.batchNumber,
+      deferredCards: next.deferredCards,
+      preferenceScores: next.preferenceScores,
+    })
+    return
+  }
+  deps.setBatchAnnouncement(`Recommendations updated for batch ${next.batchNumber}.`)
+  void deps.loadPrintings(
+    focusedRecommendations(next.queue, previewRole, rolesForCard).slice(0, 8),
+    next.collectionSets[0] || next.preferredPrintSet,
+  )
+}
+
+async function commitInteractionSettings(
+  deps: BuilderInteractionDeps,
+  action: BuilderAction,
   previewRole = deps.focusedRole,
 ) {
-  if (!deps.recommendationOptionsChanged || deps.recommendationState === 'loading') return
-  if (deps.recommendationRefreshInFlight.current) return
+  if (deps.recommendationState === 'loading' || deps.recommendationRefreshInFlight.current) return
   deps.recommendationRefreshInFlight.current = true
   try {
-    const batch = focusedRecommendations<Card>(deps.queue, deps.focusedRole, rolesForCard).slice(
-      0,
-      4,
-    )
-    const progress: RecommendationProgress = {
-      batchNumber: deps.batchNumber,
-      deferredCards: [
-        ...deps.deferredCards,
-        ...deferBatch(
-          batch.filter((card) => deps.decisions[card.name] === 'later'),
-          deps.decisions,
-          deps.batchNumber,
-          (card) => card.name,
-        ),
-      ],
-      preferenceScores: updatePreferenceScores(
-        batch,
-        deps.decisions,
-        deps.liked,
-        deps.preferenceScores,
-        deps.ignoreReasons,
-        [deps.theme, ...deps.activeSubThemes],
-      ),
-    }
-    deps.setPreferenceScores(progress.preferenceScores)
-    deps.setDeferredCards(progress.deferredCards)
-    deps.setDecisions({})
-    deps.setIgnoreReasons?.({})
-    deps.setLiked((current: string[]) =>
-      current.filter((name) => !batch.some((card) => card.name === name)),
-    )
-    if (deps.recommendationPoolKey.current !== recommendationPoolKey(deps)) {
-      deps.setPendingSubThemes?.([])
-      await deps.start(deps.commander, true, progress)
-      return
-    }
-    const excluded = new Set([
-      ...deps.ignoredCards,
-      ...[...deps.deck, ...deps.sideboard].map((card: Card) => card.name),
-      ...progress.deferredCards.map(({ card }) => card.name),
-    ])
-    // Refresh the preview without spending undecided cards or advancing the waiting period.
-    const candidates: Card[] = deps.queue.filter((card: Card) => !excluded.has(card.name))
-    const context = buildRecommendationContext({ ...deps, ...progress }, candidates)
-    const queue = rankRecommendationCards(candidates, context, deps.includeCreature, rolesForCard)
-    deps.setQueue(queue)
-    deps.setRecommendationOptionsChanged(false)
-    deps.setBatchAnnouncement(`Recommendations updated for batch ${progress.batchNumber}.`)
-    void deps.loadPrintings(
-      focusedRecommendations(queue, previewRole, rolesForCard).slice(0, 8),
-      deps.collectionSets[0] || deps.preferredPrintSet,
-    )
+    const before = deps.getBuilderState()
+    const result = builderAction(deps, action)
+    if (result.state !== before) await settleInteractionSettings(deps, result, previewRole)
   } finally {
     deps.recommendationRefreshInFlight.current = false
   }
 }
 
+export async function refreshRecommendationSettings(
+  deps: BuilderInteractionDeps,
+  previewRole = deps.focusedRole,
+) {
+  if (!deps.getBuilderState().recommendationOptionsChanged) return
+  await commitInteractionSettings(deps, { type: 'commitSettings' }, previewRole)
+}
+
 export async function chooseRoleFocus(deps: BuilderInteractionDeps, role: TargetKey | null) {
   if (deps.recommendationState !== 'idle' || deps.recommendationRefreshInFlight.current) return
   const nextRole = role === deps.focusedRole ? null : role
-  await refreshRecommendationSettings({ ...deps, recommendationOptionsChanged: true }, nextRole)
-  deps.setFocusedRole(nextRole)
+  await commitInteractionSettings(deps, { type: 'focus', role }, nextRole)
   deps.setBatchAnnouncement(
     nextRole ? `Recommendations focused on ${targetLabels[nextRole]}.` : 'Role focus cleared.',
   )
 }
 
 export async function clearCompletedRoleFocus(deps: BuilderInteractionDeps) {
-  const role: TargetKey | null = deps.focusedRole
-  if (
-    role &&
-    deps.recommendationState === 'idle' &&
-    !deps.recommendationOptionsChanged &&
-    analyseDeck(deps.deck).counts[role] >= deps.deckTargets[role]
-  )
-    await chooseRoleFocus(deps, null)
+  if (deps.recommendationState !== 'idle') return
+  const role = deps.getBuilderState().focusedRole
+  await commitInteractionSettings(deps, { type: 'completeFocus' }, null)
+  if (role && !deps.getBuilderState().focusedRole) deps.setBatchAnnouncement('Role focus cleared.')
 }
 
 export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = '') {
-  // Sub-theme changes wait here so the current batch stays on screen until the user moves on.
-  if (
-    deps.recommendationOptionsChanged ||
-    deps.recommendationPoolKey.current !== recommendationPoolKey(deps)
-  ) {
-    await refreshRecommendationSettings({ ...deps, recommendationOptionsChanged: true })
-    return
+  if (deps.recommendationState === 'loading' || deps.recommendationRefreshInFlight.current) return
+  deps.recommendationRefreshInFlight.current = true
+  try {
+    const before = deps.getBuilderState()
+    // Sub-theme changes wait here so the current batch stays on screen until the user moves on.
+    const result = builderAction(deps, { type: 'nextBatch', extraSubTheme })
+    const next = result.state
+    if (next.batchNumber === before.batchNumber) {
+      await settleInteractionSettings(deps, result)
+      return
+    }
+    const focusedRole = next.focusedRole
+    const focusedQueue = focusedRecommendations(next.queue, focusedRole, rolesForCard)
+    const focusedRoleName = focusedRole
+      ? targetLabels[focusedRole].toLowerCase().replace(/s$/, '')
+      : ''
+    deps.setBatchAnnouncement(
+      focusedQueue.length
+        ? `Recommendation batch ${next.batchNumber} loaded: ${focusedQueue
+            .slice(0, 4)
+            .map((card) => card.name)
+            .join(', ')}.`
+        : focusedRole
+          ? `No more ${focusedRoleName} suggestions right now.`
+          : 'No recommendations currently eligible. Deferred cards will return after their waiting period.',
+    )
+    void deps.loadPrintings(
+      focusedQueue.slice(0, 8),
+      next.collectionSets[0] || next.preferredPrintSet,
+    )
+  } finally {
+    deps.recommendationRefreshInFlight.current = false
   }
-  const {
-    queue,
-    preferenceScores,
-    deferredCards,
-    batchNumber,
-    decisions,
-    liked,
-    activeSubThemes,
-    theme,
-    includeCreature,
-    recommendationStyle,
-    collectionSets,
-    collectionMode,
-    setPreferenceScores,
-    setDeferredCards,
-    setBatchNumber,
-    setQueue,
-    setDecisions,
-    setLiked,
-    setBatchAnnouncement,
-    preferredPrintSet,
-    loadPrintings,
-  } = deps
-  const batch = focusedRecommendations<Card>(queue, deps.focusedRole, rolesForCard).slice(0, 4)
-  const { roleBoosts, pickedTags, tagCounts, manaSupport } = buildRecommendationContext(deps, queue)
-  const next = advanceRecommendationQueue<Card>({
-    queue,
-    deferredCards,
-    batchNumber,
-    decisions,
-    liked,
-    preferenceScores,
-    pickedTags,
-    tagCounts,
-    activeSubThemes,
-    extraSubTheme,
-    theme,
-    includeCreature,
-    roleBoosts,
-    cardRoles: (card: any) => rolesForCard(card),
-    manaSupport,
-    recommendationStyle: recommendationStyle as RecommendationStyle,
-    collectionSets,
-    collectionMode: collectionMode as CollectionMode,
-    maxPrice: deps.maxPrice,
-    focusedRole: deps.focusedRole,
-    ignoreReasons: deps.ignoreReasons as Record<string, IgnoreReason>,
-  })
-  setPreferenceScores(next.preferenceScores)
-  setDeferredCards(next.deferredCards)
-  setBatchNumber(next.batchNumber)
-  setQueue(next.queue)
-  setDecisions({})
-  deps.setIgnoreReasons?.({})
-  setLiked((current: string[]) =>
-    current.filter((name) => !batch.some((card: Card) => card.name === name)),
-  )
-  const focusedRole = deps.focusedRole as TargetKey | null
-  const focusedQueue = focusedRecommendations(next.queue, focusedRole, rolesForCard)
-  const focusedRoleName = focusedRole
-    ? targetLabels[focusedRole].toLowerCase().replace(/s$/, '')
-    : ''
-  setBatchAnnouncement(
-    focusedQueue.length
-      ? `Recommendation batch ${next.batchNumber} loaded: ${focusedQueue
-          .slice(0, 4)
-          .map((card) => card.name)
-          .join(', ')}.`
-      : focusedRole
-        ? `No more ${focusedRoleName} suggestions right now.`
-        : 'No recommendations currently eligible. Deferred cards will return after their waiting period.',
-  )
-  void loadPrintings(focusedQueue.slice(0, 8), collectionSets[0] || preferredPrintSet)
 }

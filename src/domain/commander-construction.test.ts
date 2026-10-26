@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { withBuilderActions } from '../app/builder-test-fixture.ts'
 import test from 'node:test'
 import { toCard, toDeckCard, type ScryfallCard } from './card-model.ts'
 import { cardConstructionError, commanderConstructionError } from './commander-construction.ts'
@@ -7,7 +8,7 @@ import { commanderPromotionInfo, isCommanderCandidate } from './commander-promot
 import { addCardSearchCards } from './card-search.ts'
 import { applyDeckDoctorSwap } from '../deck-doctor.ts'
 import { addRecommendationCard, decide, moveSideboardCard } from '../app/deck-actions.ts'
-import type { ActionDeps } from '../app/recommendation-actions.ts'
+import type { AppActionContext } from '../app/recommendation-actions.ts'
 
 const raw = (name: string, changes: Partial<ScryfallCard> = {}): ScryfallCard => ({
   name,
@@ -181,9 +182,9 @@ test('search, guidance, batch decisions, sideboard moves and swaps reject the sa
       setDecisions: () => assert.fail('Illegal card must not record an Add decision'),
     }
     assert.throws(() => addCardSearchCards([illegal], deck, [], ['B']))
-    addRecommendationCard(deps as ActionDeps, candidate)
-    decide(deps as ActionDeps, candidate, 'add')
-    moveSideboardCard(deps as ActionDeps, 0)
+    addRecommendationCard(withBuilderActions(deps) as AppActionContext, candidate)
+    decide(withBuilderActions(deps) as AppActionContext, candidate, 'add')
+    moveSideboardCard(withBuilderActions(deps) as AppActionContext, 0)
     assert.throws(() =>
       applyDeckDoctorSwap({
         id: 'test',

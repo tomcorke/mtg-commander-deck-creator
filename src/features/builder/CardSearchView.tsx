@@ -45,6 +45,7 @@ type Props = {
   deck: DeckCard[]
   sideboard: DeckCard[]
   excludeUnreleased: boolean
+  today: string
   cycleCommanderPrinting: (index: number) => void
   changeCommander: ReactNode
   openCommander: (index: number) => void
@@ -348,6 +349,7 @@ export function CardSearchView({
   deck,
   sideboard,
   excludeUnreleased,
+  today,
   cycleCommanderPrinting,
   changeCommander,
   openCommander,
@@ -423,7 +425,7 @@ export function CardSearchView({
 
   function search() {
     try {
-      const query = buildCardSearchQuery(filters, colours, excludeUnreleased)
+      const query = buildCardSearchQuery(filters, colours, excludeUnreleased, today)
       controllerRef.current?.abort()
       setCards([])
       setSelectedNames([])
