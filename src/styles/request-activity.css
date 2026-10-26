@@ -77,7 +77,7 @@
 }
 .request-activity-details small {
   display: block;
-  color: #68667c;
+  color: var(--text-muted);
 }
 .dark .request-activity-button[data-state='active'] {
   color: #bab2ff;

@@ -781,7 +781,7 @@ button:disabled {
 .suggestion-type {
   min-height: 0;
   margin: 0 0 6px;
-  color: #7546a8;
+  color: var(--text-accent);
   font:
     600 13px 'DM Sans',
     sans-serif;
@@ -800,7 +800,7 @@ button:disabled {
   border: 1px solid #69409a;
   border-radius: 6px;
   background: transparent;
-  color: #69409a;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 600;
 }
@@ -856,7 +856,7 @@ button:disabled {
 }
 .card-copy > p {
   min-height: 48px;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-line;
@@ -867,7 +867,7 @@ button:disabled {
   margin: 12px 0 0;
   padding-top: 10px;
   border-top: 1px solid #dedcea;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -900,11 +900,11 @@ button:disabled {
   border: 1px solid #8d88bd;
   border-radius: 4px;
   background: transparent;
-  color: #69409a;
+  color: var(--text-accent);
   font-size: 11px;
 }
 .card-details a {
-  color: #69409a;
+  color: var(--text-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -949,7 +949,7 @@ button:disabled {
   outline-offset: 2px;
 }
 .score-factors dt {
-  color: #69667d;
+  color: var(--text-muted);
 }
 .score-factors dd {
   margin: 0;
@@ -988,7 +988,7 @@ button:disabled {
 .score-breakdown .score-note {
   min-height: 0;
   margin: 8px 0 0;
-  color: #8a8799;
+  color: var(--text-muted);
   font-size: var(--decision-text);
   line-height: 1.3;
 }

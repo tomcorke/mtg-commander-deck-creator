@@ -7,10 +7,6 @@
 .dark .brand {
   color: #d9d8ff;
 }
-.dark .lead,
-.dark .start-panel > p {
-  color: #aaa8c2;
-}
 .dark .themes button {
   border-color: #4b4867;
   color: #ccc9df;
@@ -20,9 +16,6 @@
   border-color: #7169ca;
   background: #5851a6;
   color: white;
-}
-.dark .themes .theme-placeholder {
-  color: #aaa8c2;
 }
 .dark .themes .theme-placeholder:hover {
   border-color: #7169ca;
@@ -50,19 +43,12 @@
   color: #e5e3f0;
   background: #121121;
 }
-.dark .moxfield-instructions,
-.dark .import-help {
-  color: #aaa8c2;
-}
 .dark .import-note {
   background: #ffffff0d;
   color: #d4bd8b;
 }
 .dark .import-review-checkbox {
   color: #e5e3f0;
-}
-.dark .import-review-opt-out {
-  color: #aaa8c2;
 }
 .dark .manual-card-button {
   border-color: #615b96;

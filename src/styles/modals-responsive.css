@@ -1,14 +1,6 @@
 .dark .export-modal {
   background: #19182d;
 }
-.dark .recommendation-options {
-  color: #aaa8c2;
-}
-.dark .recommendation-settings-summary p,
-.dark .settings-help,
-.dark .recommendation-settings-actions > span {
-  color: #aaa8c2;
-}
 .dark .recommendation-options .setting-help-button {
   border-color: #4b4867;
   color: #ccc9df;

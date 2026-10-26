@@ -120,11 +120,11 @@
 }
 .card-type-line {
   margin-bottom: 14px;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 13px;
 }
 .deck-card-description {
-  color: #625f76;
+  color: var(--text-muted);
   font-size: 15px;
   line-height: 1.6;
   white-space: pre-line;
@@ -155,7 +155,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #625f76;
+  color: var(--text-muted);
   font-size: 30px;
   line-height: 1;
 }
@@ -178,7 +178,7 @@
 }
 .moxfield-instructions {
   margin: 0 0 12px;
-  color: #625f76;
+  color: var(--text-muted);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -201,7 +201,7 @@
   margin-top: 16px;
 }
 .export-actions a {
-  color: #69409a;
+  color: var(--text-accent);
 }
 .export-actions .primary {
   padding: 11px 16px;
@@ -814,9 +814,6 @@
 .dark .doctor-error {
   color: #ffc5bc;
 }
-.dark .deck-doctor-shell .eyebrow {
-  color: #aaa8c2;
-}
 .dark .doctor-page-context > p,
 .dark .doctor-context-status {
   color: var(--doctor-muted);
@@ -890,7 +887,7 @@
 }
 .deck-review-section > p {
   margin: 8px 0 12px;
-  color: #625f76;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -939,7 +936,7 @@
 }
 .deck-review-status.neutral {
   background: #eeedf7;
-  color: #625f76;
+  color: var(--text-muted);
 }
 .deck-review-filter {
   display: grid;
@@ -963,13 +960,13 @@
   opacity: 0.7;
 }
 .deck-review-filter-action {
-  color: #625f76;
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
 }
 .deck-review-filter-action,
 .deck-review-tag-count {
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 11px;
 }
 .deck-review-role {
@@ -1009,7 +1006,7 @@
 .deck-review-target {
   display: grid;
   gap: 3px;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 10px;
   text-align: center;
 }
@@ -1037,7 +1034,7 @@
 .deck-review-colour-counts {
   display: flex;
   gap: 8px;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 11px;
 }
 .deck-review-colour-counts > span {
@@ -1052,7 +1049,7 @@
   gap: 4px;
 }
 .deck-review-tag-kind {
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1079,13 +1076,6 @@
   border-top-color: var(--commander-accent, #9d78ce);
   background: #1b1a2a;
   color: #e5e3f0;
-}
-.dark .deck-review-section > p,
-.dark .deck-review-filter-action,
-.dark .deck-review-tag-kind,
-.dark .deck-review-tag-count,
-.dark .deck-review-target {
-  color: #aaa8c2;
 }
 .dark .deck-review-findings > div {
   border-color: #39374f;
@@ -1114,9 +1104,6 @@
 .dark .deck-review-ratio {
   background: #39374f;
 }
-.dark .deck-review-colour-counts {
-  color: #aaa8c2;
-}
 .dark .deck-review-colour-counts > span {
   background: #292644;
 }
@@ -1144,7 +1131,7 @@
 }
 .import-help {
   margin: 18px 0 0;
-  color: #625f76;
+  color: var(--text-muted);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -1173,7 +1160,7 @@
 }
 .import-review-opt-out {
   margin: 6px 0 0 24px;
-  color: #625f76;
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -1189,7 +1176,7 @@
 }
 .draft-help {
   margin: 8px 0;
-  color: #625f76;
+  color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -1229,11 +1216,6 @@
 .saved-decks-modal button:disabled {
   opacity: 0.55;
   cursor: default;
-}
-.dark .saved-decks-modal .clearable-input {
-  border-color: #565271;
-  background: #25233e;
-  color: #e9e8f5;
 }
 .dark .saved-deck-list article,
 .dark .autosave-retention-settings {
@@ -1290,17 +1272,17 @@
   height: 34px;
   border: 0;
   background: transparent;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 20px;
 }
 .deck-name-warning {
   margin-top: 5px;
-  color: #a13e4c;
+  color: var(--text-danger);
   font-size: 12px;
 }
 .overwrite-notice {
   margin: 8px 0 0;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .saved-deck-list {
@@ -1327,7 +1309,7 @@
 }
 .saved-deck-details small,
 .saved-decks-empty {
-  color: #706d82;
+  color: var(--text-muted);
 }
 .saved-deck-load {
   padding: 8px 14px;
@@ -1349,7 +1331,7 @@
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: #a13e4c;
+  color: var(--text-danger);
 }
 .saved-deck-delete.confirm {
   border-color: #a94840;
@@ -1382,7 +1364,7 @@
 }
 .eyebrow {
   margin: 0 0 7px;
-  color: #7546a8;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 1.8px;

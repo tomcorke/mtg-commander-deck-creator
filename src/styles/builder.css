@@ -33,7 +33,7 @@
     serif;
 }
 .deck-board-heading > div:last-child > span {
-  color: #7546a8;
+  color: var(--text-accent);
 }
 .deck-board-heading h2 {
   margin: 0;
@@ -106,7 +106,7 @@
   outline-offset: 4px;
 }
 .section-title > span {
-  color: #838093;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .recommendation-options {
@@ -115,7 +115,7 @@
   gap: 12px 24px;
   align-items: center;
   margin-top: 18px;
-  color: #68657c;
+  color: var(--text-muted);
   font-size: var(--decision-text);
 }
 .recommendation-settings-summary {
@@ -129,7 +129,7 @@
   min-width: 0;
   flex: 1 1 360px;
   margin: 0;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: var(--decision-text);
 }
 .recommendation-settings-modal {
@@ -160,7 +160,7 @@
 }
 .settings-help {
   margin: 5px 0 0;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: var(--decision-text);
 }
 .recommendation-settings-form {
@@ -217,7 +217,7 @@
 .recommendation-settings-actions > span {
   min-width: 0;
   flex: 1 1 260px;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: var(--decision-text);
 }
 .recommendation-options label {
@@ -250,7 +250,7 @@
 }
 .recommendation-options legend {
   padding: 0 5px;
-  color: #69409a;
+  color: var(--text-accent);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.7px;
@@ -332,7 +332,7 @@
 .collection-picker-help {
   flex-basis: 100%;
   margin: 0;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: var(--decision-text);
 }
 .collection-set-controls {
@@ -366,7 +366,7 @@
 .collection-set-search > span:first-child,
 .collection-set-list > span,
 .collection-selection > span {
-  color: #69667d;
+  color: var(--text-muted);
   font-size: 11px;
 }
 .collection-set-input {
@@ -378,7 +378,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #706d82;
+  color: var(--text-muted);
 }
 .collection-set-input .clear-deck-name:hover {
   border: 0;
@@ -392,7 +392,7 @@
 .dark.commander-themed .recommendation-options .collection-set-input .clear-deck-name {
   border: 0;
   background: transparent;
-  color: #aaa8c2;
+  color: var(--text-muted);
 }
 .dark.commander-themed .recommendation-options .collection-set-input .clear-deck-name:hover {
   border: 0;
@@ -438,7 +438,7 @@
 }
 .set-picker-row small {
   flex: none;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
@@ -463,7 +463,7 @@
   padding: 12px;
   border: 1px dashed #bbb9cd;
   border-radius: 6px;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: var(--decision-text);
 }
 .collection-chips {
@@ -515,7 +515,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .builder-set-chips button {
@@ -607,7 +607,7 @@
 }
 .collection-browser-heading p:not(.eyebrow) {
   margin: 5px 0 0;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: 13px;
 }
 .collection-browser-filters {
@@ -620,7 +620,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: 13px;
 }
 .collection-browser-filters select,
@@ -666,7 +666,7 @@
 .collection-browser-grid p,
 .collection-browser-grid span {
   margin: 0 0 7px;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: 11px;
 }
 .collection-browser-grid button {
@@ -696,7 +696,7 @@
 }
 .collection-browser-grid .collection-card-open small {
   margin-top: auto;
-  color: #69409a;
+  color: var(--text-accent);
   font-size: 11px;
   text-align: right;
 }
@@ -717,7 +717,7 @@
 }
 .health-lane p:not(.eyebrow) {
   margin: 4px 0 0;
-  color: #69667d;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .health-suggestion-list {
@@ -785,7 +785,7 @@
   align-content: center;
 }
 .health-card-reason {
-  color: #69409a;
+  color: var(--text-accent);
   font-size: var(--decision-text);
   text-transform: uppercase;
 }

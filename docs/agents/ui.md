@@ -9,6 +9,7 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 - Model content or semantic differences, such as heading level or available actions, as props. Keep shared structure and base sizing in the component; add screen-specific styles only for deliberate visual variants.
 - Compare shared components across routes during rendered review. Typography and spacing stay consistent unless an intentional variant requires otherwise.
 - Keep styles in the owning `src/styles/` file; every new surface and control needs light and dark states.
+- Theme text through inheritance and the `--text-muted`, `--text-accent`, `--text-danger` and `--text-success` tokens in `src/styles/base.css`; `.dark` swaps them app-wide. Do not hardcode a secondary text hex or add a `.dark` colour override for one component. Dialogs mount outside full-page modes' `<main>`, so never scope theme text to `main`.
 - Text inputs, selects and textareas take border, background, text colour and font from the `--input-*` tokens in `src/styles/base.css`. Component rules set only size, spacing and radius; never set an input's colours per component unless it is a deliberate themed variant built on CSS variables.
 
 ## Card references and layouts
@@ -51,4 +52,4 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 
 ## Review gate
 
-Before handoff, inspect the rendered path in light and dark modes and at a narrow viewport. Verify card names preview and open details, small images enlarge from image hover/focus, comparisons show both images and identify the in-deck card, and buttons use shared theme styles. Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`. When a change renders card names, also run `pnpm check:card-references:browser`; it fails on any visible card name outside `CardReference`.
+Before handoff, inspect the rendered path in light and dark modes and at a narrow viewport. Verify card names preview and open details, small images enlarge from image hover/focus, comparisons show both images and identify the in-deck card, and buttons use shared theme styles. Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`. When a change renders card names, also run `pnpm check:card-references:browser`; it fails on any visible card name outside `CardReference`. When a change touches colours, run `pnpm check:contrast:browser`; it fails on visible text below WCAG AA in light, dark and commander-themed states.

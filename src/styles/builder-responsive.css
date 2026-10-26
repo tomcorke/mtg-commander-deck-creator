@@ -2,12 +2,6 @@
   border-color: #39374f;
   background: #19182d;
 }
-.dark .collection-browser-heading p:not(.eyebrow),
-.dark .collection-browser-filters label,
-.dark .collection-browser-grid p,
-.dark .collection-browser-grid span {
-  color: #aaa8c2;
-}
 .dark .collection-browser-filters select,
 .dark .collection-browser-filters input,
 .dark .collection-browser-grid article {
@@ -33,9 +27,6 @@
 .dark .basic-land-modal > p {
   color: #c4c1d5;
 }
-.dark .land-fill-step > p {
-  color: #aaa8c2;
-}
 .dark .basic-land-plan li,
 .dark .nonbasic-land-list li {
   border-color: #393650;
@@ -51,15 +42,6 @@
   .collection-browser-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-.dark .collection-set-search > span:first-child,
-.dark .collection-set-list > span,
-.dark .collection-selection > span,
-.dark .set-picker-row small,
-.dark .set-picker-commander,
-.dark .collection-pool,
-.dark .builder-set-chips {
-  color: #aaa8c2;
 }
 .dark .collection-chips button {
   background: #292644;
@@ -87,9 +69,6 @@
 }
 .dark .builder-set-chips button:hover {
   border-color: #7169ca;
-}
-.dark .collection-picker-help {
-  color: #aaa8c2;
 }
 .dark .set-affinity-button {
   color: #c6b8ff;
@@ -161,9 +140,6 @@
 .dark .deck-board {
   background: #17162a;
 }
-.dark .card-copy > p {
-  color: #aaa8c2;
-}
 .dark .card-copy > .offer-reason {
   color: #e4e1fa;
 }
@@ -174,9 +150,6 @@
 .dark .health-lane {
   border-color: #39374f;
   background: #19182d;
-}
-.dark .health-lane p:not(.eyebrow) {
-  color: #aaa8c2;
 }
 .dark .health-lane article {
   border-color: #4b4867;
@@ -215,10 +188,6 @@
 .dark .deck-guidance {
   background: #ffffff0d;
 }
-.dark .deck-group > h3,
-.dark .deck-group-details > summary h3 {
-  color: #aaa8c2;
-}
 .dark .deck-board .deck-group ol > li {
   border-color: #393650;
 }
@@ -234,9 +203,6 @@
 .dark .deck-group ol > li:hover .deck-remove-wrap,
 .dark .deck-group ol > li:focus-within .deck-remove-wrap {
   background: linear-gradient(90deg, transparent, #17162a 18px);
-}
-.dark .land-fill-later {
-  color: #aaa8c2;
 }
 .dark .deck-guidance p {
   color: #d4bd8b;
@@ -380,7 +346,7 @@
   margin-bottom: 14px;
 }
 .completion p:not(.eyebrow) {
-  color: #68657c;
+  color: var(--text-muted);
 }
 .completion .primary {
   padding: 12px 18px;
@@ -389,19 +355,12 @@
   background: var(--commander-accent, #36327f);
   color: white;
 }
-.dark .completion p:not(.eyebrow) {
-  color: #aaa8c2;
-}
 .dark .completion {
   background: color-mix(in srgb, var(--commander-accent, #36327f) 18%, #19182d);
 }
 .dark .deck-review-filter-status {
   background: #201f34;
   color: #e5e3f0;
-}
-.dark .section-title > span,
-.dark .identity {
-  color: #aaa8c2;
 }
 .dark .change {
   color: #b786f2;

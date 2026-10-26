@@ -95,7 +95,7 @@
   background: #dedcea;
 }
 .actions .quiet {
-  color: #5f5c72;
+  color: var(--text-muted);
 }
 .actions > div button[aria-pressed='true']:not(.primary) {
   border-color: var(--commander-accent, #36327f);
@@ -112,11 +112,8 @@
   content: '✓ ';
 }
 .batch-undecided {
-  color: #5f5c72;
+  color: var(--text-muted);
   font-size: 13px;
-}
-.dark .batch-undecided {
-  color: #aaa8c2;
 }
 .action-help-wrap {
   position: relative;
@@ -158,7 +155,7 @@
   gap: 6px;
   border: 1px solid #c1bfd2;
   border-radius: 19px;
-  color: #69409a;
+  color: var(--text-accent);
   background: transparent;
   font-size: 13px;
   line-height: 1.1;
@@ -175,7 +172,7 @@
   transform: translateY(1px);
 }
 .actions .similar.selected {
-  border-color: #69409a;
+  border-color: var(--text-accent);
   background: #69409a;
   color: white;
 }
@@ -207,7 +204,7 @@
   transform: translateY(0);
 }
 .deck-heading span {
-  color: #7546a8;
+  color: var(--text-accent);
   font:
     600 18px 'Spectral',
     serif;
@@ -331,7 +328,7 @@
   gap: 10px;
   align-items: center;
   margin-top: 6px;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .curve-legend span {
@@ -353,7 +350,7 @@
   gap: 7px;
   align-items: center;
   margin-top: 5px;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .colour-bar {
@@ -382,7 +379,7 @@
   width: 100%;
   place-items: center;
   background: #d6d4e2;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 12px;
   text-transform: uppercase;
 }
@@ -413,7 +410,7 @@
   align-items: baseline;
 }
 .target-heading span {
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .deck-targets {
@@ -522,7 +519,7 @@
 }
 .basic-land-modal > p {
   margin: 8px 0 18px;
-  color: #625f76;
+  color: var(--text-muted);
 }
 .basic-land-plan {
   margin: 0 0 20px;
@@ -541,7 +538,7 @@
   justify-content: space-between;
   gap: 10px;
   margin: 6px 0 10px;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .land-fill-step h3 {
@@ -550,7 +547,7 @@
 }
 .land-fill-step > p {
   margin: 2px 0 8px;
-  color: #706d82;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .nonbasic-land-list {
@@ -659,7 +656,7 @@ li.deck-highlight-dimmed {
 .deck-group-details > summary h3 {
   display: flex;
   justify-content: space-between;
-  color: #706d82;
+  color: var(--text-muted);
   font:
     600 12px 'DM Sans',
     sans-serif;
@@ -692,7 +689,7 @@ li.deck-highlight-dimmed {
   border: 1px solid #bbb9cd;
   border-radius: 50%;
   background: transparent;
-  color: #706d82;
+  color: var(--text-muted);
   line-height: 1;
 }
 .sideboard-move {
@@ -961,7 +958,7 @@ button:focus-visible .card-image-preview,
   margin: 0 1px;
 }
 li b {
-  color: #8b879a;
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
@@ -1002,7 +999,7 @@ li b {
   margin: 0;
   padding: 0;
   list-style: none;
-  color: #817e91;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .recommendation-loading li {
