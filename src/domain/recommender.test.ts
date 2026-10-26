@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-import { toCard, type Card } from './card-model.ts'
+import { toCard, type Card, type ScryfallCard } from './card-model.ts'
 import { excludedByOptions, releasedBy } from './recommendation-sources.ts'
 import type { RecommendationStyle } from './recommendation-types.ts'
 import {
@@ -117,69 +117,84 @@ test('release checks and queries use the supplied date', () => {
   assert.equal(releasedBy(), 'date<=today')
 })
 
-test('preparation keeps EDHREC first and falls back deterministically', () => {
-  const options = {
-    identity: [],
-    includeCreature: false,
-    collectionMode: 'none' as const,
-    collectionSets: [],
-    seed: 'pool',
-  }
-  const edhrec = prepareCandidates(
-    { edhrec: { cards: pool.slice(0, 4) }, theme: [pool[4], pool[0]] },
-    options,
-  )
-  assert.deepEqual(
-    edhrec.pool.map(({ name }) => name),
-    ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo'],
-  )
-  assert.equal(edhrec.limited, false)
-
-  const snapshots = {
-    edhrec: { cards: pool.slice(0, 3) },
-    fallback: { main: pool.slice(0, 4), mana: pool.slice(4) },
-  }
-  const fallback = prepareCandidates(snapshots, options)
-  assert.equal(fallback.limited, true)
-  assert.equal(fallback.pool.length, 6)
-  assert.deepEqual(prepareCandidates(snapshots, options), fallback)
+const raw = (name: string): ScryfallCard => ({
+  name,
+  type_line: 'Artifact',
+  color_identity: [],
+  legalities: { commander: 'legal' },
+  cmc: 2,
+  released_at: '2026-01-01',
+})
+const source = (...names: string[]) => ({
+  cards: names.map((name) => ({ card: raw(name), reason: 'Test source' })),
+})
+const preparationOptions = {
+  identity: [],
+  includeCreature: false,
+  collectionMode: 'none' as const,
+  collectionSets: [],
+  seed: 'pool',
+  today: '2026-10-26',
+}
+const edhrecSnapshot = (names: string[]) => ({
+  entries: names.map((name) => ({ name, tag: 'topcards', header: 'Top Cards' })),
+  cards: names.map(raw),
 })
 
-test('preparation applies collection modes', () => {
-  const owned = card('Owned')
-  const base = { identity: [], includeCreature: false, seed: 'pool' }
-  const edhrec = { cards: pool.slice(0, 4) }
-  assert.match(
-    prepareCandidates({ edhrec }, { ...base, collectionMode: 'only', collectionSets: [] }).error!,
-    /Select at least one collection/,
-  )
+test('raw preparation preserves source precedence, provenance and deterministic fallback', () => {
+  const snapshots = deepFreeze({
+    edhrec: edhrecSnapshot(['A', 'B', 'C', 'D']),
+    theme: source('E', 'A'),
+    mechanic: source('F'),
+    roleGap: source('G'),
+  })
+  const result = prepareCandidates(snapshots, preparationOptions)
   assert.deepEqual(
-    prepareCandidates(
-      { edhrec, collection: { cards: [owned] } },
-      { ...base, collectionMode: 'prefer', collectionSets: ['tst'] },
-    ).pool.map(({ name }) => name),
-    ['Owned', 'Alpha', 'Bravo', 'Charlie', 'Delta'],
+    result.pool.map(({ name }) => name),
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
   )
-  assert.deepEqual(
-    prepareCandidates(
-      { collection: { cards: [owned] } },
-      { ...base, collectionMode: 'only', collectionSets: ['tst'] },
-    ).pool,
-    [owned],
-  )
+  assert.equal(result.pool[0].source, 'edhrec')
+  assert.equal(result.limited, false)
+  const fallback = {
+    edhrec: { error: 'Unavailable' },
+    fallback: { main: source('A', 'B', 'C', 'D'), mana: source('E', 'F') },
+  }
+  const first = prepareCandidates(fallback, preparationOptions)
+  assert.equal(first.limited, true)
+  assert.equal(first.pool.length, 6)
+  assert.deepEqual(prepareCandidates(fallback, preparationOptions), first)
   assert.equal(
     prepareCandidates(
-      { collection: { error: 'Scryfall down' } },
-      { ...base, collectionMode: 'only', collectionSets: ['tst'] },
+      { fallback: { main: { error: 'Failed' }, mana: source() } },
+      preparationOptions,
     ).error,
-    'Scryfall down',
+    'Failed',
+  )
+})
+
+test('raw preparation filters release dates before EDHREC fallback and keeps collection errors', () => {
+  const edhrec = edhrecSnapshot(['A', 'B', 'C', 'D'])
+  edhrec.cards[0].released_at = '2026-10-27'
+  const options = { ...preparationOptions, excludeUnreleased: true }
+  assert.equal(prepareCandidates({ edhrec }, options).limited, true)
+  assert.equal(prepareCandidates({ edhrec }, { ...options, today: '2026-10-27' }).limited, false)
+  const only = { ...options, collectionMode: 'only' as const, collectionSets: ['tst'] }
+  assert.match(prepareCandidates({}, { ...only, collectionSets: [] }).error!, /Select at least/)
+  assert.equal(prepareCandidates({ collection: { error: 'Down' } }, only).error, 'Down')
+  assert.deepEqual(
+    prepareCandidates({ edhrec, collection: source('Owned') }, only).pool.map(({ name }) => name),
+    ['Owned'],
   )
   assert.equal(
     prepareCandidates(
-      { edhrec, collection: { error: 'Scryfall down' } },
-      { ...base, collectionMode: 'prefer', collectionSets: ['tst'] },
+      { edhrec, collection: { error: 'Down' } },
+      { ...only, collectionMode: 'prefer' },
     ).pool.length,
-    4,
+    0,
+  )
+  assert.equal(
+    prepareCandidates({ theme: { error: 'Rate limit', fatal: true } }, options).error,
+    'Rate limit',
   )
 })
 

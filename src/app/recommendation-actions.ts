@@ -25,7 +25,6 @@ import {
   releasedBy,
   type CollectionMode,
   type BuilderProgress,
-  type DeferredCard,
   type ScryfallCard,
 } from '../recommendations.ts'
 import {
@@ -43,6 +42,9 @@ import {
   mergeCollectionCandidates,
   mergeRecommendationCandidates,
   recommend,
+  prepareCandidates,
+  type CandidateSnapshots,
+  type RawCandidate,
 } from '../domain/recommender.ts'
 import {
   cardConstructionError,
@@ -87,6 +89,11 @@ export async function fallbackRecommendations(deps: AppActionContext, identityCo
       'Land or mana',
     ),
   ])
+  if (deps.candidateSnapshots)
+    deps.candidateSnapshots.fallback = {
+      main: { cards: mainCards.map((card) => deps.candidateRecords.get(card)) },
+      mana: { cards: manaCards.map((card) => deps.candidateRecords.get(card)) },
+    }
   return fallbackPool(mainCards, manaCards, includeCreature, recommendationPoolKey(deps))
 }
 
@@ -136,19 +143,33 @@ export async function collectionRecommendations(
     const unique = await fetchRecommendationCollectionCards(deps, identityColours, selectedSets)
     setCollectionPoolSize(unique.length)
     setCollectionState('idle')
-    return unique.map((card: ScryfallCard) => ({
-      ...toCard(card, 'Collection match'),
-      collectionMatch: true,
-    }))
+    const prepared = prepareCandidates(
+      {
+        collection: {
+          cards: unique.map((card: ScryfallCard) => ({
+            card,
+            reason: 'Collection match',
+            collectionMatch: true,
+          })),
+        },
+      },
+      {
+        ...deps,
+        identity: identityColours,
+        collectionMode: 'only',
+        collectionSets: selectedSets,
+        seed: recommendationPoolKey(deps),
+        today: deps.today,
+      },
+    )
+    if (prepared.error) throw new Error(prepared.error)
+    return prepared.pool
   } catch (error) {
     setCollectionState('error')
     setCollectionError(error instanceof Error ? error.message : 'Collection unavailable')
     throw error
   }
 }
-
-/** Local queries the first batch skipped because the optional index was not ready yet. */
-export type PendingLocalQuery = { query: LocalCardQuery; liveQuery: string; reason: string }
 
 /** Bounded so a long-stale index costs at most this many release-ordered pages (175 cards each). */
 export const RECENT_CARD_PAGES = 4
@@ -195,28 +216,27 @@ function toLocalAndLiveCards(
           today: deps.today,
         }),
     )
-    .map((card) => ({
-      ...toCard(card, current.has(card) ? reason : 'Local card match'),
-      localIndexSnapshot: !current.has(card),
-    }))
+    .map((card) => {
+      const raw = {
+        card,
+        reason: current.has(card) ? reason : 'Local card match',
+        localIndexSnapshot: !current.has(card),
+      }
+      const converted = { ...toCard(card, raw.reason), localIndexSnapshot: raw.localIndexSnapshot }
+      deps.candidateRecords?.set(converted, raw)
+      return converted
+    })
 }
 
-/**
- * Local breadth supplements every live query, including Tagger searches and stale-index refreshes.
- * With `pendingLocal`, an index that is not ready never delays live results: the query is recorded
- * for background enrichment instead.
- */
+/** Local and live queries settle together at the pool-build boundary. */
 async function localAndLiveCandidates(
   deps: AppActionContext,
   query: LocalCardQuery,
   liveQuery: string,
   reason: string,
 ): Promise<Card[]> {
-  const pending: PendingLocalQuery[] | undefined = deps.pendingLocal
-  const ready: ScryfallCard[] | undefined = pending ? deps.localCardsIfReady?.(query) : undefined
-  if (pending && !ready && deps.localCardsIfReady) pending.push({ query, liveQuery, reason })
   const [local, live] = await Promise.allSettled([
-    pending ? Promise.resolve(ready ?? []) : (deps.fetchLocalCards?.(query) ?? Promise.resolve([])),
+    deps.fetchLocalCards?.(query) ?? Promise.resolve([]),
     liveQuery ? deps.searchCards(liveQuery, undefined, 'edhrec') : Promise.resolve([]),
   ])
   const localCards = local.status === 'fulfilled' ? local.value : []
@@ -225,70 +245,6 @@ async function localAndLiveCandidates(
   if (live.status === 'rejected' && !localCards.length && !recent.length) throw live.reason
   const liveCards = mergeLocalAndLiveCards(live.status === 'fulfilled' ? live.value : [], recent)
   return toLocalAndLiveCards(deps, localCards, liveCards, reason)
-}
-
-/**
- * Append background candidates without touching the visible batch: cards that would join a short
- * active batch wait for the next pool build, and queued, decided or deferred cards never return.
- */
-export function appendBackgroundCandidates(
-  queue: Card[],
-  additions: Card[],
-  blockedNames: string[],
-  focusedRole: TargetKey | null | undefined,
-) {
-  const visible = focusedRecommendations(queue, focusedRole, rolesForCard).slice(0, 4)
-  const names = new Set(
-    [...blockedNames, ...queue.map(({ name }) => name)].map((name) => name.toLowerCase()),
-  )
-  const oracles = new Set(queue.flatMap(({ oracleId }) => oracleId ?? []))
-  const fresh: Card[] = []
-  for (const card of additions) {
-    if (names.has(card.name.toLowerCase()) || (card.oracleId && oracles.has(card.oracleId)))
-      continue
-    // ponytail: cards that would fill a short visible batch are dropped until the next pool build.
-    if (visible.length < 4 && focusedRecommendations([card], focusedRole, rolesForCard).length)
-      continue
-    names.add(card.name.toLowerCase())
-    if (card.oracleId) oracles.add(card.oracleId)
-    fresh.push(card)
-  }
-  return fresh.length ? [...queue, ...fresh] : queue
-}
-
-/** Load the optional index after the first batch, then merge its extra candidates at the queue tail. */
-export async function enrichWithLocalCards(
-  deps: AppActionContext,
-  pending: PendingLocalQuery[],
-  identityColours: string[],
-  isCurrent: () => boolean,
-) {
-  if (!pending.length || !deps.fetchLocalCards) return
-  const found = await Promise.all(
-    pending.map(async ({ query, liveQuery, reason }) => {
-      try {
-        const local: ScryfallCard[] = await deps.fetchLocalCards(query)
-        return toLocalAndLiveCards(deps, local, await recentLiveCards(deps, liveQuery), reason)
-      } catch {
-        return []
-      }
-    }),
-  )
-  const additions = found.flat().filter((card) => !cardConstructionError(card, [], identityColours))
-  if (!additions.length || !isCurrent()) return
-  const current = deps.getCurrentState?.() ?? deps
-  const blocked = [
-    ...commanderNames(current.commander ?? ''),
-    ...(current.ignoredCards ?? []),
-    ...[...(current.deck ?? []), ...(current.sideboard ?? [])].map(({ name }) => name),
-    ...(current.deferredCards ?? []).map(({ card }: DeferredCard<Card>) => card.name),
-  ]
-  builderAction(deps, (builder) => ({
-    type: 'data',
-    changes: {
-      queue: appendBackgroundCandidates(builder.queue, additions, blocked, current.focusedRole),
-    },
-  }))
 }
 
 export async function themeRecommendations(
@@ -419,9 +375,9 @@ export async function mechanicRecommendations(
     .join(' ')
   const terms = themes.map((theme) => `(${themeSearchTerms[theme]})`).join(' or ')
   const query = `id<=${identity} legal:commander -t:land (${terms}) ${bracketFilters}`
-  // Live only: queued local enrichment would bypass the ten-card cap.
+  // Live only: preserve the bounded commander-mechanic search.
   const cards = await localAndLiveCandidates(
-    { ...deps, pendingLocal: undefined, fetchLocalCards: undefined },
+    { ...deps, fetchLocalCards: undefined },
     { colours: identityColours, themes },
     query,
     'Matches commander text',
@@ -466,6 +422,8 @@ export async function edhrecRecommendations(
   const legalIdentityCards = responseCards.filter(({ color_identity }) =>
     color_identity?.every((colour) => identity.has(colour)),
   )
+  if (deps.candidateSnapshots)
+    deps.candidateSnapshots.edhrec = { entries, cards: legalIdentityCards }
   return buildEdhrecRecommendations(entries, legalIdentityCards, {
     includeCreature,
     excludeGameChangers,
@@ -610,6 +568,9 @@ async function coreRecommendations(
   preserveDeck: boolean,
 ) {
   const { setLimitedRecommendations, theme, activeSubThemes } = deps
+  const snapshots: CandidateSnapshots = {}
+  const records = new Map<Card, RawCandidate>()
+  deps = { ...deps, candidateSnapshots: snapshots, candidateRecords: records }
   let offeredCards: Card[]
   try {
     const slug = commanders
@@ -626,6 +587,7 @@ async function coreRecommendations(
     if (offeredCards.length < 4) throw new Error('Too few EDHREC cards')
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
+    snapshots.edhrec ??= { error: String(error) }
     offeredCards = await fallbackRecommendations(deps, identityColours)
     setLimitedRecommendations(true)
   }
@@ -634,17 +596,19 @@ async function coreRecommendations(
       theme,
       ...(preserveDeck ? activeSubThemes : []),
     ])
+    snapshots.theme = { cards: themeCards.map((card) => records.get(card)!) }
     offeredCards = mergeRecommendationCandidates(offeredCards, themeCards)
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
+    snapshots.theme = { error: String(error) }
   }
   try {
-    offeredCards = mergeRecommendationCandidates(
-      offeredCards,
-      await mechanicRecommendations(deps, identityColours, commanders, offeredCards),
-    )
+    const mechanic = await mechanicRecommendations(deps, identityColours, commanders, offeredCards)
+    snapshots.mechanic = { cards: mechanic.map((card) => records.get(card)!) }
+    offeredCards = mergeRecommendationCandidates(offeredCards, mechanic)
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
+    snapshots.mechanic = { error: String(error) }
   }
   try {
     const gaps = uncoveredRoleGaps(
@@ -652,14 +616,21 @@ async function coreRecommendations(
       deps.deckTargets ?? defaultDeckTargets,
       offeredCards,
     )
-    return mergeRecommendationCandidates(
-      offeredCards,
-      await roleGapRecommendations(deps, identityColours, gaps, offeredCards),
-    )
+    const roleGap = await roleGapRecommendations(deps, identityColours, gaps, offeredCards)
+    snapshots.roleGap = { cards: roleGap.map((card) => records.get(card)!) }
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
-    return offeredCards
+    snapshots.roleGap = { error: String(error) }
   }
+  const prepared = prepareCandidates(snapshots, {
+    ...deps,
+    identity: identityColours,
+    collectionMode: 'none',
+    collectionSets: [],
+    seed: recommendationPoolKey(deps),
+    today: deps.today,
+  })
+  return prepared.pool
 }
 
 async function addCollectionRecommendations(
@@ -862,7 +833,6 @@ export async function start(
       preferenceScores: deps.preferenceScores ?? {},
     }
   const reset = resetRecommendationState(deps, preserveDeck, progress, chosen)
-  const pendingLocal: PendingLocalQuery[] = []
   try {
     const loaded = await loadCommanderCards(deps, chosen)
     if (!job.isCurrent()) return false
@@ -873,7 +843,7 @@ export async function start(
       return true
     }
     const offeredCards = await collectOfferedCards(
-      { ...deps, pendingLocal },
+      deps,
       loaded,
       preserveDeck,
       reset.activeCollectionSets,
@@ -899,7 +869,6 @@ export async function start(
       progress,
     )
     deps.setFirstBatchPending?.(false)
-    void enrichWithLocalCards(deps, pendingLocal, loaded.identityColours, job.isCurrent)
     return true
   } catch (error) {
     if (!job.isCurrent()) return false

@@ -13,6 +13,7 @@
     "lint": "pnpm format:check && oxlint && eslint src scripts --max-warnings=0",
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test",
+    "check:planned-fetches:browser": "node --experimental-strip-types scripts/check-planned-fetches-browser.ts",
     "test:browser:a2-a9": "node --experimental-strip-types scripts/check-a2-a9-browser.ts",
     "test:browser:a14": "node --experimental-strip-types scripts/check-a14-browser.ts",
     "test:browser:b12": "node --experimental-strip-types scripts/check-b12-browser.ts",

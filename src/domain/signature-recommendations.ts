@@ -25,8 +25,6 @@ export const signatureLimits = Object.freeze({
   namesPerSeed: 24,
   seedsPerDeck: 8,
   postsPerDeck: 4,
-  seedsPerTab: 24,
-  postsPerTab: 12,
 })
 
 type Mechanic = {
@@ -282,8 +280,10 @@ export function mergeSignatureResults(
   queue: Card[],
   results: SignatureResult[],
   settings: SignatureSettings,
+  atBoundary = false,
 ) {
-  if (focusedRecommendations(queue, settings.focusedRole, rolesForCard).length < 4) return queue
+  if (!atBoundary && focusedRecommendations(queue, settings.focusedRole, rolesForCard).length < 4)
+    return queue
   const blocked = new Set(
     [
       ...commanderNames(settings.commander),
@@ -292,7 +292,9 @@ export function mergeSignatureResults(
         ...settings.deck,
         ...settings.sideboard,
         ...settings.deferredCards.map(({ card }) => card),
-        ...focusedRecommendations(queue, settings.focusedRole, rolesForCard).slice(0, 4),
+        ...(atBoundary
+          ? []
+          : focusedRecommendations(queue, settings.focusedRole, rolesForCard).slice(0, 4)),
       ].map(({ name }) => name),
     ].map(cardNameKey),
   )

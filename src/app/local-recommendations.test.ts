@@ -3,12 +3,11 @@ import { withBuilderFixture } from './builder-test-fixture.ts'
 import test from 'node:test'
 import type { ScryfallCard } from '../domain/card-model.ts'
 import { toCard } from '../domain/card-model.ts'
+import { prepareCandidates } from '../recommendations.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import { recommendationScoreBreakdown } from '../domain/recommendation-scoring.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
 import {
-  appendBackgroundCandidates,
-  enrichWithLocalCards as enrichWithLocalCardsAction,
   fallbackRecommendations,
   fetchDeckDoctorCandidates as fetchDeckDoctorCandidatesAction,
   mergeRecommendationCandidates,
@@ -16,7 +15,6 @@ import {
   RECENT_CARD_PAGES,
   themeRecommendations,
 } from './recommendation-actions.ts'
-const enrichWithLocalCards = withBuilderFixture(enrichWithLocalCardsAction)
 const fetchDeckDoctorCandidates = withBuilderFixture(fetchDeckDoctorCandidatesAction)
 
 const card = (name: string, text = 'Create a 1/1 white Cat creature token.'): ScryfallCard => ({
@@ -242,78 +240,66 @@ test('Deck Doctor receives local candidates through the same production retrieva
     setCommanderSubThemes: () => {},
     setLimitedRecommendations: () => {},
   })
+  const replay = prepareCandidates(
+    {
+      edhrec: {
+        entries: staples.map(({ name }) => ({
+          name,
+          tag: 'highsynergycards',
+          header: 'High Synergy Cards',
+          synergy: 0.3,
+        })),
+        cards: staples,
+      },
+      theme: {
+        cards: [card('Local Doctor candidate'), staples[0]].map((card) => ({
+          card,
+          reason: 'Local card match',
+          localIndexSnapshot: true,
+        })),
+      },
+    },
+    {
+      ...options,
+      today: '2026-10-26',
+      identity: [],
+      includeCreature: false,
+      collectionMode: 'none',
+      collectionSets: [],
+      seed: 'replay',
+    },
+  )
+  assert.deepEqual(found, replay.pool)
   assert.ok(found.some(({ name }) => name === 'Local Doctor candidate'))
   assert.equal(found.filter(({ oracleId }) => oracleId === staples[0].oracle_id).length, 1)
   assert.equal(found.find(({ name }) => name === staples[0].name)?.synergy, 0.3)
 })
 
-test('a pending local index never delays live results; its queries are recorded for enrichment', async () => {
-  const pendingLocal: unknown[] = []
-  const found = await themeRecommendations(
+test('local index enrichment settles before the pool query returns', async () => {
+  let resolveLocal!: (cards: ScryfallCard[]) => void
+  let settled = false
+  const result = themeRecommendations(
     {
       ...options,
-      pendingLocal,
-      localCardsIfReady: () => undefined,
-      fetchLocalCards: () => new Promise(() => {}),
+      fetchLocalCards: () =>
+        new Promise<ScryfallCard[]>((resolve) => {
+          resolveLocal = resolve
+        }),
       searchCards: async () => [card('Live')],
     },
     [],
     ['Tokens'],
-  )
+  ).then((cards) => {
+    settled = true
+    return cards
+  })
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(settled, false)
+  resolveLocal([card('Local')])
+  const found = await result
   assert.deepEqual(
     found.map(({ name }) => name),
-    ['Live'],
+    ['Live', 'Local'],
   )
-  assert.deepEqual(pendingLocal, [
-    {
-      query: { colours: [], themes: ['Tokens'] },
-      liveQuery: 'id<=c legal:commander (o:token) ',
-      reason: 'Interesting new pick',
-    },
-  ])
-})
-
-test('background enrichment keeps the active batch and every decision, appending only new cards', async () => {
-  const queue = ['A', 'B', 'C', 'D', 'E'].map((name) => toCard(card(name), 'Popular inclusion'))
-  let next = queue
-  const pending = [{ query: { colours: [] }, liveQuery: '', reason: 'Popular inclusion' }]
-  await enrichWithLocalCards(
-    {
-      ...options,
-      queue,
-      fetchLocalCards: async () =>
-        ['A', 'Ignored', 'In deck', 'Deferred', 'New', 'E'].map((name) => card(name)),
-      getCurrentState: () => ({
-        commander: 'Commander',
-        ignoredCards: ['Ignored'],
-        deck: [toCard(card('In deck'), '')],
-        sideboard: [],
-        deferredCards: [{ card: toCard(card('Deferred'), ''), eligibleBatch: 4 }],
-        focusedRole: null,
-      }),
-      setQueue: (update: (queue: typeof next) => typeof next) => (next = update(next)),
-    },
-    pending,
-    [],
-    () => true,
-  )
-  assert.deepEqual(
-    next.map(({ name }) => name),
-    ['A', 'B', 'C', 'D', 'E', 'New'],
-  )
-  assert.deepEqual(next.slice(0, 4), queue.slice(0, 4))
-  assert.equal(next[5].localIndexSnapshot, true)
-  // A short visible batch is never filled mid-decision, and a superseded request writes nothing.
-  assert.deepEqual(
-    appendBackgroundCandidates(queue.slice(0, 2), [toCard(card('New'), '')], [], null),
-    queue.slice(0, 2),
-  )
-  let wrote = false
-  await enrichWithLocalCards(
-    { ...options, fetchLocalCards: async () => [card('New')], setQueue: () => (wrote = true) },
-    pending,
-    [],
-    () => false,
-  )
-  assert.equal(wrote, false)
+  assert.equal(found[1].localIndexSnapshot, true)
 })

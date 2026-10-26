@@ -1,5 +1,7 @@
 # A6: Signature-card investigation
 
+The scheduling history below is superseded by [planned fetch boundaries](domain/planned-fetches.md) in #188. Its source investigation remains historical evidence.
+
 Investigated on 2026-09-30 against `917133f`; the user subsequently approved the bounded trial. The source comparisons below describe the baseline. The released trial (`47dab89`), expanded mechanics (`d18fc56`), and rolling-hour recovery (`f928509`) are recorded separately.
 
 ## Decision

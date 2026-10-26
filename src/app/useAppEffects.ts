@@ -2,11 +2,10 @@ import { builderAction, type BuilderActionHost } from './builder-action.ts'
 import { useEffect, useRef } from 'react'
 
 import { deckDataStatus } from '../domain/deck-data-status.ts'
-import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import type { Card } from '../domain/card-model.ts'
-import { basicLandNames, rolesForCard, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
+import { basicLandNames, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
-import { printingOptions, needsPrintingRepair } from '../domain/printing.ts'
+import { printingOptions } from '../domain/printing.ts'
 import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
 
 export type AppEffectsDeps = Record<string, any> & BuilderActionHost
@@ -107,8 +106,9 @@ export function useCompletionReviewEffect(deps: AppEffectsDeps) {
 
 export function usePersistenceEffect(deps: AppEffectsDeps) {
   const { recommendationState, currentDeckState, deckName, workspace } = deps
+  const fetchBoundary = deps.builderState.fetchBoundary
   useEffect(() => {
-    if (recommendationState !== 'idle' || !currentDeckState) return
+    if (recommendationState !== 'idle' || fetchBoundary || !currentDeckState) return
     const cards = [
       ...currentDeckState.deck,
       ...currentDeckState.sideboard,
@@ -118,7 +118,7 @@ export function usePersistenceEffect(deps: AppEffectsDeps) {
     // Do not replace the recovery snapshot with an in-flight migration.
     if (cards.some((card: Card) => card.dataStatus === 'pending')) return
     workspace.save(currentDeckState, deckName)
-  }, [currentDeckState, recommendationState, deckName, workspace])
+  }, [currentDeckState, recommendationState, deckName, workspace, fetchBoundary])
 }
 
 export function useTitleEffect(deps: AppEffectsDeps) {
@@ -217,7 +217,7 @@ export function useCommanderPrintingEffect(deps: AppEffectsDeps) {
     return () => {
       cancelled = true
     }
-  }, [commander, commanderDetails, deck, workspaceId])
+  }, [commander, workspaceId])
 }
 
 export function useBasicCardPrefetchEffect(deps: AppEffectsDeps) {
@@ -280,47 +280,6 @@ export function useCollectionCountEffect(deps: AppEffectsDeps) {
     excludeExtraTurns,
     excludeUnreleased,
     today,
-  ])
-}
-
-export function usePrintingRepairEffect(deps: AppEffectsDeps) {
-  const {
-    queue,
-    workspaceId,
-    activeSavedDeckId,
-    batchNumber,
-    commander,
-    repairedPrintingBatches,
-    focusedRole,
-    collectionSets,
-    preferredPrintSet,
-    loadPrintings,
-  } = deps
-  useEffect(() => {
-    // Seed arrivals do not cause printing requests for unseen cards; normal advancement loads them.
-    const cards = focusedRecommendations<Card>(queue, focusedRole, rolesForCard)
-      .slice(0, 8)
-      .filter((card: any, index: number) => index < 4 || !card.seedEvidence?.length)
-    if (
-      !cards.some(
-        (card) => !card.printings || card.printings.length < 2 || needsPrintingRepair(card),
-      )
-    )
-      return
-    const repairKey = `${workspaceId}:${activeSavedDeckId}:${batchNumber}:${commander}:${cards.map((card: any) => card.name).join('|')}`
-    if (repairedPrintingBatches.current.has(repairKey)) return
-    repairedPrintingBatches.current.add(repairKey)
-    void loadPrintings(cards, collectionSets[0] || preferredPrintSet)
-  }, [
-    workspaceId,
-    activeSavedDeckId,
-    batchNumber,
-    collectionSets,
-    commander,
-    loadPrintings,
-    preferredPrintSet,
-    focusedRole,
-    queue,
   ])
 }
 

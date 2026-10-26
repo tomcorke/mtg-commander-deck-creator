@@ -5,10 +5,10 @@ import {
   observeRequestActivity,
   scheduleRequest,
   setRequestCooldown,
+  setBackgroundRetry,
 } from './request-scheduler.ts'
 import { fetchScryfallCard } from './scryfall.ts'
 import { fetchEdhrecPage } from './edhrec.ts'
-import { watchSignatureResults } from '../app/signature-actions.ts'
 
 const tick = () => new Promise((resolve) => setImmediate(resolve))
 
@@ -106,20 +106,20 @@ test('both adapters expose cooldowns separately from their queues and preserve t
   assert.equal(getRequestActivity(fetcher).providers[1].cooldownUntil, later)
 })
 
-test('background retry waits are not queued requests; abort removes waits without erasing another watcher', async (t) => {
+test('background retry waits are not queued requests; clearing one preserves another wait', async (t) => {
   t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 1000 })
   const fetcher: typeof fetch = async () => Response.json({})
   const a = new AbortController(),
     b = new AbortController()
-  watchSignatureResults(async () => 61_000, a.signal, fetcher)
-  watchSignatureResults(async () => 91_000, b.signal, fetcher)
+  setBackgroundRetry(a.signal, 61_000, fetcher)
+  setBackgroundRetry(b.signal, 91_000, fetcher)
   t.mock.timers.tick(2000)
   await tick()
   assert.equal(getRequestActivity(fetcher).backgroundRetryAt, 61_000)
   assert.equal(getRequestActivity(fetcher).providers[0].queued, 0)
   assert.equal(getRequestActivity(fetcher).providers[1].queued, 0)
-  a.abort()
+  setBackgroundRetry(a.signal, 0, fetcher)
   assert.equal(getRequestActivity(fetcher).backgroundRetryAt, 91_000)
-  b.abort()
+  setBackgroundRetry(b.signal, 0, fetcher)
   assert.equal(getRequestActivity(fetcher).backgroundRetryAt, 0)
 })

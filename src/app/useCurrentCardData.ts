@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent } from 'react'
 import type { ScryfallCard } from '../domain/card-model.ts'
-import { cardDataKey, refreshCardData } from '../domain/current-card-data.ts'
+import { refreshCardData } from '../domain/current-card-data.ts'
 import type { ControllerState } from './useControllerState.ts'
 
 export function useCurrentCardData(state: ControllerState) {
@@ -11,7 +11,8 @@ export function useCurrentCardData(state: ControllerState) {
     ...state.deferredCards.map(({ card }) => card),
     ...state.queue.slice(4),
   ].filter((card) => card.dataStatus === 'pending')
-  const pendingKey = [...new Set(cards.map(cardDataKey))].sort().join('|')
+  const boundary = state.hydrationBoundary
+  const epoch = state.signatureEpoch
   const workspaceId = state.autosave.id
   const finish = useEffectEvent(
     (
@@ -36,9 +37,9 @@ export function useCurrentCardData(state: ControllerState) {
     finish(commander, id, signal, results)
   })
   useEffect(() => {
-    if (!pendingKey) return
+    if (!cards.length) return
     const controller = new AbortController()
     void refresh(workspaceId, controller.signal).catch(() => undefined)
     return () => controller.abort()
-  }, [workspaceId, pendingKey])
+  }, [workspaceId, boundary, epoch])
 }

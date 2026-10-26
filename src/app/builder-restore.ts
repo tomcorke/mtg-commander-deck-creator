@@ -15,6 +15,9 @@ export function restoreBuilderState(
   if (!saved) return initial
   const restored: BuilderState = {
     ...initial,
+    signatureQuota: { pages: 0, cards: 0 },
+    fetchBoundary: null,
+    fetchSequence: 0,
     pendingFetches: [],
     completedFetches: [],
     recommendationOptionsChanged: false,

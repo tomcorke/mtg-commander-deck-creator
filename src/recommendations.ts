@@ -8,3 +8,6 @@ export * from './domain/recommender.ts'
 export * from './domain/builder-state.ts'
 export { builderPoolKey } from './domain/builder-settings.ts'
 export { buildRecommendationContext } from './domain/recommendation-context.ts'
+
+export * from './domain/builder-fetches.ts'
+export * from './domain/signature-recommendations.ts'
