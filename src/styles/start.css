@@ -157,10 +157,7 @@
   min-width: 0;
   width: 100%;
   padding: 12px;
-  border: 1px solid #bcbacd;
   border-radius: 6px;
-  background: white;
-  font: inherit;
 }
 .filter-summary {
   display: flex;
