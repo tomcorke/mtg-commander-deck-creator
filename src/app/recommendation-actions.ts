@@ -419,8 +419,9 @@ export async function mechanicRecommendations(
     .join(' ')
   const terms = themes.map((theme) => `(${themeSearchTerms[theme]})`).join(' or ')
   const query = `id<=${identity} legal:commander -t:land (${terms}) ${bracketFilters}`
+  // Live only: queued local enrichment would bypass the ten-card cap.
   const cards = await localAndLiveCandidates(
-    deps,
+    { ...deps, pendingLocal: undefined, fetchLocalCards: undefined },
     { colours: identityColours, themes },
     query,
     'Matches commander text',

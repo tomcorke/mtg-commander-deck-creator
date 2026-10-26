@@ -900,6 +900,9 @@ test('mechanic retrieval searches the commander text once, ten new cards at most
   const found = await mechanicRecommendations(
     {
       theme: 'Tokens',
+      pendingLocal: [],
+      localCardsIfReady: () => undefined,
+      fetchLocalCards: assert.fail,
       deck: [toCard(card('Fodder 0'), 'Popular inclusion')],
       searchCards: async (query: string) => {
         queries.push(query)
