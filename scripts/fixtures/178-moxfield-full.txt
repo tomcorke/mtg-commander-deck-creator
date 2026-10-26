@@ -1,0 +1,91 @@
+1 Captain Kirk, Boldly Going (TRC) 85
+1 Abandoned Air Temple (TLA) 263
+1 Abundant Countryside (ECC) 22
+1 Adagia, Windswept Bastion (EOE) 250
+1 Astral Cornucopia (C16) 243
+1 Basri's Lieutenant (M21) 9
+1 Borg Scout Sphere (TRC) 36
+1 Bow of Nylea (THS) 153
+1 Bulwark Ox (DFT) 7
+1 Cactus Preserve (OTC) 40
+1 Calciform Pools (TSR) 275
+1 Captain America, Living Legend (MSH) 210
+1 Captain Jean-Luc Picard (TRK) 7
+1 Cavern of Souls (AVR) 226
+1 Chief Engineer (C16) 86
+1 Command Tower (CLB) 351
+1 Cryptolith Rite (SOI) 200
+1 Crystal Skull, Isu Spyglass (ACR) 15
+1 Deep Space 9 (TRK) 263
+1 Dr. Joseph M'Benga (TRK) 196
+1 Echoing Deeps (LCI) 271
+1 Emmara, Soul of the Accord (GRN) 168
+1 Encroaching Mycosynth (ONE) 47
+1 Evendo, Waking Haven (EOE) 253
+1 Exploration Broodship (EOC) 14
+1 Filigree Sages (ALA) 44
+6 Forest (CLB) 467
+1 Heronblade Elite (MIC) 26
+1 Hidden Hideout (TMC) 43
+1 Incubation Druid (C21) 195
+1 Inventors' Fair (KLD) 247
+4 Island (CLB) 455
+1 Kami of Whispered Hopes (MOM) 196
+1 Larval Scoutlander (EOE) 194
+1 Lazotep Quarry (M3C) 131
+1 Leyline of Abundance (M20) 179
+1 Loading Zone (EOE) 196
+1 Lotus Field (M20) 249
+1 Loyal Inventor (ACR) 21
+1 Lt. Cmdr. Geordi La Forge (TRK) 70
+1 Lumen-Class Frigate (EOE) 25
+1 Magus of the Candelabra (M3C) 236
+1 March of the Machines (ARC) 6
+1 Maskwood Nexus (KHM) 240
+1 Master Chef (CLB) 241
+1 Mistveil Plains (SOC) 386
+1 Mona Lisa, Science Geek (TMT) 123
+1 Moonsilver Key (MID) 255
+1 Moxite Refinery (EOC) 17
+1 Nesting Grounds (C20) 71
+1 Path of Ancestry (C17) 56
+1 Pestered Wellguard (ECL) 63
+2 Plains (CLB) 451
+1 Reflecting Pool (FRC) 23
+1 Reluctant Role Model (DSK) 26
+1 Resourceful Defense (NCC) 19
+1 Romulan Bird-of-Prey (TRK) 77
+1 Saltcrusted Steppe (TSR) 283
+1 Scaretiller (C19) 57
+1 Seaside Citadel (C17) 277
+1 Shalai, Voice of Plenty (DOM) 35
+1 Shifting Woodland (MH3) 228
+1 Shore Leave Planet (TRC) 130
+1 Sledge-Class Seedship (EOE) 208
+1 Spelunking (LCI) 213
+1 Sphere Grid (FIC) 70
+1 Starship Enterprise (TRC) 122
+1 Stonybrook Schoolmaster (MOR) 25
+1 Subspace Anomaly (TRK) 300
+1 Supportive Parents (SPM) 119
+1 Suurok-Class Science Vessel (TRK) 83
+1 Synthesizer Labship (EOE) 81
+1 The Eternity Elevator (EOE) 241
+1 The Mycosynth Gardens (ONE) 256
+1 The Seriema (EOE) 35
+1 Thespian's Stage (M3C) 395
+1 Traveling Botanist (TDM) 164
+1 Tyrant Guard (40K) 103
+1 Tyrite Sanctum (KHM) 272
+1 U.S.S. Enterprise-A, Free Spirit (TRK) 43
+1 U.S.S. Enterprise-D, Galaxy-Class (TRK) 273
+1 Urban Retreat (SPM) 187
+1 Uthros Research Craft (EOC) 7
+1 Uthros, Titanic Godcore (EOE) 260
+1 Vesuva (M3C) 404
+1 Vigean Graftmage (MM2) 68
+1 Vorel of the Hull Clade (NCC) 357
+1 Wedgelight Rammer (EOE) 43
+1 Wurmwall Sweeper (EOE) 249
+1 Zefram Cochrane, Warp Pioneer (TRK) 90
+1 Zimone, Paradox Sculptor (FDN) 126

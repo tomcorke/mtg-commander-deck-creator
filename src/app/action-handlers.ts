@@ -66,8 +66,8 @@ export function createActionHandlers(deps: AppActionContext) {
     storeDeck: (overwrite = false) => deckActions.storeDeck(deps, overwrite),
     loadSavedDeck: (saved: SavedDeck) => deckActions.loadSavedDeck(withBuildIdentity(), saved),
     removeSavedDeck: (saved: SavedDeck) => deckActions.removeSavedDeck(deps, saved),
-    importDeck: (openReviewAfterImport: boolean, skipMissing = false) =>
-      deckActions.importDeck(withBuildIdentity(), openReviewAfterImport, skipMissing),
+    importDeck: (openReviewAfterImport: boolean, skipMissing = false, commanders: string[] = []) =>
+      deckActions.importDeck(withBuildIdentity(), openReviewAfterImport, skipMissing, commanders),
     startOver: () => deckActions.startOver(withBuildIdentity()),
     openSavedDecks: () => deckActions.openSavedDecks(deps),
   }
