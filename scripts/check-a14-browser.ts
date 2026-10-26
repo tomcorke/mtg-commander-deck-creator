@@ -169,13 +169,14 @@ async function storedManuals(page: Page) {
 }
 
 async function respondToConfirmation(page: Page, action: () => Promise<unknown>, accept: boolean) {
-  const response = page.waitForEvent('dialog')
-  const clicking = action()
-  const dialog = await response
-  const message = dialog.message()
-  if (accept) await dialog.accept()
-  else await dialog.dismiss()
-  await clicking
+  await action()
+  const dialog = page.locator('.confirm-modal')
+  const message = await dialog.innerText()
+  await dialog
+    .locator('.confirm-actions button')
+    .nth(accept ? 1 : 0)
+    .click()
+  await dialog.waitFor({ state: 'detached' })
   return message
 }
 
@@ -568,7 +569,7 @@ async function legacyLinks(page: Page, context: BrowserContext) {
   const overwrite = copy.getByRole('button', { name: 'Overwrite save', exact: true })
   assert.match(
     await respondToConfirmation(copy, () => overwrite.click(), false),
-    /Overwrite the manual save/,
+    /Overwrite "Legacy manual"\?/,
   )
   assert.equal((await protectedBytes(copy, [])).manual, originalManual)
   await respondToConfirmation(copy, () => overwrite.click(), true)
@@ -680,7 +681,7 @@ async function deletionSafety(page: Page, context: BrowserContext) {
       () => page.getByRole('button', { name: 'Apply limits', exact: true }).click(),
       false,
     ),
-    /delete 1 inactive draft/,
+    /Delete 1 inactive draft\?/,
   )
   assert.deepEqual(await protectedBytes(page, [draft.id, peerId, 'closed']), before)
   await respondToConfirmation(
@@ -874,6 +875,11 @@ async function runCase(
   context.on('page', (page) => page.on('pageerror', (error) => errors.push(error.message)))
   try {
     await mockProviders(context)
+    // A14 covers autosave rules on the localStorage backend the app keeps when IndexedDB is
+    // unavailable; check:b18:browser covers the IndexedDB backend, migration and sync.
+    await context.addInitScript(() =>
+      Object.defineProperty(window, 'indexedDB', { value: undefined }),
+    )
     await context.addInitScript(
       ({ values, origin }) => {
         if (location.origin !== origin || localStorage.getItem('__a14_seeded')) return
