@@ -137,18 +137,21 @@ async function discoveryAndDisplay(page: Page, label: string) {
   await page.locator('.commander-tile').nth(11).waitFor()
   assert.equal(await page.getByRole('button', { name: /Choose Banned fixture/ }).count(), 0)
   assert.equal(await page.locator('.step').count(), 0)
-  const art = page.locator('.commander-discovery-art').first()
-  await art.focus()
+  const reference = page.locator('.commander-tile .card-reference').first()
+  const name = reference.locator('.card-reference-name')
+  const preview = reference.locator('.card-image-preview')
+  await name.focus()
+  assert.ok(await name.evaluate((element) => element === document.activeElement))
   await page.waitForFunction(() =>
-    Boolean(document.querySelector('.commander-discovery-art .card-image-preview:popover-open')),
+    Boolean(
+      document.querySelector('.commander-tile .card-reference .card-image-preview:popover-open'),
+    ),
   )
-  await art.hover()
-  assert.ok(
-    await art
-      .locator('.card-image-preview')
-      .evaluate((element) => element.matches(':popover-open')),
-  )
-  await press(page, page.locator('.commander-tile .card-reference-name').first())
+  await page.getByRole('textbox', { name: 'Search commanders' }).focus()
+  assert.ok(!(await preview.evaluate((element) => element.matches(':popover-open'))))
+  await name.hover()
+  assert.ok(await preview.evaluate((element) => element.matches(':popover-open')))
+  await press(page, name)
   await page.getByRole('dialog').waitFor()
   await page.keyboard.press('Escape')
   await page.getByRole('dialog').waitFor({ state: 'hidden' })
@@ -192,9 +195,7 @@ async function discoveryAndDisplay(page: Page, label: string) {
     await page.getByRole('button', { name: 'Tokens', exact: true }).getAttribute('aria-pressed'),
     'true',
   )
-  const names = await page
-    .locator('.commander-tile > .card-reference .card-reference-name')
-    .allTextContents()
+  const names = await page.locator('.commander-tile .card-reference-name').allTextContents()
   assert.deepEqual(
     names.sort(),
     [chosen.name, "Trostani, Selesnya's Voice", 'Maja, Bretagard Protector'].sort(),
@@ -400,11 +401,15 @@ try {
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('http://127.0.0.1:5282')
     await discoveryAndDisplay(page, label)
-    await styleAndResume(page, requests, label)
-    await skipAndReload(context)
+    if (!process.argv.includes('--discovery-only')) {
+      await styleAndResume(page, requests, label)
+      await skipAndReload(context)
+    }
     assert.deepEqual(errors, [], label)
     console.log(
-      `${label}: discovery, previews/DFC/details, display, preset/sets, guide keyboard/Escape, resume, skip and pre-batch reload passed`,
+      process.argv.includes('--discovery-only')
+        ? `${label}: discovery, keyboard/hover previews, DFC/details and display passed`
+        : `${label}: discovery, previews/DFC/details, display, preset/sets, guide keyboard/Escape, resume, skip and pre-batch reload passed`,
     )
     await context.close()
   }
