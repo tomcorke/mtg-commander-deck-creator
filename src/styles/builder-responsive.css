@@ -122,6 +122,19 @@
   position: relative;
   flex: none;
 }
+/* The rebuild note sits on its own line so it neither widens the button nor crowds the sub-themes. */
+.batch-controls .nav-forward {
+  max-width: 280px;
+  text-align: left;
+}
+.batch-controls .nav-forward > span {
+  padding-block: 8px;
+}
+.batch-rebuild {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+}
 /* Out of flow so the note never moves the button off the toolbar row. */
 .batch-undecided {
   position: absolute;
@@ -342,8 +355,9 @@
     align-items: stretch;
     flex-direction: column;
   }
-  .batch-controls button {
+  .batch-controls .nav-forward {
     width: 100%;
+    max-width: none;
   }
   .batch-undecided {
     position: static;

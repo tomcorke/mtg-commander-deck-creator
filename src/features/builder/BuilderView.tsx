@@ -627,9 +627,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && (
                 <div className="batch-controls">
                   <button className="nav-forward" type="button" onClick={() => void nextBatch()}>
-                    Next recommendations
-                    {pendingSubThemes.some((name) => activeSubThemes.includes(name)) &&
-                      ` · rebuilding for ${pendingSubThemes.filter((name) => activeSubThemes.includes(name)).join(' & ')}`}
+                    <span>
+                      Next recommendations
+                      {pendingSubThemes.some((name) => activeSubThemes.includes(name)) && (
+                        <small className="batch-rebuild">
+                          {' '}
+                          rebuilding for{' '}
+                          {pendingSubThemes
+                            .filter((name) => activeSubThemes.includes(name))
+                            .join(' & ')}
+                        </small>
+                      )}
+                    </span>
                   </button>
                   {undecidedCount > 0 && (
                     <span className="batch-undecided">
