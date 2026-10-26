@@ -61,11 +61,26 @@ main {
   background: #f2f3fb;
   color: #25243a;
 }
-main.dark {
+/* Secondary text colours; each pair keeps WCAG AA (4.5:1) on the app's panels. Use these instead of
+   per-component hex values so dark mode never depends on a matching override. */
+:root {
+  --text-muted: #5c596f;
+  --text-accent: #6a3c9c;
+  --text-danger: #a13e4c;
+  --text-success: #23744a;
+}
+/* Dialogs mount beside full-page modes' <main>, inside the app's .dark wrapper; theme text there. */
+.dark {
+  --text-muted: #aaa8c2;
+  --text-accent: #b99cf0;
+  --text-danger: #f0aaa4;
+  --text-success: #7fd3a1;
   --focus-ring: #d6b8ff;
   color-scheme: dark;
-  background: #111123;
   color: #d8d8ea;
+}
+main.dark {
+  background: #111123;
 }
 .commander-themed {
   --commander-accent: #36327f;
@@ -202,7 +217,7 @@ main > .workspace-alert .modal-close {
   background: transparent;
 }
 .fresh {
-  color: #858295;
+  color: var(--text-muted);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -224,15 +239,15 @@ main > .workspace-alert .modal-close {
   font-size: 13px;
 }
 .saved-status small {
-  color: #68667c;
+  color: var(--text-muted);
   font-size: 12px;
 }
 .delta-added {
-  color: #27804b;
+  color: var(--text-success);
   font-weight: 600;
 }
 .delta-removed {
-  color: #a13e4c;
+  color: var(--text-danger);
   font-weight: 600;
 }
 .progress {
@@ -240,7 +255,7 @@ main > .workspace-alert .modal-close {
   display: flex;
   gap: 10px;
   align-items: center;
-  color: #68667c;
+  color: var(--text-muted);
   font-size: 13px;
 }
 .progress span {
@@ -277,7 +292,7 @@ main > .workspace-alert .modal-close {
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #68667c;
+  color: var(--text-muted);
   font-size: 12px;
   cursor: pointer;
 }
@@ -317,13 +332,15 @@ main > .workspace-alert .modal-close {
   border: 1.5px solid var(--nav-accent);
   border-radius: 7px;
   background: color-mix(in srgb, var(--nav-accent) 10%, transparent);
-  color: var(--nav-accent);
+  /* Commander accents come from card art; darkening keeps light-mode labels readable. */
+  color: color-mix(in srgb, var(--nav-accent) 65%, #000);
   font-weight: 600;
   cursor: pointer;
 }
 .dark .nav-back,
 .dark .nav-forward {
   --nav-accent: color-mix(in srgb, var(--commander-accent, #7650ae) 45%, white);
+  color: var(--nav-accent);
 }
 .nav-back {
   padding-right: 16px;
@@ -446,7 +463,7 @@ main > header:has(.display-settings-panel) {
 }
 .add-zone-toggle > span {
   margin-right: 8px;
-  color: #68657c;
+  color: var(--text-muted);
 }
 .add-zone-toggle button {
   padding: 4px 10px;

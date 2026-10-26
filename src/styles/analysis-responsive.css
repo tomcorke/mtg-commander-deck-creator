@@ -7,13 +7,9 @@
 .dark .mana-curve button.selected {
   background: #ffffff0d;
 }
-.dark .curve-legend,
-.dark .target-heading span {
-  color: #aaa8c2;
-}
 .dark .colour-empty {
   background: #35334a;
-  color: #aaa8c2;
+  color: var(--text-muted);
 }
 .dark .deck-targets input {
   border-color: #4b4867;

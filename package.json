@@ -22,6 +22,7 @@
     "typecheck": "tsc -b --noEmit",
     "check:b18:browser": "node --experimental-strip-types scripts/check-b18-browser.ts",
     "check:b10:browser": "node --experimental-strip-types scripts/check-b10-browser.ts",
+    "check:contrast:browser": "node --experimental-strip-types scripts/check-contrast-browser.ts",
     "check:card-references:browser": "node --experimental-strip-types scripts/check-card-references-browser.ts",
     "check:local-card-index:browser": "node --experimental-strip-types scripts/check-local-card-index-browser.ts",
     "evaluate:local-retrieval": "node --experimental-strip-types scripts/evaluate-local-retrieval.ts",

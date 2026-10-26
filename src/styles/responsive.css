@@ -15,11 +15,6 @@
 .dark h3 {
   color: #d9d8ff;
 }
-.dark dt,
-.dark .progress,
-.dark .theme-option {
-  color: #aaa8c2;
-}
 .dark .theme-toggle {
   border-color: #4b4867;
   color: #ccc9df;

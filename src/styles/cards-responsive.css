@@ -1,10 +1,6 @@
-.dark .card-type-line,
-.dark .deck-card-description {
-  color: #aaa8c2;
-}
 .dark .card-details {
   border-color: #39374f;
-  color: #aaa8c2;
+  color: var(--text-muted);
 }
 .dark .card-details dt,
 .dark .card-details dd strong {
@@ -22,10 +18,6 @@
 .dark .score-breakdown-heading,
 .dark .score-factors dd {
   color: #ccc9df;
-}
-.dark .score-factors dt,
-.dark .score-breakdown .score-note {
-  color: #aaa8c2;
 }
 .dark .card-offer {
   --card-title-shadow: #17162a;
