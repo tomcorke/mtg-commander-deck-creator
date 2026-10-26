@@ -108,11 +108,14 @@ async function batch(page: Page) {
       Boolean(document.querySelector('.intro-guide')),
   )
 }
+// Autosaves live in IndexedDB (B18); Vite hands the page the app's own storage module instance.
+const readDraft = async ({ prefix, key }: { prefix: string; key: string }) => {
+  const { appStorage } = await import(/* @vite-ignore */ '/src/app-storage.ts')
+  return appStorage().getItem(prefix + sessionStorage.getItem(key)) as string | null
+}
+const draftKeys = { prefix: autosavePrefix, key: workspaceSessionKey }
 async function currentDraft(page: Page) {
-  const raw = await page.evaluate(
-    ({ prefix, key }) => localStorage.getItem(prefix + sessionStorage.getItem(key)),
-    { prefix: autosavePrefix, key: workspaceSessionKey },
-  )
+  const raw = await page.evaluate(readDraft, draftKeys)
   assert.ok(raw)
   return { raw, state: storedDeckStateSchema.parse(JSON.parse(raw).state) }
 }
@@ -340,20 +343,18 @@ async function skipAndReload(context: BrowserContext) {
   await page.getByRole('checkbox', { name: 'Walk me through the builder for this deck' }).uncheck()
   const before = await preferences(page)
   await chooseCommander(page)
-  await press(page, page.getByRole('button', { name: 'Skip — use current settings', exact: true }))
+  await press(page, page.getByRole('button', { name: /^Keep current settings \(/ }))
   await batch(page)
   assert.deepEqual(await preferences(page), before)
   assert.equal(await page.locator('.intro-guide').count(), 0)
   await page.goto('http://127.0.0.1:5282/#start')
   await page.locator('.commander-tile').first().waitFor()
   await chooseCommander(page)
-  await page.waitForFunction(
-    ({ prefix, key }) => {
-      const raw = localStorage.getItem(prefix + sessionStorage.getItem(key))
-      return raw && JSON.parse(raw).state.firstBatchPending === true
-    },
-    { prefix: autosavePrefix, key: workspaceSessionKey },
-  )
+  await page.waitForFunction(async ({ prefix, key }) => {
+    const { appStorage } = await import(/* @vite-ignore */ '/src/app-storage.ts')
+    const raw = appStorage().getItem(prefix + sessionStorage.getItem(key))
+    return raw && JSON.parse(raw).state.firstBatchPending === true
+  }, draftKeys)
   await page.reload()
   await page.locator('.card-offer').first().waitFor()
   assert.equal(
