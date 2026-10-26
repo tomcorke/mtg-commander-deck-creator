@@ -221,7 +221,9 @@ test('reuses a daily persistent source cache and reports actual raw/gzip sizes',
     assert.equal(result.gzipBytes, gzipSync(json).byteLength)
     assert.deepEqual(parseLocalCardIndex(JSON.parse(json)), result.index)
     assert.deepEqual(
-      JSON.parse(await readFile(join(cacheDir, 'local-card-index.json'), 'utf8')),
+      parseLocalCardIndex(
+        JSON.parse(await readFile(join(cacheDir, 'local-card-index.json'), 'utf8')),
+      ),
       result.index,
     )
   })

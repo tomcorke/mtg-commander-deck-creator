@@ -30,9 +30,92 @@ const indexSchema = z.object({
 
 export type LocalCardIndex = z.infer<typeof indexSchema>
 
+// Versioned wire rows omit repeated property names. String cells reference a shared
+// dictionary; nested presentation data keeps its provider shape and URLs verbatim.
+const cardColumns = [
+  'name',
+  'oracle_id',
+  'layout',
+  'type_line',
+  'mana_cost',
+  'cmc',
+  'oracle_text',
+  'power',
+  'toughness',
+  'produced_mana',
+  'color_identity',
+  'set',
+  'set_name',
+  'collector_number',
+  'scryfall_uri',
+  'prints_search_uri',
+  'finishes',
+  'promo_types',
+  'released_at',
+  'game_changer',
+  'legalities',
+  'image_uris',
+  'card_faces',
+] as const
+
+export function serializeLocalCardIndex(index: LocalCardIndex): string {
+  const strings: string[] = []
+  const ids = new Map<string, number>()
+  const cards = index.cards.map((card) =>
+    cardColumns.map((key) => {
+      const value = card[key]
+      if (key === 'game_changer' && value === null) return [null]
+      if (typeof value !== 'string') return value ?? null
+      let id = ids.get(value)
+      if (id === undefined) {
+        id = strings.length
+        ids.set(value, id)
+        strings.push(value)
+      }
+      return id
+    }),
+  )
+  return JSON.stringify({ ...index, version: 1, strings, cards })
+}
+
+function expandWireIndex(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || !('version' in value)) return value
+  const wire = z
+    .object({
+      version: z.literal(1),
+      strings: z.array(z.string()),
+      // Only inspect the wire container here. The expanded cards pass the full
+      // trust-boundary validator below; cloning every cell first adds avoidable work.
+      cards: z.custom<unknown[][]>(
+        (rows) =>
+          Array.isArray(rows) &&
+          rows.every((row) => Array.isArray(row) && row.length === cardColumns.length),
+      ),
+    })
+    .parse(value)
+  const cards = wire.cards.map((row) => {
+    const card: Record<string, unknown> = {}
+    for (let i = 0; i < cardColumns.length; i++) {
+      const key = cardColumns[i]
+      const cell = row[i]
+      if (cell === null) continue
+      if (key === 'game_changer' && Array.isArray(cell) && cell.length === 1 && cell[0] === null)
+        card[key] = null
+      else if (key === 'cmc' || key === 'game_changer' || typeof cell !== 'number') card[key] = cell
+      else {
+        if (!Number.isInteger(cell) || cell < 0 || cell >= wire.strings.length)
+          throw new Error('Invalid local card string reference')
+        card[key] = wire.strings[cell]
+      }
+    }
+    return card
+  })
+  return { ...value, cards }
+}
+
 /** Validate downloaded/generated data before any numeric posting is used as a card offset. */
 export function parseLocalCardIndex(value: unknown): LocalCardIndex {
-  const index = indexSchema.parse(value)
+  const index = indexSchema.parse(expandWireIndex(value))
   const identities = new Set<string>()
   for (const card of index.cards) {
     if (

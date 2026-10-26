@@ -19,6 +19,17 @@ Cards are ordered by Oracle ID. Numeric postings index actual creature subtypes,
 
 Card rows retain gameplay text, faces, mana value, colour identity, Commander legality, Game Changer membership, release/printing information and Scryfall image URLs. Prices and purchase URLs are omitted; local-only prices are unknown until live enrichment. Existing price-cap behavior still permits unknown prices.
 
+The version 1 wire format stores fixed-column card rows and a shared string dictionary.
+Column order lives in `src/domain/local-card-index.ts`; changing it requires a new
+wire version. Numeric string cells reference the dictionary, while mana value and
+Game Changer cells retain their scalar types. Null cells omit absent fields; `[null]`
+preserves explicitly unknown Game Changer data. Nested faces, images and legality
+objects retain their existing shape. Links and image URLs are preserved verbatim.
+The decoder expands rows before the existing card, posting and coverage validation.
+It also accepts legacy object artifacts for build-cache fallback; unknown wire
+versions fail through the existing unavailable-index fallback. No request is added
+to the start screen and live data keeps precedence.
+
 Metadata records the bulk timestamp, creature catalog, full provider sets snapshot with card counts, and newest **represented printing set**. Oracle bulk data selects one printing per gameplay identity. The newest represented set is not proof of complete set membership, and this table cannot answer printing/set-ownership questions.
 
 Measured on 2026-10-25:
@@ -163,3 +174,40 @@ pnpm evaluate:local-retrieval -- --record --fixtures <fixture.json> --output <di
 The browser gate checks start-screen laziness, shared loading, stale-type logging and missing/corrupt fallback. It also checks that a delayed, missing or failed index never delays the first live batch, and that enrichment keeps the visible batch and its decisions. Unit tests cover generator/cache failures, classifier parity, numeric-posting validation, coverage drift, identity filtering, counts, live precedence, exclusions and Deck Doctor integration.
 
 `evaluate:local-retrieval` replays offline without `--record`; a missing fixture stops it rather than fetching. The audit can use a pinned artifact for deterministic local role-gap breadth and records its bulk/set metadata. EDHREC evidence and Tagger searches remain live, so this is not a full deterministic replay. The provider-manifest replay and fixed-pool ranking harness remain part of [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98).
+
+## Payload measurements for #148
+
+Measured on 2026-10-26 using the same 32,116-card corpus (bulk timestamp
+`2026-10-26T21:01:59.922+00:00`) before and after a lossless full-corpus round trip.
+Raw bytes fall from 34,741,032 to 26,798,023 (23%); Node gzip bytes fall from
+6,713,838 to 6,182,424 (8%). All cards and postings compare deeply equal.
+
+Sequential `pnpm measure:local-card-index` runs in sandboxed headless Chrome
+155.0.8059.85, medians of three samples per profile:
+
+| Profile / format                     | JSON parse ms | Validate + expand ms | Longest task ms | Long-task total ms | Retained heap MB |
+| ------------------------------------ | ------------: | -------------------: | --------------: | -----------------: | ---------------: |
+| Desktop / object                     |            52 |                   80 |             132 |                132 |               43 |
+| Desktop / compact                    |            43 |                  101 |             143 |                143 |               40 |
+| Mobile equivalent (4x CPU) / object  |           241 |                  475 |             744 |                951 |               43 |
+| Mobile equivalent (4x CPU) / compact |           181 |                  464 |             644 |                644 |               40 |
+
+These are CPU-throttled desktop measurements, not physical mobile-device results.
+Expansion is included in validation. Desktop total decode slightly regresses;
+mobile parse, total decode and retained heap improve in this run. Long tasks remain,
+and timings vary between runs. The format reduces transfer size without claiming
+to eliminate main-thread stalls or improve recommendation quality/provider counts.
+
+A production HTTP request on this date returned `Content-Encoding: gzip`,
+`Content-Length: 6950465` and `Cache-Control: max-age=600` for the existing object
+artifact. The compact artifact has not been published: its gzip bytes above are
+local compression measurements, not measured production transfer. Verify transfer
+again after a separately authorized release. Results are also fed to
+[#151](https://github.com/tomcorke/mtg-commander-deck-creator/issues/151).
+
+The compact wire browser group passes lazy/shared/fresh/stale/missing/corrupt
+checks. The progressive first-batch group fails because its held request reaches
+the production 10-second timeout before the mocked batch appears. The same failure
+reproduces with the browser script, generator and domain parser restored from
+baseline `fb7af48`; no compact response has arrived at that point. Fixture repair is
+tracked in [#204](https://github.com/tomcorke/mtg-commander-deck-creator/issues/204).

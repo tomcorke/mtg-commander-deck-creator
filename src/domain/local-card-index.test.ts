@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { parseLocalCardIndex, type LocalCardIndex } from './local-card-index.ts'
+import {
+  parseLocalCardIndex,
+  serializeLocalCardIndex,
+  type LocalCardIndex,
+} from './local-card-index.ts'
 
 const valid = (): LocalCardIndex => ({
   metadata: {
@@ -31,6 +35,38 @@ const valid = (): LocalCardIndex => ({
 
 test('parses valid local index data', () => {
   assert.deepEqual(parseLocalCardIndex(valid()), valid())
+})
+
+test('wire rows round trip every retained field and reject corrupt versions, rows and references', () => {
+  const index = valid()
+  Object.assign(index.cards[0], {
+    game_changer: null,
+    image_uris: { normal: 'https://cards.scryfall.io/test.jpg' },
+    card_faces: [{ oracle_text: '', mana_cost: '{W}' }],
+  })
+  const json = serializeLocalCardIndex(index)
+  assert.deepEqual(parseLocalCardIndex(JSON.parse(json)), index)
+  for (const mutate of [
+    (wire: ReturnType<typeof JSON.parse>) => {
+      wire.version = 2
+    },
+    (wire: ReturnType<typeof JSON.parse>) => {
+      wire.cards[0].pop()
+    },
+    (wire: ReturnType<typeof JSON.parse>) => {
+      wire.cards[0][0] = -1
+    },
+    (wire: ReturnType<typeof JSON.parse>) => {
+      wire.cards[0][0] = wire.strings.length
+    },
+    (wire: ReturnType<typeof JSON.parse>) => {
+      wire.cards[0][0] = 0.5
+    },
+  ]) {
+    const wire = JSON.parse(json)
+    mutate(wire)
+    assert.throws(() => parseLocalCardIndex(wire))
+  }
 })
 
 test('permits newer unrepresented sets in provider coverage, but validates represented newestSet', () => {

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { buildLocalCardIndex } from './build-card-index.ts'
+import { serializeLocalCardIndex } from '../src/domain/local-card-index.ts'
 import type { Page } from 'playwright-core'
 import { openScenario, withBrowser } from './fixtures/browser-harness.ts'
 import { baseCandidates, fixtureCard, makeState } from './fixtures/b10-browser.ts'
@@ -27,7 +28,9 @@ const index = buildLocalCardIndex({
 
 function artifactResponse(mode: string) {
   if (mode === 'missing') return { status: 404, body: 'Missing' }
-  return { json: mode === 'corrupt' ? { invalid: true } : index }
+  return {
+    json: mode === 'corrupt' ? { invalid: true } : JSON.parse(serializeLocalCardIndex(index)),
+  }
 }
 
 await withBrowser('LOCAL_CARD_INDEX', 5244, async (browser, base) => {
@@ -141,7 +144,11 @@ await withBrowser('LOCAL_CARD_INDEX', 5245, async (browser, base) => {
       async (route) => {
         requested()
         await released
-        if (mode === 'delayed') return route.fulfill({ json: enrichment })
+        if (mode === 'delayed')
+          return route.fulfill({
+            body: serializeLocalCardIndex(enrichment),
+            contentType: 'application/json',
+          })
         if (mode === 'missing') return route.fulfill({ status: 404, body: 'Missing' })
         return route.abort('failed')
       },
