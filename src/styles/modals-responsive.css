@@ -146,6 +146,9 @@
     max-height: calc(100vh - 32px);
     padding: 20px;
   }
+  .change-commander-modal {
+    --change-commander-pad: 20px;
+  }
   .recommendation-options fieldset {
     min-width: 0;
     width: 100%;

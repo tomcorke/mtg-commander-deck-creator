@@ -46,7 +46,7 @@ type Props = {
   sideboard: DeckCard[]
   excludeUnreleased: boolean
   cycleCommanderPrinting: (index: number) => void
-  startOver: () => void
+  changeCommander: ReactNode
   openCommander: (index: number) => void
   openCard: (card: ScryfallCard) => void
   addCards: (cards: ScryfallCard[]) => string
@@ -349,7 +349,7 @@ export function CardSearchView({
   sideboard,
   excludeUnreleased,
   cycleCommanderPrinting,
-  startOver,
+  changeCommander,
   openCommander,
   openCard,
   addCards,
@@ -472,7 +472,7 @@ export function CardSearchView({
           commander={commander}
           colours={commanderDetails?.colours ?? null}
           onOpenCommander={() => openCommander(0)}
-          onChangeCommander={startOver}
+          changeCommander={changeCommander}
         />
         <div className="search-page-context">
           <p className="eyebrow">Card discovery</p>

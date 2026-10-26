@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import { colourNames } from '../../domain/commander-catalog.ts'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 
@@ -5,7 +7,8 @@ type Props = {
   commander: string
   colours: string[] | null
   headingLevel?: 'h1' | 'h2'
-  onChangeCommander: () => void
+  /** The change-commander control, rendered beside the other commander actions. */
+  changeCommander: ReactNode
   onOpenCommander: () => void
   onCompareCommanders?: () => void
 }
@@ -14,7 +17,7 @@ export function CommanderSummary({
   commander,
   colours,
   headingLevel = 'h1',
-  onChangeCommander,
+  changeCommander,
   onOpenCommander,
   onCompareCommanders,
 }: Props) {
@@ -41,9 +44,7 @@ export function CommanderSummary({
         )}
       </div>
       <div className="commander-summary-actions">
-        <button className="change" type="button" onClick={onChangeCommander}>
-          Change commander
-        </button>
+        {changeCommander}
         {onCompareCommanders && (
           <button className="export" type="button" onClick={onCompareCommanders}>
             Compare commanders

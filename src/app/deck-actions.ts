@@ -196,7 +196,12 @@ export function decide(deps: ActionDeps, card: Card, action: 'add' | 'later' | '
   setDecisions((current: any) => ({ ...current, [card.name]: action }))
 }
 
-export async function promoteToCommander(deps: ActionDeps, candidate: Card | DeckCard) {
+// The outgoing commander stays as a deck card unless `keepOutgoing` is false.
+export async function promoteToCommander(
+  deps: ActionDeps,
+  candidate: Card | DeckCard,
+  keepOutgoing = true,
+) {
   const job = deckJob(deps)
   deps = job.deps
   const {
@@ -209,8 +214,15 @@ export async function promoteToCommander(deps: ActionDeps, candidate: Card | Dec
     setSideboard,
     start,
   } = deps
-  if (commanderNames(commander).includes(candidate.name)) return
-  const promotion = commanderPromotionInfo(candidate, deck, commanderDetails?.colours ?? [])
+  const outgoing = commanderNames(commander)
+  if (outgoing.includes(candidate.name)) return
+  const withoutOutgoing = (cards: DeckCard[]) =>
+    keepOutgoing ? cards : cards.filter((card) => !outgoing.includes(card.name))
+  const promotion = commanderPromotionInfo(
+    candidate,
+    withoutOutgoing(deck),
+    keepOutgoing ? (commanderDetails?.colours ?? []) : [],
+  )
   if (!promotion?.canPromote) return
   const error = commanderConstructionError([candidate])
   if (error) {
@@ -224,7 +236,7 @@ export async function promoteToCommander(deps: ActionDeps, candidate: Card | Dec
     (card: DeckCard) => card.name === candidate.name,
   )
   const promoted = existing ?? toDeckCardFromRecommendation(candidate as Card)
-  const next = promoteDeckCard(current.deck, current.sideboard, promoted)
+  const next = promoteDeckCard(withoutOutgoing(current.deck), current.sideboard, promoted)
   setDeck(next.deck)
   setSideboard(next.sideboard)
   setQueue((current: Card[]) => current.filter((card) => card.name !== candidate.name))
