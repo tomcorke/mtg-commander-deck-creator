@@ -9,6 +9,7 @@ import {
   commanderPromotionWarning,
 } from '../../domain/commander-promotion.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { CardReference } from '../../shared/CardReference.tsx'
 import { ColourPicker, CommanderChoiceTile } from '../../shared/CommanderChoice.tsx'
 
 type Props = {
@@ -28,6 +29,9 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
   const [colours, setColours] = useState<string[]>([])
   const [search, setSearch] = useState('')
   const [keepOutgoing, setKeepOutgoing] = useState(true)
+  const [selected, setSelected] = useState<DeckCard | null>(null)
+  const keepFits = Boolean(selected && commanderPromotionInfo(selected, deck)?.canPromote)
+  const keeps = keepOutgoing && keepFits
   const discovery = useCommanderDiscovery({ theme: '', colours, search }, open)
   const close = () => setOpen(false)
   useEffect(() => {
@@ -50,6 +54,7 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
         onClick={() => {
           setColours([...required].sort())
           setSearch('')
+          setSelected(null)
           setOpen(true)
         }}
       >
@@ -98,20 +103,10 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
                 autoComplete="off"
               />
             </label>
-            <label className="intro-guide-option">
-              <input
-                type="checkbox"
-                checked={keepOutgoing}
-                onChange={(event) => setKeepOutgoing(event.target.checked)}
-              />{' '}
-              Keep the current commander in the deck when its colours fit
-            </label>
             <div className="commander-grid" aria-busy={discovery.status === 'loading'}>
               {discovery.suggestions.map(({ card }) => {
                 const candidate = toDeckCard(card)
                 const legal = commanderPromotionInfo(candidate, remaining)
-                const keeps =
-                  keepOutgoing && Boolean(commanderPromotionInfo(candidate, deck)?.canPromote)
                 const current = outgoing.includes(card.name)
                 return (
                   <CommanderChoiceTile
@@ -124,23 +119,16 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
                         type="button"
                         aria-label={`Choose ${card.name}`}
                         disabled={current || !legal?.canPromote}
-                        onClick={() => {
-                          close()
-                          changeCommander(candidate, keeps)
-                        }}
+                        aria-pressed={selected?.name === card.name}
+                        onClick={() => setSelected(candidate)}
                       >
-                        {current ? 'Current' : 'Choose'}
+                        {current ? 'Current' : selected?.name === card.name ? 'Selected' : 'Choose'}
                       </button>
                     }
                     note={
-                      legal && !legal.canPromote ? (
+                      legal &&
+                      !legal.canPromote && (
                         <p className="form-error">{commanderPromotionWarning(legal)}</p>
-                      ) : (
-                        keepOutgoing &&
-                        !keeps &&
-                        !current && (
-                          <p className="import-note">The current commander will leave the deck.</p>
-                        )
                       )
                     }
                   />
@@ -160,6 +148,38 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
               <button className="reroll" type="button" onClick={discovery.reshuffle}>
                 Show different commanders
               </button>
+            )}
+            {selected && (
+              <div className="change-commander-confirm">
+                <p>
+                  New commander: <CardReference card={selected} onOpen={() => openCard(selected)} />
+                </p>
+                <label className="intro-guide-option">
+                  <input
+                    type="checkbox"
+                    checked={keeps}
+                    disabled={!keepFits}
+                    onChange={(event) => setKeepOutgoing(event.target.checked)}
+                  />{' '}
+                  Keep the current commander in the deck
+                </label>
+                {!keepFits && (
+                  <p className="form-error" role="status">
+                    Unavailable: the current commander&apos;s colours are outside the new
+                    commander&apos;s identity, so it will leave the deck.
+                  </p>
+                )}
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={() => {
+                    close()
+                    changeCommander(selected, keeps)
+                  }}
+                >
+                  Change commander
+                </button>
+              </div>
             )}
           </section>
         </div>

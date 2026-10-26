@@ -1733,3 +1733,30 @@ main > .commander-header {
   font-size: 12px;
   font-weight: 600;
 }
+
+.change-commander-confirm {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  position: sticky;
+  bottom: calc(-1 * var(--change-commander-pad, 28px));
+  margin: 16px calc(-1 * var(--change-commander-pad, 28px))
+    calc(-1 * var(--change-commander-pad, 28px));
+  padding: 16px var(--change-commander-pad, 28px);
+  border-top: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  background: inherit;
+}
+
+.change-commander-confirm .intro-guide-option {
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
+}
+
+.change-commander-modal .commander-grid {
+  margin-top: 16px;
+}
+
+.change-commander-confirm p {
+  margin: 0;
+}
