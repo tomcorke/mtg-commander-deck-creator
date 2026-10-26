@@ -1212,3 +1212,41 @@ test('Kindred spells share creature types, so they get creature-type tags', () =
     ).includes('Elves'),
   )
 })
+
+test('repeatedly undecided cards wait longer and rank lower each time', () => {
+  const first = deferBatch([{ name: 'Skipped' }], {}, 1, (card) => card.name)
+  assert.deepEqual(first, [{ card: { name: 'Skipped', undecidedSkips: 1 }, eligibleBatch: 4 }])
+  const second = deferBatch([first[0].card], {}, 4, (card) => card.name)
+  assert.deepEqual(second, [{ card: { name: 'Skipped', undecidedSkips: 2 }, eligibleBatch: 10 }])
+  const later = deferBatch([second[0].card], { Skipped: 'later' }, 10, (card) => card.name)
+  assert.equal(later[0].eligibleBatch, 14)
+  assert.equal(later[0].card.undecidedSkips, 2)
+})
+
+test('skipped cards rank lower unless they fill the most urgent role', () => {
+  const context = {
+    theme: '',
+    activeSubThemes: [],
+    pickedTags: new Set<string>(),
+    preferenceScores: {},
+    neededRoles: new Set<string>(),
+    cardRoles: [],
+    recommendationStyle: 'competitive' as const,
+  }
+  const cards = [
+    {
+      name: 'Skipped',
+      reason: 'Commander synergy',
+      typeLine: 'Instant',
+      tags: [],
+      undecidedSkips: 2,
+    },
+    { name: 'Fresh', reason: 'Commander synergy', typeLine: 'Instant', tags: [] },
+  ]
+  const roles = (card: { name: string }) => (card.name === 'Skipped' ? ['ramp'] : [])
+  assert.equal(rankRecommendationCards(cards, context, false, roles)[0].name, 'Fresh')
+  assert.equal(
+    rankRecommendationCards(cards, { ...context, roleBoosts: { ramp: 1 } }, false, roles)[0].name,
+    'Skipped',
+  )
+})

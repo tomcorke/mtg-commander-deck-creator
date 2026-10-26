@@ -642,7 +642,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   </button>
                   {undecidedCount > 0 && (
                     <span className="batch-undecided">
-                      {undecidedCount} undecided {undecidedCount === 1 ? 'card' : 'cards'} will come
+                      {undecidedCount} undecided {undecidedCount === 1 ? 'card' : 'cards'} may come
                       back later
                     </span>
                   )}

@@ -79,7 +79,12 @@ const cardBase = {
   finish: finishSchema.optional(),
   foilType: z.string().optional(),
 }
-const cardSchema = z.object({ ...cardBase, reason: z.string(), printsUri: z.string() })
+const cardSchema = z.object({
+  ...cardBase,
+  reason: z.string(),
+  printsUri: z.string(),
+  undecidedSkips: z.number().int().positive().optional(),
+})
 const deckCardSchema = z.object(cardBase)
 const decisionSchema = z.enum(['add', 'later', 'ignore'])
 
