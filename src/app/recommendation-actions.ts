@@ -10,7 +10,12 @@ import {
 import { deckJob } from './deck-job.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
 import { resetSignatureContext } from './signature-actions.ts'
-import { commanderNames, themeSearchTerm } from '../domain/commander-catalog.ts'
+import {
+  commanderMechanicThemes,
+  commanderNames,
+  themeSearchTerm,
+  themeSearchTerms,
+} from '../domain/commander-catalog.ts'
 import { defaultFinish, printingOptions } from '../domain/printing.ts'
 import {
   buildEdhrecRecommendations,
@@ -363,7 +368,7 @@ export async function roleGapRecommendations(
     deps,
     { colours: identityColours, roles },
     query,
-    'Popular inclusion',
+    'Fills a role gap',
   )
   const owned = new Set([
     ...offered.filter((card) => !card.localIndexSnapshot).map(({ name }) => name),
@@ -379,6 +384,55 @@ export async function roleGapRecommendations(
       taken[role] += 1
       return true
     })
+}
+
+const mechanicLimit = 10
+
+/**
+ * One bounded search for cards that share the commanders' own mechanics (#134), so cards EDHREC
+ * has little data on can still enter a working pool. The deck's chosen theme is searched separately.
+ */
+export async function mechanicRecommendations(
+  deps: AppActionContext,
+  identityColours: string[],
+  commanders: ScryfallCard[],
+  offered: Card[],
+) {
+  const oracle = commanders
+    .flatMap((commander) => [
+      commander.oracle_text ?? '',
+      ...(commander.card_faces ?? []).map((face) => face.oracle_text ?? ''),
+    ])
+    .join('\n')
+  // ponytail: first three matching curated themes; widen if commanders with many mechanics underfill.
+  const themes = commanderMechanicThemes(oracle)
+    .filter((theme) => theme !== deps.theme)
+    .slice(0, 3)
+  if (!themes.length) return []
+  const { excludeGameChangers, excludeUnreleased } = deps
+  const identity = identityColours.join('').toLowerCase() || 'c'
+  const bracketFilters = [
+    excludeGameChangers && '-is:gamechanger',
+    excludeUnreleased && releasedBy(deps.today),
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const terms = themes.map((theme) => `(${themeSearchTerms[theme]})`).join(' or ')
+  const query = `id<=${identity} legal:commander -t:land (${terms}) ${bracketFilters}`
+  // Live only: queued local enrichment would bypass the ten-card cap.
+  const cards = await localAndLiveCandidates(
+    { ...deps, pendingLocal: undefined, fetchLocalCards: undefined },
+    { colours: identityColours, themes },
+    query,
+    'Matches commander text',
+  )
+  const owned = new Set([
+    ...offered.filter((card) => !card.localIndexSnapshot).map(({ name }) => name),
+    ...commanders.map(({ name }) => name),
+    ...[...(deps.deck ?? []), ...(deps.sideboard ?? [])].map(({ name }) => name),
+    ...(deps.ignoredCards ?? []),
+  ])
+  return cards.filter((card) => !owned.has(card.name)).slice(0, mechanicLimit)
 }
 
 export async function edhrecRecommendations(
@@ -581,6 +635,14 @@ async function coreRecommendations(
       ...(preserveDeck ? activeSubThemes : []),
     ])
     offeredCards = mergeRecommendationCandidates(offeredCards, themeCards)
+  } catch (error) {
+    if (error instanceof ScryfallRateLimitError) throw error
+  }
+  try {
+    offeredCards = mergeRecommendationCandidates(
+      offeredCards,
+      await mechanicRecommendations(deps, identityColours, commanders, offeredCards),
+    )
   } catch (error) {
     if (error instanceof ScryfallRateLimitError) throw error
   }

@@ -359,3 +359,19 @@ export function themeSearchTerm(theme: string) {
     (type ? `t:"${type}" or o:/\\b${type}\\b/ or o:/\\b${theme}\\b/` : undefined)
   )
 }
+
+/**
+ * Curated themes whose Oracle phrases all appear in the commanders' own text (#134).
+ * Type-only terms (Dragons) are skipped: a commander naming a type is not a mechanic.
+ */
+export function commanderMechanicThemes(oracleText: string) {
+  const text = oracleText.toLowerCase()
+  return Object.entries(themeSearchTerms)
+    .filter(([, term]) => !term.includes('t:'))
+    .filter(([, term]) =>
+      [...term.matchAll(/o:"([^"]+)"|o:(\S+)/g)].every(([, quoted, bare]) =>
+        text.includes((quoted ?? bare).toLowerCase()),
+      ),
+    )
+    .map(([theme]) => theme)
+}
