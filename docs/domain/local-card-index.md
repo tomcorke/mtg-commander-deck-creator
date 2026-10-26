@@ -104,6 +104,54 @@ Findings:
 
 Decision: keep local retrieval, since it is the only source of the extra typal recall and live sources are never skipped. Restrict its influence through #174 and #175 before giving local candidates more weight. The label set is small and the spot-check has one reviewer, so treat the per-deck differences as indicative.
 
+## Role-supply ranking (#175)
+
+Decision: snapshot candidates contribute zero to ranking role supply, matching the live-only
+retrieval-gap policy. A discount would still make live-card boosts depend on snapshot breadth.
+Snapshots remain eligible recommendations and receive role boosts themselves; hydration clears
+`localIndexSnapshot`, after which the card counts normally. Initial scoring contexts and batch
+advancement share this count. This is an app ranking heuristic, not a claim about card quality.
+
+Replayed the #154 provider fixture on 2026-10-26 before and after this change, based on
+`e463caf7edd846ff7dddc0f1007194a8be5a1b9b`. The before run includes only the evaluation script's
+builder-action compatibility repair; the after run adds the role-supply change (scoring version 2).
+Both use the same corpus bulk `2026-10-26T21:01:59.922+00:00`, newest set `mdd`, and the settings
+listed under #154. This is a newer corpus and code baseline than the original #154 report;
+compare these two runs, not their absolute ranks against that older report.
+Provider fixture sha256 remains `99b4ffd46d688bf6e7c81e9a2ab726caed2f93e77f385ffc8a0e7b4a54ed042c`.
+Corpus artifact sha256 is `70e5ae269752e7e149f812ad87c009ed1475faedd6c604bc29a891a61ec2a358`.
+The replay accesses 66 request keys (including replayed failures absent from the fixture), with
+no network recording. Raw reports and summaries are outside Git at
+`E:/working/agent-sandbox/research/local-role-supply-175/{before,after}`; the fixture is at
+`E:/working/agent-sandbox/research/local-retrieval-154/provider-fixtures.json`.
+
+```text
+pnpm evaluate:local-retrieval --fixtures E:/working/agent-sandbox/research/local-retrieval-154/provider-fixtures.json --local-index E:/working/mtg-commander-deck-creator/public/local-card-index.json --output E:/working/agent-sandbox/research/local-role-supply-175/after
+```
+
+| Deck      | Top four differs between live and local+live, before → after | Local-only in top 20, before → after |
+| --------- | ------------------------------------------------------------ | ------------------------------------ |
+| Ayula     | no → no                                                      | 1 → 1                                |
+| Arahbo    | no → no                                                      | 0 → 0                                |
+| Teysa     | no → no                                                      | 0 → 0                                |
+| Sythis    | yes → no                                                     | 0 → 0                                |
+| Krenko    | no → no                                                      | 1 → 3                                |
+| Ghalta    | no → no                                                      | 0 → 0                                |
+| Atraxa    | yes → no                                                     | 2 → 0                                |
+| Ur-Dragon | no → no                                                      | 0 → 0                                |
+
+Sythis's local+live first batch changes from Witch Enchanter, Gleaming Splendor, Mana Bloom,
+and Hall of Heliod's Generosity to Sanctum Weaver, Mana Bloom, Gleaming Splendor, and Hall of
+Heliod's Generosity. Atraxa replaces Summon: Fenrir with The Theorist, Jace Beleren, matching
+the live-only batch. All eight live-only batches are unchanged. Candidate pools, labelled recall,
+and live search lists are unchanged in both arms; no local-only top-four card appears.
+This proves removal of the measured supply interference, not improved general recommendation
+quality. Local-only ranks can still change because those cards use the same live-supply boosts.
+
+Regression tests fail before the fix on both seams: a snapshot raises context ramp supply from
+1 to 2, and 30 snapshot ramp cards reverse two live cards during batch advancement. They pass
+afterward, including snapshot eligibility, snapshot-only supply, and hydrated-card counting.
+
 ## Checks and comparisons
 
 ```bash

@@ -534,6 +534,22 @@ test('warm EDHREC hydration reuses raw records while current safety, collection,
   assert.equal(requests, 1, 'Safety and ranking changes must not refetch cached card records')
 })
 
+test('snapshot breadth does not change live role supply or scores', () => {
+  const live = toCard({ ...card('Live ramp'), oracle_text: '{T}: Add {C}.' }, '')
+  const snapshot = { ...live, name: 'Snapshot ramp', localIndexSnapshot: true }
+  const settings = { prioritizeDeckHealth: true }
+  const baseline = buildRecommendationContext(settings, [live])
+  const expanded = buildRecommendationContext(settings, [live, snapshot])
+  assert.deepEqual(expanded.roleSupply, baseline.roleSupply)
+  assert.equal(recommendationScore(live, expanded), recommendationScore(live, baseline))
+  assert.equal(buildRecommendationContext(settings, [snapshot]).roleSupply?.ramp, 0)
+  assert.equal(
+    buildRecommendationContext(settings, [live, { ...snapshot, localIndexSnapshot: false }])
+      .roleSupply?.ramp,
+    2,
+  )
+})
+
 test('recommendation refresh and printing enrichment preserve manual printing selections', async () => {
   const commanderDetails = {
     images: ['chosen-art'],

@@ -21,6 +21,7 @@ import { defaultDeckTargets, rolesForCard, targetKeys } from '../src/deck-analys
 import { toDeckCard, type Card, type ScryfallCard } from '../src/domain/card-model.ts'
 import { rankRecommendationCards } from '../src/domain/recommendation-queue.ts'
 import { focusedRecommendations } from '../src/domain/recommendation-tuning.ts'
+import { withBuilderFixture } from '../src/app/builder-test-fixture.ts'
 
 type Spec = {
   label: string
@@ -268,13 +269,14 @@ async function run(spec: Spec, commander: ScryfallCard, deckCards: ScryfallCard[
           queryLocalCardIndex(index, query)
       : undefined,
   }
-  const pool: Card[] = await fetchDeckDoctorCandidates(deps)
+  const pool: Card[] = await withBuilderFixture(fetchDeckDoctorCandidates)({ ...deps })
   let queue: Card[] = []
-  rankInitialRecommendations(
+  withBuilderFixture(rankInitialRecommendations)(
     {
       ...deps,
       rankRecommendationCards,
-      setQueue: (ranked: Card[]) => (queue = ranked),
+      setQueue: (ranked: Card[] | ((previous: Card[]) => Card[])) =>
+        (queue = typeof ranked === 'function' ? ranked(queue) : ranked),
       setRecommendationState: () => {},
       loadPrintings: () => {},
     },

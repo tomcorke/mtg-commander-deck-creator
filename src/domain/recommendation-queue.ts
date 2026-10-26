@@ -423,9 +423,18 @@ function transitionBatch<T extends { name: string }>(
   return { batch, released, candidates: [...remaining, ...released.ready] }
 }
 
-function countRoleSupply<T>(roles: string[], candidates: T[], cardRoles: (card: T) => string[]) {
+// Snapshot breadth is retrieval recall, not evidence that a role has enough live options.
+export function countRoleSupply<T extends { localIndexSnapshot?: boolean }>(
+  roles: readonly string[],
+  candidates: T[],
+  cardRoles: (card: T) => string[],
+) {
   return Object.fromEntries(
-    roles.map((role) => [role, candidates.filter((card) => cardRoles(card).includes(role)).length]),
+    roles.map((role) => [
+      role,
+      candidates.filter((card) => !card.localIndexSnapshot && cardRoles(card).includes(role))
+        .length,
+    ]),
   )
 }
 
@@ -438,6 +447,7 @@ export function advanceRecommendationQueue<
     set?: string
     collectionMatch?: boolean
     price?: string
+    localIndexSnapshot?: boolean
   },
 >({
   queue,

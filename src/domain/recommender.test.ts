@@ -190,7 +190,7 @@ test('recommend is deterministic, leaves frozen input untouched and supports eve
     assert.deepEqual(recommend(input), first)
     assert.equal(first.queue.length, 6)
     assert.equal(first.batch.length, 4)
-    assert.equal(first.scores[0].scoringVersion, 1)
+    assert.equal(first.scores[0].scoringVersion, 2)
   }
 })
 

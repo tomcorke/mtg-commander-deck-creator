@@ -919,6 +919,45 @@ test('scarce missing roles beat abundant roles and accumulated preferences', () 
   assert.equal(result.queue[0].name, 'Wipe')
 })
 
+test('batch advancement ignores snapshots when measuring role scarcity', () => {
+  const card = (name: string, tags: string[] = [], localIndexSnapshot = false) => ({
+    name,
+    tags,
+    localIndexSnapshot,
+    typeLine: 'Instant',
+    reason: 'Interaction',
+  })
+  const visible = Array.from({ length: 4 }, (_, i) => card(`Visible ${i}`))
+  const live = [card('Ramp', ['ramp']), card('Draw', ['draw'])]
+  const options = {
+    deferredCards: [],
+    batchNumber: 1,
+    decisions: {},
+    liked: [],
+    preferenceScores: {},
+    activeSubThemes: [],
+    theme: '',
+    includeCreature: false,
+    roleBoosts: { ramp: 6, draw: 5 },
+    cardRoles: (item: (typeof live)[number]) => item.tags,
+    recommendationStyle: 'competitive' as const,
+  }
+  const baseline = advanceRecommendationQueue({ ...options, queue: [...visible, ...live] })
+  const expanded = advanceRecommendationQueue({
+    ...options,
+    queue: [
+      ...visible,
+      ...live,
+      ...Array.from({ length: 30 }, (_, i) => card(`Local ${i}`, ['ramp'], true)),
+    ],
+  })
+  assert.deepEqual(
+    expanded.queue.filter((card) => !card.localIndexSnapshot).map(({ name }) => name),
+    baseline.queue.map(({ name }) => name),
+  )
+  assert.equal(expanded.queue.length, 32, 'Snapshots remain eligible candidates')
+})
+
 test('role deficits boost ranking without fixed batch quotas', () => {
   const card = (name: string, tags: string[] = [], reason = 'Interaction') => ({
     name,
