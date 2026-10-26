@@ -1630,7 +1630,7 @@ main > .commander-header {
 }
 .commander-name:hover,
 .commander-name:focus-visible {
-  color: var(--commander-accent, #36327f);
+  color: var(--commander-text);
   text-decoration: underline;
   text-underline-offset: 4px;
 }

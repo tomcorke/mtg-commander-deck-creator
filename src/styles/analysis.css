@@ -796,7 +796,7 @@ li.deck-highlight-dimmed {
 }
 .deck-card-name:hover,
 .deck-card-name:focus-visible {
-  color: var(--commander-accent, #36327f);
+  color: var(--commander-text);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -819,7 +819,7 @@ li.deck-highlight-dimmed {
 }
 .card-reference-name:hover,
 .card-reference-name:focus-visible {
-  color: var(--commander-accent, #36327f);
+  color: var(--commander-text);
   text-decoration-color: currentColor;
 }
 .card-image-preview {
