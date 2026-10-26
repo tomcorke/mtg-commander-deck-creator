@@ -13,6 +13,7 @@ import {
   fetchDeckDoctorCandidates as fetchDeckDoctorCandidatesAction,
   mergeRecommendationCandidates,
   roleGapRecommendations,
+  RECENT_CARD_PAGES,
   themeRecommendations,
 } from './recommendation-actions.ts'
 const enrichWithLocalCards = withBuilderFixture(enrichWithLocalCardsAction)
@@ -69,14 +70,14 @@ test('theme retrieval supplements local breadth with live Tagger results and liv
 })
 
 test('stale data adds a release-ordered live search so new cards are not hidden by popular old cards', async () => {
-  const queries: [string, string][] = []
+  const queries: [string, string, number?][] = []
   const found = await themeRecommendations(
     {
       ...options,
       fetchLocalCards: async () => [card('Snapshot')],
       localCardIndexStatus: () => ({ state: 'stale', bulkUpdatedAt: '2026-10-24T09:00:00Z' }),
-      searchCards: async (query: string, _signal: unknown, order: string) => {
-        queries.push([query, order])
+      searchCards: async (query: string, _signal: unknown, order: string, maxPages?: number) => {
+        queries.push([query, order, maxPages])
         return [card(order === 'released' ? 'Newest card' : 'Popular card')]
       },
     },
@@ -86,6 +87,8 @@ test('stale data adds a release-ordered live search so new cards are not hidden 
   assert.equal(queries.length, 2)
   assert.match(queries[1][0], /date>=2026-10-24/)
   assert.equal(queries[1][1], 'released')
+  assert.equal(queries[1][2], RECENT_CARD_PAGES)
+  assert.equal(queries[0][2], undefined, 'Popularity search stays one page')
   assert.deepEqual(
     found.map(({ name }) => name),
     ['Newest card', 'Popular card', 'Snapshot'],
