@@ -9,6 +9,7 @@ export async function refreshCardData(
   cards: DeckCard[],
   signal: AbortSignal,
   fetcher: ScryfallFetcher = fetch,
+  failOnError = false,
 ) {
   const unique = [...new Map(cards.map((card) => [cardDataKey(card), card])).values()]
   const results = new Map<string, ScryfallCard>()
@@ -33,8 +34,9 @@ export async function refreshCardData(
         )
         if (fresh) results.set(cardDataKey(card), fresh)
       }
-    } catch {
+    } catch (error) {
       signal.throwIfAborted()
+      if (failOnError) throw error
       // One failure stops this load. No retry storm, and no card or recovery data is deleted.
       break
     }

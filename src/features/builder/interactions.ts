@@ -107,7 +107,12 @@ async function commitInteractionSettings(
   action: BuilderAction,
   previewRole = deps.focusedRole,
 ) {
-  if (deps.recommendationState === 'loading' || deps.recommendationRefreshInFlight.current) return
+  if (
+    deps.getBuilderState().fetchBoundary ||
+    deps.recommendationState === 'loading' ||
+    deps.recommendationRefreshInFlight.current
+  )
+    return
   deps.recommendationRefreshInFlight.current = true
   try {
     const before = deps.getBuilderState()
@@ -143,13 +148,19 @@ export async function clearCompletedRoleFocus(deps: BuilderInteractionDeps) {
 }
 
 export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = '') {
-  if (deps.recommendationState === 'loading' || deps.recommendationRefreshInFlight.current) return
+  if (
+    deps.getBuilderState().fetchBoundary ||
+    deps.recommendationState === 'loading' ||
+    deps.recommendationRefreshInFlight.current
+  )
+    return
   deps.recommendationRefreshInFlight.current = true
   try {
     const before = deps.getBuilderState()
     // Sub-theme changes wait here so the current batch stays on screen until the user moves on.
     const result = builderAction(deps, { type: 'nextBatch', extraSubTheme })
     const next = result.state
+    if (next.fetchBoundary) return
     if (next.batchNumber === before.batchNumber) {
       await settleInteractionSettings(deps, result)
       return

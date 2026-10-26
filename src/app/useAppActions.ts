@@ -1,3 +1,5 @@
+import { rolesForCard } from '../deck-analysis.ts'
+import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import { builderAction } from './builder-action.ts'
 import type { BuilderSettings } from '../domain/builder-state.ts'
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef } from 'react'
@@ -48,7 +50,7 @@ import {
   themeRecommendations,
   type RecommendationProgress,
 } from './recommendation-actions.ts'
-import { useAppEffects, usePrintingRepairEffect } from './useAppEffects.ts'
+import { useAppEffects } from './useAppEffects.ts'
 import { useSignatureRecommendations } from './useSignatureRecommendations.ts'
 import { useCurrentCardData } from './useCurrentCardData.ts'
 import type { ControllerState } from './useControllerState.ts'
@@ -154,10 +156,21 @@ async function startInWorkspace(
   )
 }
 
+function signatureBatchCommitted(
+  state: AppState,
+  loadPrintings: (cards: Card[], preferredSet: string) => Promise<void>,
+) {
+  const next = state.getBuilderState()
+  state.setBatchAnnouncement(`Recommendation batch ${next.batchNumber} loaded.`)
+  void loadPrintings(
+    focusedRecommendations(next.queue, next.focusedRole, rolesForCard).slice(0, 8),
+    next.collectionSets[0] || next.preferredPrintSet,
+  )
+}
+
 function useRemoteActions(state: AppState, routing: RoutingActions) {
   const recommendationRequest = useRef(0)
   useCurrentCardData(state)
-  useSignatureRecommendations(state)
   const loadPrintings = (
     cards: Card[],
     preferredSet = '',
@@ -171,6 +184,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
       selectedCollectionSets,
       selectedCollectionMode,
     )
+  useSignatureRecommendations(state, () => signatureBatchCommitted(state, loadPrintings))
   useAppEffects({
     initialRoute: state.initialRoute,
     savedCommander: state.savedCommander,
@@ -218,7 +232,6 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     fetchSearch: (query: string, signal?: AbortSignal, order?: string) =>
       searchScryfall(query, fetch, signal, order),
   })
-  usePrintingRepairEffect({ ...state, workspaceId: state.autosave.id, loadPrintings })
   const recommendationDeps = {
     ...state,
     recommendationRequest,

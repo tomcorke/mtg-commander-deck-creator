@@ -50,7 +50,7 @@ import {
 } from '../deck-import.ts'
 import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
 import { start as startRecommendations, type AppActionContext } from './recommendation-actions.ts'
-import { bindSignatureBudget, resetSignatureContext } from './signature-actions.ts'
+import { resetSignatureContext } from './signature-actions.ts'
 import {
   cardConstructionError,
   commanderConstructionError,
@@ -704,7 +704,6 @@ export function storeDeck(deps: AppActionContext, overwrite = false) {
       state: { ...state, savedDeckId: id },
     }),
   )
-  if (deps.signatureDeckKey) bindSignatureBudget(deps.signatureDeckKey, id)
   resetSignatureContext(deps, id)
   setActiveSavedDeckId(id)
 }

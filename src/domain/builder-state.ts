@@ -1,4 +1,13 @@
 import {
+  planFetches,
+  mergeBoundaryResults,
+  settleFetch,
+  fetchGeneration,
+  type PlannedFetch,
+  type FetchBoundary,
+  type FetchResponse,
+} from './builder-fetches.ts'
+import {
   analyseDeck,
   addsToSideboard,
   mainDeckLimit,
@@ -91,7 +100,12 @@ export type BuilderState = {
   recommendationOptionsChanged: boolean
   committedPoolKey: string
   deckDoctorHistory: DeckDoctorSwapRecord[]
-  /** Boundary reservations and settlement are populated by the planner in #188. */
+  /** Per-build logical quota; transport caches and wall clocks never replenish it. */
+  signatureQuota: { pages: number; cards: number }
+  fetchEpoch: number
+  hydrationBoundary: number
+  fetchSequence: number
+  fetchBoundary: FetchBoundary | null
   pendingFetches: BuilderFetchWork[]
   completedFetches: BuilderFetchWork[]
 }
@@ -137,6 +151,11 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     deckDoctorHistory: [],
     pendingFetches: [],
     completedFetches: [],
+    signatureQuota: { pages: 0, cards: 0 },
+    fetchEpoch: 0,
+    hydrationBoundary: 0,
+    fetchSequence: 0,
+    fetchBoundary: null,
   }
   state.committedPoolKey = builderPoolKey(state)
   return state
@@ -162,6 +181,7 @@ export type BuilderProgress = Pick<
 >
 
 export type BuilderAction =
+  | { type: 'settleFetch'; id: string; response: FetchResponse }
   | { type: 'startOver'; today: string; signatureDeckKey: string }
   | {
       type: 'beginRecommendations'
@@ -231,7 +251,8 @@ export type BuilderAction =
 export type BuilderFetchRequest =
   | { kind: 'pool'; boundary: 'commitSettings' | 'initialisation' }
   | { kind: 'doctor-candidates'; boundary: 'deckEdit' }
-export type BuilderFetchWork = { id: string; request: BuilderFetchRequest }
+  | PlannedFetch
+export type BuilderFetchWork = PlannedFetch
 export type BuilderActionResult = {
   state: BuilderState
   fetchRequests: BuilderFetchRequest[]
@@ -748,14 +769,14 @@ function applyPromotion(
 }
 
 /** No mutation, IDs, clock reads, storage, or live requests. */
-export function applyBuilderAction(
-  state: BuilderState,
-  action: BuilderAction,
-): BuilderActionResult {
+function reduceBuilderAction(state: BuilderState, action: BuilderAction): BuilderActionResult {
   switch (action.type) {
+    case 'settleFetch':
+      return done(state)
     case 'poolLoaded':
       return done({
         ...state,
+        hydrationBoundary: state.hydrationBoundary + 1,
         queue: action.queue,
         deferredCards: action.deferredCards,
         committedPoolKey: action.poolKey,
@@ -784,7 +805,7 @@ export function applyBuilderAction(
     case 'printing':
       return done(applyBuilderPrinting(state, action))
     case 'retryData':
-      return done(retryBuilderData(state))
+      return done({ ...retryBuilderData(state), hydrationBoundary: state.hydrationBoundary + 1 })
     case 'restore':
       return done(action.state)
     case 'data':
@@ -838,4 +859,60 @@ export function applyBuilderAction(
     case 'doctorUndo':
       return applyDoctorUndo(state, action)
   }
+}
+
+/** Reserve before transport and commit only a fully settled boundary. */
+export function applyBuilderAction(
+  state: BuilderState,
+  action: BuilderAction,
+): BuilderActionResult {
+  // A reserved boundary owns hydration; an older initialisation response must not cancel it.
+  if (action.type === 'hydrate' && state.fetchBoundary) return done(state)
+  if (action.type === 'settleFetch') {
+    const result = settleFetch(state, action.id, action.response)
+    if (result.state === state) return result
+    return finishFetchBoundary(result)
+  }
+  if (
+    action.type === 'nextBatch' &&
+    !state.recommendationOptionsChanged &&
+    state.committedPoolKey === builderPoolKey(state)
+  )
+    return finishFetchBoundary(planFetches(state, action.extraSubTheme))
+  const result = reduceBuilderAction(state, action)
+  if (['startOver', 'restore', 'beginRecommendations', 'poolLoaded'].includes(action.type))
+    result.state = {
+      ...result.state,
+      fetchEpoch: state.fetchEpoch + 1,
+      fetchBoundary: null,
+      pendingFetches: [],
+    }
+  if (
+    result.state.fetchBoundary &&
+    fetchGeneration(result.state) !== result.state.fetchBoundary.generation
+  )
+    result.state = { ...result.state, fetchBoundary: null, pendingFetches: [] }
+  return result
+}
+
+function finishFetchBoundary(result: BuilderActionResult): BuilderActionResult {
+  const { state } = result
+  if (!state.fetchBoundary || state.pendingFetches.length) return result
+  const extraSubTheme = state.fetchBoundary.extraSubTheme
+  const advanced = reduceBuilderAction(
+    { ...state, fetchBoundary: null },
+    { type: 'nextBatch', extraSubTheme },
+  )
+  const merged = mergeBoundaryResults(advanced.state, state.fetchBoundary.id)
+  if (merged.queue !== advanced.state.queue)
+    advanced.state = {
+      ...merged,
+      queue: rankRecommendationCards(
+        merged.queue,
+        context(merged, merged.queue),
+        merged.includeCreature,
+        rolesForCard,
+      ),
+    }
+  return advanced
 }

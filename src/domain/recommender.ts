@@ -1,5 +1,7 @@
+import { buildEdhrecRecommendations, excludedByOptions } from './recommendation-sources.ts'
+import type { EdhrecEntry, RecommendationOptions } from './recommendation-types.ts'
 import { defaultDeckTargets, rolesForCard, type DeckTargets } from '../deck-analysis.ts'
-import type { Card, DeckCard } from './card-model.ts'
+import { toCard, type ScryfallCard, type Card, type DeckCard } from './card-model.ts'
 import { cardConstructionError } from './commander-construction.ts'
 import { commanderNames } from './commander-catalog.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
@@ -99,15 +101,23 @@ export function mergeCollectionCandidates(
   return [...collection, ...offered.filter(({ name }) => !names.has(name))]
 }
 
-/** A provider result: the cards it returned, or the error it failed with. */
-export type SourceOutcome = { cards: Card[] } | { error: string }
+export type RawCandidate = {
+  card: ScryfallCard
+  reason: string
+  localIndexSnapshot?: boolean
+  collectionMatch?: boolean
+}
 
-/** Ordered source results for one pool build, already converted to cards. */
+/** Ordered provider records, including empty/partial successes; fatal failures bypass optional-source fallback (for example, rate limits). */
+export type SourceOutcome = { cards: RawCandidate[] } | { error: string; fatal?: boolean }
+
+/** Ordered source results for one pool build, before conversion. Mechanic and role-gap snapshots contain the bounded search selections. */
 export type CandidateSnapshots = {
-  edhrec?: SourceOutcome
-  fallback?: { main: Card[]; mana: Card[] }
-  theme?: Card[]
-  roleGap?: Card[]
+  edhrec?: { entries: EdhrecEntry[]; cards: ScryfallCard[] } | { error: string; fatal?: boolean }
+  fallback?: { main: SourceOutcome; mana: SourceOutcome }
+  theme?: SourceOutcome
+  mechanic?: SourceOutcome
+  roleGap?: SourceOutcome
   collection?: SourceOutcome
 }
 
@@ -115,56 +125,115 @@ export type PreparedCandidates = { pool: Card[]; limited: boolean; error?: strin
 
 /**
  * Pure version of the app's pool build: EDHREC first, the seeded fallback when EDHREC fails or
- * returns fewer than four legal cards, then theme and role-gap additions, then the collection.
+ * returns fewer than four legal cards, then theme, mechanic and role-gap additions, then the collection.
  */
+export type CandidatePreparationOptions = {
+  identity: string[]
+  includeCreature: boolean
+  collectionMode: CollectionMode
+  collectionSets: string[]
+  seed: string
+  today: string
+  excludeGameChangers?: boolean
+  excludeTutors?: boolean
+  excludeExtraTurns?: boolean
+  excludeUnreleased?: boolean
+  powerTarget?: RecommendationOptions['powerTarget']
+}
+
+function prepareCoreCandidates(
+  snapshots: CandidateSnapshots,
+  options: CandidatePreparationOptions,
+  policy: RecommendationOptions,
+  convert: (source?: SourceOutcome) => Card[],
+): PreparedCandidates {
+  const edhrec =
+    snapshots.edhrec && 'cards' in snapshots.edhrec
+      ? buildEdhrecRecommendations(
+          snapshots.edhrec.entries,
+          snapshots.edhrec.cards.filter((card) =>
+            card.color_identity?.every((colour) => options.identity.includes(colour)),
+          ),
+          policy,
+        ).filter((card) => !cardConstructionError(card, [], options.identity))
+      : []
+  let pool: Card[] = edhrec
+  const limited = edhrec.length < 4
+  if (limited) {
+    const failure = [snapshots.fallback?.main, snapshots.fallback?.mana].find(
+      (source) => source && 'error' in source,
+    )
+    if (failure && 'error' in failure) return { pool: [], limited, error: failure.error }
+    pool = fallbackPool(
+      convert(snapshots.fallback?.main),
+      convert(snapshots.fallback?.mana),
+      options.includeCreature,
+      options.seed,
+    )
+  }
+  for (const source of [snapshots.theme, snapshots.mechanic, snapshots.roleGap])
+    pool = mergeRecommendationCandidates(pool, convert(source))
+  return { pool, limited }
+}
+
+function prepareSource(source: SourceOutcome | undefined, policy: RecommendationOptions): Card[] {
+  if (!source || !('cards' in source)) return []
+  return source.cards
+    .filter(({ card }) => !excludedByOptions(card, policy))
+    .map(({ card, reason, ...provenance }) => ({ ...toCard(card, reason), ...provenance }))
+}
+
 export function prepareCandidates(
   snapshots: CandidateSnapshots,
-  options: {
-    identity: string[]
-    includeCreature: boolean
-    collectionMode: CollectionMode
-    collectionSets: string[]
-    seed: string
-  },
+  options: CandidatePreparationOptions,
 ): PreparedCandidates {
-  const { identity, collectionMode, collectionSets } = options
+  const { collectionMode, collectionSets } = options
   if (collectionMode === 'only' && !collectionSets.length)
     return {
       pool: [],
       limited: true,
       error: 'Select at least one collection for Only collection mode.',
     }
-  let pool: Card[] = []
-  let limited = collectionMode === 'only'
-  if (collectionMode !== 'only') {
-    const edhrec =
-      snapshots.edhrec && 'cards' in snapshots.edhrec
-        ? snapshots.edhrec.cards.filter((card) => !cardConstructionError(card, [], identity))
-        : []
-    if (edhrec.length >= 4) pool = edhrec
-    else {
-      pool = fallbackPool(
-        snapshots.fallback?.main ?? [],
-        snapshots.fallback?.mana ?? [],
-        options.includeCreature,
-        options.seed,
-      )
-      limited = true
-    }
-    pool = mergeRecommendationCandidates(pool, snapshots.theme ?? [])
-    pool = mergeRecommendationCandidates(pool, snapshots.roleGap ?? [])
+  const policy = {
+    excludeGameChangers: false,
+    excludeTutors: false,
+    excludeExtraTurns: false,
+    excludeUnreleased: false,
+    powerTarget: 'upgraded' as const,
+    ...options,
   }
-  if (collectionMode !== 'none' && collectionSets.length) {
-    const collection = snapshots.collection
-    if (collection && 'cards' in collection)
-      pool = mergeCollectionCandidates(pool, collection.cards, collectionMode)
-    else if (collectionMode === 'only')
-      return {
-        pool: [],
-        limited,
-        error: collection?.error ?? 'Collection unavailable',
-      }
-  }
+  const convert = (source?: SourceOutcome) => prepareSource(source, policy)
+  const sources =
+    collectionMode === 'only'
+      ? [snapshots.collection]
+      : [
+          snapshots.edhrec,
+          snapshots.theme,
+          snapshots.mechanic,
+          snapshots.roleGap,
+          ...(collectionMode !== 'none' && collectionSets.length ? [snapshots.collection] : []),
+        ]
+  const fatal = sources.find((source) => source && 'error' in source && source.fatal)
+  if (fatal && 'error' in fatal)
+    return { pool: [], limited: collectionMode === 'only', error: fatal.error }
+  const core =
+    collectionMode === 'only'
+      ? { pool: [], limited: true }
+      : prepareCoreCandidates(snapshots, options, policy, convert)
+  if (core.error) return core
+  let { pool } = core
+  const { limited } = core
+  if (collectionMode === 'none' || !collectionSets.length) return core
+  const collection = snapshots.collection
+  if (collection && 'cards' in collection)
+    pool = mergeCollectionCandidates(
+      pool,
+      convert(collection).map((card) => ({ ...card, collectionMatch: true })),
+      collectionMode,
+    )
+  else if (collectionMode === 'only')
+    return { pool: [], limited, error: collection?.error ?? 'Collection unavailable' }
+
   return { pool, limited }
 }
 
