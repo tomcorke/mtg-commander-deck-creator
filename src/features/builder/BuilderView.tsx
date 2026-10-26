@@ -150,6 +150,7 @@ type BuilderViewModel = {
   toggleCollectionSet: (code: string) => void
   start: AnyFunction
   setActiveSubThemes: Dispatch<SetStateAction<string[]>>
+  pendingSubThemes: string[]
   setBasicLandState: (value: 'idle' | 'loading' | 'error') => void
   setCollectionBrowserMana: Dispatch<SetStateAction<string>>
   setCollectionBrowserType: Dispatch<SetStateAction<string>>
@@ -206,6 +207,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     exportModal,
     activeModal,
     activeSubThemes,
+    pendingSubThemes,
     addBasicLands,
     addCollectionCard,
     addOneBasic,
@@ -626,6 +628,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 <div className="batch-controls">
                   <button className="nav-forward" type="button" onClick={() => void nextBatch()}>
                     Next recommendations
+                    {pendingSubThemes.some((name) => activeSubThemes.includes(name)) &&
+                      ` · rebuilding for ${pendingSubThemes.filter((name) => activeSubThemes.includes(name)).join(' & ')}`}
                   </button>
                   {undecidedCount > 0 && (
                     <span className="batch-undecided">

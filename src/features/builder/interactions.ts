@@ -128,6 +128,7 @@ export async function refreshRecommendationSettings(
       current.filter((name) => !batch.some((card) => card.name === name)),
     )
     if (deps.recommendationPoolKey.current !== recommendationPoolKey(deps)) {
+      deps.setPendingSubThemes?.([])
       await deps.start(deps.commander, true, progress)
       return
     }
@@ -174,8 +175,12 @@ export async function clearCompletedRoleFocus(deps: BuilderInteractionDeps) {
 }
 
 export async function nextBatch(deps: BuilderInteractionDeps, extraSubTheme = '') {
-  if (deps.recommendationOptionsChanged) {
-    await refreshRecommendationSettings(deps)
+  // Sub-theme changes wait here so the current batch stays on screen until the user moves on.
+  if (
+    deps.recommendationOptionsChanged ||
+    deps.recommendationPoolKey.current !== recommendationPoolKey(deps)
+  ) {
+    await refreshRecommendationSettings({ ...deps, recommendationOptionsChanged: true })
     return
   }
   const {
