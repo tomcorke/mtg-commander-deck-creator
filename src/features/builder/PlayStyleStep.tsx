@@ -56,6 +56,7 @@ export function PlayStyleStep({
               className="play-style-art"
               src={artCrop(presetArt[id].art)}
               alt=""
+              aria-hidden="true"
               loading="lazy"
               title={presetArt[id].card}
             />
