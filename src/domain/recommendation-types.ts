@@ -58,6 +58,8 @@ export type RecommendationCard = {
   power?: string
   toughness?: string
   reason: string
+  // Times the card was shown and left undecided; lowers its rank and delays its return.
+  undecidedSkips?: number
   source?: RecommendationSource
   localIndexSnapshot?: boolean
   seedEvidence?: SeedEvidence[]

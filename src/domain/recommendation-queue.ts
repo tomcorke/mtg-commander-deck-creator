@@ -154,8 +154,14 @@ export function rankRecommendationCards<
       )
     return scores.get(card)!
   }
-  const ranked = [...affordable].sort((left, right) =>
-    compareRecommendationScores(score(left), score(right)),
+  // Skipped cards rank lower, unless they fill the deck's most urgent gap.
+  const urgentRole = mostUrgentRole(context.roleBoosts)
+  const skipPenalty = (card: T) =>
+    cardRoles(card).some((role) => urgentRole.has(role)) ? 0 : 5 * (undecidedSkipsOf(card) ?? 0)
+  const ranked = [...affordable].sort(
+    (left, right) =>
+      score(right).total - skipPenalty(right) - (score(left).total - skipPenalty(left)) ||
+      compareRecommendationScores(score(left), score(right)),
   )
   const canUse = (card: T) =>
     !card.typeLine.includes('Creature') ||
@@ -313,6 +319,8 @@ export function updatePreferenceScores(
   return scores
 }
 
+const undecidedSkipsOf = (card: unknown) => (card as { undecidedSkips?: number }).undecidedSkips
+
 export function deferBatch<T>(
   batch: T[],
   decisions: Record<string, 'add' | 'later' | 'ignore'>,
@@ -322,7 +330,15 @@ export function deferBatch<T>(
   return batch.flatMap((card): DeferredCard<T>[] => {
     const decision = decisions[name(card)]
     if (decision === 'add' || decision === 'ignore') return []
-    return [{ card, eligibleBatch: batchNumber + (decision === 'later' ? 4 : 3) }]
+    if (decision === 'later') return [{ card, eligibleBatch: batchNumber + 4 }]
+    // Each pass doubles the wait (3, 6, 12, 24 batches), so a card skipped a few times stops returning.
+    const undecidedSkips = (undecidedSkipsOf(card) ?? 0) + 1
+    return [
+      {
+        card: { ...card, undecidedSkips },
+        eligibleBatch: batchNumber + 3 * 2 ** (undecidedSkips - 1),
+      },
+    ]
   })
 }
 
