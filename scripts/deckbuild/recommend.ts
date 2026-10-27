@@ -330,7 +330,7 @@ export async function runCommands(
   return report('complete')
 }
 
-function checkStoreDirectory(root: string) {
+export function checkStoreDirectory(root: string) {
   const checkout = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
   const fromCheckout = relative(realpathSync(checkout), realpathSync(root))
   const outside =
@@ -339,7 +339,7 @@ function checkStoreDirectory(root: string) {
     throw new Error('Store directory must be absolute and outside the checkout')
 }
 
-function checkVersion(pins: Pins) {
+export function checkVersion(pins: Pins) {
   const checkout = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], {
     cwd: checkout,
