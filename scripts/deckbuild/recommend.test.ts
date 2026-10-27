@@ -630,3 +630,94 @@ test('hydration-local timeout is recorded as a replayable provider failure while
   })
   assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
 })
+
+test('search records one explicit page with pagination evidence and replays offline without state changes', async (t) => {
+  const root = await directory(t)
+  const commands = [command({ type: 'search', query: 'synthetic query', order: 'name', page: 2 })]
+  let requests = 0
+  const result = await recordBuild(root, pins(), commands, defaultLimits, async (input) => {
+    requests++
+    const url = new URL(String(input))
+    assert.equal(url.pathname, '/cards/search')
+    assert.deepEqual(Object.fromEntries(url.searchParams), {
+      q: 'synthetic query',
+      unique: 'cards',
+      order: 'name',
+      page: '2',
+    })
+    return Response.json({
+      data: [raw('Found')],
+      total_cards: 300,
+      has_more: true,
+      next_page: 'https://example.invalid/never-follow',
+    })
+  })
+  assert.equal(result.status, 'complete')
+  assert.equal(requests, 1)
+  assert.deepEqual(result.log[0].result, {
+    outcome: 'success',
+    cards: [raw('Found')],
+    pagination: { page: 2, totalCards: 300, hasMore: true },
+  })
+  assert.equal(result.log[0].before, result.log[0].after)
+  const network = t.mock.method(globalThis, 'fetch', () => {
+    throw new Error('Network forbidden')
+  })
+  assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+  assert.equal(network.mock.callCount(), 0)
+  const manifest = JSON.parse(
+    await readFile(join(root, 'manifests', `${result.manifest}.json`), 'utf8'),
+  )
+  await rm(join(root, 'responses', `${manifest.entries[0].response}.json`))
+  assert.equal((await replayBuild(root, result.manifest, commands)).status, 'incomplete')
+})
+
+test('search preserves empty, malformed and failed occurrences before later success', async (t) => {
+  const root = await directory(t)
+  for (const kind of ['empty', 'invalid', 'http', 'network']) {
+    let attempts = 0
+    const commands = [
+      command({ type: 'search', query: 'fixture', order: 'name', page: 1 }),
+      command({ type: 'search', query: 'fixture', order: 'name', page: 1 }),
+    ]
+    const result = await recordBuild(root, pins(), commands, defaultLimits, async () => {
+      if (++attempts === 1) {
+        if (kind === 'network') throw new TypeError('Synthetic failure')
+        if (kind === 'http') return new Response('', { status: 503 })
+        if (kind === 'empty') return new Response('', { status: 404 })
+        return Response.json({ data: [{ bad: true }], total_cards: 1, has_more: false })
+      }
+      return Response.json({ data: [raw('Found')], total_cards: 1, has_more: false })
+    })
+    assert.equal(result.status, 'complete')
+    assert.equal(attempts, 2)
+    assert.equal(
+      (result.log[0].result as { outcome: string }).outcome,
+      kind === 'empty'
+        ? 'success-empty'
+        : kind === 'invalid' || kind === 'http'
+          ? 'invalid'
+          : 'transient-failure',
+    )
+    assert.equal((result.log[1].result as { outcome: string }).outcome, 'success')
+    assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+  }
+})
+
+test('search requires bounded query, explicit supported ordering and bounded page', () => {
+  const action = { type: 'search', query: 'fixture', order: 'name', page: 1 }
+  for (const change of [
+    { query: ' ' },
+    { query: 'x'.repeat(1001) },
+    { order: 'random' },
+    { page: 0 },
+    { page: 101 },
+    { page: 1.5 },
+    { page: undefined },
+    { order: undefined },
+  ]) {
+    assert.throws(() =>
+      parseCommands(JSON.stringify({ reason: 'test', action: { ...action, ...change } })),
+    )
+  }
+})

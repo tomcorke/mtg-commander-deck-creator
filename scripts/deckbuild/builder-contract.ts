@@ -155,6 +155,28 @@ export const commandSchema = z.strictObject({
   action: z.union([
     actionSchema,
     z.strictObject({ type: z.literal('view') }),
+    z.strictObject({
+      type: z.literal('search'),
+      query: name.max(1000),
+      order: z.enum([
+        'name',
+        'cmc',
+        'price',
+        'released',
+        'set',
+        'rarity',
+        'color',
+        'power',
+        'toughness',
+        'edhrec',
+        'artist',
+        'review',
+        'usd',
+        'tix',
+        'eur',
+      ]),
+      page: count.min(1).max(100),
+    }),
     z.strictObject({ type: z.literal('explain'), name }),
     z.strictObject({
       type: z.literal('lookup'),
