@@ -50,7 +50,7 @@ Prefer reading rules and policy from Scryfall fields at runtime over hard-coding
 
 **Priority** — Theme first, Balanced, Deck needs first, or Surprise me. It changes recommendation ranking and batch composition, never construction rules.
 
-**Power** — Core, Upgraded, or High power. It selects app-specific recommendation filters; Core excludes a short list of fast-mana cards. It is not a bracket verdict, and Core is not a preconstructed-deck power claim.
+**Power** — Core, Upgraded, or High power. It selects app-specific recommendation filters and pace heuristics. Core excludes a short list of fast-mana cards; Upgraded gently favours lower-cost utility, and High does so more strongly. See [power targets](docs/domain/power-targets.md) for limits and evaluation. It is not a bracket verdict, and Core is not a preconstructed-deck power claim.
 
 **Exclusions** — independent recommendation filters for Game Changers, tutors, extra turns, and unreleased cards. Tutor, extra-turn, and release filters are player preferences, not bracket limits. Game Changer counts have official bracket limits; see [format policy](../mtg-knowledge-base/knowledge/topics/commander/format-policy.md). These filters do not verify a bracket.
 

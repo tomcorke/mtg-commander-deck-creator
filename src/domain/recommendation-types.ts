@@ -104,6 +104,7 @@ export const recommendationScoreFactorMaximums = Object.freeze({
   deckNeeds: 30,
   manaFitPenalty: 10,
   popularityPenalty: 15,
+  powerFitPenalty: 8,
 } as const)
 export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> &
   Partial<
@@ -114,6 +115,7 @@ export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'
       | 'typeLine'
       | 'manaCost'
       | 'manaValue'
+      | 'manaValueKnown'
       | 'synergy'
       | 'localIndexSnapshot'
     >
@@ -138,6 +140,7 @@ export type RecommendationScoreContext = {
   /** Share of each role need the card meets (default 1); see `roleCredit`. */
   cardRoleCredit?: Partial<Record<string, number>>
   recommendationStyle?: RecommendationStyle
+  powerTarget?: PowerTarget
   collectionSets?: string[]
   collectionMode?: CollectionMode
   roleBoosts?: Record<string, number>
@@ -157,4 +160,5 @@ export type RecommendationScoreBreakdown = {
   deckNeeds: number
   manaFitPenalty: number
   popularityPenalty: number
+  powerFitPenalty: number
 }

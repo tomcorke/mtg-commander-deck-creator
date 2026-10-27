@@ -55,6 +55,13 @@ const recommendationScoreFactors = [
       'Deducts up to 10 points when a spell’s mana value or coloured pips exceed the deck’s current land, ramp, or colour support. This is a heuristic, not a casting probability.',
   },
   {
+    key: 'powerFitPenalty',
+    label: 'Power-target penalty',
+    max: recommendationScoreFactorMaximums.powerFitPenalty,
+    description:
+      'Upgraded gently favours lower-cost ramp, draw and interaction; High favours them more strongly. Core adds no deduction. Mana value is a pace heuristic, not a bracket verdict or a win-turn prediction.',
+  },
+  {
     key: 'popularityPenalty',
     label: 'Popularity penalty',
     max: recommendationScoreFactorMaximums.popularityPenalty,
@@ -106,7 +113,8 @@ export function ScoreBreakdown({
         ))}
       </dl>
       <p className="score-note">
-        Positive factors total 100 points. Mana-fit and popularity penalties reduce the total.
+        Positive factors total 100 points. Mana-fit, power-target and popularity penalties reduce
+        the total.
       </p>
     </details>
   )

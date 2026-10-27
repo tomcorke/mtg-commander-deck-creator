@@ -21,7 +21,7 @@ import type {
 } from './recommendation-types.ts'
 
 /** Bumped whenever scoring or ranking changes the order produced from the same inputs. */
-export const recommendationScoringVersion = 2
+export const recommendationScoringVersion = 3
 
 /** FNV-1a hash of a seed string, as an unsigned 32-bit integer. */
 const hashSeed = (seed: string) => {
@@ -251,6 +251,7 @@ export type RecommendState = {
   theme: string
   activeSubThemes: string[]
   recommendationStyle: RecommendationStyle
+  powerTarget?: RecommendationOptions['powerTarget']
   prioritizeDeckHealth: boolean
   includeCreature: boolean
   maxPrice: number | null

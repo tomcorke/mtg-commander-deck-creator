@@ -778,6 +778,7 @@ export function rankInitialRecommendations(
       commander: chosen,
       theme: deps.theme,
       recommendationStyle: deps.recommendationStyle,
+      powerTarget: deps.powerTarget,
       prioritizeDeckHealth: deps.prioritizeDeckHealth,
       includeCreature: deps.includeCreature,
       maxPrice: deps.maxPrice ?? null,
