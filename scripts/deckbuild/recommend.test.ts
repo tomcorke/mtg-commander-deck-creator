@@ -331,6 +331,108 @@ const raw = (name: string, text = 'Put a +1/+1 counter on target creature.'): Sc
   prints_search_uri: '',
 })
 
+test('retrieved lookup/search cards flow into the shared builder without copied payloads and replay offline', async (t) => {
+  const root = await directory(t)
+  for (const type of ['lookup', 'search'] as const) {
+    const initial = state()
+    const commands = [
+      command(
+        type === 'lookup'
+          ? { type, names: ['Found', 'Missing'] }
+          : { type, query: 'fixture', order: 'name', page: 1 },
+      ),
+      command({ type: 'addRetrieved', commandIndex: 0, names: ['Found'] }),
+      command({ type: 'view' }),
+    ]
+    const result = await recordBuild(root, pins(initial), commands, defaultLimits, async () =>
+      Response.json({
+        data: [raw('Found')],
+        not_found: [{ name: 'Missing' }],
+        total_cards: 1,
+        has_more: false,
+      }),
+    )
+    assert.equal(result.status, 'complete')
+    const expected = applyBuilderAction(initial, { type: 'addSearch', cards: [raw('Found')] })
+    assert.deepEqual(json(result.state.deck), json(expected.state.deck))
+    assert.deepEqual(json(result.state.sideboard), json(expected.state.sideboard))
+    assert.equal(result.state.deck[0].name, 'Found')
+    const network = t.mock.method(globalThis, 'fetch', () => {
+      throw new Error('Network forbidden')
+    })
+    assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+    assert.equal(network.mock.callCount(), 0)
+    network.mock.restore()
+  }
+})
+
+test('retrieved additions reject missing, future, non-retrieval and failed evidence atomically', async (t) => {
+  const root = await directory(t)
+  for (const kind of ['missing', 'future', 'view', 'failure']) {
+    const commands = [
+      command(kind === 'view' ? { type: 'view' } : { type: 'lookup', names: ['Found'] }),
+      command({
+        type: 'addRetrieved',
+        commandIndex: kind === 'future' ? 1 : 0,
+        names: kind === 'missing' ? ['Found', 'Absent'] : ['Found'],
+      }),
+      command({ type: 'view' }),
+    ]
+    const result = await recordBuild(root, pins(), commands, defaultLimits, async () =>
+      kind === 'failure'
+        ? new Response('', { status: 503 })
+        : Response.json({ data: [raw('Found')] }),
+    )
+    assert.equal(result.status, 'invalid', kind)
+    assert.equal(result.log.length, 2)
+    assert.equal(result.state.deck.length, 0)
+    assert.equal(result.log[1].before, result.stateHash)
+    assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+  }
+})
+
+test('retrieved additions preserve shared overflow and construction rejection', async (t) => {
+  const root = await directory(t)
+  for (const full of [false, true]) {
+    const initial = state({
+      deck: full
+        ? Array.from({ length: 100 }, (_, i) => toDeckCardFromRecommendation(card(`Existing ${i}`)))
+        : [],
+    })
+    const found = full ? raw('Found') : { ...raw('Found'), color_identity: ['R'] }
+    const commands = [
+      command({ type: 'lookup', names: ['Found'] }),
+      command({ type: 'addRetrieved', commandIndex: 0, names: ['Found'] }),
+    ]
+    const result = await recordBuild(root, pins(initial), commands, defaultLimits, async () =>
+      Response.json({ data: [found] }),
+    )
+    const expected = applyBuilderAction(initial, { type: 'addSearch', cards: [found] })
+    assert.equal(result.status, expected.error ? 'invalid' : 'complete')
+    assert.deepEqual(json(result.state.deck), json(expected.state.deck))
+    assert.deepEqual(json(result.state.sideboard), json(expected.state.sideboard))
+    assert.equal(result.state.sideboard.length, full ? 1 : 0)
+    assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+  }
+})
+
+test('retrieved additions require bounded distinct exact names and command indices', () => {
+  const action = { type: 'addRetrieved', commandIndex: 0, names: ['Found'] }
+  for (const patch of [
+    { names: [] },
+    { names: ['Found', 'Found'] },
+    { names: [' '] },
+    { names: ['x'.repeat(201)] },
+    { names: Array.from({ length: 76 }, (_, i) => `Card ${i}`) },
+    { commandIndex: -1 },
+    { commandIndex: 0.5 },
+    { commandIndex: 10000 },
+  ])
+    assert.throws(() =>
+      parseCommands(JSON.stringify(command({ ...action, ...patch } as Command['action']))),
+    )
+})
+
 test('lookup records bounded name requests and card evidence without changing state, then replays offline', async (t) => {
   const root = await directory(t)
   const commands = [

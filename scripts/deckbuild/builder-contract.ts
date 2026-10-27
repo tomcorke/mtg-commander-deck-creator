@@ -154,6 +154,15 @@ export const commandSchema = z.strictObject({
   reason: name,
   action: z.union([
     actionSchema,
+    z.strictObject({
+      type: z.literal('addRetrieved'),
+      commandIndex: count.max(9999),
+      names: z
+        .array(name.max(200))
+        .min(1)
+        .max(75)
+        .refine((names) => new Set(names).size === names.length, 'Duplicate retrieved names'),
+    }),
     z.strictObject({ type: z.literal('view') }),
     z.strictObject({
       type: z.literal('search'),
