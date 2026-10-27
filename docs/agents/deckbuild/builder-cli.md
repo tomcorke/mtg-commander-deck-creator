@@ -78,3 +78,18 @@ Slice 8 adds `{ "reason": "Find candidate evidence", "action": { "type": "search
 Successful results contain `{ outcome, cards, pagination: { page, totalCards, hasMore } }`. Pagination describes provider data, not a complete retrieved pool. Search results undergo card and pagination validation before becoming evidence. The shared adapter maps HTTP 404 to an empty page; malformed and failed responses retain explicit failure outcomes. As with name lookup, inspect each outcome even when the run is complete. Each search occurrence is recorded independently, including failure followed by success. Missing replay evidence stops incomplete; corrupt storage rejects the run.
 
 Search leaves builder state, pending feedback and offers unchanged. Returned cards can supply later operator-authored `addSearch` actions; this remains a pinned command-log workflow, not interactive deck construction. Existing version 2 logs retain their behavior. Pool refresh, Doctor, basics, printings, full spec initialization and evaluation work remain in #98.
+
+## Add cards from recorded evidence
+
+Slice 9 connects retrieval to builder additions without copying provider objects into the log:
+
+```jsonl
+{"reason":"Retrieve candidate evidence","action":{"type":"lookup","names":["Example Card"]}}
+{"reason":"Select the retrieved candidate","action":{"type":"addRetrieved","commandIndex":0,"names":["Example Card"]}}
+```
+
+`commandIndex` is the zero-based index of an earlier parsed command (blank lines do not count). It must reference a `lookup` or `search` result containing card evidence. Select 1–75 distinct exact returned names, each at most 200 characters. Partial retrieval is usable for the cards actually returned. Missing, ambiguous, failed, current/future or non-retrieval evidence stops `invalid` before any addition; later commands do not run. Selecting a missing name alongside a present name adds neither.
+
+The CLI resolves the validated provider objects from its own earlier results and calls shared `addSearch`. Shared construction checks, main-deck capacity and overflow into the app's sideboard apply unchanged. Repeated selections undergo those same checks. The original retrieval entry retains Oracle evidence; the reasoned selection records its source index and names. Additions use the existing recommendation/feedback boundary, and replay resolves the same objects from the pinned transport responses without network access. This does not certify a completed deck, spec constraints or bracket fit.
+
+This remains a fully pinned command-log workflow from a prepared state. It does not provide an interactive session or full spec initialization. Existing version 2 logs retain their behavior; new logs bind selections through the existing command hash and checkout SHA. Remaining work stays in [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98).

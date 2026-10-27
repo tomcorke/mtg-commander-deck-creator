@@ -18,6 +18,7 @@ import {
   type RecommendState,
 } from '../../src/domain/recommender.ts'
 import { analyseDeck } from '../../src/deck-analysis.ts'
+import { isScryfallCard, type ScryfallCard } from '../../src/domain/card-model.ts'
 import {
   commandSchema,
   defaultLimits,
@@ -105,7 +106,8 @@ function resolveAction(
     action.type === 'view' ||
     action.type === 'explain' ||
     action.type === 'lookup' ||
-    action.type === 'search'
+    action.type === 'search' ||
+    action.type === 'addRetrieved'
   )
     throw new Error('Expected builder action')
   if (action.type === 'decide' || action.type === 'like' || action.type === 'ignoreReason') {
@@ -203,6 +205,29 @@ async function executeLookup(
   return null
 }
 
+function resolveRetrieved(
+  session: Session,
+  action: Extract<Command['action'], { type: 'addRetrieved' }>,
+): BuilderAction {
+  // The current entry is already logged; only earlier retrievals can supply cards.
+  const source = session.log[action.commandIndex]
+  const sourceType = (source?.command as Command | undefined)?.action.type
+  const evidence = source?.result as { cards?: ScryfallCard[] } | undefined
+  if (
+    action.commandIndex >= session.log.length - 1 ||
+    (sourceType !== 'lookup' && sourceType !== 'search') ||
+    !evidence?.cards
+  )
+    throw new Error('Expected an earlier lookup/search result with card evidence')
+  const cards = action.names.map((name) => {
+    const matches = evidence.cards!.filter((card) => card.name === name)
+    if (matches.length !== 1 || !isScryfallCard(matches[0]))
+      throw new Error(`Expected exactly one retrieved card: ${name}`)
+    return matches[0]
+  })
+  return { type: 'addSearch', cards }
+}
+
 async function executeCommand(
   session: Session,
   command: Command,
@@ -222,7 +247,11 @@ async function executeCommand(
   }
   if (action.type === 'nextBatch' && session.state.batchNumber >= session.lastBatch)
     return { status: 'limit', detail: 'batches' }
-  const result = applyBuilderAction(session.state, resolveAction(command, session.offered.result))
+  const resolved =
+    action.type === 'addRetrieved'
+      ? resolveRetrieved(session, action)
+      : resolveAction(command, session.offered.result)
+  const result = applyBuilderAction(session.state, resolved)
   if (result.error) {
     entry.error = result.error
     return { status: 'invalid', detail: result.error }
