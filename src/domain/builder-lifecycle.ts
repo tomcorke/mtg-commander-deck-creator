@@ -38,6 +38,7 @@ export function resetBuilder(
     fetchSequence: 0,
     pendingFetches: [],
     completedFetches: [],
+    localCandidateBuffer: [],
     recommendationOptionsChanged: false,
   }
   return { ...reset, committedPoolKey: builderPoolKey(reset) }

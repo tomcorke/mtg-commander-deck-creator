@@ -191,6 +191,7 @@ export async function openScenario(
   state: PersistedDeckState,
   records = baseCandidates,
   localIndex?: Provider['localIndex'],
+  beforeNavigate?: (page: Page) => Promise<void>,
 ) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
   const page = await context.newPage()
@@ -233,6 +234,7 @@ export async function openScenario(
     for (const [key, value] of Object.entries(options))
       localStorage.setItem(`option:${key}`, JSON.stringify(value))
   }, state)
+  await beforeNavigate?.(page)
   await page.goto(`${base}#build`)
   await button(page, 'Deck review').waitFor()
   // Saved cards render as pending, so the header shows this until current card data hydrates.
