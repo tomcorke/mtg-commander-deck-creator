@@ -136,3 +136,17 @@ The store directory must already exist, be absolute and outside the checkout. Re
 A `ready` result includes `pins`, provider `evidence` and `manifest`. Extract `pins` with a JSON-aware tool and pass that file to `recommend.ts record` as described above. Returned commander names must exactly match the spec; response order cannot change commander order. Canonical-name differences require deliberate correction of the fixed spec rather than silently rewriting it. Shared normalization and commander validation run before any pins are emitted. Missing/partial lookup evidence or provider failures yield `failed`; invalid construction yields `invalid`; missing replay entries yield `incomplete`; runtime exhaustion yields `limit`. These outcomes emit no executable pins and exit nonzero. Corruption or malformed input rejects with diagnostics. Runtime limits bound execution, so a limit outcome is not a deterministic deck result. A later successful recording is a separate manifest, preserving earlier failure evidence.
 
 The synthetic tests prove lookup-to-preparation-to-build execution, partner ordering and rejection, failures, CLI replay, input/runtime bounds and missing/corrupt data. They do not establish live-provider freshness, complete pool retrieval or recommendation quality. Those and remaining evaluation acceptance stay in [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98).
+
+## Bounded provider search pools
+
+Provider preparation also accepts `poolSearch` instead of `pool` (exactly one is required):
+
+```json
+{ "query": "id<=g legal:commander", "order": "name", "maxPages": 4 }
+```
+
+Use the same record/replay commands above. Query is explicit, nonempty and at most 2000 characters; order is `name`, `edhrec` or `released`; maxPages is 1?20. Pages begin at 1 and continue until `has_more` is false. A remaining page at the limit returns `limit` with `detail: "pool-pages"` and no pins. Failed or malformed pages return `failed`; missing replay data returns `incomplete`; corruption rejects. An empty completed search is a ready empty pool, not a claim that no suitable cards exist. Runtime bounds include commander lookup and all search pages.
+
+Every page uses the shared Scryfall adapter and recorded transport. `poolEvidence` retains page cards, pagination and outcomes. Shared construction filtering removes commander duplicates, unverified or incompatible cards; selected printing set membership is checked against allowedSets. Shared candidate preparation applies exclusion policy, normalization, deduplication and seeded fallback ordering before existing pool commitment. Price caps remain shared builder filtering, and other spec constraints remain unevaluated intent.
+
+The preparation manifest pins the search recipe and all transport occurrences. Retain it alongside the build manifest to preserve pool provenance. A fresh recording can retrieve changed data; replay never refreshes. This is an explicit search-pool source for executable evaluation, not parity with the app's EDHREC, local-index, theme, mechanic, role-gap and collection retrieval, nor in-build pool refresh. Those remain in #98, together with real evaluation suites and the remaining acceptance criteria. No live app behavior changes.

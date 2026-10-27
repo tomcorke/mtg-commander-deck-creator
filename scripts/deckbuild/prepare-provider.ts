@@ -2,21 +2,95 @@ import { execFileSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { z } from 'zod'
-import { toCard, toDeckCardFromRecommendation } from '../../src/domain/card-model.ts'
+import {
+  toCard,
+  toDeckCardFromRecommendation,
+  type ScryfallCard,
+  type DeckCard,
+} from '../../src/domain/card-model.ts'
+import { prepareCandidates } from '../../src/domain/recommender.ts'
+import { cardConstructionError } from '../../src/domain/commander-construction.ts'
 import { preparationSchema, prepareBuild } from './prepare.ts'
 import { digest, recordStore, replayStore, type Json, type Pins } from './data.ts'
-import { liveProvider, lookupStoredCards, type RequestStore } from './provider.ts'
+import {
+  StoreError,
+  liveProvider,
+  lookupStoredCards,
+  searchStoredCards,
+  type RequestStore,
+} from './provider.ts'
 import { checkStoreDirectory, checkVersion } from './recommend.ts'
 
-export const providerPreparationSchema = preparationSchema.omit({ commanders: true }).extend({
-  runtimeMs: z.number().int().min(1).max(600000).default(60000),
-})
+export const providerPreparationSchema = preparationSchema
+  .omit({ commanders: true, pool: true })
+  .extend({
+    pool: preparationSchema.shape.pool.optional(),
+    poolSearch: z
+      .strictObject({
+        query: z.string().trim().min(1).max(2000),
+        order: z.enum(['name', 'edhrec', 'released']),
+        maxPages: z.number().int().min(1).max(20),
+      })
+      .optional(),
+    runtimeMs: z.number().int().min(1).max(600000).default(60000),
+  })
+  .refine((recipe) => (recipe.pool !== undefined) !== (recipe.poolSearch !== undefined), {
+    message: 'Supply exactly one of pool or poolSearch',
+  })
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
 
-async function prepare(pins: Pins, request: RequestStore) {
-  if (pins.resolvedOptions !== 'provider-preparation-v1')
-    throw new Error('Expected a provider preparation manifest')
-  const recipe = providerPreparationSchema.parse(pins.initialState)
+async function retrievePool(
+  search: NonNullable<z.infer<typeof providerPreparationSchema>['poolSearch']>,
+  pins: Pins,
+  request: RequestStore,
+  signal: AbortSignal,
+) {
+  const poolEvidence = []
+  const cards = []
+  for (let page = 1; page <= search.maxPages; page++) {
+    const found = await searchStoredCards({ ...search, page }, pins, request, signal)
+    if (signal.aborted) return { status: 'limit' as const, detail: 'runtime' }
+    if (found.status === 'incomplete') return found
+    poolEvidence.push(found.response)
+    if (!['success', 'success-empty'].includes(found.response.outcome))
+      return { status: 'failed' as const, poolEvidence }
+    cards.push(...(found.response.cards ?? []))
+    if (
+      !z.object({ pagination: z.object({ hasMore: z.boolean() }) }).parse(found.response).pagination
+        .hasMore
+    )
+      break
+    if (page === search.maxPages)
+      return { status: 'limit' as const, detail: 'pool-pages', poolEvidence }
+  }
+  return { status: 'complete' as const, cards, poolEvidence }
+}
+
+function eligiblePool(
+  cards: ScryfallCard[],
+  commanders: DeckCard[],
+  identity: string[],
+  allowedSets: string[],
+) {
+  return cards
+    .filter(
+      (card) =>
+        !cardConstructionError(toCard(card, 'Provider search pool'), commanders, identity) &&
+        (!allowedSets.length || allowedSets.includes(card.set)),
+    )
+    .map((card) => ({ card, reason: 'Provider search pool' }))
+}
+
+// Match names, never response positions: missing identifiers can shift provider results.
+function resolveCommanders(names: string[], cards: ScryfallCard[]) {
+  return names.map((name) => {
+    const matches = cards.filter((card) => card.name === name)
+    if (matches.length !== 1) throw new Error(`Expected exactly one provider commander: ${name}`)
+    return toDeckCardFromRecommendation(toCard(matches[0], 'Provider commander lookup'))
+  })
+}
+
+function validateRecipePins(pins: Pins, recipe: z.infer<typeof providerPreparationSchema>) {
   for (const key of [
     'spec',
     'seed',
@@ -27,6 +101,13 @@ async function prepare(pins: Pins, request: RequestStore) {
   ] as const)
     if (digest(json(pins[key])) !== digest(json(recipe[key])))
       throw new Error(`Preparation recipe differs from pins: ${key}`)
+}
+
+async function prepare(pins: Pins, request: RequestStore) {
+  if (pins.resolvedOptions !== 'provider-preparation-v1')
+    throw new Error('Expected a provider preparation manifest')
+  const recipe = providerPreparationSchema.parse(pins.initialState)
+  validateRecipePins(pins, recipe)
   const signal = AbortSignal.timeout(recipe.runtimeMs)
   const result = await lookupStoredCards(recipe.spec.commander, pins, request, signal)
   if (signal.aborted) return { status: 'limit' as const, detail: 'runtime' }
@@ -34,15 +115,44 @@ async function prepare(pins: Pins, request: RequestStore) {
   const evidence = result.response
   if (evidence.outcome !== 'success') return { status: 'failed' as const, evidence }
   try {
-    // Match names, never response positions: missing identifiers can shift provider results.
-    const commanders = recipe.spec.commander.map((name) => {
-      const matches = evidence.cards?.filter((card) => card.name === name) ?? []
-      if (matches.length !== 1) throw new Error(`Expected exactly one provider commander: ${name}`)
-      return toDeckCardFromRecommendation(toCard(matches[0], 'Provider commander lookup'))
-    })
-    const { runtimeMs: _, ...input } = recipe
-    return { status: 'ready' as const, pins: prepareBuild({ ...input, commanders }), evidence }
+    const commanders = resolveCommanders(recipe.spec.commander, evidence.cards ?? [])
+    const { runtimeMs: _, poolSearch, ...input } = recipe
+    let pool = recipe.pool ?? []
+    const poolEvidence = []
+    if (poolSearch) {
+      const retrieved = await retrievePool(poolSearch, pins, request, signal)
+      if (retrieved.status !== 'complete') return { ...retrieved, evidence }
+      const { cards } = retrieved
+      poolEvidence.push(...retrieved.poolEvidence)
+      const identity = [...new Set(commanders.flatMap((card) => card.colorIdentity ?? []))]
+      const eligible = eligiblePool(
+        cards,
+        commanders,
+        identity,
+        recipe.spec.constraints.allowedSets,
+      )
+      const prepared = prepareCandidates(
+        { fallback: { main: { cards: eligible }, mana: { cards: [] } } },
+        {
+          ...recipe.settings,
+          identity,
+          collectionMode: 'none',
+          collectionSets: [],
+          seed: recipe.seed,
+          today: recipe.today,
+        },
+      )
+      if (prepared.error) throw new Error(prepared.error)
+      pool = prepared.pool
+    }
+    return {
+      status: 'ready' as const,
+      pins: prepareBuild({ ...input, commanders, pool }),
+      evidence,
+      ...(poolSearch ? { poolEvidence } : {}),
+    }
   } catch (error) {
+    if (error instanceof StoreError) throw error
     return { status: 'invalid' as const, detail: String(error), evidence }
   }
 }
