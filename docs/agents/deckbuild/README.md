@@ -1,5 +1,7 @@
 # Deckbuild evaluation data
 
+The [completed candidate evaluation](builder-evaluation-complete-v1.md) retains a 100-card construction-ready candidate, exact offline replay and one best-effort desk review, including its failed output collection and overall time-bound breach. It is not a repeated baseline round.
+
 Issue [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98) is being delivered in slices. The record/replay store, offline fixed-pool ranking benchmark, completed-deck review preparation, best-effort review sessions and [builder CLI with provider-backed nextBatch and name-lookup replay](builder-cli.md) are available. [Prepared-input generation](builder-cli.md#prepare-pinned-inputs-from-a-fixed-spec) now initializes CLI pins from a fixed spec, explicit settings and supplied frozen cards. Remaining provider workflows and end-to-end deck builds remain future work.
 
 ## Usage
