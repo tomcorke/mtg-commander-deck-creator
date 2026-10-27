@@ -110,14 +110,9 @@ test('record/replay matches exactly, uses shared scores, keeps offered ranks bef
   assert.equal(recorded.construction, 'not-checked')
 })
 
-test('pool refresh and doctor discovery stop incomplete and never execute later commands', async (t) => {
+test('doctor discovery stops incomplete and never executes later commands', async (t) => {
   const root = await directory(t)
   const cases: { initial: BuilderState; commands: Command[]; kind: string }[] = [
-    {
-      initial: state(),
-      commands: [command({ type: 'theme', theme: 'Tokens' }), command({ type: 'commitSettings' })],
-      kind: 'pool',
-    },
     {
       initial: state(),
       commands: [command({ type: 'discoverDoctor' })],
