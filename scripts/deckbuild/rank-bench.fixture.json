@@ -1,0 +1,211 @@
+{
+  "cases": [
+    {
+      "id": "synthetic",
+      "state": {
+        "deckTargets": {
+          "removal": 0,
+          "draw": 0,
+          "lands": 0,
+          "ramp": 0,
+          "wipes": 0
+        },
+        "recommendationStyle": "balanced",
+        "commander": "Synthetic Commander",
+        "batchNumber": 1,
+        "theme": "",
+        "sideboard": [],
+        "prioritizeDeckHealth": false,
+        "pool": [
+          {
+            "set": "tst",
+            "detail": "",
+            "manaValue": 2,
+            "collectorNumber": "1",
+            "manaCost": "{2}",
+            "typeLine": "Artifact",
+            "layout": "normal",
+            "faces": [],
+            "image": "",
+            "reason": "",
+            "tags": ["Alpha"],
+            "colorIdentity": [],
+            "producedMana": [],
+            "manaValueKnown": true,
+            "printsUri": "",
+            "commanderLegality": "legal",
+            "name": "Alpha"
+          },
+          {
+            "set": "tst",
+            "detail": "",
+            "manaValue": 2,
+            "collectorNumber": "1",
+            "manaCost": "{2}",
+            "typeLine": "Artifact",
+            "layout": "normal",
+            "faces": [],
+            "image": "",
+            "reason": "",
+            "tags": ["Bravo"],
+            "colorIdentity": [],
+            "producedMana": [],
+            "manaValueKnown": true,
+            "printsUri": "",
+            "commanderLegality": "legal",
+            "name": "Bravo"
+          },
+          {
+            "set": "tst",
+            "detail": "",
+            "manaValue": 2,
+            "collectorNumber": "1",
+            "manaCost": "{2}",
+            "typeLine": "Artifact",
+            "layout": "normal",
+            "faces": [],
+            "image": "",
+            "reason": "",
+            "tags": ["Charlie"],
+            "colorIdentity": [],
+            "producedMana": [],
+            "manaValueKnown": true,
+            "printsUri": "",
+            "commanderLegality": "legal",
+            "name": "Charlie"
+          },
+          {
+            "set": "tst",
+            "detail": "",
+            "manaValue": 2,
+            "collectorNumber": "1",
+            "manaCost": "{2}",
+            "typeLine": "Artifact",
+            "layout": "normal",
+            "faces": [],
+            "image": "",
+            "reason": "",
+            "tags": ["Delta"],
+            "colorIdentity": [],
+            "producedMana": [],
+            "manaValueKnown": true,
+            "printsUri": "",
+            "commanderLegality": "legal",
+            "name": "Delta"
+          },
+          {
+            "set": "tst",
+            "detail": "",
+            "manaValue": 2,
+            "collectorNumber": "1",
+            "manaCost": "{2}",
+            "typeLine": "Artifact",
+            "layout": "normal",
+            "faces": [],
+            "image": "",
+            "reason": "",
+            "tags": ["Echo"],
+            "colorIdentity": [],
+            "producedMana": [],
+            "manaValueKnown": true,
+            "printsUri": "",
+            "commanderLegality": "legal",
+            "name": "Echo"
+          },
+          {
+            "set": "tst",
+            "detail": "",
+            "manaValue": 2,
+            "collectorNumber": "1",
+            "manaCost": "{2}",
+            "typeLine": "Artifact",
+            "layout": "normal",
+            "faces": [],
+            "image": "",
+            "reason": "",
+            "tags": ["Foxtrot"],
+            "colorIdentity": [],
+            "producedMana": [],
+            "manaValueKnown": true,
+            "printsUri": "",
+            "commanderLegality": "legal",
+            "name": "Foxtrot"
+          }
+        ],
+        "deferredCards": [],
+        "identity": [],
+        "collectionMode": "none",
+        "ignoredCards": [],
+        "preferenceScores": {
+          "Alpha": 10,
+          "Bravo": 9,
+          "Charlie": 8,
+          "Delta": 7
+        },
+        "collectionSets": [],
+        "activeSubThemes": [],
+        "deck": [],
+        "includeCreature": false,
+        "maxPrice": null,
+        "focusedRole": null
+      },
+      "split": "tuning",
+      "forbiddenCards": ["Delta"],
+      "previouslyOffered": ["Bravo"],
+      "specId": "synthetic",
+      "labels": [
+        {
+          "rationale": "Synthetic excellent option",
+          "name": "Alpha",
+          "humanNote": "",
+          "grade": 3,
+          "humanReview": "pending"
+        },
+        {
+          "rationale": "Synthetic good option",
+          "name": "Bravo",
+          "humanNote": "",
+          "grade": 2,
+          "humanReview": "pending"
+        },
+        {
+          "rationale": "Synthetic plausible option",
+          "name": "Charlie",
+          "humanNote": "",
+          "grade": 1,
+          "humanReview": "pending"
+        },
+        {
+          "rationale": "Synthetic off-plan option",
+          "name": "Delta",
+          "humanNote": "",
+          "grade": 0,
+          "humanReview": "pending"
+        },
+        {
+          "rationale": "Synthetic off-plan option",
+          "name": "Echo",
+          "humanNote": "",
+          "grade": 0,
+          "humanReview": "pending"
+        },
+        {
+          "rationale": "Synthetic off-plan option",
+          "name": "Foxtrot",
+          "humanNote": "",
+          "grade": 0,
+          "humanReview": "pending"
+        },
+        {
+          "rationale": "Synthetic unretrieved good option",
+          "name": "Missing",
+          "humanNote": "",
+          "grade": 2,
+          "humanReview": "pending"
+        }
+      ]
+    }
+  ],
+  "description": "Synthetic metric verification only; no MTG quality claims",
+  "version": 1
+}
