@@ -109,6 +109,7 @@ export const persistedDeckStateSchema = z.object({
   collectionMode: z.enum(['none', 'prefer', 'only']).default('none'),
   prioritizeDeckHealth: z.boolean().default(true),
   queue: z.array(cardSchema),
+  localCandidateBuffer: z.array(cardSchema).optional(),
   limitedRecommendations: z.boolean(),
   decisions: z.record(z.string(), decisionSchema),
   ignoreReasons: z.record(z.string(), z.enum(ignoreReasons)).optional(),

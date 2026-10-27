@@ -228,15 +228,23 @@ function toLocalAndLiveCards(
     })
 }
 
-/** Local and live queries settle together at the pool-build boundary. */
+type PendingLocalQuery = { query: LocalCardQuery; roleGap: boolean }
+
+/** Optional local data never holds the live pool build; late results wait for a batch boundary. */
 async function localAndLiveCandidates(
   deps: AppActionContext,
   query: LocalCardQuery,
   liveQuery: string,
   reason: string,
 ): Promise<Card[]> {
+  const pending: PendingLocalQuery[] | undefined = deps.pendingLocal
+  const ready = pending && deps.localCardsIfReady ? deps.localCardsIfReady(query) : undefined
+  if (pending && deps.localCardsIfReady && !ready)
+    pending.push({ query, roleGap: reason === 'Fills a role gap' })
   const [local, live] = await Promise.allSettled([
-    deps.fetchLocalCards?.(query) ?? Promise.resolve([]),
+    pending && deps.localCardsIfReady
+      ? Promise.resolve(ready ?? [])
+      : (deps.fetchLocalCards?.(query) ?? Promise.resolve([])),
     liveQuery ? deps.searchCards(liveQuery, undefined, 'edhrec') : Promise.resolve([]),
   ])
   const localCards = local.status === 'fulfilled' ? local.value : []
@@ -377,7 +385,7 @@ export async function mechanicRecommendations(
   const query = `id<=${identity} legal:commander -t:land (${terms}) ${bracketFilters}`
   // Live only: preserve the bounded commander-mechanic search.
   const cards = await localAndLiveCandidates(
-    { ...deps, fetchLocalCards: undefined },
+    { ...deps, fetchLocalCards: undefined, localCardsIfReady: undefined },
     { colours: identityColours, themes },
     query,
     'Matches commander text',
@@ -814,6 +822,59 @@ export function rankInitialRecommendations(
   return true
 }
 
+/** Transport completes in the background; the reducer owns when these candidates become visible. */
+export async function bufferLocalCandidates(
+  deps: AppActionContext,
+  queries: PendingLocalQuery[],
+  identity: string[],
+  isCurrent: () => boolean,
+) {
+  if (!queries.length || !deps.fetchLocalCards) return
+  const epoch = deps.getBuilderState().fetchEpoch
+  const cards = (
+    await Promise.all(
+      queries.map(async ({ query, roleGap }) => {
+        try {
+          const cards: ScryfallCard[] = await deps.fetchLocalCards(query)
+          if (!roleGap) return cards
+          const taken = Object.fromEntries((query.roles ?? []).map((role) => [role, 0]))
+          return cards.filter((raw) => {
+            const role = rolesForCard(toCard(raw, '')).find(
+              (key) => (taken[key] ?? roleGapLimit) < roleGapLimit,
+            )
+            if (!role) return false
+            taken[role] += 1
+            return true
+          })
+        } catch {
+          return []
+        }
+      }),
+    )
+  ).flat()
+  if (!isCurrent() || deps.getBuilderState().fetchEpoch !== epoch) return
+  const prepared = prepareCandidates(
+    {
+      theme: {
+        cards: cards.map((card) => ({
+          card,
+          reason: 'Local card match',
+          localIndexSnapshot: true,
+        })),
+      },
+    },
+    {
+      ...deps,
+      identity,
+      collectionMode: 'none',
+      collectionSets: [],
+      seed: recommendationPoolKey(deps),
+      today: deps.today,
+    },
+  )
+  builderAction(deps, { type: 'data', changes: { localCandidateBuffer: prepared.pool } })
+}
+
 export async function start(
   deps: AppActionContext,
   name: string,
@@ -832,6 +893,8 @@ export async function start(
       batchNumber: deps.batchNumber ?? 1,
       preferenceScores: deps.preferenceScores ?? {},
     }
+  const pendingLocal: PendingLocalQuery[] = []
+  deps = { ...deps, pendingLocal }
   const reset = resetRecommendationState(deps, preserveDeck, progress, chosen)
   try {
     const loaded = await loadCommanderCards(deps, chosen)
@@ -869,6 +932,7 @@ export async function start(
       progress,
     )
     deps.setFirstBatchPending?.(false)
+    void bufferLocalCandidates(deps, pendingLocal, loaded.identityColours, job.isCurrent)
     return true
   } catch (error) {
     if (!job.isCurrent()) return false

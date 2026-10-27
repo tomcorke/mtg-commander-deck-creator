@@ -6,6 +6,7 @@ import {
   type BuilderState,
   type BuilderAction,
 } from './builder-state.ts'
+import { builderPoolKey } from './builder-settings.ts'
 import { toCard, type Card } from './card-model.ts'
 
 const card = (name: string): Card =>
@@ -149,4 +150,53 @@ test('failed Doctor undo keeps history, and caller supplies the swap ID', () => 
   assert.ok(failed.error)
   assert.equal(failed.state, result.state)
   assert.ok(applyBuilderAction(result.state, { type: 'doctorUndo', id: 'swap-1:0' }).error)
+})
+
+test('late local candidates enter only at a settled batch boundary and cannot reoffer outgoing or blocked cards', () => {
+  const queue = ['A', 'B', 'C', 'D', 'E'].map(card)
+  let state = initial({
+    queue,
+    decisions: { A: 'later', B: 'ignore' },
+    ignoredCards: ['B'],
+    deck: [card('Owned')],
+    deferredCards: [{ card: card('Deferred'), eligibleBatch: 99 }],
+  })
+  state = { ...state, committedPoolKey: builderPoolKey(state) }
+  const buffered = apply(state, {
+    type: 'data',
+    changes: {
+      localCandidateBuffer: ['A', 'B', 'Owned', 'Deferred', 'New'].map(card),
+    },
+  })
+  assert.deepEqual(buffered.queue, queue)
+  assert.deepEqual(buffered.decisions, state.decisions)
+  const next = apply(buffered, { type: 'nextBatch' })
+  assert.ok(next.queue.some(({ name }) => name === 'New'))
+  assert.ok(next.queue.every(({ name }) => !['A', 'B', 'Owned', 'Deferred'].includes(name)))
+  assert.deepEqual(next.localCandidateBuffer, [])
+  assert.ok(next.deferredCards.some(({ card }) => card.name === 'A'))
+})
+
+test('saved local enrichment survives restore until its next batch boundary', async () => {
+  const { restoreBuilderState } = await import('../app/builder-restore.ts')
+  const { makeState, fixtureCard } = await import('../../scripts/fixtures/b10-browser.ts')
+  const saved = makeState({
+    localCandidateBuffer: [toCard(fixtureCard('Saved local'), 'Local card match')],
+  })
+  const restored = apply(initial(), {
+    type: 'restore',
+    state: restoreBuilderState(saved, '2026-10-27', 'restored-build'),
+  })
+  assert.deepEqual(restored.localCandidateBuffer, saved.localCandidateBuffer)
+  assert.deepEqual(restored.queue, saved.queue)
+  const next = apply(restored, { type: 'nextBatch' })
+  assert.ok(next.queue.some(({ name }) => name === 'Saved local'))
+  assert.deepEqual(next.localCandidateBuffer, [])
+  const replaced = apply(restored, {
+    type: 'poolLoaded',
+    queue: [],
+    deferredCards: [],
+    poolKey: '',
+  })
+  assert.deepEqual(replaced.localCandidateBuffer, [])
 })

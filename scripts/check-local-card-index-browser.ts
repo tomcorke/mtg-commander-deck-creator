@@ -136,6 +136,8 @@ await withBrowser('LOCAL_CARD_INDEX', 5245, async (browser, base) => {
     const released = new Promise<void>((resolve) => (release = resolve))
     let requested = () => {}
     const indexRequested = new Promise<void>((resolve) => (requested = resolve))
+    const dispatches: { path: string; ms: number }[] = []
+    const started = performance.now()
     const scenario = await openScenario(
       browser,
       base,
@@ -152,12 +154,35 @@ await withBrowser('LOCAL_CARD_INDEX', 5245, async (browser, base) => {
         if (mode === 'missing') return route.fulfill({ status: 404, body: 'Missing' })
         return route.abort('failed')
       },
+      async (page) => {
+        page.setDefaultTimeout(60_000)
+        // The fixture explicitly owns release; retain production pacing and all progressive assertions.
+        page.on('request', (request) => {
+          const url = new URL(request.url())
+          if (['api.scryfall.com', 'json.edhrec.com'].includes(url.hostname))
+            dispatches.push({ path: url.pathname, ms: Math.round(performance.now() - started) })
+        })
+        await page.addInitScript(() => {
+          const fetch = window.fetch.bind(window)
+          window.fetch = (input, init) =>
+            input === '/local-card-index.json'
+              ? fetch(input, { ...init, signal: undefined })
+              : fetch(input, init)
+        })
+      },
     )
     const { page } = scenario
     try {
       await indexRequested
       // The index is still held open here, so a visible batch proves it did not wait.
       await page.locator('.card-offer').first().waitFor()
+      console.log(
+        JSON.stringify({
+          mode,
+          coldFirstBatchMs: Math.round(performance.now() - started),
+          dispatches,
+        }),
+      )
       const batch = await offeredNames(page)
       assert.equal(batch.length, 4)
       const status = await page.evaluate(async () => {
@@ -166,6 +191,10 @@ await withBrowser('LOCAL_CARD_INDEX', 5245, async (browser, base) => {
       })
       assert.equal(status, 'unloaded', 'the first batch rendered before the index settled')
       await page.locator('.card-offer').first().getByRole('button', { name: 'Later' }).click()
+      const unavailable =
+        mode === 'delayed'
+          ? undefined
+          : page.waitForEvent('console', (message) => message.text().includes('unavailable'))
       release()
       if (mode === 'delayed')
         await page.waitForFunction(
@@ -175,7 +204,7 @@ await withBrowser('LOCAL_CARD_INDEX', 5245, async (browser, base) => {
             ),
           extra.name,
         )
-      else await page.waitForEvent('console', (message) => message.text().includes('unavailable'))
+      else await unavailable
       assert.deepEqual(await offeredNames(page), batch, 'enrichment keeps the active batch')
       assert.equal(
         await page

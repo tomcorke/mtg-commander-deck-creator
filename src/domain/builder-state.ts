@@ -38,6 +38,7 @@ import { commanderPromotionInfo, promoteDeckCard } from './commander-promotion.t
 import { applyBuilderHydration, applyBuilderPrinting, retryBuilderData } from './builder-data.ts'
 import { beginBuilderRecommendations, resetBuilder } from './builder-lifecycle.ts'
 import { builderPoolKey } from './builder-settings.ts'
+import { mergeRecommendationCandidates } from './recommender.ts'
 import { cardConstructionError, commanderConstructionError } from './commander-construction.ts'
 import { recommendationDataError } from './deck-data-status.ts'
 import { addCardSearchCards } from './card-search.ts'
@@ -108,6 +109,7 @@ export type BuilderState = {
   fetchBoundary: FetchBoundary | null
   pendingFetches: BuilderFetchWork[]
   completedFetches: BuilderFetchWork[]
+  localCandidateBuffer: Card[]
 }
 
 export function createBuilderState(today: string, signatureDeckKey: string): BuilderState {
@@ -151,6 +153,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     deckDoctorHistory: [],
     pendingFetches: [],
     completedFetches: [],
+    localCandidateBuffer: [],
     signatureQuota: { pages: 0, cards: 0 },
     fetchEpoch: 0,
     hydrationBoundary: 0,
@@ -886,6 +889,7 @@ export function applyBuilderAction(
       fetchEpoch: state.fetchEpoch + 1,
       fetchBoundary: null,
       pendingFetches: [],
+      localCandidateBuffer: action.type === 'restore' ? action.state.localCandidateBuffer : [],
     }
   if (
     result.state.fetchBoundary &&
@@ -903,8 +907,28 @@ function finishFetchBoundary(result: BuilderActionResult): BuilderActionResult {
     { ...state, fetchBoundary: null },
     { type: 'nextBatch', extraSubTheme },
   )
+  const blocked = [
+    ...state.queue,
+    ...advanced.state.deck,
+    ...advanced.state.sideboard,
+    ...advanced.state.deferredCards.map(({ card }) => card),
+  ]
+  const names = new Set([
+    ...blocked.map(({ name }) => name.toLowerCase()),
+    ...advanced.state.ignoredCards.map((name) => name.toLowerCase()),
+  ])
+  const oracles = new Set(blocked.flatMap(({ oracleId }) => oracleId ?? []))
+  const additions = state.localCandidateBuffer.filter(
+    (card) =>
+      !names.has(card.name.toLowerCase()) && (!card.oracleId || !oracles.has(card.oracleId)),
+  )
+  advanced.state = {
+    ...advanced.state,
+    localCandidateBuffer: [],
+    queue: mergeRecommendationCandidates(advanced.state.queue, additions),
+  }
   const merged = mergeBoundaryResults(advanced.state, state.fetchBoundary.id)
-  if (merged.queue !== advanced.state.queue)
+  if (additions.length || merged.queue !== advanced.state.queue)
     advanced.state = {
       ...merged,
       queue: rankRecommendationCards(

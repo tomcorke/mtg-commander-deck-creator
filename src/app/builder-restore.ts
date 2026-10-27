@@ -20,6 +20,7 @@ export function restoreBuilderState(
     fetchSequence: 0,
     pendingFetches: [],
     completedFetches: [],
+    localCandidateBuffer: saved.localCandidateBuffer ?? [],
     recommendationOptionsChanged: false,
     commander: saved.commander,
     commanderDetails: saved.commanderDetails,

@@ -8,6 +8,7 @@ import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import { recommendationScoreBreakdown } from '../domain/recommendation-scoring.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
 import {
+  bufferLocalCandidates,
   fallbackRecommendations,
   fetchDeckDoctorCandidates as fetchDeckDoctorCandidatesAction,
   mergeRecommendationCandidates,
@@ -302,4 +303,55 @@ test('local index enrichment settles before the pool query returns', async () =>
     ['Live', 'Local'],
   )
   assert.equal(found[1].localIndexSnapshot, true)
+})
+
+test('held optional index does not hold live retrieval; late data buffers without changing the queue', async () => {
+  let release!: (cards: ScryfallCard[]) => void
+  const pending = new Promise<ScryfallCard[]>((resolve) => {
+    release = resolve
+  })
+  const queries: unknown[] = []
+  const deps = {
+    ...options,
+    pendingLocal: queries,
+    localCardsIfReady: () => undefined,
+    fetchLocalCards: () => pending,
+    searchCards: async () => [card('Live')],
+  }
+  const found = await themeRecommendations(deps, [], ['Tokens'])
+  assert.deepEqual(
+    found.map(({ name }) => name),
+    ['Live'],
+  )
+  assert.equal(queries.length, 1)
+  const { withBuilderActions } = await import('./builder-test-fixture.ts')
+  const host = withBuilderActions({ ...deps, queue: found })
+  const work = bufferLocalCandidates(host, queries as never[], [], () => true)
+  assert.deepEqual(host.getBuilderState().queue, found)
+  release([card('Late local')])
+  await work
+  assert.deepEqual(host.getBuilderState().queue, found)
+  assert.equal(host.getBuilderState().localCandidateBuffer[0].name, 'Late local')
+})
+
+test('late local completion cannot write into a replaced pool', async () => {
+  let release!: (cards: ScryfallCard[]) => void
+  const { withBuilderActions } = await import('./builder-test-fixture.ts')
+  const host = withBuilderActions({
+    ...options,
+    fetchLocalCards: () =>
+      new Promise<ScryfallCard[]>((resolve) => {
+        release = resolve
+      }),
+  })
+  const work = bufferLocalCandidates(
+    host,
+    [{ query: { colours: [] }, roleGap: false }],
+    [],
+    () => true,
+  )
+  host.dispatchBuilder({ type: 'poolLoaded', queue: [], deferredCards: [], poolKey: '' })
+  release([card('Obsolete')])
+  await work
+  assert.deepEqual(host.getBuilderState().localCandidateBuffer, [])
 })
