@@ -330,6 +330,89 @@ const raw = (name: string, text = 'Put a +1/+1 counter on target creature.'): Sc
   collector_number: name,
   prints_search_uri: '',
 })
+
+test('lookup records bounded name requests and card evidence without changing state, then replays offline', async (t) => {
+  const root = await directory(t)
+  const commands = [
+    command({ type: 'lookup', names: ['Found', 'Missing'] }),
+    command({ type: 'view' }),
+  ]
+  let requests = 0
+  const result = await recordBuild(root, pins(), commands, defaultLimits, async (input, init) => {
+    requests++
+    assert.equal(String(input), 'https://api.scryfall.com/cards/collection')
+    assert.deepEqual(JSON.parse(String(init?.body)), {
+      identifiers: [{ name: 'Found' }, { name: 'Missing' }],
+    })
+    return Response.json({ data: [raw('Found')], not_found: [{ name: 'Missing' }] })
+  })
+  assert.equal(result.status, 'complete')
+  assert.equal(requests, 1)
+  assert.deepEqual(result.log[0].result, { outcome: 'partial', cards: [raw('Found')] })
+  assert.equal(result.log[0].before, result.log[0].after)
+  const network = t.mock.method(globalThis, 'fetch', () => {
+    throw new Error('Network forbidden')
+  })
+  assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+  assert.equal(network.mock.callCount(), 0)
+  const manifest = JSON.parse(
+    await readFile(join(root, 'manifests', `${result.manifest}.json`), 'utf8'),
+  )
+  await rm(join(root, 'responses', `${manifest.entries[0].response}.json`))
+  const missing = await replayBuild(root, result.manifest, commands)
+  assert.equal(missing.status, 'incomplete')
+  assert.equal(missing.log.length, 1)
+  assert.equal(missing.log[0].result, undefined)
+})
+
+test('lookup retains empty, invalid and failed outcomes and records a later successful occurrence', async (t) => {
+  const root = await directory(t)
+  for (const kind of ['empty', 'invalid', 'http', 'network']) {
+    let attempts = 0
+    const commands = [
+      command({ type: 'lookup', names: ['Found'] }),
+      command({ type: 'lookup', names: ['Found'] }),
+    ]
+    const result = await recordBuild(root, pins(), commands, defaultLimits, async () => {
+      if (++attempts === 1) {
+        if (kind === 'network') throw new TypeError('Synthetic failure')
+        if (kind === 'http') return new Response('', { status: 503 })
+        return Response.json(kind === 'empty' ? { data: [] } : { invalid: true })
+      }
+      return Response.json({ data: [raw('Found')] })
+    })
+    assert.equal(result.status, 'complete')
+    assert.equal(attempts, 2)
+    assert.equal(
+      (result.log[0].result as { outcome: string }).outcome,
+      kind === 'empty' ? 'success-empty' : kind === 'invalid' ? 'invalid' : 'transient-failure',
+    )
+    assert.deepEqual(result.log[1].result, { outcome: 'success', cards: [raw('Found')] })
+    assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+  }
+})
+
+test('lookup rejects empty, duplicate, oversized and excessive names at the command boundary', () => {
+  for (const names of [
+    [],
+    [' '],
+    ['A', 'a'],
+    ['x'.repeat(201)],
+    Array.from({ length: 76 }, (_, i) => `Card ${i}`),
+  ]) {
+    assert.throws(() =>
+      parseCommands(JSON.stringify({ reason: 'test', action: { type: 'lookup', names } })),
+    )
+  }
+  assert.equal(
+    parseCommands(
+      JSON.stringify(
+        command({ type: 'lookup', names: Array.from({ length: 75 }, (_, i) => `Card ${i}`) }),
+      ),
+    ).length,
+    1,
+  )
+})
 const providerState = () =>
   state({
     commanderDetails: { colours: [], images: [], art: [], printings: [], selections: [] },

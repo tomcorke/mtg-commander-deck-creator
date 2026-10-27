@@ -2,6 +2,8 @@
 
 Slice 5 of [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98) provides reasoned command execution from a frozen, prepared builder state. It uses shared `recommend`, `explainCard` and `applyBuilderAction`. Slice 6 executes reserved `nextBatch` hydration, signature pages and signature-card lookups through the record/replay store. Record mode can use the network; replay has no live provider. Pool refresh and Doctor discovery still stop `incomplete`. The CLI cannot yet build a deck from a commander/spec alone.
 
+Slice 7 adds `lookup` for recorded name-based card evidence. It leaves the deck, queue, pending feedback and offer snapshot unchanged.
+
 ## Run
 
 Create an existing absolute research directory outside the checkout. Keep input, command logs, manifests and reports there. The CLI resolves the store's real path and rejects a store within the checkout. It saves hashed manifests through the existing data store and never downloads images.
@@ -60,3 +62,11 @@ Request descriptors contain provider/endpoint, method, complete ordered query pa
 Replay reconstructs responses locally through the same adapters. Missing/out-of-order entries or absent response files stop `incomplete` without settling the missing work; malformed manifests, corrupt hashes and invalid transport envelopes are integrity errors, never provider failures. Successful, empty, partial, malformed-provider and failed requests can all replay. Runtime-limited runs are diagnostic and do not claim exact replay equality. All recordings, including deliberately stopped runs, need a new baseline when provider inputs change.
 
 The synthetic provider tests verify the full reserved sequence and resulting candidate, network-free replay equality, repeated failure/success attempts, missing responses, corrupt storage and bounds. They exercise real adapters with supplied HTTP responses; they are not live-provider availability or recommender-quality evidence.
+
+## Recorded name lookup
+
+Use `{ "reason": "Inspect a candidate's Oracle text", "action": { "type": "lookup", "names": ["Example Card"] } }` to retrieve card data through the shared Scryfall identifier adapter. A command accepts 1–75 distinct names (case-insensitive), each trimmed, nonempty and at most 200 characters. It uses the same collection-only transport, pacing, runtime bound and immutable occurrence store as nextBatch. Each command gets a fresh adapter identity; a repeated lookup records a separate occurrence, including a failure followed by success.
+
+The command's log entry has `result: { outcome, cards }` for successful, empty or partial lookups. `cards` contains the validated provider objects, including available Oracle fields and image URLs; images are not fetched. Missing names produce fewer cards and `partial` or `success-empty`. Transport/HTTP/provider-parse failures produce an explicit failure `outcome` without fabricated cards. A report can be `complete` with a failed lookup: that means the command finished, not that retrieval succeeded. Inspect each outcome. The adapter matches names using its existing identifier behavior; this is not fuzzy search or a guarantee of name-alias resolution.
+
+Lookup evidence does not add cards or certify their suitability. An operator can supply returned cards to a later `addSearch` command, but this slice still uses a fully pinned command log rather than an interactive autonomous builder session. A missing replay entry stops `incomplete` before later commands, while storage corruption remains an integrity error. No protocol-version bump is needed: existing version 2 command logs retain their behavior and the new command is bound by the existing parsed-command hash and checkout SHA. Search queries, basics, printings, pool refresh and Doctor workflows remain in [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98).

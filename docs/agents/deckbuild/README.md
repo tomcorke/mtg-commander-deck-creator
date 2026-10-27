@@ -1,6 +1,6 @@
 # Deckbuild evaluation data
 
-Issue [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98) is being delivered in slices. The record/replay store, offline fixed-pool ranking benchmark, completed-deck review preparation, best-effort review sessions and [builder CLI with provider-backed nextBatch replay](builder-cli.md) are available. Remaining provider workflows and end-to-end deck builds remain future work.
+Issue [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98) is being delivered in slices. The record/replay store, offline fixed-pool ranking benchmark, completed-deck review preparation, best-effort review sessions and [builder CLI with provider-backed nextBatch and name-lookup replay](builder-cli.md) are available. Remaining provider workflows and end-to-end deck builds remain future work.
 
 ## Usage
 

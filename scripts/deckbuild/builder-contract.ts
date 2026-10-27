@@ -156,6 +156,17 @@ export const commandSchema = z.strictObject({
     actionSchema,
     z.strictObject({ type: z.literal('view') }),
     z.strictObject({ type: z.literal('explain'), name }),
+    z.strictObject({
+      type: z.literal('lookup'),
+      names: z
+        .array(name.max(200))
+        .min(1)
+        .max(75)
+        .refine(
+          (names) => new Set(names.map((value) => value.toLowerCase())).size === names.length,
+          'Duplicate lookup names',
+        ),
+    }),
   ]),
 })
 export type Command = z.infer<typeof commandSchema>

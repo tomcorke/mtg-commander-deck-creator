@@ -26,7 +26,13 @@ import {
   settingsSchema,
   type Command,
 } from './builder-contract.ts'
-import { executeStoredFetch, liveProvider, StoreError, type RequestStore } from './provider.ts'
+import {
+  executeStoredFetch,
+  lookupStoredCards,
+  liveProvider,
+  StoreError,
+  type RequestStore,
+} from './provider.ts'
 import { digest, recordStore, replayStore, type Json, type Pins } from './data.ts'
 
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
@@ -94,7 +100,7 @@ function resolveAction(
   offered: ReturnType<typeof offer>['result'],
 ): BuilderAction {
   const action = command.action
-  if (action.type === 'view' || action.type === 'explain')
+  if (action.type === 'view' || action.type === 'explain' || action.type === 'lookup')
     throw new Error('Expected builder action')
   if (action.type === 'decide' || action.type === 'like' || action.type === 'ignoreReason') {
     const card = offered.batch.find((item) => item.name === action.name)
@@ -131,7 +137,10 @@ async function applyCommand(
   }
   session.log.push(entry)
   try {
-    const stopped = await executeCommand(session, command, entry, pins, request, signal)
+    const stopped =
+      command.action.type === 'lookup'
+        ? await executeLookup(command.action.names, entry, pins, request, signal)
+        : await executeCommand(session, command, entry, pins, request, signal)
     entry.after = hash(session.state)
     return stopped
   } catch (error) {
@@ -167,6 +176,21 @@ async function settleProviderWork(
       status: 'incomplete',
       detail: { reason: 'Provider wiring unavailable', requests: session.state.pendingFetches },
     }
+  return null
+}
+
+async function executeLookup(
+  names: string[],
+  entry: Record<string, unknown>,
+  pins: Pins,
+  request: RequestStore | undefined,
+  signal: AbortSignal,
+): Promise<Stop | null> {
+  if (!request) return { status: 'incomplete', detail: 'Lookup provider unavailable' }
+  const result = await lookupStoredCards(names, pins, request, signal)
+  if (signal.aborted) return { status: 'limit', detail: 'runtime' }
+  if (result.status === 'incomplete') return { status: 'incomplete', detail: result.detail }
+  entry.result = result.response
   return null
 }
 
