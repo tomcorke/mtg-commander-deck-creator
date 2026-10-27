@@ -93,3 +93,27 @@ Slice 9 connects retrieval to builder additions without copying provider objects
 The CLI resolves the validated provider objects from its own earlier results and calls shared `addSearch`. Shared construction checks, main-deck capacity and overflow into the app's sideboard apply unchanged. Repeated selections undergo those same checks. The original retrieval entry retains Oracle evidence; the reasoned selection records its source index and names. Additions use the existing recommendation/feedback boundary, and replay resolves the same objects from the pinned transport responses without network access. This does not certify a completed deck, spec constraints or bracket fit.
 
 This remains a fully pinned command-log workflow from a prepared state. It does not provide an interactive session or full spec initialization. Existing version 2 logs retain their behavior; new logs bind selections through the existing command hash and checkout SHA. Remaining work stays in [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98).
+
+## Prepare pinned inputs from a fixed spec
+
+Slice 10 adds an offline preparation command so an operator no longer writes the full reducer state:
+
+```powershell
+node --experimental-strip-types scripts/deckbuild/prepare.ts E:/working/agent-sandbox/research/deckbuild/recipe.json > E:/working/agent-sandbox/research/deckbuild/inputs.json
+```
+
+The strict recipe contract is `preparationSchema` in `scripts/deckbuild/prepare.ts`:
+
+| Field                                                           | Required value                                                                                                                                                     |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `spec`                                                          | The existing completed-review `specSchema`: commander names, bracket, pace, experience, theme, idea and separate constraints                                       |
+| `settings`                                                      | Every field of `settingsSchema`; explicitly choose power, style, exclusions and targets                                                                            |
+| `commanders`                                                    | One or two normalized deck cards matching the spec names and order exactly; shared commander validation must accept them                                           |
+| `pool`                                                          | Up to 10,000 normalized recommendation cards, with case-insensitively unique names; an empty or too-small pool can prepare but the recommender will report invalid |
+| `seed`, `today`, `snapshotId`, `sourceVersion`, `policyVersion` | Explicit run identity, ISO date and asserted data/policy versions                                                                                                  |
+
+Commander and pool objects use the existing `initialStateSchema` deck/queue card contracts, including optional printing fields. They are supplied frozen data, not authenticated provider evidence. No network requests, browser storage or images are read. Preparation uses shared `createBuilderState`, `commanders` and `poolLoaded` actions, derives combined identity, and emits complete pins accepted by `recommend.ts record`. The recommender SHA comes from this script's checkout even when invoked from another directory. Unknown recipe keys and missing settings reject with exit 1 and no JSON output.
+
+The spec supplies theme and allowed sets (`only` when nonempty, otherwise `none`). Explicit `settings.maxPrice` must match `spec.constraints.perCardCap`; it is the existing app filter with its existing unknown-price behavior. Bracket, pace and idea do not silently select a power preset or exclusions. Total budget, must-include and must-exclude intent stays in the pinned spec and is not enforced by this preparation step. Neither preparation nor successful command execution certifies spec compliance or complete-deck legality. Defaults for reducer bookkeeping come only from the shared constructor; all builder settings are explicit.
+
+Keep the recipe beside its generated pins outside the checkout. Changing supplied data, settings or spec requires new pins and a new recording. Continue with the record/replay commands above. Provider-backed initial pool retrieval, pool refresh, interactive sessions, fixed real specs/holdouts and evaluation remain in #98; this command prepares supplied data only.
