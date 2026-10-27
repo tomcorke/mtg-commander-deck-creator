@@ -1,6 +1,6 @@
 # Deckbuild evaluation data
 
-Issue [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98) is being delivered in slices. The record/replay store, offline fixed-pool ranking benchmark and completed-deck review preparation are available. Provider wiring and end-to-end deck builds remain future work.
+Issue [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98) is being delivered in slices. The record/replay store, offline fixed-pool ranking benchmark, completed-deck review preparation and best-effort review sessions are available. Provider wiring and end-to-end deck builds remain future work.
 
 ## Usage
 
@@ -84,3 +84,40 @@ Manual workflow:
 The review contract has `version: 1`, the prepared `bundleHash`, and `criteria` with `bracketFit`, `effectiveness`, `themeFit`, `ideaFit`, `fun`, `synergy`. Every criterion needs `score` (integer 1�5), `justification`, and `confidence` (`low`, `medium`, `high`); bracketFit additionally needs `fit` (`under`, `appropriate`, `over`, `unresolved`). `strongest` and `weakest` are nonempty arrays of `{ card, reason, sources: [string] }`. `swaps` contains `{ cut, add, reason, sources: [string] }`. `knowledgeGaps` contains `{ subject, claim, consulted: [string], uncertainty, effect, researchRequest }`. `limitations` is a nonempty string array. Swaps and gaps may be empty. All text fields other than Oracle text are single-line. The schema validates structure and binding, not judgement quality or source authenticity.
 
 The synthetic completed-review tests exercise construction rejection, unresolved evidence, pairing and copy exceptions, provenance projection, ordering and review validation. They are not a completed-deck quality evaluation. Automated builder/provider wiring, fixed real specs and holdouts, enforced reviewer execution isolation, repeated rounds/noise estimates, real reviews and summaries remain tracked in [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98).
+
+## Best-effort review sessions
+
+Slice 4 automates staging and collection around a fresh T3 `delegate_task`. The user explicitly accepted best-effort isolation for this slice: restrictions are instructions, not a sandbox. The child receives only the generated task, without parent conversation history. Host instructions and tool access may still exist. Results do not satisfy #98's original enforced-isolation acceptance criterion and must not be presented as proven blind evaluations.
+
+The operator first inspects the brief, Oracle text and approved references for embedded provenance or instructions. Prepare the same completed-deck `input.json` described above. Create a private config outside the checkout:
+
+```json
+{
+  "today": "2026-10-27",
+  "knowledgeBaseCommit": "<full 40-character knowledge-base commit>",
+  "sourceVersion": "<deck/source snapshot identity>",
+  "references": [
+    {
+      "kind": "rules",
+      "path": "E:/working/mtg-knowledge-base/knowledge/topics/commander/rules.md"
+    },
+    {
+      "kind": "format-policy",
+      "path": "E:/working/mtg-knowledge-base/knowledge/topics/commander/format-policy.md"
+    }
+  ]
+}
+```
+
+The date, commit and snapshot identity are operator assertions; the runner does not authenticate the source or freshness. Reference text hashes preserve the exact supplied contents even if the knowledge-base working tree differs from the asserted commit.
+
+1. Run `node --experimental-strip-types scripts/deckbuild/review-session.ts stage input.json config.json <new-private-output-directory>`. Its parent must exist, and the output must be outside this checkout. Staging rejects non-ready decks and existing output directories. Keep its stdout private.
+2. Read `operator.json` in that output directory. Call T3 `delegate_task` with its `launch` object unchanged. It explicitly selects Codex `gpt-6.1-sol` with `target.options.reasoningEffort: "low"`, a fresh task and a stable retry ID. Never send the operator record, original input, source paths, version IDs, builder files or parent history to the child. The runner does not itself connect to T3 or invoke a model.
+3. Retain the returned `taskId` and verify provider, model and options. End the turn while the async task runs. On completion, obtain its final `task_status` receipt and save the **structured payload** as `receipt.json`, not the MCP content wrapper. It needs `taskId`, terminal `status`, `providerInstanceId`, `model`, `options` (the returned array of `{id,value}`), and `summary` (the raw reviewer JSON envelope as a string). Pending tasks and questions are not completed reviews. Cancel stalled tasks rather than changing provider or effort; pause on quota exhaustion.
+4. Run `node --experimental-strip-types scripts/deckbuild/review-session.ts finish <private-output-directory> receipt.json`. It checks staged text hashes and file membership, the deck binding, model/options, the envelope and the existing review validator. `result.json` contains the private receipt, source/configuration and hashes, plus aligned `review` and `markdown` for successful results. Extract these fields with a JSON-aware tool when separate review files are needed. Existing results are never overwritten. Failed/cancelled/interrupted tasks and reported contamination produce explicit non-review outcomes and exit nonzero; malformed results and integrity failures exit nonzero without a result file.
+
+Only seven files go into a separate neutral temporary directory: the ready bundle, unchanged reviewer prompt and rubric, versioned [session instructions](session.md), review JSON schema, and the two approved references. They are marked read-only as a convenience; the reviewer can still have technical access elsewhere. The task forbids every other directory (including app/knowledge-base checkouts, builder artifacts, operator records, other reviews and skills), all skill use, network, connectors, browser, thread inspection and helpers. Staged source pointers are resolved to the supplied copies. Unavailable swap-card evidence becomes a knowledge gap; this slice does not perform external lookups.
+
+The reviewer returns either a completed envelope with `isolation: "best-effort"`, `contamination: "none-observed"` and `ambientContext` (categories of generic host metadata observed), or an explicit contamination report. T3 can inject a workspace path, branch, general host instructions and skill catalog even without parent history; the reviewer reports these categories and proceeds without inspecting or using them as evidence. Deck-specific source revisions, evaluation versions, builder decisions and other judgements require a contamination outcome. Successful Markdown starts with the isolation limitation and reported ambient context. A self-report does not establish absence of contamination. Receipt attribution is trusted operator input, not cryptographic proof of which task ran; retain the actual T3 task record and inspect its activity when evidence matters. The runner detects changed staged inputs at collection time, not transient reads or modifications restored before collection.
+
+Keep the temporary staging directory until collection finishes. Archive approved inputs and operator records privately if long-term reproducibility is needed, then remove the exact temporary directory recorded in `operator.json` (clear read-only file attributes first if necessary). The runner deliberately leaves evidence intact on errors. Never point cleanup at an inferred parent directory. A deliberate change to session instructions, prompt, rubric or references requires a new baseline; their hashes are kept separately. These sessions do not supply real suites, repeats, reviewer-noise estimates or recommender-quality evidence by themselves.
