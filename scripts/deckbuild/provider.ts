@@ -1,7 +1,9 @@
 import { setTimeout as delay } from 'node:timers/promises'
 import { z } from 'zod'
 import { executeSignatureFetch } from '../../src/app/signature-actions.ts'
-import type { PlannedFetch } from '../../src/domain/builder-fetches.ts'
+import type { FetchResponse, PlannedFetch } from '../../src/domain/builder-fetches.ts'
+import { fetchScryfallCardsByIdentifiers } from '../../src/adapters/scryfall.ts'
+import { ProviderRequestError } from '../../src/adapters/request-scheduler.ts'
 import type { Outcome, Pins, ReplayResult, Request } from './data.ts'
 
 const responseSchema = z.strictObject({
@@ -102,6 +104,41 @@ export async function executeStoredFetch(
   request: RequestStore,
   signal: AbortSignal,
 ) {
+  return executeStoredOperation(pins, request, signal, (fetcher) =>
+    executeSignatureFetch(work, signal, fetcher),
+  )
+}
+
+export async function lookupStoredCards(
+  names: string[],
+  pins: Pins,
+  request: RequestStore,
+  signal: AbortSignal,
+) {
+  return executeStoredOperation(pins, request, signal, async (fetcher) => {
+    const cards = await fetchScryfallCardsByIdentifiers(
+      names.map((name) => ({ name })),
+      fetcher,
+      signal,
+      { background: true },
+    )
+    return {
+      outcome: !cards.length
+        ? 'success-empty'
+        : cards.length < names.length
+          ? 'partial'
+          : 'success',
+      cards,
+    }
+  })
+}
+
+async function executeStoredOperation(
+  pins: Pins,
+  request: RequestStore,
+  signal: AbortSignal,
+  execute: (fetcher: typeof fetch) => Promise<FetchResponse>,
+) {
   // Fresh identity prevents adapter caches/cooldowns from skipping recorded occurrences or depending on wall time.
   let stop: ReplayResult | undefined
   let storeError: unknown
@@ -139,7 +176,20 @@ export async function executeStoredFetch(
       throw error
     }
   }
-  const response = await executeSignatureFetch(work, signal, fetcher)
+  let response: FetchResponse
+  try {
+    response = await execute(fetcher)
+  } catch (error) {
+    response = {
+      outcome: signal.aborted
+        ? 'cancelled'
+        : error instanceof ProviderRequestError
+          ? error.transient
+            ? 'transient-failure'
+            : 'permanent-failure'
+          : 'invalid',
+    }
+  }
   // A subscriber may abort before its transport finishes recording. Join it before sealing the store.
   await Promise.allSettled(pending)
   if (storeError) throw new StoreError(String(storeError))
