@@ -17,6 +17,39 @@ Check the exit code and `status` before consuming a report. `complete` means the
 
 `incomplete`, `invalid` and `limit` reports exit 1 and retain the processed/attempted command prefix and current state. Malformed JSON, invalid schemas, changed pins/logs, wrong checkout versions and corrupt storage exit 1 with diagnostics on stderr and no JSON report. A rejected builder action preserves the previous state. An unsupported fetch-producing action retains its resulting state and stops before executing later commands. A missing replay occurrence retains the unsettled boundary and stops before applying a fabricated response. Restart from the original manifest and log; the output state is diagnostic, not a resumable transport checkpoint.
 
+## Windows replay and session bounds
+
+Use the project's native `--experimental-strip-types` invocation; `tsx` is not a declared dependency. The optional record limits argument is a JSON **file path**, not inline JSON. Read `builder-contract.ts` before constructing commands: for example, Theme first is `recommendationStyle: "thematic"`, and Core is `powerTarget: "precon"`.
+
+For a fetch-blocking replay preload on Windows, convert its absolute path to a file URL and pass arguments separately. From a Node supervisor:
+
+```js
+import { spawnSync } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
+
+const remainingMs = deadlineMs - Date.now()
+if (remainingMs <= 0) throw new Error('Phase deadline passed')
+const result = spawnSync(
+  process.execPath,
+  [
+    '--import',
+    pathToFileURL(absolutePreloadPath).href,
+    '--experimental-strip-types',
+    'scripts/deckbuild/recommend.ts',
+    'replay',
+    storePath,
+    manifestHash,
+    commandsPath,
+  ],
+  { cwd: checkoutPath, timeout: Math.min(90000, remainingMs), stdio: ['ignore', outFd, errFd] },
+)
+if (result.error || result.status !== 0) throw result.error ?? new Error('Replay failed')
+```
+
+The named paths, deadline and output descriptors are operator-supplied values. The preload used in the retained Ayula evidence replaces `globalThis.fetch` with a throwing function; it is not an OS network sandbox. Smoke-test it before preparation. Do not pass a bare `E:/...` path to ESM `--import` or construct a shell command from these arguments.
+
+Record separate execution and finalization deadlines before setup. Use the relevant deadline for every supervised CLI call, refuse late starts, retain start/end/exit/error evidence, and reserve time for replay, construction and artifact export. Check both result and final inventory timestamps against the finalization deadline before accepting a timely result. This bounds supervised processes and acceptance of final artifacts, not every activity of an unrestricted agent. Keep pre-execution schema/invocation corrections explicit and within the same budget; preserve stopped reports and never extend them. The [Ayula evaluation](builder-evaluation-ayula-v1.md) retains both successful proof and earlier failures.
+
 ## Inputs
 
 `inputs.json` has the data store's `Pins` fields: `spec`, `seed`, `resolvedOptions`, `initialState`, `sourceVersion`, `policyVersion`, `recommenderVersion`, `today`, and `snapshotId`. `recommenderVersion` must equal the full HEAD SHA of this checkout. Use a clean checkout for evaluation evidence: checking HEAD cannot authenticate uncommitted edits, supplied data, policy versions or the truth of a spec. Deliberate implementation changes require a new recording/baseline. This foundation does not translate a spec into options or certify its constraints.
