@@ -374,6 +374,7 @@ export async function recordBuild(
   inputCommands: unknown[],
   limits: unknown = defaultLimits,
   fetcher: typeof fetch = fetch,
+  prefix?: Awaited<ReturnType<typeof replayStore>>,
 ) {
   checkStoreDirectory(root)
   checkVersion(input)
@@ -393,7 +394,14 @@ export async function recordBuild(
   const provider = liveProvider(fetcher)
   const output = await runCommands(pins, commands, undefined, async (request, signal) => ({
     status: 'complete',
-    outcome: await store.request(request, (descriptor) => provider(descriptor, signal)),
+    outcome: await store.request(request, async (descriptor) => {
+      if (prefix && prefix.finish().status !== 'complete') {
+        const recorded = await prefix.request(descriptor)
+        if (recorded.status !== 'complete') throw new Error('Extension prefix is incomplete')
+        return recorded.outcome
+      }
+      return provider(descriptor, signal)
+    }),
   }))
   const manifest = await store.finish()
   return { manifest, ...output }
@@ -414,16 +422,45 @@ export async function replayBuild(root: string, manifest: string, inputCommands:
   return { manifest, ...output }
 }
 
+/** Rebuild the bounded prefix offline; only appended provider work can use the network. */
+export async function extendBuild(
+  root: string,
+  manifest: string,
+  priorCommands: unknown[],
+  appendedCommands: unknown[],
+  fetcher: typeof fetch = fetch,
+) {
+  const appended = appendedCommands.map((command) => commandSchema.parse(command))
+  if (!appended.length) throw new Error('Extension requires at least one command')
+  const prior = await replayBuild(root, manifest, priorCommands)
+  if (prior.status !== 'complete') throw new Error('Only a complete command prefix can extend')
+  const prefix = await replayStore(root, manifest)
+  const config = cliPinsSchema.parse(prefix.pins.resolvedOptions)
+  const commands = [...priorCommands, ...appended]
+  if (commands.length > config.limits.commands)
+    throw new Error('Extension exceeds pinned command limit')
+  // ponytail: replaying bounded prefixes is O(n^2) across a session; checkpoint only if measured necessary.
+  return recordBuild(
+    root,
+    { ...prefix.pins, resolvedOptions: json(config.builder) },
+    commands,
+    config.limits,
+    fetcher,
+    prefix,
+  )
+}
+
 async function main(args: string[]) {
   const [mode, root, source, log, limits] = args
   if (
-    !['record', 'replay'].includes(mode) ||
+    !['record', 'replay', 'extend'].includes(mode) ||
     args.length < 4 ||
     args.length > 5 ||
-    (mode === 'replay' && limits)
+    (mode === 'replay' && limits) ||
+    (mode === 'extend' && !limits)
   )
     throw new Error(
-      'Usage: recommend.ts record <store-dir> <pins.json> <commands.jsonl> [limits.json] | replay <store-dir> <manifest> <commands.jsonl>',
+      'Usage: recommend.ts record <store-dir> <pins.json> <commands.jsonl> [limits.json] | replay <store-dir> <manifest> <commands.jsonl> | extend <store-dir> <manifest> <prior.jsonl> <append.jsonl>',
     )
   const commands = parseCommands(await readFile(log, 'utf8'))
   const output =
@@ -434,7 +471,9 @@ async function main(args: string[]) {
           commands,
           limits ? JSON.parse(await readFile(limits, 'utf8')) : defaultLimits,
         )
-      : await replayBuild(root, source, commands)
+      : mode === 'extend'
+        ? await extendBuild(root, source, commands, parseCommands(await readFile(limits, 'utf8')))
+        : await replayBuild(root, source, commands)
   process.stdout.write(`${JSON.stringify(output, null, 2)}\n`)
   if (output.status !== 'complete') process.exitCode = 1
 }

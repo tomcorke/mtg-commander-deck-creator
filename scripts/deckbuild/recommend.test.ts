@@ -18,7 +18,7 @@ import {
 import { recommend } from '../../src/domain/recommender.ts'
 import { defaultLimits, settingsSchema, type Command } from './builder-contract.ts'
 import { digest, replayStore, recordStore, type Json, type Pins } from './data.ts'
-import { parseCommands, recordBuild, replayBuild, runCommands } from './recommend.ts'
+import { extendBuild, parseCommands, recordBuild, replayBuild, runCommands } from './recommend.ts'
 
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
@@ -817,4 +817,125 @@ test('search requires bounded query, explicit supported ordering and bounded pag
       parseCommands(JSON.stringify({ reason: 'test', action: { ...action, ...change } })),
     )
   }
+})
+
+test('incremental choices reuse prior transport occurrences, record new work and replay the final session', async (t) => {
+  const root = await directory(t)
+  const priorCommands = [command({ type: 'lookup', names: ['Found'] })]
+  const prior = await recordBuild(root, pins(), priorCommands, defaultLimits, async () =>
+    Response.json({ data: [raw('Found')], not_found: [] }),
+  )
+  const additions = [
+    command({ type: 'addRetrieved', commandIndex: 0, names: ['Found'] }),
+    command({ type: 'lookup', names: ['New'] }),
+  ]
+  let calls = 0
+  const extended = await extendBuild(
+    root,
+    prior.manifest,
+    priorCommands,
+    additions,
+    async (_url, init) => {
+      calls++
+      assert.match(String(init?.body), /New/)
+      assert.doesNotMatch(String(init?.body), /Found/)
+      return Response.json({ data: [raw('New')], not_found: [] })
+    },
+  )
+  assert.equal(calls, 1)
+  assert.equal(extended.status, 'complete')
+  assert.equal(extended.state.deck[0].name, 'Found')
+  assert.deepEqual(extended.log.slice(0, 1), prior.log)
+  assert.deepEqual(
+    await replayBuild(root, extended.manifest, [...priorCommands, ...additions]),
+    extended,
+  )
+  assert.deepEqual(await replayBuild(root, prior.manifest, priorCommands), prior)
+
+  const fullLog = [...priorCommands, ...additions]
+  const finalCommand = command({ type: 'addRetrieved', commandIndex: 2, names: ['New'] })
+  const priorPath = join(root, 'prior.jsonl')
+  const appendPath = join(root, 'append.jsonl')
+  await writeFile(priorPath, fullLog.map((value) => JSON.stringify(value)).join('\n'))
+  await writeFile(appendPath, JSON.stringify(finalCommand))
+  const child = spawnSync(
+    process.execPath,
+    [
+      '--experimental-strip-types',
+      'scripts/deckbuild/recommend.ts',
+      'extend',
+      root,
+      extended.manifest,
+      priorPath,
+      appendPath,
+    ],
+    { encoding: 'utf8' },
+  )
+  assert.equal(child.status, 0, child.stderr)
+  const final = JSON.parse(child.stdout)
+  assert.deepEqual(
+    final.state.deck.map((value: { name: string }) => value.name),
+    ['Found', 'New'],
+  )
+  assert.deepEqual(json(await replayBuild(root, final.manifest, [...fullLog, finalCommand])), final)
+})
+
+test('extension rejects changed, stopped, corrupt or over-budget prefixes before live work', async (t) => {
+  const root = await directory(t)
+  const commands = [command({ type: 'view' })]
+  const first = await recordBuild(root, pins(), commands, { ...defaultLimits, commands: 1 })
+  const network = async () => {
+    throw new Error('Network forbidden')
+  }
+  await assert.rejects(
+    extendBuild(root, first.manifest, [command({ type: 'nextBatch' })], commands, network),
+    /differs/,
+  )
+  await assert.rejects(
+    extendBuild(root, first.manifest, commands, commands, network),
+    /command limit/,
+  )
+  await assert.rejects(extendBuild(root, first.manifest, commands, [], network), /at least one/)
+  const stoppedCommands = [command({ type: 'decide', name: 'Not offered', decision: 'add' })]
+  const stopped = await recordBuild(root, pins(), stoppedCommands)
+  assert.equal(stopped.status, 'invalid')
+  await assert.rejects(
+    extendBuild(root, stopped.manifest, stoppedCommands, commands, network),
+    /complete command prefix/,
+  )
+  const lookupCommands = [command({ type: 'lookup', names: ['Found'] })]
+  const lookup = await recordBuild(root, pins(), lookupCommands, defaultLimits, async () =>
+    Response.json({ data: [raw('Found')], not_found: [] }),
+  )
+  const stored = JSON.parse(
+    await readFile(join(root, 'manifests', `${lookup.manifest}.json`), 'utf8'),
+  )
+  await rm(join(root, 'responses', `${stored.entries[0].response}.json`))
+  await assert.rejects(
+    extendBuild(root, lookup.manifest, lookupCommands, commands, network),
+    /complete command prefix/,
+  )
+  await writeFile(join(root, 'manifests', `${first.manifest}.json`), '{}')
+  await assert.rejects(extendBuild(root, first.manifest, commands, commands, network), /Corrupt/)
+})
+
+test('recorded failures remain prefix outcomes while appended retries use fresh transport', async (t) => {
+  const root = await directory(t)
+  const commands = [command({ type: 'lookup', names: ['Found'] })]
+  const first = await recordBuild(
+    root,
+    pins(),
+    commands,
+    defaultLimits,
+    async () => new Response('', { status: 503 }),
+  )
+  assert.equal(first.status, 'complete')
+  let calls = 0
+  const second = await extendBuild(root, first.manifest, commands, commands, async () => {
+    calls++
+    return Response.json({ data: [raw('Found')], not_found: [] })
+  })
+  assert.equal(calls, 1)
+  assert.deepEqual(second.log[0], first.log[0])
+  assert.deepEqual(await replayBuild(root, second.manifest, [...commands, ...commands]), second)
 })

@@ -117,3 +117,19 @@ Commander and pool objects use the existing `initialStateSchema` deck/queue card
 The spec supplies theme and allowed sets (`only` when nonempty, otherwise `none`). Explicit `settings.maxPrice` must match `spec.constraints.perCardCap`; it is the existing app filter with its existing unknown-price behavior. Bracket, pace and idea do not silently select a power preset or exclusions. Total budget, must-include and must-exclude intent stays in the pinned spec and is not enforced by this preparation step. Neither preparation nor successful command execution certifies spec compliance or complete-deck legality. Defaults for reducer bookkeeping come only from the shared constructor; all builder settings are explicit.
 
 Keep the recipe beside its generated pins outside the checkout. Changing supplied data, settings or spec requires new pins and a new recording. Continue with the record/replay commands above. Provider-backed initial pool retrieval, pool refresh, interactive sessions, fixed real specs/holdouts and evaluation remain in #98; this command prepares supplied data only.
+
+## Incremental builder commands
+
+Slice 14 lets a builder inspect a report before choosing its next reasoned commands:
+
+```powershell
+node --experimental-strip-types scripts/deckbuild/recommend.ts extend E:/working/agent-sandbox/research/deckbuild <prior-manifest> prior.jsonl append.jsonl > extended.json
+```
+
+Start with `record` and a `view` command (or an empty command log). Read the returned view and state, write one or more commands to `append.jsonl`, then extend. The prior log must be the exact parsed log bound to the prior manifest. Extension requires a `complete` prefix, at least one appended command, the same checkout HEAD, and the original pinned limits. Keep the concatenation of prior and appended commands as the next prior log; `addRetrieved.commandIndex` refers to this full log, starting at zero. Inspect command outcomes as well as report status: a completed provider failure can be followed by a deliberate retry.
+
+Each extension first replays and validates the entire prior run offline. It then executes the combined log from the original prepared state, consuming the prior transport occurrences without refetching them, and records only new provider work live. A new immutable manifest binds the complete combined log and all its occurrences; the old manifest remains usable. Replay the final manifest with the combined log using the normal `replay` command. A changed log, incomplete prefix, missing/corrupt evidence or changed version cannot silently become a new live recording. Stopped appended runs retain ordinary diagnostic reports and cannot themselves extend.
+
+This deliberately reconstructs bounded prefixes instead of serializing reducer or transport checkpoints. Across many single-command extensions, replay work grows quadratically; command/batch limits cover the full combined run, and runtime limits apply separately to validation and combined execution. Timing-limited runs are not exact replay evidence. Start a fresh run if the original limits are insufficient. Never substitute a report's diagnostic state for prepared pins.
+
+This enables an inspect/choose/execute session through existing CLI evidence and shared actions. It does not launch a builder agent, enforce its use of CLI-only cards, export evaluation artifacts, certify spec constraints or establish deck quality. The fixed builder prompt, real sessions/spec suites, evaluation and remaining acceptance stay in [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98).
