@@ -171,6 +171,32 @@ function deckNeedsScore(
   return Math.min(recommendationScoreFactorMaximums.deckNeeds, Math.floor(base * styleMultiplier))
 }
 
+// App heuristic, not a bracket or a predicted win turn. Core keeps the existing role ranking.
+// ponytail: mana value is only a pace proxy; blind builds in #98 must calibrate card-specific value.
+function powerFitPenalty(
+  card: RecommendationScoreCard,
+  roles: string[],
+  target: RecommendationScoreContext['powerTarget'],
+) {
+  if (
+    !target ||
+    target === 'precon' ||
+    card.manaValueKnown !== true ||
+    !Number.isFinite(card.manaValue) ||
+    card.typeLine?.includes('Land') ||
+    /\{X\}/i.test(card.manaCost ?? '')
+  )
+    return 0
+  const utility = roles.some((role) => ['ramp', 'draw', 'removal'].includes(role))
+  if (!utility && !roles.includes('wipes')) return 0
+  const threshold = (target === 'high' ? 2 : 3) + (utility ? 0 : 2)
+  const penalty = Math.min(
+    target === 'high' ? recommendationScoreFactorMaximums.powerFitPenalty : 4,
+    Math.max(0, card.manaValue! - threshold) * (target === 'high' ? 2 : 1),
+  )
+  return penalty ? -penalty : 0
+}
+
 export function recommendationScoreBreakdown(
   card: RecommendationScoreCard,
   {
@@ -189,6 +215,7 @@ export function recommendationScoreBreakdown(
     roleSupply = {},
     batchNumber = 1,
     manaSupport,
+    powerTarget,
   }: RecommendationScoreContext,
 ): RecommendationScoreBreakdown {
   const collection = collectionScore(card, recommendationStyle, collectionSets, collectionMode)
@@ -229,6 +256,7 @@ export function recommendationScoreBreakdown(
     recommendationStyle,
   )
   const manaFit = manaFitPenalty(card, manaSupport)
+  const powerFit = powerFitPenalty(card, cardRoles, powerTarget)
   const popularityPenalty =
     recommendationStyle === 'thematic' &&
     (card.reason === 'Commander favourite' || card.reason === 'Popular inclusion')
@@ -244,6 +272,7 @@ export function recommendationScoreBreakdown(
       preferences +
       deckNeeds +
       manaFit +
+      powerFit +
       popularityPenalty,
   )
   return {
@@ -257,6 +286,7 @@ export function recommendationScoreBreakdown(
     deckNeeds,
     manaFitPenalty: manaFit,
     popularityPenalty,
+    powerFitPenalty: powerFit,
   }
 }
 

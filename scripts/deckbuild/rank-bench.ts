@@ -82,6 +82,7 @@ const stateSchema = z.strictObject({
   theme: z.string(),
   activeSubThemes: strings,
   recommendationStyle: z.enum(['thematic', 'fun', 'balanced', 'competitive']),
+  powerTarget: z.enum(['precon', 'upgraded', 'high']).optional(),
   prioritizeDeckHealth: z.boolean(),
   includeCreature: z.boolean(),
   maxPrice: nonnegative.nullable(),

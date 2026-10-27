@@ -64,6 +64,67 @@ const deepFreeze = <T>(value: T): T => {
   return value
 }
 
+test('power targets change utility ranking independently of priority without removing functional options', () => {
+  const slow = {
+    ...card('Slow draw', { reason: 'Creature synergy' }),
+    manaValue: 6,
+    manaCost: '{6}',
+    detail: 'Draw two cards.',
+  }
+  const cheap = {
+    ...card('Cheap draw', { reason: 'Popular inclusion' }),
+    manaValue: 2,
+    manaCost: '{2}',
+    detail: 'Draw two cards.',
+  }
+  const input = state({
+    pool: [slow, cheap, ...pool.map((card) => ({ ...card, reason: 'Popular inclusion' }))],
+    deck: [card('Source', { type: 'Land' })],
+    deckTargets: { lands: 1, ramp: 0, draw: 0, removal: 0, wipes: 0 },
+    prioritizeDeckHealth: false,
+    recommendationStyle: 'competitive',
+  })
+  const results = (['precon', 'upgraded', 'high'] as const).map((powerTarget) =>
+    recommend({ ...input, powerTarget }),
+  )
+  assert.equal(results[0].batch[0].name, 'Slow draw')
+  assert.equal(results[1].batch[0].name, 'Slow draw')
+  assert.equal(results[2].batch[0].name, 'Cheap draw')
+  assert.deepEqual(
+    results.map(
+      (result) => result.scores.find(({ name }) => name === slow.name)!.breakdown.powerFitPenalty,
+    ),
+    [0, -3, -8],
+  )
+  for (const result of results) {
+    assert.equal(result.exclusions.length, 0)
+    assert.equal(result.queue.length, input.pool.length)
+  }
+  for (const recommendationStyle of ['thematic', 'fun', 'balanced', 'competitive'] as const) {
+    const result = recommend({ ...input, powerTarget: 'high', recommendationStyle })
+    assert.equal(
+      result.scores.find(({ name }) => name === slow.name)!.breakdown.powerFitPenalty,
+      -8,
+    )
+  }
+  for (const override of [{ manaCost: '{X}{2}' }, { typeLine: 'Land' }, { detail: '' }]) {
+    const result = recommend({
+      ...input,
+      powerTarget: 'high',
+      pool: [{ ...slow, ...override }, ...pool],
+    })
+    assert.equal(result.scores.find(({ name }) => name === slow.name)!.breakdown.powerFitPenalty, 0)
+  }
+  const constrained = recommend({
+    ...input,
+    powerTarget: 'high',
+    maxPrice: 1,
+    pool: [{ ...cheap, price: '10' }, slow, ...pool],
+    ignoredCards: [slow.name],
+  })
+  assert(!constrained.queue.some(({ name }) => name === slow.name || name === cheap.name))
+})
+
 test('the public API needs no React, DOM or Vite modules, so Node scripts can import it', () => {
   const root = dirname(fileURLToPath(import.meta.url))
   const seen = new Set<string>()
@@ -205,7 +266,7 @@ test('recommend is deterministic, leaves frozen input untouched and supports eve
     assert.deepEqual(recommend(input), first)
     assert.equal(first.queue.length, 6)
     assert.equal(first.batch.length, 4)
-    assert.equal(first.scores[0].scoringVersion, 2)
+    assert.equal(first.scores[0].scoringVersion, 3)
   }
 })
 

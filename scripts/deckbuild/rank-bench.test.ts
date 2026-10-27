@@ -9,6 +9,25 @@ const fixturePath = new URL('./rank-bench.fixture.json', import.meta.url)
 const fixture = () =>
   parseSuite(JSON.parse(readFileSync(fixturePath, 'utf8').replace(/^\uFEFF/, '')))
 
+test('power target is validated, retained and pinned as an evaluation input', () => {
+  const input = fixture()
+  input.cases[0].state.powerTarget = 'upgraded'
+  const upgraded = evaluate(input, 'upgraded')
+  input.cases[0].state.powerTarget = 'high'
+  const high = evaluate(input, 'high')
+  assert.notEqual(upgraded.cases[0].evaluationHash, high.cases[0].evaluationHash)
+  assert.throws(() => compare(upgraded, high))
+  assert.equal(parseSuite(input).cases[0].state.powerTarget, 'high')
+  assert.throws(() =>
+    parseSuite({
+      ...input,
+      cases: [
+        { ...input.cases[0], state: { ...input.cases[0].state, powerTarget: 'official-bracket' } },
+      ],
+    }),
+  )
+})
+
 test('synthetic fixture proves independently calculated metrics and deterministic shared API output', () => {
   const input = fixture()
   const before = structuredClone(input)

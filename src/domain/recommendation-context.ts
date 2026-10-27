@@ -24,6 +24,7 @@ export function buildRecommendationContext(
       | 'activeSubThemes'
       | 'preferenceScores'
       | 'recommendationStyle'
+      | 'powerTarget'
       | 'collectionSets'
       | 'collectionMode'
       | 'batchNumber'
@@ -55,6 +56,7 @@ export function buildRecommendationContext(
     neededRoles: new Set(targetKeys.filter((role) => (roleBoosts[role] ?? 0) > 0)),
     cardRoles: [],
     recommendationStyle: settings.recommendationStyle,
+    powerTarget: settings.powerTarget,
     collectionSets: settings.collectionSets,
     collectionMode: settings.collectionMode,
     roleBoosts,
