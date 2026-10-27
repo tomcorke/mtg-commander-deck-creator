@@ -58,9 +58,13 @@ Errors remain visible alongside metrics. Comparison output retains both per-case
 
 Run `node --experimental-strip-types --test scripts/deckbuild/rank-bench.test.ts` for the synthetic checks. Real frozen states (commander-only, about 35/70/90 cards, missing roles and misleading matches), independently labelled union pools, and the synergy/support/lift and class-type ablations still need to be authored and evaluated under #98 before claiming quality improvements for #103 or #105. The first bounded #103 ranking experiment and its illustrative limits are recorded in [power targets](../../domain/power-targets.md).
 
+## Builder prompt and first bounded session
+
+Use the unchanged versioned [builder prompt](builder.md) with a separate pinned assignment. The [first bounded evaluation](builder-evaluation-v1.md) records one real provider-backed Krenko session: 24 reasoned commands, six inspect/choose/extend calls, a 12-card partial deck and exact network-disabled replay. Raw evidence stays in research storage; the summary retains identities, bounds, operator checks and feedback triage. This is workflow evidence, not a completed deck or baseline quality round.
+
 ## Remaining scope
 
-Tracked in #98: pool refresh, Doctor discovery and other lookup workflows, plus completion of the builder CLI beyond prepared inputs; fixed specs and holdouts; builder prompt; enforced reviewer execution isolation; real labelled ranking suites and experiments; round runner, round summaries, repeated baseline, reviewer-noise measurement and feedback triage. Prepared command replay, including supported nextBatch provider work, is available; these tools do not establish complete provider-backed builds or recommender quality.
+Tracked in #98: remaining provider workflows such as Doctor and local-index integration; complete builder sessions and constraint evaluation; fixed specs and holdouts; real labelled ranking suites and experiments; round runner, round summaries, repeated baseline and reviewer-noise measurement. Best-effort reviewer restrictions are accepted; enforced execution isolation is not established. Provider-backed preparation, pool refresh and incremental command replay are available; these tools do not establish complete provider-backed builds or recommender quality.
 
 ## Completed-deck review path
 
