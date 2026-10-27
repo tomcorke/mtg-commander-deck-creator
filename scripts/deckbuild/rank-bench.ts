@@ -7,7 +7,7 @@ import { digest, type Json } from './data.ts'
 const name = z.string().trim().min(1)
 const strings = z.array(z.string())
 const nonnegative = z.number().finite().nonnegative()
-const cardSchema = z.strictObject({
+export const cardSchema = z.strictObject({
   name,
   layout: z.string(),
   typeLine: z.string(),
@@ -60,10 +60,10 @@ const cardSchema = z.strictObject({
   tags: strings,
   collectionMatch: z.boolean().optional(),
 })
-const deckCardSchema = cardSchema.omit({ reason: true, printsUri: true }).extend({
+export const deckCardSchema = cardSchema.omit({ reason: true, printsUri: true }).extend({
   printsUri: z.string().optional(),
 })
-const stateSchema = z.strictObject({
+export const stateSchema = z.strictObject({
   commander: name,
   identity: strings,
   pool: z.array(cardSchema),

@@ -1,6 +1,6 @@
 # Deckbuild evaluation data
 
-Issue [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98) is being delivered in slices. The record/replay store, offline fixed-pool ranking benchmark, completed-deck review preparation and best-effort review sessions are available. Provider wiring and end-to-end deck builds remain future work.
+Issue [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98) is being delivered in slices. The record/replay store, offline fixed-pool ranking benchmark, completed-deck review preparation, best-effort review sessions and [offline builder CLI foundation](builder-cli.md) are available. Provider wiring and end-to-end deck builds remain future work.
 
 ## Usage
 
@@ -60,7 +60,7 @@ Run `node --experimental-strip-types --test scripts/deckbuild/rank-bench.test.ts
 
 ## Remaining scope
 
-Tracked in #98: provider adapters and complete builder CLI commands/views/logging/limits; fixed specs and holdouts; builder prompt; enforced reviewer execution isolation; real labelled ranking suites and experiments; round runner, round summaries, repeated baseline, reviewer-noise measurement and feedback triage. These tools alone do not establish exact build replay or recommender quality.
+Tracked in #98: provider adapters and completion of the builder CLI beyond prepared offline inputs; fixed specs and holdouts; builder prompt; enforced reviewer execution isolation; real labelled ranking suites and experiments; round runner, round summaries, repeated baseline, reviewer-noise measurement and feedback triage. Offline command replay is available; these tools do not establish exact provider-backed build replay or recommender quality.
 
 ## Completed-deck review path
 
