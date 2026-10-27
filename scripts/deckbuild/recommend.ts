@@ -29,6 +29,7 @@ import {
 import {
   executeStoredFetch,
   lookupStoredCards,
+  searchStoredCards,
   liveProvider,
   StoreError,
   type RequestStore,
@@ -100,7 +101,12 @@ function resolveAction(
   offered: ReturnType<typeof offer>['result'],
 ): BuilderAction {
   const action = command.action
-  if (action.type === 'view' || action.type === 'explain' || action.type === 'lookup')
+  if (
+    action.type === 'view' ||
+    action.type === 'explain' ||
+    action.type === 'lookup' ||
+    action.type === 'search'
+  )
     throw new Error('Expected builder action')
   if (action.type === 'decide' || action.type === 'like' || action.type === 'ignoreReason') {
     const card = offered.batch.find((item) => item.name === action.name)
@@ -138,8 +144,8 @@ async function applyCommand(
   session.log.push(entry)
   try {
     const stopped =
-      command.action.type === 'lookup'
-        ? await executeLookup(command.action.names, entry, pins, request, signal)
+      command.action.type === 'lookup' || command.action.type === 'search'
+        ? await executeLookup(command.action, entry, pins, request, signal)
         : await executeCommand(session, command, entry, pins, request, signal)
     entry.after = hash(session.state)
     return stopped
@@ -180,14 +186,17 @@ async function settleProviderWork(
 }
 
 async function executeLookup(
-  names: string[],
+  action: Extract<Command['action'], { type: 'lookup' | 'search' }>,
   entry: Record<string, unknown>,
   pins: Pins,
   request: RequestStore | undefined,
   signal: AbortSignal,
 ): Promise<Stop | null> {
   if (!request) return { status: 'incomplete', detail: 'Lookup provider unavailable' }
-  const result = await lookupStoredCards(names, pins, request, signal)
+  const result =
+    action.type === 'lookup'
+      ? await lookupStoredCards(action.names, pins, request, signal)
+      : await searchStoredCards(action, pins, request, signal)
   if (signal.aborted) return { status: 'limit', detail: 'runtime' }
   if (result.status === 'incomplete') return { status: 'incomplete', detail: result.detail }
   entry.result = result.response

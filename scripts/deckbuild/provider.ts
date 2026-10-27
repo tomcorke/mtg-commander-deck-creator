@@ -2,7 +2,8 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { z } from 'zod'
 import { executeSignatureFetch } from '../../src/app/signature-actions.ts'
 import type { FetchResponse, PlannedFetch } from '../../src/domain/builder-fetches.ts'
-import { fetchScryfallCardsByIdentifiers } from '../../src/adapters/scryfall.ts'
+import { isScryfallCard, type ScryfallCard } from '../../src/domain/card-model.ts'
+import { fetchScryfallCardsByIdentifiers, searchScryfallPage } from '../../src/adapters/scryfall.ts'
 import { ProviderRequestError } from '../../src/adapters/request-scheduler.ts'
 import type { Outcome, Pins, ReplayResult, Request } from './data.ts'
 
@@ -25,6 +26,9 @@ export function transportRequest(
     (url.origin === 'https://api.scryfall.com' &&
       url.pathname === '/cards/collection' &&
       method === 'POST') ||
+    (url.origin === 'https://api.scryfall.com' &&
+      url.pathname === '/cards/search' &&
+      method === 'GET') ||
     (url.origin === 'https://json.edhrec.com' &&
       /^\/pages\/(cards|commanders)\/[a-z0-9-]+\.json$/.test(url.pathname) &&
       method === 'GET')
@@ -129,6 +133,35 @@ export async function lookupStoredCards(
           ? 'partial'
           : 'success',
       cards,
+    }
+  })
+}
+
+export async function searchStoredCards(
+  action: { query: string; order: string; page: number },
+  pins: Pins,
+  request: RequestStore,
+  signal: AbortSignal,
+) {
+  return executeStoredOperation(pins, request, signal, async (fetcher) => {
+    const result = await searchScryfallPage(
+      action.query,
+      fetcher,
+      signal,
+      action.order,
+      action.page,
+    )
+    const parsed = z
+      .object({
+        data: z.array(z.custom<ScryfallCard>(isScryfallCard)),
+        total_cards: z.number().int().nonnegative(),
+        has_more: z.boolean(),
+      })
+      .parse(result)
+    return {
+      outcome: parsed.data.length ? 'success' : 'success-empty',
+      cards: parsed.data,
+      pagination: { page: action.page, totalCards: parsed.total_cards, hasMore: parsed.has_more },
     }
   })
 }
