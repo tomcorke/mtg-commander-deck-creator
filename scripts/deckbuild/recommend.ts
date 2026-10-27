@@ -26,12 +26,13 @@ import {
   settingsSchema,
   type Command,
 } from './builder-contract.ts'
+import { executeStoredFetch, liveProvider, StoreError, type RequestStore } from './provider.ts'
 import { digest, recordStore, replayStore, type Json, type Pins } from './data.ts'
 
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
 const hash = (value: unknown) => digest(json(value))
 const cliPinsSchema = z.strictObject({
-  version: z.literal(1),
+  version: z.literal(2),
   scoringVersion: z.literal(recommendationScoringVersion),
   commandsHash: z.string().regex(/^[a-f0-9]{64}$/),
   builder: settingsSchema,
@@ -111,7 +112,13 @@ type Session = {
 }
 type Stop = { status: 'incomplete' | 'invalid' | 'limit'; detail: unknown }
 
-function applyCommand(session: Session, command: Command): Stop | null {
+async function applyCommand(
+  session: Session,
+  command: Command,
+  pins: Pins,
+  request: RequestStore | undefined,
+  signal: AbortSignal,
+): Promise<Stop | null> {
   const { state, offered } = session
   const action = command.action
   const entry: Record<string, unknown> = { command, before: hash(state), offered: null }
@@ -124,20 +131,53 @@ function applyCommand(session: Session, command: Command): Stop | null {
   }
   session.log.push(entry)
   try {
-    const stopped = executeCommand(session, command, entry)
+    const stopped = await executeCommand(session, command, entry, pins, request, signal)
     entry.after = hash(session.state)
     return stopped
   } catch (error) {
+    if (error instanceof StoreError) throw error
     entry.error = String(error)
     return { status: 'invalid', detail: entry.error }
   }
 }
 
-function executeCommand(
+async function settleProviderWork(
+  session: Session,
+  pins: Pins,
+  request: RequestStore | undefined,
+  signal: AbortSignal,
+): Promise<Stop | null> {
+  while (request && session.state.pendingFetches.length) {
+    if (signal.aborted) return { status: 'limit', detail: 'runtime' }
+    const work = session.state.pendingFetches.find((item) => !item.response)!
+    const fetched = await executeStoredFetch(work, pins, request, signal)
+    if (signal.aborted) return { status: 'limit', detail: 'runtime' }
+    if (fetched.status === 'incomplete') return { status: 'incomplete', detail: fetched.detail }
+    const settled = applyBuilderAction(session.state, {
+      type: 'settleFetch',
+      id: work.id,
+      response: fetched.response,
+    })
+    if (settled.error) return { status: 'invalid', detail: settled.error }
+    if (settled.state.batchNumber > session.lastBatch) return { status: 'limit', detail: 'batches' }
+    session.state = settled.state
+  }
+  if (session.state.pendingFetches.length || session.state.fetchBoundary)
+    return {
+      status: 'incomplete',
+      detail: { reason: 'Provider wiring unavailable', requests: session.state.pendingFetches },
+    }
+  return null
+}
+
+async function executeCommand(
   session: Session,
   command: Command,
   entry: Record<string, unknown>,
-): Stop | null {
+  pins: Pins,
+  request: RequestStore | undefined,
+  signal: AbortSignal,
+): Promise<Stop | null> {
   const { action } = command
   if (action.type === 'view') {
     entry.result = session.offered.result
@@ -147,6 +187,8 @@ function executeCommand(
     entry.result = explainCard(recommendationState(session.state), action.name)
     return null
   }
+  if (action.type === 'nextBatch' && session.state.batchNumber >= session.lastBatch)
+    return { status: 'limit', detail: 'batches' }
   const result = applyBuilderAction(session.state, resolveAction(command, session.offered.result))
   if (result.error) {
     entry.error = result.error
@@ -154,15 +196,13 @@ function executeCommand(
   }
   if (result.state.batchNumber > session.lastBatch) return { status: 'limit', detail: 'batches' }
   session.state = result.state
-  if (
-    result.fetchRequests.length ||
-    result.state.pendingFetches.length ||
-    result.state.fetchBoundary
-  )
+  if (result.fetchRequests.some((work) => 'kind' in work))
     return {
       status: 'incomplete',
       detail: { reason: 'Provider wiring unavailable', requests: result.fetchRequests },
     }
+  const stopped = await settleProviderWork(session, pins, request, signal)
+  if (stopped) return stopped
   const pendingFeedback =
     Object.keys(session.state.decisions).length ||
     session.state.liked.length ||
@@ -176,12 +216,18 @@ function executeCommand(
   return null
 }
 
-/** All input data is local. A planned fetch is a terminal incomplete result, never silently skipped. */
-export function runCommands(pins: Pins, commands: Command[], now = () => performance.now()) {
+/** Only supported reserved work is executed; unimplemented providers stop explicitly incomplete. */
+export async function runCommands(
+  pins: Pins,
+  commands: Command[],
+  now = () => performance.now(),
+  request?: RequestStore,
+) {
   const config = cliPinsSchema.parse(pins.resolvedOptions)
   if (config.commandsHash !== hash(commands))
     throw new Error('Command log differs from pinned hash')
   const started = now()
+  const signal = AbortSignal.timeout(config.limits.runtimeMs)
   const state = initialState(pins, config.builder)
   const offered = offer(state)
   const session: Session = {
@@ -215,7 +261,7 @@ export function runCommands(pins: Pins, commands: Command[], now = () => perform
   for (const command of commands) {
     if (session.log.length >= config.limits.commands) return report('limit', 'commands')
     if (now() - started >= config.limits.runtimeMs) return report('limit', 'runtime')
-    const stopped = applyCommand(session, command)
+    const stopped = await applyCommand(session, command, pins, request, signal)
     if (stopped) return report(stopped.status, stopped.detail)
     if (now() - started >= config.limits.runtimeMs) return report('limit', 'runtime')
   }
@@ -246,6 +292,7 @@ export async function recordBuild(
   input: Pins,
   inputCommands: unknown[],
   limits: unknown = defaultLimits,
+  fetcher: typeof fetch = fetch,
 ) {
   checkStoreDirectory(root)
   checkVersion(input)
@@ -253,7 +300,7 @@ export async function recordBuild(
   const pins: Pins = {
     ...input,
     resolvedOptions: json({
-      version: 1,
+      version: 2,
       scoringVersion: recommendationScoringVersion,
       commandsHash: hash(commands),
       builder: settingsSchema.parse(input.resolvedOptions),
@@ -262,8 +309,13 @@ export async function recordBuild(
   }
   initialState(pins, cliPinsSchema.parse(pins.resolvedOptions).builder)
   const store = recordStore(root, pins)
+  const provider = liveProvider(fetcher)
+  const output = await runCommands(pins, commands, undefined, async (request, signal) => ({
+    status: 'complete',
+    outcome: await store.request(request, (descriptor) => provider(descriptor, signal)),
+  }))
   const manifest = await store.finish()
-  return { manifest, ...runCommands(pins, commands) }
+  return { manifest, ...output }
 }
 
 export async function replayBuild(root: string, manifest: string, inputCommands: unknown[]) {
@@ -271,8 +323,10 @@ export async function replayBuild(root: string, manifest: string, inputCommands:
   const commands = inputCommands.map((command) => commandSchema.parse(command))
   const store = await replayStore(root, manifest)
   checkVersion(store.pins)
-  const output = runCommands(store.pins, commands)
-  // This foundation has no provider adapter. Never accept a manifest whose data it did not consume.
+  const output = await runCommands(store.pins, commands, undefined, (request) =>
+    store.request(request),
+  )
+  // Never accept a manifest whose data was not consumed.
   const finished = store.finish()
   if (finished.status === 'incomplete')
     return { ...output, manifest, status: 'incomplete', detail: finished }

@@ -110,7 +110,7 @@ test('record/replay matches exactly, uses shared scores, keeps offered ranks bef
   assert.equal(recorded.construction, 'not-checked')
 })
 
-test('pool refresh, doctor discovery and current-data fetches stop incomplete and never execute later commands', async (t) => {
+test('pool refresh and doctor discovery stop incomplete and never execute later commands', async (t) => {
   const root = await directory(t)
   const cases: { initial: BuilderState; commands: Command[]; kind: string }[] = [
     {
@@ -122,13 +122,6 @@ test('pool refresh, doctor discovery and current-data fetches stop incomplete an
       initial: state(),
       commands: [command({ type: 'discoverDoctor' })],
       kind: 'doctor-candidates',
-    },
-    {
-      initial: state({
-        deck: [{ ...toDeckCardFromRecommendation(card('Pending')), dataStatus: 'pending' }],
-      }),
-      commands: [command({ type: 'nextBatch' })],
-      kind: 'current-data',
     },
   ]
   for (const item of cases) {
@@ -228,7 +221,7 @@ test('command, batch and cooperative runtime limits retain explicit stopped resu
   assert.equal(batch.state.batchNumber, 1)
   const store = await replayStore(root, limited.manifest)
   let clock = 0
-  const timeout = runCommands(store.pins, commands, () => clock++ * defaultLimits.runtimeMs)
+  const timeout = await runCommands(store.pins, commands, () => clock++ * defaultLimits.runtimeMs)
   assert.equal(timeout.status, 'limit')
   assert.equal(timeout.detail, 'runtime')
 })
@@ -322,4 +315,235 @@ test('CLI emits matching JSON for record/replay and nonzero for incomplete or ma
     await readFile(join(root, 'manifests', `${result.manifest}.json`), 'utf8'),
   )
   assert.equal(digest(manifest), result.manifest)
+})
+
+const raw = (name: string, text = 'Put a +1/+1 counter on target creature.'): ScryfallCard => ({
+  name,
+  type_line: 'Artifact',
+  oracle_text: text,
+  color_identity: [],
+  cmc: 2,
+  legalities: { commander: 'legal' },
+  game_changer: false,
+  released_at: '2020-01-01',
+  set: 'tst',
+  collector_number: name,
+  prints_search_uri: '',
+})
+const providerState = () =>
+  state({
+    commanderDetails: { colours: [], images: [], art: [], printings: [], selections: [] },
+    deck: [
+      { ...toDeckCardFromRecommendation(card('Synthetic Commander')), dataStatus: 'pending' },
+      toDeckCardFromRecommendation(toCard(raw('Peer 2'), 'Synthetic')),
+      toDeckCardFromRecommendation(
+        toCard(
+          raw(
+            'Engine',
+            'If a +1/+1 counter would be put on a creature, put an additional one instead.',
+          ),
+          'Synthetic',
+        ),
+      ),
+      toDeckCardFromRecommendation(
+        toCard(raw('Peer', 'Put a +1/+1 counter on target creature.'), 'Synthetic'),
+      ),
+    ],
+  })
+const page = {
+  container: {
+    json_dict: {
+      cardlists: [
+        {
+          tag: 'creatures',
+          header: 'Artifacts',
+          cardviews: [{ name: 'New candidate', lift: 2, num_decks: 200 }],
+        },
+      ],
+    },
+  },
+}
+
+test('nextBatch records hydration, signature pages and lookups, settles the shared boundary, and replays without network', async (t) => {
+  const root = await directory(t)
+  const urls: string[] = []
+  const fetcher: typeof fetch = async (input, init) => {
+    urls.push(String(input))
+    assert.equal(init?.redirect, 'error')
+    if (String(input).includes('edhrec')) return Response.json(page)
+    const body = JSON.parse(String(init?.body))
+    return Response.json({ data: body.identifiers.map((item: { name: string }) => raw(item.name)) })
+  }
+  const commands = [command({ type: 'nextBatch' }), command({ type: 'view' })]
+  const result = await recordBuild(root, pins(providerState()), commands, defaultLimits, fetcher)
+  assert.equal(result.status, 'complete', JSON.stringify(result.detail))
+  assert.equal(result.state.batchNumber, 2)
+  assert.equal(result.state.fetchBoundary, null)
+  assert.equal(result.state.pendingFetches.length, 0)
+  assert.ok(result.state.queue.some((item) => item.name === 'New candidate'))
+  assert.deepEqual(
+    result.state.completedFetches.map((work) => work.request.kind),
+    ['current-data', 'signature-page', 'signature-cards'],
+  )
+  assert.equal(urls.length, 3)
+  const manifest = JSON.parse(
+    await readFile(join(root, 'manifests', `${result.manifest}.json`), 'utf8'),
+  )
+  assert.equal(manifest.entries.length, 3)
+  assert.ok(
+    manifest.entries.every(
+      (entry: { request: { today: string; snapshotId: string } }) =>
+        entry.request.today === '2026-10-27' && entry.request.snapshotId === 'fixture',
+    ),
+  )
+  assert.equal(
+    manifest.entries[0].request.body,
+    JSON.stringify({ identifiers: [{ name: 'Synthetic Commander' }] }),
+  )
+  const network = t.mock.method(globalThis, 'fetch', () => {
+    throw new Error('Network forbidden')
+  })
+  assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+  assert.equal(network.mock.callCount(), 0)
+  await rm(join(root, 'responses', `${manifest.entries[1].response}.json`))
+  const missing = await replayBuild(root, result.manifest, commands)
+  assert.equal(missing.status, 'incomplete')
+  assert.equal(missing.log.length, 1)
+  assert.equal(missing.state.batchNumber, 1)
+  assert.equal(missing.state.completedFetches.length, 1)
+})
+
+test('recorded network/HTTP/invalid/partial outcomes replay and repeated attempts remain separate', async (t) => {
+  const root = await directory(t)
+  const initial = providerState()
+  initial.deck = initial.deck.filter((item) => item.name !== 'Synthetic Commander')
+  for (const kind of ['network', 'http', 'invalid', 'partial']) {
+    let attempts = 0
+    const fetcher: typeof fetch = async (input) => {
+      if (String(input).includes('edhrec')) {
+        attempts++
+        if (attempts === 1) {
+          if (kind === 'network') throw new TypeError('Synthetic network failure')
+          if (kind === 'http') return new Response('', { status: 503 })
+          if (kind === 'invalid') return Response.json({ invalid: true })
+        }
+        return Response.json(
+          kind === 'partial'
+            ? {
+                container: {
+                  json_dict: {
+                    cardlists: [
+                      {
+                        tag: 'creatures',
+                        header: 'Creatures',
+                        cardviews: [
+                          { name: 'New candidate', lift: 2, num_decks: 200 },
+                          { name: 'Missing', lift: 2, num_decks: 200 },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              }
+            : page,
+        )
+      }
+      return Response.json({
+        data: kind === 'partial' ? [raw('New candidate')] : [],
+        not_found: [{ name: 'New candidate' }],
+      })
+    }
+    const commands = [command({ type: 'nextBatch' }), command({ type: 'nextBatch' })]
+    const result = await recordBuild(root, pins(initial), commands, defaultLimits, fetcher)
+    assert.equal(result.status, 'complete', kind)
+    assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
+    const outcomes = result.state.completedFetches.map((work) => work.response?.outcome)
+    assert.ok(
+      outcomes.includes(
+        kind === 'invalid' ? 'invalid' : kind === 'partial' ? 'partial' : 'transient-failure',
+      ),
+      JSON.stringify(outcomes),
+    )
+    if (kind === 'network' || kind === 'http') assert.equal(attempts, 2)
+  }
+})
+
+test('provider work obeys batch/runtime bounds and corrupt stored data is not a provider failure', async (t) => {
+  const root = await directory(t)
+  const commands = [command({ type: 'nextBatch' }), command({ type: 'view' })]
+  let calls = 0
+  const fetcher: typeof fetch = async (_input, init) => {
+    calls++
+    return new Promise((_resolve, reject) =>
+      init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true }),
+    )
+  }
+  const batch = await recordBuild(
+    root,
+    pins(providerState()),
+    commands,
+    { ...defaultLimits, batches: 1 },
+    fetcher,
+  )
+  assert.equal(batch.status, 'limit')
+  assert.equal(batch.state.batchNumber, 1)
+  assert.equal(calls, 0)
+  // A real timer keeps the process alive alongside AbortSignal.timeout's unref timer.
+  const keepAlive = setInterval(() => {}, 1000)
+  t.after(() => clearInterval(keepAlive))
+  const runtime = await recordBuild(
+    root,
+    pins(providerState()),
+    commands,
+    { ...defaultLimits, runtimeMs: 50 },
+    fetcher,
+  )
+  assert.equal(runtime.status, 'limit')
+  assert.equal(runtime.detail, 'runtime')
+  assert.equal(runtime.log.length, 1)
+  const recorded = await recordBuild(
+    root,
+    pins(providerState()),
+    commands,
+    defaultLimits,
+    async (input) =>
+      String(input).includes('edhrec') ? Response.json(page) : Response.json({ data: [] }),
+  )
+  const manifest = JSON.parse(
+    await readFile(join(root, 'manifests', `${recorded.manifest}.json`), 'utf8'),
+  )
+  await writeFile(join(root, 'responses', `${manifest.entries[0].response}.json`), '{}')
+  await assert.rejects(replayBuild(root, recorded.manifest, commands), /Corrupt/)
+})
+
+test('hydration-local timeout is recorded as a replayable provider failure while the run remains active', async (t) => {
+  const root = await directory(t)
+  const originalTimeout = AbortSignal.timeout.bind(AbortSignal)
+  t.mock.method(AbortSignal, 'timeout', (ms: number) => originalTimeout(ms === 30000 ? 20 : ms))
+  const commands = [command({ type: 'nextBatch' }), command({ type: 'view' })]
+  const initial = state({
+    deck: [{ ...toDeckCardFromRecommendation(card('Pending')), dataStatus: 'pending' }],
+  })
+  const keepAlive = setInterval(() => {}, 1000)
+  t.after(() => clearInterval(keepAlive))
+  const fetcher: typeof fetch = async (_input, init) =>
+    new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true })
+    })
+  const result = await recordBuild(root, pins(initial), commands, defaultLimits, fetcher)
+  assert.equal(result.status, 'complete')
+  assert.equal(result.state.batchNumber, 2)
+  assert.equal(result.state.completedFetches[0].response?.outcome, 'transient-failure')
+  const manifest = JSON.parse(
+    await readFile(join(root, 'manifests', `${result.manifest}.json`), 'utf8'),
+  )
+  const response = JSON.parse(
+    await readFile(join(root, 'responses', `${manifest.entries[0].response}.json`), 'utf8'),
+  )
+  assert.equal(response.status, 'failure')
+  assert.equal(response.kind, 'cancelled')
+  t.mock.method(globalThis, 'fetch', () => {
+    throw new Error('Network forbidden')
+  })
+  assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
 })
