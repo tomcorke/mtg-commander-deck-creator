@@ -36,7 +36,7 @@ function recipe() {
         totalBudget: null,
         perCardCap: null,
         currency: 'USD',
-        allowedSets: [],
+        allowedSets: [] as string[],
         mustInclude: [],
         mustExclude: [],
       },
@@ -94,7 +94,7 @@ test('provider preparation emits executable pins and replays offline through the
   ]
   const built = await recordBuild(root, result.pins, commands, undefined, forbidden)
   assert.equal(built.status, 'complete')
-  assert.equal(built.state.deck.length, 2)
+  assert.equal(built.state.deck.length, 2, JSON.stringify(built))
   assert.deepEqual(await replayBuild(root, built.manifest, commands), built)
   const cli = spawnSync(
     process.execPath,
@@ -182,4 +182,111 @@ test('invalid recipe, runtime bounds and state injection reject before network; 
   )
   await writeFile(join(root, 'responses', `${manifest.entries[0].response}.json`), '{}')
   await assert.rejects(replayPreparation(root, result.manifest), /Corrupt/)
+})
+
+function searchRecipe() {
+  const { pool: _, ...input } = recipe()
+  return { ...input, poolSearch: { query: 'synthetic', order: 'name' as const, maxPages: 2 } }
+}
+const searchResponse = (data: ScryfallCard[], has_more = false) =>
+  new Response(JSON.stringify({ data, has_more, total_cards: data.length }))
+
+test('search pool pages prepare executable pins with shared filters and offline replay', async (t) => {
+  const root = await directory(t)
+  const input = searchRecipe()
+  input.spec.constraints.allowedSets.push('tst')
+  const urls: string[] = []
+  const result = await recordPreparation(root, input, async (url) => {
+    urls.push(String(url))
+    if (urls.length === 1) return response([raw])(url)
+    const candidate = {
+      ...raw,
+      released_at: '2020-01-01',
+      name: 'Retrieved candidate',
+      type_line: 'Artifact',
+    }
+    return urls.length === 2
+      ? searchResponse(
+          [candidate, { ...candidate, name: 'Wrong identity', color_identity: ['U'] }],
+          true,
+        )
+      : searchResponse([
+          candidate,
+          ...Array.from({ length: 7 }, (_, i) => ({ ...candidate, name: `Extra ${i}` })),
+          { ...candidate, name: 'Wrong set', set: 'bad' },
+          raw,
+        ])
+  })
+  assert.equal(result.status, 'ready', JSON.stringify(result))
+  if (result.status !== 'ready') throw new Error('Expected ready')
+  assert.equal(urls.length, 3)
+  assert.equal(new URL(urls[2]).searchParams.get('page'), '2')
+  assert.deepEqual(
+    (result.pins.initialState as { queue: { name: string }[] }).queue.map((c) => c.name).sort(),
+    ['Retrieved candidate', ...Array.from({ length: 7 }, (_, i) => `Extra ${i}`)].sort(),
+  )
+  t.mock.method(globalThis, 'fetch', () => {
+    throw new Error('Network forbidden')
+  })
+  assert.deepEqual(await replayPreparation(root, result.manifest), result)
+  const commands = [
+    {
+      reason: 'Use retrieved pool',
+      action: { type: 'decide', name: 'Retrieved candidate', decision: 'add' },
+    },
+  ]
+  const built = await recordBuild(root, result.pins, commands)
+  assert.equal(built.state.deck.length, 2, JSON.stringify(built))
+  assert.deepEqual(await replayBuild(root, built.manifest, commands), built)
+  const manifest = JSON.parse(
+    await readFile(join(root, 'manifests', `${result.manifest}.json`), 'utf8'),
+  )
+  const path = join(root, 'responses', `${manifest.entries[2].response}.json`)
+  const original = await readFile(path, 'utf8')
+  await writeFile(path, '{}')
+  await assert.rejects(replayPreparation(root, result.manifest), /Corrupt/)
+  await writeFile(path, original)
+  await rm(path)
+  assert.equal((await replayPreparation(root, result.manifest)).status, 'incomplete')
+})
+
+test('search pool failures, empty results and truncation remain replayable without partial pins', async (t) => {
+  const root = await directory(t)
+  for (const [fetcher, expected] of [
+    [async () => searchResponse([], true), 'limit'],
+    [async () => new Response('{}', { status: 400 }), 'failed'],
+    [async () => new Response('{}'), 'failed'],
+    [
+      async () => {
+        throw new TypeError('offline')
+      },
+      'failed',
+    ],
+    [async () => searchResponse([]), 'ready'],
+  ] as const) {
+    let calls = 0
+    const result = await recordPreparation(root, searchRecipe(), async (url, init) =>
+      ++calls === 1 ? response([raw])(url, init) : fetcher(),
+    )
+    assert.equal(result.status, expected, JSON.stringify(result))
+    assert.equal('pins' in result, expected === 'ready')
+    assert.deepEqual(await replayPreparation(root, result.manifest), result)
+  }
+})
+
+test('pool recipe requires exactly one source and bounded search before transport', async (t) => {
+  const root = await directory(t)
+  const input = searchRecipe()
+  for (const invalid of [
+    { ...input, pool: [] },
+    { ...input, poolSearch: undefined },
+    ...[0, 21].map((maxPages) => ({ ...input, poolSearch: { ...input.poolSearch, maxPages } })),
+    { ...input, poolSearch: { ...input.poolSearch, query: '' } },
+    { ...input, poolSearch: { ...input.poolSearch, order: 'random' } },
+  ])
+    await assert.rejects(
+      recordPreparation(root, invalid, async () => {
+        throw new Error('Must not fetch')
+      }),
+    )
 })
