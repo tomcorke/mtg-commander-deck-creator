@@ -8,6 +8,7 @@ import {
   applyBuilderAction,
   type BuilderAction,
   type BuilderState,
+  type BuilderFetchRequest,
 } from '../../src/domain/builder-state.ts'
 import { builderPoolKey } from '../../src/domain/builder-settings.ts'
 import {
@@ -36,6 +37,7 @@ import {
   type RequestStore,
 } from './provider.ts'
 import { digest, recordStore, replayStore, type Json, type Pins } from './data.ts'
+import { retrieveStoredPool } from './pool.ts'
 
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
 const hash = (value: unknown) => digest(json(value))
@@ -258,11 +260,8 @@ async function executeCommand(
   }
   if (result.state.batchNumber > session.lastBatch) return { status: 'limit', detail: 'batches' }
   session.state = result.state
-  if (result.fetchRequests.some((work) => 'kind' in work))
-    return {
-      status: 'incomplete',
-      detail: { reason: 'Provider wiring unavailable', requests: result.fetchRequests },
-    }
+  const fetchStop = await executePoolRequests(session, result.fetchRequests, pins, request, signal)
+  if (fetchStop) return fetchStop
   const stopped = await settleProviderWork(session, pins, request, signal)
   if (stopped) return stopped
   const pendingFeedback =
@@ -275,6 +274,26 @@ async function executeCommand(
     if (session.offered.result.error)
       return { status: 'invalid', detail: session.offered.result.error }
   }
+  return null
+}
+
+async function executePoolRequests(
+  session: Session,
+  requests: BuilderFetchRequest[],
+  pins: Pins,
+  request: RequestStore | undefined,
+  signal: AbortSignal,
+): Promise<Stop | null> {
+  if (requests.some((work) => 'kind' in work && work.kind === 'pool')) {
+    if (!request) return { status: 'incomplete', detail: 'Pool provider unavailable' }
+    const retrieved = await retrieveStoredPool(session.state, pins, request, signal)
+    if (retrieved.status !== 'ready') return retrieved
+    session.state = retrieved.state
+  } else if (requests.some((work) => 'kind' in work))
+    return {
+      status: 'incomplete',
+      detail: { reason: 'Provider wiring unavailable', requests },
+    }
   return null
 }
 

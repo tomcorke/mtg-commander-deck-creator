@@ -20,11 +20,14 @@ import {
   type RequestStore,
 } from './provider.ts'
 import { checkStoreDirectory, checkVersion } from './recommend.ts'
+import { retrieveStoredPool } from './pool.ts'
+import { initialStateSchema } from './builder-contract.ts'
 
 export const providerPreparationSchema = preparationSchema
   .omit({ commanders: true, pool: true })
   .extend({
     pool: preparationSchema.shape.pool.optional(),
+    appPool: z.literal(true).optional(),
     poolSearch: z
       .strictObject({
         query: z.string().trim().min(1).max(2000),
@@ -34,9 +37,12 @@ export const providerPreparationSchema = preparationSchema
       .optional(),
     runtimeMs: z.number().int().min(1).max(600000).default(60000),
   })
-  .refine((recipe) => (recipe.pool !== undefined) !== (recipe.poolSearch !== undefined), {
-    message: 'Supply exactly one of pool or poolSearch',
-  })
+  .refine(
+    (recipe) =>
+      [recipe.pool, recipe.poolSearch, recipe.appPool].filter((value) => value !== undefined)
+        .length === 1,
+    { message: 'Supply exactly one of pool, poolSearch or appPool' },
+  )
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
 
 async function retrievePool(
@@ -103,6 +109,23 @@ function validateRecipePins(pins: Pins, recipe: z.infer<typeof providerPreparati
       throw new Error(`Preparation recipe differs from pins: ${key}`)
 }
 
+async function prepareAppPool(
+  preparedPins: Pins,
+  pins: Pins,
+  request: RequestStore,
+  signal: AbortSignal,
+) {
+  const retrieved = await retrieveStoredPool(
+    initialStateSchema.parse(preparedPins.initialState),
+    pins,
+    request,
+    signal,
+  )
+  return retrieved.status === 'ready'
+    ? { status: 'ready' as const, pins: { ...preparedPins, initialState: json(retrieved.state) } }
+    : retrieved
+}
+
 async function prepare(pins: Pins, request: RequestStore) {
   if (pins.resolvedOptions !== 'provider-preparation-v1')
     throw new Error('Expected a provider preparation manifest')
@@ -116,7 +139,11 @@ async function prepare(pins: Pins, request: RequestStore) {
   if (evidence.outcome !== 'success') return { status: 'failed' as const, evidence }
   try {
     const commanders = resolveCommanders(recipe.spec.commander, evidence.cards ?? [])
-    const { runtimeMs: _, poolSearch, ...input } = recipe
+    const { runtimeMs: _, poolSearch, appPool, ...input } = recipe
+    if (appPool) {
+      const preparedPins = prepareBuild({ ...input, commanders, pool: [] })
+      return { ...(await prepareAppPool(preparedPins, pins, request, signal)), evidence }
+    }
     let pool = recipe.pool ?? []
     const poolEvidence = []
     if (poolSearch) {

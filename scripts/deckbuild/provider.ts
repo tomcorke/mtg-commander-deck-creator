@@ -166,23 +166,27 @@ export async function searchStoredCards(
   })
 }
 
-async function executeStoredOperation(
+export async function executeStoredOperation<T extends FetchResponse>(
   pins: Pins,
   request: RequestStore,
   signal: AbortSignal,
-  execute: (fetcher: typeof fetch) => Promise<FetchResponse>,
+  execute: (fetcher: typeof fetch) => Promise<T>,
 ) {
   // Fresh identity prevents adapter caches/cooldowns from skipping recorded occurrences or depending on wall time.
   let stop: ReplayResult | undefined
   let storeError: unknown
   let cancelled = false
   const pending: Promise<ReplayResult>[] = []
+  let tail = Promise.resolve()
   const fetcher: typeof fetch = async (input, init) => {
     let result: ReplayResult
     try {
-      const operation = request(
-        transportRequest(input, init, pins),
-        AbortSignal.any([signal, ...(init?.signal ? [init.signal] : [])]),
+      const descriptor = transportRequest(input, init, pins)
+      const requestSignal = AbortSignal.any([signal, ...(init?.signal ? [init.signal] : [])])
+      const operation = tail.then(() => request(descriptor, requestSignal))
+      tail = operation.then(
+        () => {},
+        () => {},
       )
       pending.push(operation)
       result = await operation
@@ -209,7 +213,7 @@ async function executeStoredOperation(
       throw error
     }
   }
-  let response: FetchResponse
+  let response: T | FetchResponse
   try {
     response = await execute(fetcher)
   } catch (error) {
