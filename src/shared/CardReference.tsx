@@ -8,6 +8,7 @@ type Props = {
     Partial<Pick<Card, 'backImage' | 'finish' | 'foilType' | 'set' | 'collectorNumber'>>
   onOpen: () => void
   thumbnail?: boolean
+  preview?: boolean
   disabled?: boolean
   className?: string
 }
@@ -16,6 +17,7 @@ export function CardReference({
   card,
   onOpen,
   thumbnail = false,
+  preview = true,
   disabled = false,
   className = '',
 }: Props) {
@@ -50,21 +52,23 @@ export function CardReference({
         )}
         {card.name}
       </button>
-      <CardImagePreview image={card.image} placement="reference">
-        {card.image && (
-          <FinishedCardImage
-            image={card.image}
-            backImage={card.backImage}
-            finish={card.finish as CardFinish | undefined}
-            foilType={card.foilType}
-            set={card.set}
-            collectorNumber={card.collectorNumber}
-            alt={card.name}
-            cardName={card.name}
-            className=""
-          />
-        )}
-      </CardImagePreview>
+      {preview && (
+        <CardImagePreview image={card.image} placement="reference">
+          {card.image && (
+            <FinishedCardImage
+              image={card.image}
+              backImage={card.backImage}
+              finish={card.finish as CardFinish | undefined}
+              foilType={card.foilType}
+              set={card.set}
+              collectorNumber={card.collectorNumber}
+              alt={card.name}
+              cardName={card.name}
+              className=""
+            />
+          )}
+        </CardImagePreview>
+      )}
     </span>
   )
 }
