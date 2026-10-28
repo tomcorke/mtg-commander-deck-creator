@@ -1,0 +1,134 @@
+﻿{
+  "version": 1,
+  "status": "incomplete",
+  "portable": false,
+  "commonInputs": "not-established",
+  "retainedRecipes": [
+    {
+      "path": "E:/working/agent-sandbox/research/deckbuild/issue-98-slice-16/original-recipe.json",
+      "sha256": "1c96778f93b743c4307d076f14aa933d47c424e0b1bd0f955c8a95d63f7d36a7",
+      "spec": {
+        "commander": ["Krenko, Mob Boss"],
+        "bracket": 2,
+        "pace": "Incremental telegraphed development; no early combo goal",
+        "experience": "Casual creature combat",
+        "theme": "Goblins",
+        "idea": "Build a Goblin creature board with a coherent combat plan",
+        "constraints": {
+          "totalBudget": null,
+          "perCardCap": null,
+          "currency": "USD",
+          "allowedSets": [],
+          "mustInclude": [],
+          "mustExclude": []
+        }
+      },
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "precon",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "snapshotId": "issue-98-slice-15-live-2026-10-27T18:26:08.297Z",
+      "sourceVersion": "Scryfall-live-issue-98-slice-15",
+      "policyVersion": "KB@5b1412c6b304cff9369b393b42d2197aca622a12:knowledge/topics/commander/rules.md,knowledge/topics/commander/format-policy.md,knowledge/topics/providers/card-data.md",
+      "status": "not-prepared"
+    },
+    {
+      "path": "E:/working/agent-sandbox/research/deckbuild/issue-98-slice-17/recipe.json",
+      "sha256": "0e42f7ea5ef50caf408b7190d28614d98b00068886ab7c09522ffcbb70de3974",
+      "spec": {
+        "commander": ["Tatyova, Benthic Druid"],
+        "bracket": 3,
+        "pace": "Develop resources for a strong accumulated-resource turn; target games lasting at least six turns, no intentional infinite combos",
+        "experience": "Interactive landfall value with combat finish",
+        "theme": "Landfall",
+        "idea": "Turn land drops into cards and life, then convert accumulated lands and creatures into a combat win",
+        "constraints": {
+          "totalBudget": null,
+          "perCardCap": null,
+          "currency": "USD",
+          "allowedSets": [],
+          "mustInclude": [],
+          "mustExclude": []
+        }
+      },
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "upgraded",
+        "includeCreature": true,
+        "maxPrice": null,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 38,
+          "ramp": 12,
+          "draw": 8,
+          "removal": 9,
+          "wipes": 2
+        }
+      },
+      "snapshotId": "issue-98-slice-17-2026-10-27T23:25:19.1643297Z",
+      "sourceVersion": "Scryfall-live-issue-98-slice-17-2026-10-27T23:25:19.1643297Z",
+      "policyVersion": "KB@5b1412c6b304cff9369b393b42d2197aca622a12:{\"knowledge/topics/commander/rules.md\":\"4554707ed0bb557a6a44aac178de8ae5b4ec709e5fe13adf8010f951a8bcc54c\",\"knowledge/topics/commander/format-policy.md\":\"9a3bf1c574b246b4c38449411ab482bf655604b3da851eeec5a2bd82079085cd\",\"knowledge/topics/providers/card-data.md\":\"4f0b792b484f5c4880983b7a140b49280f93acc2ad4b41629aae95b4d91f407b\"}",
+      "status": "not-prepared"
+    },
+    {
+      "path": "E:/working/agent-sandbox/research/deckbuild/issue-98-slice-18-attempt-5/recipe.json",
+      "sha256": "6faa939502358be21f33ea8aa0b8bc2139c8b34e6780bc0e768095bcc86b8b98",
+      "spec": {
+        "commander": ["Ayula, Queen Among Bears"],
+        "bracket": 1,
+        "pace": "Theme before power; telegraphed combat wins, intended games lasting at least nine turns",
+        "experience": "Relaxed Bear-themed combat with visible creature development",
+        "theme": "Bears",
+        "idea": "A woodland gathering of Bears; Ayula supports Bear creatures with counters and interaction, avoid optimized explosive engines and intentional infinite combos",
+        "constraints": {
+          "totalBudget": null,
+          "perCardCap": null,
+          "currency": "USD",
+          "allowedSets": [],
+          "mustInclude": [],
+          "mustExclude": []
+        }
+      },
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "precon",
+        "includeCreature": true,
+        "maxPrice": null,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 38,
+          "ramp": 10,
+          "draw": 9,
+          "removal": 8,
+          "wipes": 2
+        }
+      },
+      "snapshotId": "ayula-2026-10-27T23:41:52.293Z",
+      "sourceVersion": "Scryfall-live-2026-10-27T23:41:52.293Z",
+      "policyVersion": "KB@5b1412c6b304cff9369b393b42d2197aca622a12:{\"knowledge/topics/commander/rules.md\":\"4554707ed0bb557a6a44aac178de8ae5b4ec709e5fe13adf8010f951a8bcc54c\",\"knowledge/topics/commander/format-policy.md\":\"9a3bf1c574b246b4c38449411ab482bf655604b3da851eeec5a2bd82079085cd\",\"knowledge/topics/providers/card-data.md\":\"4f0b792b484f5c4880983b7a140b49280f93acc2ad4b41629aae95b4d91f407b\"}",
+      "status": "not-prepared"
+    }
+  ]
+}

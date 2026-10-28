@@ -1,0 +1,16 @@
+{
+  "commander": ["Atraxa, Praetors' Voice"],
+  "bracket": 3,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "proliferate",
+  "idea": "Intended proliferate strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

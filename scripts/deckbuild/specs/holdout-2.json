@@ -1,0 +1,16 @@
+{
+  "commander": ["Zur the Enchanter"],
+  "bracket": 3,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "enchantment-toolbox",
+  "idea": "Intended enchantment-toolbox strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

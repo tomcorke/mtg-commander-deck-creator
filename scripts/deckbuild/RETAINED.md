@@ -1,0 +1,9 @@
+﻿# Retained recipe provenance (incomplete milestone)
+
+Run `node --experimental-strip-types scripts/deckbuild/audit-retained.ts` from the checkout. This offline audit verifies the three external recipe byte hashes, strict existing spec/settings schemas, copied identities and per-card cap alignment. Missing files, changed bytes and mismatched metadata reject. It makes no network requests.
+
+`specs/retained-provenance.json` records exact retained research paths; these are machine-local evidence references, not portable inputs. Each recipe has a distinct snapshot/provider source. Their shared KB revision does not establish common provider inputs. No frozen commander/pool recipe is supplied here, so all three remain not-prepared for this milestone. Existing retained complete-deck evidence remains separate.
+
+The executable bounded suite is now suite.json, audited by fixed-suite.ts. This retained provenance file remains historical recipe identity evidence, not common-input readiness. Real cases remain not-prepared for common evaluation.
+
+Constraint expectations for every suite case: commander names/order and per-card cap/settings alignment are mechanically checked when assembling a recipe. Allowed sets refer to selected printings, and must-include/exclude lists refer to exact card names; a complete deck must pass the existing completed-review constraint gate. Total budgets sum selected-printing USD snapshot prices across copies, including commanders; any missing price leaves certification unresolved. Unknown prices passing the app per-card filter do not certify a cap. Bracket, pace, theme and idea remain reviewer-assessed intent. None of these constraints is certified by a not-prepared brief. Ayula's retained release/printing preference gap and earlier failed builds remain unresolved evidence.

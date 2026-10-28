@@ -1,0 +1,16 @@
+{
+  "commander": ["Krenko, Mob Boss"],
+  "bracket": 2,
+  "pace": "Incremental telegraphed development; no early combo goal",
+  "experience": "Casual creature combat",
+  "theme": "Goblins",
+  "idea": "Build a Goblin creature board with a coherent combat plan",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

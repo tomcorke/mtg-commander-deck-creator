@@ -1,0 +1,16 @@
+{
+  "commander": ["Arcades, the Strategist"],
+  "bracket": 2,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "defenders",
+  "idea": "Intended defenders strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

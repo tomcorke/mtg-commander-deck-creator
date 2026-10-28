@@ -1,0 +1,16 @@
+{
+  "commander": ["Zada, Hedron Grinder"],
+  "bracket": 4,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "spell-copy",
+  "idea": "Intended spell-copy strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": 20,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

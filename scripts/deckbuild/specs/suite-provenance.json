@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Zada, Hedron Grinder",
+    "url": "https://api.scryfall.com/cards/named?exact=Zada%2C%20Hedron%20Grinder",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\4520cdcc-a10f-4b39-9c6f-ba86f6aa2c87.json",
+    "sha256": "10492877e5d5f0fce65ecd95e92d80b8d0c51a08a20f168a8811659e579ba1fd"
+  },
+  {
+    "name": "Osgir, the Reconstructor",
+    "url": "https://api.scryfall.com/cards/named?exact=Osgir%2C%20the%20Reconstructor",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\5815fe6e-e26b-4918-a090-55d6442722c1.json",
+    "sha256": "89cb6ce9da0beecb2853bc7dc89b80926f8fb9a04fafa4d3e54266858af43977"
+  },
+  {
+    "name": "Kozilek, the Great Distortion",
+    "url": "https://api.scryfall.com/cards/named?exact=Kozilek%2C%20the%20Great%20Distortion",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\c41554e7-2a07-4cc7-b01b-44deed08e588.json",
+    "sha256": "bdfb0d58defb7bc54f7e9dcd382c5505075819df8fa38d27ab45432fe7b681d2"
+  },
+  {
+    "name": "Yuriko, the Tiger's Shadow",
+    "url": "https://api.scryfall.com/cards/named?exact=Yuriko%2C%20the%20Tiger%27s%20Shadow",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\fe9be3e0-076c-4703-9750-2a6b0a178bc9.json",
+    "sha256": "fdb7ead83c636d5b33b6fd300c3a79e31c44adb52af28e57f7899386b5efa751"
+  },
+  {
+    "name": "Tymna the Weaver",
+    "url": "https://api.scryfall.com/cards/named?exact=Tymna%20the%20Weaver",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\bc7cbe9b-324e-42b8-94e2-36e91cb32163.json",
+    "sha256": "94b2e7f4b2ebf09d41b5917d319190199313b8d696f68e6b055819382c7e8791"
+  },
+  {
+    "name": "Kraum, Ludevic's Opus",
+    "url": "https://api.scryfall.com/cards/named?exact=Kraum%2C%20Ludevic%27s%20Opus",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\557fcd17-6cb3-414a-b2b1-ea9ae32e5aec.json",
+    "sha256": "66c5d54d1072df9b873d93b55c378bae048527d281d6162658df218a2620e61d"
+  },
+  {
+    "name": "Arcades, the Strategist",
+    "url": "https://api.scryfall.com/cards/named?exact=Arcades%2C%20the%20Strategist",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\1e90c638-d4b2-4243-bbc4-1cc10516c40f.json",
+    "sha256": "ebdb55c6c7d1c7f65fd406c3e621032febbfecd479e94d432f9903ffac069d3e"
+  },
+  {
+    "name": "Zur the Enchanter",
+    "url": "https://api.scryfall.com/cards/named?exact=Zur%20the%20Enchanter",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\561cfc04-65ea-49a4-8638-b4631a7cf828.json",
+    "sha256": "22d978fadb42c2fa30974837d6b7560c6712e7a155757cf7678e6c1696ce2c28"
+  },
+  {
+    "name": "Meren of Clan Nel Toth",
+    "url": "https://api.scryfall.com/cards/named?exact=Meren%20of%20Clan%20Nel%20Toth",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\508b1442-bf2c-4ad6-9bcf-bd894e081ab6.json",
+    "sha256": "c859ef6f4f8e99de0447eb2a0b299a4a5d560cab701675a0e8d185e37d6d4925"
+  },
+  {
+    "name": "Atraxa, Praetors' Voice",
+    "url": "https://api.scryfall.com/cards/named?exact=Atraxa%2C%20Praetors%27%20Voice",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\d0d33d52-3d28-4635-b985-51e126289259.json",
+    "sha256": "031722d23336853678289e6b8ce1392bac3c9b36c258e33c07617d1f0596913a"
+  },
+  {
+    "name": "Anje Falkenrath",
+    "url": "https://api.scryfall.com/cards/named?exact=Anje%20Falkenrath",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\913dd06f-ed2f-4128-9c9d-9cd0d8a55425.json",
+    "sha256": "63db792a531efaa88a53651a2b36c24c94f66a9946b436400244497256e6fca4"
+  },
+  {
+    "name": "Ranar the Ever-Watchful",
+    "url": "https://api.scryfall.com/cards/named?exact=Ranar%20the%20Ever-Watchful",
+    "date": "2026-10-28",
+    "path": "E:\\working\\agent-sandbox\\research\\deckbuild\\issue-98-fixed-suite\\1c8c41dd-8551-4ce8-a9be-9b9f65718852.json",
+    "sha256": "788e81081f87b33c304d30e053b6509c76c10175b3ed1c66bb355dd783b0cd29"
+  }
+]
