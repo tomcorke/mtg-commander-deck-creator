@@ -836,6 +836,10 @@ button:disabled {
 .deck-card-modal .commander-promotion-button {
   padding-inline: 13px;
 }
+/* Keep title margins inside the live copy, matching the absolutely positioned outgoing copy. */
+.card-copy {
+  display: flow-root;
+}
 .card-copy h3 {
   position: relative;
   z-index: 2;

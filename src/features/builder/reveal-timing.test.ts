@@ -36,7 +36,15 @@ test('rotation is reversed while timing and left-to-right staggering stay unchan
   assert(revealFrame(flipDuration / 4, true).angle < 0)
   assert(revealFrame(flipDuration * 1.25, true).angle < -Math.PI)
   assert.equal(revealFrame(0, false).angle, -Math.PI)
-  assert(revealFrame(flipDuration / 4, false).angle > -Math.PI)
+  assert(revealFrame(flipDuration / 4, false).angle < -Math.PI)
   assert.equal(flipStagger, 180)
   assert.equal(flipDuration, 750)
+})
+
+test('initial and rolling incoming reveals turn in the same direction', () => {
+  for (const progress of [0, 0.25, 0.5, 0.75, 1]) {
+    const initial = revealFrame(flipDuration * progress, false)
+    const incoming = revealFrame(flipDuration * (1 + progress), true)
+    assert.equal(initial.angle, incoming.angle)
+  }
 })
