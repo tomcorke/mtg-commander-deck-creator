@@ -25,7 +25,7 @@
   border-radius: 10px;
   background: #36327f;
   color: white;
-  font-size: 10px;
+  font-size: var(--type-data);
   font-weight: 600;
   line-height: 1.2;
 }
@@ -41,12 +41,12 @@
   border-radius: 7px;
   background: #f8f8ff;
   color: #34324a;
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.4;
   white-space: normal;
 }
 .request-activity-details {
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.4;
 }
 .display-settings-panel .request-activity-details {

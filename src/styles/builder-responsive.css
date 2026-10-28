@@ -119,7 +119,7 @@
 }
 .batch-rebuild {
   display: block;
-  font-size: 12px;
+  font-size: var(--type-data);
   font-weight: 500;
 }
 /* Out of flow so the note never moves the button off the toolbar row. */
@@ -136,11 +136,11 @@
   gap: 10px;
   margin: 20px 0 0;
   color: #8a5b16;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .limited-mode .export {
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .batch-controls .primary {
   padding: 12px 18px;
@@ -350,13 +350,13 @@
 }
 .completion h2 {
   margin-bottom: 8px;
-  font-size: clamp(28px, 4vw, 44px);
+  font-size: var(--type-page-title);
 }
 .sideboard-completion {
   padding-block: 28px;
 }
 .sideboard-completion h2 {
-  font-size: clamp(26px, 3vw, 36px);
+  font-size: var(--type-page-title);
 }
 .sideboard-completion p:not(.eyebrow) {
   margin-bottom: 14px;
@@ -463,7 +463,7 @@
     border-bottom: 1px solid #dedcea;
     background: #f8f8ff;
     color: #34324a;
-    font-size: 14px;
+    font-size: var(--type-body);
     font-weight: 600;
   }
   .dark .narrow-deck-bar {
@@ -480,7 +480,7 @@
     white-space: nowrap;
   }
   header .brand {
-    font-size: 18px;
+    font-size: var(--type-card-name);
   }
   header .progress span {
     display: none;

@@ -113,7 +113,7 @@
 }
 .batch-undecided {
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .action-help-wrap {
   position: relative;
@@ -128,7 +128,7 @@
   border-radius: 6px;
   background: #201c3c;
   color: white;
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.35;
   opacity: 0;
   pointer-events: none;
@@ -157,7 +157,7 @@
   border-radius: 19px;
   color: var(--text-accent);
   background: transparent;
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.1;
   text-align: left;
 }
@@ -189,7 +189,7 @@
   border-radius: 6px;
   background: #201c3c;
   color: white;
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.35;
   opacity: 0;
   pointer-events: none;
@@ -206,7 +206,7 @@
 .deck-heading span {
   color: var(--text-accent);
   font:
-    600 18px 'Spectral',
+    600 var(--type-card-name) 'Spectral',
     serif;
 }
 .manual-card-button {
@@ -238,7 +238,7 @@
 }
 .deck-analysis-heading .export {
   padding: 6px 9px;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .deck-analysis-actions {
   display: flex;
@@ -253,7 +253,7 @@
 }
 .deck-analysis h3 {
   margin-bottom: 14px;
-  font-size: 18px;
+  font-size: var(--type-card-name);
 }
 .deck-analysis-heading h3 {
   margin-bottom: 0;
@@ -262,7 +262,7 @@
   margin: 16px 0 8px;
   color: inherit;
   font:
-    600 12px 'DM Sans',
+    600 var(--type-caption) 'DM Sans',
     sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.7px;
@@ -321,7 +321,7 @@
   background: var(--commander-highlight, #c19ae8);
 }
 .mana-curve b {
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .curve-legend {
   display: flex;
@@ -329,7 +329,7 @@
   align-items: center;
   margin-top: 6px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .curve-legend span {
   display: flex;
@@ -351,7 +351,7 @@
   align-items: center;
   margin-top: 5px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .colour-bar {
   display: flex;
@@ -372,7 +372,7 @@
   height: 15px;
 }
 .colour-segment b {
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .colour-empty {
   display: grid;
@@ -380,7 +380,7 @@
   place-items: center;
   background: #d6d4e2;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-caption);
   text-transform: uppercase;
 }
 .colour-w {
@@ -411,17 +411,17 @@
 }
 .target-heading span {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .deck-targets {
   display: grid;
   gap: 7px;
 }
 .deck-target-row {
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 .bar-label.deck-target-row > b {
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 .deck-target-focus,
 .deck-target-met {
@@ -446,7 +446,7 @@
 }
 .deck-targets label,
 .type-counts > span {
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .bar-label {
   display: grid;
@@ -456,7 +456,7 @@
 }
 .bar-label b {
   color: inherit;
-  font-size: 12px;
+  font-size: var(--type-data);
   font-weight: 600;
   text-align: right;
   text-transform: none;
@@ -510,7 +510,7 @@
 }
 .basic-land-button b {
   color: inherit;
-  font-size: 12px;
+  font-size: var(--type-data);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -539,16 +539,16 @@
   gap: 10px;
   margin: 6px 0 10px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .land-fill-step h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--type-card-name);
 }
 .land-fill-step > p {
   margin: 2px 0 8px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .nonbasic-land-list {
   margin: 0 0 18px;
@@ -567,7 +567,7 @@
   flex: 1;
   margin: 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 @media (max-width: 620px) {
   .nonbasic-land-list li {
@@ -620,7 +620,7 @@
 .deck-guidance p {
   margin: 3px 0;
   color: #6f6045;
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
   line-height: 1.35;
 }
 .deck-guidance p.strong {
@@ -639,7 +639,7 @@ li {
   gap: 10px;
   padding: 11px 0;
   border-bottom: 1px solid #dad8e6;
-  font-size: 13px;
+  font-size: var(--type-data);
   transition: opacity 0.15s;
 }
 li.deck-highlight-dimmed {
@@ -673,7 +673,7 @@ li.deck-highlight-dimmed {
   justify-content: space-between;
   color: var(--text-muted);
   font:
-    600 12px 'DM Sans',
+    600 var(--type-data) 'DM Sans',
     sans-serif;
   letter-spacing: 0.7px;
   text-transform: uppercase;
@@ -713,7 +713,7 @@ li.deck-highlight-dimmed {
   border-radius: 5px;
   background: transparent;
   color: #5d568d;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .sideboard-column .deck-remove {
   opacity: 1;
@@ -755,7 +755,7 @@ li.deck-highlight-dimmed {
   border-radius: 5px;
   background: #201c3c;
   color: white;
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.3;
   box-shadow: 0 5px 14px #08071255;
 }
@@ -798,7 +798,7 @@ li.deck-highlight-dimmed {
   color: inherit;
 }
 .basic-placeholder > button b {
-  font-size: 18px;
+  font-size: var(--type-card-name);
 }
 .deck-card-name {
   position: relative;
@@ -851,7 +851,7 @@ li.deck-highlight-dimmed {
   background: #161525;
   box-shadow: 0 12px 36px #0009;
   color: white;
-  font-size: 11px;
+  font-size: var(--type-data);
   pointer-events: none;
   opacity: 0;
   transform: var(--preview-transform);
@@ -923,7 +923,7 @@ button:focus-visible .card-image-preview,
 .finish-label {
   margin-left: 6px;
   color: inherit;
-  font-size: 12px;
+  font-size: var(--type-caption);
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }
@@ -974,7 +974,7 @@ button:focus-visible .card-image-preview,
 }
 li b {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
   font-weight: 500;
   text-transform: uppercase;
 }
@@ -1015,7 +1015,7 @@ li b {
   padding: 0;
   list-style: none;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .recommendation-loading li {
   display: flex;
@@ -1068,7 +1068,7 @@ li b {
 .deck-board .deck-mana > .finish-label {
   flex: none;
   margin: 0 0 0 6px;
-  font-size: 11px;
+  font-size: var(--type-data);
 }
 .deck-board .deck-group ol > li .deck-remove-wrap {
   position: static;
@@ -1087,7 +1087,7 @@ li b {
 }
 .deck-board .card-quantity {
   color: inherit;
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1095,7 +1095,7 @@ li b {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 /* Wide tiles keep the natural single row beside More like this. Narrower tiles use aligned
    columns: three across, then Add above Later and Ignore, then a single stack. */

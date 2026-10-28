@@ -20,11 +20,11 @@
 }
 .search-page-context h1 {
   margin: 0;
-  font-size: clamp(28px, 3vw, 44px);
+  font-size: var(--type-page-title);
 }
 .search-page-context p:not(.eyebrow) {
   color: var(--search-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.5;
 }
 .card-search-workspace {
@@ -58,20 +58,20 @@
 }
 .card-search-filters legend,
 .search-keywords > summary {
-  font-size: 14px;
+  font-size: var(--type-body);
   font-weight: 600;
 }
 .card-search-filters p {
   margin: 8px 0 0;
   color: var(--search-muted);
-  font-size: 11px;
+  font-size: var(--type-data);
   line-height: 1.5;
 }
 .search-field {
   display: grid;
   gap: 6px;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .card-search-shell input:not([type='checkbox']),
 .card-search-shell select {
@@ -102,7 +102,7 @@
 .search-filter-actions button {
   flex: 1;
   padding: 10px 8px;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .search-value-bounds {
   display: grid;
@@ -115,7 +115,7 @@
   justify-content: space-between;
   gap: 8px;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .search-filter-row > span {
   display: inline-flex;
@@ -157,7 +157,7 @@
 .search-notice,
 .card-search-results-panel > p {
   color: var(--search-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.5;
 }
 .search-notice:empty {
@@ -169,7 +169,7 @@
 .search-result-actions a {
   margin-left: auto;
   color: inherit;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .card-search-grid {
   display: grid;
@@ -207,7 +207,7 @@
 }
 .search-card details {
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .search-card summary,
 .search-keywords summary {
@@ -230,7 +230,7 @@
   border-top: 1px solid var(--search-border);
   background: var(--search-panel);
   box-shadow: 0 -6px 18px #0003;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 @media (max-width: 1000px) {
   .search-page-context {
@@ -266,7 +266,7 @@
   }
   .search-card .primary {
     padding: 8px;
-    font-size: 12px;
+    font-size: var(--type-data);
   }
   .card-search-selection-bar > span {
     width: 100%;
