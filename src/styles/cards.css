@@ -836,6 +836,10 @@ button:disabled {
 .deck-card-modal .commander-promotion-button {
   padding-inline: 13px;
 }
+/* Keep title margins inside the live copy, matching the absolutely positioned outgoing copy. */
+.card-copy {
+  display: flow-root;
+}
 .card-copy h3 {
   position: relative;
   z-index: 2;
@@ -1070,4 +1074,61 @@ button:disabled {
   flex: 1;
   padding: 8px;
   font-size: 14px;
+}
+
+/* Keep the fan transform on the outer wrapper; reveal geometry lives inside its canvas. */
+.offered-image > .finished-card[data-card-reveal] {
+  background: url('/images/mtg-card-back.png') center / 100% 100% no-repeat;
+  animation: none;
+}
+.offered-image > .finished-card[data-card-reveal='flipping'] {
+  background: none;
+}
+.finished-card[data-card-reveal] > img,
+.finished-card[data-card-reveal]::before,
+.finished-card[data-card-reveal]::after,
+.finished-card[data-card-reveal] > .synergy-connector {
+  visibility: hidden;
+}
+.card-reveal-canvas {
+  position: absolute;
+  z-index: 3;
+  width: 125%;
+  height: 125%;
+  left: -12.5%;
+  top: -12.5%;
+  pointer-events: none;
+}
+
+/* Suppress the stationary lift and synergy glow immediately; the normal shadow transition
+   fades them back in after this attribute is removed at the end of each card's flip. */
+.card-grid .offered-image > .finished-card[data-card-reveal] {
+  box-shadow: none;
+  transition-property: transform;
+}
+
+/* A soft table shadow stays inside the card's footprint, including at edge-on. */
+.card-reveal-shadow {
+  position: absolute;
+  z-index: 1;
+  inset: 16% 8%;
+  background: radial-gradient(ellipse closest-side, #0006 0%, #0003 50%, transparent 100%);
+  pointer-events: none;
+}
+
+.card-offer[data-batch-changing] > .card-copy {
+  position: relative;
+}
+.card-offer[data-batch-changing] > .card-copy > :not(.batch-old-copy),
+.card-offer[data-batch-changing] > .offer-heading,
+.card-offer[data-batch-changing] > .actions,
+.card-offer[data-batch-changing] .card-image-actions,
+.card-offer[data-batch-changing] .synergy-info {
+  opacity: var(--batch-copy-opacity, 0);
+}
+.card-copy > .batch-old-copy {
+  position: absolute;
+  inset: 0 0 auto;
+  margin: 0;
+  pointer-events: none;
 }

@@ -5,6 +5,8 @@ export type VisualPreferences = {
   setDarkMode: Dispatch<SetStateAction<boolean>>
   commanderStyling: boolean
   setCommanderStyling: Dispatch<SetStateAction<boolean>>
+  cardReveals: boolean
+  setCardReveals: Dispatch<SetStateAction<boolean>>
   cardEffects: boolean
   setCardEffects: Dispatch<SetStateAction<boolean>>
 }

@@ -98,8 +98,24 @@
   max-width: 280px;
   text-align: left;
 }
+/* Busy labels are status feedback, so keep them readable while repeat clicks are disabled. */
+.batch-controls .nav-forward[aria-busy='true'] {
+  opacity: 1;
+  cursor: progress;
+}
 .batch-controls .nav-forward > span {
   padding-block: 8px;
+}
+/* Reserve the idle label's footprint so busy feedback never resizes the toolbar. */
+.batch-button-label {
+  display: grid;
+}
+.batch-button-label > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+.batch-button-size {
+  visibility: hidden;
 }
 .batch-rebuild {
   display: block;

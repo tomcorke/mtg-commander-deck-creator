@@ -38,10 +38,15 @@ export const foilShaderTypes = {
 
 const vertexSource = `
 attribute vec2 aPosition;
+uniform float uRotation;
+uniform float uScale;
 varying vec2 vUv;
 void main() {
   vUv = vec2(aPosition.x * 0.5 + 0.5, 0.5 - aPosition.y * 0.5);
-  gl_Position = vec4(aPosition, 0.0, 1.0);
+  float facing = cos(uRotation);
+  if (facing < 0.0) vUv.x = 1.0 - vUv.x;
+  float depth = -aPosition.x * sin(uRotation);
+  gl_Position = vec4(aPosition.x * facing * uScale, aPosition.y * uScale, 0.0, 1.0 + depth * 0.22);
 }`
 
 const fragmentSource = `
@@ -51,6 +56,7 @@ uniform sampler2D uImage;
 uniform sampler2D uShards; // facet shards: red coverage, green a per-shard seed, blue the rims
 uniform float uHasShards; // 1 when the card has facet shards
 uniform vec2 uPointer;   // 0..1 across the card; (0.5, 0.5) is flat
+uniform float uCornerFeather; // one output pixel in card coordinates
 uniform vec2 uTexel;     // 1 / image size
 uniform float uTime;
 uniform float uAspect;   // height / width
@@ -224,7 +230,8 @@ float texturedField(vec2 p) {
 }
 
 void main() {
-  vec3 base = texture2D(uImage, vUv).rgb;
+  vec4 scan = texture2D(uImage, vUv);
+  vec3 base = scan.rgb;
   vec2 tilt = uPointer - 0.5;
   // Card-space coordinates with square units, so circles stay round.
   vec2 p = vec2(vUv.x, vUv.y * uAspect);
@@ -848,7 +855,14 @@ void main() {
     colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
-  gl_FragColor = vec4(colour, 1.0);
+  // Match the image's 4.75% CSS radius in card UVs, so the cutout rotates with the card.
+  float radius = 0.0475;
+  vec2 corner = max(abs(vUv - 0.5) - (0.5 - radius), 0.0);
+  float coverage = 1.0 - smoothstep(radius - uCornerFeather, radius + uCornerFeather, length(corner));
+  // Preserve PNG cutouts and premultiply before the browser filters/composites the canvas.
+  // Otherwise invisible white RGB can bleed into the rounded edge as the card turns.
+  float alpha = coverage * scan.a;
+  gl_FragColor = vec4(colour * alpha, alpha);
 }`
 
 function compile(gl: WebGLRenderingContext, type: number, source: string) {
@@ -861,7 +875,7 @@ function compile(gl: WebGLRenderingContext, type: number, source: string) {
 }
 
 export function createFoilRenderer(canvas: HTMLCanvasElement) {
-  const gl = canvas.getContext('webgl', { premultipliedAlpha: false })
+  const gl = canvas.getContext('webgl', { premultipliedAlpha: true })
   if (!gl) return null
   const program = gl.createProgram()!
   gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, vertexSource))
@@ -901,7 +915,10 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
   gl.uniform1i(uniform('uImage'), 0)
   gl.uniform1i(uniform('uShards'), 3)
   const uniforms = {
+    rotation: uniform('uRotation'),
+    scale: uniform('uScale'),
     pointer: uniform('uPointer'),
+    cornerFeather: uniform('uCornerFeather'),
     texel: uniform('uTexel'),
     time: uniform('uTime'),
     aspect: uniform('uAspect'),
@@ -912,6 +929,13 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
   let imageSize = { width: 488, height: 680 }
 
   return {
+    dispose() {
+      gl.deleteTexture(texture)
+      gl.deleteTexture(shardTexture)
+      gl.deleteBuffer(buffer)
+      for (const shader of gl.getAttachedShaders(program) ?? []) gl.deleteShader(shader)
+      gl.deleteProgram(program)
+    },
     // The card identifies its facet shards, if it has any (see facet-shards.ts).
     setImage(
       image: HTMLImageElement,
@@ -929,7 +953,11 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
       gl.activeTexture(gl.TEXTURE0)
       gl.bindTexture(gl.TEXTURE_2D, texture)
     },
-    render(type: number, pointer: { x: number; y: number }, time: number) {
+    render(type: number, pointer: { x: number; y: number }, time: number, rotation = 0, scale = 1) {
+      gl.clear(gl.COLOR_BUFFER_BIT)
+      gl.uniform1f(uniforms.rotation, rotation)
+      gl.uniform1f(uniforms.scale, scale)
+      gl.uniform1f(uniforms.cornerFeather, 1 / (canvas.width * scale))
       gl.viewport(0, 0, canvas.width, canvas.height)
       gl.uniform2f(uniforms.pointer, pointer.x, pointer.y)
       gl.uniform2f(uniforms.texel, 1 / imageSize.width, 1 / imageSize.height)

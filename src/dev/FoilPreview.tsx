@@ -163,6 +163,8 @@ export function FoilPreview() {
         setDarkMode,
         commanderStyling: false,
         setCommanderStyling: () => undefined,
+        cardReveals: false,
+        setCardReveals: () => undefined,
         cardEffects,
         setCardEffects,
       }}

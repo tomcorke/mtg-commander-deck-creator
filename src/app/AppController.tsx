@@ -29,6 +29,8 @@ function App({ workspace }: { workspace: DeckWorkspace }) {
         setDarkMode: state.setDarkMode,
         commanderStyling: state.commanderStyling,
         setCommanderStyling: state.setCommanderStyling,
+        cardReveals: state.cardReveals,
+        setCardReveals: state.setCardReveals,
         cardEffects: state.cardEffects,
         setCardEffects: state.setCardEffects,
       }}

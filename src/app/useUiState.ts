@@ -17,6 +17,7 @@ export function useUiState(
     () => localStorage.getItem('theme') !== 'light',
   )
   const [commanderStyling, setCommanderStyling] = useStoredOption('commanderStyling', () => true)
+  const [cardReveals, setCardReveals] = useStoredOption('cardReveals', () => true)
   const [cardEffects, setCardEffects] = useStoredOption('cardEffects', () => true)
   const [awaitingPlayStyle, setAwaitingPlayStyle] = useState(false)
   const [firstBatchPending, setFirstBatchPending] = useState(saved?.firstBatchPending ?? false)
@@ -61,6 +62,8 @@ export function useUiState(
     setDarkMode,
     commanderStyling,
     setCommanderStyling,
+    cardReveals,
+    setCardReveals,
     cardEffects,
     setCardEffects,
     awaitingPlayStyle,

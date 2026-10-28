@@ -145,6 +145,7 @@ function cardElement() {
     getBoundingClientRect: () => ({ left: 10, top: 20, width: 100, height: 200 }),
     querySelector: () => image,
     setAttribute: (key: string, value: string) => attributes.set(key, value),
+    hasAttribute: (key: string) => attributes.has(key),
     removeAttribute: (key: string) => attributes.delete(key),
     append(canvas: { parentElement: unknown }) {
       canvas.parentElement = this
@@ -173,6 +174,11 @@ test('hover uses one lazy context, decoded CORS textures and movement-only frame
   showHoverFoil(dom(first), { image: 'front', finish: 'nonfoil' })
   assert.equal(env.contexts.size, 0)
   assert.equal(env.loaders.length, 0)
+
+  first.setAttribute('data-card-reveal', 'flipping')
+  showHoverFoil(dom(first), foil)
+  assert.equal(env.loaders.length, 0, 'Hover must not cover an active reveal')
+  first.removeAttribute('data-card-reveal')
 
   first.image.complete = false
   showHoverFoil(dom(first), foil)
