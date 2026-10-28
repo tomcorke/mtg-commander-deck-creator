@@ -230,7 +230,8 @@ float texturedField(vec2 p) {
 }
 
 void main() {
-  vec3 base = texture2D(uImage, vUv).rgb;
+  vec4 scan = texture2D(uImage, vUv);
+  vec3 base = scan.rgb;
   vec2 tilt = uPointer - 0.5;
   // Card-space coordinates with square units, so circles stay round.
   vec2 p = vec2(vUv.x, vUv.y * uAspect);
@@ -858,7 +859,10 @@ void main() {
   float radius = 0.0475;
   vec2 corner = max(abs(vUv - 0.5) - (0.5 - radius), 0.0);
   float coverage = 1.0 - smoothstep(radius - uCornerFeather, radius + uCornerFeather, length(corner));
-  gl_FragColor = vec4(colour, coverage);
+  // Preserve PNG cutouts and premultiply before the browser filters/composites the canvas.
+  // Otherwise invisible white RGB can bleed into the rounded edge as the card turns.
+  float alpha = coverage * scan.a;
+  gl_FragColor = vec4(colour * alpha, alpha);
 }`
 
 function compile(gl: WebGLRenderingContext, type: number, source: string) {
@@ -871,7 +875,7 @@ function compile(gl: WebGLRenderingContext, type: number, source: string) {
 }
 
 export function createFoilRenderer(canvas: HTMLCanvasElement) {
-  const gl = canvas.getContext('webgl', { premultipliedAlpha: false })
+  const gl = canvas.getContext('webgl', { premultipliedAlpha: true })
   if (!gl) return null
   const program = gl.createProgram()!
   gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, vertexSource))

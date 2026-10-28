@@ -89,6 +89,7 @@ await withBrowser('CARD_REVEAL', 5250, async (browser, base) => {
   await page.waitForSelector('[data-card-reveal]', { state: 'detached' })
   await checkShadowReturn(page)
   await checkTableShadow(page)
+  await checkCardCompositing(page)
   await page.setViewportSize({ width: 390, height: 844 })
   assert(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -223,5 +224,60 @@ async function checkTableShadow(page: Page) {
     await page.locator('.card-reveal-shadow').count(),
     0,
     'temporary shadow is removed after reveal',
+  )
+}
+
+async function checkCardCompositing(page: Page) {
+  const result = await page.evaluate(async () => {
+    const path = '/src/shared/foil/foil-shader.ts'
+    const { createFoilRenderer } = (await import(
+      path
+    )) as typeof import('../src/shared/foil/foil-shader.ts')
+    const canvas = Object.assign(document.createElement('canvas'), { width: 160, height: 224 })
+    const source = Object.assign(document.createElement('canvas'), { width: 160, height: 224 })
+    const context = source.getContext('2d')!
+    context.fillStyle = 'white'
+    context.fillRect(0, 0, 160, 224)
+    // PNG transparency inside the rounded mask must survive texture upload and front shading.
+    context.clearRect(72, 104, 16, 16)
+    const image = new Image()
+    image.src = source.toDataURL()
+    await image.decode()
+    const renderer = createFoilRenderer(canvas)!
+    const gl = canvas.getContext('webgl')!
+    const pixels = new Uint8Array(160 * 224 * 4)
+    let excess = 0
+    let centreAlpha = 0
+    let feathered = 0
+    renderer.setImage(image)
+    for (const angle of [0, 0.65, Math.PI - 0.65, Math.PI]) {
+      renderer.render(0, { x: 0.5, y: 0.5 }, 0, angle, 0.8)
+      gl.readPixels(0, 0, 160, 224, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+      for (let index = 0; index < pixels.length; index += 4) {
+        const alpha = pixels[index + 3]
+        excess = Math.max(
+          excess,
+          pixels[index] - alpha,
+          pixels[index + 1] - alpha,
+          pixels[index + 2] - alpha,
+        )
+        if (alpha > 0 && alpha < 255) feathered++
+      }
+      centreAlpha = Math.max(centreAlpha, pixels[(112 * 160 + 80) * 4 + 3])
+    }
+    const premultiplied = gl.getContextAttributes()!.premultipliedAlpha
+    renderer.dispose()
+    gl.getExtension('WEBGL_lose_context')?.loseContext()
+    return { excess, centreAlpha, feathered, premultiplied }
+  })
+  assert.equal(
+    result.excess,
+    0,
+    'transparent and antialiased corner pixels contain no unassociated white RGB',
+  )
+  assert.equal(result.centreAlpha, 0, 'front-image PNG transparency survives rendering')
+  assert(
+    result.feathered > 0 && result.premultiplied,
+    'soft edges use the compositor premultiplied-alpha contract',
   )
 }
