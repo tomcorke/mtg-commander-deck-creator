@@ -22,7 +22,7 @@ test('a rolling slot hides old copy before exposing new copy and completes facin
   const finished = revealFrame(flipDuration * 2, true)
   assert.equal(finished.side, 'new')
   assert.equal(finished.newOpacity, 1)
-  assert.equal(finished.angle, Math.PI * 2)
+  assert.equal(finished.angle, -Math.PI * 2)
   assert.equal(finished.done, true)
 })
 
@@ -30,4 +30,13 @@ test('initial reveals keep their original timing and begin on a standard back', 
   assert.equal(revealFrame(0, false).side, 'back')
   assert.equal(revealFrame(flipDuration, false).done, true)
   assert.equal(revealFrame(flipDuration - 1, false).done, false)
+})
+
+test('rotation is reversed while timing and left-to-right staggering stay unchanged', () => {
+  assert(revealFrame(flipDuration / 4, true).angle < 0)
+  assert(revealFrame(flipDuration * 1.25, true).angle < -Math.PI)
+  assert.equal(revealFrame(0, false).angle, -Math.PI)
+  assert(revealFrame(flipDuration / 4, false).angle > -Math.PI)
+  assert.equal(flipStagger, 180)
+  assert.equal(flipDuration, 750)
 })
