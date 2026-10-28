@@ -77,7 +77,7 @@
   min-width: 0;
   flex: 1 1 auto;
   margin: 0;
-  font-size: clamp(26px, 4vw, 38px);
+  font-size: var(--type-page-title);
 }
 .deck-card-modal-mana {
   display: flex;
@@ -106,7 +106,7 @@
   border-radius: 6px;
   background: transparent;
   color: #9a413d;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .deck-card-modal-remove:hover,
 .deck-card-modal-remove:focus-visible {
@@ -121,11 +121,11 @@
 .card-type-line {
   margin-bottom: 14px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .deck-card-description {
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: var(--type-card-name);
   line-height: 1.6;
   white-space: pre-line;
 }
@@ -136,11 +136,11 @@
   margin-top: 0.42em;
 }
 .deck-card-modal .card-details {
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.45;
 }
 .deck-card-modal .card-details a {
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .export-heading {
   display: flex;
@@ -149,14 +149,14 @@
 }
 .export-heading h2 {
   margin: 0;
-  font-size: 28px;
+  font-size: var(--type-page-title);
 }
 .modal-close {
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 30px;
+  font-size: 30px; /* × glyph, not text */
   line-height: 1;
 }
 .format-tabs {
@@ -179,7 +179,7 @@
 .moxfield-instructions {
   margin: 0 0 12px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.45;
 }
 .export-modal textarea {
@@ -315,7 +315,7 @@
 .doctor-goal-settings p {
   margin: 0;
   color: var(--doctor-muted);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
   line-height: 1.5;
 }
 .doctor-readiness {
@@ -334,7 +334,7 @@
 .doctor-readiness p {
   margin: 0;
   color: var(--doctor-muted);
-  font-size: 14px;
+  font-size: var(--type-body);
   line-height: 1.5;
 }
 .doctor-gap-list {
@@ -351,7 +351,7 @@
   align-items: center;
   gap: 8px;
   color: var(--doctor-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
   font-weight: 650;
 }
 .doctor-filter select,
@@ -380,19 +380,19 @@
   border-radius: 8px;
   background: #eeedf7;
   color: #514e66;
-  font-size: 14px;
+  font-size: var(--type-body);
 }
 .deck-review-grid {
   margin-top: 0;
 }
 .doctor-page-context h1 {
   margin: 0;
-  font-size: clamp(26px, 2.5vw, 36px);
+  font-size: var(--type-page-title);
 }
 .doctor-page-context > p {
   margin: 12px 0;
   color: var(--doctor-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.5;
 }
 .doctor-context-status,
@@ -404,7 +404,7 @@
 }
 .doctor-context-status {
   color: var(--doctor-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .doctor-page-actions {
   margin-top: 14px;
@@ -413,7 +413,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.4;
 }
 .doctor-checkbox input,
@@ -424,7 +424,7 @@
 .doctor-muted,
 .doctor-empty {
   color: var(--doctor-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.5;
 }
 .doctor-page [id] {
@@ -438,7 +438,7 @@
 }
 .doctor-muted {
   margin: 6px 0 12px;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .doctor-findings,
 .doctor-change-panel,
@@ -462,7 +462,7 @@
 }
 .doctor-section-heading > span {
   color: var(--doctor-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .doctor-finding,
 .doctor-selection-section,
@@ -477,7 +477,7 @@
 }
 .doctor-finding h3 {
   margin: 0 0 6px;
-  font-size: 17px;
+  font-size: var(--type-card-name);
 }
 .doctor-finding:focus-visible {
   outline: 2px solid var(--commander-accent, #7546a8);
@@ -492,7 +492,7 @@
 }
 .doctor-suggestions h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--type-body);
 }
 .doctor-suggestion-grid {
   display: grid;
@@ -534,7 +534,7 @@
 .doctor-suggestion-copy p {
   margin: 0;
   color: var(--doctor-muted);
-  font-size: 14px;
+  font-size: var(--type-body);
   line-height: 1.5;
 }
 .doctor-suggestion-actions {
@@ -548,7 +548,7 @@
 .doctor-history-item p,
 .doctor-commander p {
   color: var(--doctor-muted);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
   line-height: 1.5;
 }
 .doctor-finding > p {
@@ -575,11 +575,11 @@
 }
 .doctor-candidate-group h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--type-card-name);
 }
 .doctor-candidate-group h3 span {
   color: var(--doctor-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
   font-weight: 600;
 }
 .doctor-show-more {
@@ -625,7 +625,7 @@
 .doctor-card-tile .card-tile-note,
 .doctor-card-cost {
   color: var(--doctor-muted);
-  font-size: 10px;
+  font-size: var(--type-data);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -635,7 +635,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--doctor-muted) 12%, transparent);
   color: var(--doctor-muted);
-  font-size: 10px;
+  font-size: var(--type-data);
   font-weight: 700;
 }
 .doctor-card-status.in-deck {
@@ -648,7 +648,7 @@
   gap: 4px;
   padding: 3px 7px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: var(--type-data);
   font-weight: 700;
 }
 .doctor-card-fit-stars {
@@ -697,7 +697,7 @@
 .doctor-signal-details,
 .doctor-signal-details li {
   color: var(--doctor-muted);
-  font-size: 10px;
+  font-size: var(--type-data);
   line-height: 1.4;
 }
 .doctor-signal-details summary {
@@ -719,7 +719,7 @@
 .doctor-other-cuts summary {
   margin-bottom: 12px;
   color: var(--commander-accent, #7546a8);
-  font-size: 13px;
+  font-size: var(--type-data);
   font-weight: 650;
   cursor: pointer;
 }
@@ -729,7 +729,7 @@
 }
 .doctor-impact h3 {
   margin: 0 0 8px;
-  font-size: 14px;
+  font-size: var(--type-body);
 }
 .doctor-impact p {
   display: flex;
@@ -737,7 +737,7 @@
   gap: 8px 16px;
   margin: 0;
   color: var(--doctor-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .doctor-plan-pairs {
   display: grid;
@@ -770,12 +770,12 @@
   padding: 0 6px;
   background: var(--doctor-panel);
   color: var(--doctor-muted);
-  font-size: 10px;
+  font-size: var(--type-data);
   font-weight: 700;
 }
 .doctor-pair-arrow {
   color: var(--doctor-text);
-  font-size: 20px;
+  font-size: var(--type-section);
   font-weight: 700;
 }
 .doctor-plan > .doctor-checkbox {
@@ -786,7 +786,7 @@
 }
 .doctor-error {
   color: #8d3029;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .doctor-history-item {
   display: grid;
@@ -864,7 +864,7 @@
 .deck-review-intro {
   margin: 12px 0 4px;
   color: #514e66;
-  font-size: 14px;
+  font-size: var(--type-body);
 }
 .deck-review-grid {
   display: grid;
@@ -883,12 +883,12 @@
 }
 .deck-review-section h3 {
   margin: 0 0 8px;
-  font-size: 16px;
+  font-size: var(--type-card-name);
 }
 .deck-review-section > p {
   margin: 8px 0 12px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.45;
 }
 .deck-review-findings,
@@ -909,7 +909,7 @@
   border-bottom: 0;
 }
 .deck-review-findings > div > b {
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
   line-height: 1.35;
 }
 .deck-review-status {
@@ -919,12 +919,12 @@
   gap: 4px;
   padding: 3px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--type-data);
   font-weight: 700;
   line-height: 1.2;
 }
 .deck-review-status > b {
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .deck-review-status.good {
   background: #e6f3e8;
@@ -961,13 +961,13 @@
 }
 .deck-review-filter-action {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--type-data);
   font-weight: 600;
 }
 .deck-review-filter-action,
 .deck-review-tag-count {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--type-data);
 }
 .deck-review-role {
   display: grid;
@@ -1007,14 +1007,14 @@
   display: grid;
   gap: 3px;
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: var(--type-data);
   text-align: center;
 }
 .deck-review-target input {
   width: 43px;
   padding: 5px 2px;
   border-radius: 5px;
-  font-size: 12px;
+  font-size: var(--type-data);
   text-align: center;
 }
 .deck-review-colour-filter {
@@ -1035,7 +1035,7 @@
   display: flex;
   gap: 8px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--type-data);
 }
 .deck-review-colour-counts > span {
   padding: 3px 6px;
@@ -1050,7 +1050,7 @@
 }
 .deck-review-tag-kind {
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: var(--type-caption);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1059,7 +1059,7 @@
 }
 .deck-review-empty {
   color: #706d82 !important;
-  font-size: 12px !important;
+  font-size: var(--type-data) !important;
 }
 .deck-review-type-filter {
   gap: 5px;
@@ -1132,7 +1132,7 @@
 .import-help {
   margin: 18px 0 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.45;
 }
 .import-commanders {
@@ -1158,7 +1158,7 @@
   border-left: 3px solid #b5985c;
   background: #f2ead9;
   color: #625742;
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.45;
 }
 .import-review-checkbox {
@@ -1167,7 +1167,7 @@
   gap: 9px;
   margin: 10px 0 0;
   color: #403e58;
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.4;
 }
 .import-review-checkbox input {
@@ -1178,7 +1178,7 @@
 .import-review-opt-out {
   margin: 6px 0 0 24px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1.4;
 }
 .saved-decks-modal {
@@ -1194,7 +1194,7 @@
 .draft-help {
   margin: 8px 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
   line-height: 1.5;
 }
 .autosaved-draft-list {
@@ -1225,7 +1225,7 @@
   display: grid;
   flex: 1 1 140px;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .autosave-retention .clearable-input {
   padding: 10px;
@@ -1290,17 +1290,17 @@
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 20px;
+  font-size: var(--type-section);
 }
 .deck-name-warning {
   margin-top: 5px;
   color: var(--text-danger);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .overwrite-notice {
   margin: 8px 0 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .saved-deck-list {
   margin-top: 20px;
@@ -1366,7 +1366,7 @@
   border-radius: 5px;
   background: #201c3c;
   color: white;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .saved-deck-delete-wrap:hover .saved-delete-confirm {
   display: block;
@@ -1382,7 +1382,7 @@
 .eyebrow {
   margin: 0 0 7px;
   color: var(--text-accent);
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 600;
   letter-spacing: 1.8px;
   text-transform: uppercase;
@@ -1423,7 +1423,7 @@ h3 {
 }
 h1 {
   margin-bottom: 8px;
-  font-size: clamp(32px, 4vw, 52px);
+  font-size: var(--type-page-title);
 }
 .commander-header {
   display: grid;
@@ -1479,7 +1479,7 @@ main > .commander-header {
   border-radius: 10px;
   background: #201c3c;
   color: white;
-  font-size: 12px;
+  font-size: var(--type-data);
   line-height: 1;
   box-shadow: 0 2px 6px #201c3c66;
 }
@@ -1555,7 +1555,7 @@ main > .commander-header {
   padding: 0;
   list-style: none;
   color: var(--doctor-muted);
-  font-size: 14px;
+  font-size: var(--type-body);
 }
 .doctor-navigation li {
   display: flex;
@@ -1608,14 +1608,14 @@ main > .commander-header {
   display: grid;
   gap: 4px;
   color: var(--doctor-text);
-  font-size: 14px;
+  font-size: var(--type-body);
 }
 .doctor-apply-bar > div > span {
   color: var(--doctor-muted);
 }
 .doctor-intro summary {
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--type-body);
   font-weight: 650;
 }
 .doctor-intro p {
@@ -1633,7 +1633,7 @@ main > .commander-header {
 }
 .commander-summary-title {
   margin: 0 0 8px;
-  font-size: clamp(26px, 2.5vw, 36px);
+  font-size: var(--type-page-title);
 }
 .commander-name {
   display: block;
@@ -1660,11 +1660,11 @@ main > .commander-header {
   --focus-ring: #642b84;
 }
 .intro-guide h2 {
-  font-size: 22px;
+  font-size: var(--type-section);
   margin: 0;
 }
 .intro-guide p {
-  font-size: 14px;
+  font-size: var(--type-body);
   line-height: 1.5;
 }
 .intro-guide .export-actions {
@@ -1689,7 +1689,7 @@ main > .commander-header {
   gap: 8px;
 }
 .saved-deck-last {
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .saved-deck-art {
   flex: none;
@@ -1713,7 +1713,7 @@ main > .commander-header {
   padding: 1px 8px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--commander-accent, #36327f) 14%, transparent);
-  font-size: 12px;
+  font-size: var(--type-data);
   font-weight: 600;
 }
 

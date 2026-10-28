@@ -37,7 +37,7 @@
 }
 .deck-board-heading h2 {
   margin: 0;
-  font-size: 25px;
+  font-size: var(--type-section);
   scroll-margin-top: 24px;
 }
 .deck-review-filter-status {
@@ -50,12 +50,12 @@
   border-left: 3px solid var(--commander-accent, #7546a8);
   background: #fff;
   color: #514e66;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .deck-review-filter-status .export {
   flex: 0 0 auto;
   padding: 7px 10px;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .deck-board .meter {
   margin: 16px 0 24px;
@@ -99,7 +99,7 @@
 .section-title h2,
 .deck-heading h2 {
   margin: 0;
-  font-size: 25px;
+  font-size: var(--type-section);
 }
 .section-title h2:focus-visible {
   outline: 3px solid var(--focus-ring);
@@ -107,7 +107,7 @@
 }
 .section-title > span {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .recommendation-options {
   display: flex;
@@ -116,7 +116,7 @@
   align-items: center;
   margin-top: 18px;
   color: var(--text-muted);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 .recommendation-settings-summary {
   display: flex;
@@ -130,7 +130,7 @@
   flex: 1 1 360px;
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 .recommendation-settings-modal {
   width: min(900px, 100%);
@@ -139,7 +139,7 @@
 }
 .recommendation-disclosure {
   margin-top: 10px;
-  font-size: 14px;
+  font-size: var(--type-body);
 }
 .recommendation-disclosure summary {
   width: fit-content;
@@ -161,7 +161,7 @@
 .settings-help {
   margin: 5px 0 0;
   color: var(--text-muted);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 .recommendation-settings-form {
   margin-top: 22px;
@@ -218,7 +218,7 @@
   min-width: 0;
   flex: 1 1 260px;
   color: var(--text-muted);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 .recommendation-options label {
   display: flex;
@@ -251,7 +251,7 @@
 .recommendation-options legend {
   padding: 0 5px;
   color: var(--text-accent);
-  font-size: 12px;
+  font-size: var(--type-caption);
   text-transform: uppercase;
   letter-spacing: 0.7px;
 }
@@ -261,7 +261,7 @@
   border-radius: 5px;
   background: transparent;
   color: #36327f;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .recommendation-options .setting-help-button {
   display: grid;
@@ -275,7 +275,7 @@
   border-radius: 5px;
   background: transparent;
   color: #36327f;
-  font-size: 12px;
+  font-size: var(--type-data);
   font-weight: 600;
   line-height: 1;
 }
@@ -314,7 +314,7 @@
   background: #201c3c;
   color: white;
   box-shadow: 0 12px 30px #201c3c55;
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
   line-height: 1.4;
   opacity: 0;
   pointer-events: none;
@@ -333,7 +333,7 @@
   flex-basis: 100%;
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 .collection-set-controls {
   display: grid;
@@ -356,7 +356,7 @@
 }
 .collection-supplemental-toggle {
   min-height: 34px;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .collection-set-list {
   display: grid;
@@ -367,7 +367,7 @@
 .collection-set-list > span,
 .collection-selection > span {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--type-data);
 }
 .collection-set-input {
   position: relative;
@@ -439,7 +439,7 @@
 .set-picker-row small {
   flex: none;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
   font-variant-numeric: tabular-nums;
 }
 .set-picker-icon {
@@ -452,7 +452,7 @@
 .set-picker-commander {
   padding-left: 24px;
   color: #514e66;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .recommendation-options .set-picker-commander input[type='checkbox'] {
   width: 15px;
@@ -464,7 +464,7 @@
   border: 1px dashed #bbb9cd;
   border-radius: 6px;
   color: var(--text-muted);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
 }
 .collection-chips {
   display: flex;
@@ -497,7 +497,7 @@
 .collection-pool-warning {
   flex-basis: 100%;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .collection-pool {
   color: #514e66;
@@ -516,7 +516,7 @@
   align-items: center;
   gap: 6px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .builder-set-chips button {
   max-width: 100%;
@@ -525,7 +525,7 @@
   border-radius: 999px;
   background: #e8e6fa;
   color: #36327f;
-  font-size: 12px;
+  font-size: var(--type-data);
   text-align: left;
 }
 .builder-set-chips button:hover {
@@ -576,7 +576,7 @@
   }
 }
 .collection-picker .form-error {
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .collection-browser {
   margin: 18px 0;
@@ -603,12 +603,12 @@
 }
 .collection-browser-heading h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--type-section);
 }
 .collection-browser-heading p:not(.eyebrow) {
   margin: 5px 0 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .collection-browser-filters {
   display: flex;
@@ -621,7 +621,7 @@
   align-items: center;
   gap: 7px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .collection-browser-filters select,
 .collection-browser-filters input {
@@ -661,13 +661,13 @@
 }
 .collection-browser-grid h3 {
   margin: 8px 0 3px;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .collection-browser-grid p,
 .collection-browser-grid span {
   margin: 0 0 7px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--type-data);
 }
 .collection-browser-grid button {
   margin-top: auto;
@@ -676,7 +676,7 @@
   border-radius: 5px;
   background: transparent;
   color: #36327f;
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .collection-browser-grid .collection-card-open {
   display: flex;
@@ -697,7 +697,7 @@
 .collection-browser-grid .collection-card-open small {
   margin-top: auto;
   color: var(--text-accent);
-  font-size: 11px;
+  font-size: var(--type-data);
   text-align: right;
 }
 .health-lane {
@@ -713,12 +713,12 @@
 }
 .health-lane h3 {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--type-card-name);
 }
 .health-lane p:not(.eyebrow) {
   margin: 4px 0 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--type-data);
 }
 .health-suggestion-list {
   display: flex;
@@ -786,12 +786,12 @@
 }
 .health-card-reason {
   color: var(--text-accent);
-  font-size: var(--decision-text);
+  font-size: var(--type-body);
   text-transform: uppercase;
 }
 .health-lane article b {
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--type-data);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -801,7 +801,7 @@
   border-radius: 4px;
   background: transparent;
   color: #36327f;
-  font-size: 11px;
+  font-size: var(--type-data);
 }
 .health-card-zoom {
   position: absolute;
@@ -896,7 +896,7 @@
   border-radius: 18px;
   background: #e8e6faaa;
   color: #48427f;
-  font-size: 13px;
+  font-size: var(--type-data);
 }
 .suggested-subtheme button {
   display: grid;
@@ -947,11 +947,11 @@
   padding: 20px 0;
 }
 .play-style-step h2 {
-  font-size: 28px;
+  font-size: var(--type-page-title);
   margin: 0 0 12px;
 }
 .play-style-step > p {
-  font-size: 14px;
+  font-size: var(--type-body);
 }
 .play-style-choices {
   display: grid;
@@ -1044,7 +1044,7 @@
   gap: 12px;
 }
 .play-style-choice strong {
-  font-size: 22px;
+  font-size: var(--type-section);
 }
 .play-style-meter {
   display: inline-flex;
@@ -1060,7 +1060,7 @@
   background: var(--commander-accent, #7650ae);
 }
 .play-style-summary {
-  font-size: 15px;
+  font-size: var(--type-card-name);
   line-height: 1.4;
 }
 .play-style-chips {
@@ -1072,7 +1072,7 @@
   padding: 2px 8px;
   border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--type-data);
   opacity: 0.85;
 }
 @media (prefers-reduced-motion: reduce) {
