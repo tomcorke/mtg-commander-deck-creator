@@ -1,0 +1,16 @@
+{
+  "commander": ["Ayula, Queen Among Bears"],
+  "bracket": 1,
+  "pace": "Theme before power; telegraphed combat wins, intended games lasting at least nine turns",
+  "experience": "Relaxed Bear-themed combat with visible creature development",
+  "theme": "Bears",
+  "idea": "A woodland gathering of Bears; Ayula supports Bear creatures with counters and interaction, avoid optimized explosive engines and intentional infinite combos",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

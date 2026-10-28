@@ -1,0 +1,16 @@
+{
+  "commander": ["Tatyova, Benthic Druid"],
+  "bracket": 3,
+  "pace": "Develop resources for a strong accumulated-resource turn; target games lasting at least six turns, no intentional infinite combos",
+  "experience": "Interactive landfall value with combat finish",
+  "theme": "Landfall",
+  "idea": "Turn land drops into cards and life, then convert accumulated lands and creatures into a combat win",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

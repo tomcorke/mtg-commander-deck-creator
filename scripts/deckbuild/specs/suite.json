@@ -1,0 +1,411 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "dev-1",
+      "split": "development",
+      "families": ["goblin-tokens"],
+      "colors": "R",
+      "spec": "dev-1.json",
+      "specHash": "3b90d46927868ea26653c14279eb5377aa5a90c742be88e47e49109d5e3eec13",
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "precon",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": ["fa6436730e9a402ad64ca1e281095544c0d3fbf8d1427e6a482da92c819dee43"],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "dev-2",
+      "split": "development",
+      "families": ["landfall"],
+      "colors": "GU",
+      "spec": "dev-2.json",
+      "specHash": "b8cbfb4cba5104db8a1e538bafe59046465d849f1036bf421814ce7029c74a9e",
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "upgraded",
+        "includeCreature": true,
+        "maxPrice": null,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 38,
+          "ramp": 12,
+          "draw": 8,
+          "removal": 9,
+          "wipes": 2
+        }
+      },
+      "providers": ["8e396a1f9bb4da8988b0b06ead143164be1c8211dcad134af93c7abc10a15bf5"],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "dev-3",
+      "split": "development",
+      "families": ["bear-combat"],
+      "colors": "G",
+      "spec": "dev-3.json",
+      "specHash": "551ab88668544f817a14e80ddc1de7efd5f3b6ea0bc3e5bc9a114e5b45c84da9",
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "precon",
+        "includeCreature": true,
+        "maxPrice": null,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 38,
+          "ramp": 10,
+          "draw": 9,
+          "removal": 8,
+          "wipes": 2
+        }
+      },
+      "providers": ["aa48b11bd664aec11fc55a7b766eb4102ab55e45dc6c1d4f3cf3eaf65a893cf0"],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "development-4",
+      "split": "development",
+      "families": ["spell-copy"],
+      "colors": "R",
+      "spec": "development-4.json",
+      "specHash": "0367630bd4d4a820b879abe2fa555aebb7fb708b399c2890dbb14c161822b79e",
+      "settings": {
+        "recommendationStyle": "thematic",
+        "powerTarget": "precon",
+        "maxPrice": 20,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "development-5",
+      "split": "development",
+      "families": ["artifact-recursion"],
+      "colors": "RW",
+      "spec": "development-5.json",
+      "specHash": "5984d01f8df1eaf5db7cf6791cc68819104cd5025c26fd44247d256546e5b389",
+      "settings": {
+        "recommendationStyle": "fun",
+        "powerTarget": "upgraded",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "development-6",
+      "split": "development",
+      "families": ["colorless-ramp"],
+      "colors": "",
+      "spec": "development-6.json",
+      "specHash": "31b2ce9afe872107f3b55d9a2db7614fd0fbfa855fa0b15579515ccfc582886b",
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "high",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "development-7",
+      "split": "development",
+      "families": ["ninjutsu"],
+      "colors": "BU",
+      "spec": "development-7.json",
+      "specHash": "566e4782f137d69854e153297373e8fd6c92fe1e415f7958b842ff4bf0833cc5",
+      "settings": {
+        "recommendationStyle": "competitive",
+        "powerTarget": "precon",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "development-8",
+      "split": "development",
+      "families": ["partner-tempo"],
+      "colors": "BRUW",
+      "spec": "development-8.json",
+      "specHash": "5a288dc0d2d55c9b4b4dd57bdeb787d668fe9b16a08af1f91e8265ad70e9c2d5",
+      "settings": {
+        "recommendationStyle": "thematic",
+        "powerTarget": "upgraded",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "holdout-1",
+      "split": "holdout",
+      "families": ["defenders"],
+      "colors": "GUW",
+      "spec": "holdout-1.json",
+      "specHash": "df82fc0c71c4cd86b560758e8449e5a34d1318671a704afbee3b93bf6dad87f5",
+      "settings": {
+        "recommendationStyle": "fun",
+        "powerTarget": "high",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "holdout-2",
+      "split": "holdout",
+      "families": ["enchantment-toolbox"],
+      "colors": "BUW",
+      "spec": "holdout-2.json",
+      "specHash": "3803531f0a3605497267a05619ea85d25e436ab991e812d569225ef45fa1fcd6",
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "precon",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "holdout-3",
+      "split": "holdout",
+      "families": ["experience-reanimation"],
+      "colors": "BG",
+      "spec": "holdout-3.json",
+      "specHash": "ee92106e8eceb30a9a36732e20a74d8aaae7ed1d92c61c272f1e3cdd0256797b",
+      "settings": {
+        "recommendationStyle": "competitive",
+        "powerTarget": "upgraded",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "holdout-4",
+      "split": "holdout",
+      "families": ["proliferate"],
+      "colors": "BGUW",
+      "spec": "holdout-4.json",
+      "specHash": "bab1c072f5538ef463406b352e6889ff8645f18e99377c2312cc26d361eb888b",
+      "settings": {
+        "recommendationStyle": "thematic",
+        "powerTarget": "high",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "holdout-5",
+      "split": "holdout",
+      "families": ["madness"],
+      "colors": "BR",
+      "spec": "holdout-5.json",
+      "specHash": "eb98af4143ec4ffba3877651f0ce220016a7cc24b3cd7b5d3ec4771fd8a57186",
+      "settings": {
+        "recommendationStyle": "fun",
+        "powerTarget": "precon",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    },
+    {
+      "id": "holdout-6",
+      "split": "holdout",
+      "families": ["foretell"],
+      "colors": "UW",
+      "spec": "holdout-6.json",
+      "specHash": "0fd18765665ac4b58fc17543b7d53b9810586081a690769d514755aa69f5c0f6",
+      "settings": {
+        "recommendationStyle": "balanced",
+        "powerTarget": "upgraded",
+        "maxPrice": null,
+        "includeCreature": true,
+        "excludeGameChangers": true,
+        "limitGameChangers": false,
+        "excludeTutors": true,
+        "excludeExtraTurns": true,
+        "excludeUnreleased": true,
+        "deckTargets": {
+          "lands": 35,
+          "ramp": 10,
+          "draw": 10,
+          "removal": 8,
+          "wipes": 3
+        }
+      },
+      "providers": [],
+      "common": null,
+      "recipe": null
+    }
+  ]
+}

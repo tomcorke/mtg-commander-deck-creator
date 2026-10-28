@@ -1,0 +1,16 @@
+{
+  "commander": ["Meren of Clan Nel Toth"],
+  "bracket": 4,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "experience-reanimation",
+  "idea": "Intended experience-reanimation strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

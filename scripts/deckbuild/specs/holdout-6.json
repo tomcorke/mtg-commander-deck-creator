@@ -1,0 +1,16 @@
+{
+  "commander": ["Ranar the Ever-Watchful"],
+  "bracket": 1,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "foretell",
+  "idea": "Intended foretell strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

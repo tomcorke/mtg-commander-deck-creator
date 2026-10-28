@@ -1,0 +1,16 @@
+{
+  "commander": ["Tymna the Weaver", "Kraum, Ludevic's Opus"],
+  "bracket": 4,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "partner-tempo",
+  "idea": "Intended partner-tempo strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "commander": ["Osgir, the Reconstructor"],
+  "bracket": 2,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "artifact-recursion",
+  "idea": "Intended artifact-recursion strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}

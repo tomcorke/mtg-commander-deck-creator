@@ -1,0 +1,16 @@
+{
+  "commander": ["Kozilek, the Great Distortion"],
+  "bracket": 1,
+  "pace": "Declared experimental pace",
+  "experience": "Strategy exploration",
+  "theme": "colorless-ramp",
+  "idea": "Intended colorless-ramp strategy; not certified",
+  "constraints": {
+    "totalBudget": null,
+    "perCardCap": null,
+    "currency": "USD",
+    "allowedSets": [],
+    "mustInclude": [],
+    "mustExclude": []
+  }
+}
