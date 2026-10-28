@@ -3,7 +3,7 @@ import type { TargetKey } from '../../deck-analysis.ts'
 
 import { colourNames } from '../../domain/commander-catalog.ts'
 import type { DeckCard } from '../../domain/card-model.ts'
-import { deckTagCoverage } from '../../deck-review.ts'
+import { deckRiskIndicators, deckTagCoverage } from '../../deck-review.ts'
 import {
   analyseDeck,
   curveBucket,
@@ -165,6 +165,7 @@ export function DeckOverview({
   ).length
   const hasColourSignal = colourStats.some(({ pips, sourceCards }) => pips || sourceCards.length)
   const selectedTagsFound = selectedCoverage.filter(({ cards }) => cards.length > 0).length
+  const riskIndicators = deckRiskIndicators(deck)
   const maxTypeCount = Math.max(1, ...typeStats.map(({ count }) => count))
 
   return (
@@ -436,6 +437,30 @@ export function DeckOverview({
                   </span>
                 </FilterButton>
               ))}
+          </div>
+        </section>
+        <section className="deck-review-section">
+          <h3>Play experience signals</h3>
+          <p>
+            Bracket guidance names these as signals for table talk, not a power rating. Detection
+            uses printed text and Wizards&apos; examples, so it can miss cards. Two-card combos are
+            not checked.
+          </p>
+          <div className="deck-review-types">
+            {riskIndicators.map(({ label, cards }) => (
+              <FilterButton
+                key={label}
+                label={label}
+                count={cards.length}
+                className="deck-review-type-filter"
+                onClick={() => selectCards(label, cardNames(cards))}
+              >
+                <span className="deck-review-row-heading">
+                  <b>{label}</b>
+                  <strong>{cards.length}</strong>
+                </span>
+              </FilterButton>
+            ))}
           </div>
         </section>
       </div>
