@@ -1,3 +1,4 @@
+import { LandDropContext } from './LandDropContext.tsx'
 import { finishLabel } from '../../domain/printing.ts'
 import type { BatchRevealState } from './reveal-batch.ts'
 import { RecommendationBatch } from './RecommendationBatch.tsx'
@@ -1155,13 +1156,14 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 </div>
               ))}
             </div>
+            <LandDropContext deck={deck} commanderCount={commanderNames(commander).length} />
             <div className="target-heading">
               <h4>Deck targets</h4>
             </div>
             {(deckTargets.lands < landLow || deckTargets.lands > landHigh) && (
               <p className="land-fill-later">
                 <span>
-                  This curve suggests {landLow}–{landHigh} lands.
+                  Rough curve heuristic: {landLow}–{landHigh} lands (not a probability).
                 </span>
                 <button
                   type="button"
