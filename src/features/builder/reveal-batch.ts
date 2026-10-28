@@ -20,6 +20,7 @@ type Surface = {
   element: HTMLElement
   image: HTMLImageElement
   canvas: HTMLCanvasElement
+  shadow: HTMLSpanElement
   renderer: NonNullable<ReturnType<typeof createFoilRenderer>>
   front: boolean
   done: boolean
@@ -35,6 +36,7 @@ export function revealBatch(grid: HTMLElement) {
   let frame = 0
   const dispose = (surface: Surface) => {
     surface.canvas.remove()
+    surface.shadow.remove()
     surface.renderer.dispose()
     surface.canvas.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext()
     surface.element.removeAttribute('data-card-reveal')
@@ -71,16 +73,27 @@ export function revealBatch(grid: HTMLElement) {
       const canvas = document.createElement('canvas')
       canvas.className = 'card-reveal-canvas'
       canvas.setAttribute('aria-hidden', 'true')
+      const shadow = document.createElement('span')
+      shadow.className = 'card-reveal-shadow'
+      shadow.setAttribute('aria-hidden', 'true')
       const ratio = Math.min(devicePixelRatio || 1, 2)
       canvas.width = Math.round(image.offsetWidth * 1.25 * ratio)
       canvas.height = Math.round(image.offsetHeight * 1.25 * ratio)
       const renderer = createFoilRenderer(canvas)
       if (!renderer) throw new Error('WebGL unavailable')
-      const surface = { element, image: fronts[index], canvas, renderer, front: false, done: false }
+      const surface = {
+        element,
+        image: fronts[index],
+        canvas,
+        shadow,
+        renderer,
+        front: false,
+        done: false,
+      }
       surfaces.push(surface)
       renderer.setImage(back)
       renderer.render(0, { x: 0.5, y: 0.5 }, 0, Math.PI, 0.8)
-      element.append(canvas)
+      element.append(shadow, canvas)
       element.setAttribute('data-card-reveal', 'flipping')
     }
     const start = performance.now()
@@ -91,6 +104,7 @@ export function revealBatch(grid: HTMLElement) {
           if (surface.done) return
           const progress = Math.max(0, Math.min(1, (time - start - index * 180) / 750))
           const eased = progress * progress * (3 - 2 * progress)
+          surface.shadow.style.transform = `scaleX(${0.35 + 0.65 * Math.abs(Math.cos(Math.PI * (1 - eased)))})`
           if (eased >= 0.5 && !surface.front) {
             surface.renderer.setImage(surface.image)
             surface.front = true

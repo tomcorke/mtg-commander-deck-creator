@@ -1102,3 +1102,12 @@ button:disabled {
   box-shadow: none;
   transition-property: transform;
 }
+
+/* A soft table shadow stays inside the card's footprint, including at edge-on. */
+.card-reveal-shadow {
+  position: absolute;
+  z-index: 1;
+  inset: 16% 8%;
+  background: radial-gradient(ellipse closest-side, #0006 0%, #0003 50%, transparent 100%);
+  pointer-events: none;
+}

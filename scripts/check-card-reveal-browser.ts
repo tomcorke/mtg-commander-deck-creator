@@ -88,6 +88,7 @@ await withBrowser('CARD_REVEAL', 5250, async (browser, base) => {
   await button(page, 'Display').click()
   await page.waitForSelector('[data-card-reveal]', { state: 'detached' })
   await checkShadowReturn(page)
+  await checkTableShadow(page)
   await page.setViewportSize({ width: 390, height: 844 })
   assert(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -104,8 +105,34 @@ async function instrumentReveal(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem('option:cardEffects', 'true')
     const events: { time: number; state: string | null; background: string; shadow: string }[] = []
-    Object.assign(window, { revealEvents: events })
+    const tableShadows: { scale: number; bounded: boolean; gradient: boolean }[] = []
+    Object.assign(window, { revealEvents: events, tableShadows })
+    let sampling = false
+    const sampleShadows = () => {
+      const shadows = document.querySelectorAll<HTMLElement>('.card-reveal-shadow')
+      for (const shadow of shadows) {
+        const style = getComputedStyle(shadow)
+        const parent = shadow.parentElement!
+        tableShadows.push({
+          scale: new DOMMatrixReadOnly(style.transform).a,
+          bounded:
+            shadow.offsetLeft >= 0 &&
+            shadow.offsetTop >= 0 &&
+            shadow.offsetLeft + shadow.offsetWidth <= parent.clientWidth &&
+            shadow.offsetTop + shadow.offsetHeight <= parent.clientHeight,
+          gradient:
+            style.backgroundImage.includes('radial-gradient') && style.pointerEvents === 'none',
+        })
+      }
+      sampling = shadows.length > 0
+      if (sampling) requestAnimationFrame(sampleShadows)
+    }
+
     new MutationObserver((records) => {
+      if (!sampling && document.querySelector('.card-reveal-shadow')) {
+        sampling = true
+        requestAnimationFrame(sampleShadows)
+      }
       for (const record of records)
         if (record.attributeName === 'data-card-reveal')
           events.push({
@@ -169,5 +196,32 @@ async function checkShadowReturn(page: Page) {
       .first()
       .evaluate((element) => getComputedStyle(element).transitionProperty.includes('box-shadow')),
     'shadow returns through its normal fade transition',
+  )
+}
+
+async function checkTableShadow(page: Page) {
+  const samples = await page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          tableShadows: { scale: number; bounded: boolean; gradient: boolean }[]
+        }
+      ).tableShadows,
+  )
+  assert(samples.length > 4, 'table shadow is sampled during the reveal')
+  assert(
+    samples.every((sample) => sample.bounded && sample.gradient),
+    'elliptical gradient stays within the card footprint and ignores pointer input',
+  )
+  assert(
+    samples.every((sample) => sample.scale >= 0.35 && sample.scale <= 1),
+    'shadow never collapses or grows beyond its bounds',
+  )
+  assert(Math.min(...samples.map((sample) => sample.scale)) < 0.42, 'shadow narrows near edge-on')
+  assert(Math.max(...samples.map((sample) => sample.scale)) > 0.95, 'shadow widens when face-on')
+  assert.equal(
+    await page.locator('.card-reveal-shadow').count(),
+    0,
+    'temporary shadow is removed after reveal',
   )
 }
