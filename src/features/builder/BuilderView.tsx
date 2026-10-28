@@ -1,4 +1,5 @@
 import { finishLabel } from '../../domain/printing.ts'
+import type { BatchRevealState } from './reveal-batch.ts'
 import { RecommendationBatch } from './RecommendationBatch.tsx'
 import { FinishFilters } from '../../shared/FinishFilters.tsx'
 import type { BuilderAction } from '../../domain/builder-state.ts'
@@ -318,6 +319,28 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   } = model
   const neediest = neediestTarget(analysis.counts, deckTargets)
   const undecidedCount = scoredBatch.filter(({ card }) => !decisions[card.name]).length
+  const [advancingBatch, setAdvancingBatch] = useState(false)
+  const [batchRevealState, setBatchRevealState] = useState<BatchRevealState>('idle')
+  const preparingBatch =
+    advancingBatch ||
+    Boolean(model.fetchBoundary) ||
+    recommendationState === 'loading' ||
+    batchRevealState === 'preparing'
+  const batchBusy = preparingBatch || batchRevealState === 'flipping'
+  const nextBatchLabel = batchBusy
+    ? preparingBatch
+      ? 'Preparing recommendations...'
+      : 'Revealing recommendations...'
+    : 'Next recommendations'
+  const advanceBatch = async () => {
+    if (batchBusy) return
+    setAdvancingBatch(true)
+    try {
+      await nextBatch()
+    } finally {
+      setAdvancingBatch(false)
+    }
+  }
   const batchHeading = useRef<HTMLHeadingElement>(null)
   const landFillTrigger = useRef<HTMLButtonElement>(null)
   const inPlayStyleStep = Boolean(model.playStyleStep)
@@ -609,30 +632,40 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               >
                 + Search & add cards
               </button>
-              {(queue.length > 0 || deferredCards.length > 0) && recommendationState === 'idle' && (
-                <div className="batch-controls">
-                  <button className="nav-forward" type="button" onClick={() => void nextBatch()}>
-                    <span>
-                      Next recommendations
-                      {pendingSubThemes.some((name) => activeSubThemes.includes(name)) && (
-                        <small className="batch-rebuild">
-                          {' '}
-                          rebuilding for{' '}
-                          {pendingSubThemes
-                            .filter((name) => activeSubThemes.includes(name))
-                            .join(' & ')}
-                        </small>
-                      )}
+              {(queue.length > 0 || deferredCards.length > 0 || batchBusy) &&
+                recommendationState !== 'error' && (
+                  <div className="batch-controls">
+                    <button
+                      className="nav-forward"
+                      type="button"
+                      disabled={batchBusy}
+                      aria-busy={batchBusy}
+                      onClick={() => void advanceBatch()}
+                    >
+                      <span>
+                        {nextBatchLabel}
+                        {pendingSubThemes.some((name) => activeSubThemes.includes(name)) && (
+                          <small className="batch-rebuild">
+                            {' '}
+                            rebuilding for{' '}
+                            {pendingSubThemes
+                              .filter((name) => activeSubThemes.includes(name))
+                              .join(' & ')}
+                          </small>
+                        )}
+                      </span>
+                    </button>
+                    <span className="sr-only" role="status">
+                      {batchBusy ? nextBatchLabel : ''}
                     </span>
-                  </button>
-                  {undecidedCount > 0 && (
-                    <span className="batch-undecided">
-                      {undecidedCount} undecided {undecidedCount === 1 ? 'card' : 'cards'} may come
-                      back later
-                    </span>
-                  )}
-                </div>
-              )}
+                    {undecidedCount > 0 && (
+                      <span className="batch-undecided">
+                        {undecidedCount} undecided {undecidedCount === 1 ? 'card' : 'cards'} may
+                        come back later
+                      </span>
+                    )}
+                  </div>
+                )}
             </div>
           </div>
           {showSubThemePicker && (
@@ -727,6 +760,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               />
               <RecommendationBatch
                 batchNumber={batchNumber}
+                onRevealStateChange={setBatchRevealState}
                 batchKey={JSON.stringify([batchNumber, scoredBatch.map(({ card }) => card.name)])}
                 className={`card-grid connector-glow juicy-fan ${cardEffects ? '' : 'static-fan'}`}
                 onMouseMove={cardEffects ? fanCards : undefined}

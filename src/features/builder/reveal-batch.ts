@@ -4,6 +4,8 @@ import { hideHoverFoil, loadCardTexture } from '../../shared/foil/hover-foil.ts'
 import { retainBatchCopy, type BatchSnapshot } from './batch-snapshot.ts'
 import { flipStagger, revealFrame } from './reveal-timing.ts'
 
+export type BatchRevealState = 'idle' | 'preparing' | 'flipping'
+
 const backUrl = '/images/mtg-card-back.png'
 let backPromise: Promise<HTMLImageElement> | undefined
 function loadBack() {
@@ -32,9 +34,17 @@ type Surface = {
 }
 
 // One timeline per batch: all fronts decode before the left-to-right reveal begins.
-export function revealBatch(grid: HTMLElement, previous?: BatchSnapshot[]) {
+export function revealBatch(
+  grid: HTMLElement,
+  previous?: BatchSnapshot[],
+  onStateChange?: (state: BatchRevealState) => void,
+) {
   const motion = matchMedia('(prefers-reduced-motion: reduce)')
-  if (motion.matches) return
+  if (motion.matches) {
+    onStateChange?.('idle')
+    return
+  }
+  onStateChange?.('preparing')
   const elements = [...grid.querySelectorAll<HTMLElement>('.offered-image > .finished-card')]
   const copies = elements.map((element, index) =>
     previous?.[index] ? retainBatchCopy(element, previous[index]) : undefined,
@@ -44,6 +54,7 @@ export function revealBatch(grid: HTMLElement, previous?: BatchSnapshot[]) {
   let frame = 0
 
   const stop = () => {
+    if (stopped) return
     stopped = true
     clearTimeout(timeout)
     cancelAnimationFrame(frame)
@@ -55,6 +66,7 @@ export function revealBatch(grid: HTMLElement, previous?: BatchSnapshot[]) {
       element.removeAttribute('data-card-reveal')
     }
     motion.removeEventListener('change', stop)
+    onStateChange?.('idle')
   }
   // Failed or stalled art must never leave a recommendation permanently hidden.
   const timeout = setTimeout(stop, 10000)
@@ -94,29 +106,14 @@ export function revealBatch(grid: HTMLElement, previous?: BatchSnapshot[]) {
       element.setAttribute('data-card-reveal-phase', surface.oldImage ? 'leaving' : 'entering')
       element.setAttribute('data-card-reveal', 'flipping')
     }
+    onStateChange?.('flipping')
     const start = performance.now()
     const draw = (time: number) => {
       if (stopped) return
       try {
         surfaces.forEach((surface, index) => {
           if (surface.done) return
-          const state = revealFrame(time - start - index * flipStagger, !!surface.oldImage)
-          surface.shadow.style.transform = `scaleX(${0.35 + 0.65 * Math.abs(Math.cos(state.angle))})`
-          surface.copy?.update(state.oldOpacity, state.newOpacity)
-          if (surface.element.getAttribute('data-card-reveal-phase') !== state.phase)
-            surface.element.setAttribute('data-card-reveal-phase', state.phase)
-          if (state.side !== surface.texture) {
-            surface.renderer.setImage(
-              state.side === 'back'
-                ? back
-                : state.side === 'old'
-                  ? surface.oldImage!
-                  : surface.image,
-            )
-            surface.texture = state.side
-          }
-          surface.renderer.render(0, { x: 0.5, y: 0.5 }, time / 1000, state.angle, 0.8)
-          if (state.done) dispose(surface)
+          drawSurface(surface, time - start - index * flipStagger, back, time)
         })
       } catch {
         stop()
@@ -166,4 +163,20 @@ function createSurface(
     texture: source.oldImage ? 'old' : 'back',
     done: false,
   }
+}
+
+function drawSurface(surface: Surface, elapsed: number, back: HTMLImageElement, time: number) {
+  const state = revealFrame(elapsed, !!surface.oldImage)
+  surface.shadow.style.transform = `scaleX(${0.35 + 0.65 * Math.abs(Math.cos(state.angle))})`
+  surface.copy?.update(state.oldOpacity, state.newOpacity)
+  if (surface.element.getAttribute('data-card-reveal-phase') !== state.phase)
+    surface.element.setAttribute('data-card-reveal-phase', state.phase)
+  if (state.side !== surface.texture) {
+    surface.renderer.setImage(
+      state.side === 'back' ? back : state.side === 'old' ? surface.oldImage! : surface.image,
+    )
+    surface.texture = state.side
+  }
+  surface.renderer.render(0, { x: 0.5, y: 0.5 }, time / 1000, state.angle, 0.8)
+  if (state.done) dispose(surface)
 }
