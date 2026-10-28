@@ -178,3 +178,42 @@ Optional-source failures retain the app's fallback/partial-source behavior and r
 Fixed suite tooling: `node --experimental-strip-types scripts/deckbuild/fixed-suite.ts scripts/deckbuild/specs/suite.json` validates eight development and six holdout briefs. Family assignments are a declared heuristic, not proof of mechanic independence. Briefs express intended strategies, not certified bracket fit. Scryfall name evidence and dated SHA-256 references are in `specs/suite-provenance.json`; raw JSON is outside the checkout.
 
 All real cases currently report not-prepared. Retained provider identities remain independent, not a common baseline. Optional common declarations require explicit date/seed and source/policy/KB file hashes. Offline recipes must pass prepareBuild and match spec, settings and declarations; provider IDs require the existing manifests/ and responses/ store beneath the suite directory, exact prepared pins, and successful offline replay. Common readiness additionally requires identical declarations across every case. No network collection occurs in this command. Policy freshness, actual common frozen pools, independent repeats, real rank labels and remaining acceptance stay in #98.
+
+### Bind settled inputs
+
+`freeze-inputs.ts` binds supplied evidence to cases whose `common` and `recipe` are still null. It does not collect or rewrite evidence. Keep the suite, bindings and evidence in private research storage outside the checkout:
+
+```powershell
+node --experimental-strip-types scripts/deckbuild/freeze-inputs.ts <suite.json> <bindings.json> <evidence-root> > freeze-result.json
+```
+
+Bindings are strict JSON with `version: 1` and at least one case. Each case has an existing `id`, `common`, `recipe` and `providers`:
+
+```json
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "<suite case id>",
+      "common": {
+        "today": "YYYY-MM-DD",
+        "seed": "<seed>",
+        "snapshotId": "<snapshot id>",
+        "source": { "path": "source.json", "sha256": "<64 lowercase hex characters>" },
+        "policy": { "path": "policy.json", "sha256": "<64 lowercase hex characters>" },
+        "kb": { "path": "kb.json", "sha256": "<64 lowercase hex characters>" }
+      },
+      "recipe": { "path": "recipes/<case>.json", "sha256": "<64 lowercase hex characters>" },
+      "providers": ["<64 lowercase manifest ID>"]
+    }
+  ]
+}
+```
+
+`common` requires the ISO date, nonempty seed and snapshot ID, and source, policy and KB references. A reference is exactly `{ "path", "sha256" }`; each path is relative to `<evidence-root>`, and its file bytes must match the lowercase SHA-256. `recipe` uses the same reference shape. Put the case spec files and referenced evidence under that root at their declared relative paths. Provider IDs are SHA-256 manifest IDs; their `manifests/<id>.json` and replay responses must also be available under the evidence root. Recipes must prepare successfully and match the case spec/settings and common date, seed, snapshot, and source/policy hashes. Use a JSON-aware tool to write the returned `suite` field to `<evidence-root>/frozen-suite.json` before running the standalone audit:
+
+```powershell
+node --experimental-strip-types scripts/deckbuild/fixed-suite.ts <evidence-root>/frozen-suite.json > audit.json
+```
+
+The freeze result is `{ "suite", "audit", "priorProviders" }`, not a suite file: extract `suite` before passing a file to `fixed-suite.ts`. The suite retains each case's ID, split, family/color assignment, spec path/hash and settings. `priorProviders` records every case's provider IDs before binding; bound cases receive the supplied IDs, while unbound cases keep their existing fields. A subset can be bound: the audit can succeed with `commonReadiness: "incomplete"`; readiness is `"ready"` only when every case is compatible and all common declarations match. This verifies supplied hashes, preparation compatibility and offline replay completeness. It does not create a common corpus or establish evidence freshness or evaluation quality.
