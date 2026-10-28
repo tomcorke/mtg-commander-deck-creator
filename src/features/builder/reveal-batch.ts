@@ -1,6 +1,9 @@
 ﻿import type { createFoilRenderer } from '../../shared/foil/foil-shader.ts'
 import { hideHoverFoil, loadCardTexture } from '../../shared/foil/hover-foil.ts'
 
+import { retainBatchCopy, type BatchSnapshot } from './batch-snapshot.ts'
+import { flipStagger, revealFrame } from './reveal-timing.ts'
+
 const backUrl = '/images/mtg-card-back.png'
 let backPromise: Promise<HTMLImageElement> | undefined
 function loadBack() {
@@ -22,43 +25,48 @@ type Surface = {
   canvas: HTMLCanvasElement
   shadow: HTMLSpanElement
   renderer: NonNullable<ReturnType<typeof createFoilRenderer>>
-  front: boolean
+  oldImage?: HTMLImageElement
+  copy?: ReturnType<typeof retainBatchCopy>
+  texture: string
   done: boolean
 }
 
 // One timeline per batch: all fronts decode before the left-to-right reveal begins.
-export function revealBatch(grid: HTMLElement) {
+export function revealBatch(grid: HTMLElement, previous?: BatchSnapshot[]) {
   const motion = matchMedia('(prefers-reduced-motion: reduce)')
   if (motion.matches) return
   const elements = [...grid.querySelectorAll<HTMLElement>('.offered-image > .finished-card')]
+  const copies = elements.map((element, index) =>
+    previous?.[index] ? retainBatchCopy(element, previous[index]) : undefined,
+  )
   const surfaces: Surface[] = []
   let stopped = false
   let frame = 0
-  const dispose = (surface: Surface) => {
-    surface.canvas.remove()
-    surface.shadow.remove()
-    surface.renderer.dispose()
-    surface.canvas.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext()
-    surface.element.removeAttribute('data-card-reveal')
-    surface.done = true
-  }
+
   const stop = () => {
     stopped = true
     clearTimeout(timeout)
     cancelAnimationFrame(frame)
     for (const surface of surfaces) if (!surface.done) dispose(surface)
-    for (const element of elements) element.removeAttribute('data-card-reveal')
+    for (const [index, element] of elements.entries()) {
+      copies[index]?.remove()
+      element.style.removeProperty('background-image')
+      element.removeAttribute('data-card-reveal-phase')
+      element.removeAttribute('data-card-reveal')
+    }
     motion.removeEventListener('change', stop)
   }
   // Failed or stalled art must never leave a recommendation permanently hidden.
   const timeout = setTimeout(stop, 10000)
   motion.addEventListener('change', stop)
-  for (const element of elements) {
+  for (const [index, element] of elements.entries()) {
+    if (previous?.[index]?.image)
+      element.style.backgroundImage = `url(${JSON.stringify(previous[index].image)})`
     hideHoverFoil(element)
     element.setAttribute('data-card-reveal', 'waiting')
   }
   void (async () => {
-    const [{ createFoilRenderer }, back, fronts] = await Promise.all([
+    const [{ createFoilRenderer }, back, fronts, oldFronts] = await Promise.all([
       import('../../shared/foil/foil-shader.ts'),
       loadBack(),
       Promise.all(
@@ -66,34 +74,24 @@ export function revealBatch(grid: HTMLElement) {
           loadCardTexture(element.querySelector<HTMLImageElement>('img')!.src),
         ),
       ),
+      Promise.all(
+        elements.map((_, index) =>
+          previous?.[index]?.image ? loadCardTexture(previous[index].image) : undefined,
+        ),
+      ),
     ])
     if (stopped) return
     for (const [index, element] of elements.entries()) {
-      const image = element.querySelector<HTMLImageElement>('img')!
-      const canvas = document.createElement('canvas')
-      canvas.className = 'card-reveal-canvas'
-      canvas.setAttribute('aria-hidden', 'true')
-      const shadow = document.createElement('span')
-      shadow.className = 'card-reveal-shadow'
-      shadow.setAttribute('aria-hidden', 'true')
-      const ratio = Math.min(devicePixelRatio || 1, 2)
-      canvas.width = Math.round(image.offsetWidth * 1.25 * ratio)
-      canvas.height = Math.round(image.offsetHeight * 1.25 * ratio)
-      const renderer = createFoilRenderer(canvas)
-      if (!renderer) throw new Error('WebGL unavailable')
-      const surface = {
-        element,
-        image: fronts[index],
-        canvas,
-        shadow,
-        renderer,
-        front: false,
-        done: false,
-      }
+      const surface = createSurface(
+        { element, image: fronts[index], oldImage: oldFronts[index], copy: copies[index] },
+        createFoilRenderer,
+      )
       surfaces.push(surface)
-      renderer.setImage(back)
-      renderer.render(0, { x: 0.5, y: 0.5 }, 0, Math.PI, 0.8)
-      element.append(shadow, canvas)
+      surface.renderer.setImage(surface.oldImage ?? back)
+      surface.renderer.render(0, { x: 0.5, y: 0.5 }, 0, surface.oldImage ? 0 : Math.PI, 0.8)
+      element.append(surface.shadow, surface.canvas)
+      element.style.removeProperty('background-image')
+      element.setAttribute('data-card-reveal-phase', surface.oldImage ? 'leaving' : 'entering')
       element.setAttribute('data-card-reveal', 'flipping')
     }
     const start = performance.now()
@@ -102,15 +100,23 @@ export function revealBatch(grid: HTMLElement) {
       try {
         surfaces.forEach((surface, index) => {
           if (surface.done) return
-          const progress = Math.max(0, Math.min(1, (time - start - index * 180) / 750))
-          const eased = progress * progress * (3 - 2 * progress)
-          surface.shadow.style.transform = `scaleX(${0.35 + 0.65 * Math.abs(Math.cos(Math.PI * (1 - eased)))})`
-          if (eased >= 0.5 && !surface.front) {
-            surface.renderer.setImage(surface.image)
-            surface.front = true
+          const state = revealFrame(time - start - index * flipStagger, !!surface.oldImage)
+          surface.shadow.style.transform = `scaleX(${0.35 + 0.65 * Math.abs(Math.cos(state.angle))})`
+          surface.copy?.update(state.oldOpacity, state.newOpacity)
+          if (surface.element.getAttribute('data-card-reveal-phase') !== state.phase)
+            surface.element.setAttribute('data-card-reveal-phase', state.phase)
+          if (state.side !== surface.texture) {
+            surface.renderer.setImage(
+              state.side === 'back'
+                ? back
+                : state.side === 'old'
+                  ? surface.oldImage!
+                  : surface.image,
+            )
+            surface.texture = state.side
           }
-          surface.renderer.render(0, { x: 0.5, y: 0.5 }, time / 1000, Math.PI * (1 - eased), 0.8)
-          if (progress === 1) dispose(surface)
+          surface.renderer.render(0, { x: 0.5, y: 0.5 }, time / 1000, state.angle, 0.8)
+          if (state.done) dispose(surface)
         })
       } catch {
         stop()
@@ -122,4 +128,42 @@ export function revealBatch(grid: HTMLElement) {
     frame = requestAnimationFrame(draw)
   })().catch(stop)
   return stop
+}
+
+function dispose(surface: Surface) {
+  surface.canvas.remove()
+  surface.shadow.remove()
+  surface.renderer.dispose()
+  surface.canvas.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext()
+  surface.copy?.remove()
+  surface.element.removeAttribute('data-card-reveal-phase')
+  surface.element.style.removeProperty('background-image')
+  surface.element.removeAttribute('data-card-reveal')
+  surface.done = true
+}
+
+function createSurface(
+  source: Pick<Surface, 'element' | 'image' | 'oldImage' | 'copy'>,
+  createRenderer: typeof createFoilRenderer,
+): Surface {
+  const image = source.element.querySelector<HTMLImageElement>('img')!
+  const canvas = document.createElement('canvas')
+  canvas.className = 'card-reveal-canvas'
+  canvas.setAttribute('aria-hidden', 'true')
+  const shadow = document.createElement('span')
+  shadow.className = 'card-reveal-shadow'
+  shadow.setAttribute('aria-hidden', 'true')
+  const ratio = Math.min(devicePixelRatio || 1, 2)
+  canvas.width = Math.round(image.offsetWidth * 1.25 * ratio)
+  canvas.height = Math.round(image.offsetHeight * 1.25 * ratio)
+  const renderer = createRenderer(canvas)
+  if (!renderer) throw new Error('WebGL unavailable')
+  return {
+    ...source,
+    canvas,
+    shadow,
+    renderer,
+    texture: source.oldImage ? 'old' : 'back',
+    done: false,
+  }
 }

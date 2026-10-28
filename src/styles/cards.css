@@ -1111,3 +1111,20 @@ button:disabled {
   background: radial-gradient(ellipse closest-side, #0006 0%, #0003 50%, transparent 100%);
   pointer-events: none;
 }
+
+.card-offer[data-batch-changing] > .card-copy {
+  position: relative;
+}
+.card-offer[data-batch-changing] > .card-copy > :not(.batch-old-copy),
+.card-offer[data-batch-changing] > .offer-heading,
+.card-offer[data-batch-changing] > .actions,
+.card-offer[data-batch-changing] .card-image-actions,
+.card-offer[data-batch-changing] .synergy-info {
+  opacity: var(--batch-copy-opacity, 0);
+}
+.card-copy > .batch-old-copy {
+  position: absolute;
+  inset: 0 0 auto;
+  margin: 0;
+  pointer-events: none;
+}

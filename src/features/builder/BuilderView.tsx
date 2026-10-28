@@ -726,6 +726,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 onChange={model.chooseAddZone}
               />
               <RecommendationBatch
+                batchNumber={batchNumber}
                 batchKey={JSON.stringify([batchNumber, scoredBatch.map(({ card }) => card.name)])}
                 className={`card-grid connector-glow juicy-fan ${cardEffects ? '' : 'static-fan'}`}
                 onMouseMove={cardEffects ? fanCards : undefined}
