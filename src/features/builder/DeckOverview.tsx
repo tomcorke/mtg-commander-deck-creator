@@ -165,7 +165,7 @@ export function DeckOverview({
   ).length
   const hasColourSignal = colourStats.some(({ pips, sourceCards }) => pips || sourceCards.length)
   const selectedTagsFound = selectedCoverage.filter(({ cards }) => cards.length > 0).length
-  const riskIndicators = deckRiskIndicators(mainboard)
+  const riskIndicators = deckRiskIndicators(deck)
   const maxTypeCount = Math.max(1, ...typeStats.map(({ count }) => count))
 
   return (
