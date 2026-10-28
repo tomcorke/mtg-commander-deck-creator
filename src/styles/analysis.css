@@ -510,7 +510,7 @@
 }
 .basic-land-button b {
   color: inherit;
-  font-size: var(--type-caption);
+  font-size: var(--type-data);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -974,7 +974,7 @@ button:focus-visible .card-image-preview,
 }
 li b {
   color: var(--text-muted);
-  font-size: var(--type-caption);
+  font-size: var(--type-data);
   font-weight: 500;
   text-transform: uppercase;
 }
