@@ -206,7 +206,7 @@
 .deck-heading span {
   color: var(--text-accent);
   font:
-    600 18px 'Spectral',
+    600 var(--type-card-name) 'Spectral',
     serif;
 }
 .manual-card-button {
@@ -262,7 +262,7 @@
   margin: 16px 0 8px;
   color: inherit;
   font:
-    600 12px 'DM Sans',
+    600 var(--type-caption) 'DM Sans',
     sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.7px;
@@ -673,7 +673,7 @@ li.deck-highlight-dimmed {
   justify-content: space-between;
   color: var(--text-muted);
   font:
-    600 12px 'DM Sans',
+    600 var(--type-data) 'DM Sans',
     sans-serif;
   letter-spacing: 0.7px;
   text-transform: uppercase;

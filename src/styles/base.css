@@ -205,14 +205,14 @@ main > .workspace-alert .modal-close {
   max-width: 100%;
   color: #36327f;
   font:
-    600 21px 'Spectral',
+    600 var(--type-section) 'Spectral',
     serif;
   text-decoration: none;
   white-space: nowrap;
 }
 .brand small {
   font:
-    500 12px Inter,
+    500 var(--type-data) Inter,
     sans-serif;
   opacity: 0.65;
   white-space: nowrap;

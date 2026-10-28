@@ -783,7 +783,7 @@ button:disabled {
   margin: 0 0 6px;
   color: var(--text-accent);
   font:
-    600 13px 'DM Sans',
+    600 var(--type-data) 'DM Sans',
     sans-serif;
   letter-spacing: 1.2px;
   text-transform: uppercase;

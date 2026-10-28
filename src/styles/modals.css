@@ -189,7 +189,7 @@
   padding: 16px;
   border-radius: 7px;
   font:
-    13px/1.5 ui-monospace,
+    var(--type-data)/1.5 ui-monospace,
     Consolas,
     monospace;
 }

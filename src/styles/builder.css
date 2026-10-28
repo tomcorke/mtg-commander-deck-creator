@@ -29,7 +29,7 @@
   align-items: center;
   gap: 16px;
   font:
-    600 14px 'Spectral',
+    600 var(--type-body) 'Spectral',
     serif;
 }
 .deck-board-heading > div:last-child > span {
