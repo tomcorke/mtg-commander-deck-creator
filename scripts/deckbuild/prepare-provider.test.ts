@@ -482,11 +482,11 @@ test('search pool failures, empty results and truncation remain replayable witho
   }
 })
 
-test('search page bounds default to 20 and permit exactly 34 pages with offline replay', async (t) => {
+test('search page bounds default to 20 and permit exactly 38 pages with offline replay', async (t) => {
   for (const [maxPages, hasMore, expectedPages] of [
     [undefined, true, 20],
-    [34, true, 34],
-    [34, false, 34],
+    [38, true, 38],
+    [38, false, 38],
   ] as const) {
     const root = await directory(t)
     const input = searchRecipe()
@@ -529,7 +529,7 @@ test('pool recipe requires exactly one source and bounded search before transpor
   for (const invalid of [
     { ...input, pool: [] },
     { ...input, poolSearch: undefined },
-    ...[0, 35, -1, 1.5, NaN, Infinity, '34', null].map((maxPages) => ({
+    ...[0, 39, -1, 1.5, NaN, Infinity, -Infinity, '38', null].map((maxPages) => ({
       ...input,
       poolSearch: { ...input.poolSearch, maxPages },
     })),
