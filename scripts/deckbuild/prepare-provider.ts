@@ -32,7 +32,7 @@ export const providerPreparationSchema = preparationSchema
       .strictObject({
         query: z.string().trim().min(1).max(2000),
         order: z.enum(['name', 'edhrec', 'released']),
-        maxPages: z.number().int().min(1).max(20),
+        maxPages: z.number().int().min(1).max(34).default(20),
       })
       .optional(),
     runtimeMs: z.number().int().min(1).max(600000).default(60000),
