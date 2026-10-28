@@ -1,0 +1,15 @@
+# Final holdout input preparation
+
+Actual execution HEAD: `621588fb1230a45e4ed3f142220b5dd64c7449cd`. Initial HOLDOUT4-6 queries were established under explicit user authorization from fixed briefs and the prior identity/legal/theme-text/basic-land convention. They were first frozen at 2026-10-28T17:06:28.153Z, before provider requests; they were not previously frozen. Exact texts and SHA-256 hashes are in query-freeze.json.
+
+Queries, ordered by name, are `id<=wubg legal:commander (o:proliferate or o:counter or t:basic)`, `id<=br legal:commander (o:madness or t:basic)` and `id<=wu legal:commander (o:foretell or t:basic)`. Proliferate includes broad counter text for support coverage. These partial theme-text pools do not establish complete strategy support. No scores or results informed query selection.
+
+Preexecution bounds retained the established initial resource allowance: three cases, 20 pages and 21 requests including lookup per case, 63 requests maximum, 120 seconds per preparation, 12 minutes overall, zero retries. The page bound is a resource cap of 3500 raw rows, not a predicted completion count. No observed totals justified a larger initial allowance. HOLDOUT4 retained its pool-pages limit; HOLDOUT5 and HOLDOUT6 are ready with 56 and 31 candidates. All three outcomes replay exactly with fetch forbidden. No expansion or query narrowing occurred.
+
+Eleven actual offline derivations executed separately at the same HEAD; only recommenderVersion differs from original pins. Their original inventories verified (652 entries across ten inventories). Collection verified the immediate offline inventory, copied its eleven prepared manifests and recipes, and actually reran prepareBuild with full pin equality. New ready holdouts have separate zero-occurrence prepared manifests. Retrieval evidence remains distinct. Thirteen compatible cases and one not-prepared case leave common readiness incomplete. Strict guards and originals are unchanged.
+
+Raw segregated roots: `E:/working/agent-sandbox/research/deckbuild/issue-98-final-holdout-inputs/` (offline derivations) and `E:/working/agent-sandbox/research/deckbuild/issue-98-final-holdout-collection-v1/` (collection). Collection inventory SHA-256: `907e124e03b4b39ec6f33af09c8f69255906adfb3d13a8842d56e29de7035409`. Collector, query freeze, bounds, original verification, raw first pages, capped outcome, exact replays, bindings and audit are retained. Operator checks enforce the overall bound; preparation enforces its runtime guard. The initial tsx launch failed before execution; the supported node strip-types invocation executed successfully.
+
+No labels, scoring analysis, tuning, builders, app changes or publishing occurred. No policy freshness, corpus completeness, baseline acceptance or quality claim is made. Issue #98 stays open for capped HOLDOUT4 and remaining evaluation acceptance. No new shared knowledge findings.
+
+Validation: all 944 tests, lint, typecheck and build passed before collection; final checks repeated for this summary.
