@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { auditSuite } from './fixed-suite.ts'
+import { auditSuite, fixedSuiteSchema } from './fixed-suite.ts'
 const base = fileURLToPath(new URL('./specs/', import.meta.url))
 const load = async () =>
   JSON.parse(await readFile(new URL('./specs/suite.json', import.meta.url), 'utf8'))
@@ -47,6 +47,7 @@ import { join } from 'node:path'
 import { recordStore } from './data.ts'
 import { prepareBuild } from './prepare.ts'
 import { digest } from './fixed-suite.ts'
+import { freezeInputs } from './freeze-inputs.ts'
 import {
   toCard,
   toDeckCardFromRecommendation,
@@ -105,6 +106,42 @@ test('offline supplied preparation assembly and incompatible date', async () => 
         kb: ref,
       }
     }
+    const original = await load()
+    // Synthetic recordings do not replace the real suite's independent evidence.
+    for (const c of original.cases) c.providers = []
+    const bindings = {
+      version: 1,
+      cases: fixedSuiteSchema.parse(s).cases.map(({ id, common, recipe, providers }) => ({
+        id,
+        common,
+        recipe,
+        providers,
+      })),
+    }
+    const frozen = await freezeInputs(original, bindings, dir)
+    assert.equal(frozen.audit.commonReadiness, 'ready')
+    assert.deepEqual(frozen.suite, s)
+    assert.equal(original.cases[0].recipe, null)
+    const partial = await freezeInputs(
+      original,
+      { version: 1, cases: bindings.cases.slice(0, 1) },
+      dir,
+    )
+    assert.equal(partial.audit.commonReadiness, 'incomplete')
+    await assert.rejects(freezeInputs(s, bindings, dir), /already frozen/)
+    await assert.rejects(
+      freezeInputs(original, { version: 1, cases: [bindings.cases[0], bindings.cases[0]] }, dir),
+      /Duplicate/,
+    )
+    await assert.rejects(
+      freezeInputs(original, { version: 1, cases: [{ ...bindings.cases[0], id: 'unknown' }] }, dir),
+      /Unknown/,
+    )
+    const retained = structuredClone(original)
+    retained.cases[0].providers = ['0'.repeat(64)]
+    assert.deepEqual((await freezeInputs(retained, bindings, dir)).priorProviders[0].providers, [
+      '0'.repeat(64),
+    ])
     assert.equal((await auditSuite(s, dir)).commonReadiness, 'ready')
     s.cases[0].common.snapshotId = 'different-snapshot'
     await assert.rejects(auditSuite(s, dir), /Incompatible/)
