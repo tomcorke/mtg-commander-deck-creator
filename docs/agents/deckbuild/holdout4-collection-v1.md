@@ -22,4 +22,3 @@ Audit limitations: preparation only; no labels, scoring, tuning, builders, polic
 - `execution.log`: `bf3b985ae2b70df451e72e16260bff49d74f888fff6797dc09f8f60e658312d7`
 
 Validation: pnpm test passed all 944 tests; pnpm lint, pnpm typecheck and pnpm build passed. Final log hashes are separately retained in supplemental-hashes.json and test-final-hash.json. The original 91-entry inventory verifies unchanged; the new 112-entry inventory has only the two documented active-log mismatches.
-
