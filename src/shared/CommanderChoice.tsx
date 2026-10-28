@@ -68,7 +68,7 @@ export function CommanderChoiceTile({
           />
         </div>
       }
-      name={<CardReference card={converted} onOpen={() => openCard(converted)} />}
+      name={<CardReference card={converted} preview={false} onOpen={() => openCard(converted)} />}
       cost={card.mana_cost ?? card.card_faces?.[0]?.mana_cost}
       actions={action}
     >
