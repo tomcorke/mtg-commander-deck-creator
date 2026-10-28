@@ -217,3 +217,5 @@ node --experimental-strip-types scripts/deckbuild/fixed-suite.ts <evidence-root>
 ```
 
 The freeze result is `{ "suite", "audit", "priorProviders" }`, not a suite file: extract `suite` before passing a file to `fixed-suite.ts`. The suite retains each case's ID, split, family/color assignment, spec path/hash and settings. `priorProviders` records every case's provider IDs before binding; bound cases receive the supplied IDs, while unbound cases keep their existing fields. A subset can be bound: the audit can succeed with `commonReadiness: "incomplete"`; readiness is `"ready"` only when every case is compatible and all common declarations match. This verifies supplied hashes, preparation compatibility and offline replay completeness. It does not create a common corpus or establish evidence freshness or evaluation quality.
+
+The [retained common-input subset](common-input-evidence-v1.md) records fresh dev-1/dev-2 preparations, offline replay and a compatible two-case frozen audit; twelve cases remain not-prepared and common readiness remains incomplete. The committed suite declarations remain unchanged.
