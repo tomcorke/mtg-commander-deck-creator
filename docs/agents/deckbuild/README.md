@@ -1,5 +1,7 @@
 # Deckbuild evaluation data
 
+The [identical-deck Tatyova re-reviews](reviewer-variation-tatyova-v1.md) broaden reviewer repeats to a second retained candidate. Three reviews agree on all six scores and confidence levels while some card selections differ. Results remain descriptive per-deck observations; independent builds and real ranking labels remain acceptance priorities.
+
 The [identical-deck Ayula re-reviews](reviewer-variation-ayula-v1.md) record three individual reviews with unchanged bundle/prompt/reference hashes. Scores agree in this one-deck sample while confidence and card selections vary; this is descriptive reviewer variation, not zero population noise or a completed repeated baseline.
 
 The [Ayula candidate evaluation](builder-evaluation-ayula-v1.md) adds a third fixed brief with bracket-1 Bear-themed intent, exact offline replay, construction readiness and a fresh best-effort desk review. It retains failed setup attempts, explicit process deadlines and unresolved selected-printing preferences. Repeats, reviewer noise and ranking labels remain outstanding.
