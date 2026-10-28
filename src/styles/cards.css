@@ -1095,3 +1095,10 @@ button:disabled {
   top: -12.5%;
   pointer-events: none;
 }
+
+/* Suppress the stationary lift and synergy glow immediately; the normal shadow transition
+   fades them back in after this attribute is removed at the end of each card's flip. */
+.card-grid .offered-image > .finished-card[data-card-reveal] {
+  box-shadow: none;
+  transition-property: transform;
+}

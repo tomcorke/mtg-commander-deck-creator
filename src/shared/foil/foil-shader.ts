@@ -56,6 +56,7 @@ uniform sampler2D uImage;
 uniform sampler2D uShards; // facet shards: red coverage, green a per-shard seed, blue the rims
 uniform float uHasShards; // 1 when the card has facet shards
 uniform vec2 uPointer;   // 0..1 across the card; (0.5, 0.5) is flat
+uniform float uCornerFeather; // one output pixel in card coordinates
 uniform vec2 uTexel;     // 1 / image size
 uniform float uTime;
 uniform float uAspect;   // height / width
@@ -853,7 +854,11 @@ void main() {
     colour = hardLight(base, clamp(light, 0.0, 1.0));
   }
 
-  gl_FragColor = vec4(colour, 1.0);
+  // Match the image's 4.75% CSS radius in card UVs, so the cutout rotates with the card.
+  float radius = 0.0475;
+  vec2 corner = max(abs(vUv - 0.5) - (0.5 - radius), 0.0);
+  float coverage = 1.0 - smoothstep(radius - uCornerFeather, radius + uCornerFeather, length(corner));
+  gl_FragColor = vec4(colour, coverage);
 }`
 
 function compile(gl: WebGLRenderingContext, type: number, source: string) {
@@ -909,6 +914,7 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
     rotation: uniform('uRotation'),
     scale: uniform('uScale'),
     pointer: uniform('uPointer'),
+    cornerFeather: uniform('uCornerFeather'),
     texel: uniform('uTexel'),
     time: uniform('uTime'),
     aspect: uniform('uAspect'),
@@ -947,6 +953,7 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
       gl.clear(gl.COLOR_BUFFER_BIT)
       gl.uniform1f(uniforms.rotation, rotation)
       gl.uniform1f(uniforms.scale, scale)
+      gl.uniform1f(uniforms.cornerFeather, 1 / (canvas.width * scale))
       gl.viewport(0, 0, canvas.width, canvas.height)
       gl.uniform2f(uniforms.pointer, pointer.x, pointer.y)
       gl.uniform2f(uniforms.texel, 1 / imageSize.width, 1 / imageSize.height)
