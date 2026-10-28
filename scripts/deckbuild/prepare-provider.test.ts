@@ -482,13 +482,57 @@ test('search pool failures, empty results and truncation remain replayable witho
   }
 })
 
+test('search page bounds default to 20 and permit exactly 34 pages with offline replay', async (t) => {
+  for (const [maxPages, hasMore, expectedPages] of [
+    [undefined, true, 20],
+    [34, true, 34],
+    [34, false, 34],
+  ] as const) {
+    const root = await directory(t)
+    const input = searchRecipe()
+    const pages: number[] = []
+    let calls = 0
+    const result = await recordPreparation(
+      root,
+      { ...input, poolSearch: { ...input.poolSearch, maxPages } },
+      async (url, init) => {
+        calls++
+        if (init?.body) return response([raw])(url, init)
+        const page = Number(new URL(String(url)).searchParams.get('page'))
+        pages.push(page)
+        return searchResponse([], page < expectedPages || hasMore)
+      },
+    )
+    assert.deepEqual(
+      pages,
+      Array.from({ length: expectedPages }, (_, i) => i + 1),
+    )
+    assert.equal(calls, expectedPages + 1)
+    assert.equal(result.status, hasMore ? 'limit' : 'ready')
+    if (result.status === 'limit') assert.equal(result.detail, 'pool-pages')
+    assert.equal('pins' in result, !hasMore)
+    const manifest = JSON.parse(
+      await readFile(join(root, 'manifests', `${result.manifest}.json`), 'utf8'),
+    )
+    assert.equal(manifest.entries.length, calls)
+    assert.equal(manifest.pins.initialState.poolSearch.maxPages, expectedPages)
+    t.mock.method(globalThis, 'fetch', () => {
+      throw new Error('Network forbidden')
+    })
+    assert.deepEqual(await replayPreparation(root, result.manifest), result)
+  }
+})
+
 test('pool recipe requires exactly one source and bounded search before transport', async (t) => {
   const root = await directory(t)
   const input = searchRecipe()
   for (const invalid of [
     { ...input, pool: [] },
     { ...input, poolSearch: undefined },
-    ...[0, 21].map((maxPages) => ({ ...input, poolSearch: { ...input.poolSearch, maxPages } })),
+    ...[0, 35, -1, 1.5, NaN, Infinity, '34', null].map((maxPages) => ({
+      ...input,
+      poolSearch: { ...input.poolSearch, maxPages },
+    })),
     { ...input, poolSearch: { ...input.poolSearch, query: '' } },
     { ...input, poolSearch: { ...input.poolSearch, order: 'random' } },
   ])
