@@ -1,5 +1,7 @@
 # Deckbuild evaluation data
 
+The [identical-deck Ayula re-reviews](reviewer-variation-ayula-v1.md) record three individual reviews with unchanged bundle/prompt/reference hashes. Scores agree in this one-deck sample while confidence and card selections vary; this is descriptive reviewer variation, not zero population noise or a completed repeated baseline.
+
 The [Ayula candidate evaluation](builder-evaluation-ayula-v1.md) adds a third fixed brief with bracket-1 Bear-themed intent, exact offline replay, construction readiness and a fresh best-effort desk review. It retains failed setup attempts, explicit process deadlines and unresolved selected-printing preferences. Repeats, reviewer noise and ranking labels remain outstanding.
 
 The [Tatyova candidate evaluation](builder-evaluation-tatyova-v1.md) adds a complete landfall deck with bracket-3 intent, operator-verified offline replay/construction and a fresh best-effort desk review. It preserves the builder's failed finalization separately from bounded operator recovery; policy currency and gameplay pace remain unresolved.
