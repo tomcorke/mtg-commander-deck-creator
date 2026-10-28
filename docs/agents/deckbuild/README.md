@@ -223,3 +223,5 @@ The [retained common-input subset](common-input-evidence-v1.md) records fresh de
 The [partial preparation evidence v2](common-input-evidence-v2.md) retains dev-3 success, development-4's original page limit and separately authorized nine-page success. The aggregate audit failed on older dev-1/dev-2 recommender-version pins; no combined readiness is established. Development-5/6 and holdouts remain unexecuted in this batch.
 
 The [preparation compatibility reconciliation](preparation-compatibility-v1.md) records four offline recipe derivations that resolve the strict pin mismatch without changing the original retrieval manifests. Ten cases remain not prepared, and common readiness remains incomplete.
+
+The [remaining development preparations v1](remaining-development-preparations-v1.md) records three additional compatible preparations, development-8's bounded page-limit result, and the seven-compatible/seven-not-prepared frozen audit; issue #98 remains open and readiness remains incomplete.
