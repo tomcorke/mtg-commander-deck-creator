@@ -32,6 +32,8 @@ pnpm audit:recommendations -- --output recommendation-audit.md
 
 The script fetches current Archidekt, EDHREC, and Scryfall data, then imports the same recommendation builder and queue transition functions used by the app. It does not automate or duplicate the UI implementation. Add `--local-index public/local-card-index.json` to include a pinned local corpus in production role-gap retrieval; live evidence remains live, not a full replay.
 
+Issue #98 fixed-input build evidence records a failed initial output capture and a successful offline replay whose exact equality remains unproven: [read the evidence](docs/agents/deckbuild/fixed-input-build-evidence-v1.md).
+
 ## MTG knowledge
 
 Shared rules, format policy, commander eligibility, and provider references live in the sibling `E:/working/mtg-knowledge-base` repository. Keep both checkouts side by side when working on MTG-dependent behavior. Start with [CONTEXT.md](CONTEXT.md); app terminology, heuristic limits, and code audits remain here. The knowledge base is a documentation dependency, not an app runtime dependency.
