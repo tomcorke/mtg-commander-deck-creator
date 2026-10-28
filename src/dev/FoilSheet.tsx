@@ -157,6 +157,8 @@ const sheetPreferences = {
   setDarkMode: () => undefined,
   commanderStyling: false,
   setCommanderStyling: () => undefined,
+  cardReveals: false,
+  setCardReveals: () => undefined,
   cardEffects: true,
   setCardEffects: () => undefined,
 }

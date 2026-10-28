@@ -1071,3 +1071,27 @@ button:disabled {
   padding: 8px;
   font-size: 14px;
 }
+
+/* Keep the fan transform on the outer wrapper; reveal geometry lives inside its canvas. */
+.offered-image > .finished-card[data-card-reveal] {
+  background: url('/images/mtg-card-back.png') center / 100% 100% no-repeat;
+  animation: none;
+}
+.offered-image > .finished-card[data-card-reveal='flipping'] {
+  background: none;
+}
+.finished-card[data-card-reveal] > img,
+.finished-card[data-card-reveal]::before,
+.finished-card[data-card-reveal]::after,
+.finished-card[data-card-reveal] > .synergy-connector {
+  visibility: hidden;
+}
+.card-reveal-canvas {
+  position: absolute;
+  z-index: 3;
+  width: 125%;
+  height: 125%;
+  left: -12.5%;
+  top: -12.5%;
+  pointer-events: none;
+}

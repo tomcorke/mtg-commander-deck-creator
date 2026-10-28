@@ -1,0 +1,35 @@
+.flip-preview {
+  padding: 24px;
+}
+.flip-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+.flip-controls label {
+  display: grid;
+  gap: 8px;
+}
+.flip-controls label:has(input[type='checkbox']) {
+  display: flex;
+  align-items: center;
+}
+.flip-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.flip-cards figure {
+  margin: 16px 0;
+  width: min(360px, 100%);
+  text-align: center;
+}
+.flip-cards canvas {
+  display: block;
+  width: 100%;
+}
+.flip-preview p,
+.flip-cards figcaption {
+  color: var(--text-muted);
+}

@@ -24,6 +24,7 @@ export function DisplaySettingsMenu() {
   const controls = [
     ['Dark mode', preferences.darkMode, preferences.setDarkMode],
     ['Commander art and colours', preferences.commanderStyling, preferences.setCommanderStyling],
+    ['Card reveal animation', preferences.cardReveals, preferences.setCardReveals],
     ['Motion and finishes', preferences.cardEffects, preferences.setCardEffects],
   ] as const
   return (
@@ -55,6 +56,7 @@ export function DisplaySettingsMenu() {
               <input
                 type="checkbox"
                 checked={checked}
+                disabled={label === 'Card reveal animation' && !preferences.cardEffects}
                 onChange={(event) => setValue(event.target.checked)}
               />{' '}
               {label}

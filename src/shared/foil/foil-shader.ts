@@ -38,10 +38,15 @@ export const foilShaderTypes = {
 
 const vertexSource = `
 attribute vec2 aPosition;
+uniform float uRotation;
+uniform float uScale;
 varying vec2 vUv;
 void main() {
   vUv = vec2(aPosition.x * 0.5 + 0.5, 0.5 - aPosition.y * 0.5);
-  gl_Position = vec4(aPosition, 0.0, 1.0);
+  float facing = cos(uRotation);
+  if (facing < 0.0) vUv.x = 1.0 - vUv.x;
+  float depth = -aPosition.x * sin(uRotation);
+  gl_Position = vec4(aPosition.x * facing * uScale, aPosition.y * uScale, 0.0, 1.0 + depth * 0.22);
 }`
 
 const fragmentSource = `
@@ -901,6 +906,8 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
   gl.uniform1i(uniform('uImage'), 0)
   gl.uniform1i(uniform('uShards'), 3)
   const uniforms = {
+    rotation: uniform('uRotation'),
+    scale: uniform('uScale'),
     pointer: uniform('uPointer'),
     texel: uniform('uTexel'),
     time: uniform('uTime'),
@@ -912,6 +919,13 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
   let imageSize = { width: 488, height: 680 }
 
   return {
+    dispose() {
+      gl.deleteTexture(texture)
+      gl.deleteTexture(shardTexture)
+      gl.deleteBuffer(buffer)
+      for (const shader of gl.getAttachedShaders(program) ?? []) gl.deleteShader(shader)
+      gl.deleteProgram(program)
+    },
     // The card identifies its facet shards, if it has any (see facet-shards.ts).
     setImage(
       image: HTMLImageElement,
@@ -929,7 +943,10 @@ export function createFoilRenderer(canvas: HTMLCanvasElement) {
       gl.activeTexture(gl.TEXTURE0)
       gl.bindTexture(gl.TEXTURE_2D, texture)
     },
-    render(type: number, pointer: { x: number; y: number }, time: number) {
+    render(type: number, pointer: { x: number; y: number }, time: number, rotation = 0, scale = 1) {
+      gl.clear(gl.COLOR_BUFFER_BIT)
+      gl.uniform1f(uniforms.rotation, rotation)
+      gl.uniform1f(uniforms.scale, scale)
       gl.viewport(0, 0, canvas.width, canvas.height)
       gl.uniform2f(uniforms.pointer, pointer.x, pointer.y)
       gl.uniform2f(uniforms.texel, 1 / imageSize.width, 1 / imageSize.height)

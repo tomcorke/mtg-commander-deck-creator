@@ -1,4 +1,5 @@
 import { finishLabel } from '../../domain/printing.ts'
+import { RecommendationBatch } from './RecommendationBatch.tsx'
 import { FinishFilters } from '../../shared/FinishFilters.tsx'
 import type { BuilderAction } from '../../domain/builder-state.ts'
 import { creatureTypeForTheme, hasTag } from '../../domain/creature-types.ts'
@@ -724,7 +725,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 zone={toSideboard ? 'sideboard' : 'deck'}
                 onChange={model.chooseAddZone}
               />
-              <div
+              <RecommendationBatch
+                batchKey={JSON.stringify([batchNumber, scoredBatch.map(({ card }) => card.name)])}
                 className={`card-grid connector-glow juicy-fan ${cardEffects ? '' : 'static-fan'}`}
                 onMouseMove={cardEffects ? fanCards : undefined}
                 onMouseLeave={cardEffects ? resetFan : undefined}
@@ -931,7 +933,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     </article>
                   )
                 })}
-              </div>
+              </RecommendationBatch>
             </>
           ) : (
             <div className="empty">

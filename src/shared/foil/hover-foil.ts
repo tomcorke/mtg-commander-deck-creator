@@ -60,7 +60,7 @@ function loadSurface() {
   return surfacePromise
 }
 
-function loadImage(url: string) {
+export function loadCardTexture(url: string) {
   let pending = images.get(url)
   if (!pending) {
     const image = new Image()
@@ -97,6 +97,7 @@ export function foilPointer(element: HTMLElement, clientX: number, clientY: numb
 }
 
 export function showHoverFoil(element: HTMLElement, card: FoilCard, pointer?: Pointer) {
+  if (element.hasAttribute('data-card-reveal')) return
   if (active) hideHoverFoil(active.element)
   if (unavailable || motionReduced() || (card.finish !== 'foil' && card.finish !== 'etched')) return
   const image = element.querySelector<HTMLImageElement>('img:not(.finish-edges)')
@@ -122,7 +123,7 @@ export function showHoverFoil(element: HTMLElement, card: FoilCard, pointer?: Po
 }
 
 async function prepareHover(hover: Hover) {
-  const [surface, image] = await Promise.all([loadSurface(), loadImage(hover.card.image)])
+  const [surface, image] = await Promise.all([loadSurface(), loadCardTexture(hover.card.image)])
   if (active !== hover) return
   if (!surface || unavailable) {
     hideHoverFoil(hover.element)
