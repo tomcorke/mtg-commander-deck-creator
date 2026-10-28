@@ -32,11 +32,26 @@ await withBrowser('BATCH_BUSY', 5254, async (browser, base) => {
   })
   try {
     const next = page.locator('.batch-controls .nav-forward')
+    await page.waitForFunction(() => {
+      const button = document.querySelector('.batch-controls .nav-forward') as HTMLButtonElement
+      return !button.disabled && button.innerText.includes('Next recommendations')
+    })
+    const idleBounds = await next.boundingBox()
     await next.click()
     await page.waitForSelector('[data-card-reveal="waiting"]')
+    const preparingBounds = await next.boundingBox()
+    assert(
+      Math.abs(idleBounds!.height - preparingBounds!.height) < 0.5 &&
+        Math.abs(idleBounds!.width - preparingBounds!.width) < 0.5,
+      'preparing feedback preserves the button dimensions',
+    )
     assert(await next.isDisabled(), 'Next is disabled while the next images are held after refresh')
     assert.equal(await next.getAttribute('aria-busy'), 'true')
-    assert.match(await next.innerText(), /Preparing recommendations/)
+    assert.match(await next.innerText(), /Preparing\.\.\./)
+    assert.equal(
+      await page.locator('.batch-controls [role=status]').innerText(),
+      'Preparing recommendations...',
+    )
     const batch = await page.locator('.recommendation-setup .section-title > span').innerText()
     await next.evaluate((element) => (element as HTMLButtonElement).click())
     assert.equal(
@@ -47,8 +62,14 @@ await withBrowser('BATCH_BUSY', 5254, async (browser, base) => {
     mode = 'pass'
     release()
     await page.waitForSelector('[data-card-reveal-phase="leaving"]')
+    const revealingBounds = await next.boundingBox()
+    assert(
+      Math.abs(idleBounds!.height - revealingBounds!.height) < 0.5 &&
+        Math.abs(idleBounds!.width - revealingBounds!.width) < 0.5,
+      'revealing feedback preserves the button dimensions',
+    )
     assert(await next.isDisabled(), 'Next stays disabled through the rolling reveal')
-    assert.match(await next.innerText(), /Revealing recommendations/)
+    assert.match(await next.innerText(), /Revealing\.\.\./)
     await page.waitForSelector('[data-card-reveal]', { state: 'detached' })
     await next.waitFor({ state: 'visible' })
     await page.waitForFunction(

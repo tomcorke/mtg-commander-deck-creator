@@ -106,6 +106,17 @@
 .batch-controls .nav-forward > span {
   padding-block: 8px;
 }
+/* Reserve the idle label's footprint so busy feedback never resizes the toolbar. */
+.batch-button-label {
+  display: grid;
+}
+.batch-button-label > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+.batch-button-size {
+  visibility: hidden;
+}
 .batch-rebuild {
   display: block;
   font-size: 12px;

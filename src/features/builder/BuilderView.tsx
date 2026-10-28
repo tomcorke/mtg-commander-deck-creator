@@ -643,7 +643,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       onClick={() => void advanceBatch()}
                     >
                       <span>
-                        {nextBatchLabel}
+                        <span className="batch-button-label">
+                          <span className="batch-button-size" aria-hidden="true">
+                            Next recommendations
+                          </span>
+                          <span>
+                            {batchBusy
+                              ? preparingBatch
+                                ? 'Preparing...'
+                                : 'Revealing...'
+                              : nextBatchLabel}
+                          </span>
+                        </span>
                         {pendingSubThemes.some((name) => activeSubThemes.includes(name)) && (
                           <small className="batch-rebuild">
                             {' '}
