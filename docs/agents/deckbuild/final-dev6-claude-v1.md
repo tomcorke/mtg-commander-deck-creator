@@ -28,9 +28,9 @@ Neither build produced a 100-card deck, a construction gate result or a review. 
 
 The Codex round's review b1 of the dev-1 repeat-2 deck produced no files. This slice reviewed the same `review-bundle-b`, unchanged, with session instructions version 2 staged in a neutral temporary directory. The reviewer was a fresh Claude Sonnet 5.5 subagent with a 15-minute bound and zero retries. Staged file hashes were unchanged after the review, and `run-round.ts validate` accepted it against `development-1-2/completed-input.json`.
 
-| Review                 | Bracket | Effectiveness | Theme | Idea | Fun | Synergy | Fit         |
-| ---------------------- | ------: | ------------: | ----: | ---: | --: | ------: | ----------- |
-| dev1 repeat-2 (Claude) |       4 |             3 |     5 |    4 |   4 |       4 | appropriate |
+| Review                 | Bracket fit | Effectiveness | Theme | Idea | Fun | Synergy | Fit         |
+| ---------------------- | ----------: | ------------: | ----: | ---: | --: | ------: | ----------- |
+| dev1 repeat-2 (Claude) |           4 |             3 |     5 |    4 |   4 |       4 | appropriate |
 
 The reviewer reported generic host instructions, a skill catalog, workspace metadata and project agent instructions as ambient context, and no contamination. Isolation is best-effort at bundle level (#265). This is a different reviewer model from the Codex reviews of the other bundles, so its scores are not directly comparable to them. Its main criticisms are 38 Mountains on a very low curve, thin draw and ramp, and a few off-plan artifact-hate Goblins. Scores are desk estimates, not gameplay evidence.
 
