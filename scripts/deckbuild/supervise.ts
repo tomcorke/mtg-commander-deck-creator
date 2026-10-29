@@ -167,6 +167,17 @@ export async function supervisedStep(dir: string, appendPath?: string) {
   }
 }
 
+/** Keeps a refused payload and its diagnostic; the run is not stopped and nothing launches. */
+async function rejected(dir: string, text: string, error: unknown) {
+  let n = 1
+  while (existsSync(join(dir, `rejected-${n}.jsonl`))) n++
+  const detail = error instanceof z.ZodError ? z.prettifyError(error) : String(error)
+  const message = `Preflight rejected commands (kept as rejected-${n}.jsonl); nothing launched and the run is not stopped. Correct the payload and resubmit. Deck-card payloads (addBasics, addOneBasic, promote) reject recommendation-only fields such as reason; copy the queue card without them.\n${detail}`
+  await writeFile(join(dir, `rejected-${n}.jsonl`), text, { flag: 'wx' })
+  await writeFile(join(dir, `rejected-${n}.stderr`), `${message}\n`, { flag: 'wx' })
+  return new Error(message)
+}
+
 async function preflight(dir: string, appendPath?: string) {
   if (existsSync(join(dir, 'stop.json')))
     throw new Error('Run is stopped; start a new run directory')
@@ -180,7 +191,13 @@ async function preflight(dir: string, appendPath?: string) {
   if (prior && prior.assignment !== assignment)
     throw new Error('assignment.json changed after start')
   // Pre-launch input mistakes can be corrected; everything inside the try ends the run.
-  const commands = parseCommands(await readFile(appendPath ?? join(dir, 'commands.jsonl'), 'utf8'))
+  const commandText = await readFile(appendPath ?? join(dir, 'commands.jsonl'), 'utf8')
+  let commands
+  try {
+    commands = parseCommands(commandText)
+  } catch (error) {
+    throw await rejected(dir, commandText, error)
+  }
   if (appendPath && commands.length === 0) throw new Error('Append requires at least one command')
   if (!prior) await readJson(join(dir, 'inputs.json'))
   return { a, assignment, statePath, prior }
