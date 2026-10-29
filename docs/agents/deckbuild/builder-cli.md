@@ -60,8 +60,10 @@ Record separate execution and finalization deadlines before setup. Use the relev
 
 Each nonblank line of `commands.jsonl` is `{ "reason": "...", "action": { ... } }`. Reasons are required. For example, using exact names from the visible batch:
 
-```text
-{"reason":"Fill colourless mana","action":{"type":"addBasics","cards":[{"card":{"name":"Wastes","layout":"normal","typeLine":"Basic Land","manaCost":"","manaValue":0,"detail":"{T}: Add {C}.","producedMana":["C"],"faces":[],"image":"","set":"ogw","collectorNumber":"183a","tags":[]},"count":20}]}}
+```jsonl
+{"reason":"Inspect the prepared pool","action":{"type":"view"}}
+{"reason":"Advance after inspecting the batch","action":{"type":"nextBatch"}}
+{"reason":"Inspect a suspected retrieval miss","action":{"type":"explain","name":"Example Card"}}
 ```
 
 `commandSchema` is the exact command contract. Supported shared actions cover decisions/likes/ignore reasons, zone choice, theme/sub-theme steering, settings/role targets/focus, collection settings, committing settings, advancing batches, deck edits, supplied card additions/printings, promotion, Doctor discovery/swaps/undo. Operator-supplied transport/state replacement actions (`data`, `restore`, `hydrate`, `poolLoaded`, `settleFetch`), initialization/reset and retry commands are excluded. Start a new pinned run to change the initial prepared data. Commands with supplied card data are operator-authored offline inputs, not evidence of provider retrieval or an autonomous builder drawing only from the CLI. Their contents and reasons are pinned by the log hash.
@@ -114,8 +116,9 @@ Search leaves builder state, pending feedback and offers unchanged. Returned car
 
 Slice 9 connects retrieval to builder additions without copying provider objects into the log:
 
-```text
-{"reason":"Fill colourless mana","action":{"type":"addBasics","cards":[{"card":{"name":"Wastes","layout":"normal","typeLine":"Basic Land","manaCost":"","manaValue":0,"detail":"{T}: Add {C}.","producedMana":["C"],"faces":[],"image":"","set":"ogw","collectorNumber":"183a","tags":[]},"count":20}]}}
+```jsonl
+{"reason":"Retrieve candidate evidence","action":{"type":"lookup","names":["Example Card"]}}
+{"reason":"Select the retrieved candidate","action":{"type":"addRetrieved","commandIndex":0,"names":["Example Card"]}}
 ```
 
 `commandIndex` is the zero-based index of an earlier parsed command (blank lines do not count). It must reference a `lookup` or `search` result containing card evidence. Select 1–75 distinct exact returned names, each at most 200 characters. Partial retrieval is usable for the cards actually returned. Missing, ambiguous, failed, current/future or non-retrieval evidence stops `invalid` before any addition; later commands do not run. Selecting a missing name alongside a present name adds neither.
