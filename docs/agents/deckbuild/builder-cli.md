@@ -166,3 +166,38 @@ Each extension first replays and validates the entire prior run offline. It then
 This deliberately reconstructs bounded prefixes instead of serializing reducer or transport checkpoints. Across many single-command extensions, replay work grows quadratically; command/batch limits cover the full combined run, and runtime limits apply separately to validation and combined execution. Timing-limited runs are not exact replay evidence. Start a fresh run if the original limits are insufficient. Never substitute a report's diagnostic state for prepared pins.
 
 This enables an inspect/choose/execute session through existing CLI evidence and shared actions. It does not launch a builder agent, enforce its use of CLI-only cards, export evaluation artifacts, certify spec constraints or establish deck quality. Use the fixed [builder prompt](builder.md) for agent sessions; the [first bounded evaluation](builder-evaluation-v1.md) records actual incremental use and its partial-deck limits. Complete sessions/spec suites and remaining acceptance stay in [#98](https://github.com/tomcorke/mtg-commander-deck-creator/issues/98).
+
+## Supervised bounded sessions
+
+`supervise.ts` runs `record`, `extend` and `replay` under a fixed assignment. It replaces the ad hoc supervisors behind [v1](fixed-input-build-evidence-v1.md) and [v2](fixed-input-build-evidence-v2.md): v1 failed on `spawnSync` output buffering, and v2 continued after settled provider failures. Prepare one new run directory per attempt. The directory must be absolute and outside the checkout. Write `assignment.json`, `inputs.json` and the initial `commands.jsonl` before the first launch:
+
+```json
+{
+  "commands": 60,
+  "batches": 12,
+  "extensions": 12,
+  "providerAttemptsPerExtension": 0,
+  "subprocessMs": 60000,
+  "stdoutBytes": 33554432,
+  "stderrBytes": 1048576,
+  "deadline": "2026-10-29T12:00:00Z"
+}
+```
+
+```powershell
+node --experimental-strip-types scripts/deckbuild/supervise.ts start <run-dir>
+node --experimental-strip-types scripts/deckbuild/supervise.ts extend <run-dir> <append.jsonl>
+```
+
+The bounds work as follows:
+
+- `start` derives the pinned `limits.json` from the assignment, so commands, batches and runtime come from one source.
+- Each step records `state.json` with the assignment hash. A changed assignment is refused.
+- Each CLI subprocess starts with stdout and stderr piped to `<name>.json` and `<name>.stderr` in the run directory. A stream that passes its byte cap is truncated at the cap and the process is killed. The subprocess timeout is the smaller of `subprocessMs` and the time left before `deadline`. No step starts after the deadline.
+- A data-URL preload rejects every `fetch` call after `providerAttemptsPerExtension` within one record/extend call; the cap also applies to the initial `record`. After a fetch rejection, HTTP 429 or HTTP 5xx, the preload blocks all later fetches in that subprocess. Replay runs with a cap of zero. The rejected call is never sent, and the CLI records it as a network failure.
+- After each record/extend call, the supervisor reads the occurrences that call added to the manifest. More occurrences than the cap stops the run, and so does any settled provider failure: a transport failure outcome, HTTP 429 or HTTP 5xx. Other HTTP answers, such as a Scryfall 404 empty search, are provider data.
+- Each successful call is replayed offline from the new manifest and combined log. Its report must equal the recorded report exactly.
+
+Each subprocess appends start, end, exit, signal, byte counts and any breach to `ledger.jsonl`. The first breach, nonzero exit, non-`complete` status, provider breach or replay mismatch writes `stop.json`. A stopped directory refuses every later step and launches nothing. The supervisor never retries. Start a new directory with a new assignment after a stop. Malformed append files and missing inputs are refused before launch and do not stop the run, so schema mistakes can be corrected inside the same assignment. An empty append is also refused before launch; an append exceeding pinned command limits stops the run. A run lock refuses simultaneous steps; a leftover lock after an interrupted supervisor requires operator inspection. Every submitted append is kept as `append-<n>.jsonl`, and each combined log as `commands-<n>.jsonl`.
+
+These are per-process bounds on supervised CLI calls. They are not an OS sandbox, and they do not bound the builder agent's own activity. The synthetic tests in `supervise.test.ts` cover replay equality, the zero-provider stop, refusal after a stop, output caps, extension and deadline bounds, and refusal of a changed assignment. No builder session has run under this supervisor yet.
