@@ -1,3 +1,4 @@
+import type { PackageCounts } from './strategy-packages.ts'
 import type { CardFinish } from './card-model.ts'
 
 export type { CardFinish, PrintingLike, ScryfallCard, ScryfallCardFace } from './card-model.ts'
@@ -105,6 +106,7 @@ export const recommendationScoreFactorMaximums = Object.freeze({
   manaFitPenalty: 10,
   popularityPenalty: 15,
   powerFitPenalty: 8,
+  package: 8,
 } as const)
 export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> &
   Partial<
@@ -117,6 +119,7 @@ export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'
       | 'manaValue'
       | 'manaValueKnown'
       | 'synergy'
+      | 'detail'
       | 'localIndexSnapshot'
     >
   >
@@ -134,6 +137,8 @@ export type RecommendationScoreContext = {
   pickedTags: Set<string>
   /** How many deck cards (excluding commanders) carry each tag; drives diminishing returns. */
   tagCounts?: Record<string, number>
+  /** Enabler, payoff and protection counts for each active strategy package. */
+  packageCounts?: PackageCounts
   preferenceScores: Record<string, number>
   neededRoles: Set<string>
   cardRoles: string[]
@@ -161,4 +166,5 @@ export type RecommendationScoreBreakdown = {
   manaFitPenalty: number
   popularityPenalty: number
   powerFitPenalty: number
+  package: number
 }

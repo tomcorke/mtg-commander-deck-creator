@@ -418,3 +418,19 @@ test('a cut never removes the only card for an active sub-theme', () => {
   const cuts = rampSuggestions(options).map(({ cut }) => cut?.cutCard.name)
   assert.deepEqual(cuts, ['Low B'])
 })
+
+test('a cut never removes the only enabler of an active strategy package', () => {
+  const options = {
+    ...input([
+      card('Only outlet', { detail: 'Sacrifice another creature: Scry 1.' }),
+      card('Low B'),
+    ]),
+    activeSubThemes: ['Sacrifice'],
+  }
+  options.rankedCandidates = [addition('Ramp A'), addition('Ramp B')].map((card) => ({
+    card,
+    fit: 50,
+  }))
+  const cuts = rampSuggestions(options).map(({ cut }) => cut?.cutCard.name)
+  assert.deepEqual(cuts, ['Low B'])
+})
