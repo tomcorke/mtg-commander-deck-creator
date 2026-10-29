@@ -1,5 +1,7 @@
 # Deckbuild evaluation data
 
+The [development-6 Claude builds](final-dev6-claude-v1.md) record two bracket-1 repeats that stopped at their first failure (one tooling collision, #273, and one documentation defect, fixed with that record) and a validated review of the dev-1 repeat-2 deck. Development-6 still has no completed build or ~71-card state.
+
 The [labelled ranking baseline](labelled-rank-bench-v1.md) records two frozen development states, 457 agent labels and the user's 15-label spot-check. Development-6 remains the baseline suite gap; the real-suite acceptance box stays open.
 
 The [identical-deck Tatyova re-reviews](reviewer-variation-tatyova-v1.md) broaden reviewer repeats to a second retained candidate. Three reviews agree on all six scores and confidence levels while some card selections differ. Results remain descriptive per-deck observations; independent builds and real ranking labels remain acceptance priorities.

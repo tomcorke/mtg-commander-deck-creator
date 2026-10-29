@@ -6,10 +6,15 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import test from 'node:test'
 import { runInNewContext } from 'node:vm'
-import { createBuilderState, type BuilderState } from '../../src/domain/builder-state.ts'
+import {
+  applyBuilderAction,
+  createBuilderState,
+  type BuilderState,
+} from '../../src/domain/builder-state.ts'
 import { builderPoolKey } from '../../src/domain/builder-settings.ts'
 import { toCard, type ScryfallCard } from '../../src/domain/card-model.ts'
 import { settingsSchema } from './builder-contract.ts'
+import { parseCommands } from './recommend.ts'
 import { fetchCap, providerBreach } from './supervise.ts'
 
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
@@ -176,6 +181,15 @@ test('invalid assignments and malformed appends are refused without stopping or 
   const loosened = await append('b.jsonl', line({ type: 'view' }))
   assert.match(loosened.stderr, /assignment.json changed/)
   assert.equal((await ledger()).length, 2)
+})
+
+test('documented addBasics example passes the schema and the reducer', async () => {
+  const docs = await readFile(resolve('docs/agents/deckbuild/builder-cli.md'), 'utf8')
+  const example = /for example `(\{"reason":"Fill colourless mana".*?)`\./.exec(docs)![1]
+  const [command] = parseCommands(example)
+  const result = applyBuilderAction(initial(), command.action as never)
+  assert.equal(result.error, undefined)
+  assert.equal(result.state!.deck.filter((card) => card.name === 'Wastes').length, 20)
 })
 
 test('settled provider failures include transport, rate-limit and server outcomes only', () => {
