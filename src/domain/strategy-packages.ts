@@ -22,7 +22,8 @@ export const strategyPackages: ReadonlyArray<{
   {
     name: 'Tokens',
     parts: {
-      enabler: /create[s]? (?:one|two|three|four|five|a|an|x|that many|\d+) [^.]*token/i,
+      enabler:
+        /create[s]? (?:one|two|three|four|five|a|an|x|that many|\d+) (?![^.]*\b(?:Treasure|Food|Clue|Blood|Gold|Map) tokens?\b)[^.]*token/i,
       payoff:
         /tokens? you control|whenever (?:a|one or more) [^.]*tokens? (?:enters|you control)|creatures you control get \+/i,
       protection: /creatures you control (?:gain|have) [^.]*(?:indestructible|hexproof)/i,
@@ -61,7 +62,7 @@ export function packageScore(detail: string | undefined, counts: PackageCounts =
     for (const part of packagePartsFor(pkg, detail)) {
       if (part === 'enabler') score += 2 * Math.max(0, parts.payoff - parts.enabler + 1)
       if (part === 'payoff') score += 2 * Math.max(0, parts.enabler - parts.payoff)
-      if (part === 'protection' && parts.protection === 0) score += 4
+      if (part === 'protection' && parts.enabler && parts.payoff && !parts.protection) score += 4
     }
   }
   return Math.min(8, score)

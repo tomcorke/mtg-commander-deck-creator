@@ -41,3 +41,15 @@ test('the commander counts as a package piece', () => {
   const counts = packageCounts([commander], ['Tokens'])
   assert.equal(counts.Tokens.payoff, 1)
 })
+
+test('resource tokens are not token-army enablers', () => {
+  const deck = Array(3).fill({ detail: 'Creatures you control get +1/+1.' })
+  assert.equal(score('Create a Treasure token.', deck, ['Tokens']), 0)
+  assert.ok(score('Create two 1/1 white Soldier creature tokens.', deck, ['Tokens']) > 0)
+})
+
+test('protection scores only once the package has both enablers and payoffs', () => {
+  const recursion = 'Return target creature card from your graveyard to the battlefield.'
+  assert.equal(score(recursion, [{ detail: payoff }], ['Sacrifice']), 0)
+  assert.equal(score(recursion, [{ detail: outlet }, { detail: payoff }], ['Sacrifice']), 4)
+})
