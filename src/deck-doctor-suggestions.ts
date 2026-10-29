@@ -13,6 +13,7 @@ import type { Card, DeckCard } from './domain/card-model.ts'
 import { cardConstructionError } from './domain/commander-construction.ts'
 import { recommendedScoreThreshold } from './domain/recommendation-types.ts'
 import { findSynergyPair } from './domain/recommendation-themes.ts'
+import { packageCounts, packagePartsFor, strategyPackages } from './domain/strategy-packages.ts'
 import { deckReviewMode, type DeckDoctorFinding } from './deck-doctor.ts'
 
 export type DoctorSuggestion = {
@@ -46,6 +47,18 @@ type FindingContext = SuggestionContext & {
   tag: string
 }
 type CandidatePair = Omit<DoctorSuggestion, 'impact'> & { priority: number }
+type Remaining = {
+  roles: Record<TargetKey, number>
+  themes: Map<string, number>
+  /** `<package>:<part>` counts for active strategy packages; enablers and payoffs only. */
+  packages: Map<string, number>
+}
+const packagePartKeys = (card: { detail?: string }) =>
+  strategyPackages.flatMap((pkg) =>
+    packagePartsFor(pkg, card.detail)
+      .filter((part) => part !== 'protection')
+      .map((part) => `${pkg.name}:${part}`),
+  )
 const colours = ['W', 'U', 'B', 'R', 'G'] as const
 const bucketLabel = (bucket: number | null) =>
   bucket === null ? 'land' : bucket === 7 ? '7+' : String(bucket)
@@ -191,13 +204,10 @@ function suggestionsForFinding(finding: DeckDoctorFinding, input: SuggestionCont
 
 /**
  * Evaluates the deck left after the swaps already chosen, so suggestions that are each safe can't
- * together drop a role below target, or remove the last card for an active theme.
+ * together drop a role below target, remove the last card for an active theme, or remove the last
+ * enabler or payoff of an active strategy package.
  */
-function keepsDeckWorking(
-  pair: CandidatePair,
-  remaining: { roles: Record<TargetKey, number>; themes: Map<string, number> },
-  context: FindingContext,
-) {
+function keepsDeckWorking(pair: CandidatePair, remaining: Remaining, context: FindingContext) {
   if (!pair.cut) return true
   const cutRoles = rolesForCard(pair.cut.cutCard)
   const addRoles = rolesForCard(pair.addCard)
@@ -210,13 +220,15 @@ function keepsDeckWorking(
     ([theme, count]) =>
       !hasTag(pair.cut!.cutCard, theme) || hasTag(pair.addCard, theme) || count > 1,
   )
-  return rolesHold && themesHold
+  const cutParts = packagePartKeys(pair.cut.cutCard)
+  const addParts = packagePartKeys(pair.addCard)
+  const packagesHold = [...remaining.packages].every(
+    ([key, count]) => !cutParts.includes(key) || addParts.includes(key) || count > 1,
+  )
+  return rolesHold && themesHold && packagesHold
 }
 
-function applyToRemaining(
-  pair: CandidatePair,
-  remaining: { roles: Record<TargetKey, number>; themes: Map<string, number> },
-) {
+function applyToRemaining(pair: CandidatePair, remaining: Remaining) {
   if (!pair.cut) return
   const cutRoles = rolesForCard(pair.cut.cutCard)
   const addRoles = rolesForCard(pair.addCard)
@@ -227,6 +239,13 @@ function applyToRemaining(
       theme,
       count + Number(hasTag(pair.addCard, theme)) - Number(hasTag(pair.cut.cutCard, theme)),
     )
+  const cutParts = packagePartKeys(pair.cut.cutCard)
+  const addParts = packagePartKeys(pair.addCard)
+  for (const [key, count] of remaining.packages)
+    remaining.packages.set(
+      key,
+      count + Number(addParts.includes(key)) - Number(cutParts.includes(key)),
+    )
 }
 
 function bestSuggestions(pairs: CandidatePair[], context: FindingContext) {
@@ -234,7 +253,14 @@ function bestSuggestions(pairs: CandidatePair[], context: FindingContext) {
   const usedCuts = new Set<number>()
   const usedAdditions = new Set<string>()
   const mainDeck = context.deck.slice(context.commanderCount)
-  const remaining = {
+  const themes = [context.theme, ...context.activeSubThemes]
+  const remaining: Remaining = {
+    packages: new Map(
+      Object.entries(packageCounts(context.deck, themes)).flatMap(([name, parts]) => [
+        [`${name}:enabler`, parts.enabler] as const,
+        [`${name}:payoff`, parts.payoff] as const,
+      ]),
+    ),
     roles: { ...context.counts },
     themes: new Map(
       [context.theme, ...context.activeSubThemes]

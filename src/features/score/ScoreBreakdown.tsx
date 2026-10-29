@@ -48,6 +48,13 @@ const recommendationScoreFactors = [
     description: 'Urgency of roles your deck is missing, such as ramp, draw, lands, or removal.',
   },
   {
+    key: 'package',
+    label: 'Strategy package',
+    max: recommendationScoreFactorMaximums.package,
+    description:
+      'Fills the side of a sacrifice or tokens plan your deck lacks: an enabler when payoffs outnumber enablers, a payoff when enablers outnumber payoffs, or the first protection. A heuristic, not a measure of card quality.',
+  },
+  {
     key: 'manaFitPenalty',
     label: 'Mana-fit penalty',
     max: recommendationScoreFactorMaximums.manaFitPenalty,
@@ -113,7 +120,7 @@ export function ScoreBreakdown({
         ))}
       </dl>
       <p className="score-note">
-        Positive factors total 100 points. Mana-fit, power-target and popularity penalties reduce
+        Positive factors total 108 points. Mana-fit, power-target and popularity penalties reduce
         the total.
       </p>
     </details>
