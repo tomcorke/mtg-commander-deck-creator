@@ -72,9 +72,11 @@ Run `node --experimental-strip-types --test scripts/deckbuild/rank-bench.test.ts
 
 Use the unchanged versioned [builder prompt](builder.md) with a separate pinned assignment. The [first bounded evaluation](builder-evaluation-v1.md) records one real provider-backed Krenko session: 24 reasoned commands, six inspect/choose/extend calls, a 12-card partial deck and exact network-disabled replay. Raw evidence stays in research storage; the summary retains identities, bounds, operator checks and feedback triage. This is workflow evidence, not a completed deck or baseline quality round.
 
+Run later sessions through the [supervised bounded sessions](builder-cli.md#supervised-bounded-sessions) wrapper. It requires the assignment before the first launch, caps output and provider attempts, checks exact replay, and stops for good after the first breach or settled provider failure.
+
 ## Remaining scope
 
-Tracked in #98: remaining provider workflows such as Doctor and local-index integration; complete builder sessions and constraint evaluation; fixed specs and holdouts; real labelled ranking suites and experiments; round runner, round summaries, repeated baseline and reviewer-noise measurement. Best-effort reviewer restrictions are accepted; enforced execution isolation is not established. Provider-backed preparation, pool refresh and incremental command replay are available; these tools do not establish complete provider-backed builds or recommender quality.
+Tracked in #98: remaining provider workflows such as Doctor and local-index integration; complete builder sessions and constraint evaluation; fixed specs and holdouts; real labelled ranking suites and experiments; round runner, round summaries, repeated baseline and reviewer-noise measurement. The bounded-session supervisor executes one builder run. It does not launch agents, run rounds or summarise them. Best-effort reviewer restrictions are accepted; enforced execution isolation is not established. Provider-backed preparation, pool refresh and incremental command replay are available; these tools do not establish complete provider-backed builds or recommender quality.
 
 ## Completed-deck review path
 
