@@ -1,5 +1,7 @@
 # Deckbuild evaluation data
 
+The [labelled ranking baseline](labelled-rank-bench-v1.md) records two frozen development states, 457 agent labels and the user's 15-label spot-check. Development-6 remains the baseline suite gap; the real-suite acceptance box stays open.
+
 The [identical-deck Tatyova re-reviews](reviewer-variation-tatyova-v1.md) broaden reviewer repeats to a second retained candidate. Three reviews agree on all six scores and confidence levels while some card selections differ. Results remain descriptive per-deck observations; independent builds and real ranking labels remain acceptance priorities.
 
 The [identical-deck Ayula re-reviews](reviewer-variation-ayula-v1.md) record three individual reviews with unchanged bundle/prompt/reference hashes. Scores agree in this one-deck sample while confidence and card selections vary; this is descriptive reviewer variation, not zero population noise or a completed repeated baseline.
