@@ -20,7 +20,18 @@ Run `node --experimental-strip-types scripts/check-deck-import-browser.ts` for t
 
 Choose the app’s **Moxfield** export. Create a Commander deck in Moxfield, select its commander(s), and paste the app’s mainboard list into the existing-list field. The app export omits commanders and includes a `SIDEBOARD:` section when applicable. The modal warns that commander selection is a separate action.
 
-Moxfield’s [Creating Decks help](https://moxfield.com/help/help-articles/creating-decks), read in the live browser on 2026-10-26 (article dated 2026-06-16), documents quantity/name with optional set, collector number, and `*F*`. This agrees with the app’s mainboard serialization. The inspected browser was signed out; creating/importing a deck requires login. **A reverse live import, sideboard treatment, and etched-marker treatment were not verified.** Do not treat agreement with documented syntax or an app-only round trip as proof of that workflow. [Issue #12](https://github.com/tomcorke/mtg-commander-deck-creator/issues/12) retains the native commander-import check; #178 remains open until its external compatibility gates are satisfied.
+Moxfield’s [Creating Decks help](https://moxfield.com/help/help-articles/creating-decks), read in the live browser on 2026-10-26 (article dated 2026-06-16), documents quantity/name with optional set, collector number, and `*F*`. This agrees with the app’s mainboard serialization. Live check, 2026-10-29, signed-in Moxfield (site version 2026.10.28.3): **Create New Deck** → Commander / EDH, Private, **Paste in List**, with **Override with preferred printings** unchecked. The pasted text was app Moxfield-format output:
+
+```text
+1 Sol Ring (SLD) 1074 *E*
+1 Arcane Signet (CMR) 297 *F*
+1 Command Tower (CMR) 350
+
+SIDEBOARD:
+1 Swords to Plowshares (CMR) 387
+```
+
+Moxfield reported 3 main deck and 1 sideboard card. Its own **Export → full** text returned the same quantities, names, set codes, collector numbers, `*F*` and `*E*` markers, and `SIDEBOARD:` section. The deck had no commander until **More → Change Commander** selected Atraxa, Praetors' Voice; afterwards it showed Commander (1) and 4 main deck cards. Selecting a commander in the create dialog was attempted, but the autocomplete selection was not confirmed, so this check does not show whether that field survives a pasted list. Use **Change Commander** after import if the deck shows no commander. Leave **Override with preferred printings** unchecked to keep the app's printings and finishes. The test deck was deleted afterwards.
 
 ## Other advertised formats and limitations
 
