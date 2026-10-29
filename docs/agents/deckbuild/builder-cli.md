@@ -60,10 +60,8 @@ Record separate execution and finalization deadlines before setup. Use the relev
 
 Each nonblank line of `commands.jsonl` is `{ "reason": "...", "action": { ... } }`. Reasons are required. For example, using exact names from the visible batch:
 
-```jsonl
-{"reason":"Inspect the prepared pool","action":{"type":"view"}}
-{"reason":"Advance after inspecting the batch","action":{"type":"nextBatch"}}
-{"reason":"Inspect a suspected retrieval miss","action":{"type":"explain","name":"Example Card"}}
+```text
+{"reason":"Fill colourless mana","action":{"type":"addBasics","cards":[{"card":{"name":"Wastes","layout":"normal","typeLine":"Basic Land","manaCost":"","manaValue":0,"detail":"{T}: Add {C}.","producedMana":["C"],"faces":[],"image":"","set":"ogw","collectorNumber":"183a","tags":[]},"count":20}]}}
 ```
 
 `commandSchema` is the exact command contract. Supported shared actions cover decisions/likes/ignore reasons, zone choice, theme/sub-theme steering, settings/role targets/focus, collection settings, committing settings, advancing batches, deck edits, supplied card additions/printings, promotion, Doctor discovery/swaps/undo. Operator-supplied transport/state replacement actions (`data`, `restore`, `hydrate`, `poolLoaded`, `settleFetch`), initialization/reset and retry commands are excluded. Start a new pinned run to change the initial prepared data. Commands with supplied card data are operator-authored offline inputs, not evidence of provider retrieval or an autonomous builder drawing only from the CLI. Their contents and reasons are pinned by the log hash.
@@ -116,9 +114,8 @@ Search leaves builder state, pending feedback and offers unchanged. Returned car
 
 Slice 9 connects retrieval to builder additions without copying provider objects into the log:
 
-```jsonl
-{"reason":"Retrieve candidate evidence","action":{"type":"lookup","names":["Example Card"]}}
-{"reason":"Select the retrieved candidate","action":{"type":"addRetrieved","commandIndex":0,"names":["Example Card"]}}
+```text
+{"reason":"Fill colourless mana","action":{"type":"addBasics","cards":[{"card":{"name":"Wastes","layout":"normal","typeLine":"Basic Land","manaCost":"","manaValue":0,"detail":"{T}: Add {C}.","producedMana":["C"],"faces":[],"image":"","set":"ogw","collectorNumber":"183a","tags":[]},"count":20}]}}
 ```
 
 `commandIndex` is the zero-based index of an earlier parsed command (blank lines do not count). It must reference a `lookup` or `search` result containing card evidence. Select 1–75 distinct exact returned names, each at most 200 characters. Partial retrieval is usable for the cards actually returned. Missing, ambiguous, failed, current/future or non-retrieval evidence stops `invalid` before any addition; later commands do not run. Selecting a missing name alongside a present name adds neither.
@@ -198,6 +195,8 @@ The bounds work as follows:
 - After each record/extend call, the supervisor reads the occurrences that call added to the manifest. More occurrences than the cap stops the run, and so does any settled provider failure: a transport failure outcome, HTTP 429 or HTTP 5xx. Other HTTP answers, such as a Scryfall 404 empty search, are provider data.
 - Each successful call is replayed offline from the new manifest and combined log. Its report must equal the recorded report exactly.
 
-Each subprocess appends start, end, exit, signal, byte counts and any breach to `ledger.jsonl`. The first breach, nonzero exit, non-`complete` status, provider breach or replay mismatch writes `stop.json`. A stopped directory refuses every later step and launches nothing. The supervisor never retries. Start a new directory with a new assignment after a stop. Malformed append files and missing inputs are refused before launch and do not stop the run, so schema mistakes can be corrected inside the same assignment. An empty append is also refused before launch; an append exceeding pinned command limits stops the run. A run lock refuses simultaneous steps; a leftover lock after an interrupted supervisor requires operator inspection. Every submitted append is kept as `append-<n>.jsonl`, and each combined log as `commands-<n>.jsonl`.
+Each subprocess appends start, end, exit, signal, byte counts and any breach to `ledger.jsonl`. The first breach, nonzero exit, non-`complete` status, provider breach or replay mismatch writes `stop.json`. A stopped directory refuses every later step and launches nothing. The supervisor never retries. Start a new directory with a new assignment after a stop. Malformed append files and missing inputs are refused before launch and do not stop the run, so schema mistakes can be corrected inside the same assignment. A refused command file is kept as `rejected-<n>.jsonl` with its diagnostic in `rejected-<n>.stderr`; the message names the failing path and says the run continues. An empty append is also refused before launch; an append exceeding pinned command limits stops the run. A run lock refuses simultaneous steps; a leftover lock after an interrupted supervisor requires operator inspection. Every submitted append is kept as `append-<n>.jsonl`, and each combined log as `commands-<n>.jsonl`.
+
+Deck-card payloads (`addBasics`, `addOneBasic`, `promote.candidate`) are strict. Copy a queue or view card and drop the recommendation-only `reason` field. Each command stays on one line, for example `{"reason":"Fill colourless mana","action":{"type":"addBasics","cards":[{"card":{"name":"Wastes","layout":"normal","typeLine":"Basic Land","manaCost":"","manaValue":0,"detail":"{T}: Add {C}.","producedMana":["C"],"faces":[],"image":"","set":"ogw","collectorNumber":"183a","tags":[]},"count":20}]}}`.
 
 These are per-process bounds on supervised CLI calls. They are not an OS sandbox, and they do not bound the builder agent's own activity. The synthetic tests in `supervise.test.ts` cover replay equality, the zero-provider stop, refusal after a stop, output caps, extension and deadline bounds, and refusal of a changed assignment. No builder session has run under this supervisor yet.
