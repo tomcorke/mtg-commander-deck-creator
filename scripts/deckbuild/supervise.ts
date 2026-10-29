@@ -155,7 +155,7 @@ ${await readFile(append, 'utf8')}`
 }
 
 /** One supervised step: record (start) or extend, then offline replay equality and provider audit. */
-async function step(dir: string, appendPath?: string) {
+export async function supervisedStep(dir: string, appendPath?: string) {
   checkStoreDirectory(dir)
   const lockPath = join(dir, 'run.lock')
   const lock = await open(lockPath, 'wx')
@@ -232,7 +232,7 @@ async function main(args: string[]) {
   const [mode, dir, append] = args
   if (!((mode === 'start' && args.length === 2) || (mode === 'extend' && args.length === 3)))
     throw new Error('Usage: supervise.ts start <run-dir> | extend <run-dir> <append.jsonl>')
-  process.stdout.write(`${JSON.stringify(await step(dir, append))}\n`)
+  process.stdout.write(`${JSON.stringify(await supervisedStep(dir, append))}\n`)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
