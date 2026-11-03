@@ -6,6 +6,7 @@
 - Use Scryfall image URLs for card art; do not commit downloaded card images.
 - Use pnpm. Open a PR or request review only once `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` all pass on the branch.
 - For UI changes, read `docs/agents/ui.md` first. It defines component reuse across screens, visual consistency, mana presentation, card previews, themed controls, full-page workflows, and rendered review.
+- For a visual design pass or rendered UI review, follow `docs/agents/design-review.md`.
 
 ## Releases
 
