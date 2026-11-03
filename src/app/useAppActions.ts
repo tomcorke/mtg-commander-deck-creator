@@ -18,7 +18,7 @@ import {
 } from '../recommendations.ts'
 import { randomItems } from '../domain/commander-catalog.ts'
 import { playStyleSettings, type PlayStyle } from '../domain/play-style.ts'
-import type { Card } from '../domain/card-model.ts'
+import { scryfallImage, type Card } from '../domain/card-model.ts'
 import { fetchEdhrecCommander } from '../adapters/edhrec.ts'
 import { deckPageTitle, type SavedDeck } from '../deck-state.ts'
 import type { AutosavedDraft } from '../autosaves.ts'
@@ -256,6 +256,11 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     startInWorkspace(state, recommendationDeps, name, preserveDeck, progress)
   return {
     loadPrintings,
+    loadBasicLandPrintings: async (name: string) => {
+      const basic = await fetchScryfallCard(name, fetch)
+      return (await fetchScryfallPrintings(basic.prints_search_uri)).filter(scryfallImage)
+    },
+    loadBasicsFromSet: (set: string) => searchScryfallCached(`set:${set} t:basic`, fetch),
     recommendationDeps,
     start,
     prepareCommander: (name: string) =>
@@ -470,6 +475,8 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
   const interactionDeps = useRecommendationInteractions(state, remote)
   return {
     ...actions,
+    loadBasicLandPrintings: remote.loadBasicLandPrintings,
+    loadBasicsFromSet: remote.loadBasicsFromSet,
     loadAutosave: loadWorkspaceDeck,
     loadSavedDeck: loadWorkspaceDeck,
     chooseSubTheme,

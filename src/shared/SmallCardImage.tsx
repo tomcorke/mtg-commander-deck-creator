@@ -1,9 +1,23 @@
 import { CardImagePreview } from './CardImagePreview.tsx'
+import { hideCardPreview, showCardPreview } from './card-preview.ts'
 
-export function SmallCardImage({ image }: { image: string }) {
+export function SmallCardImage({
+  image,
+  placement = 'center',
+}: {
+  image: string
+  // 'reference' renders the preview in the top layer so scroll containers cannot clip it.
+  placement?: 'center' | 'reference'
+}) {
   if (!image) return null
+  const reference = placement === 'reference'
   return (
-    <span className="small-card-image" aria-hidden="true">
+    <span
+      className="small-card-image"
+      aria-hidden="true"
+      onMouseEnter={reference ? ({ currentTarget }) => showCardPreview(currentTarget) : undefined}
+      onMouseLeave={reference ? ({ currentTarget }) => hideCardPreview(currentTarget) : undefined}
+    >
       <img
         className="small-card-image-thumbnail"
         src={image}
@@ -15,7 +29,7 @@ export function SmallCardImage({ image }: { image: string }) {
           currentTarget.classList.add('missing')
         }}
       />
-      <CardImagePreview image={image} placement="center" />
+      <CardImagePreview image={image} placement={placement} />
     </span>
   )
 }

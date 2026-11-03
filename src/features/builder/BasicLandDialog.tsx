@@ -1,20 +1,87 @@
-import { useEffect, useRef, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 
-import type { Card } from '../../domain/card-model.ts'
+import { scryfallImage, type Card, type ScryfallCard } from '../../domain/card-model.ts'
+import { basicLandNames } from '../../deck-analysis.ts'
 import type { LandSuggestion } from '../../land-suggestions.ts'
+import { ArtLoading } from '../../shared/CardArt.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
+import { hideCardPreview, showCardPreview } from '../../shared/card-preview.ts'
+import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
+import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
+
+const basicLandSymbols: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(basicLandNames).map(([colour, name]) => [name, colour])),
+  Wastes: 'C',
+}
+const printingLabel = (printing: ScryfallCard) => printing.set_name ?? printing.set.toUpperCase()
+
+function BasicLandGallery({
+  name,
+  printings,
+  shown,
+  selected,
+  onSelect,
+  onShowMore,
+}: {
+  name: string
+  printings: ScryfallCard[]
+  shown: number
+  selected?: ScryfallCard
+  onSelect: (printing: ScryfallCard) => void
+  onShowMore: () => void
+}) {
+  return (
+    <div className="basic-land-gallery">
+      <p>
+        {printings.length} {name} printings
+      </p>
+      <div role="group" aria-label={`${name} printings`}>
+        {printings.slice(0, shown).map((printing) => (
+          <button
+            key={`${printing.set}-${printing.collector_number}`}
+            type="button"
+            className="basic-land-art-option"
+            onFocus={({ currentTarget }) => showCardPreview(currentTarget)}
+            onBlur={({ currentTarget }) => hideCardPreview(currentTarget)}
+            aria-label={`${printingLabel(printing)} #${printing.collector_number}`}
+            aria-pressed={
+              selected?.set === printing.set &&
+              selected?.collector_number === printing.collector_number
+            }
+            onClick={() => onSelect(printing)}
+          >
+            <SmallCardImage image={scryfallImage(printing)} placement="reference" />
+            <b>{printingLabel(printing)}</b>
+            <small>
+              {printing.set.toUpperCase()} #{printing.collector_number}
+            </small>
+          </button>
+        ))}
+      </div>
+      {shown < printings.length && (
+        <button type="button" className="export" onClick={onShowMore}>
+          Show more ({printings.length - shown} left)
+        </button>
+      )}
+    </div>
+  )
+}
 
 type Props = {
   basicLandState: 'idle' | 'loading' | 'error'
   basicLands: { name: string; count: number }[]
+  legalBasicNames: string[]
+  commanderSet: string
   landGap: number
   calculatedLandTarget: number
   nonbasicLands: LandSuggestion<Card>[]
   cardSearchButton: RefObject<HTMLButtonElement | null>
   opener: RefObject<HTMLButtonElement | null>
   onClose: () => void
-  onAddBasicLands: (lands: { name: string; count: number }[]) => void
+  onAddBasicLands: (lands: { name: string; count: number; printing?: ScryfallCard }[]) => void
+  onLoadBasicLandPrintings: (name: string) => Promise<ScryfallCard[]>
+  onLoadBasicsFromSet: (set: string) => Promise<ScryfallCard[]>
   onAddRecommendation: (card: Card) => void
   onOpenCard: (card: Card) => void
 }
@@ -23,6 +90,8 @@ type Props = {
 export function BasicLandDialog({
   basicLandState,
   basicLands,
+  legalBasicNames,
+  commanderSet,
   landGap,
   calculatedLandTarget,
   nonbasicLands,
@@ -30,10 +99,63 @@ export function BasicLandDialog({
   opener,
   onClose,
   onAddBasicLands,
+  onLoadBasicLandPrintings,
+  onLoadBasicsFromSet,
   onAddRecommendation,
   onOpenCard,
 }: Props) {
   const dialog = useRef<HTMLElement>(null)
+  const planKey = `${legalBasicNames.join('|')}:${basicLands.map(({ name, count }) => `${name}:${count}`).join('|')}`
+  const defaultLandCounts = Object.fromEntries(
+    legalBasicNames.map((name) => [
+      name,
+      basicLands.find((land) => land.name === name)?.count ?? 0,
+    ]),
+  )
+  const [landCountState, setLandCountState] = useState({ key: planKey, counts: defaultLandCounts })
+  const landCounts = landCountState.key === planKey ? landCountState.counts : defaultLandCounts
+  const [printings, setPrintings] = useState<Record<string, ScryfallCard[]>>({})
+  const [selectedPrintings, setSelectedPrintings] = useState<Record<string, ScryfallCard>>({})
+  const [openGallery, setOpenGallery] = useState('')
+  const [shownPrintings, setShownPrintings] = useState(24)
+  const [styleLoading, setStyleLoading] = useState(false)
+  const [styleError, setStyleError] = useState('')
+  const validCounts = legalBasicNames.every(
+    (name) =>
+      Number.isInteger(landCounts[name]) && landCounts[name] >= 0 && landCounts[name] <= landGap,
+  )
+  const landCount = Object.values(landCounts).reduce(
+    (sum, count) => sum + (Number.isInteger(count) ? count : 0),
+    0,
+  )
+  const remaining = landGap - landCount
+  const busy = styleLoading || basicLandState === 'loading'
+  const setCount = (name: string, count: number) =>
+    setLandCountState({ key: planKey, counts: { ...landCounts, [name]: count } })
+  const toggleGallery = async (name: string) => {
+    if (openGallery === name) {
+      setOpenGallery('')
+      return
+    }
+    setOpenGallery(name)
+    setShownPrintings(24)
+    if (printings[name]) return
+    setStyleLoading(true)
+    setStyleError('')
+    try {
+      const cards = await onLoadBasicLandPrintings(name)
+      setPrintings((current) => ({ ...current, [name]: cards }))
+    } catch {
+      setStyleError(`Could not load ${name} printings.`)
+    } finally {
+      setStyleLoading(false)
+    }
+  }
+  const plan = legalBasicNames.flatMap((name) =>
+    Number.isInteger(landCounts[name]) && landCounts[name] > 0
+      ? [{ name, count: landCounts[name], printing: selectedPrintings[name] }]
+      : [],
+  )
 
   useEffect(() => {
     const element = dialog.current
@@ -66,10 +188,11 @@ export function BasicLandDialog({
             if (basicLandState !== 'loading') onClose()
           }
           if (event.key !== 'Tab') return
-          const buttons =
-            event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
-          const first = buttons[0]
-          const last = buttons[buttons.length - 1]
+          const controls = event.currentTarget.querySelectorAll<HTMLElement>(
+            'button:not(:disabled), input:not(:disabled)',
+          )
+          const first = controls[0]
+          const last = controls[controls.length - 1]
           if (!first || !last) event.preventDefault()
           else if (
             (event.shiftKey && document.activeElement === first) ||
@@ -137,19 +260,161 @@ export function BasicLandDialog({
             </ul>
           </section>
         )}
-        <section className="land-fill-step" aria-labelledby="basic-land-split-title">
-          <h3 id="basic-land-split-title">
-            {nonbasicLands.length > 0 ? 'Then fill the rest with basics' : 'Basic land split'}
-          </h3>
-          <p>Split by the coloured mana symbols in your deck.</p>
+        <section
+          className="land-fill-step basic-land-split"
+          aria-labelledby="basic-land-split-title"
+        >
+          <div className="basic-land-split-heading">
+            <div>
+              <h3 id="basic-land-split-title">
+                {nonbasicLands.length > 0 ? 'Then fill the rest with basics' : 'Basic land split'}
+              </h3>
+              <p>Set the colour balance, then pick art for each basic.</p>
+            </div>
+            {commanderSet && (
+              <button
+                type="button"
+                className="export"
+                disabled={busy}
+                title="Applies matching basic printings where available."
+                onClick={async () => {
+                  setStyleLoading(true)
+                  setStyleError('')
+                  try {
+                    const cards = await onLoadBasicsFromSet(commanderSet)
+                    setSelectedPrintings((current) => ({
+                      ...current,
+                      ...Object.fromEntries(cards.map((card) => [card.name, card])),
+                    }))
+                  } catch {
+                    setStyleError('Could not load basics from the commander’s set.')
+                  } finally {
+                    setStyleLoading(false)
+                  }
+                }}
+              >
+                {styleLoading && !openGallery
+                  ? 'Loading set…'
+                  : `Match commander’s set (${commanderSet.toUpperCase()})`}
+              </button>
+            )}
+          </div>
+          <div className="basic-land-balance">
+            <div className="colour-bar" aria-hidden="true">
+              {legalBasicNames.map(
+                (name) =>
+                  landCounts[name] > 0 && (
+                    <span
+                      className={`colour-segment colour-${basicLandSymbols[name].toLowerCase()}`}
+                      style={{ flexGrow: landCounts[name] }}
+                      key={name}
+                    >
+                      <ManaSymbols symbols={[basicLandSymbols[name]]} decorative />
+                      <b>{landCounts[name]}</b>
+                    </span>
+                  ),
+              )}
+              {remaining > 0 && (
+                <span className="colour-segment colour-empty" style={{ flexGrow: remaining }} />
+              )}
+            </div>
+            <p
+              className={remaining === 0 ? 'balance-ok' : 'balance-off'}
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {remaining === 0
+                ? `All ${landGap} basics assigned`
+                : `${landCount} of ${landGap} assigned · ${remaining > 0 ? `add ${remaining} more` : `remove ${-remaining}`}`}
+            </p>
+          </div>
           <ul className="basic-land-plan">
-            {basicLands.map((land) => (
-              <li key={land.name}>
-                <span>{land.name}</span>
-                <b>{land.count}</b>
-              </li>
-            ))}
+            {legalBasicNames.map((name) => {
+              const selected = selectedPrintings[name]
+              const count = landCounts[name]
+              const galleryOpen = openGallery === name
+              return (
+                <li key={name} className={galleryOpen ? 'open' : undefined}>
+                  <span className="basic-land-art">
+                    {selected ? (
+                      <SmallCardImage image={scryfallImage(selected)} placement="reference" />
+                    ) : (
+                      <ManaSymbols symbols={[basicLandSymbols[name]]} decorative />
+                    )}
+                  </span>
+                  <span className="basic-land-name">
+                    <label htmlFor={`basic-count-${name}`}>{name}</label>
+                    <small>
+                      {selected
+                        ? `${printingLabel(selected)} #${selected.collector_number}`
+                        : 'Default printing'}
+                    </small>
+                  </span>
+                  <span className="basic-land-stepper">
+                    <button
+                      type="button"
+                      className="deck-add"
+                      aria-label={`One fewer ${name}`}
+                      disabled={busy || !(count > 0)}
+                      onClick={() => setCount(name, Math.min(count, landGap) - 1)}
+                    >
+                      −
+                    </button>
+                    <input
+                      id={`basic-count-${name}`}
+                      type="number"
+                      min="0"
+                      max={landGap}
+                      step="1"
+                      value={Number.isFinite(count) ? count : ''}
+                      aria-label={`${name} count`}
+                      onChange={(event) => setCount(name, event.currentTarget.valueAsNumber)}
+                    />
+                    <button
+                      type="button"
+                      className="deck-add"
+                      aria-label={`One more ${name}`}
+                      disabled={busy || remaining <= 0 || !(count < landGap)}
+                      onClick={() => setCount(name, (Number.isInteger(count) ? count : 0) + 1)}
+                    >
+                      +
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    className="compact-action"
+                    aria-expanded={galleryOpen}
+                    disabled={busy}
+                    onClick={() => void toggleGallery(name)}
+                  >
+                    {galleryOpen ? 'Done' : selected ? 'Change art' : 'Choose art'}
+                  </button>
+                  {galleryOpen && !printings[name] && styleLoading && (
+                    <div className="basic-land-gallery-loading">
+                      <ArtLoading active />
+                    </div>
+                  )}
+                  {galleryOpen && printings[name] && (
+                    <BasicLandGallery
+                      name={name}
+                      printings={printings[name]}
+                      shown={shownPrintings}
+                      selected={selected}
+                      onSelect={(printing) =>
+                        setSelectedPrintings((current) => ({ ...current, [name]: printing }))
+                      }
+                      onShowMore={() => setShownPrintings((shown) => shown + 24)}
+                    />
+                  )}
+                </li>
+              )
+            })}
           </ul>
+          {styleError && (
+            <p className="form-error" role="alert">
+              {styleError}
+            </p>
+          )}
         </section>
         {basicLandState === 'error' && (
           <p className="form-error" role="alert">
@@ -168,8 +433,10 @@ export function BasicLandDialog({
           <button
             type="button"
             className="primary"
-            disabled={basicLandState === 'loading' || landGap === 0}
-            onClick={() => onAddBasicLands(basicLands)}
+            disabled={
+              basicLandState === 'loading' || landGap === 0 || !validCounts || landCount !== landGap
+            }
+            onClick={() => onAddBasicLands(plan)}
           >
             {basicLandState === 'loading'
               ? 'Adding…'

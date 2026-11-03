@@ -46,7 +46,7 @@ export function createActionHandlers(deps: AppActionContext) {
     openCardReference: (card: Card | DeckCard) => deckActions.openCardReference(deps, card),
     openGuidanceCard: (card: Card) => deckActions.openGuidanceCard(deps, card),
     addSelectedGuidanceCard: () => deckActions.addSelectedGuidanceCard(deps),
-    addBasicLands: (plan: { name: string; count: number }[]) =>
+    addBasicLands: (plan: { name: string; count: number; printing?: ScryfallCard }[]) =>
       deckActions.addBasicLands(deps, plan),
     selectManualCard: (card: ScryfallCard) => deckActions.selectManualCard(deps, card),
     cycleManualPrinting: () => deckActions.cycleManualPrinting(deps),
