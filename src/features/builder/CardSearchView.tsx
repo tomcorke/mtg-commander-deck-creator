@@ -63,7 +63,10 @@ type Props = {
   deckTargets: DeckTargets
 }
 
-function MatchSelect({
+const matchLabels: Record<SearchMatch, string> = { any: 'Any', need: 'Must', exclude: 'Not' }
+
+/** One-click Any / Must / Not choice, styled like the add-zone toggle. */
+function MatchToggle({
   label,
   value,
   onChange,
@@ -73,16 +76,83 @@ function MatchSelect({
   onChange: (match: SearchMatch) => void
 }) {
   return (
-    <select
-      aria-label={`${label} match`}
-      value={value}
-      className={`search-match search-match--${value}`}
-      onChange={(event) => onChange(event.target.value as SearchMatch)}
-    >
-      <option value="any">Ignore</option>
-      <option value="need">Must match</option>
-      <option value="exclude">Exclude</option>
-    </select>
+    <div className="add-zone-toggle search-match" role="group" aria-label={`${label} match`}>
+      {(['any', 'need', 'exclude'] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          data-match={option}
+          aria-pressed={value === option}
+          onClick={() => onChange(option)}
+        >
+          {matchLabels[option]}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Collapsible filter list; opens itself while any of its filters are set. */
+function FilterGroup({
+  title,
+  active,
+  children,
+}: {
+  title: string
+  active: number
+  children: ReactNode
+}) {
+  return (
+    <details className="search-filter-group" open={active > 0 || undefined}>
+      <summary>
+        {title}
+        {active > 0 && <span className="search-active-count">{active} active</span>}
+      </summary>
+      {children}
+    </details>
+  )
+}
+
+function DeckNeeds({
+  filters,
+  match,
+  roleCounts,
+  deckTargets,
+}: {
+  filters: CardSearchFilters
+  match: (label: string, value: SearchMatch) => void
+  roleCounts: DeckTargets
+  deckTargets: DeckTargets
+}) {
+  return (
+    <fieldset className="search-deck-needs">
+      <legend>Deck needs</legend>
+      {(Object.keys(roleSearchTags) as SearchRole[]).map((role) => (
+        <div className="search-need-row" key={role}>
+          <span>{targetLabels[role]}</span>
+          <MatchToggle
+            label={targetLabels[role]}
+            value={filters.matches[role] ?? 'any'}
+            onChange={(value) => match(role, value)}
+          />
+          <span className="search-need-progress">
+            <span className="ratio-bar" aria-hidden="true">
+              <i
+                style={{
+                  width: `${Math.min(100, (roleCounts[role] / Math.max(1, deckTargets[role])) * 100)}%`,
+                }}
+              />
+            </span>
+            <b className="search-need-count">
+              {roleCounts[role]}/{deckTargets[role]}
+              <span className="sr-only"> in deck</span>
+            </b>
+          </span>
+        </div>
+      ))}
+      <p>Bars show your deck against its role targets. Roles use Scryfall tags.</p>
+      <p>Any ignores a filter. Cards must match all filters set to Must and none set to Not.</p>
+    </fieldset>
   )
 }
 
@@ -100,45 +170,59 @@ function SearchFilters({
   roleCounts: DeckTargets
   deckTargets: DeckTargets
 }) {
+  // Drop cleared filters so switching back to Any doesn't count as a filter change.
   const match = (label: string, value: SearchMatch) =>
-    setFilters((current) => ({ ...current, matches: { ...current.matches, [label]: value } }))
+    setFilters((current) => {
+      const { [label]: _, ...matches } = current.matches
+      return { ...current, matches: value === 'any' ? matches : { ...matches, [label]: value } }
+    })
+  const active = (labels: string[]) =>
+    labels.filter((label) => (filters.matches[label] ?? 'any') !== 'any').length
+  const manaOptions = cardSearchManaOptions(
+    filters.filterIdentity ? colours : ['W', 'U', 'B', 'R', 'G'],
+  )
   return (
     <>
-      <label className="search-field">
-        Name contains
+      <DeckNeeds
+        filters={filters}
+        match={match}
+        roleCounts={roleCounts}
+        deckTargets={deckTargets}
+      />
+      <div className="search-text-field">
+        <label htmlFor="search-name">Name</label>
+        <MatchToggle
+          label="Name"
+          value={filters.nameMatch}
+          onChange={(nameMatch) => setFilters((current) => ({ ...current, nameMatch }))}
+        />
         <input
+          id="search-name"
           autoFocus
           value={filters.name}
           autoComplete="off"
           placeholder="Any name"
           onChange={(event) => setFilters((current) => ({ ...current, name: event.target.value }))}
         />
-      </label>
-      <MatchSelect
-        label="Name"
-        value={filters.nameMatch}
-        onChange={(nameMatch) => setFilters((current) => ({ ...current, nameMatch }))}
-      />
-      <label className="search-field">
-        Type or subtype
+      </div>
+      <div className="search-text-field">
+        <label htmlFor="search-type">Type or subtype</label>
+        <MatchToggle
+          label="Type or subtype"
+          value={filters.typeLineMatch}
+          onChange={(typeLineMatch) => setFilters((current) => ({ ...current, typeLineMatch }))}
+        />
         <input
+          id="search-type"
           value={filters.typeLine}
           autoComplete="off"
-          placeholder="e.g. Saga"
-          aria-describedby="search-type-help"
+          placeholder="e.g. Saga, Zombie"
+          aria-describedby="search-text-help"
           onChange={(event) =>
             setFilters((current) => ({ ...current, typeLine: event.target.value }))
           }
         />
-      </label>
-      <MatchSelect
-        label="Type or subtype"
-        value={filters.typeLineMatch}
-        onChange={(typeLineMatch) => setFilters((current) => ({ ...current, typeLineMatch }))}
-      />
-      <p id="search-type-help">
-        Matches the type line, including subtypes such as Class, Saga, or Zombie.
-      </p>
+      </div>
       <label className="search-field">
         Rules text contains
         <input
@@ -151,7 +235,7 @@ function SearchFilters({
         />
       </label>
       <label className="search-field">
-        Exclude rules text
+        Rules text excludes
         <input
           value={filters.rulesExclude}
           placeholder="e.g. discard"
@@ -162,8 +246,7 @@ function SearchFilters({
         />
       </label>
       <p id="search-text-help">
-        Rules text searches Oracle wording, not flavour text. Separate type or text phrases with
-        commas. A card must match every "Must match" filter; any "Exclude" match removes it.
+        Rules text means Oracle wording, not flavour text. Separate phrases with commas.
       </p>
       <fieldset>
         <legend>Mana value</legend>
@@ -197,15 +280,15 @@ function SearchFilters({
             />
           </label>
         </div>
-        <label className="search-filter-row">
-          Within this range
-          <MatchSelect
+        <div className="search-filter-row">
+          <span>Within range</span>
+          <MatchToggle
             label="Mana value"
             value={filters.manaValueMatch}
             onChange={(manaValueMatch) => setFilters((current) => ({ ...current, manaValueMatch }))}
           />
-        </label>
-        <p>Bounds are inclusive. X is 0 when calculating mana value outside the stack.</p>
+        </div>
+        <p>Bounds are inclusive. X counts as 0.</p>
       </fieldset>
       <label className="search-checkbox">
         <input
@@ -217,61 +300,47 @@ function SearchFilters({
         />
         Limit results to commander identity
       </label>
-      <fieldset>
-        <legend>Mana colours & costs</legend>
-        {cardSearchManaOptions(filters.filterIdentity ? colours : ['W', 'U', 'B', 'R', 'G']).map(
-          ({ label, symbol }) => (
-            <label className="search-filter-row" key={label}>
-              <span>
-                {symbol && <OracleText text={symbol} />}
-                {colourNames[label] ?? label}
-              </span>
-              <MatchSelect
-                label={colourNames[label] ?? label}
-                value={filters.matches[label] ?? 'any'}
-                onChange={(value) => match(label, value)}
-              />
-            </label>
-          ),
-        )}
+      <FilterGroup
+        title="Mana colours & costs"
+        active={active(manaOptions.map(({ label }) => label))}
+      >
+        {manaOptions.map(({ label, symbol }) => (
+          <div className="search-filter-row" key={label}>
+            <span>
+              {symbol && <OracleText text={symbol} />}
+              {colourNames[label] ?? label}
+            </span>
+            <MatchToggle
+              label={colourNames[label] ?? label}
+              value={filters.matches[label] ?? 'any'}
+              onChange={(value) => match(label, value)}
+            />
+          </div>
+        ))}
         <p>
           Colours match cost symbols, including hybrid and Phyrexian mana. Colourless cards match
           card colour, not mana produced.
         </p>
-      </fieldset>
-      <fieldset>
-        <legend>Deck needs</legend>
-        {(Object.keys(roleSearchTags) as SearchRole[]).map((role) => (
-          <label className="search-filter-row" key={role}>
-            <span>
-              {targetLabels[role]} ({roleCounts[role]}/{deckTargets[role]})
-            </span>
-            <MatchSelect
-              label={targetLabels[role]}
-              value={filters.matches[role] ?? 'any'}
-              onChange={(value) => match(role, value)}
-            />
-          </label>
-        ))}
-        <p>Counts show your deck against its role targets. Roles use Scryfall tags.</p>
-      </fieldset>
-      <details className="search-keywords" open>
-        <summary>Keywords & effects</summary>
+      </FilterGroup>
+      <FilterGroup
+        title="Keywords & effects"
+        active={active(cardSearchKeywords.map(({ label }) => label))}
+      >
         {cardSearchKeywords.map(({ label }) => (
-          <label className="search-filter-row" key={label}>
-            {label}
-            <MatchSelect
+          <div className="search-filter-row" key={label}>
+            <span>{label}</span>
+            <MatchToggle
               label={label}
               value={filters.matches[label] ?? 'any'}
               onChange={(value) => match(label, value)}
             />
-          </label>
+          </div>
         ))}
         <p>
-          Keyword filters can include granted abilities. Effects use Scryfall tags or rules text;
-          mentions do not guarantee a particular interaction.
+          Keywords can include granted abilities. Effects use Scryfall tags or rules text; a match
+          does not guarantee an interaction.
         </p>
-      </details>
+      </FilterGroup>
     </>
   )
 }
@@ -465,6 +534,10 @@ export function CardSearchView({
       setNotice('')
       setStatus('loading')
       setRequest({ query, order, page: 1, signature })
+      // On stacked layouts the results start below the filters; bring them into view.
+      const heading = resultsHeading.current
+      if (heading && heading.getBoundingClientRect().top > innerHeight)
+        heading.scrollIntoView({ block: 'start' })
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Invalid filters.')
     }
@@ -643,8 +716,8 @@ export function CardSearchView({
           {status === 'loading' && <p role="status">Searching Scryfall…</p>}
           {!request && (
             <p>
-              Search by name, type or subtype (such as Class or Saga), or rules text. No name is
-              needed. Choose cards individually or select several to add together.
+              Pick a deck need or any filter, then search. No name is needed. Add cards one at a
+              time or select several to add together.
             </p>
           )}
           {request && status === 'idle' && !available.length && (
