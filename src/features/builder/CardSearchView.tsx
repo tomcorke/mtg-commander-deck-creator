@@ -23,9 +23,12 @@ import {
   cardSearchKeywords,
   cardSearchManaOptions,
   defaultCardSearchFilters,
+  roleSearchTags,
   type CardSearchFilters,
+  type SearchRole,
   type SearchMatch,
 } from '../../domain/card-search.ts'
+import { targetLabels, type DeckTargets } from '../../deck-analysis.ts'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { OracleText } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
@@ -55,6 +58,9 @@ type Props = {
   /** Main-deck size an add fills before the rest goes to the sideboard. */
   mainLimit: number
   zoneToggle: ReactNode
+  /** Current role counts and targets, shown beside the deck-need filters. */
+  roleCounts: DeckTargets
+  deckTargets: DeckTargets
 }
 
 function MatchSelect({
@@ -85,10 +91,14 @@ function SearchFilters({
   filters,
   setFilters,
   colours,
+  roleCounts,
+  deckTargets,
 }: {
   filters: CardSearchFilters
   setFilters: Dispatch<SetStateAction<CardSearchFilters>>
   colours: string[]
+  roleCounts: DeckTargets
+  deckTargets: DeckTargets
 }) {
   const match = (label: string, value: SearchMatch) =>
     setFilters((current) => ({ ...current, matches: { ...current.matches, [label]: value } }))
@@ -229,6 +239,22 @@ function SearchFilters({
           card colour, not mana produced.
         </p>
       </fieldset>
+      <fieldset>
+        <legend>Deck needs</legend>
+        {(Object.keys(roleSearchTags) as SearchRole[]).map((role) => (
+          <label className="search-filter-row" key={role}>
+            <span>
+              {targetLabels[role]} ({roleCounts[role]}/{deckTargets[role]})
+            </span>
+            <MatchSelect
+              label={targetLabels[role]}
+              value={filters.matches[role] ?? 'any'}
+              onChange={(value) => match(role, value)}
+            />
+          </label>
+        ))}
+        <p>Counts show your deck against its role targets. Roles use Scryfall tags.</p>
+      </fieldset>
       <details className="search-keywords" open>
         <summary>Keywords & effects</summary>
         {cardSearchKeywords.map(({ label }) => (
@@ -358,6 +384,8 @@ export function CardSearchView({
   closePage,
   mainLimit,
   zoneToggle,
+  roleCounts,
+  deckTargets,
 }: Props) {
   const { darkMode, commanderStyling } = useVisualPreferences()
   const [filters, setFilters] = useState(defaultCardSearchFilters)
@@ -532,7 +560,13 @@ export function CardSearchView({
               Reset filters
             </button>
           </div>
-          <SearchFilters filters={filters} setFilters={setFilters} colours={colours} />
+          <SearchFilters
+            filters={filters}
+            setFilters={setFilters}
+            colours={colours}
+            roleCounts={roleCounts}
+            deckTargets={deckTargets}
+          />
         </form>
         <section
           className="card-search-results-panel"

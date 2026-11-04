@@ -53,10 +53,18 @@ export const cardSearchKeywords = [
   { label: 'Counter spells', query: 'otag:counterspell' },
   { label: 'Sacrifice', query: 'o:sacrifice' },
   { label: 'ETB triggers', query: 'o:/(when|whenever)[^.]* enters/' },
-  { label: 'Draw cards', query: 'otag:draw' },
   { label: 'Create tokens', query: 'o:/creat(e|es)[^.]* tokens?/' },
   { label: 'Gain life', query: 'otag:lifegain' },
 ] as const
+
+// Scryfall Tagger tags for each deck-need role; recommendations re-check results with rolesForCard.
+export type SearchRole = 'ramp' | 'draw' | 'removal' | 'wipes'
+export const roleSearchTags: Record<string, string> & Record<SearchRole, string> = {
+  ramp: 'otag:ramp',
+  draw: 'otag:draw',
+  removal: 'otag:removal',
+  wipes: 'otag:sweeper',
+}
 
 export function cardSearchManaOptions(colours: string[]) {
   return [
@@ -118,6 +126,10 @@ export function buildCardSearchQuery(
     range ? matchTerm(range, filters.manaValueMatch) : '',
     ...[...manaOptions, ...cardSearchKeywords].map(({ query, label }) =>
       matchTerm(query, filters.matches[label] ?? 'any'),
+    ),
+    // Role keys are lowercase, so they never collide with capitalised keyword labels.
+    ...Object.entries(roleSearchTags).map(([role, query]) =>
+      matchTerm(query, filters.matches[role] ?? 'any'),
     ),
     ...phrases('o', filters.rulesNeed, 'need'),
     ...phrases('o', filters.rulesExclude, 'exclude'),

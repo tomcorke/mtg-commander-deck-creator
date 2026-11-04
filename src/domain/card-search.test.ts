@@ -222,3 +222,14 @@ test('multi-add sends every card to the sideboard when the main-deck limit is 0'
   assert.equal(result.sideboard.length, 2)
   assert.equal(result.mainCount, 0)
 })
+
+test('deck-need role filters add Scryfall tag terms', () => {
+  const result = buildCardSearchQuery(
+    { ...defaultCardSearchFilters, matches: { ramp: 'need', wipes: 'exclude' } },
+    ['G'],
+    false,
+  )
+  assert.ok(result.includes('otag:ramp'))
+  assert.ok(result.includes('-(otag:sweeper)'))
+  assert.ok(!result.includes('otag:removal'))
+})

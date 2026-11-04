@@ -273,6 +273,8 @@ function CardSearchScreen({
         openCommander={(index) => actions.openCardReference(state.deck[index])}
         addCards={actions.addSearchCards}
         mainLimit={mainDeckLimit(state)}
+        roleCounts={builderData.analysis.counts}
+        deckTargets={state.deckTargets}
         zoneToggle={
           <AddZoneToggle
             zone={addsToSideboard(state) ? 'sideboard' : 'deck'}
