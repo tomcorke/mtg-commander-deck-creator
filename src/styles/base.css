@@ -491,8 +491,10 @@ main > header:has(.display-settings-panel) {
 .add-zone-toggle button:first-of-type {
   border-radius: 6px 0 0 6px;
 }
-.add-zone-toggle button:last-of-type {
+.add-zone-toggle button + button {
   margin-left: -1px;
+}
+.add-zone-toggle button:last-of-type {
   border-radius: 0 6px 6px 0;
 }
 .add-zone-toggle button[aria-pressed='true'] {

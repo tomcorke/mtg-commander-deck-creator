@@ -9,6 +9,7 @@ import {
 } from '../adapters/local-card-index.ts'
 import { deckJob } from './deck-job.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
+import { roleSearchTags } from '../domain/card-search.ts'
 import { resetSignatureContext } from './signature-actions.ts'
 import {
   commanderMechanicThemes,
@@ -279,13 +280,6 @@ export async function themeRecommendations(
   )
 }
 
-// Scryfall Tagger tags for each spell role; results are re-checked with rolesForCard.
-const roleSearchTags: Record<string, string> = {
-  ramp: 'otag:ramp',
-  draw: 'otag:draw',
-  removal: 'otag:removal',
-  wipes: 'otag:sweeper',
-}
 const roleGapLimit = 10
 
 /**
