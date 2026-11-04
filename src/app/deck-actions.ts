@@ -326,7 +326,7 @@ export async function fetchBasic(name: string) {
 
 export async function addBasicLands(
   deps: AppActionContext,
-  plan: { name: string; count: number }[],
+  plan: { name: string; count: number; printing?: ScryfallCard }[],
 ) {
   const job = deckJob(deps)
   const { closeModal, setBasicLandState } = job.deps
@@ -334,8 +334,8 @@ export async function addBasicLands(
   setBasicLandState('loading')
   try {
     const cards = await Promise.all(
-      plan.map(async ({ name, count }) => ({
-        card: await fetchBasic(name),
+      plan.map(async ({ name, count, printing }) => ({
+        card: printing ? toDeckCard(printing) : await fetchBasic(name),
         count,
       })),
     )

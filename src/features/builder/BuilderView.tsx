@@ -247,6 +247,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     focusedRole,
     chooseRoleFocus,
     chooseMaxPrice,
+    loadBasicLandPrintings,
+    loadBasicsFromSet,
     deck,
     deckCardModal,
     deckCards,
@@ -521,6 +523,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
         <BasicLandDialog
           basicLandState={basicLandState}
           basicLands={basicLands}
+          legalBasicNames={legalBasicNames}
+          commanderSet={deck[0]?.set ?? ''}
           landGap={landGap}
           calculatedLandTarget={calculatedLandTarget}
           nonbasicLands={nonbasicLands}
@@ -528,6 +532,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           opener={landFillTrigger}
           onClose={closeModal}
           onAddBasicLands={(lands) => void addBasicLands(lands)}
+          onLoadBasicLandPrintings={loadBasicLandPrintings}
+          onLoadBasicsFromSet={loadBasicsFromSet}
           onAddRecommendation={addRecommendationCard}
           onOpenCard={openGuidanceCard}
         />
