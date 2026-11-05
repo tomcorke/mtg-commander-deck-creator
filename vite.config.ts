@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import { generatedCreatureCatalog } from './scripts/generated-creature-catalog.ts'
+import { devReplay, devReplayFonts } from './scripts/dev-replay/plugin.ts'
 
 const publishCount = Number(
   execFileSync('git', ['rev-list', '--count', 'origin/publish'], {
@@ -51,10 +52,17 @@ const devFeedback: Plugin = {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   base: '/',
   define: { __APP_VERSION__: JSON.stringify(version) },
-  plugins: [react(), devFeedback, generatedCreatureCatalog()],
+  plugins: [
+    ...(command === 'serve' && (mode === 'record' || mode === 'replay')
+      ? [devReplay(mode), devReplayFonts()]
+      : []),
+    react(),
+    devFeedback,
+    generatedCreatureCatalog(),
+  ],
   server: {
     watch: {
       // Windows file notifications can occasionally be dropped by editors or synced folders.
@@ -62,4 +70,4 @@ export default defineConfig({
       interval: 100,
     },
   },
-})
+}))

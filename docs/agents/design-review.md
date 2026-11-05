@@ -6,6 +6,40 @@ In this repo, `docs/agents/ui.md` holds the house rules and the review gate. Thi
 
 ## Steps
 
+### Local provider replay
+
+Use `pnpm dev:replay` for rendered reviews. It serves recorded Scryfall responses,
+synthetic EDHREC lists and generated SVG card placeholders. Plain `pnpm dev` stays
+live for art-sensitive reviews; placeholders cannot verify actual art, crop,
+palette or foil appearance. Live EDHREC recording is deferred to #309.
+
+Before the first review, run `pnpm check:dev-replay record`. It records the
+start-screen discovery and both Meren imports from
+[Reaching each state](design-conventions.md#reaching-each-state), including a
+card-details drive. Then run `pnpm check:dev-replay` to repeat the drives in a
+fresh browser and assert zero upstream requests, zero misses and decoded images.
+The command also captures light, dark and narrow evidence locally.
+
+The shared cache defaults to `commander-creator/dev-replay-v1` under
+`LOCALAPPDATA`, `XDG_CACHE_HOME` or `~/.cache`. `DEV_REPLAY_CACHE_DIR` overrides it;
+use `.dev-replay/` for an ignored checkout-local cache. Only one recorder may own
+a cache; parallel agents use replay. If `recorder.lock` survives a crashed run,
+verify its recorded PID has stopped before removing that file.
+
+A `DEV_REPLAY_MISS` stops that request without live fallback. Seed the missing
+flow once with `pnpm dev:record`, then return to replay. Entries never refresh
+automatically. Use a new cache directory when intentionally updating the corpus;
+retain Scryfall downloads for at least 24 hours. The local card index is pinned
+on first recording from an existing public/machine-cached artifact, or pinned as
+unavailable. To include it, run `pnpm build:card-index` before recording into a new
+directory. No replay command builds or downloads an index.
+
+`/__dev-replay/status` reports hits, misses, upstream calls, placeholders, fixtures
+and failures. A completed replay drive must show `upstream: 0`, `misses: 0` and
+`failures: 0`. Independent Node scripts and external-link navigations are outside
+this browser replay. Provider URLs stay original in saved decks and exports;
+recordings and screenshots stay outside commits, and no card scans are acquired.
+
 ### 1. Load the house rules
 
 Read the project's `AGENTS.md`, `CLAUDE.md` and UI guide before looking at pixels. They name the shared components, theme tokens, required states and gates.
