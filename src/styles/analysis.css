@@ -555,18 +555,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.basic-land-stepper {
+.basic-land-stepper,
+.target-stepper {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.basic-land-stepper .deck-add {
+.basic-land-stepper .deck-add,
+.target-stepper .deck-add {
   width: 30px;
   height: 30px;
   color: inherit;
   font-size: var(--type-card-name);
 }
-.basic-land-stepper input {
+.basic-land-stepper input,
+.target-stepper input {
   width: 54px;
   padding: 5px 4px;
   border-radius: 6px;
@@ -575,7 +578,8 @@
   text-align: center;
   appearance: textfield;
 }
-.basic-land-stepper input::-webkit-inner-spin-button {
+.basic-land-stepper input::-webkit-inner-spin-button,
+.target-stepper input::-webkit-inner-spin-button {
   margin: 0;
   appearance: none;
 }

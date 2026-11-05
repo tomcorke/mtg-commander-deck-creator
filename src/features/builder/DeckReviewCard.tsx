@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Card, DeckCard } from '../../domain/card-model.ts'
 import type { RecommendationScoreRating } from '../../domain/recommendation-scoring.ts'
 import { CardReference } from '../../shared/CardReference.tsx'
@@ -39,6 +40,7 @@ export function ReviewCardTile({
   fit,
   selection,
   quantity,
+  children,
 }: {
   card: DoctorCard
   status?: string
@@ -47,6 +49,8 @@ export function ReviewCardTile({
   fit?: RecommendationScoreRating
   selection?: CardSelection
   quantity?: CardQuantity
+  /** Extras below the detail line, such as a disclosure. */
+  children?: ReactNode
 }) {
   return (
     <CardTile
@@ -121,6 +125,8 @@ export function ReviewCardTile({
           </>
         )
       }
-    />
+    >
+      {children}
+    </CardTile>
   )
 }

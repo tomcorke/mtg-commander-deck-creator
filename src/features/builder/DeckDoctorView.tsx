@@ -31,15 +31,14 @@ import {
   toggleDoctorSuggestionInPlan,
   type DoctorSuggestion,
 } from '../../deck-doctor-suggestions.ts'
-import { CardReference } from '../../shared/CardReference.tsx'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
-import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
+import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { ReviewCardTile } from './DeckReviewCard.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
 import { reviewSteps, type DeckReviewStep } from '../../app/routes.ts'
 import { CommanderSummary } from './CommanderSummary.tsx'
-import { DeckOverview } from './DeckOverview.tsx'
+import { DeckOverview, ReviewStatus } from './DeckOverview.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 
 type DoctorCard = Card | DeckCard
@@ -98,6 +97,12 @@ type Props = {
   chooseTheme: () => void
 }
 
+const findingKindLabels: Record<DeckDoctorFinding['kind'], string> = {
+  'theme-support': 'Theme support',
+  'weak-connection': 'No detected link',
+  'role-gap': 'Role gap',
+  'mana-outlier': 'Mana demand',
+}
 const doctorGroupPreview = 6
 const doctorGroupStep = 12
 const emptyDoctorCandidates: Card[] = []
@@ -222,53 +227,64 @@ function FindingCardReferences({
   openCard: Props['openCard']
   simulation: ManaAccessSimulation
 }) {
+  const [shown, setShown] = useState(doctorGroupStep)
   if (!finding.cardNames.length) return null
+  const hidden = finding.cardNames.length - shown
   return (
-    <div className="doctor-reference-grid">
-      {finding.cardNames.map((name) => {
-        const card = deck.find((item) => item.name === name)
-        if (!card) return null
-        const signal = finding.cardSignals?.find((item) => item.cardName === card.name)
-        return (
-          <div className="doctor-reference-card" key={card.name}>
-            <span className={`doctor-card-status${flaggedNames.has(card.name) ? ' in-deck' : ''}`}>
-              {flaggedNames.has(card.name) ? 'In deck · flagged' : 'In deck'}
-            </span>
-            <CardReference card={card} onOpen={() => openCard(card)} />
-            {card.manaCost && (
-              <small className="doctor-card-cost">
-                <OracleText text={card.manaCost} />
-              </small>
-            )}
-            {signal && (
-              <details className="doctor-signal-details">
-                <summary>{signal.summary}</summary>
-                <ul>
-                  {signal.colourGaps.map(({ colour, required, sources }) => (
-                    <li key={colour}>
-                      <ManaSymbols symbols={[colour]} /> {required} pip
-                      {required === 1 ? '' : 's'}; {sources} mana source
-                      {sources === 1 ? '' : 's'}.
-                    </li>
-                  ))}
-                  {signal.simulation && (
-                    <li>
-                      When drawn, it was payable by turn {signal.simulation.turn} in{' '}
-                      {Math.round(signal.simulation.castableChance * 100)}% of simulated hands (
-                      {simulation.trials} trials, one free mulligan)
-                      {simulation.provisional ? '. Provisional until the deck has 100 cards.' : '.'}
-                    </li>
-                  )}
-                  {simulation.unsupported.includes(card.name) && (
-                    <li>Its hybrid, X or Phyrexian cost isn't simulated.</li>
-                  )}
-                </ul>
-              </details>
-            )}
-          </div>
-        )
-      })}
-    </div>
+    <>
+      <div className="doctor-reference-grid">
+        {finding.cardNames.slice(0, shown).map((name) => {
+          const card = deck.find((item) => item.name === name)
+          if (!card) return null
+          const signal = finding.cardSignals?.find((item) => item.cardName === card.name)
+          return (
+            <ReviewCardTile
+              key={card.name}
+              card={card}
+              status={flaggedNames.has(card.name) ? 'In deck · flagged' : 'In deck'}
+              openCard={openCard}
+            >
+              {signal && (
+                <details className="doctor-signal-details">
+                  <summary>{signal.summary}</summary>
+                  <ul>
+                    {signal.colourGaps.map(({ colour, required, sources }) => (
+                      <li key={colour}>
+                        <ManaSymbols symbols={[colour]} /> {required} pip
+                        {required === 1 ? '' : 's'}; {sources} mana source
+                        {sources === 1 ? '' : 's'}.
+                      </li>
+                    ))}
+                    {signal.simulation && (
+                      <li>
+                        When drawn, it was payable by turn {signal.simulation.turn} in{' '}
+                        {Math.round(signal.simulation.castableChance * 100)}% of simulated hands (
+                        {simulation.trials} trials, one free mulligan)
+                        {simulation.provisional
+                          ? '. Provisional until the deck has 100 cards.'
+                          : '.'}
+                      </li>
+                    )}
+                    {simulation.unsupported.includes(card.name) && (
+                      <li>Its hybrid, X or Phyrexian cost isn't simulated.</li>
+                    )}
+                  </ul>
+                </details>
+              )}
+            </ReviewCardTile>
+          )
+        })}
+      </div>
+      {hidden > 0 && (
+        <button
+          className="export doctor-show-more"
+          type="button"
+          onClick={() => setShown(shown + doctorGroupStep)}
+        >
+          Show {Math.min(hidden, doctorGroupStep)} more ({hidden} left)
+        </button>
+      )}
+    </>
   )
 }
 
@@ -920,7 +936,7 @@ export function DeckDoctorView({
           </p>
         )}
         {step === 'Diagnose' && error && (
-          <p className="doctor-error" role="status">
+          <p className="doctor-error form-error" role="alert">
             {error}
           </p>
         )}
@@ -1038,6 +1054,7 @@ export function DeckDoctorView({
                     if (node) findingNodes.current.set('open-slots', node)
                   }}
                 >
+                  <ReviewStatus kind="neutral" label="Open slots" />
                   <h3>
                     {missingCards} slot{missingCards === 1 ? '' : 's'} open
                   </h3>
@@ -1076,6 +1093,7 @@ export function DeckDoctorView({
                       else findingNodes.current.delete(finding.id)
                     }}
                   >
+                    <ReviewStatus kind="attention" label={findingKindLabels[finding.kind]} />
                     <h3>{finding.title}</h3>
                     <p>{finding.summary}</p>
                     {finding.evidence.length > 0 && (
