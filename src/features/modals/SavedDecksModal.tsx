@@ -171,7 +171,7 @@ export function SavedDecksModal({
               <span className="saved-deck-delete-wrap">
                 <button
                   type="button"
-                  className={`saved-deck-delete ${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'confirm' : ''}`}
+                  className={`danger saved-deck-delete ${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'confirm' : ''}`}
                   disabled={
                     !autosave.cleanupAvailable ||
                     autosave.busy ||
@@ -301,7 +301,7 @@ export function SavedDecksModal({
               <span className="saved-deck-delete-wrap">
                 <button
                   type="button"
-                  className={`saved-deck-delete ${pendingSavedDeckRemoval === saved.id ? 'confirm' : ''}`}
+                  className={`danger saved-deck-delete ${pendingSavedDeckRemoval === saved.id ? 'confirm' : ''}`}
                   onClick={() => {
                     if (pendingSavedDeckRemoval !== saved.id) {
                       setPendingSavedDeckRemoval(saved.id)

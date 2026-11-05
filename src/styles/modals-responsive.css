@@ -1,49 +1,26 @@
-.dark .export-modal {
-  background: #19182d;
-}
 .dark .recommendation-options .setting-help-button {
-  border-color: #4b4867;
-  color: #ccc9df;
+  border-color: var(--border-control);
+  color: var(--text-body);
 }
 .dark .recommendation-options .setting-help-button:hover,
 .dark .recommendation-options .setting-help-button:focus-visible {
   border-color: #7169ca;
   background: transparent;
-  color: #d4d0ed;
 }
 .dark .setting-help-popover {
   border-color: #8d83df;
   background: #24203a;
-  color: #dedaff;
+  color: var(--text-strong);
 }
 .dark .deck-card-modal-image {
   box-shadow: 0 14px 35px #0009;
 }
-.dark .deck-card-modal-remove {
-  border-color: #9a6868;
-  color: #f0aaa4;
-}
-.dark .deck-card-modal-remove:hover,
-.dark .deck-card-modal-remove:focus-visible {
-  background: #3b252c;
-}
-.dark .export-actions a {
-  color: #b786f2;
-}
 .dark .export-actions a:hover {
-  color: #d1b0ff;
+  color: var(--text-accent);
 }
 .dark .recommendation-options fieldset {
-  border-color: #4b4867;
-  color: #ccc9df;
-}
-.dark .export-actions .primary {
-  border-color: #7169ca;
-  background: #5851a6;
-  color: white;
-}
-.dark .modal-close {
-  color: #c4c1d5;
+  border-color: var(--border-control);
+  color: var(--text-body);
 }
 .dark.commander-themed .export-modal {
   background: color-mix(in srgb, var(--commander-accent) 18%, #111419);
@@ -57,18 +34,14 @@
 .dark.commander-themed .export-actions a:hover {
   color: color-mix(in srgb, var(--commander-highlight) 72%, white);
 }
-.dark.commander-themed .export-actions .primary {
-  border-color: var(--commander-accent);
-  background: var(--commander-accent);
-}
 .dark.commander-themed .recommendation-options legend,
-.dark.commander-themed .recommendation-options button {
+.dark.commander-themed .recommendation-options button:not(.compact-action) {
   color: var(--commander-highlight);
 }
-.dark.commander-themed .recommendation-options button {
+.dark.commander-themed .recommendation-options button:not(.compact-action) {
   border-color: var(--commander-highlight);
 }
-.dark.commander-themed .recommendation-options button:hover {
+.dark.commander-themed .recommendation-options button:not(.compact-action):hover {
   background: var(--commander-accent);
   color: white;
 }
@@ -144,8 +117,7 @@
   }
 }
 .dark .format-tabs button {
-  border-color: #4b4867;
-  color: #ccc9df;
+  border-color: var(--border-control);
 }
 .dark .format-tabs button.selected {
   border-color: #7169ca;

@@ -68,7 +68,7 @@ export function CardDetails({
           {onToggleSet && (
             <button
               type="button"
-              className="set-affinity-button"
+              className="compact-action"
               onClick={onToggleSet}
               aria-pressed={collectionSelected}
             >

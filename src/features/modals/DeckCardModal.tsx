@@ -208,7 +208,7 @@ function DeckCardZoneActions({
       </button>
       <button
         type="button"
-        className={`deck-card-modal-remove ${confirming ? 'confirm' : ''}`}
+        className={`danger deck-card-modal-remove ${confirming ? 'confirm' : ''}`}
         onClick={onRemove}
       >
         {confirming ? 'Confirm removal' : `Remove from ${inSideboard ? 'sideboard' : 'deck'}`}

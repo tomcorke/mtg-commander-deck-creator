@@ -9,8 +9,8 @@
   --type-data: 13px;
   --type-caption: 11px;
   --focus-ring: #642b84;
-  color: #25243a;
-  background: #f2f3fb;
+  color: var(--text-body);
+  background: var(--surface-page);
   font-family: 'DM Sans', sans-serif;
 }
 * {
@@ -64,33 +64,64 @@ button {
 main {
   position: relative;
   min-height: 100vh;
-  background: #f2f3fb;
-  color: #25243a;
+  background: var(--surface-page);
+  color: var(--text-body);
 }
 /* Secondary text colours; each pair keeps WCAG AA (4.5:1) on the app's panels. Use these instead of
    per-component hex values so dark mode never depends on a matching override. */
 :root {
+  --text-body: #25243a;
+  --text-strong: #28245f;
   --text-muted: #5c596f;
   --text-accent: #6a3c9c;
   --text-danger: #a13e4c;
   --text-success: #23744a;
+  --text-warning: #7d5214;
+}
+/* Surfaces, borders, the fill behind .primary, and the tint behind a selected toggle. Theme a new
+   surface with these before adding a .dark override. */
+:root {
+  --surface-page: #f2f3fb;
+  --surface-panel: #f8f8ff;
+  --border-subtle: #dad8e6;
+  --border-control: #bbb9cd;
+  --action-fill: #36327f;
+  --selected-background: #d5d0f2;
+  --selected-border: #36327f;
 }
 /* Dialogs mount beside full-page modes' <main>, inside the app's .dark wrapper; theme text there. */
 .dark {
+  --text-body: #d8d8ea;
+  --text-strong: #d9d8ff;
   --text-muted: #aaa8c2;
   --text-accent: #b99cf0;
   --text-danger: #f0aaa4;
   --text-success: #7fd3a1;
+  --text-warning: #e7b965;
+  --surface-page: #111123;
+  --surface-panel: #19182d;
+  --border-subtle: #36344f;
+  --border-control: #4b4867;
+  --action-fill: #5851a6;
+  --selected-background: #423c69;
+  --selected-border: #a69fde;
   --focus-ring: #d6b8ff;
   color-scheme: dark;
-  color: #d8d8ea;
+  color: var(--text-body);
 }
 main.dark {
-  background: #111123;
+  background: var(--surface-page);
 }
+/* shortcut: these defaults on the nested <main>/shell shadow the commander colours AppController sets
+   inline, so themed modes stay indigo. Removing them needs AA-safe palettes for every colour (#312). */
 .commander-themed {
   --commander-accent: #36327f;
   --commander-highlight: #b8bac7;
+  --selected-border: var(--commander-accent);
+}
+/* Commander accents can be too dark to mark a selection on dark panels. */
+.dark.commander-themed {
+  --selected-border: #a69fde;
 }
 .commander-backdrop {
   position: fixed;
@@ -124,8 +155,8 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #dad8e6;
-  background: #f8f8ff;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-panel);
 }
 main > .workspace-alert {
   position: fixed;
@@ -142,7 +173,7 @@ main > .workspace-alert {
   border-left-width: 4px;
   border-radius: 6px;
   background: #fff0ef;
-  color: #842b38;
+  color: var(--text-danger);
   font-size: var(--type-data);
   line-height: 1.5;
 }
@@ -159,14 +190,14 @@ main > .workspace-alert .modal-close {
 .dark > .workspace-alert {
   border-color: #d68c95;
   background: #35232e;
-  color: #ffd3d9;
+  color: var(--text-danger);
 }
 .workspace-notice {
   position: relative;
   padding: 14px 60px 14px 5vw;
-  border-bottom: 1px solid #dad8e6;
-  background: #f8f8ff;
-  color: #25243a;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-panel);
+  color: var(--text-body);
 }
 .workspace-notice p {
   margin: 0 0 8px;
@@ -196,14 +227,12 @@ main > .workspace-alert .modal-close {
   right: 14px;
 }
 .dark .workspace-notice {
-  border-color: #36344f;
-  background: #19182d;
-  color: #d8d8ea;
+  border-color: var(--border-subtle);
 }
 .brand {
   flex: 0 0 auto;
   max-width: 100%;
-  color: #36327f;
+  color: var(--text-strong);
   font:
     600 var(--type-section) 'Spectral',
     serif;
@@ -280,11 +309,11 @@ main > .workspace-alert .modal-close {
 .export,
 .actions button,
 .empty button {
-  border: 1px solid #bbb9cd;
+  border: 1px solid var(--border-control);
   border-radius: 7px;
   padding: 10px 16px;
   background: transparent;
-  color: #34324a;
+  color: var(--text-body);
 }
 .header-actions {
   display: flex;
@@ -307,28 +336,34 @@ main > .workspace-alert .modal-close {
 }
 .theme-toggle {
   padding: 9px 12px;
-  border: 1px solid #bbb9cd;
+  border: 1px solid var(--border-control);
   border-radius: 7px;
   background: transparent;
-  color: #514e66;
+  color: var(--text-muted);
 }
-.export {
-  border-color: var(--commander-accent, #36327f);
+.export,
+.compact-action {
+  border: 1px solid var(--commander-accent, #36327f);
+  background: transparent;
   color: var(--commander-text);
 }
-.export:not(:disabled):hover {
+.export:not(:disabled):hover,
+.compact-action:not(:disabled):hover {
   background: color-mix(in srgb, var(--commander-accent, #36327f) 9%, transparent);
 }
-.export:focus-visible {
+.export:focus-visible,
+.compact-action:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
-.export:disabled {
+.export:disabled,
+.compact-action:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 /* Commander accents come from card art; these mixes keep accent text readable in each mode. */
 .export,
+.compact-action,
 .nav-back,
 .nav-forward,
 .card-reference-name,
@@ -414,10 +449,10 @@ main > .workspace-alert .modal-close {
   }
 }
 .primary {
-  border: 1px solid var(--commander-accent, #36327f);
+  border: 1px solid var(--commander-accent, var(--action-fill));
   border-radius: 7px;
   padding: 10px 16px;
-  background: var(--commander-accent, #36327f);
+  background: var(--commander-accent, var(--action-fill));
   color: #fff;
 }
 .primary:not(:disabled):hover {
@@ -428,6 +463,28 @@ main > .workspace-alert .modal-close {
   outline-offset: 2px;
 }
 .primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+/* Destructive (Delete, Remove): red outline, never filled. .confirm marks the armed second click. */
+.danger {
+  border: 1px solid var(--text-danger);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-danger);
+}
+.danger:not(:disabled):hover,
+.danger.confirm {
+  background: color-mix(in srgb, var(--text-danger) 12%, transparent);
+}
+.danger.confirm {
+  font-weight: 600;
+}
+.danger:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.danger:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -444,10 +501,10 @@ main > .workspace-alert .modal-close {
   padding: 16px;
   display: grid;
   gap: 14px;
-  border: 1px solid #bbb9cd;
+  border: 1px solid var(--border-control);
   border-radius: 7px;
-  background: #f8f8ff;
-  color: #34324a;
+  background: var(--surface-panel);
+  color: var(--text-body);
   box-shadow: 0 8px 24px #0003;
 }
 .display-settings-panel label {
@@ -461,8 +518,6 @@ main > .workspace-alert .modal-close {
   accent-color: var(--commander-accent, #36327f);
 }
 .dark .display-settings-panel {
-  background: #19182d;
-  color: #d8d8ea;
   border-color: #514b69;
 }
 
@@ -482,9 +537,9 @@ main > header:has(.display-settings-panel) {
 }
 .add-zone-toggle button {
   padding: 4px 10px;
-  border: 1px solid #bbb9cd;
+  border: 1px solid var(--border-control);
   background: transparent;
-  color: #34324a;
+  color: var(--text-body);
   font-size: var(--type-data);
   cursor: pointer;
 }
@@ -499,8 +554,8 @@ main > header:has(.display-settings-panel) {
 }
 .add-zone-toggle button[aria-pressed='true'] {
   position: relative;
-  border-color: var(--commander-accent, #36327f);
-  background: #d5d0f2;
+  border-color: var(--selected-border);
+  background: var(--selected-background);
   font-weight: 600;
 }
 .add-zone-toggle button:focus-visible {
@@ -508,16 +563,8 @@ main > header:has(.display-settings-panel) {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
-.dark .add-zone-toggle > span {
-  color: #a9a7c0;
-}
 .dark .add-zone-toggle button {
-  border-color: #4b4867;
-  color: #d8d8ea;
-}
-.dark .add-zone-toggle button[aria-pressed='true'] {
-  border-color: #a69fde;
-  background: #423c69;
+  border-color: var(--border-control);
 }
 .recommendations > .add-zone-toggle {
   margin-top: 10px;

@@ -1,31 +1,14 @@
 .dark .start-panel {
-  background: #19182d;
-}
-.dark .start-panel {
-  border-color: #36344f;
-}
-.dark .brand {
-  color: #d9d8ff;
-}
-.dark .themes button {
-  border-color: #4b4867;
-  color: #ccc9df;
-}
-.dark .themes button:hover,
-.dark .themes button.selected {
-  border-color: #7169ca;
-  background: #5851a6;
-  color: white;
+  border-color: var(--border-subtle);
 }
 .dark .themes .theme-placeholder:hover {
   border-color: #7169ca;
   background: transparent;
-  color: #d4d0ed;
 }
 .dark .themes .creature-type-search {
   border-color: #7169ca;
   background: #121121;
-  color: #e5e3f0;
+  color: var(--text-body);
 }
 .dark .suggestions,
 .dark .suggestion-select {
@@ -40,23 +23,18 @@
   padding: 14px 16px;
 }
 .dark .suggestion-select {
-  color: #e5e3f0;
+  color: var(--text-body);
   background: #121121;
 }
 .dark .import-note {
   background: #ffffff0d;
-  color: #d4bd8b;
-}
-.dark .import-review-checkbox {
-  color: #e5e3f0;
 }
 .dark .manual-card-button {
   border-color: #615b96;
-  color: #d4d0ed;
+  color: var(--text-strong);
 }
 .dark .subthemes button {
   border-color: #615b96;
-  color: #d4d0ed;
 }
 .dark .subthemes button {
   background: #2b2949;
@@ -84,11 +62,8 @@
     grid-column: auto;
   }
 }
-.dark .reroll {
-  color: #b786f2;
-}
 .dark .reroll:hover {
-  color: #d1b0ff;
+  color: var(--text-accent);
 }
 .dark.commander-themed .reroll {
   color: var(--commander-highlight);

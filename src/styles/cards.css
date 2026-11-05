@@ -124,7 +124,7 @@
   border: 1px solid #9a72ba;
   border-radius: 14px;
   background: #eee8f7dd;
-  color: #5d3878;
+  color: var(--text-accent);
   font-size: var(--type-data);
   font-weight: 600;
   backdrop-filter: blur(4px);
@@ -139,8 +139,8 @@
   padding: 12px;
   border: 1px solid #9a72ba;
   border-radius: 8px;
-  background: #f8f8ff;
-  color: #3e3850;
+  background: var(--surface-panel);
+  color: var(--text-body);
   box-shadow: 0 12px 30px #201c3c55;
   font-size: var(--type-data);
   line-height: 1.4;
@@ -808,7 +808,7 @@ button:disabled {
 .commander-promotion-button:not(:disabled):focus-visible {
   border-color: #36327f;
   background: #dedcea;
-  color: #36327f;
+  color: var(--text-strong);
 }
 .commander-warning {
   flex-basis: 100%;
@@ -852,7 +852,7 @@ button:disabled {
 .card-copy > .offer-reason {
   min-height: 0;
   margin: -4px 0 12px;
-  color: #36327f;
+  color: var(--text-strong);
   font-size: var(--type-body);
   font-weight: 500;
   line-height: 1.45;
@@ -883,7 +883,7 @@ button:disabled {
 }
 .card-details dt {
   flex: 0 0 52px;
-  color: #514e66;
+  color: var(--text-muted);
   font-weight: 600;
 }
 .card-details dd {
@@ -896,16 +896,8 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 .card-details dd strong {
-  color: #514e66;
+  color: var(--text-muted);
   font-weight: 600;
-}
-.set-affinity-button {
-  padding: 2px 5px;
-  border: 1px solid #8d88bd;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-accent);
-  font-size: var(--type-data);
 }
 .card-details a {
   color: var(--text-accent);
@@ -913,7 +905,7 @@ button:disabled {
   text-underline-offset: 2px;
 }
 .card-details a:hover {
-  color: #36327f;
+  color: var(--text-strong);
 }
 .score-breakdown {
   margin-top: 14px;
@@ -921,7 +913,7 @@ button:disabled {
   border-top: 1px solid #dedcea;
 }
 .score-breakdown-heading {
-  color: #514e66;
+  color: var(--text-muted);
   cursor: pointer;
   font:
     600 var(--type-body) 'DM Sans',
@@ -957,7 +949,7 @@ button:disabled {
 }
 .score-factors dd {
   margin: 0;
-  color: #514e66;
+  color: var(--text-muted);
   font-weight: 600;
   white-space: nowrap;
 }

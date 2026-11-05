@@ -368,6 +368,7 @@ export function RecommendationSettingsModal({
                 </div>
                 <button
                   type="button"
+                  className="compact-action"
                   disabled={!collectionSets.length || collectionBrowserState === 'loading'}
                   onClick={() => {
                     closeModal()

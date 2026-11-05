@@ -50,7 +50,7 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
   return (
     <>
       <button
-        className="change"
+        className="export"
         type="button"
         onClick={() => {
           setColours([...required].sort())
