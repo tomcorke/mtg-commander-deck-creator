@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -155,5 +156,40 @@ test('dev transform covers current image, fetch, background and preload boundari
     const transformed = replayTransform(code, file)
     assert(transformed?.includes('resourceUrl'), file)
     assert(!/\bsrc=\{(?!resourceUrl)/.test(transformed!), file)
+  }
+})
+
+test('dev transform routes global fetch and leaves object methods intact', () => {
+  const code = replayTransform('fetch(url); client.fetch(url)', 'example.ts')!
+  assert(code.includes('replayFetch(url); client.fetch(url)'))
+})
+
+test('recorder releases its lock synchronously on SIGINT', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dev-replay-signal-'))
+  try {
+    const child = spawnSync(
+      process.execPath,
+      [
+        '--experimental-strip-types',
+        '--input-type=module',
+        '-e',
+        `
+      import { createServer } from 'vite'
+      import { devReplay } from './scripts/dev-replay/plugin.ts'
+      await createServer({ configFile: false, plugins: [devReplay('record')], server: { middlewareMode: true } })
+      process.emit('SIGINT')
+      process.exit(99)
+    `,
+      ],
+      {
+        env: { ...process.env, DEV_REPLAY_CACHE_DIR: directory },
+        windowsHide: true,
+        timeout: 20_000,
+      },
+    )
+    assert.equal(child.status, 130, child.stderr?.toString())
+    await assert.rejects(readFile(join(directory, 'recorder.lock')), { code: 'ENOENT' })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
   }
 })

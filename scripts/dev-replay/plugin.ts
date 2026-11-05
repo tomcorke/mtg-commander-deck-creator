@@ -1,4 +1,5 @@
 import { mkdir, open, readFile, unlink, writeFile } from 'node:fs/promises'
+import { unlinkSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import type { IncomingMessage } from 'node:http'
@@ -50,11 +51,16 @@ async function pinnedIndex(directory: string, root: string, mode: string) {
 
 export function devReplay(mode: 'record' | 'replay'): Plugin {
   let lockFile: string | undefined
+  const interrupt = () => {
+    if (lockFile) unlinkSync(lockFile)
+    process.exit(130)
+  }
   return {
     name: 'dev-provider-replay',
     apply: 'serve',
     enforce: 'pre',
     async closeBundle() {
+      process.off('SIGINT', interrupt)
       if (lockFile) await unlink(lockFile)
       lockFile = undefined
     },
@@ -76,6 +82,7 @@ export function devReplay(mode: 'record' | 'replay'): Plugin {
         await lock.writeFile(String(process.pid))
         await lock.close()
         lockFile = file
+        process.once('SIGINT', interrupt)
       }
       const catalog = imageCatalog()
       const index = await pinnedIndex(directory, server.config.root, mode)

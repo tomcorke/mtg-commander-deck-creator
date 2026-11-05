@@ -20,7 +20,7 @@ const imageAssignments: Record<string, [string, string][]> = {
 /** Known network boundaries only. Builds never install this transform. */
 export function replayTransform(code: string, path: string) {
   let result = code.replace(/\bsrc=\{([^{}\n]+)\}/g, 'src={resourceUrl($1)}')
-  result = result.replace(/\bfetch\(/g, 'replayFetch(')
+  result = result.replace(/(?<![.\w])fetch\(/g, 'replayFetch(')
   for (const [before, after] of imageAssignments[path] ?? []) {
     if (!result.includes(before)) throw new Error(`Replay boundary changed: ${path}: ${before}`)
     result = result.replaceAll(before, after)
