@@ -588,7 +588,7 @@ export function DeckDoctorView({
         <ReviewCardTile
           key={card.name}
           card={card}
-          status={`${status} · ×${indexes.length}`}
+          status={status}
           openCard={openCard}
           quantity={{
             value: indexes.filter((index) => selectedCutIndexes.includes(index)).length,

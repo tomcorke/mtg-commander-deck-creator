@@ -62,7 +62,7 @@ export function DeckReviewHistoryModal({
                   {swap.cutCard && (
                     <ReviewCardTile
                       card={swap.cutCard}
-                      status={swap.movedToSideboard ? 'Moved to sideboard' : 'Cut from deck'}
+                      status={swap.movedToSideboard ? 'To sideboard' : 'Cut'}
                       openCard={openCard}
                     />
                   )}
@@ -98,7 +98,7 @@ export function DeckReviewHistoryModal({
             <p className="doctor-muted">No changes applied yet.</p>
           )}
           {error && (
-            <p className="doctor-error" role="status">
+            <p className="doctor-error form-error" role="alert">
               {error}
             </p>
           )}

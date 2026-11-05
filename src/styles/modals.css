@@ -613,10 +613,6 @@
   width: 100%;
   height: 100%;
 }
-.doctor-card-art:hover,
-.doctor-card-art:focus-visible {
-  z-index: 150;
-}
 .doctor-card-status {
   display: inline-flex;
   padding: 3px 7px;
@@ -715,21 +711,17 @@
   gap: 18px 12px;
 }
 .doctor-plan-pair,
-.doctor-commander-pair {
+.doctor-commander-pair,
+.doctor-history-pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: stretch;
   gap: 10px;
 }
 .doctor-plan-pair .doctor-pair-arrow,
-.doctor-commander-pair .doctor-pair-arrow {
+.doctor-commander-pair .doctor-pair-arrow,
+.doctor-history-pair .doctor-pair-arrow {
   align-self: center;
-}
-.doctor-history-pair {
-  display: grid;
-  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
-  align-items: center;
-  gap: 10px;
 }
 .doctor-history-pair {
   width: 100%;
@@ -772,6 +764,9 @@
   display: grid;
   gap: 12px;
 }
+.doctor-history-item > .export {
+  justify-self: center;
+}
 .doctor-history-item p,
 .doctor-commander-option > p {
   margin: 0;
@@ -780,7 +775,7 @@
   display: grid;
   gap: 12px;
 }
-/* One centred column: DeckReviewCard art previews are absolute (#297), so a tile at the dialog edge would scroll it. */
+/* One centred column, settled in #296; tile previews now use the top layer (#297), so two columns would fit. */
 .doctor-commander-results {
   grid-template-columns: minmax(0, 460px);
   justify-content: center;
@@ -838,16 +833,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
-  /* Plan and commander pairs stay side by side, as Diagnose suggestions do. */
-  .doctor-history-pair {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .doctor-suggestion:has(.doctor-pair-arrow) {
     grid-column: 1 / -1;
-  }
-  .doctor-history-pair .doctor-pair-arrow {
-    justify-self: center;
-    transform: rotate(90deg);
   }
 }
 .deck-review-intro {
@@ -1577,8 +1564,11 @@ main > .commander-header {
   color: var(--doctor-text);
   background: var(--doctor-panel);
 }
+/* A lone cut or addition takes one pair column (half, less the arrow and gaps) at small-tile width, so it matches paired tiles. */
 .deck-review-history-modal .doctor-history-pair > .doctor-card-tile:only-child {
   grid-column: 1 / -1;
+  justify-self: center;
+  width: min(calc(50% - 18px), 200px);
 }
 .commander-summary-title {
   margin: 0 0 8px;
