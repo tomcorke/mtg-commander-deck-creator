@@ -223,7 +223,7 @@
   margin: 0 0 8px;
   font-size: var(--type-section);
 }
-.continue-card p {
+.continue-meta {
   font-size: var(--type-body);
 }
 .continue-art {
@@ -235,10 +235,6 @@
 }
 .continue-art:focus-visible {
   outline: 3px solid var(--focus-ring);
-}
-.continue-art:focus-visible .card-image-preview {
-  visibility: visible;
-  opacity: 1;
 }
 .intro-guide-option {
   display: flex;
