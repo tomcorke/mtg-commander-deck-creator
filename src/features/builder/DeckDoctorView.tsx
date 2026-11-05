@@ -1319,6 +1319,8 @@ export function DeckDoctorView({
                 <h2 id="doctor-plan-title">Proposed changes</h2>
               </div>
               <span>
+                {selectedCuts.length + selectedAdditions.length} change
+                {selectedCuts.length + selectedAdditions.length === 1 ? '' : 's'}:{' '}
                 {selectedCuts.length} cut{selectedCuts.length === 1 ? '' : 's'} ·{' '}
                 {selectedAdditions.length} addition{selectedAdditions.length === 1 ? '' : 's'}
               </span>
@@ -1397,16 +1399,28 @@ export function DeckDoctorView({
                 <h3>After these changes</h3>
                 <p>
                   {targetKeys.map((role) => (
-                    <span key={role}>
+                    <span
+                      key={role}
+                      className={
+                        projectedAnalysis.counts[role] === analysis.counts[role]
+                          ? undefined
+                          : 'changed'
+                      }
+                    >
                       {targetLabels[role]}: {analysis.counts[role]} →{' '}
                       {projectedAnalysis.counts[role]}
                       {projectedAnalysis.counts[role] < deckTargets[role] &&
-                        projectedAnalysis.counts[role] < analysis.counts[role] &&
-                        ' (below your target)'}
+                        projectedAnalysis.counts[role] < analysis.counts[role] && (
+                          <em> (below your target)</em>
+                        )}
                     </span>
                   ))}
                   {selectedThemes.length > 0 && (
-                    <span>
+                    <span
+                      className={
+                        themeCount(projectedDeck) === themeCount(deck) ? undefined : 'changed'
+                      }
+                    >
                       Theme matches: {themeCount(deck)} → {themeCount(projectedDeck)}
                     </span>
                   )}
@@ -1461,7 +1475,19 @@ export function DeckDoctorView({
                 Partner-pair alternatives are not compared. Your current commanders stay unchanged.
               </p>
             ) : !theme && !activeSubThemes.length ? (
-              <p>Select a theme or sub-theme to compare commander options.</p>
+              <div className="doctor-commander-empty">
+                <p>Choose a theme or sub-theme in the builder to compare commander options.</p>
+                <button
+                  className="export"
+                  type="button"
+                  onClick={() => {
+                    setExploreCommanders(false)
+                    requestExit(chooseTheme)
+                  }}
+                >
+                  Choose a theme
+                </button>
+              </div>
             ) : (
               <>
                 <p>Compare theme-compatible commanders without changing your deck.</p>
