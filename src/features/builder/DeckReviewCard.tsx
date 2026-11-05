@@ -59,20 +59,39 @@ export function ReviewCardTile({
       selected={Boolean(selection?.checked || quantity?.value)}
       selection={
         quantity ? (
-          <label className="doctor-card-select">
-            <span>Cut</span>
-            <input
-              type="number"
-              min="0"
-              max={quantity.max}
-              value={quantity.value}
-              aria-label={`Copies of ${card.name} to cut`}
-              onChange={(event) =>
-                quantity.onChange(Math.min(quantity.max, Math.max(0, Number(event.target.value))))
-              }
-            />
-            <span>of {quantity.max}</span>
-          </label>
+          <div className="doctor-card-select">
+            <span aria-hidden="true">Cut</span>
+            <span className="target-stepper">
+              <button
+                type="button"
+                className="deck-add"
+                aria-label={`One fewer ${card.name} to cut`}
+                disabled={quantity.value <= 0}
+                onClick={() => quantity.onChange(quantity.value - 1)}
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min="0"
+                max={quantity.max}
+                value={quantity.value}
+                aria-label={`Copies of ${card.name} to cut`}
+                onChange={(event) =>
+                  quantity.onChange(Math.min(quantity.max, Math.max(0, Number(event.target.value))))
+                }
+              />
+              <button
+                type="button"
+                className="deck-add"
+                aria-label={`One more ${card.name} to cut`}
+                disabled={quantity.value >= quantity.max}
+                onClick={() => quantity.onChange(quantity.value + 1)}
+              >
+                +
+              </button>
+            </span>
+          </div>
         ) : selection ? (
           <label className="doctor-card-select">
             <input
