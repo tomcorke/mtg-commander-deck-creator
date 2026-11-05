@@ -32,6 +32,45 @@ const fitStars: Record<RecommendationScoreRating, number> = {
   low: 1,
 }
 
+/** Copies of one card to cut: the shared −/field/+ stepper, free-form and clamped to 0..max. */
+function CutStepper({ name, quantity }: { name: string; quantity: CardQuantity }) {
+  return (
+    <div className="doctor-card-select" role="group" aria-label={`Cut ${name}`}>
+      <span aria-hidden="true">Cut</span>
+      <span className="target-stepper">
+        <button
+          type="button"
+          className="deck-add"
+          aria-label={`One fewer ${name} to cut`}
+          disabled={quantity.value <= 0}
+          onClick={() => quantity.onChange(quantity.value - 1)}
+        >
+          −
+        </button>
+        <input
+          type="number"
+          min="0"
+          max={quantity.max}
+          value={quantity.value}
+          aria-label={`Copies of ${name} to cut`}
+          onChange={(event) =>
+            quantity.onChange(Math.min(quantity.max, Math.max(0, Number(event.target.value))))
+          }
+        />
+        <button
+          type="button"
+          className="deck-add"
+          aria-label={`One more ${name} to cut`}
+          disabled={quantity.value >= quantity.max}
+          onClick={() => quantity.onChange(quantity.value + 1)}
+        >
+          +
+        </button>
+      </span>
+    </div>
+  )
+}
+
 export function ReviewCardTile({
   card,
   status,
@@ -59,39 +98,7 @@ export function ReviewCardTile({
       selected={Boolean(selection?.checked || quantity?.value)}
       selection={
         quantity ? (
-          <div className="doctor-card-select" role="group" aria-label={`Cut ${card.name}`}>
-            <span aria-hidden="true">Cut</span>
-            <span className="target-stepper">
-              <button
-                type="button"
-                className="deck-add"
-                aria-label={`One fewer ${card.name} to cut`}
-                disabled={quantity.value <= 0}
-                onClick={() => quantity.onChange(quantity.value - 1)}
-              >
-                −
-              </button>
-              <input
-                type="number"
-                min="0"
-                max={quantity.max}
-                value={quantity.value}
-                aria-label={`Copies of ${card.name} to cut`}
-                onChange={(event) =>
-                  quantity.onChange(Math.min(quantity.max, Math.max(0, Number(event.target.value))))
-                }
-              />
-              <button
-                type="button"
-                className="deck-add"
-                aria-label={`One more ${card.name} to cut`}
-                disabled={quantity.value >= quantity.max}
-                onClick={() => quantity.onChange(quantity.value + 1)}
-              >
-                +
-              </button>
-            </span>
-          </div>
+          <CutStepper name={card.name} quantity={quantity} />
         ) : selection ? (
           <label className="doctor-card-select">
             <input
