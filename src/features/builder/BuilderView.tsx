@@ -63,6 +63,7 @@ import { ManaCurve } from './ManaCurve.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
 import { BasicLandDialog } from './BasicLandDialog.tsx'
 import { CollectionBrowserDialog } from './CollectionBrowserDialog.tsx'
+import { HealthLane } from './HealthLane.tsx'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { openSectionsWithHighlights } from './deck-section-highlight.ts'
@@ -1027,70 +1028,12 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </div>
           )}
           {healthSuggestions.length > 0 && (
-            <section className="health-lane" aria-labelledby="health-lane-title">
-              <div>
-                <p className="eyebrow">Optional guidance</p>
-                <h3 id="health-lane-title">Deck health suggestions</h3>
-                <p>The thematic goal keeps these separate from your theme picks.</p>
-              </div>
-              <div className="health-suggestion-list">
-                {healthSuggestions.map((card) => {
-                  const role = rolesForCard(card).find((item) => missingHealthRoles.includes(item))
-                  return (
-                    <article key={card.name}>
-                      <button
-                        type="button"
-                        className="health-card-open"
-                        onClick={() => openGuidanceCard(card)}
-                        aria-label={`View ${card.name} details`}
-                      >
-                        <span className="health-card-thumbnail">
-                          <FinishedCardImage
-                            image={card.image}
-                            alt=""
-                            finish={card.finish}
-                            foilType={card.foilType}
-                            cardName={card.name}
-                            set={card.set}
-                            collectorNumber={card.collectorNumber}
-                            className="health-card-thumbnail-image"
-                          />
-                        </span>
-                        <span className="health-card-copy">
-                          <span className="health-card-reason">
-                            {role
-                              ? targetLabels[role as keyof typeof targetLabels]
-                              : 'Deck support'}
-                          </span>
-                          <b>{card.name}</b>
-                        </span>
-                      </button>
-                      <span className="health-card-zoom">
-                        <FinishedCardImage
-                          image={card.image}
-                          backImage={card.backImage}
-                          alt={`${card.name} card`}
-                          cardName={card.name}
-                          finish={card.finish}
-                          foilType={card.foilType}
-                          set={card.set}
-                          collectorNumber={card.collectorNumber}
-                          className="health-card-full-image"
-                          showFlipButton
-                        />
-                      </span>
-                      <button
-                        type="button"
-                        className="compact-action"
-                        onClick={() => addRecommendationCard(card)}
-                      >
-                        Add
-                      </button>
-                    </article>
-                  )
-                })}
-              </div>
-            </section>
+            <HealthLane
+              cards={healthSuggestions}
+              missingRoles={missingHealthRoles}
+              onOpen={openGuidanceCard}
+              onAdd={addRecommendationCard}
+            />
           )}
         </section>
         <aside className="analysis-panel">

@@ -146,13 +146,8 @@
   border-color: #39374f;
   background: var(--surface-panel);
 }
-.dark .health-lane article {
-  border-color: var(--border-control);
-  background: #121121;
-  color: var(--text-body);
-}
-.dark .health-card-reason {
-  color: var(--text-strong);
+.dark .health-suggestion-list > .health-card {
+  background: var(--surface-page);
 }
 .dark .commander-warning {
   color: var(--text-danger) !important;
@@ -227,16 +222,6 @@
   }
   .recommendation-toolbar {
     align-items: flex-start;
-  }
-  .health-lane {
-    flex-direction: column;
-  }
-  .health-card-zoom {
-    top: calc(100% + 10px);
-    right: auto;
-    bottom: auto;
-    left: 0;
-    transform-origin: top left;
   }
   .offer-heading {
     grid-column: 1 / -1;
