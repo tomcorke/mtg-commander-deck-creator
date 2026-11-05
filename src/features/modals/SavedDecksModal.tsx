@@ -204,7 +204,7 @@ export function SavedDecksModal({
                   >
                     {pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm' : 'Delete'}
                   </button>
-                  {pendingSavedDeckRemoval === `draft:${draft.id}` && (
+                  {pendingSavedDeckRemoval === `draft:${draft.id}` && !openInTab && (
                     <span className="action-help end saved-delete-confirm" role="tooltip">
                       Click again to delete
                     </span>
