@@ -22,6 +22,7 @@ function App({ workspace }: { workspace: DeckWorkspace }) {
   const state = useControllerState(savedDeckState, usableInitialRoute, workspace)
   const actions = useAppActions(state)
   const builderData = buildBuilderData(state)
+  const themed = state.showBuilder && state.commanderStyling
   return (
     <VisualPreferencesContext.Provider
       value={{
@@ -36,12 +37,12 @@ function App({ workspace }: { workspace: DeckWorkspace }) {
       }}
     >
       <div
-        className={`${state.darkMode ? 'dark ' : ''}${state.showBuilder && state.commanderStyling ? 'commander-themed' : ''}`}
+        className={`${state.darkMode ? 'dark ' : ''}${themed ? 'commander-themed' : ''}`}
         style={
           {
             colorScheme: state.darkMode ? 'dark' : 'light',
-            '--commander-accent': state.showBuilder ? builderData.primaryTheme[0] : undefined,
-            '--commander-highlight': state.showBuilder ? builderData.secondaryTheme[1] : undefined,
+            '--commander-accent': themed ? builderData.primaryTheme[0] : undefined,
+            '--commander-highlight': themed ? builderData.secondaryTheme[1] : undefined,
           } as CSSProperties
         }
       >

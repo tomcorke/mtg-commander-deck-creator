@@ -30,8 +30,8 @@
 .actions:focus-within .primary {
   background: var(--commander-accent, var(--action-fill));
 }
-.dark .actions:hover button,
-.dark .actions:focus-within button {
+.dark .actions:hover button:not(.primary, [aria-pressed='true']),
+.dark .actions:focus-within button:not(.primary, [aria-pressed='true']) {
   background: #17162a;
 }
 .actions:hover button:hover,
@@ -47,8 +47,8 @@
   color: white;
   filter: brightness(1.12);
 }
-.dark .actions:hover button:hover,
-.dark .actions:focus-within button:focus-visible {
+.dark .actions:hover button:not(.primary, [aria-pressed='true']):hover,
+.dark .actions:focus-within button:not(.primary, [aria-pressed='true']):focus-visible {
   border-color: #8d88db;
   background: #34314f;
   color: white;

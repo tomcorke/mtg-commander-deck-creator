@@ -35,13 +35,13 @@
   color: color-mix(in srgb, var(--commander-highlight) 72%, white);
 }
 .dark.commander-themed .recommendation-options legend,
-.dark.commander-themed .recommendation-options button {
+.dark.commander-themed .recommendation-options button:not(.compact-action) {
   color: var(--commander-highlight);
 }
-.dark.commander-themed .recommendation-options button {
+.dark.commander-themed .recommendation-options button:not(.compact-action) {
   border-color: var(--commander-highlight);
 }
-.dark.commander-themed .recommendation-options button:hover {
+.dark.commander-themed .recommendation-options button:not(.compact-action):hover {
   background: var(--commander-accent);
   color: white;
 }

@@ -145,7 +145,7 @@
 .dark .card-copy > .offer-reason {
   color: var(--text-body);
 }
-.dark .actions button {
+.dark .actions button:not(.primary) {
   border-color: var(--border-control);
 }
 .dark .health-lane {
@@ -324,7 +324,7 @@
   padding: 12px 18px;
   border: 0;
   border-radius: 6px;
-  background: var(--commander-accent, #36327f);
+  background: var(--commander-accent, var(--action-fill));
   color: white;
 }
 .dark .completion {
