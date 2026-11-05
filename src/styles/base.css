@@ -428,14 +428,14 @@ main > .workspace-alert .modal-close {
   min-height: 42px;
   line-height: 1.2;
 }
-.nav-back:hover,
-.nav-forward:hover {
+.nav-back:not(:disabled):hover,
+.nav-forward:not(:disabled):hover {
   background: color-mix(in srgb, var(--nav-accent) 18%, transparent);
 }
-.nav-back:hover::before {
+.nav-back:not(:disabled):hover::before {
   padding: 0 16px 0 8px;
 }
-.nav-forward:hover::after {
+.nav-forward:not(:disabled):hover::after {
   padding: 0 8px 0 16px;
 }
 .nav-back:focus-visible,
