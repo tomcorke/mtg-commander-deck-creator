@@ -29,6 +29,7 @@ Use the form in the second column. **Known divergences** lists every place that 
 | Tooltip / help        | A positioned parent > trigger + `.action-help[role=tooltip]`, linked with `aria-describedby`. `.action-help` (`src/styles/base.css`) is the one surface: dark fill, `--border-control` edge, `--type-data`. It shows on parent hover, trigger `:focus-visible`, or a focusable parent's `:focus-visible`. Add `.end` to right-align it above the trigger; a component class may set only position and width. It carries information only.                                                                                                                                                                                                                                                                                                                                                        | Later / Ignore; More like this; settings "?"; Synergy; score factors                             |
 | Inline confirmation   | A second click on the same button arms it (`.saved-deck-delete.confirm`, `.remove-confirm`). Its hint is `.action-help.end` at one-line width. Anything heavier uses `ConfirmDialog`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Saved decks Delete; deck board ×                                                                 |
 | Menu                  | A trigger button that toggles a panel of controls and closes on Escape and outside click. There's only one instance so far.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Display menu (`DisplaySettingsMenu`)                                                             |
+| Count header          | The region `h2`, then one muted `--type-data` line: the result count, plus any reason every result shares ("175 loaded commanders · Picked for Elves decks"). While loading it reads the status ("Finding legal commanders…"); with no results the empty state names the zero, so the line stays blank. The live announcement stays in one `role=status` element.                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Paging                | `Pagination` (`src/shared/Pagination.tsx`): "Showing a–b of n · Page x", Previous/Next below the grid. In-place growth uses "Show N more (M left)".                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Start grid; card search; Doctor candidates                                                       |
 | Loading               | `ArtLoading` for art; skeleton tiles for grids; a named status line ("Finding legal commanders…") in `role=status`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Start grid skeleton; recommendation loading                                                      |
 | Filter panel          | Each filter group sits under a `.filter-heading` (an `h3`, or a `span` inside the field's `label`) and is a `role="group"` labelled by it. Chips are toggles. The reset is one `.export` "Clear filters": disabled while nothing is set, and replaced by the empty state's own while the grid is empty, so one shows at a time.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Start "Find a commander"                                                                         |
@@ -92,7 +93,6 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 
 **Paging, status and copy**
 
-- The Start grid shows its count only in the footer, with no count header. Card search has one ("28 matching cards"). #285.
 - Raw timestamps in UI copy: the top bar's "Saved 05/11/2026, 03:56:23 +0 -0", and the card search 429 error "…after 05/11/2026, 03:55:56). No usable retry time was exposed; this wait is an estimate." #304, #292.
 - The Start top bar reads "Saved decks (0)" while an autosaved draft exists. The builder top bar has no count. The Start top bar is its own markup, not `BuilderTopBar`. #304.
 - The import parse summary ("This list has 84/100…") uses the same amber warning box as the "Deck URLs are not supported" caveat. #301.
@@ -140,9 +140,13 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #285 Commander discovery grid
 
-- **Galleries**: no count header. The count only appears in the footer ("Showing 1–12 of 175 loaded commanders · Page 1"). `light/start-fresh.png`.
-- **Galleries**: one label line (name + cost) with no muted detail line. `light/start-fresh.png`.
-- The empty state works ("No commanders match these filters" + Clear filters), and it is the canonical empty state. `light/start-empty.png`.
+- Fixed: the grid has a count header (see **Canonical patterns › Count header**). The shared batch reason joined its line, and "Finding legal commanders…" moved there from below 12 skeleton tiles.
+- Fixed: `CommanderChoiceTile` adds the type line as its muted detail line, so Change commander tiles carry it too. Skeleton tiles add a matching detail bar, and the dark skeleton button no longer shows "Choose".
+- Fixed: commander tiles drew a `currentColor` border, because the later `.card-tile` rule overrode `.commander-tile`. `.card-tile.commander-tile` now takes `--border-subtle`, and its `.dark` override is gone.
+- Fixed: the discovery error uses `.form-error` inside `role=alert`, and its tail no longer repeats the provider's "Try again" ("…Change a filter, or reload the page.").
+- Fixed: `CommanderPromotion`'s button was a one-off with hardcoded hex and a light hover in dark mode. It is now `.compact-action`.
+- Kept: the empty state ("No commanders match these filters" + Clear filters) stays the canonical empty state.
+- The 429 message's raw timestamp comes from the shared Scryfall error, so it stays with #304 and #292.
 
 ### #286 Commander header and setup
 
@@ -287,14 +291,22 @@ Notes:
 - Every load starts in "Checking card data…", with the analysis reading zero (state `builder-card-data-loading`). `dr.builderReady()` waits for card data and the first reveal.
 - States in a group share one workspace and mutate it. `saved-manual` saves "Audit deck", `rec-settings-sets` ticks the newest set, `commander-alt-printing` switches the commander's printing, `review-c-applied-history` applies a change, and `builder-health-lane` switches Priority to Theme first. Re-import the deck if a later state depends on the original.
 - Theme chips on Start are randomised on each load. For repeatable chips, seed `Math.random` in an init script (for example, Playwright `addInitScript`). A new seed requests new theme searches, so record them once with `pnpm dev:record`. Replay fixes provider responses and uses synthetic EDHREC lists; live-mode card names can vary between runs.
-- Fault states (`block …` in the comment line) need request interception. The T3 preview can't intercept, so use Playwright against the same dev server before loading the route:
+- Fault states (`block …` in the comment line) need request interception. The T3 preview can't intercept, so use Playwright against the same dev server before loading the route. Under `pnpm dev:replay` and `pnpm dev:record`, the app sends provider calls to `/__dev-provider?url=<provider URL>`, so match that path and read `url`; a provider-host pattern matches only under plain `pnpm dev`:
 
 ```js
-await page.route('**/json.edhrec.com/**', (route) => route.abort()) // block edhrec
-await page.route('**/api.scryfall.com/cards/search**', (route) => route.abort()) // block scryfall-search
-await page.route('**/api.scryfall.com/cards/search**', (route) =>
+const block = (prefix, answer) =>
+  page.route('**/__dev-provider?**', (route) => {
+    const url = new URL(route.request().url()).searchParams.get('url') ?? ''
+    return url.startsWith(prefix) ? answer(route) : route.continue()
+  })
+await block('https://json.edhrec.com/', (route) => route.abort()) // block edhrec
+await block('https://api.scryfall.com/cards/search', (route) =>
+  route.fulfill({ status: 500, json: { object: 'error' } }),
+) // block scryfall-search
+await block('https://api.scryfall.com/cards/search', (route) =>
   route.fulfill({ status: 429, headers: { 'retry-after': '30' }, json: { object: 'error' } }),
 ) // block scryfall-429
+await block('https://api.scryfall.com/cards/search', () => {}) // hold scryfall-search (loading)
 ```
 
 The capture runner that took the baselines lives beside them (`capture.mjs`, `states.mjs`). It runs these same snippets through Playwright for every variant.

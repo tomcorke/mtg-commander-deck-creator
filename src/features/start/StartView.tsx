@@ -349,12 +349,26 @@ export function StartView(props: StartViewProps) {
           aria-labelledby="commander-discovery-title"
           aria-busy={discovery.status === 'loading'}
         >
-          <h2 id="commander-discovery-title">Choose a commander</h2>
-          {/* Every suggestion in a batch shares one reason, so it is shown once. */}
-          {reason && <p className="commander-reason">{reason}</p>}
+          <div className="commander-discovery-heading">
+            <h2 id="commander-discovery-title">Choose a commander</h2>
+            {/* Every suggestion in a batch shares one reason, so it is shown once. */}
+            <p aria-hidden="true">
+              {discovery.status === 'loading' && 'Finding legal commanders…'}
+              {/* The empty state names the zero itself. */}
+              {discovery.status === 'idle' &&
+                discovery.count > 0 &&
+                [
+                  `${discovery.count}${discovery.more ? ' loaded' : ''} ${discovery.count === 1 ? 'commander' : 'commanders'}`,
+                  reason,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+            </p>
+          </div>
           <p id="commander-result-count" className="sr-only" role="status">
+            {discovery.status === 'loading' && 'Finding legal commanders…'}
             {discovery.status === 'idle' &&
-              `${discovery.suggestions.length} ${discovery.suggestions.length === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}. Press Down to move through them.`}
+              `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length ? ` of ${discovery.count}${discovery.more ? ' loaded' : ''}` : ''} ${discovery.count === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}. Press Down to move through them.`}
           </p>
           <div className="commander-grid" onKeyDown={moveBetweenChoices}>
             {discovery.status === 'loading' &&
@@ -365,6 +379,7 @@ export function StartView(props: StartViewProps) {
                     className="commander-tile"
                     art={<span className="commander-placeholder" />}
                     name={<span className="placeholder-text">Loading</span>}
+                    detail={<span className="placeholder-text">Loading type line</span>}
                     actions={
                       <button
                         className="export commander-choose placeholder-text"
@@ -396,13 +411,10 @@ export function StartView(props: StartViewProps) {
               />
             ))}
           </div>
-          {discovery.status === 'loading' && (
-            <p className="discovery-status" role="status">
-              Finding legal commanders…
-            </p>
-          )}
           {discovery.status === 'error' && (
-            <p role="alert">{discovery.error} Try changing a filter or reload to try again.</p>
+            <p className="form-error discovery-error" role="alert">
+              {discovery.error} Change a filter, or reload the page.
+            </p>
           )}
           {discovery.status === 'idle' && !discovery.suggestions.length && (
             <div className="empty">
