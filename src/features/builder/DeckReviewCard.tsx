@@ -4,6 +4,7 @@ import type { RecommendationScoreRating } from '../../domain/recommendation-scor
 import { CardReference } from '../../shared/CardReference.tsx'
 import { CardTile } from '../../shared/CardTile.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
+import { ReviewStatus } from './DeckOverview.tsx'
 
 type DoctorCard = Card | DeckCard
 
@@ -122,14 +123,30 @@ export function ReviewCardTile({
           aria-label={`Show details for ${card.name}`}
           onClick={() => openCard(card)}
         >
-          {card.image ? <SmallCardImage image={card.image} /> : <span>No card art</span>}
+          {card.image ? (
+            <SmallCardImage image={card.image} placement="reference" />
+          ) : (
+            <span>No card art</span>
+          )}
         </button>
       }
       badges={
-        status && (
-          <span className={`doctor-card-status${status.startsWith('In deck') ? ' in-deck' : ''}`}>
-            {status}
-          </span>
+        (status || quantity) && (
+          <>
+            {/* "Flagged" marks a possible gap, so it takes the review-status pill; other labels name a location. */}
+            {status?.includes('flagged') ? (
+              <ReviewStatus kind="attention" label={status} />
+            ) : (
+              status && (
+                <span
+                  className={`doctor-card-status${status.startsWith('In deck') ? ' in-deck' : ''}`}
+                >
+                  {status}
+                </span>
+              )
+            )}
+            {quantity && <span className="doctor-card-status">×{quantity.max}</span>}
+          </>
         )
       }
       name={<CardReference card={card} onOpen={() => openCard(card)} />}
