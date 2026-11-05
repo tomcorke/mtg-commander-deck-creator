@@ -158,29 +158,12 @@
 .dark .deck-board .deck-group ol > li {
   border-color: #393650;
 }
-.dark .deck-add,
-.dark .deck-remove,
-.dark .sideboard-move {
+.dark .deck-add {
   border-color: var(--border-control);
   color: var(--text-body);
 }
-.dark .deck-remove {
-  background: #17162a;
-}
-.dark .deck-group ol > li:hover .deck-remove-wrap,
-.dark .deck-group ol > li:focus-within .deck-remove-wrap {
-  background: linear-gradient(90deg, transparent, #17162a 18px);
-}
 .dark.commander-themed .deck-board {
   background: color-mix(in srgb, var(--commander-accent) 12%, #101318);
-}
-.dark.commander-themed .deck-group ol > li:hover .deck-remove-wrap,
-.dark.commander-themed .deck-group ol > li:focus-within .deck-remove-wrap {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--commander-accent) 12%, #101318) 18px
-  );
 }
 .dark.commander-themed .deck-board,
 .dark.commander-themed .recommendation-setup {

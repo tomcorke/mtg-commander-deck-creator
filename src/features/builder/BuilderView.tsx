@@ -1329,6 +1329,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 card={card}
                                 className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
                                 onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                thumbnail
                               />
                             </span>
                             <span className="deck-card-meta">
@@ -1345,7 +1346,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                               {index >= commanderNames(commander).length && (
                                 <span className="deck-remove-wrap">
                                   <button
-                                    className={`deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
+                                    className={`danger deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
                                     type="button"
                                     onClick={() =>
                                       pendingRemoval === index
@@ -1388,6 +1389,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                     card={card}
                                     className="deck-card-name"
                                     onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                    thumbnail
                                   />
                                 </span>
                                 <span className="deck-card-meta">
@@ -1402,18 +1404,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                   <button
                                     className="deck-add"
                                     type="button"
+                                    onClick={() => removeDeckCard(index)}
+                                    aria-label={`Remove one ${card.name}`}
+                                  >
+                                    −
+                                  </button>
+                                  <button
+                                    className="deck-add"
+                                    type="button"
                                     onClick={() => void addOneBasic(card.name)}
                                     aria-label={`Add another ${card.name}`}
                                   >
                                     +
-                                  </button>
-                                  <button
-                                    className="deck-remove"
-                                    type="button"
-                                    onClick={() => removeDeckCard(index)}
-                                    aria-label={`Remove one ${card.name}`}
-                                  >
-                                    ×
                                   </button>
                                 </span>
                               </li>
@@ -1469,6 +1471,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             card={card}
                             className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
                             onOpen={() => openDeckCard(card, { board: 'sideboard', index })}
+                            thumbnail
                           />
                         </span>
                         <span className="deck-card-meta">
@@ -1479,7 +1482,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             )}
                           </span>
                           <button
-                            className="sideboard-move"
+                            className="compact-action"
                             type="button"
                             disabled={deck.length >= 100}
                             onClick={() => moveSideboardCard(index)}
@@ -1487,7 +1490,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             Move to deck
                           </button>
                           <button
-                            className="deck-remove"
+                            className="danger deck-remove"
                             type="button"
                             onClick={() => removeSideboardCard(index)}
                             aria-label={`Remove ${card.name} from sideboard`}
