@@ -11,10 +11,10 @@
   min-height: 38px;
 }
 .request-activity-button[data-state='active'] {
-  color: #36327f;
+  color: var(--text-strong);
 }
 .request-activity-button[data-state='waiting'] {
-  color: #886019;
+  color: var(--text-warning);
 }
 .request-activity-count {
   position: absolute;
@@ -37,10 +37,10 @@
   max-height: calc(100dvh - 16px);
   overflow: auto;
   padding: 14px;
-  border: 1px solid #bbb9cd;
+  border: 1px solid var(--border-control);
   border-radius: 7px;
-  background: #f8f8ff;
-  color: #34324a;
+  background: var(--surface-panel);
+  color: var(--text-body);
   font-size: var(--type-data);
   line-height: 1.4;
   white-space: normal;
@@ -53,7 +53,7 @@
   min-width: 0;
   padding-top: 12px;
   white-space: normal;
-  border-top: 1px solid #bbb9cd;
+  border-top: 1px solid var(--border-control);
 }
 .dark .display-settings-panel .request-activity-details {
   border-color: #514b69;
@@ -80,16 +80,9 @@
   color: var(--text-muted);
 }
 .dark .request-activity-button[data-state='active'] {
-  color: #bab2ff;
-}
-.dark .request-activity-button[data-state='waiting'] {
-  color: #ebc780;
+  color: var(--text-accent);
 }
 .dark .request-activity-panel {
   border-color: #55516b;
   background: #201e32;
-  color: #ece9f5;
-}
-.dark .request-activity-details small {
-  color: #b7b2cb;
 }

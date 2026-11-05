@@ -11,7 +11,7 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 - Model content or semantic differences, such as heading level or available actions, as props. Keep shared structure and base sizing in the component; add screen-specific styles only for deliberate visual variants.
 - Compare shared components across routes during rendered review. Typography and spacing stay consistent unless an intentional variant requires otherwise.
 - Keep styles in the owning `src/styles/` file; every new surface and control needs light and dark states.
-- Theme text through inheritance and the `--text-muted`, `--text-accent`, `--text-danger` and `--text-success` tokens in `src/styles/base.css`; `.dark` swaps them app-wide. Do not hardcode a secondary text hex or add a `.dark` colour override for one component. Dialogs mount outside full-page modes' `<main>`, so never scope theme text to `main`.
+- Theme text through inheritance and the `--text-*` tokens in `src/styles/base.css`, and surfaces through the `--surface-*` and `--border-*` tokens; `.dark` swaps them app-wide. [design-conventions.md](design-conventions.md) lists each token. Do not hardcode a secondary text hex or add a `.dark` colour override for one component. Dialogs mount outside full-page modes' `<main>`, so never scope theme text to `main`.
 - Text inputs, selects and textareas take border, background, text colour and font from the `--input-*` tokens in `src/styles/base.css`. Component rules set only size, spacing and radius; never set an input's colours per component unless it is a deliberate themed variant built on CSS variables.
 
 ## Card references and layouts
@@ -33,8 +33,8 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
   - `.primary`: the main action in a region, such as the confirming action in a dialog, Search, or Add on a recommendation offer.
   - `.nav-back` and `.nav-forward`: leaving the page or moving to the next step, such as "Back to builder" or "Next recommendations". Never use `.primary` for navigation. The CSS adds the direction arrow, so leave arrows out of the label.
   - `.export`: secondary actions.
-  - Destructive actions such as Delete and Remove: their red outline style, never filled.
-  - Toggles and segmented choices: a selected state, not `.primary`.
+  - `.danger`: destructive actions such as Delete and Remove. A red outline, never filled.
+  - Toggles and segmented choices: `aria-pressed` with the `--selected-*` tokens, not `.primary`.
 
 ## Dialogs and modes
 

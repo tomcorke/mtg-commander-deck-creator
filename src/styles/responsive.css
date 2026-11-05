@@ -1,29 +1,22 @@
 .dark header,
-.dark .intro {
-  background: #19182d;
-}
-.dark header,
 .dark .intro,
 .dark aside {
-  border-color: #36344f;
+  border-color: var(--border-subtle);
 }
 .dark aside {
   background: #17162a;
 }
-.dark h1,
-.dark h2,
-.dark h3 {
-  color: #d9d8ff;
-}
 .dark .theme-toggle {
-  border-color: #4b4867;
-  color: #ccc9df;
+  border-color: var(--border-control);
+  color: var(--text-body);
 }
-.dark .export {
+.dark .export,
+.dark .compact-action {
   border-color: color-mix(in srgb, var(--commander-accent, #7169ca) 70%, #4b4867);
   color: color-mix(in srgb, var(--commander-accent, #7169ca) 45%, #e5e3f0);
 }
-.dark .export:not(:disabled):hover {
+.dark .export:not(:disabled):hover,
+.dark .compact-action:not(:disabled):hover {
   background: color-mix(in srgb, var(--commander-accent, #7169ca) 16%, #121121);
 }
 .dark .action-help-wrap > button:not(.quiet):hover {

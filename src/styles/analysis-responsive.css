@@ -9,10 +9,9 @@
 }
 .dark .colour-empty {
   background: #35334a;
-  color: var(--text-muted);
 }
 .dark .deck-targets input {
-  border-color: #4b4867;
+  border-color: var(--border-control);
 }
 .dark .ratio-bar {
   background: #35334a;
@@ -23,6 +22,6 @@
 @media (max-width: 800px) {
   .analysis-panel {
     border-left: 0;
-    border-top: 1px solid #dad8e6;
+    border-top: 1px solid var(--border-subtle);
   }
 }

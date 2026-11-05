@@ -1,23 +1,19 @@
 .dark .card-details {
   border-color: #39374f;
-  color: var(--text-muted);
 }
 .dark .card-details dt,
 .dark .card-details dd strong {
-  color: #ccc9df;
-}
-.dark .card-details a {
-  color: #b786f2;
+  color: var(--text-body);
 }
 .dark .card-details a:hover {
-  color: #d1b0ff;
+  color: var(--text-accent);
 }
 .dark .score-breakdown {
   border-color: #39374f;
 }
 .dark .score-breakdown-heading,
 .dark .score-factors dd {
-  color: #ccc9df;
+  color: var(--text-body);
 }
 .dark .card-offer {
   --card-title-shadow: #17162a;
@@ -42,12 +38,12 @@
 .dark .synergy-info > button {
   border-color: #8d83df;
   background: #302a4b;
-  color: #dedaff;
+  color: var(--text-strong);
 }
 .dark .synergy-popover {
   border-color: #8d83df;
   background: #24203a;
-  color: #dedaff;
+  color: var(--text-strong);
 }
 .dark .card-offer.synergy-1::after {
   border-color: #8d83df;

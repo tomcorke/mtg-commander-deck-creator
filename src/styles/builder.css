@@ -9,13 +9,13 @@
 }
 .analysis-panel {
   padding: 40px 5vw 40px 30px;
-  border-left: 1px solid #dad8e6;
+  border-left: 1px solid var(--border-subtle);
   background: #e9eaf7;
 }
 .deck-board {
   grid-column: 1 / -1;
   padding: 34px 5vw 60px;
-  border-top: 1px solid #dad8e6;
+  border-top: 1px solid var(--border-subtle);
   background: #e9eaf7;
 }
 .deck-board-heading {
@@ -49,7 +49,7 @@
   padding: 10px 12px;
   border-left: 3px solid var(--commander-accent, #7546a8);
   background: #fff;
-  color: #514e66;
+  color: var(--text-muted);
   font-size: var(--type-data);
 }
 .deck-review-filter-status .export {
@@ -255,12 +255,12 @@
   text-transform: uppercase;
   letter-spacing: 0.7px;
 }
-.recommendation-options button {
+.recommendation-options button:not(.compact-action) {
   padding: 5px 9px;
   border: 1px solid #36327f;
   border-radius: 5px;
   background: transparent;
-  color: #36327f;
+  color: var(--text-strong);
   font-size: var(--type-data);
 }
 .recommendation-options .setting-help-button {
@@ -274,7 +274,7 @@
   border: 1px solid #36327f;
   border-radius: 5px;
   background: transparent;
-  color: #36327f;
+  color: var(--text-strong);
   font-size: var(--type-data);
   font-weight: 600;
   line-height: 1;
@@ -283,7 +283,7 @@
 .recommendation-options .setting-help-button:focus-visible {
   border-color: #36327f;
   background: transparent;
-  color: #36327f;
+  color: var(--text-strong);
 }
 .recommendation-options .setting-help-button:focus-visible {
   outline: 2px solid var(--focus-ring);
@@ -383,7 +383,7 @@
 .collection-set-input .clear-deck-name:hover {
   border: 0;
   background: transparent;
-  color: #403e58;
+  color: var(--text-body);
 }
 .collection-set-input .clear-deck-name:focus-visible {
   outline: 2px solid var(--focus-ring);
@@ -397,7 +397,7 @@
 .dark.commander-themed .recommendation-options .collection-set-input .clear-deck-name:hover {
   border: 0;
   background: transparent;
-  color: #d4d0ed;
+  color: var(--text-strong);
 }
 .collection-selection {
   display: grid;
@@ -451,7 +451,7 @@
 }
 .set-picker-commander {
   padding-left: 24px;
-  color: #514e66;
+  color: var(--text-muted);
   font-size: var(--type-data);
 }
 .recommendation-options .set-picker-commander input[type='checkbox'] {
@@ -461,7 +461,7 @@
 .collection-empty {
   margin: 0;
   padding: 12px;
-  border: 1px dashed #bbb9cd;
+  border: 1px dashed var(--border-control);
   border-radius: 6px;
   color: var(--text-muted);
   font-size: var(--type-body);
@@ -500,14 +500,14 @@
   font-size: var(--type-data);
 }
 .collection-pool {
-  color: #514e66;
+  color: var(--text-muted);
 }
 .collection-pool-warning {
   padding: 8px 10px;
   border: 1px solid #e3c48a;
   border-radius: 6px;
   background: #fdf5e4;
-  color: #6e4710;
+  color: var(--text-warning);
 }
 .builder-set-chips {
   display: flex;
@@ -524,7 +524,7 @@
   border: 1px solid #c9c5e6;
   border-radius: 999px;
   background: #e8e6fa;
-  color: #36327f;
+  color: var(--text-strong);
   font-size: var(--type-data);
   text-align: left;
 }
@@ -550,8 +550,8 @@
   box-shadow: 0 6px 18px #24203e2e;
 }
 .dark .ignore-feedback {
-  border-color: #4b4867;
-  background: #19182d;
+  border-color: var(--border-control);
+  background: var(--surface-panel);
 }
 .ignore-feedback > button {
   justify-self: start;
@@ -583,7 +583,7 @@
   padding: 18px;
   border: 1px solid #d2d0df;
   border-radius: 10px;
-  background: #f8f8ff;
+  background: var(--surface-panel);
 }
 .collection-browser-modal {
   width: min(1100px, 100%);
@@ -675,7 +675,7 @@
   border: 1px solid #36327f;
   border-radius: 5px;
   background: transparent;
-  color: #36327f;
+  color: var(--text-strong);
   font-size: var(--type-data);
 }
 .collection-browser-grid .collection-card-open {
@@ -707,7 +707,7 @@
   gap: 18px;
   margin-top: 20px;
   padding: 14px;
-  border: 1px dashed #bbb9cd;
+  border: 1px dashed var(--border-control);
   border-radius: 9px;
   background: #faf9ff;
 }
@@ -796,11 +796,8 @@
   white-space: nowrap;
 }
 .compact-action {
-  padding: 4px 7px;
-  border: 1px solid #36327f;
-  border-radius: 4px;
-  background: transparent;
-  color: #36327f;
+  padding: 4px 8px;
+  border-radius: 5px;
   font-size: var(--type-data);
 }
 .health-card-zoom {
@@ -846,7 +843,7 @@
   transition-delay: 0s;
 }
 .options-pending {
-  color: #8a5b16;
+  color: var(--text-warning);
   font-weight: 600;
 }
 .recommendation-toolbar {
@@ -877,7 +874,7 @@
   border: 1px solid #8d88bd;
   border-radius: 18px;
   background: #e8e6fa;
-  color: #48427f;
+  color: var(--text-strong);
 }
 .subthemes button span {
   margin-left: 4px;
@@ -895,7 +892,7 @@
   border: 1px dashed #8d88bd;
   border-radius: 18px;
   background: #e8e6faaa;
-  color: #48427f;
+  color: var(--text-strong);
   font-size: var(--type-data);
 }
 .suggested-subtheme button {
@@ -921,7 +918,7 @@
   padding: 12px;
   border: 1px solid #d2d0df;
   border-radius: 8px;
-  background: #f8f8ff;
+  background: var(--surface-panel);
 }
 .subtheme-picker input {
   width: 100%;
@@ -939,7 +936,7 @@
   border: 1px solid #8d88bd;
   border-radius: 6px;
   background: transparent;
-  color: #48427f;
+  color: var(--text-strong);
 }
 
 .play-style-step {
