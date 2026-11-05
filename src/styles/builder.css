@@ -659,10 +659,11 @@
   font-size: var(--type-data);
   text-align: right;
 }
+/* Optional Theme first guidance: a tinted inset under the batch, tiles smaller than the offers. */
+/* The list's basis fits three tiles; below that it wraps under the heading. */
 .health-lane {
-  position: relative;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 18px;
   margin-top: 20px;
   padding: 14px;
@@ -674,132 +675,49 @@
   margin: 0;
   font-size: var(--type-card-name);
 }
-.health-lane p:not(.eyebrow) {
+.health-lane-heading {
+  flex: 1 1 200px;
+  max-width: 300px;
+}
+.health-lane-heading > p:not(.eyebrow) {
   margin: 4px 0 0;
   color: var(--text-muted);
   font-size: var(--type-data);
 }
 .health-suggestion-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.health-lane article {
-  position: relative;
-  z-index: 1;
+  flex: 999 1 380px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-  min-width: 190px;
-  padding: 8px;
-  border: 1px solid #dedcea;
-  border-radius: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+.health-suggestion-list > .health-card {
+  width: 100%;
+  border-color: var(--border-subtle);
   background: white;
 }
-.health-card-open {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
+.health-card-art {
+  align-self: center;
+  width: min(140px, 100%);
   padding: 0;
   border: 0;
+  border-radius: 4.75%;
   background: transparent;
   color: inherit;
-  text-align: left;
 }
-.health-lane
-  article:has(
-    .health-card-open:hover,
-    .health-card-open:focus-visible,
-    .health-card-zoom:hover,
-    .health-card-zoom:focus-within
-  ) {
-  z-index: 20;
+.health-card-art:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }
-.health-card-thumbnail {
-  display: block;
-  width: 44px;
-  aspect-ratio: 488 / 680;
-  overflow: hidden;
-  border-radius: 4.75%;
-}
-.health-card-thumbnail .finished-card {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-.health-card-thumbnail-image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.health-card-copy {
-  display: grid;
-  min-width: 0;
-  gap: 5px;
-  align-content: center;
-}
-.health-card-reason {
+.health-card-role {
   color: var(--text-accent);
-  font-size: var(--type-body);
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-.health-lane article b {
-  overflow: hidden;
-  font-size: var(--type-data);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .compact-action {
   padding: 4px 8px;
   border-radius: 5px;
   font-size: var(--type-data);
-}
-.health-card-zoom {
-  position: absolute;
-  z-index: 30;
-  right: 0;
-  bottom: calc(100% + 10px);
-  width: min(320px, calc(100vw - 32px));
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(4px) scale(0.96);
-  transform-origin: bottom right;
-  transition:
-    opacity 0.15s,
-    transform 0.15s,
-    visibility 0s 0.15s;
-}
-.health-card-zoom .finished-card {
-  display: block;
-  width: 100%;
-}
-.health-card-full-image {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 4.75%;
-  box-shadow:
-    0 16px 42px #080712d9,
-    0 0 0 1px #ffffff26;
-}
-.health-card-zoom .finish-edges {
-  position: absolute;
-}
-.health-card-open:hover + .health-card-zoom,
-.health-card-open:focus-visible + .health-card-zoom,
-.health-card-zoom:hover,
-.health-card-zoom:focus-within {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0) scale(1);
-  transition-delay: 0s;
 }
 .options-pending {
   color: var(--text-warning);

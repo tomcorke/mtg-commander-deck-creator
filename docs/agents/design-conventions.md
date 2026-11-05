@@ -68,7 +68,6 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 **Mana and card names**
 
 - Cost shown as text, not symbols: Collection browser tiles ("4 mana · FRA"). #303.
-- No cost at all: health-lane suggestion cards. #288.
 - Card name outside `CardReference`: Collection browser tiles use a separate "View details" link. #303.
 
 **Responsiveness**
@@ -165,10 +164,11 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #288 Deck health lane
 
-- How to reach it: the lane renders only with Priority set to Theme first, and only for queued cards that fill a role below target (state `builder-health-lane`). The audit deck's Balanced default never shows it.
-- **Galleries**: suggestions stack in one column of narrow cards, leaving the right half of the dashed panel empty, and thumbnails are about 40px wide. `preview/builder-health-lane.dark-themed.png`, `light/builder-health-lane.png`.
-- **Mana**: the suggestion cards show role and name but no mana cost. Same screenshots.
-- **Hierarchy**: "Add" is a `.compact-action`, while the batch's Add is `.primary` for the same action. Same screenshots.
+- How to reach it: the lane renders only with Priority set to Theme first, and only for queued cards that fill a role below target (state `builder-health-lane`). The audit deck's Balanced default never shows it. Replay needs the Theme first batch's printing lists in the cache; seed them once with `pnpm dev:record` if they miss.
+- Fixed (**Galleries**, **Mana**): suggestions are now small `CardTile`s (`HealthLane.tsx`): art button with `SmallCardImage placement="reference"`, a role badge, `CardReference` name, full cost, Add. The bespoke `.health-card-zoom` preview is gone. The tile grid (`minmax(120px, 1fr)`) fits three across at 900px and up; when the lane is narrower than heading plus three tiles, the heading wraps above the grid. Two columns at 375px.
+- Fixed (**Hierarchy**): Add is `.primary`, like the batch's Add for the same action. Each tile is its own offer, so one `.primary` per tile, as in the batch.
+- Kept: the lane's tinted background (`#faf9ff`) and dark border hex. Tinted surfaces have no token yet (#311). Tiles take `--border-subtle`, white in light and `--surface-page` in dark.
+- Not exercised by gates: the contrast and card-reference fixtures use Balanced, so they never render the lane. #288 measured lane text by hand (all ≥ 6.4:1 in light, dark and Meren-themed).
 
 ### #289 Deck analysis sidebar
 
