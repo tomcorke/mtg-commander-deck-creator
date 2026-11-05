@@ -267,7 +267,10 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ## Reaching each state
 
-Run `pnpm dev` and open the app with `preview_open`. Replay a state like this:
+Run `pnpm dev:replay` and open the app with `preview_open` (see
+[local provider replay](design-review.md#local-provider-replay) for seeding and
+strict replay checks). Use plain `pnpm dev` when actual artwork is needed.
+Replay a state like this:
 
 1. Set the theme if you need one: `localStorage.setItem('option:darkMode', 'true')` and `localStorage.setItem('option:commanderStyling', 'true')`. The Display menu sets the same keys.
 2. Load the route in the state's comment line (for example `#build/review`) with a full reload, so no dialog or prior step is still open.
@@ -279,7 +282,7 @@ Notes:
 - A T3 `preview_evaluate` call times out after 15 s, and a hidden tab throttles timers. Split long flows across several calls.
 - Every load starts in "Checking card data…", with the analysis reading zero (state `builder-card-data-loading`). `dr.builderReady()` waits for card data and the first reveal.
 - States in a group share one workspace and mutate it. `saved-manual` saves "Audit deck", `rec-settings-sets` ticks the newest set, `commander-alt-printing` switches the commander's printing, `review-c-applied-history` applies a change, and `builder-health-lane` switches Priority to Theme first. Re-import the deck if a later state depends on the original.
-- Theme chips on Start are randomised on each load, and Scryfall and EDHREC data is live, so card names in the screenshots vary between runs.
+- Theme chips on Start are randomised on each load. Replay fixes provider responses and uses synthetic EDHREC lists; live-mode card names can vary between runs.
 - Fault states (`block …` in the comment line) need request interception. The T3 preview can't intercept, so use Playwright against the same dev server before loading the route:
 
 ```js

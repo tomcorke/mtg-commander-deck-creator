@@ -29,3 +29,6 @@ dist-ssr
 
 # Notes from the dev foil feedback page
 dev-feedback
+
+# Optional local override for the machine-wide development recording cache.
+.dev-replay

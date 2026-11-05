@@ -19,5 +19,10 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "scripts/deckbuild/**/*.ts"]
+  "include": [
+    "vite.config.ts",
+    "scripts/deckbuild/**/*.ts",
+    "scripts/dev-replay/**/*.ts",
+    "scripts/check-dev-replay.ts"
+  ]
 }

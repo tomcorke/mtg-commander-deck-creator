@@ -6,6 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:record": "vite --mode record",
+    "dev:replay": "vite --mode replay",
+    "check:dev-replay": "node --experimental-strip-types scripts/check-dev-replay.ts",
     "build": "tsc -b && pnpm build:card-index && vite build",
     "build:card-index": "node --experimental-strip-types scripts/build-card-index.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"*.{json,md,ts}\" \"docs/**/*.md\"",
