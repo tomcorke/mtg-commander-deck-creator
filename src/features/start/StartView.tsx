@@ -368,7 +368,7 @@ export function StartView(props: StartViewProps) {
           <p id="commander-result-count" className="sr-only" role="status">
             {discovery.status === 'loading' && 'Finding legal commanders…'}
             {discovery.status === 'idle' &&
-              `${discovery.suggestions.length} ${discovery.suggestions.length === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}. Press Down to move through them.`}
+              `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length ? ` of ${discovery.count}${discovery.more ? ' loaded' : ''}` : ''} ${discovery.count === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}. Press Down to move through them.`}
           </p>
           <div className="commander-grid" onKeyDown={moveBetweenChoices}>
             {discovery.status === 'loading' &&
