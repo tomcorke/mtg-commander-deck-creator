@@ -143,7 +143,7 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 - **Hierarchy**: the commander name wraps to two lines at 1366px in every mode. `light/builder.png`, `light/card-search-results.png`, `light/review-c-diagnose.png`.
 - **Hierarchy**: the Doctor header pairs a link-styled "Change commander" with an `.export` "Compare commanders". `light/review-c-diagnose.png`.
 - **Hierarchy**: during the play-style step, the sidebar shows live deck targets (0/35 lands, "Fill now") for a one-card deck. `light/play-style-step.png`.
-- The intro guide tour: see `light/intro-guide.png`, re-captured after the first batch.
+- Seen: the intro guide tour. Its step tooltip (Back / `.primary` Next / Skip, plus ×) spotlights the first offer's action box in a white panel. The tour was captured in light only. `light/intro-guide.png`.
 
 ### #287 Recommendation batch
 
@@ -152,7 +152,7 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 - **Clipping**: the "Synergy" popover is clipped by the offer's art box. `light/builder-score-popover.png`.
 - **Hierarchy**: the decision buttons sit above the art and name, so the action comes before the content it acts on. Offers vary in height with the oracle text and printing block. `light/builder.png`.
 - **Theming**: the programmatically focused "Finding cards…" heading draws a boxed focus ring. `light/intro-guide.png`.
-- Not seen: "Suggestions unavailable". With EDHREC blocked the batch was restored from cache. See `builder-rec-unavailable`'s result in `results-light.json`.
+- Not seen: "Suggestions unavailable". Even with EDHREC blocked and two "Next recommendations" clicks, the batch was served from cached data (`builder-rec-unavailable` returned `false`). Reaching it probably needs a fresh commander with no cached EDHREC page.
 
 ### #288 Deck health lane
 
@@ -201,6 +201,8 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 - **Galleries**: fixed-width tiles leave empty columns at 1366px. `light/review-c-choose-selected.png`.
 
 ### #296 Confirm step and commander comparison
+
+- Swaps read as labelled pairs ("In deck · cut" → "Replacement", inside a "Swap 1" group). The pair sits far apart at 1366px, though, and the sticky bar says "Apply 2 changes" while the header says "1 cut · 1 addition". `light/review-c-confirm.png`.
 
 - **Feedback**: "Compare commanders" opens a dialog that only says "Select a theme or sub-theme to compare commander options." It offers no control to do that. `light/review-compare-commanders.png`.
 
@@ -260,7 +262,7 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #305 Integration
 
-- Reviewed at baseline: `BasicLandDialog` opened (`light/basics.png`) and with the printing gallery open (`light/basics-gallery.png`). Findings: once card data has loaded, the layout matches the playbook case study. While "Checking card data…" is still showing, though, the dialog reads "Room for 16 more lands toward your 35-land target" and offers 16 basics, even though the deck already has 35 lands (`prev/basics.loading.png`). That's a behaviour bug, filed as #306.
+- Reviewed at baseline: `BasicLandDialog` opened (`light/basics.png`) and with the printing gallery open (`light/basics-gallery.png`). Findings: once card data has loaded, the basic split and printing gallery match the playbook case study. The "Start with nonbasic lands" list added since then uses about 30px thumbnails and a `.compact-action` "Add", and its long reasons push "Add" out of line (`light/basics-gallery.png`). While "Checking card data…" is still showing, though, the dialog reads "Room for 16 more lands toward your 35-land target" and offers 16 basics, even though the deck already has 35 lands (`prev/basics.loading.png`). That's a behaviour bug, filed as #306.
 - The integration checks come after the slices merge: diff the cross-screen items above (commander header, card tiles, button roles, dialog shell) against **Canonical patterns**.
 
 ## Reaching each state
@@ -830,6 +832,17 @@ await dr.sleep(300)
 await dr.click('Confirm changes')
 await dr.text('After these changes')
 await dr.sleep(1500)
+// builder-health-lane · #288 · #build
+await dr.builderReady()
+await dr.click('Recommendation settings')
+const d = await dr.dialog()
+const priority = d.querySelector('select')
+Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(priority, 'thematic')
+priority.dispatchEvent(new Event('change', { bubbles: true }))
+await dr.click('Done')
+const lane = await dr.sel('.health-lane')
+lane.scrollIntoView({ block: 'center' })
+await dr.sleep(1500)
 ```
 
 ### Complete deck (import the 100-card list first)
@@ -899,17 +912,6 @@ await dr.sleep(1500)
 await dr.click('Change history')
 await dr.dialog()
 return location.hash
-// builder-health-lane · #288 · #build
-await dr.builderReady()
-await dr.click('Recommendation settings')
-const d = await dr.dialog()
-const priority = d.querySelector('select')
-Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(priority, 'thematic')
-priority.dispatchEvent(new Event('change', { bubbles: true }))
-await dr.click('Done')
-const lane = await dr.sel('.health-lane')
-lane.scrollIntoView({ block: 'center' })
-await dr.sleep(1500)
 // import-replace-confirm · #301 · #build
 await dr.builderReady()
 await dr.click('Import deck')
