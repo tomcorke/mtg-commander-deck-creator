@@ -160,7 +160,8 @@ export function BasicLandDialog({
   useEffect(() => {
     const openerElement = opener.current
     const searchButton = cardSearchButton.current
-    // useDialogFocus restores a connected opener; fall back when filling removed it.
+    // Runs after useDialogFocus's cleanup, which restores a connected opener. Focus still on body means
+    // filling removed the opener, so fall back to the card search button.
     return () => {
       if (document.activeElement === document.body)
         (openerElement?.isConnected ? openerElement : searchButton)?.focus()

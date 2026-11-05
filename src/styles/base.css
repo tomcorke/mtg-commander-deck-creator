@@ -616,7 +616,9 @@ main > header:has(.display-settings-panel) {
 }
 :hover > .action-help,
 :focus-visible + .action-help,
-:focus-visible > .action-help {
+:focus-visible > .action-help,
+/* Synergy also opens on click or tap, as before #282. */
+.synergy-info:focus-within > .action-help {
   opacity: 1;
   transform: none;
   visibility: visible;
