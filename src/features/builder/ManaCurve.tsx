@@ -10,9 +10,10 @@ export function ManaCurve({
   selected: number | null
   onSelect: (manaValue: number) => void
 }) {
+  // The two bars sit side by side, so the tallest single bar sets the scale.
   const maxCurveCount = Math.max(
     1,
-    ...analysis.curve.map((point) => point.permanents + point.nonPermanents),
+    ...analysis.curve.map((point) => Math.max(point.permanents, point.nonPermanents)),
   )
   return (
     <>

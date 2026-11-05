@@ -16,6 +16,10 @@
 .dark .ratio-bar {
   background: #35334a;
 }
+/* Commander accents can be too dark to read as a bar on dark panels; lift them like accent text. */
+.dark.commander-themed .permanent {
+  background: color-mix(in srgb, var(--commander-accent) 70%, white);
+}
 .dark.commander-themed .meter span {
   background: linear-gradient(90deg, var(--commander-accent), var(--commander-highlight));
 }

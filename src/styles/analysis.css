@@ -168,6 +168,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin-bottom: 14px;
 }
 .deck-analysis-heading .export {
   padding: 6px 9px;
@@ -232,7 +233,7 @@
   gap: 1px;
 }
 .curve-bars i {
-  width: 7px;
+  width: 10px;
   min-height: 0;
   border-radius: 2px 2px 0 0;
 }
@@ -365,17 +366,42 @@
   align-items: center;
   min-width: 0;
 }
+/* Met and short rows share one box, outset by its padding so labels align with the sidebar's. */
+.deck-target-focus,
+.deck-target-met {
+  margin: 0 -5px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
 .deck-target-focus {
-  padding: 5px 4px;
+  background: transparent;
+  color: var(--commander-text);
   font-size: inherit;
   text-align: left;
+  cursor: pointer;
+}
+.deck-target-focus > span:first-child {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.deck-target-focus:not(:disabled):hover {
+  border-color: var(--border-control);
+}
+.deck-target-focus:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
 }
 .deck-target-focus[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--commander-accent, #36327f) 14%, transparent);
+  border-color: var(--selected-border);
+  background: var(--selected-background);
+  color: inherit;
   font-weight: 600;
 }
-.dark .deck-target-focus[aria-pressed='true'] {
-  background: #35304e;
+.deck-target-check {
+  margin-right: 4px;
+  color: var(--text-success);
+  font-weight: 600;
 }
 .deck-targets label,
 .type-counts > span {
@@ -383,7 +409,7 @@
 }
 .bar-label {
   display: grid;
-  grid-template-columns: 112px minmax(50px, 1fr) 64px;
+  grid-template-columns: 112px minmax(50px, 1fr) 86px;
   gap: 8px;
   align-items: center;
 }
