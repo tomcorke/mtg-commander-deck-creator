@@ -6,7 +6,6 @@ import type { LandSuggestion } from '../../land-suggestions.ts'
 import { ArtLoading } from '../../shared/CardArt.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
-import { hideCardPreview, showCardPreview } from '../../shared/card-preview.ts'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 
@@ -42,8 +41,6 @@ function BasicLandGallery({
             key={`${printing.set}-${printing.collector_number}`}
             type="button"
             className="basic-land-art-option"
-            onFocus={({ currentTarget }) => showCardPreview(currentTarget)}
-            onBlur={({ currentTarget }) => hideCardPreview(currentTarget)}
             aria-label={`${printingLabel(printing)} #${printing.collector_number}`}
             aria-pressed={
               selected?.set === printing.set &&

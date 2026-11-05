@@ -96,31 +96,31 @@ export function ReviewCardTile({
         </button>
       }
       badges={
-        (status || fit) && (
+        status && (
+          <span className={`doctor-card-status${status.startsWith('In deck') ? ' in-deck' : ''}`}>
+            {status}
+          </span>
+        )
+      }
+      name={<CardReference card={card} onOpen={() => openCard(card)} />}
+      cost={card.manaCost}
+      detail={
+        (fit || note) && (
           <>
-            {status && (
-              <span
-                className={`doctor-card-status${status.startsWith('In deck') ? ' in-deck' : ''}`}
-              >
-                {status}
-              </span>
-            )}
             {fit && (
               <span className={`doctor-card-fit doctor-card-fit--${fit}`}>
                 <span className="doctor-card-fit-stars" aria-hidden="true">
                   {'★'.repeat(fitStars[fit])}
                   <span className="doctor-card-fit-empty">{'★'.repeat(5 - fitStars[fit])}</span>
-                </span>
+                </span>{' '}
                 {fitLabels[fit]}
               </span>
             )}
+            {fit && note && ' · '}
+            {note}
           </>
         )
       }
-      name={<CardReference card={card} onOpen={() => openCard(card)} />}
-      cost={card.manaCost}
-    >
-      {note && <small className="card-tile-note">{note}</small>}
-    </CardTile>
+    />
   )
 }

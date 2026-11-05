@@ -125,7 +125,7 @@ export function SavedDecksModal({
                 aria-hidden="true"
                 onClick={() => openCard(draft.state.deck[0])}
               >
-                <SmallCardImage image={draft.state.deck[0].image} />
+                <SmallCardImage image={draft.state.deck[0].image} placement="reference" />
               </button>
               <div className="saved-deck-details">
                 {draft.name && draft.name !== draft.state.commander && <b>{draft.name}</b>}
@@ -277,7 +277,7 @@ export function SavedDecksModal({
                 aria-hidden="true"
                 onClick={() => openCard(saved.state.deck[0])}
               >
-                <SmallCardImage image={saved.state.deck[0].image} />
+                <SmallCardImage image={saved.state.deck[0].image} placement="reference" />
               </button>
               <div className="saved-deck-details">
                 {saved.name !== saved.state.commander && <b>{saved.name}</b>}

@@ -396,6 +396,7 @@ function SearchCard({
       badges={location && <strong className="search-card-location">{location}</strong>}
       name={<CardReference card={display} onOpen={onOpen} />}
       cost={display.manaCost || display.faces[0]?.manaCost}
+      detail={display.typeLine}
       actions={
         <button
           type="button"
@@ -414,7 +415,6 @@ function SearchCard({
         </button>
       }
     >
-      <p>{display.typeLine}</p>
       <details>
         <summary>Rules text</summary>
         <p className="search-card-rules">
