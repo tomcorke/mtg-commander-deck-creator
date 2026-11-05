@@ -48,6 +48,13 @@
     transition: box-shadow 160ms ease-out;
   }
 }
+/* An offer's popovers overhang its neighbour, so the active offer paints above the others. */
+.card-grid > .card-offer:is(:hover, :focus-within) {
+  z-index: 40;
+}
+.card-offer > .actions {
+  margin-top: 18px;
+}
 .card-offer.synergy-pair {
   --synergy: #9a72ba;
 }

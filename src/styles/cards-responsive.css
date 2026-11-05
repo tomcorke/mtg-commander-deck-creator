@@ -48,11 +48,36 @@
   --offer-fill: color-mix(in srgb, var(--commander-accent) 28%, #111419);
 }
 @media (max-width: 800px) {
+  /* One row that swipes, so the batch stays one offer tall and the deck panel stays near. */
+  .card-grid {
+    grid-template-columns: none;
+    grid-auto-columns: min(86%, 340px);
+    grid-auto-flow: column;
+    margin-top: 8px;
+    padding: 22px 2px 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+  }
   .card-offer {
     display: grid;
-    grid-template-columns: 130px 1fr;
-    gap: 0 22px;
+    grid-template-columns: minmax(96px, 40%) 1fr;
+    gap: 0 14px;
+    align-content: start;
     align-items: start;
+    scroll-snap-align: start;
+  }
+  .card-offer > .actions {
+    margin-top: 0;
+  }
+  /* The art column is narrower than Art + Flip, so they stack under the art. */
+  .card-offer .card-image-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .card-offer .offered-image:has(.card-flip-button + *, * + .card-flip-button) {
+    margin-bottom: 92px;
   }
   .card-offer > .card-copy,
   .card-offer > .commander-promotion {
@@ -61,14 +86,11 @@
   .connector-glow .synergy-pair .offered-image > .finished-card > .synergy-connector {
     display: none;
   }
-}
-@media (max-width: 520px) {
-  .card-offer {
-    grid-template-columns: 1fr;
-  }
-  .offered-image {
-    width: min(250px, 100%);
-    max-width: 250px;
-    margin: auto;
+  /* Overlay the dimmed copy row, never the decision buttons beside the art. */
+  .card-offer > .ignore-feedback {
+    grid-area: 3 / 1 / 4 / -1;
+    top: 0;
+    right: 0;
+    left: 0;
   }
 }

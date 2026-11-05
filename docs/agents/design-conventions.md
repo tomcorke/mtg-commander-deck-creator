@@ -22,6 +22,8 @@ Use the form in the second column. **Known divergences** lists every place that 
 | Card name             | `CardReference` (`.card-reference-name`): previews on hover or focus, opens details on activation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Deck board rows; findings                                                                        |
 | Mana cost             | `OracleText` / `ManaSymbols` with every symbol, generic included. Colour identity shows as icons only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Deck board rows; tile captions                                                                   |
 | Card tile             | `CardTile` (`src/shared/CardTile.tsx`), top to bottom: `selection`, art, `badges` (state pills only: location or review status, which wrap between pills and never inside one), the name + `cost` line, one muted `detail` line (type line, reason, or fit rating plus reason), extras (a disclosure, an error), `actions`. Below a 180px caption the cost drops under the name. Tiles in one grid stretch to the row height.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Start grid; card search (detail = type line); Doctor tiles (detail = "★★ Possible fit · reason") |
+| Recommendation offer  | `.card-offer`, top to bottom: reason label, art, decisions (`.actions`: Add, Later, Ignore, More like this), then the `.card-copy` (name, reason, oracle text, details, score). The offer under hover or focus paints above its neighbours, so its popovers overhang them. At 800px and below the batch is one swipe row (`.card-grid` scrolls on the x axis with snap): art left, decisions beside it, copy below. That rail is the one container meant to scroll sideways; the page still has `scrollWidth === clientWidth`. The rail clips overflow, so offer popovers stay inside the offer at rail widths.                                                                                                                                                                                                                                                                               | Builder batch                                                                                    |
+| Focus target          | A heading that takes focus programmatically (`tabIndex={-1}`, for example after a step closes) draws no ring, because it isn't a control. Tab stops keep their ring.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Builder "Add to your deck"                                                                       |
 | Small image + preview | `SmallCardImage`, with `placement="reference"` inside any scroll container, a dialog included. In that mode it previews on hover and on keyboard focus of its enclosing button or link, so callers add no preview handlers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Basic-land gallery; saved-deck rows                                                              |
 | Commander context     | `CommanderCardArt` + `CommanderSummary` in `.intro.commander-header`, identical on Builder, Card search and Deck review. The Start continue card reuses `CommanderSummary` (`headingLevel="h2"`, `eyebrow="Deck in progress"`, no actions) beside a `SmallCardImage`; its title takes `--type-section` because the page owns the `h1`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | All three full-page modes; Start continue card                                                   |
 | Dialog shell          | `.modal-backdrop` > `section.export-modal[role=dialog][aria-modal][aria-labelledby]` spread with `{...useDialogFocus(open, close)}`. Inside: `.export-heading` holding one `.eyebrow` + `h2` (the labelled heading) and `ModalCloseButton`; body; footer `.export-actions` (secondary left, `.primary` right). The hook focuses the × on open, traps Tab, closes on Escape, returns focus to the opener, and leaves focus alone while a stacked dialog owns it. Leave `autoFocus` out of dialogs: it hijacks the opener the hook records. A dialog that blocks dismissal while busy passes a guarded `close`. A multi-step dialog (the intro guide) puts the step count in its eyebrow (`Guide · 1 of 5`). Widths: `.export-modal` 760px; `.confirm-modal` 460px for prompts; wide variants for dense content (card details 980px, Recommendation settings 900px, Collection browser 1100px). | Export; Saved decks; Start over                                                                  |
@@ -85,7 +87,6 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 
 - Every tooltip and inline-confirmation hint uses `.action-help` (#282). The request activity panel is a JS-positioned panel, not a tooltip (#304).
 - `.settings-help`, `.import-help`, `.draft-help` and `.collection-picker-help` are inline helper paragraphs, not popovers. `.change-commander-confirm` is an inline panel.
-- The offer "Synergy" popover is clipped by the card art box ("…sacrifice outlet w", "…creatures dy"). #287.
 
 **Paging, status and copy**
 
@@ -116,7 +117,7 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 - Fixed: Change history and Compare commanders carried two eyebrows with the `h2` outside the heading row. Each now has one `.export-heading`. The discard prompt and `ConfirmDialog` share `.confirm-modal` and `.export-actions`. The Collection browser joined `.export-modal`.
 - Fixed: widths settled on three tiers (see **Canonical patterns › Dialog shell**). Export, Import, Saved decks and Change commander moved to 760px.
 - Fixed: `SettingHelp`, `.synergy-popover`, `.score-factor-tooltip`, the More like this hint and both inline-confirmation hints now render `.action-help`.
-- Deferred: the Synergy popover is still clipped by the art box (#287).
+- Moved to #287: the Synergy popover was clipped by the art box. #287 fixed it.
 
 ### #283 Continue building and saved decks entry
 
@@ -154,12 +155,13 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #287 Recommendation batch
 
-- **Responsiveness**: at 375px the four offers stack full-height in one column, so the builder page is about 8,000px tall and Deck overview starts about 5,000px down. `narrow/builder.png`.
-
-- **Clipping**: the "Synergy" popover is clipped by the offer's art box. `light/builder-score-popover.png`.
-- **Hierarchy**: the decision buttons sit above the art and name, so the action comes before the content it acts on. Offers vary in height with the oracle text and printing block. `light/builder.png`.
-- **Theming**: the programmatically focused "Finding cards…" heading draws a boxed focus ring. `light/intro-guide.png`.
-- Not seen: "Suggestions unavailable". Even with EDHREC blocked and two "Next recommendations" clicks, the batch was served from cached data (`builder-rec-unavailable` returned `false`). Reaching it probably needs a fresh commander with no cached EDHREC page.
+- Fixed: at 375px the four offers stacked to about 3,550px, and Deck overview started about 5,400px down. The batch is now one swipe row about 730px tall, and the deck board starts about 2,500px down (see **Canonical patterns › Recommendation offer**).
+- Fixed: the "Synergy" popover wasn't clipped by its own art. The next offer painted over it, because every offer shared one z-index. The offer under hover or focus now paints on top.
+- Fixed: the decision buttons sat above the art and name. They now sit under the art, so the card comes before the action, and every offer's buttons line up across the row however long its text runs.
+- Fixed: the "Add to your deck" heading drew a boxed ring when it took focus after the play-style step. Focus targets now draw none (see **Canonical patterns › Focus target**).
+- Fixed: "Suggestions unavailable" showed its error as plain text. It is now `.form-error` inside `role=alert`. Seen via `builder-rec-unavailable`.
+- Kept: the header still reads "Add to your deck" while suggestions are unavailable. The empty state names the failure, and the heading is a focus target.
+- Kept: offers in one row still differ in height. The grid stretches them to the row, so only the copy below the buttons varies.
 
 ### #288 Deck health lane
 
@@ -303,6 +305,9 @@ await block('https://api.scryfall.com/cards/search', (route) =>
 await block('https://api.scryfall.com/cards/search', (route) =>
   route.fulfill({ status: 429, headers: { 'retry-after': '30' }, json: { object: 'error' } }),
 ) // block scryfall-429
+await block('https://api.scryfall.com/cards/named', (route) =>
+  route.fulfill({ status: 500, json: { object: 'error' } }),
+) // block scryfall-named (an in-memory cache serves a loaded commander, so pick a new one)
 await block('https://api.scryfall.com/cards/search', () => {}) // hold scryfall-search (loading)
 ```
 
@@ -536,6 +541,10 @@ dr.btn('Choose').click()
 await dr.wait(() => location.hash.startsWith('#build'))
 await dr.sleep(2500)
 return document.querySelector('main h2, main h1')?.textContent
+// builder-rec-unavailable · #287 · #start · after the grid loads, block scryfall-named
+await dr.text('commanders shown')
+dr.btn('Choose').click()
+await dr.text('Suggestions unavailable')
 // intro-guide · #286 · #start
 await dr.text('commanders shown')
 dr.btn('Choose').click()
@@ -582,13 +591,6 @@ const b = await dr.wait(() =>
 b.click()
 b.focus()
 await dr.sleep(400)
-// builder-rec-unavailable · #287 · #build · block edhrec
-await dr.builderReady()
-document.querySelector('.nav-forward').click()
-await dr.sleep(1000)
-document.querySelector('.nav-forward').click()
-await dr.sleep(8000)
-return document.body.innerText.includes('unavailable')
 // builder-target-focus · #289 · #build
 await dr.builderReady()
 const b = await dr.sel('.deck-target-focus')
