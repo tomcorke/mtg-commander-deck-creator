@@ -228,14 +228,13 @@ function FindingCardReferences({
   simulation: ManaAccessSimulation
 }) {
   const [shown, setShown] = useState(doctorGroupStep)
-  if (!finding.cardNames.length) return null
-  const hidden = finding.cardNames.length - shown
+  const cards = finding.cardNames.flatMap((name) => deck.find((item) => item.name === name) ?? [])
+  if (!cards.length) return null
+  const hidden = cards.length - shown
   return (
     <>
       <div className="doctor-reference-grid">
-        {finding.cardNames.slice(0, shown).map((name) => {
-          const card = deck.find((item) => item.name === name)
-          if (!card) return null
+        {cards.slice(0, shown).map((card) => {
           const signal = finding.cardSignals?.find((item) => item.cardName === card.name)
           return (
             <ReviewCardTile
