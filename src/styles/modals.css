@@ -238,8 +238,9 @@
   margin: 0;
   padding: 24px 5vw 48px;
 }
-.doctor-page > .primary {
-  justify-self: start;
+/* The step's forward exit sits at the end, the side it travels to. */
+.doctor-page > .nav-forward {
+  justify-self: end;
 }
 .doctor-page.has-pending-summary {
   padding-bottom: 144px;

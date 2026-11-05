@@ -882,7 +882,7 @@ export function DeckDoctorView({
             {step}
           </h2>
           {step !== 'Diagnose' && (
-            <button className="export" type="button" onClick={back}>
+            <button className="nav-back" type="button" onClick={back}>
               {step === 'Confirm' ? 'Back to Choose changes' : 'Back to Diagnose'}
             </button>
           )}
@@ -981,7 +981,7 @@ export function DeckDoctorView({
                   replacements only if you want to swap.
                 </p>
                 <button
-                  className="export"
+                  className="nav-forward"
                   type="button"
                   onClick={() => changeStep('Choose changes')}
                 >
@@ -1136,7 +1136,11 @@ export function DeckDoctorView({
               )}
               {findings.length > 0 && moreCandidates}
             </section>
-            <button className="primary" type="button" onClick={() => changeStep('Choose changes')}>
+            <button
+              className="nav-forward"
+              type="button"
+              onClick={() => changeStep('Choose changes')}
+            >
               Choose changes
             </button>
           </>
@@ -1519,7 +1523,11 @@ export function DeckDoctorView({
             <button className="export" type="button" onClick={() => setAppliedFrom(null)}>
               Dismiss
             </button>
-            <button className="primary" type="button" onClick={() => changeStep('Choose changes')}>
+            <button
+              className="nav-forward"
+              type="button"
+              onClick={() => changeStep('Choose changes')}
+            >
               Choose more changes
             </button>
           </div>
@@ -1536,12 +1544,16 @@ export function DeckDoctorView({
             </span>
           </div>
           {step === 'Diagnose' ? (
-            <button className="primary" type="button" onClick={() => changeStep('Choose changes')}>
+            <button
+              className="nav-forward"
+              type="button"
+              onClick={() => changeStep('Choose changes')}
+            >
               Continue choosing changes
             </button>
           ) : step === 'Choose changes' ? (
             <button
-              className="primary"
+              className="nav-forward"
               type="button"
               disabled={!planReady}
               onClick={() => changeStep('Confirm')}
