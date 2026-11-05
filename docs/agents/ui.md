@@ -2,6 +2,8 @@
 
 Read this before changing UI, buttons, dialogs, forms, or CSS.
 
+[design-conventions.md](design-conventions.md) maps each rule here to its canonical component or class and lists the places that diverge from it. It also has drive-to-state scripts for reaching each screen, mode and dialog. Read it before choosing a class and before a rendered review.
+
 ## Reuse first
 
 - Search `src/features/` and `src/shared/` for an existing component, and `src/styles/` for an existing class before adding UI. Reuse complete components across screens; if the same section exists only as inline markup, extract it once and render it in both places.
