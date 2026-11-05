@@ -79,7 +79,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 18px;
 }
 .themes button {
   padding: 9px 13px;
@@ -103,7 +102,7 @@
   color: var(--text-muted);
 }
 .themes .theme-placeholder:hover {
-  border-color: #36327f;
+  border-color: var(--selected-border);
   background: transparent;
   color: var(--text-strong);
 }
@@ -111,16 +110,21 @@
   min-width: 0;
   width: 15em;
   padding: 8px 13px;
-  border: 1px solid #36327f;
   border-radius: 20px;
-  background: white;
-  color: inherit;
-  font: inherit;
 }
+/* Theme, Colour identity and Name share one label style; Name's is a span inside its label. */
 .filter-heading {
   margin: 24px 0 12px;
+  font-family: 'Spectral', serif;
   font-size: var(--type-body);
+  font-weight: 700;
   color: var(--text-muted);
+}
+.commander-search > .filter-heading {
+  margin: 0;
+}
+.commander-filters .commander-search {
+  gap: 12px;
 }
 .colour-picker {
   display: flex;
@@ -137,8 +141,8 @@
   background: transparent;
 }
 .colour-picker button.selected {
-  border-color: #36327f;
-  background: #e7e5fa;
+  border-color: var(--selected-border);
+  background: var(--selected-background);
 }
 .colour-picker img {
   width: 25px;
@@ -156,6 +160,8 @@
   border-radius: 6px;
 }
 .filter-summary {
+  /* Holds the row's height while Clear filters is hidden for the empty grid's own. */
+  min-height: 44px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -257,10 +263,6 @@
 }
 .dark .commander-tile-placeholder .placeholder-text {
   background: #25233b;
-}
-.dark .colour-picker button.selected {
-  border-color: #c7a2ec;
-  background: #36304b;
 }
 @media (max-width: 600px) {
   .start {

@@ -1,15 +1,6 @@
 .dark .start-panel {
   border-color: var(--border-subtle);
 }
-.dark .themes .theme-placeholder:hover {
-  border-color: #7169ca;
-  background: transparent;
-}
-.dark .themes .creature-type-search {
-  border-color: #7169ca;
-  background: #121121;
-  color: var(--text-body);
-}
 .dark .suggestions,
 .dark .suggestion-select {
   border-color: #39374f;
