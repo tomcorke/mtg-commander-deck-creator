@@ -13,7 +13,8 @@ export function useDialogFocus(open: boolean, onClose: () => void) {
   }, [open])
   useEffect(() => {
     // Disabled or removed controls can drop focus to the page while the dialog remains open.
-    if (open && !dialog.current?.contains(document.activeElement))
+    // Focus in another dialog (one stacked above this) is left alone.
+    if (open && !document.activeElement?.closest('[aria-modal="true"]'))
       dialog.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
   })
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {

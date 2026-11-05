@@ -3,6 +3,7 @@ import { useRef } from 'react'
 import type { Card, DeckCard } from '../../domain/card-model.ts'
 import type { DeckDoctorSwapRecord } from '../../deck-doctor.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { useDialogFocus } from '../../shared/hooks.ts'
 import { ReviewCardTile } from '../builder/DeckReviewCard.tsx'
 
 type Props = {
@@ -23,6 +24,7 @@ export function DeckReviewHistoryModal({
   closeModal,
 }: Props) {
   const list = useRef<HTMLElement>(null)
+  const dialog = useDialogFocus(show, closeModal)
   if (!show) return null
   return (
     <div
@@ -36,17 +38,14 @@ export function DeckReviewHistoryModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="history-title"
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.preventDefault()
-            event.stopPropagation()
-            closeModal()
-          }
-        }}
+        {...dialog}
       >
         <div className="export-heading">
-          <p className="eyebrow">Deck review</p>
-          <ModalCloseButton autoFocus label="Close change history" onClick={closeModal} />
+          <div>
+            <p className="eyebrow">Deck review</p>
+            <h2 id="history-title">Change history</h2>
+          </div>
+          <ModalCloseButton label="Close change history" onClick={closeModal} />
         </div>
         <section
           id="deck-review-history"
@@ -55,13 +54,7 @@ export function DeckReviewHistoryModal({
           className="doctor-history"
           aria-labelledby="history-title"
         >
-          <div className="doctor-section-heading">
-            <div>
-              <p className="eyebrow">Your changes</p>
-              <h2 id="history-title">Change history</h2>
-            </div>
-            <span>{history.length} applied</span>
-          </div>
+          <p className="doctor-muted">{history.length} applied</p>
           {history.length ? (
             history.map((swap) => (
               <article className="doctor-history-item" key={swap.id}>

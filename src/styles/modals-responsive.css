@@ -7,11 +7,6 @@
   border-color: #7169ca;
   background: transparent;
 }
-.dark .setting-help-popover {
-  border-color: #8d83df;
-  background: #24203a;
-  color: var(--text-strong);
-}
 .dark .deck-card-modal-image {
   box-shadow: 0 14px 35px #0009;
 }
@@ -68,6 +63,7 @@
     right: 0;
     left: auto;
     bottom: calc(100% + 8px);
+    translate: none;
     width: min(240px, calc(100vw - 48px));
     transform: none;
   }

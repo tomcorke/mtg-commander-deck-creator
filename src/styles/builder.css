@@ -302,29 +302,12 @@
   grid-column: 2;
 }
 .setting-help-popover {
-  position: absolute;
   z-index: 10;
   top: 50%;
   left: calc(100% + 8px);
-  display: block;
-  width: min(280px, calc(100vw - 48px));
-  padding: 9px 11px;
-  border: 1px solid #9a72ba;
-  border-radius: 7px;
-  background: #201c3c;
-  color: white;
-  box-shadow: 0 12px 30px #201c3c55;
-  font-size: var(--type-body);
-  line-height: 1.4;
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-  transform: translateY(-50%);
-}
-.setting-help-wrap:hover .setting-help-popover,
-.setting-help-button:focus-visible + .setting-help-popover {
-  opacity: 1;
-  visibility: visible;
+  bottom: auto;
+  width: 280px;
+  translate: 0 -50%;
 }
 .collection-picker {
   flex-basis: 100%;
@@ -578,32 +561,8 @@
 .collection-picker .form-error {
   font-size: var(--type-data);
 }
-.collection-browser {
-  margin: 18px 0;
-  padding: 18px;
-  border: 1px solid #d2d0df;
-  border-radius: 10px;
-  background: var(--surface-panel);
-}
 .collection-browser-modal {
   width: min(1100px, 100%);
-  max-height: calc(100vh - 48px);
-  margin: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  box-shadow:
-    0 28px 90px #000,
-    0 0 0 1px #ffffff26;
-}
-.collection-browser-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: start;
-}
-.collection-browser-heading h2 {
-  margin: 0;
-  font-size: var(--type-section);
 }
 .collection-browser-heading p:not(.eyebrow) {
   margin: 5px 0 0;

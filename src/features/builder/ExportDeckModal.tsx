@@ -1,6 +1,7 @@
 import { commanderNames } from '../../domain/commander-catalog.ts'
 import type { ExportFormat } from '../../domain/card-model.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { useDialogFocus } from '../../shared/hooks.ts'
 
 type Props = {
   commander: string
@@ -25,6 +26,7 @@ export function ExportDeckModal({
   closeModal,
   setExportFormat,
 }: Props) {
+  const dialog = useDialogFocus(show, closeModal)
   if (!show) return null
 
   const names = commanderNames(commander)
@@ -37,6 +39,7 @@ export function ExportDeckModal({
       }}
     >
       <section
+        {...dialog}
         className="export-modal"
         role="dialog"
         aria-modal="true"

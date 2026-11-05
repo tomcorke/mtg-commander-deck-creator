@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { mainDeckCardCount, parseDeckList } from '../../deck-import.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { useDialogFocus } from '../../shared/hooks.ts'
 
 type ImportDeckModalProps = {
   show: boolean
@@ -42,6 +43,9 @@ export function ImportDeckModal({
     : []
   const mainDeckCount = mainDeckCardCount(parsed)
   const completeMainDeck = mainDeckCount === 100
+  const dialog = useDialogFocus(show, () => {
+    if (importState !== 'loading') closeModal()
+  })
 
   if (!show) return null
 
@@ -53,6 +57,7 @@ export function ImportDeckModal({
       }}
     >
       <section
+        {...dialog}
         className="export-modal import-modal"
         role="dialog"
         aria-modal="true"

@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef } from 'react'
+import { useId } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { ModalCloseButton } from './CardDetails.tsx'
+import { useDialogFocus } from './hooks.ts'
 
 type ConfirmOptions = { title: string; message: string; confirmLabel: string }
 
@@ -12,18 +13,7 @@ function ConfirmDialog({
   resolve,
 }: ConfirmOptions & { resolve: (confirmed: boolean) => void }) {
   const id = useId()
-  const cancel = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    cancel.current?.focus()
-    const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      event.preventDefault()
-      event.stopPropagation()
-      resolve(false)
-    }
-    document.addEventListener('keydown', escape, true)
-    return () => document.removeEventListener('keydown', escape, true)
-  }, [resolve])
+  const dialog = useDialogFocus(true, () => resolve(false))
   return (
     <div
       className="modal-backdrop"
@@ -32,6 +22,7 @@ function ConfirmDialog({
       }}
     >
       <section
+        {...dialog}
         className="export-modal confirm-modal"
         role="dialog"
         aria-modal="true"
@@ -42,8 +33,8 @@ function ConfirmDialog({
           <ModalCloseButton label="Cancel" onClick={() => resolve(false)} />
         </div>
         <p>{message}</p>
-        <div className="confirm-actions">
-          <button ref={cancel} className="export" type="button" onClick={() => resolve(false)}>
+        <div className="export-actions">
+          <button className="export" type="button" onClick={() => resolve(false)}>
             Cancel
           </button>
           <button className="primary" type="button" onClick={() => resolve(true)}>

@@ -39,7 +39,7 @@ function SettingHelp({ id, label, description }: SettingHelpProps) {
       >
         ?
       </button>
-      <span className="setting-help-popover" id={id} role="tooltip">
+      <span className="action-help setting-help-popover" id={id} role="tooltip">
         {description}
       </span>
     </span>

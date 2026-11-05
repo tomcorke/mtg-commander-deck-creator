@@ -198,7 +198,7 @@ export function SavedDecksModal({
                   {pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm' : 'Delete'}
                 </button>
                 {pendingSavedDeckRemoval === `draft:${draft.id}` && (
-                  <span className="saved-delete-confirm" role="tooltip">
+                  <span className="action-help end saved-delete-confirm" role="tooltip">
                     Click again to delete
                   </span>
                 )}
@@ -319,7 +319,7 @@ export function SavedDecksModal({
                   {pendingSavedDeckRemoval === saved.id ? 'Confirm' : 'Delete'}
                 </button>
                 {pendingSavedDeckRemoval === saved.id && (
-                  <span className="saved-delete-confirm" role="tooltip">
+                  <span className="action-help end saved-delete-confirm" role="tooltip">
                     Click again to delete
                   </span>
                 )}

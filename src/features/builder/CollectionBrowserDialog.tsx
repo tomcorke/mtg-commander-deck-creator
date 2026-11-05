@@ -9,6 +9,7 @@ import {
   type ScryfallCard,
 } from '../../domain/card-model.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { useDialogFocus } from '../../shared/hooks.ts'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 
 type Props = {
@@ -51,6 +52,7 @@ export function CollectionBrowserDialog({
   toSideboard,
   zoneToggle,
 }: Props) {
+  const dialog = useDialogFocus(true, onClose)
   return (
     <div
       className="modal-backdrop collection-browser-backdrop"
@@ -59,25 +61,19 @@ export function CollectionBrowserDialog({
       }}
     >
       <section
-        className="collection-browser collection-browser-modal"
+        {...dialog}
+        className="export-modal collection-browser-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="collection-browser-title"
-        tabIndex={-1}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.preventDefault()
-            onClose()
-          }
-        }}
       >
-        <div className="collection-browser-heading">
+        <div className="export-heading collection-browser-heading">
           <div>
             <p className="eyebrow">Discovery</p>
             <h2 id="collection-browser-title">Cards from your chosen sets</h2>
             <p>{poolSize ?? cards.length} legal unique cards, shown in random order.</p>
           </div>
-          <ModalCloseButton autoFocus onClick={onClose} label="Close collection browser" />
+          <ModalCloseButton onClick={onClose} label="Close collection browser" />
         </div>
         <div className="collection-browser-filters">
           <label>

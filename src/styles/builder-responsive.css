@@ -1,6 +1,3 @@
-.dark .collection-browser {
-  border-color: #39374f;
-}
 .dark .collection-browser-filters select,
 .dark .collection-browser-filters input,
 .dark .collection-browser-grid article {
@@ -26,9 +23,6 @@
   .collection-set-controls {
     grid-template: auto auto auto auto / 1fr;
     grid-template-areas: 'search' 'results' 'selection' 'actions';
-  }
-  .collection-browser {
-    padding: 14px;
   }
   .collection-browser-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -437,10 +431,6 @@
   .action-help-wrap:last-child .action-help {
     left: auto;
     right: 0;
-    transform: translateY(4px);
-  }
-  .action-help-wrap:last-child:hover .action-help,
-  .action-help-wrap:last-child > button:focus-visible + .action-help {
-    transform: none;
+    translate: none;
   }
 }

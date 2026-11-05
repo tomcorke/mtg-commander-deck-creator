@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
 import { Pagination } from '../../shared/Pagination.tsx'
@@ -11,6 +11,7 @@ import {
 } from '../../domain/commander-promotion.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
+import { useDialogFocus } from '../../shared/hooks.ts'
 import { ColourPicker, CommanderChoiceTile } from '../../shared/CommanderChoice.tsx'
 
 type Props = {
@@ -35,17 +36,7 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
   const keeps = keepOutgoing && keepFits
   const discovery = useCommanderDiscovery({ theme: '', colours, search }, open)
   const close = () => setOpen(false)
-  useEffect(() => {
-    if (!open) return
-    const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      event.preventDefault()
-      event.stopPropagation()
-      setOpen(false)
-    }
-    document.addEventListener('keydown', escape, true)
-    return () => document.removeEventListener('keydown', escape, true)
-  }, [open])
+  const dialog = useDialogFocus(open, close)
 
   return (
     <>
@@ -67,6 +58,7 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
           onMouseDown={(event) => event.target === event.currentTarget && close()}
         >
           <section
+            {...dialog}
             className="export-modal change-commander-modal"
             role="dialog"
             aria-modal="true"

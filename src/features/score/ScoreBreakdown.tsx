@@ -106,7 +106,11 @@ export function ScoreBreakdown({
             <dd>
               {Math.round(score[key as RecommendationScoreFactor] * 10) / 10} / {max}
             </dd>
-            <span className="score-factor-tooltip" id={`score-factor-${key}`} role="tooltip">
+            <span
+              className="action-help end score-factor-tooltip"
+              id={`score-factor-${key}`}
+              role="tooltip"
+            >
               {description}
             </span>
           </div>
