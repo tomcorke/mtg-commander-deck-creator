@@ -40,11 +40,6 @@
   background: #302a4b;
   color: var(--text-strong);
 }
-.dark .synergy-popover {
-  border-color: #8d83df;
-  background: #24203a;
-  color: var(--text-strong);
-}
 .dark .card-offer.synergy-1::after {
   border-color: #8d83df;
 }

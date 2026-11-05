@@ -33,6 +33,7 @@ import { StartView } from '../features/start/StartView.tsx'
 import { PlayStyleStep } from '../features/builder/PlayStyleStep.tsx'
 import { IntroGuide } from '../features/builder/IntroGuide.tsx'
 import { ModalCloseButton } from '../shared/CardDetails.tsx'
+import { useDialogFocus } from '../shared/hooks.ts'
 
 export type AppViewProps = {
   state: Record<string, any>
@@ -363,12 +364,13 @@ function useBuilderMode(state: Record<string, any>) {
 }
 
 function ReviewExitConfirmation({ state, actions }: Pick<AppViewProps, 'state' | 'actions'>) {
-  if (!state.showReviewExitPrompt) return null
   const { cancelReviewNavigation: cancel, confirmReviewNavigation: confirm } = actions
   const cancelAndRefocus = () => {
     cancel()
     requestAnimationFrame(() => document.getElementById('deck-review-title')?.focus())
   }
+  const dialog = useDialogFocus(state.showReviewExitPrompt, cancelAndRefocus)
+  if (!state.showReviewExitPrompt) return null
   return (
     <div
       className="modal-backdrop"
@@ -377,32 +379,12 @@ function ReviewExitConfirmation({ state, actions }: Pick<AppViewProps, 'state' |
       }}
     >
       <section
-        className="export-modal doctor-discard-modal"
+        {...dialog}
+        className="export-modal confirm-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="doctor-discard-title"
         aria-describedby="doctor-discard-description"
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.preventDefault()
-            event.stopPropagation()
-            cancelAndRefocus()
-          } else if (event.key === 'Tab') {
-            const buttons =
-              event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
-            const first = buttons[0]
-            const last = buttons[buttons.length - 1]
-            if (!first || !last) event.preventDefault()
-            else if (
-              (event.shiftKey && document.activeElement === first) ||
-              (!event.shiftKey && document.activeElement === last)
-            ) {
-              event.preventDefault()
-              const target = event.shiftKey ? last : first
-              target.focus()
-            }
-          }
-        }}
       >
         <div className="export-heading">
           <div>
@@ -415,7 +397,7 @@ function ReviewExitConfirmation({ state, actions }: Pick<AppViewProps, 'state' |
           Leaving Deck review will discard your pending cuts and additions.
         </p>
         <div className="export-actions">
-          <button autoFocus className="export" type="button" onClick={cancelAndRefocus}>
+          <button className="export" type="button" onClick={cancelAndRefocus}>
             Keep choices
           </button>
           <button className="primary" type="button" onClick={confirm}>

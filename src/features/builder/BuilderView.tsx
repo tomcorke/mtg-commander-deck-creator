@@ -849,7 +849,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             </svg>
                             More like this
                           </button>
-                          <span className="similar-help" id={`similar-${card.name}`} role="tooltip">
+                          <span
+                            className="action-help end"
+                            id={`similar-${card.name}`}
+                            role="tooltip"
+                          >
                             Prioritise similar cards in future recommendations.
                           </span>
                         </span>
@@ -925,7 +929,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                               ⓘ Synergy
                             </button>
                             <span
-                              className="synergy-popover"
+                              className="action-help synergy-popover"
                               id={`synergy-${card.name}`}
                               role="tooltip"
                             >
@@ -1404,7 +1408,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                     {pendingRemoval === index ? '✓' : '×'}
                                   </button>
                                   {pendingRemoval === index && (
-                                    <span className="remove-confirm" role="tooltip">
+                                    <span className="action-help end remove-confirm" role="tooltip">
                                       Click again to confirm removal
                                     </span>
                                   )}

@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 
 import { scryfallImage, type Card, type ScryfallCard } from '../../domain/card-model.ts'
 import { basicLandNames } from '../../deck-analysis.ts'
 import type { LandSuggestion } from '../../land-suggestions.ts'
 import { ArtLoading } from '../../shared/CardArt.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { useDialogFocus } from '../../shared/hooks.ts'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
@@ -101,7 +102,9 @@ export function BasicLandDialog({
   onAddRecommendation,
   onOpenCard,
 }: Props) {
-  const dialog = useRef<HTMLElement>(null)
+  const dialog = useDialogFocus(true, () => {
+    if (basicLandState !== 'loading') onClose()
+  })
   const planKey = `${legalBasicNames.join('|')}:${basicLands.map(({ name, count }) => `${name}:${count}`).join('|')}`
   const defaultLandCounts = Object.fromEntries(
     legalBasicNames.map((name) => [
@@ -155,13 +158,11 @@ export function BasicLandDialog({
   )
 
   useEffect(() => {
-    const element = dialog.current
     const openerElement = opener.current
     const searchButton = cardSearchButton.current
-    if (!element) return
-    element.querySelector<HTMLButtonElement>('.modal-close')?.focus()
+    // useDialogFocus restores a connected opener; fall back when filling removed it.
     return () => {
-      if (element.contains(document.activeElement) || document.activeElement === document.body)
+      if (document.activeElement === document.body)
         (openerElement?.isConnected ? openerElement : searchButton)?.focus()
     }
   }, [cardSearchButton, opener])
@@ -174,31 +175,11 @@ export function BasicLandDialog({
       }}
     >
       <section
-        ref={dialog}
+        {...dialog}
         className="export-modal basic-land-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="basic-land-title"
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.preventDefault()
-            if (basicLandState !== 'loading') onClose()
-          }
-          if (event.key !== 'Tab') return
-          const controls = event.currentTarget.querySelectorAll<HTMLElement>(
-            'button:not(:disabled), input:not(:disabled)',
-          )
-          const first = controls[0]
-          const last = controls[controls.length - 1]
-          if (!first || !last) event.preventDefault()
-          else if (
-            (event.shiftKey && document.activeElement === first) ||
-            (!event.shiftKey && document.activeElement === last)
-          ) {
-            event.preventDefault()
-            ;(event.shiftKey ? last : first).focus()
-          }
-        }}
       >
         <div className="export-heading">
           <div>
@@ -245,7 +226,7 @@ export function BasicLandDialog({
                           .closest('li')
                           ?.nextElementSibling?.querySelector<HTMLButtonElement>(
                             '.compact-action',
-                          ) ?? dialog.current?.querySelector<HTMLButtonElement>('.modal-close')
+                          ) ?? dialog.ref.current?.querySelector<HTMLButtonElement>('.modal-close')
                       onAddRecommendation(card)
                       next?.focus()
                     }}

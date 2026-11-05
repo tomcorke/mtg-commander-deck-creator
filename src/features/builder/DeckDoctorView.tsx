@@ -36,6 +36,7 @@ import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
 import { ReviewCardTile } from './DeckReviewCard.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { useDialogFocus } from '../../shared/hooks.ts'
 import { reviewSteps, type DeckReviewStep } from '../../app/routes.ts'
 import { CommanderSummary } from './CommanderSummary.tsx'
 import { DeckOverview } from './DeckOverview.tsx'
@@ -493,7 +494,7 @@ export function DeckDoctorView({
     return () => setPendingReviewChanges(false)
   }, [hasPendingChanges, setPendingReviewChanges])
   const stepHeading = useRef<HTMLHeadingElement>(null)
-  const comparisonDialog = useRef<HTMLElement>(null)
+  const comparisonDialog = useDialogFocus(exploreCommanders, () => setExploreCommanders(false))
   useEffect(() => {
     const previous = previousAnnouncementContext.current
     if (step !== previous.step || history.length < previous.historyCount)
@@ -519,10 +520,9 @@ export function DeckDoctorView({
       if (document.activeElement === document.body) opener.focus()
       return
     }
-    if (exploreCommanders)
-      comparisonDialog.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
-    else stepHeading.current?.focus()
-  }, [active, step, exploreCommanders])
+    // Step changes only; the comparison dialog's useDialogFocus owns focus while it opens and closes.
+    stepHeading.current?.focus()
+  }, [active, step])
 
   useEffect(() => {
     if (!active) return
@@ -1419,25 +1419,21 @@ export function DeckDoctorView({
           }}
         >
           <section
-            ref={comparisonDialog}
+            {...comparisonDialog}
             className="export-modal doctor-commander"
             role="dialog"
             aria-modal="true"
             aria-labelledby="doctor-commander-title"
           >
             <div className="export-heading">
-              <p className="eyebrow">Deck review</p>
-              <ModalCloseButton
-                autoFocus
-                label="Close commander comparison"
-                onClick={() => setExploreCommanders(false)}
-              />
-            </div>
-            <div className="doctor-section-heading">
               <div>
                 <p className="eyebrow">Optional comparison</p>
                 <h2 id="doctor-commander-title">Compare commanders</h2>
               </div>
+              <ModalCloseButton
+                label="Close commander comparison"
+                onClick={() => setExploreCommanders(false)}
+              />
             </div>
             {commanderCount > 1 ? (
               <p>

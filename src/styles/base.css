@@ -580,3 +580,50 @@ main > header:has(.display-settings-panel) {
 .pagination p {
   margin: 0;
 }
+.action-help-wrap {
+  position: relative;
+}
+/* The one tooltip surface. Its positioned parent shows it on hover; the trigger, on keyboard focus.
+   Placement classes (.end, or a component class) set position and width only. */
+.action-help {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: 180px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 10px;
+  border: 1px solid var(--border-control);
+  border-radius: 6px;
+  background: #201c3c;
+  color: white;
+  font-size: var(--type-data);
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  translate: -50% 0;
+  transform: translateY(4px);
+  visibility: hidden;
+  transition:
+    opacity 0.15s,
+    transform 0.15s,
+    visibility 0s 0.15s;
+}
+:hover > .action-help,
+:focus-visible + .action-help,
+:focus-visible > .action-help {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.action-help.end {
+  left: auto;
+  right: 0;
+  translate: none;
+}

@@ -13,7 +13,8 @@
   display: flex;
   min-height: 0;
   flex-direction: column;
-  width: min(800px, 100%);
+  /* Standard dialog width. Prompts use .confirm-modal; dense content takes a wide variant. */
+  width: min(760px, 100%);
   max-height: calc(100vh - 48px);
   padding: 28px;
   overflow-x: hidden;
@@ -131,6 +132,7 @@
 .export-heading {
   display: flex;
   justify-content: space-between;
+  gap: 16px;
   align-items: start;
 }
 .export-heading h2 {
@@ -195,12 +197,6 @@
   border-radius: 6px;
   background: var(--commander-accent, var(--action-fill));
   color: white;
-}
-.import-modal {
-  width: min(680px, 100%);
-}
-.doctor-discard-modal {
-  width: min(460px, 100%);
 }
 .import-modal textarea {
   min-height: 260px;
@@ -1133,9 +1129,6 @@
   font-size: var(--type-data);
   line-height: 1.4;
 }
-.saved-decks-modal {
-  width: min(720px, 100%);
-}
 .saved-decks-modal .saved-deck-list {
   flex-shrink: 0;
   overflow: visible;
@@ -1291,22 +1284,6 @@
 }
 .saved-deck-delete {
   padding: 8px 9px;
-}
-.saved-delete-confirm {
-  position: absolute;
-  z-index: 2;
-  right: 0;
-  bottom: calc(100% + 7px);
-  display: none;
-  width: max-content;
-  padding: 5px 8px;
-  border-radius: 5px;
-  background: #201c3c;
-  color: white;
-  font-size: var(--type-data);
-}
-.saved-deck-delete-wrap:hover .saved-delete-confirm {
-  display: block;
 }
 .saved-decks-empty {
   margin: 24px 0 0;
@@ -1555,7 +1532,6 @@ main > .commander-header {
 }
 .deck-review-history-modal,
 .export-modal.doctor-commander {
-  width: min(760px, 100%);
   color: var(--doctor-text);
   background: var(--doctor-panel);
 }
@@ -1612,12 +1588,7 @@ main > .commander-header {
   color: #fff;
 }
 .confirm-modal {
-  width: min(440px, calc(100vw - 32px));
-}
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  width: min(460px, 100%);
 }
 .saved-deck-last {
   font-size: var(--type-data);
