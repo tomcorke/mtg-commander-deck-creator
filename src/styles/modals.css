@@ -710,15 +710,8 @@
 }
 /* Pairs flow as cards, so each swap's two tiles sit together at tile width. */
 .doctor-plan-pairs {
-  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
-}
-/* One centred column: DeckReviewCard art previews are absolute (#297), so a tile at the dialog edge would scroll it. */
-.doctor-commander-results {
-  grid-template-columns: minmax(0, 460px);
-  justify-content: center;
-}
-.doctor-plan-pairs {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
   gap: 18px 12px;
 }
 .doctor-plan-pair,
@@ -787,7 +780,10 @@
   display: grid;
   gap: 12px;
 }
+/* One centred column: DeckReviewCard art previews are absolute (#297), so a tile at the dialog edge would scroll it. */
 .doctor-commander-results {
+  grid-template-columns: minmax(0, 460px);
+  justify-content: center;
   margin-top: 8px;
 }
 .doctor-commander-results > p {
