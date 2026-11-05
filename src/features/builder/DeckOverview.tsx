@@ -40,14 +40,14 @@ type StatusKind = 'good' | 'attention' | 'neutral'
 // Below this size a passing check says little, so success shows as neutral.
 const earlyDeckSize = 60
 
-function ReviewStatus({
+export function ReviewStatus({
   kind: rawKind,
   label,
-  early,
+  early = false,
 }: {
   kind: StatusKind
   label: string
-  early: boolean
+  early?: boolean
 }) {
   const kind = early && rawKind === 'good' ? 'neutral' : rawKind
   return (
@@ -295,19 +295,39 @@ export function DeckOverview({
                       label={gap ? `${gap} below target` : 'Target met'}
                     />
                   </FilterButton>
-                  <label className="deck-review-target">
-                    Target
-                    <input
-                      type="number"
-                      min="0"
-                      max="99"
-                      aria-label={`${targetLabels[key]} target`}
-                      value={target}
-                      onChange={(event) =>
-                        chooseDeckTarget(key, Math.max(0, Number(event.target.value)))
-                      }
-                    />
-                  </label>
+                  <div className="deck-review-target">
+                    <span aria-hidden="true">Target</span>
+                    <span className="target-stepper">
+                      <button
+                        type="button"
+                        className="deck-add"
+                        aria-label={`One fewer ${targetLabels[key]} target`}
+                        disabled={target <= 0}
+                        onClick={() => chooseDeckTarget(key, target - 1)}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        aria-label={`${targetLabels[key]} target`}
+                        value={target}
+                        onChange={(event) =>
+                          chooseDeckTarget(key, Math.max(0, Number(event.target.value)))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="deck-add"
+                        aria-label={`One more ${targetLabels[key]} target`}
+                        disabled={target >= 99}
+                        onClick={() => chooseDeckTarget(key, target + 1)}
+                      >
+                        +
+                      </button>
+                    </span>
+                  </div>
                 </div>
               )
             })}

@@ -458,6 +458,9 @@
   border-radius: 12px;
   background: var(--doctor-panel);
 }
+.doctor-finding > .deck-review-status {
+  margin-bottom: 8px;
+}
 .doctor-finding h3 {
   margin: 0 0 6px;
   font-size: var(--type-card-name);
@@ -567,6 +570,9 @@
 .doctor-show-more {
   justify-self: start;
 }
+.doctor-reference-grid + .doctor-show-more {
+  margin-top: 12px;
+}
 .doctor-card-tile {
   border-color: var(--doctor-border);
   background: var(--doctor-soft);
@@ -604,12 +610,6 @@
 .doctor-card-art:focus-visible {
   z-index: 150;
 }
-.doctor-card-cost {
-  color: var(--doctor-muted);
-  font-size: var(--type-data);
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
 .doctor-card-status {
   display: inline-flex;
   padding: 3px 7px;
@@ -646,22 +646,6 @@
 }
 .dark .doctor-card-status.in-deck {
   color: color-mix(in srgb, var(--commander-accent, #7546a8) 45%, white);
-}
-.doctor-card-cost {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-.doctor-reference-card {
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  justify-items: start;
-  gap: 6px;
-  padding: 8px;
-  border: 1px solid var(--doctor-border);
-  border-radius: 9px;
-  background: var(--doctor-soft);
 }
 .doctor-signal-details,
 .doctor-signal-details li {
@@ -828,12 +812,19 @@
   color: var(--text-muted);
   font-size: var(--type-body);
 }
+/* Columns, not grid rows: short cards (the curve) no longer leave a row of blank space. */
 .deck-review-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: start;
-  gap: 14px;
+  columns: 3 260px;
+  column-gap: 14px;
   margin-top: 16px;
+}
+.deck-review-grid > .deck-review-section {
+  margin-bottom: 14px;
+  break-inside: avoid;
+}
+/* At a glance is the headline: one full-width strip above the detail cards. */
+.deck-review-grid > .deck-review-overview {
+  column-span: all;
 }
 .deck-review-section {
   min-width: 0;
@@ -861,14 +852,15 @@
   display: grid;
   gap: 8px;
 }
+.deck-review-overview .deck-review-findings {
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px 24px;
+}
 .deck-review-findings > div {
   display: grid;
+  align-content: start;
+  justify-items: start;
   gap: 4px;
-  padding: 8px 0;
-  border-bottom: 1px solid #e0deea;
-}
-.deck-review-findings > div:last-child {
-  border-bottom: 0;
 }
 .deck-review-findings > div > b {
   font-size: var(--type-body);
@@ -892,9 +884,10 @@
   background: #e6f3e8;
   color: var(--text-success);
 }
+/* Findings are possible gaps, not errors: amber, as "How review works" says. */
 .deck-review-status.attention {
-  background: #fae9e6;
-  color: var(--text-danger);
+  background: #fdf5e4;
+  color: var(--text-warning);
 }
 .deck-review-status.neutral {
   background: #eeedf7;
@@ -931,14 +924,24 @@
   color: var(--text-muted);
   font-size: var(--type-data);
 }
+/* The role card holds the filter button and its target stepper; a button can't nest inputs. */
 .deck-review-role {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px;
-  align-items: center;
+  border: 1px solid #d5d3e1;
+  border-radius: 7px;
+  background: #fbfaff;
 }
-.deck-review-role-filter {
-  min-height: 76px;
+.deck-review-role:has(.deck-review-role-filter:hover) {
+  border-color: var(--commander-accent, #7546a8);
+}
+.deck-review-role .deck-review-role-filter {
+  border: 0;
+  border-radius: 7px 7px 0 0;
+  background: transparent;
+}
+.deck-review-role .deck-review-role-filter:hover,
+.deck-review-role .deck-review-role-filter:focus-visible {
+  background: #f0eef9;
 }
 .deck-review-row-heading,
 .deck-review-colour-heading,
@@ -966,18 +969,14 @@
   background: var(--commander-accent, #7546a8);
 }
 .deck-review-target {
-  display: grid;
-  gap: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 9px;
+  border-top: 1px solid #e0deea;
   color: var(--text-muted);
   font-size: var(--type-data);
-  text-align: center;
-}
-.deck-review-target input {
-  width: 43px;
-  padding: 5px 2px;
-  border-radius: 5px;
-  font-size: var(--type-data);
-  text-align: center;
 }
 .deck-review-colour-filter {
   gap: 8px;
@@ -1036,14 +1035,11 @@
   background: #1b1a2a;
   color: var(--text-body);
 }
-.dark .deck-review-findings > div {
-  border-color: #39374f;
-}
 .dark .deck-review-status.good {
   background: #203929;
 }
 .dark .deck-review-status.attention {
-  background: #482a2a;
+  background: #2a2216;
 }
 .dark .deck-review-status.neutral {
   background: #292644;
@@ -1053,8 +1049,17 @@
   background: #121121;
 }
 .dark .deck-review-filter:hover,
-.dark .deck-review-filter:focus-visible {
+.dark .deck-review-filter:focus-visible,
+.dark .deck-review-role .deck-review-role-filter:hover,
+.dark .deck-review-role .deck-review-role-filter:focus-visible {
   background: #292644;
+}
+.dark .deck-review-role {
+  border-color: var(--border-control);
+  background: #121121;
+}
+.dark .deck-review-target {
+  border-color: #39374f;
 }
 .dark .deck-review-ratio {
   background: #39374f;
@@ -1062,15 +1067,7 @@
 .dark .deck-review-colour-counts > span {
   background: #292644;
 }
-@media (max-width: 960px) {
-  .deck-review-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 @media (max-width: 620px) {
-  .deck-review-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .doctor-navigation {
     display: block;
   }
