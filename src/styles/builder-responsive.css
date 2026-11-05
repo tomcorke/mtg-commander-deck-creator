@@ -154,16 +154,6 @@
 .dark .health-card-reason {
   color: var(--text-strong);
 }
-.dark .commander-promotion-button {
-  border-color: #8d88db;
-  color: var(--text-strong);
-}
-.dark .commander-promotion-button:not(:disabled):hover,
-.dark .commander-promotion-button:not(:disabled):focus-visible {
-  border-color: #b786f2;
-  background: #34314f;
-  color: var(--text-body);
-}
 .dark .commander-warning {
   color: var(--text-danger) !important;
 }

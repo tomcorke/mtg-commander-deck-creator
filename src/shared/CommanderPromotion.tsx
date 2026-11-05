@@ -18,7 +18,7 @@ export function CommanderPromotion({ info, onPromote, onOpenCard }: CommanderPro
     <div className="commander-promotion">
       <button
         type="button"
-        className="commander-promotion-button"
+        className="compact-action commander-promotion-button"
         disabled={!info.canPromote}
         onClick={onPromote}
       >

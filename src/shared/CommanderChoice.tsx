@@ -39,7 +39,7 @@ export function ColourPicker({
   )
 }
 
-/** A commander search result: art, name reference, cost, and the caller's choose action. */
+/** A commander search result: art, name reference, cost, type line, and the caller's choose action. */
 export function CommanderChoiceTile({
   card,
   openCard,
@@ -70,6 +70,7 @@ export function CommanderChoiceTile({
       }
       name={<CardReference card={converted} preview={false} onOpen={() => openCard(converted)} />}
       cost={card.mana_cost ?? card.card_faces?.[0]?.mana_cost}
+      detail={converted.typeLine}
       actions={action}
     >
       {note}
