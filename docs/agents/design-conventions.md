@@ -75,7 +75,7 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 **Dialogs**
 
 - Every dialog uses `useDialogFocus` (#282).
-  - A dialog opened from a dialog that then closes returns focus to `<body>`: the Collection browser opens from Recommendation settings, which closes in a later commit, so its opener ("Browse these cards") is gone by close. Before #282 focus also landed on `<body>`.
+  - A dialog opened from a dialog that then closes returns focus to `<body>`: the Collection browser opens from Recommendation settings, which closes in a later commit, so its opener ("Browse these cards") is gone by close. Before #282 focus also landed on `<body>`. #316.
 - Recommendation settings scroll as a whole, so the footer ("Done") sits below the fold. #298.
 - The card details eyebrow reads "Deck card" for the commander and "Card details" for a recommendation. The action row (`.deck-card-modal-actions`) butts "Move to main deck" against "Remove from sideboard" at different font sizes. #299.
 
