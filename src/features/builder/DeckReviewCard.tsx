@@ -59,7 +59,7 @@ export function ReviewCardTile({
       selected={Boolean(selection?.checked || quantity?.value)}
       selection={
         quantity ? (
-          <div className="doctor-card-select">
+          <div className="doctor-card-select" role="group" aria-label={`Cut ${card.name}`}>
             <span aria-hidden="true">Cut</span>
             <span className="target-stepper">
               <button
