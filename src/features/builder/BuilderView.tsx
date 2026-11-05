@@ -755,9 +755,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               </div>
             </div>
           ) : recommendationState === 'error' ? (
-            <div className="empty">
+            <div className="empty" role="alert">
               <h3>Suggestions unavailable</h3>
-              <p>{collectionError || 'Scryfall is busy. Try this commander again shortly.'}</p>
+              <p className="form-error">
+                {collectionError || 'Scryfall is busy. Try this commander again shortly.'}
+              </p>
               <button
                 className="primary"
                 type="button"
@@ -820,6 +822,46 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       )}
                       <div className="offer-heading">
                         <p className="suggestion-type">{reason.label}</p>
+                      </div>
+                      <div className="offered-image">
+                        <FinishedCardImage
+                          image={card.image}
+                          backImage={card.backImage}
+                          alt={`${card.name} card`}
+                          cardName={card.name}
+                          finish={card.finish}
+                          foilType={card.foilType}
+                          set={card.set}
+                          collectorNumber={card.collectorNumber}
+                          hasSynergyGlow={pairCards.includes(card)}
+                          className="card-face-image"
+                          showFlipButton
+                          printing={{
+                            count: card.printings?.length ?? 0,
+                            index: card.printing ?? 0,
+                            loading: Boolean(loadingArt),
+                            name: card.name,
+                            onClick: () => void cyclePrinting(card),
+                          }}
+                        />
+                        {pairCards.includes(card) && synergyPair && (
+                          <span className="synergy-info">
+                            <button type="button" aria-describedby={`synergy-${card.name}`}>
+                              ⓘ Synergy
+                            </button>
+                            <span
+                              className="action-help synergy-popover"
+                              id={`synergy-${card.name}`}
+                              role="tooltip"
+                            >
+                              <strong>
+                                {card.name} + {pairCards.find((item) => item !== card)?.name}
+                              </strong>
+                              <span>{synergyPair.explanation}.</span>
+                            </span>
+                          </span>
+                        )}
+                        <ArtLoading active={loadingArt === card.name} />
                       </div>
                       <div
                         data-guide={index === 0 ? 'decisions' : undefined}
@@ -902,46 +944,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             ))}
                         </div>
                       )}
-                      <div className="offered-image">
-                        <FinishedCardImage
-                          image={card.image}
-                          backImage={card.backImage}
-                          alt={`${card.name} card`}
-                          cardName={card.name}
-                          finish={card.finish}
-                          foilType={card.foilType}
-                          set={card.set}
-                          collectorNumber={card.collectorNumber}
-                          hasSynergyGlow={pairCards.includes(card)}
-                          className="card-face-image"
-                          showFlipButton
-                          printing={{
-                            count: card.printings?.length ?? 0,
-                            index: card.printing ?? 0,
-                            loading: Boolean(loadingArt),
-                            name: card.name,
-                            onClick: () => void cyclePrinting(card),
-                          }}
-                        />
-                        {pairCards.includes(card) && synergyPair && (
-                          <span className="synergy-info">
-                            <button type="button" aria-describedby={`synergy-${card.name}`}>
-                              ⓘ Synergy
-                            </button>
-                            <span
-                              className="action-help synergy-popover"
-                              id={`synergy-${card.name}`}
-                              role="tooltip"
-                            >
-                              <strong>
-                                {card.name} + {pairCards.find((item) => item !== card)?.name}
-                              </strong>
-                              <span>{synergyPair.explanation}.</span>
-                            </span>
-                          </span>
-                        )}
-                        <ArtLoading active={loadingArt === card.name} />
-                      </div>
                       <div className="card-copy">
                         <h3>
                           <CardReference card={card} onOpen={() => model.openCardReference(card)} />

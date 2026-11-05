@@ -225,9 +225,6 @@
   .workspace {
     grid-template-columns: 1fr;
   }
-  .card-grid {
-    grid-template-columns: 1fr;
-  }
   .recommendation-toolbar {
     align-items: flex-start;
   }

@@ -101,9 +101,9 @@
   margin: 0;
   font-size: var(--type-section);
 }
-.section-title h2:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 4px;
+/* A focus-target heading is not a control, so landing on it draws no ring. */
+.section-title h2[tabindex='-1']:focus {
+  outline: none;
 }
 .section-title > span {
   color: var(--text-muted);
