@@ -50,7 +50,6 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 
 **Buttons**
 
-- Several `.primary` buttons in one region: Saved decks has "Load" on every row. #300.
 - Card search "Add to deck" is an outline button, while the builder offer's Add is `.primary` for the same action. #292.
 - Selected tab filled solid instead of tinted: Export format tabs (`.format-tabs button.selected`). #301.
 - Within one row, the "Add to" toggle and "Select several" (card search results header) use different font sizes. #292.
@@ -275,10 +274,13 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #300 Saved decks
 
-- **Hierarchy**: "Delete" is red text with no outline. On the draft open in this tab it renders greyed with no reason given. `light/saved-delete-confirm.png`.
-- **Hierarchy**: "Load" is `.primary` on every row. `light/saved-delete-confirm.png`.
-- **Feedback**: the empty state is text only, with no next action. `light/saved-empty.png`.
-- **Identity cues**: rows show commander art but no colour identity. `light/saved-delete-confirm.png`.
+- Fixed: Delete is `.danger` (#280). On a draft open in a tab it stays disabled, and hovering its wrapper shows the reason as `.action-help.end` ("Decks open in a tab cannot be deleted"), linked by `aria-describedby`. The row's badge ("Editing in this tab", "Open in another tab") gives keyboard users the same reason.
+- Fixed: row actions "Load", "Open in this tab" and "Apply limits" are `.export`; the filled one-off `.saved-deck-load` colours are gone. The save form's button is the region's one `.primary`.
+- Fixed: each empty section says what to do next, under the section's divider: drafts autosave once a commander is chosen; manual saves point at the save form, or at choosing a commander when none is set. An empty list renders nothing, and the draft-copy helper shows only when drafts exist.
+- Fixed: rows show colour identity as icons after the commander name (`ManaSymbols`, names in alt text).
+- Fixed: the duplicate-name note ("A save already uses this name…") takes `--text-warning`; it warns, it isn't an error.
+- At 600px and below, row actions wrap to the left edge, so their hints anchor left (`.saved-deck-delete-wrap .action-help.end`) to stay on screen.
+- To reach both Delete hints: save two manual decks (`saved-delete-confirm` arms one), then **Start over**; the first draft goes inactive and its Delete enables. A second tab on `#build` shows `WorkspaceNotice`.
 
 ### #301 Import and export
 
@@ -723,11 +725,11 @@ dr.fill(d.querySelector('input[aria-label="Deck name"], input'), 'Audit deck')
 await dr.sleep(100)
 await dr.click('Save deck')
 await dr.sleep(600)
-// saved-delete-confirm · #300 · #build
+// saved-delete-confirm · #300 · #build · after saved-manual
 await dr.builderReady()
 await dr.click('Saved decks')
 const d = await dr.dialog()
-const del = [...d.querySelectorAll('button')].find((b) => /Delete|Remove/.test(b.textContent))
+const del = d.querySelector('.saved-deck-list:not(.autosaved-draft-list) button.danger')
 del?.click()
 await dr.sleep(400)
 return del?.textContent

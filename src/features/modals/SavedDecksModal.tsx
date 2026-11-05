@@ -4,11 +4,26 @@ import { useDialogFocus } from '../../shared/hooks.ts'
 import type { SavedDeck } from '../../deck-state.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
+import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import type { DeckCard } from '../../domain/card-model.ts'
 import type { AutosavedDraft, DeckWorkspace } from '../../autosaves.ts'
 import { confirmDialog } from '../../shared/ConfirmDialog.tsx'
 import { DraftSavedTime } from './WorkspaceNotice.tsx'
+
+// Identity as icons only; the symbols' alt text carries the colour names.
+function CommanderLine({ card, openCard }: { card: DeckCard; openCard: (card: DeckCard) => void }) {
+  return (
+    <span className="saved-deck-commander">
+      <CardReference card={card} onOpen={() => openCard(card)} />
+      {card.colorIdentity && (
+        <span className="saved-deck-identity">
+          <ManaSymbols symbols={card.colorIdentity.length ? card.colorIdentity : ['C']} />
+        </span>
+      )}
+    </span>
+  )
+}
 
 type SavedDecksModalProps = {
   show: boolean
@@ -112,101 +127,107 @@ export function SavedDecksModal({
           <ModalCloseButton onClick={() => closeModal()} label="Close saved decks" />
         </div>
         <h3 className="draft-section-title">Autosaved drafts</h3>
-        <p className="draft-help">
-          Opening a draft makes a separate copy in this tab; edits do not change the original.
-        </p>
+        {autosave.drafts.length > 0 && (
+          <p className="draft-help">
+            Opening a draft makes a separate copy in this tab; edits do not change the original.
+          </p>
+        )}
         <div className="saved-deck-list autosaved-draft-list">
-          {autosave.drafts.map((draft) => (
-            <article key={draft.id}>
-              <button
-                className="saved-deck-art"
-                type="button"
-                tabIndex={-1}
-                aria-hidden="true"
-                onClick={() => openCard(draft.state.deck[0])}
-              >
-                <SmallCardImage image={draft.state.deck[0].image} placement="reference" />
-              </button>
-              <div className="saved-deck-details">
-                {draft.name && draft.name !== draft.state.commander && <b>{draft.name}</b>}
-                <CardReference
-                  card={draft.state.deck[0]}
-                  onOpen={() => openCard(draft.state.deck[0])}
-                />
-                <p className="saved-deck-meta">
-                  {draft.id === autosave.id ? (
-                    <span className="saved-deck-badge">Editing in this tab</span>
-                  ) : (
-                    autosave.activeIds.includes(draft.id) && (
-                      <span className="saved-deck-badge" title="Opening makes a copy">
-                        Open in another tab
+          {autosave.drafts.map((draft) => {
+            const openInTab = draft.id === autosave.id || autosave.activeIds.includes(draft.id)
+            return (
+              <article key={draft.id}>
+                <button
+                  className="saved-deck-art"
+                  type="button"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  onClick={() => openCard(draft.state.deck[0])}
+                >
+                  <SmallCardImage image={draft.state.deck[0].image} placement="reference" />
+                </button>
+                <div className="saved-deck-details">
+                  {draft.name && draft.name !== draft.state.commander && <b>{draft.name}</b>}
+                  <CommanderLine card={draft.state.deck[0]} openCard={openCard} />
+                  <p className="saved-deck-meta">
+                    {draft.id === autosave.id ? (
+                      <span className="saved-deck-badge">Editing in this tab</span>
+                    ) : (
+                      autosave.activeIds.includes(draft.id) && (
+                        <span className="saved-deck-badge" title="Opening makes a copy">
+                          Open in another tab
+                        </span>
+                      )
+                    )}
+                    <small>
+                      {draft.state.deck.length}/100 cards · Saved{' '}
+                      <DraftSavedTime updatedAt={draft.updatedAt} />
+                    </small>
+                    {draft.state.deck.length > 1 && (
+                      <span className="saved-deck-last">
+                        <small>· Last added</small>{' '}
+                        <CardReference
+                          card={draft.state.deck.at(-1)!}
+                          onOpen={() => openCard(draft.state.deck.at(-1)!)}
+                        />
                       </span>
-                    )
-                  )}
-                  <small>
-                    {draft.state.deck.length}/100 cards · Saved{' '}
-                    <DraftSavedTime updatedAt={draft.updatedAt} />
-                  </small>
-                  {draft.state.deck.length > 1 && (
-                    <span className="saved-deck-last">
-                      <small>· Last added</small>{' '}
-                      <CardReference
-                        card={draft.state.deck.at(-1)!}
-                        onOpen={() => openCard(draft.state.deck.at(-1)!)}
-                      />
+                    )}
+                  </p>
+                </div>
+                {(!showBuilder || draft.id !== autosave.id) && (
+                  <button
+                    className="export saved-deck-load"
+                    type="button"
+                    disabled={loading || autosave.busy}
+                    onClick={() => loadAutosave(draft)}
+                  >
+                    Open in this tab
+                  </button>
+                )}
+                <span className="saved-deck-delete-wrap">
+                  <button
+                    type="button"
+                    className={`danger saved-deck-delete ${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'confirm' : ''}`}
+                    disabled={!autosave.cleanupAvailable || autosave.busy || openInTab}
+                    aria-describedby={openInTab ? `draft-open-${draft.id}` : undefined}
+                    onClick={() => {
+                      if (pendingSavedDeckRemoval !== `draft:${draft.id}`) {
+                        setPendingSavedDeckRemoval(`draft:${draft.id}`)
+                        return
+                      }
+                      setPendingSavedDeckRemoval('')
+                      // The asynchronous delete disables this button; focus a stable control first.
+                      dialog.ref.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
+                      void workspace.deleteDraft(draft)
+                    }}
+                    aria-label={`${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm deletion of' : 'Delete'} draft ${draft.name || draft.state.commander}`}
+                  >
+                    {pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm' : 'Delete'}
+                  </button>
+                  {pendingSavedDeckRemoval === `draft:${draft.id}` && (
+                    <span className="action-help end saved-delete-confirm" role="tooltip">
+                      Click again to delete
                     </span>
                   )}
-                </p>
-              </div>
-              {(!showBuilder || draft.id !== autosave.id) && (
-                <button
-                  className="saved-deck-load"
-                  type="button"
-                  disabled={loading || autosave.busy}
-                  onClick={() => loadAutosave(draft)}
-                >
-                  Open in this tab
-                </button>
-              )}
-              <span className="saved-deck-delete-wrap">
-                <button
-                  type="button"
-                  className={`danger saved-deck-delete ${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'confirm' : ''}`}
-                  disabled={
-                    !autosave.cleanupAvailable ||
-                    autosave.busy ||
-                    draft.id === autosave.id ||
-                    autosave.activeIds.includes(draft.id)
-                  }
-                  title={
-                    draft.id === autosave.id || autosave.activeIds.includes(draft.id)
-                      ? 'Decks open in a tab cannot be deleted'
-                      : undefined
-                  }
-                  onClick={() => {
-                    if (pendingSavedDeckRemoval !== `draft:${draft.id}`) {
-                      setPendingSavedDeckRemoval(`draft:${draft.id}`)
-                      return
-                    }
-                    setPendingSavedDeckRemoval('')
-                    // The asynchronous delete disables this button; focus a stable control first.
-                    dialog.ref.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
-                    void workspace.deleteDraft(draft)
-                  }}
-                  aria-label={`${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm deletion of' : 'Delete'} draft ${draft.name || draft.state.commander}`}
-                >
-                  {pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm' : 'Delete'}
-                </button>
-                {pendingSavedDeckRemoval === `draft:${draft.id}` && (
-                  <span className="action-help end saved-delete-confirm" role="tooltip">
-                    Click again to delete
-                  </span>
-                )}
-              </span>
-            </article>
-          ))}
+                  {openInTab && (
+                    <span
+                      className="action-help end saved-delete-confirm"
+                      role="tooltip"
+                      id={`draft-open-${draft.id}`}
+                    >
+                      Decks open in a tab cannot be deleted
+                    </span>
+                  )}
+                </span>
+              </article>
+            )
+          })}
         </div>
-        {!autosave.drafts.length && <p className="saved-decks-empty">No autosaved drafts yet.</p>}
+        {!autosave.drafts.length && (
+          <p className="saved-decks-empty">
+            No autosaved drafts yet. Choose a commander and the deck autosaves here as you build.
+          </p>
+        )}
         {autosave.draftDeleteError && (
           <p className="draft-help" role="status">
             {autosave.draftDeleteError}
@@ -281,17 +302,14 @@ export function SavedDecksModal({
               </button>
               <div className="saved-deck-details">
                 {saved.name !== saved.state.commander && <b>{saved.name}</b>}
-                <CardReference
-                  card={saved.state.deck[0]}
-                  onOpen={() => openCard(saved.state.deck[0])}
-                />
+                <CommanderLine card={saved.state.deck[0]} openCard={openCard} />
                 <small>
                   {saved.state.deck.length}/100 cards · Updated{' '}
                   <DraftSavedTime updatedAt={saved.updatedAt} />
                 </small>
               </div>
               <button
-                className="saved-deck-load"
+                className="export saved-deck-load"
                 type="button"
                 disabled={loading || autosave.busy}
                 onClick={() => loadSavedDeck(saved)}
@@ -327,7 +345,13 @@ export function SavedDecksModal({
             </article>
           ))}
         </div>
-        {!savedDecks.length && <p className="saved-decks-empty">No saved decks yet.</p>}
+        {!savedDecks.length && (
+          <p className="saved-decks-empty">
+            {commander
+              ? 'No saved decks yet. Name this deck above and save it to keep a copy.'
+              : 'No saved decks yet. Choose a commander, then save the deck here.'}
+          </p>
+        )}
         <details className="autosave-retention-settings">
           <summary>Autosave limits</summary>
           <form
@@ -369,7 +393,7 @@ export function SavedDecksModal({
                 />
               </label>
               <button
-                className="saved-deck-load"
+                className="export saved-deck-load"
                 disabled={!autosave.cleanupAvailable || autosave.busy}
               >
                 Apply limits
