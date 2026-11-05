@@ -337,21 +337,9 @@
   font-size: var(--type-data);
   font-weight: 650;
 }
-.doctor-filter select,
-.doctor-card-select input[type='number'] {
-  border: 1px solid var(--doctor-border);
-  border-radius: 6px;
-  background: var(--doctor-soft);
-  color: inherit;
-  font: inherit;
-}
 .doctor-filter select {
   padding: 6px 8px;
-}
-.doctor-card-select input[type='number'] {
-  width: 48px;
-  padding: 3px 4px;
-  text-align: center;
+  border-radius: 6px;
 }
 .doctor-overview {
   display: grid;
@@ -573,20 +561,38 @@
 .doctor-reference-grid + .doctor-show-more {
   margin-top: 12px;
 }
-.doctor-card-tile {
+/* Compound selector: the shared .card-tile border loads later and would otherwise draw currentColor. */
+.card-tile.doctor-card-tile {
   border-color: var(--doctor-border);
   background: var(--doctor-soft);
 }
-.doctor-card-tile.selected {
-  border-color: var(--commander-accent, #7546a8);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--commander-accent, #7546a8) 24%, transparent);
+/* Selected at rest: the toggle tokens, plus a ring so the pick reads without colour alone. */
+.card-tile.doctor-card-tile.selected {
+  border-color: var(--selected-border);
+  background: color-mix(in srgb, var(--selected-background) 45%, var(--doctor-soft));
+  box-shadow: 0 0 0 1px var(--selected-border);
 }
 .doctor-card-select {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  color: var(--doctor-muted);
+  gap: 4px 8px;
+  /* The stepper's height, so checkbox and stepper tiles keep their art in line. */
+  min-height: 30px;
+  color: var(--text-muted);
   font-weight: 650;
+}
+.doctor-card-select .target-stepper input {
+  width: 44px;
+}
+/* At most six columns, so a preview of 6 and pages of 12 fill whole rows (as the Start grid). */
+@media (min-width: 621px) {
+  .doctor-change-panel .doctor-card-grid {
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(min(max(150px, calc((100% - 60px) / 6)), 100%), 1fr)
+    );
+  }
 }
 .doctor-card-art {
   display: grid;
@@ -614,8 +620,8 @@
   display: inline-flex;
   padding: 3px 7px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--doctor-muted) 12%, transparent);
-  color: var(--doctor-muted);
+  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  color: var(--text-muted);
   font-size: var(--type-data);
   font-weight: 700;
 }
@@ -639,7 +645,7 @@
 }
 .doctor-card-fit--possible,
 .doctor-card-fit--low {
-  color: var(--doctor-muted);
+  color: var(--text-muted);
 }
 .dark .doctor-card-fit--recommended {
   color: color-mix(in srgb, var(--commander-accent, #7546a8) 45%, white);
