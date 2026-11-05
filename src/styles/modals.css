@@ -551,7 +551,6 @@
 .doctor-reference-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  align-items: start;
   gap: 12px;
 }
 .doctor-candidate-group {
@@ -608,7 +607,6 @@
 .doctor-card-art:focus-visible {
   z-index: 150;
 }
-.doctor-card-tile .card-tile-note,
 .doctor-card-cost {
   color: var(--doctor-muted);
   font-size: var(--type-data);
@@ -629,29 +627,21 @@
   color: var(--commander-accent, #7546a8);
 }
 .doctor-card-fit {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  font-size: var(--type-data);
   font-weight: 700;
+  white-space: nowrap;
 }
 .doctor-card-fit-stars {
   letter-spacing: 0.5px;
 }
 .doctor-card-fit--top,
 .doctor-card-fit--strong {
-  background: color-mix(in srgb, #23a566 18%, var(--doctor-panel));
   color: var(--text-success);
 }
 .doctor-card-fit--recommended {
-  background: color-mix(in srgb, var(--commander-accent, #7546a8) 14%, var(--doctor-panel));
   color: var(--commander-accent, #7546a8);
 }
 .doctor-card-fit--possible,
 .doctor-card-fit--low {
-  background: color-mix(in srgb, var(--doctor-muted) 10%, var(--doctor-panel));
   color: var(--doctor-muted);
 }
 .dark .doctor-card-fit--recommended {

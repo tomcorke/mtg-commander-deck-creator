@@ -3,8 +3,9 @@ import { OracleText } from './ManaSymbols.tsx'
 
 /**
  * Shared card tile for the start, search and review grids. Every tile puts the
- * selection control on top, then art, badges, name, mana cost, extra details and
- * actions, so the screens read as one tool. Recommendation offers stay separate.
+ * selection control on top, then art, state badges, one name + cost line, one
+ * muted detail line, extras and actions, so the screens read as one tool.
+ * Recommendation offers stay separate.
  */
 export function CardTile({
   size = 'medium',
@@ -15,6 +16,7 @@ export function CardTile({
   badges,
   name,
   cost,
+  detail,
   children,
   actions,
 }: {
@@ -26,6 +28,8 @@ export function CardTile({
   badges?: ReactNode
   name: ReactNode
   cost?: string
+  /** One muted line: type line, reason or fit. */
+  detail?: ReactNode
   children?: ReactNode
   actions?: ReactNode
 }) {
@@ -41,6 +45,7 @@ export function CardTile({
           {name}
           <span className="card-tile-cost">{cost && <OracleText text={cost} />}</span>
         </div>
+        {detail && <p className="card-tile-detail">{detail}</p>}
         {children}
       </div>
       {actions && <div className="card-tile-actions">{actions}</div>}

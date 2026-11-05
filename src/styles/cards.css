@@ -1042,6 +1042,10 @@ button:disabled {
   gap: 4px;
   font-size: var(--type-data);
 }
+/* Badges wrap between pills, never inside one. */
+.card-tile-badges > * {
+  white-space: nowrap;
+}
 .card-tile-cost {
   display: flex;
   flex-wrap: nowrap;
@@ -1051,12 +1055,14 @@ button:disabled {
   min-height: 20px;
 }
 .card-tile-caption > p,
-.card-tile-caption > details,
-.card-tile-note {
+.card-tile-caption > details {
   margin: 0;
   font-size: var(--type-data);
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+.card-tile-caption > .card-tile-detail {
+  color: var(--text-muted);
 }
 .card-tile-actions {
   display: flex;
