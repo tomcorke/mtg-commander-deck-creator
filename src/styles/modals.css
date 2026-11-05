@@ -587,7 +587,8 @@
 }
 /* At most six columns, so a preview of 6 and pages of 12 fill whole rows (as the Start grid). */
 @media (min-width: 621px) {
-  .doctor-change-panel .doctor-card-grid {
+  .doctor-change-panel .doctor-card-grid,
+  .doctor-plan .doctor-card-grid {
     grid-template-columns: repeat(
       auto-fill,
       minmax(min(max(150px, calc((100% - 60px) / 6)), 100%), 1fr)
@@ -698,13 +699,33 @@
   color: var(--doctor-muted);
   font-size: var(--type-data);
 }
+/* A changed count reads first; unchanged counts stay muted. */
+.doctor-impact .changed {
+  color: var(--doctor-text);
+  font-weight: 700;
+}
+.doctor-impact em {
+  color: var(--text-warning);
+  font-style: normal;
+}
+/* Pairs flow as cards, so each swap's two tiles sit together at tile width. */
 .doctor-plan-pairs {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
+  gap: 18px 12px;
 }
 .doctor-plan-pair,
-.doctor-history-pair,
 .doctor-commander-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+}
+.doctor-plan-pair .doctor-pair-arrow,
+.doctor-commander-pair .doctor-pair-arrow {
+  align-self: center;
+}
+.doctor-history-pair {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
   align-items: center;
@@ -759,11 +780,28 @@
   display: grid;
   gap: 12px;
 }
+/* One centred column: DeckReviewCard art previews are absolute (#297), so a tile at the dialog edge would scroll it. */
 .doctor-commander-results {
+  grid-template-columns: minmax(0, 460px);
+  justify-content: center;
   margin-top: 8px;
+}
+.doctor-commander-results > p {
+  grid-column: 1 / -1;
+}
+.doctor-commander-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.doctor-commander-empty p {
+  margin: 0;
 }
 .doctor-commander-option {
   display: grid;
+  align-content: start;
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--doctor-border);
@@ -800,15 +838,14 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
-  .doctor-plan-pair,
-  .doctor-history-pair,
-  .doctor-commander-pair {
+  /* Plan and commander pairs stay side by side, as Diagnose suggestions do. */
+  .doctor-history-pair {
     grid-template-columns: minmax(0, 1fr);
   }
   .doctor-suggestion:has(.doctor-pair-arrow) {
     grid-column: 1 / -1;
   }
-  .doctor-pair-arrow {
+  .doctor-history-pair .doctor-pair-arrow {
     justify-self: center;
     transform: rotate(90deg);
   }
