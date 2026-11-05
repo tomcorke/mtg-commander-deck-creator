@@ -148,7 +148,7 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 - Fixed: the commander name wrapped to two lines at 1366px in every mode. The `.commander-header` summary column now sizes to the name (`minmax(260px, auto)`) and the setup column keeps its 480px minimum, so "Meren of Clan Nel Toth" fits on one line at 1366px. Narrower, the title wraps with `text-wrap: balance`.
 - Fixed by earlier slices: the Doctor "Change commander" is already `.export`, like "Compare commanders". With the wider column the two now sit on one row.
-- Moved to #289: during the play-style step, the sidebar shows live deck targets (0/35 lands, "Fill now") for a one-card deck. The sidebar is #289's region, and hiding its enabled actions changes the behaviour contract.
+- Moved to #289, then deferred to #328: during the play-style step, the sidebar shows live deck targets (0/35 lands, "Fill now") for a one-card deck.
 - Fixed: the intro guide's footer spread Back, `.primary` Next and Skip across the row, and its step count was screen-reader only. The footer now follows the dialog shell: Skip on the left, Back + Next on the right. A `Guide · 1 of 5` eyebrow sits above the title. The dark guide's hardcoded `.primary` fill is gone, so it takes `--action-fill` like every other dialog.
 - Kept: the play-style step keeps its own `h2` ("How do you want to play?") under the header's "Setup / Choose a play style". They sit in different regions, and the header `h2` is the focus target once the step closes.
 
@@ -172,10 +172,15 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #289 Deck analysis sidebar
 
-- **Feedback** (behaviour bug, filed as #306): while "Checking card data…" shows, the sidebar presents zeros as facts ("Lands 0/35", "Fill to land target · 16 lands left"), and the deck board lumps cards into "Other 59". `builder-card-data-loading.light.png` (baseline root).
-- **Hierarchy**: the same role metric is drawn as plain bars in the sidebar but as bordered cards with "Target met" badges in the Doctor. `light/builder.png` vs `light/review-c-diagnose.png`.
-- **Hierarchy**: in Deck targets, the focused row ("Card draw") is boxed and the others aren't. `light/builder.png`.
-- **Feedback**: mana curve bars peak around 20px, which is hard to read. `light/builder.png`.
+- Seen, not fixed (#306): while "Checking card data…" shows, the sidebar still reads zeros as facts ("Lands 0/35", "Fill to land target · 16 lands left").
+- Fixed (**Feedback**): the mana curve scaled each bar against its column's permanent + non-permanent sum, so the tallest bar peaked at about 36px of 64. The two bars sit side by side, so `ManaCurve` now scales against the tallest single bar, and bars are 10px wide. The Doctor curve shares the component, so it changed too.
+- Fixed (**Hierarchy**): Deck targets drew rows below target as boxed `.export` buttons and met rows as plain text, offset by the button padding. Every row now shares one transparent box, outset so labels line up with the rest of the sidebar. A row below target stays the role-focus button: accent label with a dotted underline, `--border-control` on hover, the focus ring, and `--selected-*` while pressed. A met row shows a `--text-success` ✓ before its count, the Doctor's "Target met" in compact form.
+- Kept (**Hierarchy**): the sidebar draws roles as compact bar rows; the Doctor draws bordered cards with status pills. The sidebar is a glance, the Doctor the full review. Both share the count, the target input and the met state.
+- Kept: sidebar ratio bars use the accent-to-highlight gradient, and Doctor role bars are solid accent.
+- Fixed (**Theming**): with commander styling on in dark mode, permanent curve bars took the dark indigo accent, too dark to see on the panel. They now mix the accent 70% with white, as accent text does.
+- Fixed (**Responsiveness**): the count column widened from 64px to 86px so "✓ 35 / 35" fits. At 375px, the panel and page both have `scrollWidth === clientWidth`.
+- Deferred to #328: during the play-style step, `Use 40`, `Fill now` and role focus stay enabled for a one-card deck. Hiding or disabling them changes enabled states. The setup sidebar now reads quieter because its rows are no longer boxed.
+- Not exercised by gates: the contrast gate tabs and hovers the builder sidebar, but never presses a role row.
 
 ### #290 Deck board
 

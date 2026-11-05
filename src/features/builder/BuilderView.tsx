@@ -1170,7 +1170,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     <button
                       type="button"
                       id={`deck-target-${key}`}
-                      className="export deck-target-focus"
+                      className="deck-target-focus"
                       aria-label={`Focus recommendations on ${targetLabels[key]}: ${analysis.counts[key]} of ${deckTargets[key]}`}
                       aria-pressed={focusedRole === key}
                       disabled={recommendationState !== 'idle'}
@@ -1194,6 +1194,14 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     </span>
                   )}
                   <b>
+                    {analysis.counts[key] >= deckTargets[key] && (
+                      <>
+                        <span className="deck-target-check" aria-hidden="true">
+                          ✓
+                        </span>
+                        <span className="sr-only">Target met: </span>
+                      </>
+                    )}
                     {analysis.counts[key]} /{' '}
                     <input
                       type="number"

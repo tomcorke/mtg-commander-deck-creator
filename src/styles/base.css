@@ -367,10 +367,11 @@ main > .workspace-alert .modal-close {
 .nav-back,
 .nav-forward,
 .card-reference-name,
-.commander-name {
+.commander-name,
+.deck-target-focus {
   --commander-text: color-mix(in srgb, var(--commander-accent, #36327f) 65%, #000);
 }
-.dark :is(.nav-back, .nav-forward, .card-reference-name, .commander-name) {
+.dark :is(.nav-back, .nav-forward, .card-reference-name, .commander-name, .deck-target-focus) {
   --commander-text: color-mix(in srgb, var(--commander-accent, #7650ae) 45%, white);
 }
 /* Navigation, not actions: a full button with a filled arrow segment on the side it travels to. */
