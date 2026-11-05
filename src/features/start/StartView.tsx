@@ -18,11 +18,14 @@ const creatureThemeNames = [...new Set(creatureTypeThemes.values())].sort()
 function CreatureTypeChips({
   theme,
   extras,
+  curated,
   declareTheme,
   setExtras,
 }: {
   theme: string
   extras: string[]
+  /** Visible curated chips; a creature-type theme with one already shows as pressed there. */
+  curated: string[]
   declareTheme: (name: string) => void
   setExtras: (names: string[]) => void
 }) {
@@ -41,17 +44,19 @@ function CreatureTypeChips({
   }
   return (
     <>
-      {chosen.map((name) => (
-        <button
-          className="selected"
-          type="button"
-          key={name}
-          aria-label={`Remove ${name}`}
-          onClick={() => remove(name)}
-        >
-          {name} <span aria-hidden="true">×</span>
-        </button>
-      ))}
+      {chosen
+        .filter((name) => name !== theme || !curated.includes(name))
+        .map((name) => (
+          <button
+            className="selected"
+            type="button"
+            key={name}
+            aria-label={`Remove ${name}`}
+            onClick={() => remove(name)}
+          >
+            {name} <span aria-hidden="true">×</span>
+          </button>
+        ))}
       {chosen.length < 3 &&
         (open ? (
           <input
@@ -180,6 +185,11 @@ export function StartView(props: StartViewProps) {
     ]
       .filter(Boolean)
       .join(' · ') || 'All commanders'
+  const filtered = Boolean(
+    props.theme || props.extraCreatureTypes.length || props.colours.length || props.search,
+  )
+  // The empty grid carries its own Clear filters, so the panel's steps aside to keep one on screen.
+  const noMatches = discovery.status === 'idle' && !discovery.suggestions.length
 
   return (
     <main className={darkMode ? 'dark' : ''}>
@@ -252,7 +262,10 @@ export function StartView(props: StartViewProps) {
         </p>
         <section className="start-panel commander-filters" aria-label="Commander filters">
           <h2>Find a commander</h2>
-          <div className="themes">
+          <h3 className="filter-heading" id="theme-filter-heading">
+            Theme
+          </h3>
+          <div className="themes" role="group" aria-labelledby="theme-filter-heading">
             {props.visibleThemes.map((name) => (
               <button
                 className={props.theme === name ? 'selected' : ''}
@@ -267,6 +280,7 @@ export function StartView(props: StartViewProps) {
             <CreatureTypeChips
               theme={props.theme}
               extras={props.extraCreatureTypes}
+              curated={props.visibleThemes}
               declareTheme={props.declareTheme}
               setExtras={props.setExtraCreatureTypes}
             />
@@ -288,10 +302,14 @@ export function StartView(props: StartViewProps) {
               Show more themes
             </button>
           )}
-          <h3 className="filter-heading">Colour identity</h3>
-          <ColourPicker colours={props.colours} toggleColour={props.toggleColour} />
+          <h3 className="filter-heading" id="colour-filter-heading">
+            Colour identity
+          </h3>
+          <div role="group" aria-labelledby="colour-filter-heading">
+            <ColourPicker colours={props.colours} toggleColour={props.toggleColour} />
+          </div>
           <label className="commander-search">
-            Name
+            <span className="filter-heading">Name</span>
             <input
               value={props.search}
               onChange={(event) => props.setSearch(event.target.value)}
@@ -311,9 +329,11 @@ export function StartView(props: StartViewProps) {
               {summary}
               {props.theme && props.search.trim().length >= 2 && ' · Searching within this theme'}
             </p>
-            <button className="export" type="button" onClick={clearFilters}>
-              Clear filters
-            </button>
+            {!noMatches && (
+              <button className="export" type="button" disabled={!filtered} onClick={clearFilters}>
+                Clear filters
+              </button>
+            )}
           </div>
           <label className="intro-guide-option">
             <input
