@@ -57,7 +57,12 @@ function GuideTooltip({
       aria-describedby="intro-guide-content"
     >
       <div className="export-heading">
-        <h2 id="intro-guide-title">{step.title}</h2>
+        <div>
+          <p className="eyebrow" aria-hidden="true">
+            Guide · {index + 1} of {size}
+          </p>
+          <h2 id="intro-guide-title">{step.title}</h2>
+        </div>
         <ModalCloseButton onClick={() => controls.skip()} label="Skip intro guide" />
       </div>
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
@@ -65,14 +70,14 @@ function GuideTooltip({
       </p>
       <p id="intro-guide-content">{step.content}</p>
       <div className="export-actions">
+        <button {...skipProps} className="export" type="button">
+          Skip
+        </button>
         <button {...backProps} className="export" type="button" disabled={index === 0}>
           Back
         </button>
         <button {...primaryProps} className="primary" type="button">
           {index === size - 1 ? 'Finish' : 'Next'}
-        </button>
-        <button {...skipProps} className="export" type="button">
-          Skip
         </button>
       </div>
     </section>

@@ -1335,7 +1335,8 @@ h1 {
 }
 .commander-header {
   display: grid;
-  grid-template-columns: 88px minmax(260px, 0.8fr) minmax(480px, 1.5fr);
+  /* The summary sizes to the commander name so it stays on one line while the setup column keeps 480px. */
+  grid-template-columns: 88px minmax(260px, auto) minmax(480px, 1fr);
   align-items: center;
   gap: 24px;
 }
@@ -1541,6 +1542,7 @@ main > .commander-header {
 .commander-summary-title {
   margin: 0 0 8px;
   font-size: var(--type-page-title);
+  text-wrap: balance;
 }
 .commander-name {
   display: block;
@@ -1569,8 +1571,12 @@ main > .commander-header {
 .intro-guide h2 {
   font-size: var(--type-section);
   margin: 0;
+  text-wrap: balance;
 }
-.intro-guide p {
+.intro-guide .export-heading {
+  margin-bottom: 8px;
+}
+.intro-guide p:not(.eyebrow) {
   font-size: var(--type-body);
   line-height: 1.5;
 }
@@ -1578,14 +1584,11 @@ main > .commander-header {
   flex-wrap: wrap;
   gap: 8px;
 }
-.intro-guide.dark {
-  background: var(--surface-panel);
-  color: var(--text-body);
-  --focus-ring: #d6b8ff;
+.intro-guide .export-actions > :first-child {
+  margin-right: auto;
 }
-.intro-guide.dark .primary {
-  background: #684695;
-  color: #fff;
+.intro-guide.dark {
+  --focus-ring: #d6b8ff;
 }
 .confirm-modal {
   width: min(460px, 100%);
