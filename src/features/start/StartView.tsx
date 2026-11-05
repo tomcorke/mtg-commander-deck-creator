@@ -87,18 +87,18 @@ function CreatureTypeChips({
   )
 }
 import type { AppModal, AppView } from '../../app/routes.ts'
-import type { DeckCard } from '../../domain/card-model.ts'
+import type { CommanderDetails, DeckCard } from '../../domain/card-model.ts'
 import type { DeckWorkspace } from '../../autosaves.ts'
 import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
 import { Pagination } from '../../shared/Pagination.tsx'
 import { ColourPicker, CommanderChoiceTile } from '../../shared/CommanderChoice.tsx'
-import { CardReference } from '../../shared/CardReference.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { CardTile } from '../../shared/CardTile.tsx'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
+import { CommanderSummary } from '../builder/CommanderSummary.tsx'
 
 type StartViewProps = {
   extraCreatureTypes: string[]
@@ -123,6 +123,7 @@ type StartViewProps = {
   setSearch: Dispatch<SetStateAction<string>>
   chooseCommander: (name: string) => Promise<boolean>
   commander: string
+  commanderDetails: CommanderDetails | null
   deck: DeckCard[]
   autosave: ReturnType<DeckWorkspace['getSnapshot']>
   introGuideRequested: boolean
@@ -202,22 +203,24 @@ export function StartView(props: StartViewProps) {
       {props.importModal}
       <section className="start">
         {resume && (
-          <section className="continue-card" aria-labelledby="continue-title">
+          <section className="continue-card" aria-label="Deck in progress">
             <button
               className="continue-art reset"
               type="button"
               aria-label={`Show details for ${props.deck[0].name}`}
               onClick={() => props.openCardReference(props.deck[0])}
             >
-              <SmallCardImage image={props.deck[0].image} />
+              <SmallCardImage image={props.deck[0].image} placement="reference" />
             </button>
             <div>
-              <h2 id="continue-title">Continue building</h2>
-              <CardReference
-                card={props.deck[0]}
-                onOpen={() => props.openCardReference(props.deck[0])}
+              <CommanderSummary
+                commander={props.commander}
+                colours={props.commanderDetails?.colours ?? null}
+                headingLevel="h2"
+                eyebrow="Deck in progress"
+                onOpenCommander={() => props.openCardReference(props.deck[0])}
               />
-              <p>
+              <p className="continue-meta">
                 {props.deck.length} of 100 cards
                 {draft && (
                   <>
@@ -238,13 +241,15 @@ export function StartView(props: StartViewProps) {
                   Choose another draft
                 </button>
               </div>
-              <p>Choosing a new commander keeps this deck in Autosaved drafts.</p>
             </div>
           </section>
         )}
         <p className="eyebrow">Build from scratch</p>
         <h1>What do you want to play?</h1>
-        <p className="lead">Combine a theme and colour identity, or search for a commander.</p>
+        <p className="lead">
+          Combine a theme and colour identity, or search for a commander.
+          {resume && ' Choosing a new commander keeps this deck in Autosaved drafts.'}
+        </p>
         <section className="start-panel commander-filters" aria-label="Commander filters">
           <h2>Find a commander</h2>
           <div className="themes">

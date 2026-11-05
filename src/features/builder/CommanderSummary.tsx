@@ -7,8 +7,9 @@ type Props = {
   commander: string
   colours: string[] | null
   headingLevel?: 'h1' | 'h2'
+  eyebrow?: string
   /** The change-commander control, rendered beside the other commander actions. */
-  changeCommander: ReactNode
+  changeCommander?: ReactNode
   onOpenCommander: () => void
   onCompareCommanders?: () => void
 }
@@ -17,6 +18,7 @@ export function CommanderSummary({
   commander,
   colours,
   headingLevel = 'h1',
+  eyebrow = 'Building around',
   changeCommander,
   onOpenCommander,
   onCompareCommanders,
@@ -31,7 +33,7 @@ export function CommanderSummary({
 
   return (
     <div className="commander-summary">
-      <p className="eyebrow">Building around</p>
+      <p className="eyebrow">{eyebrow}</p>
       <Heading className="commander-summary-title">
         <button type="button" className="commander-name" onClick={onOpenCommander}>
           {commander}
@@ -43,14 +45,16 @@ export function CommanderSummary({
           <ManaSymbols symbols={colours.length ? colours : ['C']} className="colour" decorative />
         )}
       </div>
-      <div className="commander-summary-actions">
-        {changeCommander}
-        {onCompareCommanders && (
-          <button className="export" type="button" onClick={onCompareCommanders}>
-            Compare commanders
-          </button>
-        )}
-      </div>
+      {(changeCommander || onCompareCommanders) && (
+        <div className="commander-summary-actions">
+          {changeCommander}
+          {onCompareCommanders && (
+            <button className="export" type="button" onClick={onCompareCommanders}>
+              Compare commanders
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
