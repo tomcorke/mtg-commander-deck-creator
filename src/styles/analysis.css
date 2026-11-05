@@ -865,54 +865,20 @@ li.deck-highlight-dimmed {
   align-items: center;
 }
 .deck-add,
-.deck-remove {
+.danger.deck-remove {
   display: grid;
   width: 22px;
   height: 22px;
   padding: 0;
   place-items: center;
-  border: 1px solid var(--border-control);
   border-radius: 50%;
-  background: transparent;
-  color: var(--text-muted);
   line-height: 1;
 }
-.sideboard-move {
-  padding: 4px 7px;
-  border: 1px solid #8d88bd;
-  border-radius: 5px;
+/* The board's x takes its colours from .danger; .deck-add is the neutral stepper. */
+.deck-add {
+  border: 1px solid var(--border-control);
   background: transparent;
-  color: var(--text-accent);
-  font-size: var(--type-data);
-}
-.sideboard-column .deck-remove {
-  opacity: 1;
-}
-.deck-remove-wrap {
-  position: absolute;
-  z-index: 2;
-  right: 0;
-  top: 50%;
-  padding-left: 18px;
-  transform: translateY(-50%);
-}
-.deck-group ol > li:hover .deck-remove-wrap,
-.deck-group ol > li:focus-within .deck-remove-wrap {
-  background: linear-gradient(90deg, transparent, #e9eaf7 18px);
-}
-.deck-remove {
-  background: #e9eaf7;
-  opacity: 0;
-}
-.deck-group ol > li:hover .deck-remove,
-.deck-group ol > li:focus-within .deck-remove,
-.deck-remove.confirm {
-  opacity: 1;
-}
-.deck-remove.confirm {
-  border-color: #a94840;
-  background: #a94840;
-  color: white;
+  color: var(--text-muted);
 }
 /* Inline-confirmation hints: .action-help.end, sized to their one line. */
 .remove-confirm,
@@ -920,20 +886,11 @@ li.deck-highlight-dimmed {
   z-index: 30;
   width: max-content;
 }
-.basics-group .deck-remove,
-.basic-land-row .deck-remove {
-  opacity: 1;
-}
 .deck-group ol > .basic-land-row {
   padding-block: 7px;
 }
 .basic-land-row .deck-card-meta {
   gap: 2px;
-}
-.basic-land-row .deck-add,
-.basic-land-row .deck-remove {
-  width: 22px;
-  height: 22px;
 }
 .basic-placeholder {
   opacity: 0.45;
@@ -1217,20 +1174,31 @@ li b {
   margin: 0 0 0 6px;
   font-size: var(--type-data);
 }
-.deck-board .deck-group ol > li .deck-remove-wrap {
-  position: static;
-  z-index: auto;
-  padding: 0;
-  transform: none;
+.deck-board .card-reference-name:has(.card-reference-thumbnail) {
+  gap: 8px;
 }
-.deck-board .deck-group ol > li .deck-remove-wrap,
-.deck-board .deck-group ol > li:hover .deck-remove-wrap,
-.deck-board .deck-group ol > li:focus-within .deck-remove-wrap {
-  background: transparent;
+.deck-board .card-reference-thumbnail {
+  width: 22px;
 }
-.deck-board .deck-group ol > li .deck-remove {
-  opacity: 1;
-  background: transparent;
+/* Every row has a x, so the danger outline stays faint until the row's x is hovered, focused or armed. */
+.deck-board .deck-remove:not(:hover, :focus-visible, .confirm) {
+  border-color: color-mix(in srgb, var(--text-danger) 40%, transparent);
+}
+/* The tinted board drops a transparent danger tint below AA, so mix the tint over the panel. */
+.deck-board .deck-remove:not(:disabled):hover,
+.deck-board .deck-remove.confirm {
+  background: color-mix(in srgb, var(--text-danger) 12%, var(--surface-panel));
+}
+/* Sideboard rows carry Move to deck, so the actions wrap under a long name instead of breaking it. */
+.deck-board .sideboard-column ol > li {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.deck-board .sideboard-column .deck-card-reference {
+  flex: 1 1 9em;
+}
+.deck-board .sideboard-column .deck-card-meta {
+  margin-left: auto;
 }
 .deck-board .card-quantity {
   color: inherit;
