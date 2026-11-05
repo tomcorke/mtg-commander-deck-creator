@@ -1344,7 +1344,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 )}
                               </span>
                               {index >= commanderNames(commander).length && (
-                                <span className="deck-remove-wrap">
+                                <>
                                   <button
                                     className={`danger deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
                                     type="button"
@@ -1366,7 +1366,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                       Click again to confirm removal
                                     </span>
                                   )}
-                                </span>
+                                </>
                               )}
                             </span>
                           </li>

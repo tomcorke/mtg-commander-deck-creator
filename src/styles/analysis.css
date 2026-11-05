@@ -865,7 +865,7 @@ li.deck-highlight-dimmed {
   align-items: center;
 }
 .deck-add,
-.deck-remove {
+.danger.deck-remove {
   display: grid;
   width: 22px;
   height: 22px;
