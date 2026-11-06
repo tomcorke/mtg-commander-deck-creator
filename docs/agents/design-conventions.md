@@ -51,7 +51,6 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 **Buttons**
 
 - Card search "Add to deck" is an outline button, while the builder offer's Add is `.primary` for the same action. #292.
-- Selected tab filled solid instead of tinted: Export format tabs (`.format-tabs button.selected`). #301.
 - Within one row, the "Add to" toggle and "Select several" (card search results header) use different font sizes. #292.
 
 **Theme and type**
@@ -87,7 +86,6 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 
 - Raw timestamps in UI copy: the top bar's "Saved 05/11/2026, 03:56:23 +0 -0", and the card search 429 error "…after 05/11/2026, 03:55:56). No usable retry time was exposed; this wait is an estimate." #304, #292.
 - The Start top bar reads "Saved decks (0)" while an autosaved draft exists. The builder top bar has no count. The Start top bar is its own markup, not `BuilderTopBar`. #304.
-- The import parse summary ("This list has 84/100…") uses the same amber warning box as the "Deck URLs are not supported" caveat. #301.
 
 ## Per-slice issues
 
@@ -290,8 +288,15 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #301 Import and export
 
-- **Feedback**: the parse summary uses the same amber box as the "Deck URLs are not supported" caveat. "Not found: …" is bold red text outside an alert box. The difference between "Import 2 found cards" and "Import deck" is unclear. `light/import-parsed.png`, `light/import-missing.png`.
-- Not verified: copy confirmation. The headless clipboard was denied, and no confirmation showed. `light/export-copied.png`.
+- Fixed: the parse summary (`.import-summary`, `role=status`) is a muted line under the field. The amber `.import-note` box now holds only the "Deck URLs are not supported" caveat.
+- Fixed: with missing cards, the `.form-error` alert is followed by the next step ("Fix those lines and import again, or skip them and import the N cards found."). The retry-without-missing button reads "Skip missing cards" and sits beside the `.primary`, not centred. Both buttons and their enabled states are unchanged.
+- Decided: a dialog footer with a second secondary keeps the first action left and the rest right, and a wrapped `.primary` keeps the right edge (`.import-modal .export-actions`, like the intro guide). Fold this into **Canonical patterns › Dialog shell** at #305.
+- Fixed: the Export format tabs are toggles (`aria-pressed`, `--selected-*`); the solid fill and its `.dark` overrides are gone. The review checkbox takes `var(--commander-accent, var(--action-fill))`.
+- Fixed: after Copy, the button reads "Copied" for 1.5 s and an `sr-only` `role=status` announces "Deck list copied to clipboard".
+- Deferred to #349: a denied clipboard rejects silently, so a failed Copy shows no message.
+- To see Copy confirmation in headless Playwright, grant `clipboard-read` and `clipboard-write` on the context first.
+- To reach `import-missing` under replay, answer the provider calls: return the fake name in `not_found` from `cards/collection` (fill `data` from cached card records) and 404 the `cards/named` lookup. Replay has no recording for the fake card. To reach import loading, hold `cards/collection` (`block(…, () => {})`).
+- Deferred to #348: while importing, the textarea stays editable, and editing it re-enables Import, so a second import can start.
 
 ### #302 Change commander
 

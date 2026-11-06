@@ -133,7 +133,7 @@ export function ImportDeckModal({
         )}
         {importSource.trim() && (
           <div className="import-review-option">
-            <p className="import-note" role="status">
+            <p className="import-summary" role="status">
               {completeMainDeck
                 ? 'This list has a complete 100-card main deck, including the commander. After a successful import, we’ll open Deck review. Sideboard cards do not count.'
                 : `This list has ${mainDeckCount}/100 main-deck cards, including the commander; sideboard is excluded. Review opens automatically only for a complete deck. You can review a partial import from the builder.`}
@@ -159,8 +159,14 @@ export function ImportDeckModal({
           </div>
         )}
         {importError && (
-          <p className="form-error" role="alert">
+          <p className="form-error import-error" role="alert">
             {importError}
+          </p>
+        )}
+        {importState === 'missing' && (
+          <p className="import-help import-missing-help" id="import-missing-help">
+            Fix those lines and import again, or skip them and import the {importFoundCount} cards
+            found.
           </p>
         )}
         <div className="export-actions">
@@ -176,9 +182,10 @@ export function ImportDeckModal({
             <button
               className="export"
               type="button"
+              aria-describedby="import-missing-help"
               onClick={() => importDeck(openReviewAfterImport, true, selectedCommanders)}
             >
-              Import {importFoundCount} found cards
+              Skip missing cards
             </button>
           )}
           <button

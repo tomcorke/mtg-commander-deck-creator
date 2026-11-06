@@ -55,21 +55,21 @@ export function ExportDeckModal({
         <div className="format-tabs" role="group" aria-label="Deck list format">
           <button
             type="button"
-            className={exportFormat === 'moxfield' ? 'selected' : ''}
+            aria-pressed={exportFormat === 'moxfield'}
             onClick={() => setExportFormat('moxfield')}
           >
             Moxfield
           </button>
           <button
             type="button"
-            className={exportFormat === 'plain' ? 'selected' : ''}
+            aria-pressed={exportFormat === 'plain'}
             onClick={() => setExportFormat('plain')}
           >
             Plain text
           </button>
           <button
             type="button"
-            className={exportFormat === 'csv' ? 'selected' : ''}
+            aria-pressed={exportFormat === 'csv'}
             onClick={() => setExportFormat('csv')}
           >
             CSV
@@ -100,6 +100,9 @@ export function ExportDeckModal({
           <button className="primary" type="button" disabled={!deckCount} onClick={copyDeck}>
             {copied ? 'Copied' : 'Copy to clipboard'}
           </button>
+          <span className="sr-only" role="status">
+            {copied ? 'Deck list copied to clipboard' : ''}
+          </span>
         </div>
       </section>
     </div>

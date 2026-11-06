@@ -164,10 +164,10 @@
   background: transparent;
   color: var(--text-body);
 }
-.format-tabs button.selected {
-  border-color: #36327f;
-  background: #36327f;
-  color: white;
+.format-tabs button[aria-pressed='true'] {
+  border-color: var(--selected-border);
+  background: var(--selected-background);
+  font-weight: 600;
 }
 .moxfield-instructions {
   margin: 0 0 12px;
@@ -1142,6 +1142,18 @@
   font-size: var(--type-data);
   line-height: 1.45;
 }
+.import-summary {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+  line-height: 1.45;
+}
+.import-error {
+  margin: 12px 0 0;
+}
+.import-missing-help {
+  margin-top: 4px;
+}
 .import-review-checkbox {
   display: flex;
   align-items: flex-start;
@@ -1154,7 +1166,7 @@
 .import-review-checkbox input {
   flex: 0 0 auto;
   margin: 3px 0 0;
-  accent-color: #36327f;
+  accent-color: var(--commander-accent, var(--action-fill));
 }
 .import-review-opt-out {
   margin: 6px 0 0 24px;
@@ -1623,12 +1635,18 @@ main > .commander-header {
   font-size: var(--type-body);
   line-height: 1.5;
 }
-.intro-guide .export-actions {
+.intro-guide .export-actions,
+.import-modal .export-actions {
   flex-wrap: wrap;
   gap: 8px;
 }
-.intro-guide .export-actions > :first-child {
+.intro-guide .export-actions > :first-child,
+.import-modal .export-actions > :first-child {
   margin-right: auto;
+}
+/* A wrapped main action keeps the right edge. */
+.import-modal .export-actions {
+  justify-content: flex-end;
 }
 .intro-guide.dark {
   --focus-ring: #d6b8ff;

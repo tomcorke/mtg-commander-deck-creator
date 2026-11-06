@@ -136,11 +136,3 @@
     align-self: start;
   }
 }
-.dark .format-tabs button {
-  border-color: var(--border-control);
-}
-.dark .format-tabs button.selected {
-  border-color: #7169ca;
-  background: #5851a6;
-  color: white;
-}
