@@ -7,12 +7,76 @@ import { toDeckCard, type DeckCard } from '../../domain/card-model.ts'
 import {
   cardColourIdentity,
   commanderPromotionInfo,
-  commanderPromotionWarning,
+  missingColourNames,
+  promoteDeckCard,
+  type CommanderPromotionInfo,
 } from '../../domain/commander-promotion.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
-import { ColourPicker, CommanderChoiceTile } from '../../shared/CommanderChoice.tsx'
+import {
+  ColourPicker,
+  CommanderChoiceTile,
+  CommanderTilePlaceholders,
+} from '../../shared/CommanderChoice.tsx'
+
+/** Why a tile can't be chosen: how many deck cards would fall outside its identity. */
+function blockedReason(info: CommanderPromotionInfo) {
+  if (info.error) return info.error
+  const count = info.dependentCards.length
+  return `Can't be commander: ${count} ${count === 1 ? 'card uses' : 'cards use'} ${missingColourNames(info, 'or')}.`
+}
+
+/** Card references joined into one phrase ("A and B"). */
+function cardList(cards: DeckCard[], openCard: (card: DeckCard) => void) {
+  return cards.map((card, index) => (
+    <span key={card.name}>
+      {index > 0 && (index === cards.length - 1 ? ' and ' : ', ')}
+      <CardReference card={card} onOpen={() => openCard(card)} />
+    </span>
+  ))
+}
+
+/** States what applying the change does to the deck, before the user confirms. */
+function ChangeOutcome({
+  others,
+  outgoing,
+  outcome,
+  displaced,
+  openCard,
+}: {
+  others: number
+  outgoing: DeckCard[]
+  outcome: 'stays' | 'leaves' | 'outside'
+  displaced: DeckCard[]
+  openCard: (card: DeckCard) => void
+}) {
+  return (
+    <p className="change-commander-outcome" role="status">
+      {others > 0 &&
+        (others === 1
+          ? 'The other card fits its colours. '
+          : `All ${others} other cards fit its colours. `)}
+      {outgoing.length > 0 && (
+        <>
+          {cardList(outgoing, openCard)}{' '}
+          {outcome === 'stays'
+            ? 'stays in the deck.'
+            : outcome === 'leaves'
+              ? 'leaves the deck.'
+              : "leaves the deck: its colours fall outside the new commander's."}
+        </>
+      )}
+      {displaced.length > 0 && (
+        <>
+          {' '}
+          The deck is full, so {cardList(displaced, openCard)}{' '}
+          {displaced.length === 1 ? 'moves' : 'move'} to the sideboard.
+        </>
+      )}
+    </p>
+  )
+}
 
 type Props = {
   commander: string
@@ -34,6 +98,12 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
   const [selected, setSelected] = useState<DeckCard | null>(null)
   const keepFits = Boolean(selected && commanderPromotionInfo(selected, deck)?.canPromote)
   const keeps = keepOutgoing && keepFits
+  const outgoingCards = deck.filter((card) => outgoing.includes(card.name))
+  const others = remaining.filter((card) => card.name !== selected?.name).length
+  // Mirrors the promote action, so the stated outcome matches what applying does.
+  const displaced = selected
+    ? promoteDeckCard(keeps ? deck : remaining, [], selected).sideboard
+    : []
   const discovery = useCommanderDiscovery({ theme: '', colours, search }, open)
   const close = () => setOpen(false)
   const dialog = useDialogFocus(open, close)
@@ -96,13 +166,23 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
                 autoComplete="off"
               />
             </label>
+            <p className="change-commander-count" role="status">
+              {discovery.status === 'loading' && 'Finding legal commanders…'}
+              {/* The empty state names the zero itself. */}
+              {discovery.status === 'idle' &&
+                discovery.count > 0 &&
+                `${discovery.count}${discovery.more ? ' loaded' : ''} ${discovery.count === 1 ? 'commander' : 'commanders'}`}
+            </p>
             <div className="commander-grid" aria-busy={discovery.status === 'loading'}>
+              {discovery.status === 'loading' && <CommanderTilePlaceholders />}
               {discovery.suggestions.map(({ card }) => {
                 const candidate = toDeckCard(card)
                 const legal = commanderPromotionInfo(candidate, remaining)
                 const current = outgoing.includes(card.name)
+                const chosen = selected?.name === card.name
                 return (
                   <CommanderChoiceTile
+                    selected={chosen}
                     key={card.oracle_id ?? card.name}
                     card={card}
                     openCard={openCard}
@@ -112,30 +192,29 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
                         type="button"
                         aria-label={`Choose ${card.name}`}
                         disabled={current || !legal?.canPromote}
-                        aria-pressed={selected?.name === card.name}
+                        aria-pressed={chosen}
                         onClick={() => setSelected(candidate)}
                       >
-                        {current ? 'Current' : selected?.name === card.name ? 'Selected' : 'Choose'}
+                        {current ? 'Current' : chosen ? 'Selected' : 'Choose'}
                       </button>
                     }
                     note={
                       legal &&
-                      !legal.canPromote && (
-                        <p className="form-error">{commanderPromotionWarning(legal)}</p>
-                      )
+                      !legal.canPromote && <p className="form-error">{blockedReason(legal)}</p>
                     }
                   />
                 )
               })}
             </div>
-            {discovery.status === 'loading' && (
-              <p className="discovery-status" role="status">
-                Finding legal commanders…
+            {discovery.status === 'error' && (
+              <p className="form-error discovery-error" role="alert">
+                {discovery.error} Change a colour or the name, or reload the page.
               </p>
             )}
-            {discovery.status === 'error' && <p role="alert">{discovery.error}</p>}
             {discovery.status === 'idle' && !discovery.suggestions.length && (
-              <p role="status">No commanders match these colours and name.</p>
+              <p className="discovery-status" role="status">
+                No commanders match. Add a colour or change the name.
+              </p>
             )}
             {discovery.status === 'idle' && (
               <Pagination
@@ -164,22 +243,25 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
                   />{' '}
                   Keep the current commander in the deck
                 </label>
-                {!keepFits && (
-                  <p className="form-error" role="status">
-                    Unavailable: the current commander&apos;s colours are outside the new
-                    commander&apos;s identity, so it will leave the deck.
-                  </p>
-                )}
-                <button
-                  className="primary"
-                  type="button"
-                  onClick={() => {
-                    close()
-                    changeCommander(selected, keeps)
-                  }}
-                >
-                  Change commander
-                </button>
+                <div className="export-actions">
+                  <ChangeOutcome
+                    others={others}
+                    outgoing={outgoingCards}
+                    outcome={keeps ? 'stays' : keepFits ? 'leaves' : 'outside'}
+                    displaced={displaced}
+                    openCard={openCard}
+                  />
+                  <button
+                    className="primary"
+                    type="button"
+                    onClick={() => {
+                      close()
+                      changeCommander(selected, keeps)
+                    }}
+                  >
+                    Change commander
+                  </button>
+                </div>
               </div>
             )}
           </section>

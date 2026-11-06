@@ -45,16 +45,19 @@ export function CommanderChoiceTile({
   openCard,
   action,
   note,
+  selected,
 }: {
   card: ScryfallCard
   openCard: (card: DeckCard) => void
   action: ReactNode
   note?: ReactNode
+  selected?: boolean
 }) {
   const converted = toDeckCard(card)
   return (
     <CardTile
       className="commander-tile"
+      selected={selected}
       art={
         <div className="commander-discovery-art">
           <FinishedCardImage
@@ -76,4 +79,28 @@ export function CommanderChoiceTile({
       {note}
     </CardTile>
   )
+}
+
+/** Loading tiles with a result tile's parts, so the grid keeps its height when results arrive. */
+export function CommanderTilePlaceholders() {
+  return Array.from({ length: 12 }, (_, index) => (
+    <div className="commander-tile-placeholder" aria-hidden="true" key={index}>
+      <CardTile
+        className="commander-tile"
+        art={<span className="commander-placeholder" />}
+        name={<span className="placeholder-text">Loading</span>}
+        detail={<span className="placeholder-text">Loading type line</span>}
+        actions={
+          <button
+            className="export commander-choose placeholder-text"
+            type="button"
+            disabled
+            tabIndex={-1}
+          >
+            Choose
+          </button>
+        }
+      />
+    </div>
+  ))
 }

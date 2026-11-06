@@ -292,7 +292,13 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #302 Change commander
 
-- **Feedback**: nothing says which cards would leave colour identity before "Choose". `light/change-commander-search.png`, `light/change-commander-pick.png`.
+- Fixed (**Feedback**): the footer states the outcome before "Change commander": "All 83 other cards fit its colours. Meren of Clan Nel Toth stays in the deck." It names whether the outgoing commander stays or leaves, and on a full deck which card moves to the sideboard. `promoteDeckCard` computes it, so the line matches what applying does. A blocked tile counts the cards outside its identity ("Can't be commander: 47 cards use Black.").
+- Fixed (**Selection at rest**): the chosen tile takes the canonical selected tile (`.card-tile.commander-tile.selected`) and its "Selected" button the `--selected-*` toggle tint, with `--text-body` text, because themed dark accent text measured 3.5:1 on the tint.
+- Fixed (**Hierarchy**): the outcome and `.primary` share one `.export-actions` row in the sticky footer, primary right.
+- Fixed (**Feedback**): a count line sits above the grid (**Count header**), and loading shows the Start grid's skeleton tiles, now shared as `CommanderTilePlaceholders` (`src/shared/CommanderChoice.tsx`). The error is `.form-error` in `role=alert`, and the empty state says what to do next.
+- Fixed (**Responsiveness**): at 520px and below the grid takes two columns (`minmax(min(130px, 100%), 1fr)`), so a page of 12 is 2600px tall at 375px instead of 6600px.
+- How to reach a full deck: import the complete list, then pick. Search "Golgari" is recorded in the shared replay cache.
+- Not reached: the outgoing commander leaving because its colours fall outside the new commander's (needs a deck whose other cards use fewer colours than the commander).
 
 ### #303 Collection browser
 

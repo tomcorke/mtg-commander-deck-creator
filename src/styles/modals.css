@@ -1679,10 +1679,41 @@ main > .commander-header {
   border: 0;
 }
 
-.change-commander-modal .commander-grid {
-  margin-top: 16px;
+/* Count header: one muted line above the grid, like the Start grid's. */
+.change-commander-count {
+  min-height: 1.5em;
+  margin: 16px 0 8px;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+  line-height: 1.5;
 }
 
 .change-commander-confirm p {
   margin: 0;
+}
+
+.change-commander-confirm .export-actions {
+  flex-wrap: wrap;
+  justify-self: stretch;
+  margin-top: 0;
+}
+
+.change-commander-outcome {
+  flex: 1 1 260px;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+
+/* Compound selectors outrank the shared .card-tile border, like Doctor tiles. */
+.card-tile.commander-tile.selected {
+  border-color: var(--selected-border);
+  background: color-mix(in srgb, var(--selected-background) 45%, var(--surface-panel));
+  box-shadow: 0 0 0 1px var(--selected-border);
+}
+
+.change-commander-modal .commander-choose[aria-pressed='true'] {
+  border-color: var(--selected-border);
+  background: var(--selected-background);
+  /* Themed dark accent text drops below AA on the selected tint. */
+  color: var(--text-body);
 }
