@@ -117,6 +117,10 @@
   .recommendation-settings-actions {
     padding-block: 12px;
   }
+  /* Two columns at phone width; the Start grid's 160px minimum leaves one. */
+  .change-commander-modal .commander-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(130px, 100%), 1fr));
+  }
   .recommendation-options fieldset {
     min-width: 0;
     width: 100%;

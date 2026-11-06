@@ -96,9 +96,12 @@ import type { CommanderDetails, DeckCard } from '../../domain/card-model.ts'
 import type { DeckWorkspace } from '../../autosaves.ts'
 import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
 import { Pagination } from '../../shared/Pagination.tsx'
-import { ColourPicker, CommanderChoiceTile } from '../../shared/CommanderChoice.tsx'
+import {
+  ColourPicker,
+  CommanderChoiceTile,
+  CommanderTilePlaceholders,
+} from '../../shared/CommanderChoice.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
-import { CardTile } from '../../shared/CardTile.tsx'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
@@ -371,28 +374,7 @@ export function StartView(props: StartViewProps) {
               `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length ? ` of ${discovery.count}${discovery.more ? ' loaded' : ''}` : ''} ${discovery.count === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}. Press Down to move through them.`}
           </p>
           <div className="commander-grid" onKeyDown={moveBetweenChoices}>
-            {discovery.status === 'loading' &&
-              Array.from({ length: 12 }, (_, index) => (
-                // Same tile parts as a result, so the grid keeps its height when results arrive.
-                <div className="commander-tile-placeholder" aria-hidden="true" key={index}>
-                  <CardTile
-                    className="commander-tile"
-                    art={<span className="commander-placeholder" />}
-                    name={<span className="placeholder-text">Loading</span>}
-                    detail={<span className="placeholder-text">Loading type line</span>}
-                    actions={
-                      <button
-                        className="export commander-choose placeholder-text"
-                        type="button"
-                        disabled
-                        tabIndex={-1}
-                      >
-                        Choose
-                      </button>
-                    }
-                  />
-                </div>
-              ))}
+            {discovery.status === 'loading' && <CommanderTilePlaceholders />}
             {discovery.suggestions.map(({ card }) => (
               <CommanderChoiceTile
                 key={card.oracle_id ?? card.name}
