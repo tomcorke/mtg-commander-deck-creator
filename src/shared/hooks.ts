@@ -7,8 +7,10 @@ export function useDialogFocus(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return
     const active = document.activeElement as HTMLElement | null
-    // StrictMode's second run finds focus already on this dialog's ×, which is no opener.
-    const opener = dialog.current?.contains(active) ? null : active
+    // StrictMode's second run finds focus already on this dialog's ×; keep the opener the first run saw.
+    const opener = dialog.current?.contains(active)
+      ? (dialogOpeners.get(dialog.current) ?? null)
+      : active
     if (dialog.current && opener) dialogOpeners.set(dialog.current, opener)
     // A dialog opened from another dialog that then closes loses its opener ("Browse these cards"
     // even disables before this runs), so fall back to the outer dialog's opener.

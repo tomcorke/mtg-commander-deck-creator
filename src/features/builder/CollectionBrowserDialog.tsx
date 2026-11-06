@@ -190,7 +190,7 @@ export function CollectionBrowserDialog({
                 className="export"
                 onClick={() => {
                   filter(setType, 'all')
-                  setMana('')
+                  filter(setMana, '')
                 }}
               >
                 Clear filters
