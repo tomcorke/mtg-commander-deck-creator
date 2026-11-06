@@ -284,6 +284,29 @@ async function stageAndCheckPairToggles(page: Page) {
   return expectedPairs
 }
 
+// #332: two rows at most at 375px, actions enabled, in light, dark and commander colours.
+async function appliedBarFits(page: Page, applied: Locator) {
+  const viewport = page.viewportSize()!
+  for (const width of [375, 1366]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const [dark, themed] of [
+      [false, false],
+      [true, false],
+      [true, true],
+    ]) {
+      await setDisplayPreferences(page, { 'Dark mode': dark, 'Commander art and colours': themed })
+      const { height, rows } = await applied.evaluate((bar) => ({
+        height: bar.getBoundingClientRect().height,
+        rows: new Set([...bar.children].map((child) => child.getBoundingClientRect().top)).size,
+      }))
+      assert.ok(rows <= 2 && height <= 110, `Applied bar at ${width}px: ${rows} rows, ${height}px`)
+      for (const name of ['Undo', 'Dismiss', 'Choose more changes'])
+        assert.equal(await button(applied, name).isEnabled(), true)
+    }
+  }
+  await page.setViewportSize(viewport)
+}
+
 async function stagedPlansAndExits({ page }: Scenario) {
   await enterReview(page)
   const expectedPairs = await stageAndCheckPairToggles(page)
@@ -326,7 +349,9 @@ async function stagedPlansAndExits({ page }: Scenario) {
   await button(page, 'Apply 4 changes').press('Enter')
   for (const [, add] of expectedPairs) await waitForCard(page, add)
   assert.equal(await tray.count(), 0)
-  assert.equal(await page.getByRole('region', { name: 'Applied changes' }).count(), 1)
+  const applied = page.getByRole('region', { name: 'Applied changes' })
+  assert.equal(await applied.count(), 1)
+  await appliedBarFits(page, applied)
   await button(page, 'Change history (2)').click()
   for (const [cut, add] of expectedPairs.toReversed())
     await button(page, `Undo ${add} for ${cut}`).click()

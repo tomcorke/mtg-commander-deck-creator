@@ -833,6 +833,21 @@
   .doctor-apply-bar {
     padding-inline: 6vw;
   }
+  /* Two rows on phones: one-line summary (full list in Change history), then the actions. */
+  .doctor-applied > div > strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .doctor-applied > div > span {
+    display: none;
+  }
+  .doctor-apply-bar.doctor-applied > .doctor-applied-actions {
+    flex-wrap: nowrap;
+  }
+  .doctor-applied-actions > button {
+    min-width: 0;
+  }
   .doctor-card-grid,
   .doctor-reference-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
