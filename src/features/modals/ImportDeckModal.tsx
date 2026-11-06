@@ -164,7 +164,7 @@ export function ImportDeckModal({
           </p>
         )}
         {importState === 'missing' && (
-          <p className="import-help import-missing-help">
+          <p className="import-help import-missing-help" id="import-missing-help">
             Fix those lines and import again, or skip them and import the {importFoundCount} cards
             found.
           </p>
@@ -182,6 +182,7 @@ export function ImportDeckModal({
             <button
               className="export"
               type="button"
+              aria-describedby="import-missing-help"
               onClick={() => importDeck(openReviewAfterImport, true, selectedCommanders)}
             >
               Skip missing cards
