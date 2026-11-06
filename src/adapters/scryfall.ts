@@ -49,17 +49,14 @@ export class ScryfallRateLimitError extends ProviderRequestError {
   constructor(retryAt: number, estimated: boolean) {
     const seconds = Math.max(0, Math.ceil((retryAt - Date.now()) / 1000))
     const unit = seconds >= 60 ? 'minute' : 'second'
-    const divisor = unit === 'minute' ? 60 : 1
-    const wait = new Intl.RelativeTimeFormat('en', { numeric: 'always' }).format(
-      Math.ceil(seconds / divisor),
-      unit,
-    )
+    const count = Math.ceil(seconds / (unit === 'minute' ? 60 : 1))
+    const at = new Date(retryAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     super(
-      `Scryfall rate limit reached (HTTP 429). ${
+      `Scryfall rate limit reached. ${
         seconds
-          ? `Try again ${wait} (after ${new Date(retryAt).toLocaleString()}).`
+          ? `Try again in ${estimated ? 'about ' : ''}${count} ${unit}${count === 1 ? '' : 's'} (at ${at}).`
           : 'Try again now.'
-      }${estimated ? ' No usable retry time was exposed; this wait is an estimate.' : ''}`,
+      }`,
       429,
       retryAt,
     )
