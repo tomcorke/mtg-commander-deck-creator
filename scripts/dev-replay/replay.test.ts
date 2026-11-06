@@ -193,3 +193,17 @@ test('recorder releases its lock synchronously on SIGINT', async () => {
     await rm(directory, { recursive: true, force: true })
   }
 })
+
+test('date-bounded searches replay after the day changes', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dev-replay-'))
+  const search = (day: string) =>
+    new URL(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`set:abc date<=${day}`)}`)
+  try {
+    const record = createReplayStore(directory, 'record', async () => Response.json({ total: 4 }))
+    await record.request(search('2026-11-05'))
+    const replay = createReplayStore(directory, 'replay')
+    assert.deepEqual(await (await replay.request(search('2026-11-06'))).json(), { total: 4 })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
