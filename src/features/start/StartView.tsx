@@ -115,7 +115,6 @@ type StartViewProps = {
   openModal: (modal: AppModal) => void
   openSavedDecks: () => void
   openCardReference: (card: DeckCard) => void
-  savedDecks: number
   savedDecksModal: ReactNode
   workspaceNotice: ReactNode
   importModal: ReactNode
@@ -206,7 +205,7 @@ export function StartView(props: StartViewProps) {
             Import deck
           </button>
           <button className="export" type="button" onClick={props.openSavedDecks}>
-            Saved decks ({props.savedDecks})
+            Saved decks
           </button>
           <RequestActivityIndicator />
         </div>

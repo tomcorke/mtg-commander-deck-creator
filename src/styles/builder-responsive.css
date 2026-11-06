@@ -349,7 +349,7 @@
     background: var(--surface-panel);
     color: var(--text-body);
   }
-  /* Keep the header to a brand-and-count row plus one row of actions. */
+  /* Keep the header to a brand-and-count row; actions wrap so none hides off-screen. */
   header .brand small {
     display: none;
   }
@@ -362,10 +362,6 @@
   }
   header .progress span {
     display: none;
-  }
-  .header-actions {
-    flex-wrap: nowrap;
-    overflow-x: auto;
   }
   .header-actions button {
     padding: 8px 12px;

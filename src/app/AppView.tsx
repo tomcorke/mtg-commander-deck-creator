@@ -313,7 +313,6 @@ function StartScreen({
     <>
       <StartView
         {...({ ...state, ...actions } as any)}
-        savedDecks={state.savedDecks.length}
         workspaceNotice={workspaceNotice}
         savedDecksModal={modals.savedDecksModal}
         importModal={modals.importModal}

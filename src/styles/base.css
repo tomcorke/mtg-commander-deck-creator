@@ -518,9 +518,6 @@ main > .workspace-alert .modal-close {
 .display-settings-panel input {
   accent-color: var(--commander-accent, #36327f);
 }
-.dark .display-settings-panel {
-  border-color: #514b69;
-}
 
 main > header:has(.display-settings-panel) {
   z-index: 35;
