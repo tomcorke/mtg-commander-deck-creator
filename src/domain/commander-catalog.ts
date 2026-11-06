@@ -9,7 +9,7 @@ export const colourNames: Record<string, string> = {
   G: 'Green',
 }
 export const colourThemes: Record<string, [string, string]> = {
-  W: ['#9b772e', '#f3df9b'],
+  W: ['#7d5f24', '#f3df9b'],
   U: ['#286da8', '#8dc9ee'],
   B: ['#67506f', '#bf9ac8'],
   R: ['#a83b32', '#ee8b68'],
