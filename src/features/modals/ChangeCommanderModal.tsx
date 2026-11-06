@@ -246,7 +246,10 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
                 <div className="export-actions">
                   <ChangeOutcome
                     others={others}
-                    outgoing={outgoingCards}
+                    // A full deck can push the kept commander out too; the sideboard line names it.
+                    outgoing={outgoingCards.filter(
+                      (card) => !displaced.some((moved) => moved.name === card.name),
+                    )}
                     outcome={keeps ? 'stays' : keepFits ? 'leaves' : 'outside'}
                     displaced={displaced}
                     openCard={openCard}
