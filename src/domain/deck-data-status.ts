@@ -14,7 +14,7 @@ export function recommendationDataError(
   if (excludeGameChangers && card.gameChanger !== false)
     return card.gameChanger
       ? 'Game Changers are excluded by your recommendation settings.'
-      : 'Game Changer status is unknown. Reload to retry.'
+      : 'Game Changer status is unknown.'
   return ''
 }
 
@@ -32,21 +32,29 @@ export function deckDataStatus(
     const error = cardConstructionError(card, deck.slice(0, index), identity)
     return error ? [{ card, message: error }] : []
   })
-  if (commanderError && deck[0]) errors.unshift({ card: deck[0], message: commanderError })
+  const named = commanders.find((card) => commanderError.startsWith(`${card.name}: `))
+  if (named) errors.unshift({ card: named, message: commanderError.slice(named.name.length + 2) })
+  else if (commanderError && deck[0]) errors.unshift({ card: deck[0], message: commanderError })
   const cards = [...deck, ...sideboard, ...queue, ...deferred.map(({ card }) => card)]
   const unique = [...new Map(cards.map((card) => [cardDataKey(card), card])).values()]
   const warnings = unique.flatMap((card) => {
     const error = cardConstructionError(card, [], identity)
     const policy = card.gameChanger === undefined ? 'Game Changer status is unknown.' : ''
-    const messages = [...new Set([error, policy, ...(card.dataWarnings ?? [])].filter(Boolean))]
-    return messages.length ? [{ card, message: messages.join(' ') }] : []
+    return [error, policy, ...(card.dataWarnings ?? [])]
+      .filter(Boolean)
+      .map((message) => ({ card, message }))
   })
-  const notices = [...errors, ...warnings].filter(
-    (notice, index, all) =>
-      all.findIndex(
-        (other) => other.card.name === notice.card.name && other.message === notice.message,
-      ) === index,
-  )
+  // One row per card: its distinct messages joined.
+  const byName = new Map<string, { card: Card | DeckCard; messages: Set<string> }>()
+  for (const { card, message } of [...errors, ...warnings]) {
+    const entry = byName.get(card.name) ?? { card, messages: new Set<string>() }
+    entry.messages.add(message)
+    byName.set(card.name, entry)
+  }
+  const notices = [...byName.values()].map(({ card, messages }) => ({
+    card,
+    message: [...messages].join(' '),
+  }))
   return {
     deckComplete: deck.length === 100 && !commanderError && !errors.length,
     cardDataNotices: notices,

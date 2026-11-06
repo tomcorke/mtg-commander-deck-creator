@@ -155,6 +155,11 @@ test('pending and failed migrations keep 100-card decks incomplete; a current le
     deckDataStatus(failed, 'Commander', [], [], []).cardDataNotices[0].message,
     /unavailable/,
   )
+  const notices = deckDataStatus(failed, 'Commander', [], [], []).cardDataNotices
+  assert.deepEqual(
+    notices.filter(({ card }) => card.name === 'Commander').map(({ message }) => message),
+    ['Current card data is unavailable.'],
+  )
   const roundtrip = storedDeckStateSchema.parse(encodeDeckState({ ...state, deck: failed }))
   assert.equal(roundtrip.deck[0].dataStatus, 'unavailable')
 })
