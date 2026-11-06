@@ -100,7 +100,7 @@ try {
     await opener.click()
     const settings = page.getByRole('dialog', { name: 'Recommendation settings' })
     const triggers = settings.locator('.setting-help-button')
-    assert.equal(await triggers.count(), 10, 'all ten setting help triggers render')
+    assert.equal(await triggers.count(), 11, 'all eleven setting help triggers render')
     const focusable = settings.locator(
       'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary',
     )
@@ -259,7 +259,7 @@ try {
   assert.doesNotMatch(await exportDialog.innerText(), /Moxfield cannot import/i)
   assert.deepEqual(errors, [])
   console.log(
-    `A15 browser gate passed: Chrome ${browser.version()}, sandbox enabled; all 10 help triggers keyboard-checked at 1440/1024/768/390px in light/dark, plus preference/export copy and dialog focus behavior.`,
+    `A15 browser gate passed: Chrome ${browser.version()}, sandbox enabled; all 11 help triggers keyboard-checked at 1440/1024/768/390px in light/dark, plus preference/export copy and dialog focus behavior.`,
   )
   await context.close()
 } finally {
