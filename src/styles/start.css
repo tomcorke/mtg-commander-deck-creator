@@ -301,3 +301,24 @@
     width: 48px;
   }
 }
+.filter-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.filter-toggle {
+  display: none;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .filter-toggle {
+    display: inline-flex;
+  }
+  .commander-filters.collapsed .commander-filter-controls {
+    display: none;
+  }
+  .commander-filters.collapsed .filter-summary {
+    margin-top: 8px;
+  }
+}
