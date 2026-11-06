@@ -55,6 +55,9 @@ import type { DeckReviewFilter } from '../../deck-review.ts'
 import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
 import { CardDetails } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
+import { CardTile } from '../../shared/CardTile.tsx'
+import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
+import { useStoredOption } from '../../shared/hooks.ts'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
 import { ScoreBreakdown } from '../score/ScoreBreakdown.tsx'
@@ -203,6 +206,43 @@ function recommendationReason(
 // eslint-disable-next-line max-lines-per-function, sonarjs/cognitive-complexity -- Keep the established builder composition intact; extracted dialogs own their interactions, and callback rules stay active.
 export function BuilderView({ model }: { model: BuilderViewModel }) {
   const { cardEffects, commanderStyling, darkMode } = useVisualPreferences()
+  const [deckTiles, setDeckTiles] = useStoredOption('deckBoardTiles', () => false)
+  // One deck-board entry: the compact row, or a CardTile with the same reference, mana and actions.
+  const deckEntry = (
+    card: DeckCard,
+    location: Parameters<typeof openDeckCard>[1],
+    reference: ReactNode,
+    mana: ReactNode,
+    actions?: ReactNode,
+  ) =>
+    deckTiles ? (
+      <CardTile
+        size="small"
+        className="deck-tile"
+        art={
+          <button
+            className="deck-tile-art"
+            type="button"
+            aria-label={`Show details for ${card.name}`}
+            onClick={() => openDeckCard(card, location)}
+          >
+            <SmallCardImage image={card.image} placement="reference" />
+          </button>
+        }
+        name={reference}
+        actions={actions}
+      >
+        {mana}
+      </CardTile>
+    ) : (
+      <>
+        {reference}
+        <span className="deck-card-meta">
+          {mana}
+          {actions}
+        </span>
+      </>
+    )
   const {
     appHeader,
     exportModal,
@@ -1271,6 +1311,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               </h2>
             </div>
             <div>
+              <div className="add-zone-toggle" role="group" aria-label="Deck board view">
+                {(['List', 'Tiles'] as const).map((view) => (
+                  <button
+                    key={view}
+                    type="button"
+                    aria-pressed={deckTiles === (view === 'Tiles')}
+                    onClick={() => setDeckTiles(view === 'Tiles')}
+                  >
+                    {view}
+                  </button>
+                ))}
+              </div>
               <span>
                 {deck.length}/100 cards
                 {deck.length === 100 && !model.deckComplete ? ' · Needs validation' : ''}
@@ -1298,7 +1350,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="meter">
             <span style={{ width: `${deck.length}%` }} />
           </div>
-          <div className="deck-list" aria-busy={analysis.curvePending}>
+          <div
+            className={`deck-list${deckTiles ? ' deck-list--tiles' : ''}`}
+            aria-busy={analysis.curvePending}
+          >
             {/* eslint-disable-next-line max-lines-per-function -- Each map renders existing deck section markup; no independent behavior is being extracted here. */}
             {groupedDeckColumns.map((column, columnIndex) => (
               <div className="deck-column" key={`deck-column-${columnIndex}`}>
@@ -1330,22 +1385,24 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 Matches active deck highlight filter.{' '}
                               </span>
                             )}
-                            <span className="deck-card-reference">
-                              {(card.printing ?? 0) > 0 && (
-                                <span
-                                  className="alternate-printing"
-                                  title="Alternate printing selected"
-                                  aria-label="Alternate printing selected"
+                            {deckEntry(
+                              card,
+                              { board: 'deck', index },
+                              <span className="deck-card-reference">
+                                {(card.printing ?? 0) > 0 && (
+                                  <span
+                                    className="alternate-printing"
+                                    title="Alternate printing selected"
+                                    aria-label="Alternate printing selected"
+                                  />
+                                )}
+                                <CardReference
+                                  card={card}
+                                  className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                                  onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                  thumbnail={!deckTiles}
                                 />
-                              )}
-                              <CardReference
-                                card={card}
-                                className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                                onOpen={() => openDeckCard(card, { board: 'deck', index })}
-                                thumbnail
-                              />
-                            </span>
-                            <span className="deck-card-meta">
+                              </span>,
                               <span className="deck-mana">
                                 {card.typeLine.includes('Land') && card.producedMana.length ? (
                                   <ManaSymbols symbols={card.producedMana} />
@@ -1355,8 +1412,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 {finishLabel(card) && (
                                   <small className="finish-label">{finishLabel(card)}</small>
                                 )}
-                              </span>
-                              {index >= commanderNames(commander).length && (
+                              </span>,
+                              index >= commanderNames(commander).length && (
                                 <>
                                   <button
                                     className={`danger deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
@@ -1380,8 +1437,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                     </span>
                                   )}
                                 </>
-                              )}
-                            </span>
+                              ),
+                            )}
                           </li>
                         )
                       })}
@@ -1396,16 +1453,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             }
                             return (
                               <li className="basic-land-row" key={name}>
-                                <span className="deck-card-reference">
-                                  <b className="card-quantity">{basics.length}×</b>
-                                  <CardReference
-                                    card={card}
-                                    className="deck-card-name"
-                                    onOpen={() => openDeckCard(card, { board: 'deck', index })}
-                                    thumbnail
-                                  />
-                                </span>
-                                <span className="deck-card-meta">
+                                {deckEntry(
+                                  card,
+                                  { board: 'deck', index },
+                                  <span className="deck-card-reference">
+                                    <b className="card-quantity">{basics.length}×</b>
+                                    <CardReference
+                                      card={card}
+                                      className="deck-card-name"
+                                      onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                      thumbnail={!deckTiles}
+                                    />
+                                  </span>,
                                   <span className="deck-mana">
                                     <ManaSymbols symbols={card.producedMana} />
                                     {labels.size > 0 && (
@@ -1413,24 +1472,26 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                         {[...labels].join(' · ')}
                                       </small>
                                     )}
-                                  </span>
-                                  <button
-                                    className="deck-add"
-                                    type="button"
-                                    onClick={() => removeDeckCard(index)}
-                                    aria-label={`Remove one ${card.name}`}
-                                  >
-                                    −
-                                  </button>
-                                  <button
-                                    className="deck-add"
-                                    type="button"
-                                    onClick={() => void addOneBasic(card.name)}
-                                    aria-label={`Add another ${card.name}`}
-                                  >
-                                    +
-                                  </button>
-                                </span>
+                                  </span>,
+                                  <>
+                                    <button
+                                      className="deck-add"
+                                      type="button"
+                                      onClick={() => removeDeckCard(index)}
+                                      aria-label={`Remove one ${card.name}`}
+                                    >
+                                      −
+                                    </button>
+                                    <button
+                                      className="deck-add"
+                                      type="button"
+                                      onClick={() => void addOneBasic(card.name)}
+                                      aria-label={`Add another ${card.name}`}
+                                    >
+                                      +
+                                    </button>
+                                  </>,
+                                )}
                               </li>
                             )
                           })}
@@ -1479,38 +1540,42 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   <ol>
                     {sideboard.map((card, index) => (
                       <li key={`${card.name}-${index}`}>
-                        <span className="deck-card-reference">
-                          <CardReference
-                            card={card}
-                            className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                            onOpen={() => openDeckCard(card, { board: 'sideboard', index })}
-                            thumbnail
-                          />
-                        </span>
-                        <span className="deck-card-meta">
+                        {deckEntry(
+                          card,
+                          { board: 'sideboard', index },
+                          <span className="deck-card-reference">
+                            <CardReference
+                              card={card}
+                              className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                              onOpen={() => openDeckCard(card, { board: 'sideboard', index })}
+                              thumbnail={!deckTiles}
+                            />
+                          </span>,
                           <span className="deck-mana">
                             <OracleText text={card.manaCost} />
                             {finishLabel(card) && (
                               <small className="finish-label">{finishLabel(card)}</small>
                             )}
-                          </span>
-                          <button
-                            className="compact-action"
-                            type="button"
-                            disabled={deck.length >= 100}
-                            onClick={() => moveSideboardCard(index)}
-                          >
-                            Move to deck
-                          </button>
-                          <button
-                            className="danger deck-remove"
-                            type="button"
-                            onClick={() => removeSideboardCard(index)}
-                            aria-label={`Remove ${card.name} from sideboard`}
-                          >
-                            ×
-                          </button>
-                        </span>
+                          </span>,
+                          <>
+                            <button
+                              className="compact-action"
+                              type="button"
+                              disabled={deck.length >= 100}
+                              onClick={() => moveSideboardCard(index)}
+                            >
+                              Move to deck
+                            </button>
+                            <button
+                              className="danger deck-remove"
+                              type="button"
+                              onClick={() => removeSideboardCard(index)}
+                              aria-label={`Remove ${card.name} from sideboard`}
+                            >
+                              ×
+                            </button>
+                          </>,
+                        )}
                       </li>
                     ))}
                   </ol>
