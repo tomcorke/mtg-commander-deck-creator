@@ -367,7 +367,7 @@ function SearchCard({
   const display = toDeckCard(card)
   return (
     <CardTile
-      className={`search-card${location ? ' already-in-deck' : ''}`}
+      className="search-card"
       selected={Boolean(selected)}
       selection={
         selected !== null && (
@@ -400,7 +400,7 @@ function SearchCard({
       actions={
         <button
           type="button"
-          className="export"
+          className="primary"
           disabled={Boolean(error)}
           title={error || undefined}
           onClick={onAdd}
@@ -656,13 +656,19 @@ export function CardSearchView({
               <h2 id="card-search-results-title" tabIndex={-1} ref={resultsHeading}>
                 Search results
               </h2>
-              {request && (
-                <p>
-                  {total} matching {total === 1 ? 'card' : 'cards'}
-                  {hasMore && ` · ${cards.length} loaded`}
-                  {hidden > 0 && ` · ${hidden} already in your deck or sideboard, hidden`}
-                </p>
-              )}
+              {/* Count header: status while loading, blank when the error or empty state names it. */}
+              <p role="status">
+                {status === 'loading' && !cards.length
+                  ? 'Searching Scryfall…'
+                  : cards.length > 0 && (
+                      <>
+                        {total} matching {total === 1 ? 'card' : 'cards'}
+                        {hasMore && ` · ${cards.length} loaded`}
+                        {hidden > 0 && ` · ${hidden} already in your deck or sideboard, hidden`}
+                        {status === 'loading' && ' · Loading more…'}
+                      </>
+                    )}
+              </p>
             </div>
             <label className="search-field">
               Sort by
@@ -718,7 +724,6 @@ export function CardSearchView({
               {warning}
             </p>
           ))}
-          {status === 'loading' && <p role="status">Searching Scryfall…</p>}
           {!request && (
             <p>
               Pick a deck need or any filter, then search. No name is needed. Add cards one at a

@@ -155,7 +155,7 @@ test('retry timing handles HTTP dates, server clock skew, expired dates, and mis
     const headers = value === null ? {} : { 'Retry-After': value }
     await assert.rejects(
       searchScryfallPage('busy', async () => response({}, { status: 429, headers })),
-      /1 minute.*estimate/i,
+      /about 1 minute/,
     )
   }
 })

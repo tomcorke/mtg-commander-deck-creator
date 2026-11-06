@@ -50,8 +50,7 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 
 **Buttons**
 
-- Card search "Add to deck" is an outline button, while the builder offer's Add is `.primary` for the same action. #292.
-- Within one row, the "Add to" toggle and "Select several" (card search results header) use different font sizes. #292.
+- The collection browser's Add is `.export`, while every other card tile's Add (builder offer, health lane, card search) is `.primary`. #305.
 
 **Theme and type**
 
@@ -60,6 +59,7 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 **Card tiles and grids**
 
 - Diagnose finding grids keep `minmax(150px, 1fr)` columns, so a row of 6 leaves an empty seventh column at 1366px. #294 is closed.
+- Card search keeps uncapped `auto-fill` columns. It sizes each page to the column count (`searchPageSize`), so pages already fill whole rows, and a cap would change page sizes. #292.
 
 **Responsiveness**
 
@@ -77,7 +77,7 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 
 **Paging, status and copy**
 
-- Raw timestamps in UI copy: the top bar's "Saved 05/11/2026, 03:56:23 +0 -0", and the card search 429 error "…after 05/11/2026, 03:55:56). No usable retry time was exposed; this wait is an estimate." #304, #292.
+- Raw timestamp in UI copy: the top bar's "Saved 05/11/2026, 03:56:23 +0 -0". #304.
 - The Start top bar reads "Saved decks (0)" while an autosaved draft exists. The builder top bar has no count. The Start top bar is its own markup, not `BuilderTopBar`. #304.
 
 ## Per-slice issues
@@ -192,6 +192,10 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 - **Hierarchy**: "Add to deck" is an outline button, while the builder offer's Add is `.primary`. `light/card-search-results.png`.
 - **Hierarchy**: "Select several" is larger than the "Add to Deck/Sideboard" toggle beside it. `light/card-search-results.png`.
 - **Copy**: the 429 error prints a raw timestamp and "No usable retry time was exposed; this wait is an estimate.", and "0 matching cards" shows above it. `light/activity-indicator.png`.
+- Fixed (**Hierarchy**): Add on a result tile is `.primary`, like the builder offer and health lane. "Select several" and "Select this page" take the zone toggle's size and padding.
+- Fixed (**Copy**): the shared `ScryfallRateLimitError` reads "Scryfall rate limit reached. Try again in 30 seconds (at 04:47)." An estimated wait says "about 1 minute". Every surface showing that error gets the new copy.
+- Fixed (**Count header**): the muted line under "Search results" is the results `role=status`. It reads "Searching Scryfall…" while the first page loads, adds "· Loading more…" while a later page loads, and stays blank while the error or empty state stands in for results. A failed later page keeps the count, because its loaded cards stay on screen. The separate loading paragraph went. The add notice keeps its own status.
+- Fixed (**Selection at rest**): the location ("In deck (1)", "In sideboard (1)") is an accent pill, like the Doctor "In deck" status. The green tile tint and border went. A selected tile takes `--selected-border`, its ring and a `--selected-background` tint.
 
 ### #293 Context header, step navigation and readiness
 
@@ -843,6 +847,16 @@ const i = await dr.sel('input[placeholder="Any name"]')
 dr.fill(i, 'elf')
 await dr.click('Search cards')
 await dr.sleep(5000)
+// card-search-in-deck · #292 · #build
+await dr.builderReady()
+await dr.click('+ Search & add cards')
+dr.fill(await dr.sel('input[placeholder="Any name"]'), 'elves')
+await dr.click('Search cards')
+await dr.wait(() => document.querySelectorAll('main .search-card').length > 3, 30000)
+;[...document.querySelectorAll('input[type=checkbox]')]
+  .find((x) => x.parentElement.textContent.includes('Show cards already'))
+  .click()
+await dr.text('In deck (1)')
 // review-diagnose · #294 · #build
 await dr.builderReady()
 await dr.click('Deck review')
