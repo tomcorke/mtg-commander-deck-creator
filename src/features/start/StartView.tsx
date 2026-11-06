@@ -192,6 +192,8 @@ export function StartView(props: StartViewProps) {
   )
   // The empty grid carries its own Clear filters, so the panel's steps aside to keep one on screen.
   const noMatches = discovery.status === 'idle' && !discovery.suggestions.length
+  // Below 600px the controls fold away; start open only when nothing is filtered yet.
+  const [filtersOpen, setFiltersOpen] = useState(!filtered)
 
   return (
     <main className={darkMode ? 'dark' : ''}>
@@ -262,70 +264,86 @@ export function StartView(props: StartViewProps) {
           Combine a theme and colour identity, or search for a commander.
           {resume && ' Choosing a new commander keeps this deck in Autosaved drafts.'}
         </p>
-        <section className="start-panel commander-filters" aria-label="Commander filters">
-          <h2>Find a commander</h2>
-          <h3 className="filter-heading" id="theme-filter-heading">
-            Theme
-          </h3>
-          <div className="themes" role="group" aria-labelledby="theme-filter-heading">
-            {props.visibleThemes.map((name) => (
-              <button
-                className={props.theme === name ? 'selected' : ''}
-                aria-pressed={props.theme === name}
-                key={name}
-                type="button"
-                onClick={() => chooseCuratedTheme(name)}
-              >
-                {name}
-              </button>
-            ))}
-            <CreatureTypeChips
-              theme={props.theme}
-              extras={props.extraCreatureTypes}
-              curated={props.visibleThemes}
-              declareTheme={props.declareTheme}
-              setExtras={props.setExtraCreatureTypes}
-            />
-          </div>
-          {props.visibleThemes.length < selectableThemes.length && (
+        <section
+          className={`start-panel commander-filters${filtersOpen ? '' : ' collapsed'}`}
+          aria-label="Commander filters"
+        >
+          <div className="filter-panel-heading">
+            <h2>Find a commander</h2>
             <button
-              className="reroll"
+              className="export filter-toggle"
               type="button"
-              onClick={() =>
-                props.setVisibleThemes((current) => [
-                  ...current,
-                  ...randomItems(
-                    selectableThemes.filter((name) => !current.includes(name)),
-                    6,
-                  ),
-                ])
-              }
+              aria-expanded={filtersOpen}
+              aria-controls="commander-filter-controls"
+              onClick={() => setFiltersOpen((open) => !open)}
             >
-              Show more themes
+              {filtersOpen ? 'Hide filters' : 'Show filters'}
             </button>
-          )}
-          <h3 className="filter-heading" id="colour-filter-heading">
-            Colour identity
-          </h3>
-          <div role="group" aria-labelledby="colour-filter-heading">
-            <ColourPicker colours={props.colours} toggleColour={props.toggleColour} />
           </div>
-          <label className="commander-search">
-            <span className="filter-heading">Name</span>
-            <input
-              value={props.search}
-              onChange={(event) => props.setSearch(event.target.value)}
-              placeholder="Search commanders…"
-              aria-label="Search commanders"
-              aria-describedby="commander-result-count"
-              autoComplete="off"
-              onKeyDown={(event) => {
-                if (event.key !== 'ArrowDown') return
-                event.preventDefault()
-                document.querySelector<HTMLButtonElement>('.commander-choose')?.focus()
-              }}
-            />
-          </label>
+          <div className="commander-filter-controls" id="commander-filter-controls">
+            <h3 className="filter-heading" id="theme-filter-heading">
+              Theme
+            </h3>
+            <div className="themes" role="group" aria-labelledby="theme-filter-heading">
+              {props.visibleThemes.map((name) => (
+                <button
+                  className={props.theme === name ? 'selected' : ''}
+                  aria-pressed={props.theme === name}
+                  key={name}
+                  type="button"
+                  onClick={() => chooseCuratedTheme(name)}
+                >
+                  {name}
+                </button>
+              ))}
+              <CreatureTypeChips
+                theme={props.theme}
+                extras={props.extraCreatureTypes}
+                curated={props.visibleThemes}
+                declareTheme={props.declareTheme}
+                setExtras={props.setExtraCreatureTypes}
+              />
+            </div>
+            {props.visibleThemes.length < selectableThemes.length && (
+              <button
+                className="reroll"
+                type="button"
+                onClick={() =>
+                  props.setVisibleThemes((current) => [
+                    ...current,
+                    ...randomItems(
+                      selectableThemes.filter((name) => !current.includes(name)),
+                      6,
+                    ),
+                  ])
+                }
+              >
+                Show more themes
+              </button>
+            )}
+            <h3 className="filter-heading" id="colour-filter-heading">
+              Colour identity
+            </h3>
+            <div role="group" aria-labelledby="colour-filter-heading">
+              <ColourPicker colours={props.colours} toggleColour={props.toggleColour} />
+            </div>
+            <label className="commander-search">
+              <span className="filter-heading">Name</span>
+              <input
+                value={props.search}
+                onChange={(event) => props.setSearch(event.target.value)}
+                placeholder="Search commanders…"
+                aria-label="Search commanders"
+                aria-describedby="commander-result-count"
+                autoComplete="off"
+                onKeyDown={(event) => {
+                  if (event.key !== 'ArrowDown') return
+                  event.preventDefault()
+                  document.querySelector<HTMLButtonElement>('.commander-choose')?.focus()
+                }}
+              />
+            </label>
+          </div>
           <div className="filter-summary">
             <p role="status">
               {summary}
