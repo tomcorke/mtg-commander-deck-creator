@@ -104,7 +104,7 @@ function FilterGroup({
 }) {
   return (
     <details className="search-filter-group" open={active > 0 || undefined}>
-      <summary>
+      <summary className="filter-heading">
         {title}
         {active > 0 && <span className="search-active-count">{active} active</span>}
       </summary>
@@ -126,7 +126,7 @@ function DeckNeeds({
 }) {
   return (
     <fieldset className="search-deck-needs">
-      <legend>Deck needs</legend>
+      <legend className="filter-heading">Deck needs</legend>
       {(Object.keys(roleSearchTags) as SearchRole[]).map((role) => (
         <div className="search-need-row" key={role}>
           <span>{targetLabels[role]}</span>
@@ -249,7 +249,7 @@ function SearchFilters({
         Rules text means Oracle wording, not flavour text. Separate phrases with commas.
       </p>
       <fieldset>
-        <legend>Mana value</legend>
+        <legend className="filter-heading">Mana value</legend>
         <div className="search-value-bounds">
           <label className="search-field">
             Minimum
@@ -491,6 +491,8 @@ export function CardSearchView({
     (card) => selectedNames.includes(card.name) && !cardSearchError(card, targetBoard, colours),
   )
   const signature = JSON.stringify({ filters, order })
+  const filtersSet =
+    signature !== JSON.stringify({ filters: defaultCardSearchFilters, order: 'name' })
 
   useEffect(() => {
     if (!active || !returnFocus.current) return
@@ -625,12 +627,15 @@ export function CardSearchView({
             <button
               className="export"
               type="button"
+              disabled={!filtersSet}
               onClick={() => {
                 setFilters(defaultCardSearchFilters)
                 setOrder('name')
+                // The button disables itself, so keep keyboard focus in the panel.
+                document.getElementById('search-name')?.focus()
               }}
             >
-              Reset filters
+              Clear filters
             </button>
           </div>
           <SearchFilters
