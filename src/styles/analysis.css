@@ -50,6 +50,7 @@
 .dark .actions:hover button:not(.primary, [aria-pressed='true']):hover,
 .dark .actions:focus-within button:not(.primary, [aria-pressed='true']):focus-visible {
   border-color: #8d88db;
+  background: var(--surface-muted);
   color: white;
 }
 .actions > div {

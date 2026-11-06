@@ -567,7 +567,7 @@
 }
 .ignore-reasons button[aria-pressed='true'] {
   border-color: var(--commander-accent, #36327f);
-  background: #d5d0f2;
+  background: var(--selected-background);
   font-weight: 600;
 }
 /* Light uses the commander accent; on dark panels it can be too dark to mark the selection. */
