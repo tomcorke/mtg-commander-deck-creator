@@ -36,11 +36,12 @@
   width: min(310px, calc(100vw - 16px));
   max-height: calc(100dvh - 16px);
   overflow: auto;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--border-control);
   border-radius: 7px;
   background: var(--surface-panel);
   color: var(--text-body);
+  box-shadow: 0 8px 24px #0003;
   font-size: var(--type-data);
   line-height: 1.4;
   white-space: normal;
@@ -54,9 +55,6 @@
   padding-top: 12px;
   white-space: normal;
   border-top: 1px solid var(--border-control);
-}
-.dark .display-settings-panel .request-activity-details {
-  border-color: #514b69;
 }
 .request-activity-details table {
   width: 100%;
@@ -81,8 +79,4 @@
 }
 .dark .request-activity-button[data-state='active'] {
   color: var(--text-accent);
-}
-.dark .request-activity-panel {
-  border-color: #55516b;
-  background: #201e32;
 }

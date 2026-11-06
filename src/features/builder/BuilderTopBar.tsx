@@ -1,6 +1,7 @@
 import type { SavedDeck } from '../../deck-state.ts'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
+import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
 
 export type BuilderTopBarProps = {
   activeDeckDelta: { added: number; removed: number } | null
@@ -33,9 +34,14 @@ export function BuilderTopBar({
           <div className="saved-status">
             <b>{activeSavedDeck.name}</b>
             <small>
-              Saved {new Date(activeSavedDeck.updatedAt).toLocaleString()}{' '}
-              <span className="delta-added">+{activeDeckDelta?.added}</span>{' '}
-              <span className="delta-removed">−{activeDeckDelta?.removed}</span>
+              Saved <DraftSavedTime updatedAt={activeSavedDeck.updatedAt} />
+              {activeDeckDelta && (activeDeckDelta.added > 0 || activeDeckDelta.removed > 0) && (
+                <>
+                  {' · '}
+                  <span className="delta-added">+{activeDeckDelta.added}</span>{' '}
+                  <span className="delta-removed">−{activeDeckDelta.removed}</span> unsaved
+                </>
+              )}
             </small>
           </div>
         )}
