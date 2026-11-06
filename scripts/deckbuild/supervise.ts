@@ -158,8 +158,24 @@ ${await readFile(append, 'utf8')}`
 export async function supervisedStep(dir: string, appendPath?: string) {
   checkStoreDirectory(dir)
   const lockPath = join(dir, 'run.lock')
-  const lock = await open(lockPath, 'wx')
+  let lock
   try {
+    lock = await open(lockPath, 'wx')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+    const holder = await readFile(lockPath, 'utf8').catch(() => '')
+    throw new Error(
+      `Run busy: run.lock held by ${holder.trim() || 'an unknown operation'}. Nothing launched and no run evidence changed. Wait for that supervisor call to exit before the next call. Never delete run.lock while a supervisor runs; a lock left by an interrupted supervisor needs operator inspection.`,
+    )
+  }
+  try {
+    await lock.writeFile(
+      JSON.stringify({
+        operation: appendPath ? 'extend' : 'start',
+        pid: process.pid,
+        started: new Date().toISOString(),
+      }),
+    )
     return await lockedStep(dir, appendPath)
   } finally {
     await lock.close()
