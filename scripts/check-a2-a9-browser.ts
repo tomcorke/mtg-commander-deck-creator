@@ -142,18 +142,10 @@ async function discoveryAndDisplay(page: Page, label: string) {
   assert.equal(await page.locator('.step').count(), 0)
   const reference = page.locator('.commander-tile .card-reference').first()
   const name = reference.locator('.card-reference-name')
-  const preview = reference.locator('.card-image-preview')
+  // #235 removed the hover preview from commander tiles; the tile already shows full art.
+  assert.equal(await reference.locator('.card-image-preview').count(), 0)
   await name.focus()
   assert.ok(await name.evaluate((element) => element === document.activeElement))
-  await page.waitForFunction(() =>
-    Boolean(
-      document.querySelector('.commander-tile .card-reference .card-image-preview:popover-open'),
-    ),
-  )
-  await page.getByRole('textbox', { name: 'Search commanders' }).focus()
-  assert.ok(!(await preview.evaluate((element) => element.matches(':popover-open'))))
-  await name.hover()
-  assert.ok(await preview.evaluate((element) => element.matches(':popover-open')))
   await press(page, name)
   await page.getByRole('dialog').waitFor()
   await page.keyboard.press('Escape')
@@ -184,7 +176,8 @@ async function discoveryAndDisplay(page: Page, label: string) {
   await page.keyboard.press('Escape')
   assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Display')
   await press(page, page.getByRole('button', { name: 'Display', exact: true }))
-  await page.getByRole('heading', { name: 'What do you want to play?' }).click()
+  // The open panel can cover the Start heading, so click the empty page gutter instead.
+  await page.mouse.click(2, (page.viewportSize()?.height ?? 2) - 2)
   assert.equal(
     await page.getByRole('button', { name: 'Display', exact: true }).getAttribute('aria-expanded'),
     'false',
@@ -307,7 +300,7 @@ async function styleAndResume(page: Page, requests: string[], label: string) {
   await page.screenshot({ path: join(screenshotDir, `${label}-batch.png`), fullPage: true })
   const stored = await currentDraft(page)
   await page.goto('http://127.0.0.1:5282/#start')
-  await page.getByRole('heading', { name: 'Continue building' }).waitFor()
+  await page.getByRole('region', { name: 'Deck in progress' }).waitFor()
   await page.locator('[aria-label="Current card data"]').waitFor({ state: 'hidden' })
   assert.equal(await page.locator('.workspace-notice').count(), 0)
   assert.ok(!(await guideOption.isChecked()))
