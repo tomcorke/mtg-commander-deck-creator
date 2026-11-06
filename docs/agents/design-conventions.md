@@ -76,7 +76,6 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 
 - Every dialog uses `useDialogFocus` (#282).
   - A dialog opened from a dialog that then closes returns focus to `<body>`: the Collection browser opens from Recommendation settings, which closes in a later commit, so its opener ("Browse these cards") is gone by close. Before #282 focus also landed on `<body>`. #316.
-- Recommendation settings scroll as a whole, so the footer ("Done") sits below the fold. #298.
 - The card details eyebrow reads "Deck card" for the commander and "Card details" for a recommendation. The action row (`.deck-card-modal-actions`) butts "Move to main deck" against "Remove from sideboard" at different font sizes. #299.
 
 **Popovers**
@@ -261,10 +260,14 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 
 ### #298 Recommendation settings
 
-- **Hierarchy**: each control's helper text sits on its own line below the control, and a "?" popover repeats it. `light/rec-settings.png`.
-- **Hierarchy**: the footer ("Done" plus summary) scrolls with the body, below the fold. `light/rec-settings-sets.png`.
-- **Clipping**: the Priority help popover covers the helper line beside it. `light/rec-settings-help.png`.
-- **Copy**: "Changes apply when you close settings." uses bold amber warning styling for neutral information. `light/rec-settings-sets.png`.
+- Fixed (**Hierarchy**): Priority and Max price each had a helper line under the control that its "?" popover repeated. Each control now has one help: the "?" popover. Max price's popover gained "Leave empty for no limit", and the field's `aria-describedby` points at it. The live per-priority line went, with `priorityHelp`.
+- Fixed (**Hierarchy**): the footer scrolled with the body, below the fold. `.recommendation-settings-actions` is now a sticky footer, the `.change-commander-confirm` pattern: negative margins of `--settings-pad` (28px, 20px at 520px and below), a `--border-subtle` top rule, `background: inherit`. `scroll-padding-bottom` keeps Tab-focused controls clear of it.
+- Fixed (**Clipping**): popovers covered the helper lines and, in the filters, the longer label of the next row. Every top-level row and filter row now shares one "?" column (labels 9.5em, controls 13em), so each popover opens right of it into empty space. "Include a creature when possible" is a `.recommendation-setting-toggle` row, like the filters. At 520px and below the columns fall back to `auto` and popovers open above the row, covering the rows above; there is no room beside them.
+- Fixed (**Copy**): "Changes apply when you close settings." was bold amber. It is now muted text under the summary in the footer, still `role=status`.
+- Kept: the Sets fieldset's "Use" row keeps its own columns inside the picker.
+- Kept: at 375px the footer is about 140px tall (summary, status, Done on its own row).
+- Not fixed: #316 (focus lands on `<body>` after the Collection browser closes). Settings closes through `history.back()`, after the browser has recorded "Browse these cards" as its opener, so the fix belongs in `useDialogFocus`.
+- Not reached: the collection error, "Loading sets…", and opening from the play-style step (`focusSets`).
 
 ### #299 Card details and comparison
 

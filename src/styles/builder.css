@@ -133,9 +133,12 @@
   font-size: var(--type-body);
 }
 .recommendation-settings-modal {
+  --settings-pad: 28px;
   width: min(900px, 100%);
   /* Grow downward so ticking a set never shifts rows under the cursor. */
   align-self: start;
+  /* Keep Tab-focused controls clear of the sticky footer. */
+  scroll-padding-bottom: 96px;
 }
 .recommendation-disclosure {
   margin-top: 10px;
@@ -154,6 +157,8 @@
 }
 .price-limit-input input {
   width: 110px;
+  min-width: 0;
+  flex: 1;
   padding: 5px 8px;
   border-radius: 5px;
   font: inherit;
@@ -166,12 +171,27 @@
 .recommendation-settings-form {
   margin-top: 22px;
 }
-.recommendation-settings-form > .recommendation-setting {
+.recommendation-settings-form > .recommendation-setting,
+.recommendation-settings-form > .recommendation-setting-toggle {
   flex-basis: 100%;
 }
-.recommendation-setting > .settings-help {
-  grid-column: 1 / -1;
-  line-height: 1.5;
+/* One label, control and "?" column, so every help popover opens into empty space. */
+.recommendation-settings-form > .recommendation-setting,
+.recommendation-settings-form > .recommendation-setting-toggle {
+  grid-template-columns: 9.5em 13em 20px 1fr;
+}
+.recommendation-settings-form > .recommendation-setting > select {
+  justify-self: stretch;
+}
+.recommendation-settings-form > .recommendation-setting-toggle > label {
+  grid-column: 1 / span 2;
+}
+.recommendation-settings-form > .recommendation-setting-toggle .setting-help-wrap {
+  grid-column: 3;
+}
+/* Same "?" column inside the filter fieldset: 13px is its padding and border, less one 7px gap. */
+.recommendation-options fieldset:not(.collection-picker) > .recommendation-setting-toggle {
+  grid-template-columns: calc(22.5em - 6px) 20px 1fr;
 }
 .recommendation-setting,
 .recommendation-setting-toggle,
@@ -213,10 +233,20 @@
 }
 .recommendation-settings-actions {
   flex-wrap: wrap;
+  position: sticky;
+  z-index: 11;
+  bottom: calc(-1 * var(--settings-pad));
+  margin: 16px calc(-1 * var(--settings-pad)) calc(-1 * var(--settings-pad));
+  padding: 14px var(--settings-pad);
+  border-top: 1px solid var(--border-subtle);
+  background: inherit;
 }
-.recommendation-settings-actions > span {
+.recommendation-settings-actions > p {
+  display: grid;
   min-width: 0;
   flex: 1 1 260px;
+  gap: 2px;
+  margin: 0;
   color: var(--text-muted);
   font-size: var(--type-body);
 }
@@ -718,10 +748,6 @@
   padding: 4px 8px;
   border-radius: 5px;
   font-size: var(--type-data);
-}
-.options-pending {
-  color: var(--text-warning);
-  font-weight: 600;
 }
 .recommendation-toolbar {
   display: flex;

@@ -7,13 +7,6 @@ export const priorityLabels: Record<RecommendationStyle, string> = {
   fun: 'Surprise me',
 }
 
-export const priorityHelp: Record<RecommendationStyle, string> = {
-  thematic: 'Favors your themes and selected sets over popularity.',
-  balanced: 'Balances theme, synergy, learned preferences, and missing deck roles.',
-  competitive: 'Favors missing deck roles, mana fit, and commander evidence.',
-  fun: 'Boosts interesting new picks and shows more of them together.',
-}
-
 // Keep the stored style names; fold the old health override into the nearest priority.
 export function migrateRecommendationPriority(
   value: unknown,
