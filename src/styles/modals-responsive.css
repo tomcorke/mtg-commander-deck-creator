@@ -97,6 +97,26 @@
   .change-commander-modal {
     --change-commander-pad: 20px;
   }
+  .recommendation-settings-modal {
+    --settings-pad: 20px;
+    scroll-padding-bottom: 160px;
+  }
+  .recommendation-settings-form > .recommendation-setting {
+    grid-template-columns: auto auto 20px 1fr;
+  }
+  .recommendation-settings-form > .recommendation-setting-toggle,
+  .recommendation-options fieldset:not(.collection-picker) > .recommendation-setting-toggle {
+    grid-template-columns: auto 20px 1fr;
+  }
+  .recommendation-settings-form > .recommendation-setting-toggle > label {
+    grid-column: 1;
+  }
+  .recommendation-settings-form > .recommendation-setting-toggle .setting-help-wrap {
+    grid-column: 2;
+  }
+  .recommendation-settings-actions {
+    padding-block: 12px;
+  }
   .recommendation-options fieldset {
     min-width: 0;
     width: 100%;

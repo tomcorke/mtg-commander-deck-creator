@@ -5,11 +5,7 @@ import { useDialogFocus } from '../../shared/hooks.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import type { ScryfallSet } from '../../domain/card-model.ts'
 import { onlyModeMinimumPool, type SetPickerRow } from '../../domain/set-picker.ts'
-import {
-  normalizeMaxPrice,
-  priorityLabels,
-  priorityHelp,
-} from '../../domain/recommendation-tuning.ts'
+import { normalizeMaxPrice, priorityLabels } from '../../domain/recommendation-tuning.ts'
 import type { CollectionMode, RecommendationStyle } from '../../recommendations.ts'
 
 type PowerTarget = 'precon' | 'upgraded' | 'high'
@@ -183,7 +179,6 @@ export function RecommendationSettingsModal({
               label="Priority"
               description="Theme first favors themes and selected sets; Balanced mixes theme and deck needs; Deck needs first favors missing roles and mana fit; Surprise me boosts interesting new picks."
             />
-            <p className="settings-help">{priorityHelp[recommendationStyle]}</p>
           </div>
           <div className="recommendation-setting">
             <label htmlFor="power-target">Power</label>
@@ -214,19 +209,16 @@ export function RecommendationSettingsModal({
                 value={maxPrice ?? ''}
                 placeholder="No limit"
                 onChange={(event) => chooseMaxPrice(normalizeMaxPrice(event.target.value))}
-                aria-describedby="max-price-description"
+                aria-describedby="max-price-help"
               />
             </span>
             <SettingHelp
               id="max-price-help"
               label="Max price per card"
-              description="Limits recommendations by their displayed US dollar price. Cards without a price are still offered."
+              description="Limits recommendations by their displayed US dollar price. Leave empty for no limit. Cards without a price are still offered."
             />
-            <p className="settings-help" id="max-price-description">
-              Leave empty for no limit. Cards without a price stay included.
-            </p>
           </div>
-          <div className="recommendation-setting">
+          <div className="recommendation-setting-toggle">
             <label htmlFor="include-creature">
               <input
                 id="include-creature"
@@ -492,14 +484,15 @@ export function RecommendationSettingsModal({
               />
             </div>
           </fieldset>
-          {recommendationOptionsChanged && (
-            <span className="options-pending" role="status">
-              Changes apply when you close settings.
-            </span>
-          )}
         </div>
         <div className="export-actions recommendation-settings-actions">
-          <span>{recommendationSettingsSummary}</span>
+          <p>
+            <span>{recommendationSettingsSummary}</span>
+            {/* Stays mounted so screen readers announce the text when it appears. */}
+            <span role="status">
+              {recommendationOptionsChanged && 'Changes apply when you close settings.'}
+            </span>
+          </p>
           <button type="button" className="primary" onClick={() => closeModal()}>
             Done
           </button>
