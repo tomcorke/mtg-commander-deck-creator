@@ -223,8 +223,12 @@ test('fetch guard latches after rejection or server failure without later networ
 
 test('existing run lock refuses a step without stopping or launching', async (t) => {
   const { dir, cli, ledger } = await run(t)
-  await writeFile(join(dir, 'run.lock'), '')
-  assert.equal(cli('start', dir).status, 1)
+  const holder = '{"operation":"extend","pid":42}'
+  await writeFile(join(dir, 'run.lock'), holder)
+  const result = cli('start', dir)
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /Run busy: run\.lock held by \{"operation":"extend","pid":42\}/)
+  assert.equal(await readFile(join(dir, 'run.lock'), 'utf8'), holder)
   assert.deepEqual(await ledger(), [])
   assert.equal(existsSync(join(dir, 'stop.json')), false)
 })
