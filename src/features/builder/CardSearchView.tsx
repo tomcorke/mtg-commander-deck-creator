@@ -631,6 +631,8 @@ export function CardSearchView({
               onClick={() => {
                 setFilters(defaultCardSearchFilters)
                 setOrder('name')
+                // The button disables itself, so keep keyboard focus in the panel.
+                document.getElementById('search-name')?.focus()
               }}
             >
               Clear filters
