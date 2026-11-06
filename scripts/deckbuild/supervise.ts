@@ -200,6 +200,14 @@ async function preflight(dir: string, appendPath?: string) {
   }
   if (appendPath && commands.length === 0) throw new Error('Append requires at least one command')
   if (!prior) await readJson(join(dir, 'inputs.json'))
+  const n = (prior?.extensions ?? 0) + 1
+  const owned = [`append-${n}.jsonl`, `commands-${n}.jsonl`]
+  for (const step of [`extend-${n}`, `replay-${n}`]) owned.push(`${step}.json`, `${step}.stderr`)
+  const taken = prior ? owned.filter((name) => existsSync(join(dir, name))) : []
+  if (taken.length)
+    throw new Error(
+      `Supervisor-owned output already exists: ${taken.join(', ')}; nothing launched and the run is not stopped. Rename builder scratch files away from supervisor names and resubmit.`,
+    )
   return { a, assignment, statePath, prior }
 }
 
