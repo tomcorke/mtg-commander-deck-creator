@@ -88,7 +88,7 @@ Replay a state like this:
 Notes:
 
 - A T3 `preview_evaluate` call times out after 15 s, and a hidden tab throttles timers. Split long flows across several calls.
-- Every load starts in "Checking card data…", with the analysis reading zero (state `builder-card-data-loading`). `dr.builderReady()` waits for card data and the first reveal.
+- Every load starts in "Checking card data…", with role counts, land fill, and Doctor findings waiting for it (state `builder-card-data-loading`). `dr.builderReady()` waits for card data and the first reveal.
 - States in a group share one workspace and mutate it. `saved-manual` saves "Audit deck", `rec-settings-sets` ticks the newest set, `commander-alt-printing` switches the commander's printing, `review-c-applied-history` applies a change, and `builder-health-lane` switches Priority to Theme first. Re-import the deck if a later state depends on the original.
 - Theme chips on Start are randomised on each load. For repeatable chips, seed `Math.random` in an init script (for example, Playwright `addInitScript`). A new seed requests new theme searches, so record them once with `pnpm dev:record`. Replay fixes provider responses and uses synthetic EDHREC lists; live-mode card names can vary between runs.
 - Fault states (`block …` in the comment line) need request interception. The T3 preview can't intercept, so use Playwright against the same dev server before loading the route. Under `pnpm dev:replay` and `pnpm dev:record`, the app sends provider calls to `/__dev-provider?url=<provider URL>`, so match that path and read `url`; a provider-host pattern matches only under plain `pnpm dev`:

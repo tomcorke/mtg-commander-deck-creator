@@ -374,16 +374,28 @@ export function DeckDoctorView({
   )
   const findings = useMemo<DeckDoctorFinding[]>(
     () =>
-      analyzeDeckDoctor({
-        deck,
-        sideboard,
-        commanderCount,
-        theme,
-        activeSubThemes,
-        deckTargets,
-        simulation,
-      }),
-    [activeSubThemes, commanderCount, deck, deckTargets, sideboard, simulation, theme],
+      // Saved decks drop type lines; diagnosing before card data loads flags most of the deck.
+      analysis.curvePending
+        ? []
+        : analyzeDeckDoctor({
+            deck,
+            sideboard,
+            commanderCount,
+            theme,
+            activeSubThemes,
+            deckTargets,
+            simulation,
+          }),
+    [
+      activeSubThemes,
+      analysis.curvePending,
+      commanderCount,
+      deck,
+      deckTargets,
+      sideboard,
+      simulation,
+      theme,
+    ],
   )
   const candidatePool = useMemo(
     () => [
@@ -1139,6 +1151,10 @@ export function DeckDoctorView({
                     </div>
                   </article>
                 ))
+              ) : analysis.curvePending ? (
+                <p className="doctor-empty" aria-busy="true">
+                  Checking card data…
+                </p>
               ) : (
                 <p className="doctor-empty">
                   No findings at the current settings. The heuristics cannot verify every
