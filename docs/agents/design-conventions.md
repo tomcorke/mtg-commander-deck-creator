@@ -76,7 +76,7 @@ Each entry gives the place and the owning slice. A slice either fixes it or reco
 
 - Every dialog uses `useDialogFocus` (#282).
   - A dialog opened from a dialog that then closes returns focus to `<body>`: the Collection browser opens from Recommendation settings, which closes in a later commit, so its opener ("Browse these cards") is gone by close. Before #282 focus also landed on `<body>`. #316.
-- The card details eyebrow reads "Deck card" for the commander and "Card details" for a recommendation. The action row (`.deck-card-modal-actions`) butts "Move to main deck" against "Remove from sideboard" at different font sizes. #299.
+- Card details keeps its `h2` beside the art, with the cost, instead of in `.export-heading`; the heading row holds only the eyebrow and ×. The name reads as the card's title next to its image. #299.
 
 **Popovers**
 
@@ -272,8 +272,11 @@ Lens names follow `design-review.md`. Each screenshot is `<variant>/<state>.png`
 ### #299 Card details and comparison
 
 - Scope: `DeckCardModal` has no comparison pair. Paired images exist only in Doctor "Suggested swaps" (#294) and the Confirm plan (#296).
-- **Hierarchy**: the eyebrow reads "Deck card" for the commander and "Card details" for a recommendation. `light/card-details.png`, `light/card-details-recommendation.png`.
-- **Hierarchy**: "Move to main deck" and "Remove from sideboard" touch, at different font sizes, and the remove action is red text with no outline. `light/card-details-sideboard.png`.
+- Fixed (**Hierarchy**): the eyebrow said "Deck card" for every deck card, the commander included. It now names where the card is, or why it opened: "Commander", "Main deck", "Sideboard", "Deck health suggestion", "Collection card", "Search result" (card search, with Add), or "Card details" for a read-only reference (a recommendation, a Doctor candidate). A reference matches by exact printing, so "Card details" claims nothing about the deck.
+- Fixed (**Hierarchy**): "Move to …" (16px `.export`) touched "Remove from …" (13px `.danger`). The row is now the dialog footer, `.export-actions`: Move at the start, Remove at the end, both at body size with `.export` padding. At 375px the row wraps whole buttons and Remove stays at the end; before, both labels wrapped to two lines. The add footer (toggle + "Add to deck") wraps the same way.
+- Fixed (**Clipping**): at 375px the "↻ Art n/m" button under the image overlapped the card name. The art box reserves 44px below it while printing or flip buttons show, so they also clear the footer at desktop widths.
+- How to reach "Search result": the `card-search-results` drive, then click a result not in the deck. Replay needs the "elf" search; seed it once with `pnpm dev:record` if it misses.
+- Not reached: the commander promotion row (the audit deck has no other legendary creature), the flip button (no double-faced card), and the disabled Add with its error.
 
 ### #300 Saved decks
 
