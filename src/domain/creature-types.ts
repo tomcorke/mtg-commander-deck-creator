@@ -462,11 +462,20 @@ export const everyCreatureTypePattern =
   /\bchangeling\b|\b(?:is|are) (?:also )?every creature type|\b(?:is|has|have|with|and|gains?) all creature types\b/i
 
 /**
- * Whether a card carries a theme tag, counting every-type cards for any creature-type theme.
+ * Tag on "choose a creature type" cards that help your own creatures of that type (Patchwork
+ * Banner, Herald's Horn, Kindred Discovery). Hosers (Engineered Plague) only affect "creatures
+ * of the chosen type" without "you control", "you cast" or "spells", so they stay `Tribal` only.
+ */
+export const chosenCreatureTypeTag = 'Chosen type'
+export const chosenCreatureTypePattern =
+  /choose a creature type[\s\S]*(?:you control|you cast|spells?) of the chosen type/i
+
+/**
+ * Whether a card carries a theme tag, counting every-type and chosen-type cards for any creature-type theme.
  * Every-type lands (Mutavault, Soulstone Sanctuary) stay retrievable but aren't theme picks (#174).
  */
 export const hasTag = (card: { tags: string[]; typeLine?: string }, tag: string) =>
   card.tags.includes(tag) ||
-  (card.tags.includes(everyCreatureTypeTag) &&
+  ((card.tags.includes(everyCreatureTypeTag) || card.tags.includes(chosenCreatureTypeTag)) &&
     singularByTheme.has(tag) &&
     !/\bLand\b/.test(card.typeLine ?? ''))

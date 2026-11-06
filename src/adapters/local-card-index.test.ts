@@ -4,6 +4,7 @@ import type { ScryfallCard } from '../domain/card-model.ts'
 import type { LocalCardIndex } from '../domain/local-card-index.ts'
 import { hasTag } from '../domain/creature-types.ts'
 import { tagsFor } from '../domain/recommendation-themes.ts'
+import { themeSearchTerm } from '../domain/commander-catalog.ts'
 import {
   createLocalCardSource,
   localIndexStaleness,
@@ -221,4 +222,18 @@ test('every-type cards join creature-type queries, and hasTag counts them for an
   assert.ok(hasTag({ tags: ['Changeling'] }, 'Elves'))
   assert.ok(!hasTag({ tags: ['Changeling'] }, 'Tokens'))
   assert.ok(!hasTag({ tags: ['Changeling'], typeLine: 'Land' }, 'Elves'))
+  // Chosen-type support for your own creatures counts for any creature-type theme (#379); hosers don't.
+  const banner = tagsFor(
+    'As this enters, choose a creature type.\nCreatures you control of the chosen type get +1/+1.\n{T}: Add one mana of any color.',
+    'Artifact',
+  )
+  assert.ok(banner.includes('Chosen type') && hasTag({ tags: banner }, 'Rabbits'))
+  assert.ok(!hasTag({ tags: banner }, 'Tokens'))
+  assert.ok(
+    !tagsFor(
+      'As this enters, choose a creature type.\nAll creatures of the chosen type get -1/-1.',
+      '',
+    ).includes('Chosen type'),
+  )
+  assert.match(themeSearchTerm('Rabbits') ?? '', /o:"choose a creature type"/)
 })
