@@ -1,17 +1,13 @@
 .card-search-shell {
   --search-panel: #fff;
   --search-soft: #f8f8ff;
-  --search-border: #dad8e6;
-  --search-muted: #625f76;
-  --search-input: #fff;
+  --search-border: var(--border-subtle);
+  --search-muted: var(--text-muted);
   padding: 0;
 }
 .card-search-shell.dark {
   --search-panel: #1b1a2a;
   --search-soft: #141322;
-  --search-border: #39374f;
-  --search-muted: #aaa8c2;
-  --search-input: #121121;
 }
 .search-page-context {
   min-width: 0;
@@ -56,10 +52,15 @@
   border: 1px solid var(--search-border);
   border-radius: 7px;
 }
-.card-search-filters legend,
-.search-filter-group > summary {
-  font-size: var(--type-body);
-  font-weight: 600;
+/* Group headings take the shared .filter-heading look; field labels stay plain form labels. */
+.card-search-filters .filter-heading {
+  margin: 0;
+}
+.card-search-filters legend {
+  padding: 0 4px;
+}
+.card-search-filters .search-checkbox {
+  font-size: var(--type-data);
 }
 .card-search-filters p {
   margin: 8px 0 0;
@@ -78,10 +79,7 @@
   min-width: 0;
   width: 100%;
   padding: 8px;
-  border: 1px solid var(--search-border);
   border-radius: 6px;
-  background: var(--search-input);
-  color: inherit;
   font: inherit;
 }
 .card-search-shell input:focus-visible,
@@ -92,7 +90,7 @@
 }
 .search-filter-actions {
   position: sticky;
-  top: -20px;
+  top: 0;
   z-index: 2;
   display: flex;
   gap: 8px;
@@ -336,9 +334,6 @@
   .search-match button {
     min-width: 50px;
     min-height: 40px;
-  }
-  .search-filter-actions {
-    top: 0;
   }
   .card-search-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
