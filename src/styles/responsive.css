@@ -4,12 +4,13 @@
   border-color: var(--border-subtle);
 }
 .dark aside {
-  background: #17162a;
+  background: var(--surface-inset);
 }
 .dark .theme-toggle {
   border-color: var(--border-control);
   color: var(--text-body);
 }
+/* Mixes the commander accent toward dark control colours; light uses the accent as is. */
 .dark .export,
 .dark .compact-action {
   border-color: color-mix(in srgb, var(--commander-accent, #7169ca) 70%, #4b4867);
@@ -19,13 +20,12 @@
 .dark .compact-action:not(:disabled):hover {
   background: color-mix(in srgb, var(--commander-accent, #7169ca) 16%, #121121);
 }
-.dark .action-help-wrap > button:not(.quiet):hover {
-  background: #35334d;
-}
+/* Beats component list borders that are tuned for light only. */
 .dark li,
 .dark dl {
-  border-color: #39374f;
+  border-color: var(--border-divider);
 }
+/* Lifts the accent fill so it reads on dark tracks. */
 .dark .progress span {
   background-color: #756dda;
 }

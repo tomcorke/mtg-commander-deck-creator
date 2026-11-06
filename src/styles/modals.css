@@ -354,7 +354,7 @@
   margin: 8px 0 4px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: #eeedf7;
+  background: var(--surface-tinted);
   color: var(--text-muted);
   font-size: var(--type-body);
 }
@@ -879,10 +879,10 @@
 .deck-review-section {
   min-width: 0;
   padding: 14px;
-  border: 1px solid #d5d3e1;
+  border: 1px solid var(--border-divider);
   border-top: 3px solid var(--commander-accent, #7546a8);
   border-radius: 9px;
-  background: #fff;
+  background: var(--surface-raised);
 }
 .deck-review-section h3 {
   margin: 0 0 8px;
@@ -931,16 +931,16 @@
   font-size: var(--type-data);
 }
 .deck-review-status.good {
-  background: #e6f3e8;
+  background: var(--surface-success);
   color: var(--text-success);
 }
 /* Findings are possible gaps, not errors: amber, as "How review works" says. */
 .deck-review-status.attention {
-  background: #fdf5e4;
+  background: var(--surface-warning);
   color: var(--text-warning);
 }
 .deck-review-status.neutral {
-  background: #eeedf7;
+  background: var(--surface-tinted);
   color: var(--text-muted);
 }
 .deck-review-filter {
@@ -948,9 +948,9 @@
   width: 100%;
   gap: 7px;
   padding: 9px;
-  border: 1px solid #d5d3e1;
+  border: 1px solid var(--border-divider);
   border-radius: 7px;
-  background: #fbfaff;
+  background: var(--input-background);
   color: var(--text-body);
   font: inherit;
   text-align: left;
@@ -958,7 +958,7 @@
 .deck-review-filter:hover,
 .deck-review-filter:focus-visible {
   border-color: var(--commander-accent, #7546a8);
-  background: #f0eef9;
+  background: var(--surface-tinted);
 }
 .deck-review-filter:disabled {
   cursor: default;
@@ -977,9 +977,9 @@
 /* The role card holds the filter button and its target stepper; a button can't nest inputs. */
 .deck-review-role {
   display: grid;
-  border: 1px solid #d5d3e1;
+  border: 1px solid var(--border-divider);
   border-radius: 7px;
-  background: #fbfaff;
+  background: var(--input-background);
 }
 .deck-review-role:has(.deck-review-role-filter:hover) {
   border-color: var(--commander-accent, #7546a8);
@@ -991,7 +991,7 @@
 }
 .deck-review-role .deck-review-role-filter:hover,
 .deck-review-role .deck-review-role-filter:focus-visible {
-  background: #f0eef9;
+  background: var(--surface-tinted);
 }
 .deck-review-row-heading,
 .deck-review-colour-heading,
@@ -1010,7 +1010,7 @@
   height: 6px;
   overflow: hidden;
   border-radius: 5px;
-  background: #e8e6ef;
+  background: var(--surface-track);
 }
 .deck-review-ratio i {
   display: block;
@@ -1024,7 +1024,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 6px 9px;
-  border-top: 1px solid #e0deea;
+  border-top: 1px solid var(--border-divider);
   color: var(--text-muted);
   font-size: var(--type-data);
 }
@@ -1051,7 +1051,7 @@
 .deck-review-colour-counts > span {
   padding: 3px 6px;
   border-radius: 4px;
-  background: #eeedf7;
+  background: var(--surface-tinted);
 }
 .deck-review-colour-counts b {
   color: var(--text-body);
@@ -1075,47 +1075,18 @@
 .deck-review-type-filter {
   gap: 5px;
 }
-.dark .deck-review-early {
-  background: #292644;
-  color: var(--text-muted);
-}
-.dark .deck-review-section {
-  border-color: #39374f;
-  border-top-color: var(--commander-accent, #9d78ce);
-  background: #1b1a2a;
-  color: var(--text-body);
-}
-.dark .deck-review-status.good {
-  background: #203929;
-}
-.dark .deck-review-status.attention {
-  background: #2a2216;
-}
-.dark .deck-review-status.neutral {
-  background: #292644;
-}
-.dark .deck-review-filter {
-  border-color: var(--border-control);
-  background: #121121;
-}
-.dark .deck-review-filter:hover,
-.dark .deck-review-filter:focus-visible,
-.dark .deck-review-role .deck-review-role-filter:hover,
-.dark .deck-review-role .deck-review-role-filter:focus-visible {
-  background: #292644;
-}
+/* Dark filters need a control-strength edge to read as buttons. */
+.dark .deck-review-filter,
 .dark .deck-review-role {
   border-color: var(--border-control);
-  background: #121121;
 }
-.dark .deck-review-target {
-  border-color: #39374f;
+.dark .deck-review-early {
+  color: var(--text-muted);
 }
-.dark .deck-review-ratio {
-  background: #39374f;
-}
-.dark .deck-review-colour-counts > span {
-  background: #292644;
+/* The light top edge uses a darker accent fallback than dark panels can show. */
+.dark .deck-review-section {
+  border-top-color: var(--commander-accent, #9d78ce);
+  color: var(--text-body);
 }
 @media (max-width: 620px) {
   .doctor-navigation {

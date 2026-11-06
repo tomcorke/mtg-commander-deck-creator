@@ -16,7 +16,7 @@
   grid-column: 1 / -1;
   padding: 34px 5vw 60px;
   border-top: 1px solid var(--border-subtle);
-  background: #e9eaf7;
+  background: var(--surface-inset);
 }
 .deck-board-heading {
   display: flex;
@@ -48,7 +48,7 @@
   margin-top: 14px;
   padding: 10px 12px;
   border-left: 3px solid var(--commander-accent, #7546a8);
-  background: #fff;
+  background: var(--surface-raised);
   color: var(--text-muted);
   font-size: var(--type-data);
 }
@@ -272,7 +272,7 @@
   align-items: center;
   margin: 0;
   padding: 9px 12px;
-  border: 1px solid #d2d0df;
+  border: 1px solid var(--border-control);
   border-radius: 7px;
 }
 .recommendation-options fieldset:not(.collection-picker) > .recommendation-setting-toggle {
@@ -433,13 +433,13 @@
   justify-content: stretch;
   gap: 4px;
   padding: 7px 10px;
-  border: 1px solid #d2d0df;
+  border: 1px solid var(--border-divider);
   border-radius: 6px;
-  background: #fff;
+  background: var(--surface-raised);
 }
 .set-picker-row:has(input:checked) {
-  border-color: #8d88bd;
-  background: #f1effc;
+  border-color: var(--border-tinted);
+  background: var(--surface-tinted);
 }
 .set-picker-row label {
   min-width: 0;
@@ -486,7 +486,7 @@
 }
 .collection-chips button {
   max-width: 100%;
-  background: #e8e6fa;
+  background: var(--surface-tinted);
   text-align: left;
 }
 .collection-affinity-actions {
@@ -517,9 +517,9 @@
 }
 .collection-pool-warning {
   padding: 8px 10px;
-  border: 1px solid #e3c48a;
+  border: 1px solid var(--border-warning);
   border-radius: 6px;
-  background: #fdf5e4;
+  background: var(--surface-warning);
   color: var(--text-warning);
 }
 .builder-set-chips {
@@ -534,9 +534,9 @@
 .builder-set-chips button {
   max-width: 100%;
   padding: 3px 9px;
-  border: 1px solid #c9c5e6;
+  border: 1px solid var(--border-control);
   border-radius: 999px;
-  background: #e8e6fa;
+  background: var(--surface-tinted);
   color: var(--text-strong);
   font-size: var(--type-data);
   text-align: left;
@@ -557,14 +557,10 @@
   gap: 8px;
   margin-top: 8px;
   padding: 8px 10px;
-  border: 1px solid #c9c5e6;
+  border: 1px solid var(--border-control);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface-raised);
   box-shadow: 0 6px 18px #24203e2e;
-}
-.dark .ignore-feedback {
-  border-color: var(--border-control);
-  background: var(--surface-panel);
 }
 .ignore-feedback > button {
   justify-self: start;
@@ -574,9 +570,9 @@
   background: #d5d0f2;
   font-weight: 600;
 }
+/* Light uses the commander accent; on dark panels it can be too dark to mark the selection. */
 .dark .ignore-reasons button[aria-pressed='true'] {
-  border-color: #a69fde;
-  background: #423c69;
+  border-color: var(--selected-border);
 }
 .ignore-reasons button:focus-visible,
 .role-focus button:focus-visible {
@@ -742,9 +738,9 @@
 }
 .subthemes button {
   padding: 7px 11px;
-  border: 1px solid #8d88bd;
+  border: 1px solid var(--border-tinted);
   border-radius: 18px;
-  background: #e8e6fa;
+  background: var(--surface-tinted);
   color: var(--text-strong);
 }
 .subthemes button span {
@@ -760,9 +756,9 @@
   align-items: center;
   gap: 5px;
   padding: 3px 5px 3px 11px;
-  border: 1px dashed #8d88bd;
+  border: 1px dashed var(--border-tinted);
   border-radius: 18px;
-  background: #e8e6faaa;
+  background: color-mix(in srgb, var(--surface-tinted) 67%, transparent);
   color: var(--text-strong);
   font-size: var(--type-data);
 }
@@ -787,7 +783,7 @@
   width: min(480px, 100%);
   margin-top: 10px;
   padding: 12px;
-  border: 1px solid #d2d0df;
+  border: 1px solid var(--border-divider);
   border-radius: 8px;
   background: var(--surface-panel);
 }
@@ -804,7 +800,7 @@
 }
 .subtheme-picker button {
   padding: 7px 10px;
-  border: 1px solid #8d88bd;
+  border: 1px solid var(--border-tinted);
   border-radius: 6px;
   background: transparent;
   color: var(--text-strong);

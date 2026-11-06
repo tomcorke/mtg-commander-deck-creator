@@ -1,15 +1,9 @@
-.dark .card-details {
-  border-color: #39374f;
-}
 .dark .card-details dt,
 .dark .card-details dd strong {
   color: var(--text-body);
 }
 .dark .card-details a:hover {
   color: var(--text-accent);
-}
-.dark .score-breakdown {
-  border-color: #39374f;
 }
 .dark .score-breakdown-heading,
 .dark .score-factors dd {
@@ -35,9 +29,9 @@
   outline-offset: 2px;
   box-shadow: 0 14px 35px #0009;
 }
+/* Synergy accent: lighter purple edge to keep 3:1 on dark offers. */
 .dark .synergy-info > button {
   border-color: #8d83df;
-  background: #302a4b;
   color: var(--text-strong);
 }
 .dark .card-offer.synergy-1::after {

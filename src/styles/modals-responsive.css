@@ -1,3 +1,4 @@
+/* Light help buttons use the action colour, which is too dark on dark panels. */
 .dark .recommendation-options .setting-help-button {
   border-color: var(--border-control);
   color: var(--text-body);
