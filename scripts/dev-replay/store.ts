@@ -120,18 +120,36 @@ function liveDownload(stats: { upstream: number }, upstream: typeof fetch) {
   }
 }
 
+const datedRelease = /date<=\d{4}-\d{2}-\d{2}/g
+/** Keys date-bounded searches by `date<=today` so recordings replay after the day changes. */
+export function replayKeyUrl(url: URL) {
+  const dated = [...url.searchParams].filter(([, value]) => value.match(datedRelease))
+  if (!dated.length) return url.href
+  const keyed = new URL(url)
+  for (const [name, value] of dated)
+    keyed.searchParams.set(name, value.replace(datedRelease, 'date<=today'))
+  return keyed.href
+}
+
 export function createReplayStore(directory: string, mode: 'record' | 'replay', upstream = fetch) {
   const pending = new Map<string, Promise<Response>>()
   const stats = { hits: 0, misses: 0, upstream: 0 }
   const download = liveDownload(stats, upstream)
 
-  async function load(url: URL, method: string, body: string, type: string, key: string) {
+  async function load(
+    url: URL,
+    keyUrl: string,
+    method: string,
+    body: string,
+    type: string,
+    key: string,
+  ) {
     const file = join(directory, `${key}.json`)
     try {
       const entry = entrySchema.parse(JSON.parse(await readFile(file, 'utf8')))
       const bytes = Buffer.from(entry.bytes, 'base64')
       if (
-        entry.url !== url.href ||
+        entry.url !== keyUrl ||
         entry.method !== method ||
         entry.body !== body ||
         hash(bytes) !== entry.digest
@@ -156,7 +174,7 @@ export function createReplayStore(directory: string, mode: 'record' | 'replay', 
     if (type === 'application/json') JSON.parse(bytes.toString('utf8'))
     const entry = {
       version: 1,
-      url: url.href,
+      url: keyUrl,
       method,
       body,
       status: response.status,
@@ -180,10 +198,11 @@ export function createReplayStore(directory: string, mode: 'record' | 'replay', 
     async request(url: URL, method = 'GET', body = '') {
       const type = approvedRequest(url, method, body)
       const normalized = body ? canonical(JSON.parse(body)) : ''
-      const key = hash(JSON.stringify([1, method, url.href, normalized]))
+      const keyUrl = replayKeyUrl(url)
+      const key = hash(JSON.stringify([1, method, keyUrl, normalized]))
       let result = pending.get(key)
       if (!result) {
-        result = load(url, method, normalized, type, key).finally(() => pending.delete(key))
+        result = load(url, keyUrl, method, normalized, type, key).finally(() => pending.delete(key))
         pending.set(key, result)
       }
       return (await result).clone()
