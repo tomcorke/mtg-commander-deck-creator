@@ -623,71 +623,39 @@
 }
 .collection-browser-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
   gap: 12px;
 }
-.collection-browser-grid article {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  padding: 9px;
-  border: 1px solid #dedcea;
-  border-radius: 8px;
-  background: white;
+/* Compound selector: the shared .card-tile border loads later and would otherwise draw currentColor. */
+.card-tile.collection-browser-tile {
+  border-color: var(--border-subtle);
+  background: var(--surface-page);
 }
-.collection-browser-grid article > div {
-  min-height: 72px;
-  text-align: center;
-}
-.collection-browser-grid .small-card-image {
-  width: 52px;
-  height: 72px;
-  margin: 0 auto;
-}
-.collection-browser-grid .small-card-image-thumbnail {
-  width: 52px;
-  height: 72px;
-}
-.collection-browser-grid h3 {
-  margin: 8px 0 3px;
-  font-size: var(--type-data);
-}
-.collection-browser-grid p,
-.collection-browser-grid span {
-  margin: 0 0 7px;
-  color: var(--text-muted);
-  font-size: var(--type-data);
-}
-.collection-browser-grid button {
-  margin-top: auto;
-  padding: 6px 8px;
-  border: 1px solid #36327f;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text-strong);
-  font-size: var(--type-data);
-}
-.collection-browser-grid .collection-card-open {
-  display: flex;
+.collection-browser-art {
+  display: grid;
   width: 100%;
-  min-height: 205px;
-  flex-direction: column;
-  align-items: stretch;
-  margin: 0 0 8px;
+  aspect-ratio: 5 / 7;
+  place-items: center;
   padding: 0;
   border: 0;
+  border-radius: 4.75%;
+  background: transparent;
   color: inherit;
-  text-align: left;
+  cursor: pointer;
 }
-.collection-browser-grid .collection-card-open > div {
-  min-height: 72px;
-  text-align: center;
+.collection-browser-art .small-card-image {
+  width: 100%;
+  height: 100%;
 }
-.collection-browser-grid .collection-card-open small {
-  margin-top: auto;
-  color: var(--text-accent);
-  font-size: var(--type-data);
-  text-align: right;
+.collection-browser-more {
+  align-self: start;
+  margin-top: 14px;
+}
+.collection-browser-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
 }
 /* Optional Theme first guidance: a tinted inset under the batch, tiles smaller than the offers. */
 /* The list's basis fits three tiles; below that it wraps under the heading. */

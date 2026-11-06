@@ -108,21 +108,18 @@ function buildCollectionData(deps: BuilderDataDeps) {
     deck,
     sideboard,
   } = deps
-  const filteredCollectionCards = collectionBrowserCards
-    .filter((card: ScryfallCard) => {
-      const type =
-        collectionBrowserType === 'all' ||
-        card.type_line.toLowerCase().includes(collectionBrowserType)
-      const mana = collectionBrowserMana.trim()
-      const value = mana ? Number(mana) : NaN
-      return (
-        type &&
-        (!mana ||
-          (Number.isFinite(value) &&
-            (value >= 7 ? (card.cmc ?? 0) >= 7 : (card.cmc ?? 0) === value)))
-      )
-    })
-    .slice(0, 60)
+  const filteredCollectionCards = collectionBrowserCards.filter((card: ScryfallCard) => {
+    const type =
+      collectionBrowserType === 'all' ||
+      card.type_line.toLowerCase().includes(collectionBrowserType)
+    const mana = collectionBrowserMana.trim()
+    const value = mana ? Number(mana) : NaN
+    return (
+      type &&
+      (!mana ||
+        (Number.isFinite(value) && (value >= 7 ? (card.cmc ?? 0) >= 7 : (card.cmc ?? 0) === value)))
+    )
+  })
   const setRows = setPickerRows(setOptions, collectionSearch, showSupplementalSets)
   const collectionSetLabel = (code: string) => {
     const set = setOptions.find((item: any) => item.code === code)

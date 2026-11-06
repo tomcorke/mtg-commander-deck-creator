@@ -1,16 +1,3 @@
-.dark .collection-browser-filters select,
-.dark .collection-browser-filters input,
-.dark .collection-browser-grid article {
-  border-color: var(--border-control);
-  background: #121121;
-  color: var(--text-body);
-}
-.dark .collection-browser-grid button {
-  border-color: #615b96;
-}
-.dark .collection-browser-grid .collection-card-open {
-  border-color: transparent;
-}
 .dark .basic-land-button {
   background: var(--commander-accent, #5851a6);
   color: white;
@@ -26,6 +13,7 @@
   }
   .collection-browser-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 }
 .dark .collection-chips button {
