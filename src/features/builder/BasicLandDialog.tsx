@@ -80,7 +80,10 @@ type Props = {
   opener: RefObject<HTMLButtonElement | null>
   onClose: () => void
   onAddBasicLands: (lands: { name: string; count: number; printing?: ScryfallCard }[]) => void
-  onLoadBasicLandPrintings: (name: string) => Promise<ScryfallCard[]>
+  onLoadBasicLandPrintings: (
+    name: string,
+    onPage: (loaded: ScryfallCard[], total: number) => void,
+  ) => Promise<ScryfallCard[]>
   onLoadBasicsFromSet: (set: string) => Promise<ScryfallCard[]>
   onAddRecommendation: (card: Card) => void
   onOpenCard: (card: Card) => void
@@ -122,6 +125,8 @@ export function BasicLandDialog({
   const [shownPrintings, setShownPrintings] = useState(printingsPage)
   const [styleLoading, setStyleLoading] = useState(false)
   const [styleError, setStyleError] = useState('')
+  const [partial, setPartial] = useState<{ name: string; cards: ScryfallCard[]; total: number }>()
+  const [retryName, setRetryName] = useState('')
   const validCounts = legalBasicNames.every(
     (name) =>
       Number.isInteger(landCounts[name]) && landCounts[name] >= 0 && landCounts[name] <= landGap,
@@ -134,6 +139,24 @@ export function BasicLandDialog({
   const busy = styleLoading || basicLandState === 'loading'
   const setCount = (name: string, count: number) =>
     setLandCountState({ key: planKey, counts: { ...landCounts, [name]: count } })
+  const loadGallery = async (name: string) => {
+    setStyleLoading(true)
+    setStyleError('')
+    setRetryName('')
+    try {
+      // Show each page of art as it arrives; basics have hundreds of printings across several pages.
+      const cards = await onLoadBasicLandPrintings(name, (loaded, total) =>
+        setPartial({ name, cards: loaded, total }),
+      )
+      setPrintings((current) => ({ ...current, [name]: cards }))
+    } catch {
+      setStyleError(`Could not load ${name} printings.`)
+      setRetryName(name)
+    } finally {
+      setPartial(undefined)
+      setStyleLoading(false)
+    }
+  }
   const toggleGallery = async (name: string) => {
     if (openGallery === name) {
       setOpenGallery('')
@@ -141,17 +164,7 @@ export function BasicLandDialog({
     }
     setOpenGallery(name)
     setShownPrintings(printingsPage)
-    if (printings[name]) return
-    setStyleLoading(true)
-    setStyleError('')
-    try {
-      const cards = await onLoadBasicLandPrintings(name)
-      setPrintings((current) => ({ ...current, [name]: cards }))
-    } catch {
-      setStyleError(`Could not load ${name} printings.`)
-    } finally {
-      setStyleLoading(false)
-    }
+    if (!printings[name]) await loadGallery(name)
   }
   const plan = legalBasicNames.flatMap((name) =>
     Number.isInteger(landCounts[name]) && landCounts[name] > 0
@@ -372,28 +385,45 @@ export function BasicLandDialog({
                   </button>
                   {galleryOpen && !printings[name] && styleLoading && (
                     <div className="basic-land-gallery-loading">
-                      <ArtLoading active />
+                      {partial?.name === name ? (
+                        <span className="art-loading" role="status">
+                          <i />
+                          Loaded {partial.cards.length} of {partial.total} printings…
+                        </span>
+                      ) : (
+                        <ArtLoading active />
+                      )}
                     </div>
                   )}
-                  {galleryOpen && printings[name] && (
-                    <BasicLandGallery
-                      name={name}
-                      printings={printings[name]}
-                      shown={shownPrintings}
-                      selected={selected}
-                      onSelect={(printing) =>
-                        setSelectedPrintings((current) => ({ ...current, [name]: printing }))
-                      }
-                      onShowMore={() => setShownPrintings((shown) => shown + printingsPage)}
-                    />
-                  )}
+                  {galleryOpen &&
+                    (printings[name] ?? (partial?.name === name && partial.cards)) && (
+                      <BasicLandGallery
+                        name={name}
+                        printings={printings[name] ?? partial?.cards ?? []}
+                        shown={shownPrintings}
+                        selected={selected}
+                        onSelect={(printing) =>
+                          setSelectedPrintings((current) => ({ ...current, [name]: printing }))
+                        }
+                        onShowMore={() => setShownPrintings((shown) => shown + printingsPage)}
+                      />
+                    )}
                 </li>
               )
             })}
           </ul>
           {styleError && (
             <p className="form-error" role="alert">
-              {styleError}
+              {styleError}{' '}
+              {retryName && (
+                <button
+                  type="button"
+                  className="compact-action"
+                  onClick={() => void loadGallery(retryName)}
+                >
+                  Retry
+                </button>
+              )}
             </p>
           )}
         </section>
