@@ -20,7 +20,7 @@ await withBrowser('DECK_IMPORT', 5248, async (browser, base) => {
         page.getByRole('dialog', { name: 'Replace the current deck?' }),
         'Import and replace',
       ).click()
-      if (missing) await button(dialog, 'Import 4 found cards').click()
+      if (missing) await button(dialog, 'Skip missing cards').click()
       await dialog.waitFor({ state: 'detached' })
       await page.waitForFunction(() => /^\*?4\/100 /.test(document.title))
       assert.deepEqual(scenario.errors, [], 'no page errors or unexpected native dialogs')
