@@ -700,6 +700,15 @@
   color: var(--text-muted);
   font-size: var(--type-data);
 }
+.land-guidance > summary {
+  cursor: pointer;
+}
+.land-guidance > ul,
+.land-guidance > p {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
 .land-fill-step h3 {
   margin: 0;
   font-size: var(--type-card-name);
