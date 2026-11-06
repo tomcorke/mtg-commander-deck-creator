@@ -321,7 +321,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     theme,
     toggleCollectionSet,
   } = model
-  const neediest = neediestTarget(analysis.counts, deckTargets)
+  const neediest = analysis.curvePending ? null : neediestTarget(analysis.counts, deckTargets)
   const undecidedCount = scoredBatch.filter(({ card }) => !decisions[card.name]).length
   const [advancingBatch, setAdvancingBatch] = useState(false)
   const [batchRevealState, setBatchRevealState] = useState<BatchRevealState>('idle')
@@ -1115,23 +1115,29 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="target-heading">
               <h4>Deck targets</h4>
             </div>
-            {(deckTargets.lands < landLow || deckTargets.lands > landHigh) && (
-              <p className="land-fill-later">
-                <span>
-                  Rough curve heuristic: {landLow}–{landHigh} lands (not a probability).
-                </span>
-                <button
-                  type="button"
-                  className="compact-action"
-                  onClick={() =>
-                    dispatchBuilder({ type: 'targets', targets: { lands: suggestedLands } })
-                  }
-                >
-                  Use {suggestedLands}
-                </button>
+            {!analysis.curvePending &&
+              (deckTargets.lands < landLow || deckTargets.lands > landHigh) && (
+                <p className="land-fill-later">
+                  <span>
+                    Rough curve heuristic: {landLow}–{landHigh} lands (not a probability).
+                  </span>
+                  <button
+                    type="button"
+                    className="compact-action"
+                    onClick={() =>
+                      dispatchBuilder({ type: 'targets', targets: { lands: suggestedLands } })
+                    }
+                  >
+                    Use {suggestedLands}
+                  </button>
+                </p>
+              )}
+            {analysis.curvePending ? (
+              <p className="land-fill-later" aria-busy="true">
+                <span>Land fill waits for card data.</span>
               </p>
-            )}
-            {basicLands.length > 0 &&
+            ) : (
+              basicLands.length > 0 &&
               (showLandFill ? (
                 <button
                   ref={landFillTrigger}
@@ -1162,25 +1168,30 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     Fill now
                   </button>
                 </p>
-              ))}
-            <div data-guide="targets" className="deck-targets">
+              ))
+            )}
+            <div
+              data-guide="targets"
+              className={`deck-targets${analysis.curvePending ? ' curve-pending' : ''}`}
+              aria-busy={analysis.curvePending}
+            >
               {targetKeys.map((key) => (
                 <div className="bar-label deck-target-row" key={key}>
-                  {analysis.counts[key] < deckTargets[key] ? (
+                  {analysis.curvePending || analysis.counts[key] < deckTargets[key] ? (
                     <button
                       type="button"
                       id={`deck-target-${key}`}
                       className="deck-target-focus"
-                      aria-label={`Focus recommendations on ${targetLabels[key]}: ${analysis.counts[key]} of ${deckTargets[key]}`}
+                      aria-label={`Focus recommendations on ${targetLabels[key]}: ${analysis.curvePending ? 'checking' : analysis.counts[key]} of ${deckTargets[key]}`}
                       aria-pressed={focusedRole === key}
-                      disabled={recommendationState !== 'idle'}
+                      disabled={recommendationState !== 'idle' || analysis.curvePending}
                       onClick={() => void chooseRoleFocus(key)}
                     >
                       <span>{targetLabels[key]}</span>
                       <span className="ratio-bar">
                         <i
                           style={{
-                            width: `${Math.min(100, (analysis.counts[key] / Math.max(1, deckTargets[key])) * 100)}%`,
+                            width: `${analysis.curvePending ? 0 : Math.min(100, (analysis.counts[key] / Math.max(1, deckTargets[key])) * 100)}%`,
                           }}
                         />
                       </span>
@@ -1194,7 +1205,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     </span>
                   )}
                   <b>
-                    {analysis.counts[key] >= deckTargets[key] && (
+                    {!analysis.curvePending && analysis.counts[key] >= deckTargets[key] && (
                       <>
                         <span className="deck-target-check" aria-hidden="true">
                           ✓
@@ -1202,7 +1213,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         <span className="sr-only">Target met: </span>
                       </>
                     )}
-                    {analysis.counts[key]} /{' '}
+                    {analysis.curvePending ? '…' : analysis.counts[key]} /{' '}
                     <input
                       type="number"
                       min="0"
@@ -1240,7 +1251,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 </div>
               </>
             )}
-            {guidance.length > 0 && (
+            {!analysis.curvePending && guidance.length > 0 && (
               <div className="deck-guidance" aria-live="polite">
                 {guidance.map((item) => (
                   <p className={item.strong ? 'strong' : ''} key={item.key}>
@@ -1287,7 +1298,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="meter">
             <span style={{ width: `${deck.length}%` }} />
           </div>
-          <div className="deck-list">
+          <div className="deck-list" aria-busy={analysis.curvePending}>
             {/* eslint-disable-next-line max-lines-per-function -- Each map renders existing deck section markup; no independent behavior is being extracted here. */}
             {groupedDeckColumns.map((column, columnIndex) => (
               <div className="deck-column" key={`deck-column-${columnIndex}`}>
@@ -1295,7 +1306,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 {column.map(({ section, cards, count }) => {
                   const heading = (
                     <h3>
-                      {section}
+                      {analysis.curvePending && section === 'Other'
+                        ? 'Checking card types…'
+                        : section}
                       <span>{count}</span>
                     </h3>
                   )
