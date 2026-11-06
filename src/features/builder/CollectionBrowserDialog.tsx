@@ -1,14 +1,15 @@
-import type { Dispatch, ReactNode, SetStateAction } from 'react'
+import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 
 import { cardConstructionError } from '../../domain/commander-construction.ts'
 import {
-  scryfallImage,
   toDeckCard,
   type CommanderDetails,
   type DeckCard,
   type ScryfallCard,
 } from '../../domain/card-model.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { CardReference } from '../../shared/CardReference.tsx'
+import { CardTile } from '../../shared/CardTile.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 
@@ -32,6 +33,9 @@ type Props = {
   zoneToggle: ReactNode
 }
 
+// Divides 6, 4, 3 and 2, so each page fills whole rows at every column count.
+const pageStep = 24
+
 // eslint-disable-next-line max-lines-per-function -- Preserve the established collection-browser markup while extracting it as one focused dialog.
 export function CollectionBrowserDialog({
   cards,
@@ -53,6 +57,14 @@ export function CollectionBrowserDialog({
   zoneToggle,
 }: Props) {
   const dialog = useDialogFocus(true, onClose)
+  const [shown, setShown] = useState(pageStep)
+  const total = poolSize ?? cards.length
+  const filtered = type !== 'all' || Boolean(mana.trim())
+  const hidden = filteredCards.length - shown
+  const filter = (set: Dispatch<SetStateAction<string>>, value: string) => {
+    set(value)
+    setShown(pageStep)
+  }
   return (
     <div
       className="modal-backdrop collection-browser-backdrop"
@@ -71,14 +83,22 @@ export function CollectionBrowserDialog({
           <div>
             <p className="eyebrow">Discovery</p>
             <h2 id="collection-browser-title">Cards from your chosen sets</h2>
-            <p>{poolSize ?? cards.length} legal unique cards, shown in random order.</p>
+            <p role="status">
+              {state === 'loading'
+                ? 'Loading legal collection cards…'
+                : state === 'idle' && filteredCards.length > 0
+                  ? filtered
+                    ? `${filteredCards.length} of ${total} legal unique cards match`
+                    : `${total} legal unique cards, shown in random order`
+                  : ''}
+            </p>
           </div>
           <ModalCloseButton onClick={onClose} label="Close collection browser" />
         </div>
         <div className="collection-browser-filters">
           <label>
             Card type{' '}
-            <select value={type} onChange={(event) => setType(event.target.value)}>
+            <select value={type} onChange={(event) => filter(setType, event.target.value)}>
               <option value="all">All types</option>
               <option value="creature">Creatures</option>
               <option value="artifact">Artifacts</option>
@@ -95,13 +115,12 @@ export function CollectionBrowserDialog({
               min="0"
               max="16"
               value={mana}
-              onChange={(event) => setMana(event.target.value)}
+              onChange={(event) => filter(setMana, event.target.value)}
               placeholder="Any"
             />
           </label>
           {zoneToggle}
         </div>
-        {state === 'loading' && <p role="status">Loading legal collection cards…</p>}
         {state === 'error' && (
           <p className="form-error" role="alert">
             {error}
@@ -109,41 +128,76 @@ export function CollectionBrowserDialog({
         )}
         {state === 'idle' && (
           <div className="collection-browser-grid">
-            {filteredCards.map((card) => (
-              <article key={`${card.name}-${card.set}-${card.collector_number}`}>
-                <button
-                  type="button"
-                  className="collection-card-open"
-                  onClick={() => onOpenCard(card)}
-                >
-                  <div>
-                    <SmallCardImage image={scryfallImage(card)} />
-                  </div>
-                  <h3>{card.name}</h3>
-                  <p>{card.type_line}</p>
-                  <span>
-                    {card.cmc ?? 0} mana · {card.set.toUpperCase()}
-                  </span>
-                  <small>View details</small>
-                </button>
-                <button
-                  type="button"
-                  disabled={Boolean(
-                    cardConstructionError(
-                      toDeckCard(card),
-                      toSideboard ? sideboard : deck,
-                      commanderDetails?.colours ?? [],
-                    ),
-                  )}
-                  onClick={() => onAddCard(card)}
-                >
-                  {toSideboard ? 'Add to sideboard' : 'Add to deck'}
-                </button>
-              </article>
-            ))}
+            {filteredCards.slice(0, shown).map((card) => {
+              const display = toDeckCard(card)
+              const blocked = cardConstructionError(
+                display,
+                toSideboard ? sideboard : deck,
+                commanderDetails?.colours ?? [],
+              )
+              return (
+                <CardTile
+                  key={`${card.name}-${card.set}-${card.collector_number}`}
+                  className="collection-browser-tile"
+                  art={
+                    <button
+                      className="collection-browser-art"
+                      type="button"
+                      aria-label={`Show details for ${card.name}`}
+                      onClick={() => onOpenCard(card)}
+                    >
+                      {display.image ? (
+                        <SmallCardImage image={display.image} placement="reference" />
+                      ) : (
+                        <span>No card art</span>
+                      )}
+                    </button>
+                  }
+                  name={<CardReference card={display} onOpen={() => onOpenCard(card)} />}
+                  cost={display.manaCost || display.faces[0]?.manaCost}
+                  detail={`${display.typeLine} · ${card.set.toUpperCase()}`}
+                  actions={
+                    <button
+                      type="button"
+                      className="export"
+                      disabled={Boolean(blocked)}
+                      title={blocked || undefined}
+                      onClick={() => onAddCard(card)}
+                    >
+                      {toSideboard ? 'Add to sideboard' : 'Add to deck'}
+                    </button>
+                  }
+                />
+              )
+            })}
           </div>
         )}
-        {state === 'idle' && !filteredCards.length && <p>No cards match those filters.</p>}
+        {state === 'idle' && hidden > 0 && (
+          <button
+            className="export collection-browser-more"
+            type="button"
+            onClick={() => setShown(shown + pageStep)}
+          >
+            Show {Math.min(hidden, pageStep)} more ({hidden} left)
+          </button>
+        )}
+        {state === 'idle' && !filteredCards.length && (
+          <p className="collection-browser-empty">
+            {filtered ? 'No cards match these filters.' : 'No legal cards in your chosen sets.'}
+            {filtered && (
+              <button
+                type="button"
+                className="export"
+                onClick={() => {
+                  filter(setType, 'all')
+                  setMana('')
+                }}
+              >
+                Clear filters
+              </button>
+            )}
+          </p>
+        )}
       </section>
     </div>
   )

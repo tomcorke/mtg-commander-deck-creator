@@ -1,14 +1,29 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 
+const dialogOpeners = new WeakMap<HTMLElement, HTMLElement>()
+
 export function useDialogFocus(open: boolean, onClose: () => void) {
   const dialog = useRef<HTMLElement>(null)
   useEffect(() => {
     if (!open) return
-    const opener = document.activeElement as HTMLElement | null
+    const active = document.activeElement as HTMLElement | null
+    // StrictMode's second run finds focus already on this dialog's ×, which is no opener.
+    const opener = dialog.current?.contains(active) ? null : active
+    if (dialog.current && opener) dialogOpeners.set(dialog.current, opener)
+    // A dialog opened from another dialog that then closes loses its opener ("Browse these cards"
+    // even disables before this runs), so fall back to the outer dialog's opener.
+    const outer =
+      opener?.closest<HTMLElement>('[aria-modal="true"]') ??
+      [...document.querySelectorAll<HTMLElement>('[aria-modal="true"]')]
+        .filter((element) => element !== dialog.current)
+        .at(-1)
+    const fallback = outer && dialogOpeners.get(outer)
     // Run after outgoing dialogs restore focus, rather than competing with commit-time autoFocus.
     dialog.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
     return () => {
-      if (opener?.isConnected) opener.focus()
+      const usable = (element?: HTMLElement | null) =>
+        element?.isConnected && !element.matches(':disabled')
+      ;(usable(opener) ? opener : usable(fallback) ? fallback : null)?.focus()
     }
   }, [open])
   useEffect(() => {
