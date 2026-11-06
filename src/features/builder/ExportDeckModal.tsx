@@ -5,7 +5,7 @@ import { useDialogFocus } from '../../shared/hooks.ts'
 
 type Props = {
   commander: string
-  copied: boolean
+  copied: boolean | 'failed'
   deckCount: number
   deckList: (format: ExportFormat) => string
   exportFormat: ExportFormat
@@ -98,10 +98,11 @@ export function ExportDeckModal({
             Open Moxfield decks ↗
           </a>
           <button className="primary" type="button" disabled={!deckCount} onClick={copyDeck}>
-            {copied ? 'Copied' : 'Copy to clipboard'}
+            {copied === true ? 'Copied' : 'Copy to clipboard'}
           </button>
-          <span className="sr-only" role="status">
-            {copied ? 'Deck list copied to clipboard' : ''}
+          <span className={copied === 'failed' ? undefined : 'sr-only'} role="status">
+            {copied === true && 'Deck list copied to clipboard'}
+            {copied === 'failed' && 'Copy failed. Select the list above and copy it by hand.'}
           </span>
         </div>
       </section>
