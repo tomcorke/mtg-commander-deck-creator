@@ -960,3 +960,54 @@
     flex-wrap: wrap;
   }
 }
+/* Opt-in tile view of the deck board: each group wraps CardTile art instead of compact rows. */
+.deck-board .deck-list--tiles {
+  grid-template-columns: minmax(0, 1fr);
+}
+.deck-board .deck-list--tiles .deck-group ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(130px, 100%), 1fr));
+  gap: 10px;
+}
+.deck-board .deck-list--tiles .deck-group ol > li {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+.card-tile.deck-tile {
+  width: 100%;
+  height: 100%;
+  border-color: var(--border-subtle);
+  background: var(--surface-page);
+}
+.deck-tile-art {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  padding: 0;
+  border: 0;
+  border-radius: 4.75%;
+  background: transparent;
+  cursor: pointer;
+}
+.deck-tile-art .small-card-image {
+  width: 100%;
+  height: 100%;
+}
+.deck-tile .card-tile-actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+/* Keep the board's round × and steppers; the shared tile stretches its action buttons. */
+.deck-tile .card-tile-actions > button:not(.compact-action) {
+  flex: none;
+  padding: 0;
+}
+.deck-tile .deck-mana {
+  min-width: 0;
+  justify-content: flex-start;
+}
