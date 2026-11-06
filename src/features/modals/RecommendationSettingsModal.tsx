@@ -488,9 +488,10 @@ export function RecommendationSettingsModal({
         <div className="export-actions recommendation-settings-actions">
           <p>
             <span>{recommendationSettingsSummary}</span>
-            {recommendationOptionsChanged && (
-              <span role="status">Changes apply when you close settings.</span>
-            )}
+            {/* Stays mounted so screen readers announce the text when it appears. */}
+            <span role="status">
+              {recommendationOptionsChanged && 'Changes apply when you close settings.'}
+            </span>
           </p>
           <button type="button" className="primary" onClick={() => closeModal()}>
             Done
