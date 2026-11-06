@@ -4,6 +4,7 @@ import {
   observeRequestActivity,
   type RequestActivity,
 } from '../adapters/request-scheduler.ts'
+import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
 import '../styles/request-activity.css'
 
 function positionDetails(button: HTMLButtonElement, panel: HTMLDivElement) {
@@ -187,4 +188,12 @@ export function RequestActivityIndicator() {
       </div>
     </span>
   )
+}
+
+/** Shared 429 copy while Scryfall is cooling down, else ''. */
+export function useScryfallCooldownMessage() {
+  const activity = useSyncExternalStore(observeRequestActivity, getRequestActivity)
+  const now = useActivityClock(activity)
+  const until = activity.providers.find(({ name }) => name === 'Scryfall')?.cooldownUntil ?? 0
+  return until > now ? new ScryfallRateLimitError(until, false).message : ''
 }

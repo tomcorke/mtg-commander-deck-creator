@@ -1,6 +1,6 @@
 import { addsToSideboard, mainDeckLimit } from '../deck-analysis.ts'
 import { AddZoneToggle } from '../shared/AddZoneToggle.tsx'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 
 import { duplicateDeckName } from '../deck-state.ts'
 import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
@@ -9,6 +9,7 @@ import { toDeckCard, type DeckCard, type ScryfallCard } from '../domain/card-mod
 import { cardSearchError } from '../domain/card-search.ts'
 import { defaultFinish, foilTypeFor } from '../domain/printing.ts'
 import { CardReference } from '../shared/CardReference.tsx'
+import { useScryfallCooldownMessage } from '../shared/RequestActivityIndicator.tsx'
 import { CardSearchView } from '../features/builder/CardSearchView.tsx'
 import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
@@ -518,8 +519,16 @@ function DeckReviewScreen({
   )
 }
 
+function groupNotices(notices: { card: DeckCard; message: string }[]) {
+  const groups = new Map<string, { card: DeckCard }[]>()
+  for (const notice of notices)
+    groups.set(notice.message, [...(groups.get(notice.message) ?? []), notice])
+  return groups
+}
+
 function CurrentCardDataNotice({ state, actions, builderData }: AppViewProps) {
   // The header shows the check; a banner here would shift the page when it ends.
+  const scryfallCooldown = useScryfallCooldownMessage()
   if (builderData.cardDataPending) return null
   return (
     <>
@@ -531,16 +540,20 @@ function CurrentCardDataNotice({ state, actions, builderData }: AppViewProps) {
               !builderData.deckComplete &&
               ' This deck needs validation; it is not verified complete.'}
           </p>
+          {scryfallCooldown && <p className="form-error">{scryfallCooldown}</p>}
           <details className="workspace-notice-details">
             <summary>Show cards</summary>
-            {builderData.cardDataNotices.map(
-              ({ card, message }: { card: DeckCard; message: string }, index: number) => (
-                <p key={index}>
-                  <CardReference card={card} onOpen={() => actions.openCardReference(card)} />:{' '}
-                  {message}
-                </p>
-              ),
-            )}
+            {[...groupNotices(builderData.cardDataNotices)].map(([message, notices]) => (
+              <p key={message}>
+                {message}{' '}
+                {notices.map(({ card }, index) => (
+                  <Fragment key={index}>
+                    {index > 0 && ', '}
+                    <CardReference card={card} onOpen={() => actions.openCardReference(card)} />
+                  </Fragment>
+                ))}
+              </p>
+            ))}
           </details>
           <div className="workspace-notice-actions">
             {builderData.cardDataNotices.some(
