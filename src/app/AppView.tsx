@@ -1,6 +1,6 @@
 import { addsToSideboard, mainDeckLimit } from '../deck-analysis.ts'
 import { AddZoneToggle } from '../shared/AddZoneToggle.tsx'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 import { duplicateDeckName } from '../deck-state.ts'
 import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
@@ -347,6 +347,19 @@ function useBuilderMode(state: Record<string, any>) {
     if (storedModeReturn && !showDeckDoctor && !showCardSearch && !modeReturn)
       setBuilderModeReturn(null)
   }, [modeReturn, setBuilderModeReturn, showCardSearch, showDeckDoctor, storedModeReturn])
+
+  const reviewing = useRef(false)
+  useEffect(() => {
+    if (showDeckDoctor || modeReturn) {
+      reviewing.current ||= showDeckDoctor
+      return
+    }
+    if (!reviewing.current) return
+    reviewing.current = false
+    // Leaving Deck review returns focus to the builder's way in, as leaving card search does.
+    if (document.activeElement === document.body)
+      document.querySelector<HTMLButtonElement>('[data-guide="review"]')?.focus()
+  }, [modeReturn, showDeckDoctor])
 
   useEffect(() => {
     if (activeModal !== 'card' && selectedManualCard) {

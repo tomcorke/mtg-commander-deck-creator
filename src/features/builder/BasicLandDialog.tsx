@@ -59,7 +59,7 @@ function BasicLandGallery({
       </div>
       {shown < printings.length && (
         <button type="button" className="export" onClick={onShowMore}>
-          Show more ({printings.length - shown} left)
+          Show {Math.min(24, printings.length - shown)} more ({printings.length - shown} left)
         </button>
       )}
     </div>
