@@ -96,14 +96,19 @@
   height: 1.3em;
   margin: 0;
 }
+/* The art's printing and flip buttons hang below it; keep them clear of the title and footer. */
+.deck-card-modal-art:has(.card-image-actions) {
+  margin-bottom: 44px;
+}
+/* Narrow footers wrap whole buttons; the last action stays at the end. */
 .deck-card-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 0;
+  flex-wrap: wrap;
+}
+.deck-card-modal-actions > :last-child {
+  margin-left: auto;
 }
 .deck-card-modal-remove {
-  padding: 9px 13px;
-  font-size: var(--type-data);
+  padding: 10px 16px;
 }
 .card-type-line {
   margin-bottom: 14px;

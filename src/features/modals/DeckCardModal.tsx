@@ -82,13 +82,14 @@ export function DeckCardModal({
       >
         <div className="export-heading">
           <p className="eyebrow">
-            {selectedCardReference
-              ? 'Card details'
-              : selectedGuidanceCard
-                ? 'Deck health suggestion'
-                : selectedCollectionCard
-                  ? 'Collection card'
-                  : 'Deck card'}
+            {cardDetailsEyebrow({
+              searchResult: Boolean(addAction),
+              reference: selectedCardReference,
+              guidance: selectedGuidanceCard,
+              collection: selectedCollectionCard !== null,
+              commander: selectedDeckCardIsCommander,
+              board: selectedDeckCardLocation?.board,
+            })}
           </p>
           <ModalCloseButton
             onClick={closeDeckCard}
@@ -185,6 +186,23 @@ export function DeckCardModal({
   )
 }
 
+// The eyebrow names where the card is, or why it was opened.
+function cardDetailsEyebrow(from: {
+  searchResult: boolean
+  reference: boolean
+  guidance: boolean
+  collection: boolean
+  commander: boolean
+  board: 'deck' | 'sideboard' | undefined
+}) {
+  if (from.searchResult) return 'Search result'
+  if (from.reference) return 'Card details'
+  if (from.guidance) return 'Deck health suggestion'
+  if (from.collection) return 'Collection card'
+  if (from.commander) return 'Commander'
+  return from.board === 'sideboard' ? 'Sideboard' : 'Main deck'
+}
+
 type CardLocation = { board: 'deck' | 'sideboard'; index: number } | null
 
 function DeckCardZoneActions({
@@ -202,7 +220,7 @@ function DeckCardZoneActions({
   const confirming =
     pendingRemoval?.board === location?.board && pendingRemoval?.index === location?.index
   return (
-    <div className="deck-card-modal-actions">
+    <div className="export-actions deck-card-modal-actions">
       <button className="export" type="button" onClick={onMove}>
         {inSideboard ? 'Move to main deck' : 'Move to sideboard'}
       </button>
