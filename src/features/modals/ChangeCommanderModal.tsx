@@ -59,12 +59,18 @@ function ChangeOutcome({
           : `All ${others} other cards fit its colours. `)}
       {outgoing.length > 0 && (
         <>
-          {cardList(outgoing, openCard)}{' '}
-          {outcome === 'stays'
-            ? 'stays in the deck.'
-            : outcome === 'leaves'
-              ? 'leaves the deck.'
-              : "leaves the deck: its colours fall outside the new commander's."}
+          {cardList(outgoing, openCard)} {/* Partners take plural verbs. */}
+          {outgoing.length === 1
+            ? {
+                stays: 'stays in the deck.',
+                leaves: 'leaves the deck.',
+                outside: "leaves the deck: its colours fall outside the new commander's.",
+              }[outcome]
+            : {
+                stays: 'stay in the deck.',
+                leaves: 'leave the deck.',
+                outside: "leave the deck: their colours fall outside the new commander's.",
+              }[outcome]}
         </>
       )}
       {displaced.length > 0 && (
