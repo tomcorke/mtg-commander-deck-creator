@@ -1,3 +1,4 @@
+/* Darker accent fallback so white text keeps AA in dark. */
 .dark .basic-land-button {
   background: var(--commander-accent, #5851a6);
   color: white;
@@ -12,28 +13,10 @@
     gap: 10px;
   }
 }
-.dark .collection-chips button {
-  background: #292644;
-}
-.dark .set-picker-row {
-  border-color: #39374f;
-  background: var(--surface-panel);
-}
-.dark .set-picker-row:has(input:checked) {
-  border-color: #615b96;
-  background: #292644;
-}
 .dark .set-picker-icon {
   filter: invert(0.85);
 }
-.dark .collection-pool-warning {
-  border-color: #6e5426;
-  background: #2a2216;
-}
-.dark .builder-set-chips button {
-  border-color: var(--border-control);
-  background: #292644;
-}
+/* Accent hover edge, lighter than light mode so it shows on dark chips. */
 .dark .builder-set-chips button:hover {
   border-color: #7169ca;
 }
@@ -117,30 +100,25 @@
 .dark .recommendation-setup {
   border-color: var(--border-subtle);
 }
-.dark .deck-board {
-  background: #17162a;
-}
 .dark .card-copy > .offer-reason {
   color: var(--text-body);
 }
 .dark .actions button:not(.primary) {
   border-color: var(--border-control);
 }
+/* The light lane edge is a dashed control border; dark keeps it quieter. */
 .dark .health-lane {
-  border-color: #39374f;
-  background: var(--surface-panel);
+  border-color: var(--border-divider);
 }
+/* Cards sit darker than their lane in dark; light cards sit brighter. */
 .dark .health-suggestion-list > .health-card {
   background: var(--surface-page);
 }
 .dark .commander-warning {
   color: var(--text-danger) !important;
 }
-.dark .deck-guidance {
-  background: #ffffff0d;
-}
 .dark .deck-board .deck-group ol > li {
-  border-color: #393650;
+  border-color: var(--border-divider);
 }
 .dark .deck-add {
   border-color: var(--border-control);
@@ -260,26 +238,12 @@
   background: var(--commander-accent, var(--action-fill));
   color: white;
 }
+/* Mixes the commander accent into the dark panel; light mixes the highlight. */
 .dark .completion {
   background: color-mix(in srgb, var(--commander-accent, #36327f) 18%, #19182d);
 }
 .dark .deck-review-filter-status {
-  background: #201f34;
   color: var(--text-body);
-}
-.dark .subtheme-picker button,
-.dark .suggested-subtheme {
-  border-color: #615b96;
-}
-.dark .subtheme-picker button,
-.dark .suggested-subtheme button {
-  background: transparent;
-}
-.dark .suggested-subtheme {
-  background: #2b2949aa;
-}
-.dark .subtheme-picker {
-  border-color: #39374f;
 }
 .dark.commander-themed .commander-backdrop::after {
   background: linear-gradient(

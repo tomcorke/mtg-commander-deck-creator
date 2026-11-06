@@ -64,7 +64,7 @@
 }
 .start-panel,
 .continue-card {
-  border: 1px solid #d6d4e2;
+  border: 1px solid var(--border-subtle);
   background: var(--surface-panel);
 }
 /* Compound selector: the shared .card-tile border loads later and would otherwise draw currentColor. */
@@ -220,7 +220,7 @@
 .commander-tile-placeholder .placeholder-text {
   border-color: transparent;
   border-radius: 4px;
-  background: #e3e1ee;
+  background: var(--surface-tinted);
   color: transparent;
 }
 .discovery-status,
@@ -273,12 +273,8 @@
 .dark .intro-guide-option {
   border-color: var(--border-subtle);
 }
-.dark .continue-card {
-  border-color: var(--border-subtle);
-}
 /* Outranks the dark .export text colour so the placeholder button stays blank. */
 .dark .commander-tile-placeholder .placeholder-text {
-  background: #25233b;
   color: transparent;
 }
 @media (max-width: 600px) {

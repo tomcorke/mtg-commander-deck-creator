@@ -130,7 +130,7 @@
   padding: 4px 9px;
   border: 1px solid #9a72ba;
   border-radius: 14px;
-  background: #eee8f7dd;
+  background: var(--surface-tinted);
   color: var(--text-accent);
   font-size: var(--type-data);
   font-weight: 600;
@@ -844,7 +844,7 @@ button:disabled {
   gap: 5px;
   margin: 12px 0 0;
   padding-top: 10px;
-  border-top: 1px solid #dedcea;
+  border-top: 1px solid var(--border-divider);
   color: var(--text-muted);
   font-size: var(--type-data);
   line-height: 1.35;
@@ -884,7 +884,7 @@ button:disabled {
 .score-breakdown {
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid #dedcea;
+  border-top: 1px solid var(--border-divider);
 }
 .score-breakdown-heading {
   color: var(--text-muted);

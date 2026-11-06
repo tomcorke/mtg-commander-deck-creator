@@ -1,20 +1,10 @@
-.dark .meter {
-  background: #35334a;
-}
+/* Lifts the accent fill so it reads on dark tracks. */
 .dark .meter span {
   background-color: #756dda;
 }
-.dark .mana-curve button.selected {
-  background: #ffffff0d;
-}
-.dark .colour-empty {
-  background: #35334a;
-}
+/* Dark adds an edge the borderless light input does not need. */
 .dark .deck-targets input {
   border-color: var(--border-control);
-}
-.dark .ratio-bar {
-  background: #35334a;
 }
 /* Commander accents can be too dark to read as a bar on dark panels; lift them like accent text. */
 .dark.commander-themed .permanent {

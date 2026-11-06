@@ -1,13 +1,11 @@
-.dark .start-panel {
-  border-color: var(--border-subtle);
-}
+/* Dark-only frame: light suggestions sit unframed on the panel. */
 .dark .suggestions,
 .dark .suggestion-select {
-  border-color: #39374f;
+  border-color: var(--border-divider);
 }
 .dark .suggestions {
   overflow: visible;
-  border: 1px solid #39374f;
+  border: 1px solid var(--border-divider);
   border-radius: 7px;
 }
 .dark .suggestion-select {
@@ -15,23 +13,14 @@
 }
 .dark .suggestion-select {
   color: var(--text-body);
-  background: #121121;
+  background: var(--surface-well);
 }
+/* The light note is warm paper; dark uses a neutral wash. */
 .dark .import-note {
   background: #ffffff0d;
 }
 .dark .manual-card-button {
-  border-color: #615b96;
   color: var(--text-strong);
-}
-.dark .subthemes button {
-  border-color: #615b96;
-}
-.dark .subthemes button {
-  background: #2b2949;
-}
-.dark .subthemes .add-subtheme {
-  background: transparent;
 }
 .dark.commander-themed .suggestions,
 .dark.commander-themed .suggestion-select {

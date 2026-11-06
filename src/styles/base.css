@@ -85,6 +85,18 @@ main {
   --surface-panel: #f8f8ff;
   --border-subtle: #dad8e6;
   --border-control: #bbb9cd;
+  --surface-raised: #fff;
+  --surface-inset: #e9eaf7;
+  --surface-well: #eceaf6;
+  --surface-tinted: #e8e6fa;
+  --surface-muted: #dedcea;
+  --surface-track: #d6d4e2;
+  --surface-wash: #ffffff55;
+  --surface-success: #e6f3e8;
+  --surface-warning: #fdf5e4;
+  --border-divider: #d2d0df;
+  --border-tinted: #8d88bd;
+  --border-warning: #e3c48a;
   --action-fill: #36327f;
   --selected-background: #d5d0f2;
   --selected-border: #36327f;
@@ -102,6 +114,18 @@ main {
   --surface-panel: #19182d;
   --border-subtle: #36344f;
   --border-control: #4b4867;
+  --surface-raised: #1b1a2a;
+  --surface-inset: #17162a;
+  --surface-well: #121121;
+  --surface-tinted: #292644;
+  --surface-muted: #36344f;
+  --surface-track: #35334a;
+  --surface-wash: #ffffff0d;
+  --surface-success: #203929;
+  --surface-warning: #2a2216;
+  --border-divider: #39374f;
+  --border-tinted: #615b96;
+  --border-warning: #6e5426;
   --action-fill: #5851a6;
   --selected-background: #423c69;
   --selected-border: #a69fde;
@@ -137,6 +161,7 @@ main.dark {
   content: '';
   background: linear-gradient(180deg, #f2f3fbe6 0, #f2f3fbf2 38%, #f2f3fb 78%);
 }
+/* Fades art into the dark page; gradients cannot take a token alpha. */
 .dark .commander-backdrop::after {
   background: linear-gradient(180deg, #111123cc 0, #111123ee 38%, #111123 78%);
 }
@@ -183,6 +208,7 @@ main > .workspace-alert .modal-close {
     max-width: none;
   }
 }
+/* Danger alert: no shared danger surface token yet. */
 .dark > .workspace-alert {
   border-color: #d68c95;
   background: #35232e;
@@ -557,6 +583,7 @@ main > header:has(.display-settings-panel) {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
+/* Keeps the selected option edge at control strength; --selected-border reads too bright here. */
 .dark .add-zone-toggle button {
   border-color: var(--border-control);
 }
