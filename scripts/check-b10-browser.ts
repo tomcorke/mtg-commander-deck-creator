@@ -510,6 +510,11 @@ async function manualNames(page: Page) {
 
 async function goalUpdates({ page }: Scenario) {
   await enterReview(page)
+  // The harness seeds High power, whose pace penalty (#103) outranks priority for this 4-MV pair.
+  await adjustSettings(page, async (dialog) => {
+    await dialog.getByLabel('Power', { exact: true }).selectOption('precon')
+  })
+  await rows(page).first().waitFor()
   assert.equal((await rowNames(rows(page).first()))[1], 'B10 Theme ramp')
   await adjustSettings(page, async (dialog) => {
     await dialog.getByLabel('Priority', { exact: true }).selectOption('thematic')
@@ -565,7 +570,7 @@ async function pricePowerExclusions({ page, provider }: Scenario) {
   assert.equal(await page.evaluate(() => localStorage.getItem('option:powerTarget')), '"precon"')
   assert(
     provider.queries.some(
-      (query) => query.includes('-is:gamechanger') && query.includes('date<=today'),
+      (query) => query.includes('-is:gamechanger') && /date<=\d{4}-\d{2}-\d{2}/.test(query),
     ),
   )
   await button(page, 'Back to Diagnose').click()
