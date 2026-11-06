@@ -1,4 +1,6 @@
 import {
+  chosenCreatureTypePattern,
+  chosenCreatureTypeTag,
   creatureTypeTags,
   everyCreatureTypePattern,
   everyCreatureTypeTag,
@@ -204,6 +206,7 @@ export function tagsFor(source: string, typeLine: string) {
       ...themeMatchers.filter(([, matcher]) => matcher.test(source)).map(([tag]) => tag),
       ...creatureTypeTags(source),
       ...(everyCreatureTypePattern.test(source) ? [everyCreatureTypeTag] : []),
+      ...(chosenCreatureTypePattern.test(source) ? [chosenCreatureTypeTag] : []),
     ]),
   ]
   for (const type of ['Creature', 'Artifact', 'Enchantment', 'Land'])

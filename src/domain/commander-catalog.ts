@@ -351,12 +351,17 @@ export const themeSearchTerms: Record<string, string> = {
   Political: 'o:"each player"',
 }
 
-/** Scryfall search for a theme: the curated term, or members and references for a creature type. */
+/**
+ * Scryfall search for a theme: the curated term, or members, references and chosen-type support
+ * (Patchwork Banner) for a creature type. Mirrors `chosenCreatureTypePattern`.
+ */
 export function themeSearchTerm(theme: string) {
   const type = creatureTypeForTheme(theme)
   return (
     themeSearchTerms[theme] ??
-    (type ? `t:"${type}" or o:/\\b${type}\\b/ or o:/\\b${theme}\\b/` : undefined)
+    (type
+      ? `t:"${type}" or o:/\\b${type}\\b/ or o:/\\b${theme}\\b/ or (o:"choose a creature type" o:/(you control|you cast|spells?) of the chosen type/)`
+      : undefined)
   )
 }
 
