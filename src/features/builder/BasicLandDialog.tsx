@@ -14,6 +14,7 @@ const basicLandSymbols: Record<string, string> = {
   ...Object.fromEntries(Object.entries(basicLandNames).map(([colour, name]) => [name, colour])),
   Wastes: 'C',
 }
+const printingsPage = 24
 const printingLabel = (printing: ScryfallCard) => printing.set_name ?? printing.set.toUpperCase()
 
 function BasicLandGallery({
@@ -59,7 +60,8 @@ function BasicLandGallery({
       </div>
       {shown < printings.length && (
         <button type="button" className="export" onClick={onShowMore}>
-          Show more ({printings.length - shown} left)
+          Show {Math.min(printingsPage, printings.length - shown)} more ({printings.length - shown}{' '}
+          left)
         </button>
       )}
     </div>
@@ -117,7 +119,7 @@ export function BasicLandDialog({
   const [printings, setPrintings] = useState<Record<string, ScryfallCard[]>>({})
   const [selectedPrintings, setSelectedPrintings] = useState<Record<string, ScryfallCard>>({})
   const [openGallery, setOpenGallery] = useState('')
-  const [shownPrintings, setShownPrintings] = useState(24)
+  const [shownPrintings, setShownPrintings] = useState(printingsPage)
   const [styleLoading, setStyleLoading] = useState(false)
   const [styleError, setStyleError] = useState('')
   const validCounts = legalBasicNames.every(
@@ -138,7 +140,7 @@ export function BasicLandDialog({
       return
     }
     setOpenGallery(name)
-    setShownPrintings(24)
+    setShownPrintings(printingsPage)
     if (printings[name]) return
     setStyleLoading(true)
     setStyleError('')
@@ -382,7 +384,7 @@ export function BasicLandDialog({
                       onSelect={(printing) =>
                         setSelectedPrintings((current) => ({ ...current, [name]: printing }))
                       }
-                      onShowMore={() => setShownPrintings((shown) => shown + 24)}
+                      onShowMore={() => setShownPrintings((shown) => shown + printingsPage)}
                     />
                   )}
                 </li>

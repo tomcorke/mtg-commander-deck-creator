@@ -2,10 +2,6 @@
   background: var(--commander-accent, #5851a6);
   color: white;
 }
-.dark .basic-land-plan li,
-.dark .nonbasic-land-list li {
-  border-color: #393650;
-}
 @media (max-width: 620px) {
   .collection-set-controls {
     grid-template: auto auto auto auto / 1fr;

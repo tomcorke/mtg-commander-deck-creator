@@ -159,7 +159,7 @@ export function CollectionBrowserDialog({
                   actions={
                     <button
                       type="button"
-                      className="export"
+                      className="primary"
                       disabled={Boolean(blocked)}
                       title={blocked || undefined}
                       onClick={() => onAddCard(card)}

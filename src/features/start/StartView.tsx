@@ -196,9 +196,9 @@ export function StartView(props: StartViewProps) {
   return (
     <main className={darkMode ? 'dark' : ''}>
       <header>
-        <button className="brand reset" type="button" onClick={() => props.navigateView('start')}>
+        <span className="brand">
           Commander Deck Creator <small>v{__APP_VERSION__}</small>
-        </button>
+        </span>
         <div className="header-actions">
           <DisplaySettingsMenu />
           <button className="export" type="button" onClick={() => props.openModal('import')}>
