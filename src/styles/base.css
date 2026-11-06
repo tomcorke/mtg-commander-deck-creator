@@ -112,12 +112,8 @@ main {
 main.dark {
   background: var(--surface-page);
 }
-/* shortcut: these defaults on the nested <main>/shell shadow the commander colours AppController sets
-   inline, so themed modes stay indigo. Removing them needs AA-safe palettes for every colour (#312). */
 .commander-themed {
-  --commander-accent: #36327f;
-  --commander-highlight: #b8bac7;
-  --selected-border: var(--commander-accent);
+  --selected-border: var(--commander-accent, #36327f);
 }
 /* Commander accents can be too dark to mark a selection on dark panels. */
 .dark.commander-themed {
