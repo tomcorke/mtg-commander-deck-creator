@@ -30,7 +30,7 @@ export function useDeckState() {
     'exportFormat',
     () => 'moxfield',
   )
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<boolean | 'failed'>(false)
   const [loadingArt, setLoadingArt] = useState('')
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [deckReviewFilter, setDeckReviewFilter] = useState<DeckReviewFilter | null>(null)

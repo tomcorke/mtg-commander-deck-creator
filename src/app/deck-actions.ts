@@ -296,8 +296,13 @@ export function deckList(deps: AppActionContext, format: ExportFormat) {
 
 export async function copyDeck(deps: AppActionContext) {
   const { exportFormat, setCopied } = deps
-  await navigator.clipboard.writeText(deckList(deps, exportFormat))
-  setCopied(true)
+  // Clipboard access can be denied (permissions, insecure origin, headless).
+  const ok = await navigator.clipboard.writeText(deckList(deps, exportFormat)).then(
+    () => true,
+    () => false,
+  )
+  setCopied(ok || 'failed')
+  if (!ok) return
   setTimeout(() => setCopied(false), 1500)
 }
 
