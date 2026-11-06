@@ -18,7 +18,7 @@ import {
 } from '../recommendations.ts'
 import { randomItems } from '../domain/commander-catalog.ts'
 import { playStyleSettings, type PlayStyle } from '../domain/play-style.ts'
-import { scryfallImage, type Card } from '../domain/card-model.ts'
+import { scryfallImage, type Card, type ScryfallCard } from '../domain/card-model.ts'
 import { fetchEdhrecCommander } from '../adapters/edhrec.ts'
 import { deckPageTitle, type SavedDeck } from '../deck-state.ts'
 import type { AutosavedDraft } from '../autosaves.ts'
@@ -168,6 +168,22 @@ function signatureBatchCommitted(
   )
 }
 
+async function loadBasicLandPrintings(
+  name: string,
+  onPage?: (loaded: ScryfallCard[], total: number) => void,
+) {
+  // A stalled request ends in the dialog's retry state instead of loading forever.
+  const signal = AbortSignal.timeout(60_000)
+  const basic = await fetchScryfallCard(name, fetch, signal)
+  const printings = (
+    await fetchScryfallPrintings(basic.prints_search_uri, fetch, signal, (cards, total) =>
+      onPage?.(cards.filter(scryfallImage), total),
+    )
+  ).filter(scryfallImage)
+  if (!printings.length) throw new Error(`No ${name} printings loaded`)
+  return printings
+}
+
 function useRemoteActions(state: AppState, routing: RoutingActions) {
   const recommendationRequest = useRef(0)
   useCurrentCardData(state)
@@ -256,10 +272,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     startInWorkspace(state, recommendationDeps, name, preserveDeck, progress)
   return {
     loadPrintings,
-    loadBasicLandPrintings: async (name: string) => {
-      const basic = await fetchScryfallCard(name, fetch)
-      return (await fetchScryfallPrintings(basic.prints_search_uri)).filter(scryfallImage)
-    },
+    loadBasicLandPrintings,
     loadBasicsFromSet: (set: string) => searchScryfallCached(`set:${set} t:basic`, fetch),
     recommendationDeps,
     start,

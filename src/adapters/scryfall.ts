@@ -476,6 +476,7 @@ export async function fetchScryfallPrintings(
   uri: string,
   fetcher: ScryfallFetcher = fetch,
   signal?: AbortSignal,
+  onPage?: (loaded: ScryfallCard[], total: number) => void,
 ) {
   const cards = await cachedRequest(
     sessionCache(fetcher),
@@ -488,6 +489,7 @@ export async function fetchScryfallPrintings(
         if (!response.ok) return undefined
         const result = (await response.json()) as CardListResponse
         printings.push(...result.data)
+        onPage?.([...printings], result.total_cards ?? printings.length)
         url = result.has_more && result.next_page ? result.next_page : ''
       }
       return printings

@@ -286,3 +286,27 @@ test('fetchScryfallCollectionCards follows collection search pages', async () =>
   assert.doesNotMatch(new URL(urls[0]).searchParams.get('q') ?? '', /-otag:(?:tutor|extra-turn)/)
   assert.ok(!new URL(urls[0]).searchParams.get('q')?.includes('-is:commander'))
 })
+
+test('printings report each page as it arrives with the total count', async () => {
+  const pages: [number, number][] = []
+  const card = (number: string) => ({ name: 'Forest', set: 'x', collector_number: number })
+  const cards = await fetchScryfallPrintings(
+    'https://api.scryfall.com/forest-pages',
+    async (input) =>
+      String(input).endsWith('page2')
+        ? response({ data: [card('2')], total_cards: 2 })
+        : response({
+            data: [card('1')],
+            has_more: true,
+            next_page: 'https://x/page2',
+            total_cards: 2,
+          }),
+    undefined,
+    (loaded, total) => pages.push([loaded.length, total]),
+  )
+  assert.equal(cards.length, 2)
+  assert.deepEqual(pages, [
+    [1, 2],
+    [2, 2],
+  ])
+})
