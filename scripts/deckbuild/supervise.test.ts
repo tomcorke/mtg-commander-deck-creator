@@ -237,3 +237,16 @@ test('output open failure stops the run and records the failure', async (t) => {
   assert.match((await ledger())[0].breach, /stdout write failed/)
   assert.equal(await readFile(join(dir, 'record.json'), 'utf8'), 'preserved')
 })
+
+test('pre-existing append-<n>.jsonl is refused in preflight without stopping or launching', async (t) => {
+  const { dir, cli, append, ledger } = await run(t)
+  assert.equal(cli('start', dir).status, 0)
+  const launched = (await ledger()).length
+  await writeFile(join(dir, 'append-1.jsonl'), 'scratch')
+  const refused = await append('a1.jsonl', line({ type: 'view' }))
+  assert.equal(refused.status, 1)
+  assert.match(refused.stderr, /append-1\.jsonl[\s\S]*not stopped/)
+  assert.equal(existsSync(join(dir, 'stop.json')), false)
+  assert.equal((await ledger()).length, launched)
+  assert.equal(await readFile(join(dir, 'append-1.jsonl'), 'utf8'), 'scratch')
+})
