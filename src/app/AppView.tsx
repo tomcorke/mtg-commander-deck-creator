@@ -187,6 +187,7 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       setCollectionSearch={state.setCollectionSearch}
       collectionSets={state.collectionSets}
       toggleCollectionSet={actions.toggleCollectionSet}
+      browsingSets={state.commanderSets}
       collectionSetLabel={builderData.collectionSetLabel}
       setOptions={state.setOptions}
       setRows={builderData.setRows}

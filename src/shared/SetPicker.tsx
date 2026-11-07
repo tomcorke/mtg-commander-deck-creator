@@ -10,6 +10,35 @@ function SetIcon({ uri }: { uri?: string }) {
   )
 }
 
+// Scryfall set_type values read as jargon to newer players.
+const setTypeLabels: Record<string, string> = {
+  expansion: 'Main set',
+  core: 'Core set',
+  commander: 'Commander decks',
+  masters: 'Reprint set',
+  draft_innovation: 'Special draft set',
+  funny: 'Joke set (not tournament legal)',
+}
+const setTypeLabel = (set: ScryfallSet) =>
+  setTypeLabels[set.set_type ?? ''] ?? (set.set_type ?? 'Set').replaceAll('_', ' ')
+
+function SetMeta({ set }: { set: ScryfallSet }) {
+  return (
+    <span className="set-picker-meta">
+      {setTypeLabel(set)}
+      {set.card_count ? ` · ${set.card_count} cards` : ''} ·{' '}
+      <a
+        href={`https://scryfall.com/sets/${set.code}`}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`Preview ${set.name} cards on Scryfall (opens in a new tab)`}
+      >
+        Preview cards
+      </a>
+    </span>
+  )
+}
+
 type SetPickerProps = {
   query: string
   setQuery: (query: string) => void
@@ -75,6 +104,7 @@ export function SetPicker(props: SetPickerProps) {
                   <span className="set-picker-name">{set.name}</span>
                   <small>{set.released_at?.slice(0, 4)}</small>
                 </label>
+                <SetMeta set={set} />
                 {commander && (
                   <label className="set-picker-commander">
                     <input

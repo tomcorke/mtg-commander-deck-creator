@@ -50,6 +50,8 @@ type RecommendationSettingsModalProps = {
   setCollectionSearch: Dispatch<SetStateAction<string>>
   collectionSets: string[]
   toggleCollectionSet: (code: string) => void
+  /** Sets chosen while browsing commanders; never applied here without an explicit click. */
+  browsingSets: string[]
   collectionSetLabel: (code: string) => string
   setOptions: ScryfallSet[]
   setRows: SetPickerRow[]
@@ -87,6 +89,7 @@ export function RecommendationSettingsModal({
   setCollectionSearch,
   collectionSets,
   toggleCollectionSet,
+  browsingSets,
   collectionSetLabel,
   setOptions,
   setRows,
@@ -240,6 +243,22 @@ export function RecommendationSettingsModal({
             <p className="collection-picker-help">
               Tick sets here, or use “Prefer this set” in any card’s printing details.
             </p>
+            {(() => {
+              const missing = browsingSets.filter((code) => !collectionSets.includes(code))
+              return missing.length > 0 ? (
+                <p className="collection-picker-help" role="note">
+                  You browsed commanders in {missing.map(collectionSetLabel).join(', ')}. Those sets
+                  are not applied to recommendations unless you add them.{' '}
+                  <button
+                    type="button"
+                    className="compact-action"
+                    onClick={() => missing.forEach(toggleCollectionSet)}
+                  >
+                    Add {missing.length === 1 ? 'this set' : 'these sets'}
+                  </button>
+                </p>
+              ) : null
+            })()}
             <div className="collection-set-controls">
               <SetPicker
                 query={collectionSearch}
