@@ -86,6 +86,7 @@ export function ImportDeckModal({
         </p>
         <textarea
           value={importSource}
+          readOnly={importState === 'loading'}
           onChange={(event) => {
             setImportSource(event.target.value)
             setImportState('idle')
