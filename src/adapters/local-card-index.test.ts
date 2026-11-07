@@ -235,5 +235,20 @@ test('every-type cards join creature-type queries, and hasTag counts them for an
       '',
     ).includes('Chosen type'),
   )
+  // Same "spells of the chosen type" wording: reducers support, taxes hose (#397).
+  const choose = 'As this enters, choose a creature type.\n'
+  assert.ok(
+    tagsFor(
+      `${choose}Creature spells of the chosen type cost {2} less to cast.`,
+      'Artifact',
+    ).includes('Chosen type'),
+  )
+  assert.ok(
+    !tagsFor(
+      `${choose}Creature spells of the chosen type cost {1} more to cast.`,
+      'Artifact',
+    ).includes('Chosen type'),
+  )
   assert.match(themeSearchTerm('Rabbits') ?? '', /o:"choose a creature type"/)
+  assert.match(themeSearchTerm('Rabbits') ?? '', /cost \\{\[0-9\]\+\\} less/)
 })
