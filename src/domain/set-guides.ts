@@ -1,5 +1,83 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  mdc: {
+    description:
+      "Commander decks enter Marvel's supernatural war across dimensions. Darkhold Destiny brings heroes and villains into a setting where Dormammu and Hela unleash arcane nightmares across the Multiverse.",
+    source: 'https://magic.wizards.com/en/products/marvel/marvel-darkhold-destiny',
+  },
+  trc: {
+    description:
+      "Four Commander decks explore Star Trek: Federation Fleet, Landing Party, Klingon Fury, and We Are the Borg. Picard, Spock, Worf, and the Borg Queen lead decks spanning the franchise's characters and starships.",
+    source: 'https://magic.wizards.com/en/news/announcements/star-trek-commander-decklists',
+  },
+  frc: {
+    description:
+      "Multiverse Reforged follows Jace's plan to reshape reality. This four-colour Commander deck features Echoverse versions of familiar legends, including a white Ob Nixilis, a black Avacyn, and a colourless Omnath.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/reality-fracture-multiverse-reforged-commander-decklist',
+  },
+  msc: {
+    description:
+      'Four Commander decks celebrate Marvel teams and their foes: Avengers Assemble, Wakanda Forever, The Fantastic Four, and Doom Prevails. Every card has artwork depicting Marvel characters and stories.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/marvel-super-heroes-commander-decklists',
+  },
+  soc: {
+    description:
+      "Five Commander decks revisit Strixhaven's colleges with familiar students: Silverquill Influence, Prismari Artistry, Witherbloom Pestilence, Lorehold Spirit, and Quandrix Unlimited. Each offers its own field of magical study.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/secrets-of-strixhaven-commander-decklists',
+  },
+  ecc: {
+    description:
+      "Two Commander decks explore Lorwyn's contrasting moods: Dance of the Elements with Ashling and Blight Curse with Auntie Ool. Their themes draw on the returning evoke mechanic and the new blight mechanic.",
+    source: 'https://magic.wizards.com/en/news/announcements/lorwyn-eclipsed-commander-decklists',
+  },
+  eoc: {
+    description:
+      'Two Commander decks venture into the Sothera system: World Shaper in black, red, and green, and Counter Intelligence in blue, red, and white. Both bring the space setting to multiplayer.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/edge-of-eternities-commander-decklists',
+  },
+  fic: {
+    description:
+      'Four Commander decks celebrate FINAL FANTASY VI, VII, X, and XIV through Revival Trance, Limit Break, Counter Blitz, and Scions & Spellcraft. The collection brings characters, items, and moments from those games to Magic.',
+    source: 'https://magic.wizards.com/en/news/announcements/final-fantasy-commander-decklists',
+  },
+  tdc: {
+    description:
+      "Five Commander decks represent Tarkir's clans: Abzan Armor, Jeskai Striker, Sultai Arisen, Mardu Surge, and Temur Roar. Each combines new cards and returning cards around its clan.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/tarkir-dragonstorm-commander-decklists',
+  },
+  fdc: {
+    description:
+      'Five single-colour decks introduce Commander: Calling All Angels, Keen Engineering, Wretched Ranks, Reign of Dragons, and Tramplesaurus Rex. Their straightforward strategies include artifacts, big creatures, and Dragons.',
+    source: 'https://magic.wizards.com/en/news/announcements/foundations-commander-decklists',
+  },
+  mic: {
+    description:
+      'Two Commander decks explore Innistrad: Coven Counters, led by Leinore, and Undead Unleashed, led by Wilhelt. Each combines new cards with returning cards for its supernatural confrontation.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/innistrad-midnight-hunt-commander-decklists',
+  },
+  c20: {
+    description:
+      'Five Commander decks accompany Ikoria and its unusual creatures. Bonded pairs use the partner with ability, while a cycle of spells can be cast without paying their mana costs if you control a commander.',
+    source:
+      'https://magic.wizards.com/en/news/feature/ikoria-lair-behemoths-and-commander-2020-edition-release-notes-2020-04-10',
+  },
+  c18: {
+    description:
+      "Four Commander decks offer Adaptive Enchantment, Exquisite Invention, Nature's Vengeance, and Subjective Reality. Commander Storm spells reward repeated commander casts by copying themselves for each command-zone cast.",
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2018-edition-release-notes-2018-07-27',
+  },
+  cma: {
+    description:
+      'Four earlier Commander decks return in one collection: Heavenly Inferno, Evasive Maneuvers, Guided by Nature, and Plunder the Graves. They bring together decks originally released from 2011 through 2015.',
+    source: 'https://mtg-jp.com/products/0000158/',
+  },
   drc: {
     description:
       'Two Commander decks accompany the race: Living Energy and Eternal Might. Each combines returning cards with ten new cards made for this release.',
