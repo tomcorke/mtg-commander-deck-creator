@@ -2,7 +2,8 @@
 .dark .card-details dd strong {
   color: var(--text-body);
 }
-.dark .card-details a:hover {
+.dark .card-details a:hover,
+.dark .set-picker-meta a:hover {
   color: var(--text-accent);
 }
 .dark .score-breakdown-heading,
