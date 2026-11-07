@@ -32,13 +32,15 @@ export const strategyPackages: ReadonlyArray<{
 ])
 
 export const packagePartsFor = (pkg: (typeof strategyPackages)[number], detail = '') =>
-  packageParts.filter((part) =>
-    pkg.parts[part].test(
+  packageParts.filter((part) => {
+    // Reminder text can mention a self-created token without rewarding the deck's token makers.
+    const text = part === 'payoff' ? detail.replace(/\([^)]*\)/g, '') : detail
+    return pkg.parts[part].test(
       pkg.name === 'Sacrifice' && part === 'enabler'
-        ? detail.replace(/(?:whenever|when|if) [^,.:;]*\bsacrifices?\b[^,.:;]*[,.:;]/gi, '')
-        : detail,
-    ),
-  )
+        ? text.replace(/(?:whenever|when|if) [^,.:;]*\bsacrifices?\b[^,.:;]*[,.:;]/gi, '')
+        : text,
+    )
+  })
 
 /**
  * Counts each package's parts across the deck, commanders included: a commander is a strategic
