@@ -360,7 +360,7 @@ export function themeSearchTerm(theme: string) {
   return (
     themeSearchTerms[theme] ??
     (type
-      ? `t:"${type}" or o:/\\b${type}\\b/ or o:/\\b${theme}\\b/ or (o:"choose a creature type" o:/(you control|you cast|spells?) of the chosen type/)`
+      ? `t:"${type}" or o:/\\b${type}\\b/ or o:/\\b${theme}\\b/ or (o:"choose a creature type" o:/(you control|you cast) of the chosen type|spells? of the chosen type cost \\{[0-9]+\\} less/)`
       : undefined)
   )
 }

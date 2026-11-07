@@ -463,12 +463,12 @@ export const everyCreatureTypePattern =
 
 /**
  * Tag on "choose a creature type" cards that help your own creatures of that type (Patchwork
- * Banner, Herald's Horn, Kindred Discovery). Hosers (Engineered Plague) only affect "creatures
- * of the chosen type" without "you control", "you cast" or "spells", so they stay `Tribal` only.
+ * Banner, Herald's Horn, Kindred Discovery, Urza's Incubator). Hosers (Engineered Plague, "spells
+ * of the chosen type cost {1} more") lack "you control" or "you cast", so they stay `Tribal` only.
  */
 export const chosenCreatureTypeTag = 'Chosen type'
 export const chosenCreatureTypePattern =
-  /choose a creature type[\s\S]*(?:you control|you cast|spells?) of the chosen type/i
+  /choose a creature type[\s\S]*(?:(?:you control|you cast) of the chosen type|spells? of the chosen type cost \{\d+\} less)/i
 
 /**
  * Whether a card carries a theme tag, counting every-type and chosen-type cards for any creature-type theme.
