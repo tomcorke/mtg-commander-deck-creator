@@ -337,3 +337,20 @@
     margin-top: 8px;
   }
 }
+.theme-search {
+  width: min(100%, 20em);
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 6px;
+}
+.theme-search-status .reroll {
+  margin-top: 0;
+}
+.theme-search-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 12px 0 0;
+  color: var(--text-muted);
+}

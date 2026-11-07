@@ -306,7 +306,7 @@ return Boolean(await dr.sel('.commander-tile-placeholder'))
 await dr.text('commanders shown')
 // start-more-themes · #284 · #start
 await dr.text('commanders shown')
-await dr.click('Show more themes')
+await dr.click('Show all themes')
 // start-creature-type · #284 · #start
 await dr.text('commanders shown')
 await dr.click('+ Creature type')

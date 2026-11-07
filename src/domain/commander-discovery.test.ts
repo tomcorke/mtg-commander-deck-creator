@@ -9,7 +9,7 @@ import {
   orderCommanders,
   scryfallPageSize,
 } from './commander-discovery.ts'
-import { selectableThemes } from './commander-catalog.ts'
+import { selectableThemes, visibleThemeChoices } from './commander-catalog.ts'
 
 const card = (name: string, changes: Partial<ScryfallCard> = {}): ScryfallCard => ({
   name,
@@ -225,4 +225,14 @@ test('rules text, Eminence, mana value and set criteria combine with existing fi
     providers,
   )
   assert.match(queries[0], /\(e:c17\) \(!"[^"]+"( or !"[^"]+")+\)/)
+})
+
+test('theme choices search every theme and keep the selection visible', () => {
+  const [first, second] = selectableThemes
+  assert.deepEqual(visibleThemeChoices('', [first!], '', false), [first])
+  assert.deepEqual(visibleThemeChoices('', [first!], '', true), selectableThemes)
+  assert.deepEqual(visibleThemeChoices('', [first!], second!, false), [second, first])
+  assert.ok(visibleThemeChoices('TOK', [], '', false).includes('Tokens'))
+  assert.deepEqual(visibleThemeChoices('zzz', [], second!, false), [second])
+  assert.deepEqual(visibleThemeChoices('zzz', [], '', false), [])
 })
