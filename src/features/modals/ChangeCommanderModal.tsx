@@ -87,13 +87,20 @@ function ChangeOutcome({
 type Props = {
   commander: string
   deck: DeckCard[]
+  commanderColours: string[]
   openCard: (card: DeckCard) => void
   changeCommander: (card: DeckCard, keepOutgoing: boolean) => void
 }
 
 /** "Change commander" button and its dialog: picks a new commander and keeps the deck. */
 // eslint-disable-next-line max-lines-per-function -- The dialog markup stays together.
-export function ChangeCommander({ commander, deck, openCard, changeCommander }: Props) {
+export function ChangeCommander({
+  commander,
+  deck,
+  commanderColours,
+  openCard,
+  changeCommander,
+}: Props) {
   const [open, setOpen] = useState(false)
   const outgoing = commanderNames(commander)
   const remaining = deck.filter((card) => !outgoing.includes(card.name))
@@ -102,7 +109,10 @@ export function ChangeCommander({ commander, deck, openCard, changeCommander }: 
   const [search, setSearch] = useState('')
   const [keepOutgoing, setKeepOutgoing] = useState(true)
   const [selected, setSelected] = useState<DeckCard | null>(null)
-  const keepFits = Boolean(selected && commanderPromotionInfo(selected, deck)?.canPromote)
+  // Same colours as the promote action, so an enabled keep never fails on apply.
+  const keepFits = Boolean(
+    selected && commanderPromotionInfo(selected, deck, commanderColours)?.canPromote,
+  )
   const keeps = keepOutgoing && keepFits
   const outgoingCards = deck.filter((card) => outgoing.includes(card.name))
   const others = remaining.filter((card) => card.name !== selected?.name).length

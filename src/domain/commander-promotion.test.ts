@@ -37,6 +37,16 @@ test('commander promotion keeps deck colours and explains conflicts', () => {
   )
 })
 
+test('saved commander colours beyond the deck block keeping the outgoing commander', () => {
+  const deck = [card('Old Commander', ['W']), card('White Spell', ['W'], 'Instant')]
+  const candidate = card('New Commander', ['W'])
+
+  assert.equal(commanderPromotionInfo(candidate, deck)?.canPromote, true)
+  const info = commanderPromotionInfo(candidate, deck, ['W', 'B'])
+  assert.equal(info?.canPromote, false)
+  assert.deepEqual(info?.missingColours, ['B'])
+})
+
 test('mana production does not add colours to a card identity', () => {
   const producer = {
     ...card('Mana Producer', [], 'Instant'),
