@@ -145,6 +145,16 @@ function discoveryTerm(theme: string, types: string[]) {
     : themeSearchTerm(theme)
 }
 
+function discoveryReason(theme: string, term: string | undefined, curated: boolean) {
+  return curated
+    ? `Picked for ${theme} decks`
+    : term && creatureTypeForTheme(theme)
+      ? `${theme}, or commanders whose rules text mentions them`
+      : term
+        ? `Commanders whose rules text mentions ${theme}`
+        : ''
+}
+
 export async function discoverCommanders(
   filters: DiscoveryFilters,
   signal?: AbortSignal,
@@ -174,17 +184,13 @@ export async function discoverCommanders(
         'edhrec',
       )
   signal?.throwIfAborted()
-  const reason = curatedNames.length
-    ? `Picked for ${filters.theme} decks`
-    : term && creatureTypeForTheme(filters.theme)
-      ? `${filters.theme}, or commanders whose rules text mentions them`
-      : term
-        ? `Commanders whose rules text mentions ${filters.theme}`
-        : ''
+  const reason = discoveryReason(filters.theme, term, curatedNames.length > 0)
   const more = !curated && cards.length >= scryfallPageSize
-  const commanders = filterCommanders(cards, filters).map((card) =>
-    types.length < 2 ? { card, reason } : coverageSuggestion(card, types, reason),
-  )
+  const commanders = filterCommanders(
+    cards,
+    // Scryfall already matched rules text, including keyword-only matches; check it locally for curated lists.
+    curated ? filters : { ...filters, rulesText: '' },
+  ).map((card) => (types.length < 2 ? { card, reason } : coverageSuggestion(card, types, reason)))
   return { commanders: orderCommanders(commanders), more }
 }
 

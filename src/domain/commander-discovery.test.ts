@@ -161,7 +161,14 @@ test('rules text, Eminence, mana value and set criteria combine with existing fi
   const providers = {
     search: async (query: string) => {
       queries.push(query)
-      return [edgar, card('Cheap', { cmc: 5, oracle_text: 'Eminence — draw' })]
+      return [
+        edgar,
+        card('Keyword only', {
+          cmc: 5,
+          color_identity: ['W', 'B', 'R'],
+          oracle_text: 'Draw a card.',
+        }),
+      ]
     },
     hydrate: async () => [edgar, card('Plain', { color_identity: ['W', 'B', 'R'], cmc: 3 })],
   }
@@ -183,7 +190,7 @@ test('rules text, Eminence, mana value and set criteria combine with existing fi
   assert.match(queries[0], /\(e:c17 or e:pc17\)/)
   assert.deepEqual(
     found.commanders.map(({ card: { name } }) => name),
-    ['Edgar Markov'],
+    ['Edgar Markov', 'Keyword only'],
   )
 
   // Boundary: mana value equal to the maximum stays, one above is dropped.
