@@ -1510,9 +1510,22 @@ export function DeckDoctorView({
                 {exploreCommanders && (
                   <div className="doctor-commander-results" aria-live="polite">
                     {commanderState === 'loading' && <p>Searching Commander-legal options…</p>}
-                    {commanderState === 'error' && <p className="doctor-error form-error" role="alert">{commanderError}</p>}
+                    {commanderState === 'error' && (
+                      <p className="doctor-error form-error" role="alert">
+                        {commanderError}
+                      </p>
+                    )}
                     {commanderState === 'done' && commanderCandidates.length === 0 && (
                       <p>No Commander-legal alternative found for this theme and deck identity.</p>
+                    )}
+                    {currentCommander && commanderCandidates.length > 0 && (
+                      <div className="doctor-commander-current">
+                        <ReviewCardTile
+                          card={currentCommander}
+                          status="In deck"
+                          openCard={openCard}
+                        />
+                      </div>
                     )}
                     {commanderCandidates.map((candidate) => {
                       const candidateColours = candidate.colorIdentity ?? []
@@ -1524,23 +1537,11 @@ export function DeckDoctorView({
                       )
                       return (
                         <article className="doctor-commander-option" key={candidate.name}>
-                          <div className="doctor-commander-pair">
-                            {currentCommander && (
-                              <ReviewCardTile
-                                card={currentCommander}
-                                status="In deck"
-                                openCard={openCard}
-                              />
-                            )}
-                            <span className="doctor-pair-arrow" aria-hidden="true">
-                              →
-                            </span>
-                            <ReviewCardTile
-                              card={candidate}
-                              status="Alternative"
-                              openCard={openCard}
-                            />
-                          </div>
+                          <ReviewCardTile
+                            card={candidate}
+                            status="Alternative"
+                            openCard={openCard}
+                          />
                           <p>
                             {added.length ? (
                               <>
