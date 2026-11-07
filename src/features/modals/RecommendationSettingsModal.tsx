@@ -3,20 +3,13 @@ import { type Dispatch, type SetStateAction, useEffect } from 'react'
 import { useDialogFocus } from '../../shared/hooks.ts'
 
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { SetPicker } from '../../shared/SetPicker.tsx'
 import type { ScryfallSet } from '../../domain/card-model.ts'
 import { onlyModeMinimumPool, type SetPickerRow } from '../../domain/set-picker.ts'
 import { normalizeMaxPrice, priorityLabels } from '../../domain/recommendation-tuning.ts'
 import type { CollectionMode, RecommendationStyle } from '../../recommendations.ts'
 
 type PowerTarget = 'precon' | 'upgraded' | 'high'
-
-function SetIcon({ uri }: { uri?: string }) {
-  return uri ? (
-    <img className="set-picker-icon" src={uri} alt="" loading="lazy" />
-  ) : (
-    <span className="set-picker-icon" aria-hidden="true" />
-  )
-}
 
 type SettingHelpProps = {
   id: string
@@ -122,7 +115,6 @@ export function RecommendationSettingsModal({
     sets?.focus()
   }, [show, focusSets])
   if (!show) return null
-  const searching = collectionSearch.trim().length >= 2
   const smallOnlyPool =
     collectionMode === 'only' &&
     collectionSets.length > 0 &&
@@ -249,96 +241,18 @@ export function RecommendationSettingsModal({
               Tick sets here, or use “Prefer this set” in any card’s printing details.
             </p>
             <div className="collection-set-controls">
-              <div className="collection-set-filters">
-                <label className="collection-set-search">
-                  <span>Find a set</span>
-                  <span className="collection-set-input">
-                    <input
-                      className="clearable-input"
-                      value={collectionSearch}
-                      onChange={(event) => setCollectionSearch(event.target.value)}
-                      placeholder="Set name or code…"
-                    />
-                    <button
-                      type="button"
-                      className="clear-deck-name"
-                      onClick={() => setCollectionSearch('')}
-                      aria-label="Clear set search"
-                    >
-                      ×
-                    </button>
-                  </span>
-                </label>
-                <label className="collection-supplemental-toggle">
-                  <input
-                    type="checkbox"
-                    checked={showSupplementalSets}
-                    onChange={(event) => setShowSupplementalSets(event.target.checked)}
-                  />
-                  Show promos and digital sets
-                </label>
-              </div>
-              <div className="collection-set-list">
-                <span id="set-picker-rows-label">
-                  {searching ? 'Matching sets' : 'Recent releases'}
-                </span>
-                {setRows.length > 0 ? (
-                  <ul className="set-picker-rows" aria-labelledby="set-picker-rows-label">
-                    {setRows.map(({ set, commander }) => (
-                      <li key={set.code} className="set-picker-row">
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={collectionSets.includes(set.code)}
-                            onChange={() => toggleCollectionSet(set.code)}
-                          />
-                          <SetIcon uri={set.icon_svg_uri} />
-                          <span className="set-picker-name">{set.name}</span>
-                          <small>{set.released_at?.slice(0, 4)}</small>
-                        </label>
-                        {commander && (
-                          <label className="set-picker-commander">
-                            <input
-                              type="checkbox"
-                              checked={collectionSets.includes(commander.code)}
-                              onChange={() => toggleCollectionSet(commander.code)}
-                              aria-label={commander.name}
-                            />
-                            <span aria-hidden="true">+ Commander decks</span>
-                          </label>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="collection-empty">
-                    {setOptions.length === 0
-                      ? 'Loading sets…'
-                      : `No sets match “${collectionSearch.trim()}”.`}
-                  </p>
-                )}
-              </div>
-              <div className="collection-selection">
-                <span>Selected</span>
-                {collectionSets.length > 0 ? (
-                  <div className="collection-chips">
-                    {collectionSets.map((code) => (
-                      <button
-                        type="button"
-                        key={code}
-                        onClick={() => toggleCollectionSet(code)}
-                        aria-label={`Remove ${collectionSetLabel(code)}`}
-                      >
-                        {collectionSetLabel(code)} <span aria-hidden="true">×</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="collection-empty">
-                    No sets selected. Recommendations draw from every set.
-                  </p>
-                )}
-              </div>
+              <SetPicker
+                query={collectionSearch}
+                setQuery={setCollectionSearch}
+                showSupplemental={showSupplementalSets}
+                setShowSupplemental={setShowSupplementalSets}
+                setOptions={setOptions}
+                rows={setRows}
+                selected={collectionSets}
+                toggle={toggleCollectionSet}
+                label={collectionSetLabel}
+                emptySelection="No sets selected. Recommendations draw from every set."
+              />
               <div className="collection-affinity-actions">
                 <div className="collection-mode-setting">
                   <label htmlFor="collection-mode">Use</label>

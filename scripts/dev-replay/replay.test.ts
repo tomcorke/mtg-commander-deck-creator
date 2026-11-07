@@ -145,7 +145,7 @@ test('dev transform covers current image, fetch, background and preload boundari
     'features/builder/DeckDoctorView.tsx',
     'features/builder/reveal-batch.ts',
     'app/deck-actions.ts',
-    'features/modals/RecommendationSettingsModal.tsx',
+    'shared/SetPicker.tsx',
     'dev/FoilStage.tsx',
     'dev/FoilSheet.tsx',
     'dev/FoilPreview.tsx',

@@ -10,6 +10,12 @@ export type DiscoveryFilters = {
   search: string
   /** More creature types after a creature-type theme; commanders matching any of them are found. */
   creatureTypes?: string[]
+  /** Rules text, keyword or named ability (such as Eminence) the commander must mention. */
+  rulesText?: string
+  /** Highest commander mana value; null or absent means any. */
+  maxManaValue?: number | null
+  /** Set codes; commanders with a printing in any of them match. */
+  sets?: string[]
 }
 /** `coverage`: how many of several chosen creature types the commander is or mentions. */
 export type CommanderSuggestion = { card: ScryfallCard; reason: string; coverage?: number }
@@ -86,15 +92,42 @@ export function discoveryNames(theme: string) {
   return [...new Set([...(themeCommanders[theme] ?? []), ...(discoveryAdditions[theme] ?? [])])]
 }
 
+const cardRulesText = (card: ScryfallCard) =>
+  [card.oracle_text, ...(card.card_faces ?? []).map((face) => face.oracle_text)]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+/** Scryfall terms for the identity, name, rules text, mana value and set criteria. */
+export function commanderCriteriaTerms(filters: DiscoveryFilters) {
+  const text = (filters.rulesText ?? '').trim()
+  const name = filters.search.trim()
+  const sets = filters.sets ?? []
+  return [
+    filters.colours.length ? `id=${[...filters.colours].sort().join('').toLowerCase()}` : '',
+    name.length >= 2 ? `name:${JSON.stringify(name)}` : '',
+    // Named abilities such as Eminence are not always in Scryfall's keyword field, so match Oracle text too.
+    text.length >= 2 ? `(o:${JSON.stringify(text)} or kw:${JSON.stringify(text)})` : '',
+    filters.maxManaValue != null ? `mv<=${filters.maxManaValue}` : '',
+    sets.length ? `(${sets.map((code) => `e:${code}`).join(' or ')})` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 export function filterCommanders(cards: ScryfallCard[], filters: DiscoveryFilters) {
   const identity = [...filters.colours].sort().join('')
   const search = filters.search.trim().toLowerCase()
+  const rulesText = (filters.rulesText ?? '').trim().toLowerCase()
   const seen = new Set<string>()
   return cards.filter((card) => {
     const key = card.oracle_id ?? card.name
     if (seen.has(key) || commanderConstructionError([toDeckCard(card)])) return false
     if (identity && [...card.color_identity].sort().join('') !== identity) return false
     if (search.length >= 2 && !card.name.toLowerCase().includes(search)) return false
+    if (rulesText.length >= 2 && !cardRulesText(card).includes(rulesText)) return false
+    if (filters.maxManaValue != null && !((card.cmc ?? Infinity) <= filters.maxManaValue))
+      return false
     seen.add(key)
     return true
   })
@@ -112,6 +145,16 @@ function discoveryTerm(theme: string, types: string[]) {
     : themeSearchTerm(theme)
 }
 
+function discoveryReason(theme: string, term: string | undefined, curated: boolean) {
+  return curated
+    ? `Picked for ${theme} decks`
+    : term && creatureTypeForTheme(theme)
+      ? `${theme}, or commanders whose rules text mentions them`
+      : term
+        ? `Commanders whose rules text mentions ${theme}`
+        : ''
+}
+
 export async function discoverCommanders(
   filters: DiscoveryFilters,
   signal?: AbortSignal,
@@ -121,36 +164,33 @@ export async function discoverCommanders(
     ? [filters.theme, ...(filters.creatureTypes ?? [])]
     : []
   const term = discoveryTerm(filters.theme, types)
-  const curated = filters.theme && !term
-  const identity = filters.colours.length
-    ? `id=${[...filters.colours].sort().join('').toLowerCase()}`
-    : ''
-  const name =
-    filters.search.trim().length >= 2 ? `name:${JSON.stringify(filters.search.trim())}` : ''
+  const criteria = commanderCriteriaTerms(filters)
+  const curatedNames = filters.theme && !term ? discoveryNames(filters.theme) : []
+  // Set filters need Scryfall's printings, so a curated list becomes an exact-name search.
+  const curated = curatedNames.length > 0 && !filters.sets?.length
+  const scope = curatedNames.map((name) => `!${JSON.stringify(name)}`).join(' or ') || term
   const cards = curated
     ? await providers.hydrate(
-        discoveryNames(filters.theme).map((name) => ({ name })),
+        curatedNames.map((name) => ({ name })),
         fetch,
         signal,
       )
     : await providers.search(
-        `is:commander legal:commander date<=today ${identity} ${name} ${term ? `(${term})` : ''}`.trim(),
+        `is:commander legal:commander date<=today ${criteria} ${scope ? `(${scope})` : ''}`
+          .replace(/\s+/g, ' ')
+          .trim(),
         fetch,
         signal,
         'edhrec',
       )
   signal?.throwIfAborted()
-  const reason = curated
-    ? `Picked for ${filters.theme} decks`
-    : term && creatureTypeForTheme(filters.theme)
-      ? `${filters.theme}, or commanders whose rules text mentions them`
-      : term
-        ? `Commanders whose rules text mentions ${filters.theme}`
-        : ''
+  const reason = discoveryReason(filters.theme, term, curatedNames.length > 0)
   const more = !curated && cards.length >= scryfallPageSize
-  const commanders = filterCommanders(cards, filters).map((card) =>
-    types.length < 2 ? { card, reason } : coverageSuggestion(card, types, reason),
-  )
+  const commanders = filterCommanders(
+    cards,
+    // Scryfall already matched rules text, including keyword-only matches; check it locally for curated lists.
+    curated ? filters : { ...filters, rulesText: '' },
+  ).map((card) => (types.length < 2 ? { card, reason } : coverageSuggestion(card, types, reason)))
   return { commanders: orderCommanders(commanders), more }
 }
 

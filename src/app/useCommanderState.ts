@@ -7,7 +7,16 @@ export function useCommanderState() {
   const [extraCreatureTypes, setExtraCreatureTypes] = useState<string[]>([])
   const [visibleThemes, setVisibleThemes] = useState(() => randomItems(selectableThemes, 6))
   const [colours, setColours] = useState<string[]>([])
+  const [rulesText, setRulesText] = useState('')
+  const [maxManaValue, setMaxManaValue] = useState<number | null>(null)
+  const [commanderSets, setCommanderSets] = useState<string[]>([])
   return {
+    rulesText,
+    setRulesText,
+    maxManaValue,
+    setMaxManaValue,
+    commanderSets,
+    setCommanderSets,
     search,
     setSearch,
     extraCreatureTypes,

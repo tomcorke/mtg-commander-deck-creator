@@ -157,11 +157,28 @@
   gap: 8px;
   margin-top: 24px;
 }
-.commander-search input {
+.commander-search input,
+.commander-search select {
   min-width: 0;
   width: 100%;
   padding: 12px;
   border-radius: 6px;
+}
+.commander-set-filter {
+  margin-top: 24px;
+}
+.commander-set-filter > summary.filter-heading {
+  margin: 0;
+  cursor: pointer;
+}
+.commander-set-filter .set-picker-row label,
+.commander-set-filter .collection-supplemental-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.commander-set-filter > .collection-set-controls {
+  margin-top: 12px;
 }
 .filter-summary {
   /* Holds the row's height while Clear filters is hidden for the empty grid's own. */

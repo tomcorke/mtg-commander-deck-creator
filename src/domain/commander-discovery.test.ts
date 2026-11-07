@@ -150,3 +150,79 @@ test('a search filling the Scryfall page limit reports that more commanders matc
   )
   assert.equal(curated.more, false)
 })
+
+test('rules text, Eminence, mana value and set criteria combine with existing filters', async () => {
+  const queries: string[] = []
+  const edgar = card('Edgar Markov', {
+    cmc: 6,
+    color_identity: ['W', 'B', 'R'],
+    oracle_text: 'Eminence — Whenever you cast another Vampire spell, create a token.',
+  })
+  const providers = {
+    search: async (query: string) => {
+      queries.push(query)
+      return [
+        edgar,
+        card('Keyword only', {
+          cmc: 5,
+          color_identity: ['W', 'B', 'R'],
+          oracle_text: 'Draw a card.',
+        }),
+      ]
+    },
+    hydrate: async () => [edgar, card('Plain', { color_identity: ['W', 'B', 'R'], cmc: 3 })],
+  }
+  const found = await discoverCommanders(
+    {
+      theme: '',
+      colours: ['R', 'W', 'B'],
+      search: '',
+      rulesText: 'Eminence',
+      maxManaValue: 6,
+      sets: ['c17', 'pc17'],
+    },
+    undefined,
+    providers,
+  )
+  assert.match(queries[0], /id=brw/)
+  assert.match(queries[0], /\(o:"Eminence" or kw:"Eminence"\)/)
+  assert.match(queries[0], /mv<=6/)
+  assert.match(queries[0], /\(e:c17 or e:pc17\)/)
+  assert.deepEqual(
+    found.commanders.map(({ card: { name } }) => name),
+    ['Edgar Markov', 'Keyword only'],
+  )
+
+  // Boundary: mana value equal to the maximum stays, one above is dropped.
+  assert.deepEqual(
+    filterCommanders([edgar], { theme: '', colours: [], search: '', maxManaValue: 6 }),
+    [edgar],
+  )
+  assert.deepEqual(
+    filterCommanders([edgar], { theme: '', colours: [], search: '', maxManaValue: 5 }),
+    [],
+  )
+  assert.deepEqual(
+    filterCommanders([edgar], { theme: '', colours: [], search: '', rulesText: 'another vampire' }),
+    [edgar],
+  )
+
+  // Curated themes filter rules text locally, and switch to an exact-name search for sets.
+  queries.length = 0
+  const curated = await discoverCommanders(
+    { theme: 'Tokens', colours: [], search: '', rulesText: 'eminence' },
+    undefined,
+    providers,
+  )
+  assert.equal(queries.length, 0)
+  assert.deepEqual(
+    curated.commanders.map(({ card: { name } }) => name),
+    ['Edgar Markov'],
+  )
+  await discoverCommanders(
+    { theme: 'Tokens', colours: [], search: '', sets: ['c17'] },
+    undefined,
+    providers,
+  )
+  assert.match(queries[0], /\(e:c17\) \(!"[^"]+"( or !"[^"]+")+\)/)
+})
