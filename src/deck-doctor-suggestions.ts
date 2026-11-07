@@ -13,6 +13,7 @@ import type { Card, DeckCard } from './domain/card-model.ts'
 import { cardConstructionError } from './domain/commander-construction.ts'
 import { recommendedScoreThreshold } from './domain/recommendation-types.ts'
 import { findSynergyPair } from './domain/recommendation-themes.ts'
+import { packageCounts, packagePartsFor, strategyPackages } from './domain/strategy-packages.ts'
 import { deckReviewMode, type DeckDoctorFinding } from './deck-doctor.ts'
 
 export type DoctorSuggestion = {
@@ -46,6 +47,18 @@ type FindingContext = SuggestionContext & {
   tag: string
 }
 type CandidatePair = Omit<DoctorSuggestion, 'impact'> & { priority: number }
+type Remaining = {
+  roles: Record<TargetKey, number>
+  themes: Map<string, number>
+  /** `<package>:<part>` counts for active strategy packages; enablers and payoffs only. */
+  packages: Map<string, { count: number; cuts: Set<number> }>
+}
+const packagePartKeys = (card: { detail?: string }) =>
+  strategyPackages.flatMap((pkg) =>
+    packagePartsFor(pkg, card.detail)
+      .filter((part) => part !== 'protection')
+      .map((part) => `${pkg.name}:${part}`),
+  )
 const colours = ['W', 'U', 'B', 'R', 'G'] as const
 const bucketLabel = (bucket: number | null) =>
   bucket === null ? 'land' : bucket === 7 ? '7+' : String(bucket)
@@ -159,7 +172,11 @@ function pairPriority(cut: DeckCard, addition: Card, fit: number, context: Sugge
   )
 }
 
-function suggestionsForFinding(finding: DeckDoctorFinding, input: SuggestionContext) {
+function suggestionsForFinding(
+  finding: DeckDoctorFinding,
+  input: SuggestionContext,
+  packages: Remaining['packages'],
+) {
   const context: FindingContext = {
     ...input,
     finding,
@@ -186,18 +203,15 @@ function suggestionsForFinding(finding: DeckDoctorFinding, input: SuggestionCont
         pairs.push({ cut, addCard, priority: pairPriority(cut.cutCard, addCard, fit, context) })
     }
   }
-  return bestSuggestions(pairs, context)
+  return bestSuggestions(pairs, context, packages)
 }
 
 /**
  * Evaluates the deck left after the swaps already chosen, so suggestions that are each safe can't
- * together drop a role below target, or remove the last card for an active theme.
+ * together drop a role below target, remove the last card for an active theme, or remove the last
+ * enabler or payoff of an active strategy package.
  */
-function keepsDeckWorking(
-  pair: CandidatePair,
-  remaining: { roles: Record<TargetKey, number>; themes: Map<string, number> },
-  context: FindingContext,
-) {
+function keepsDeckWorking(pair: CandidatePair, remaining: Remaining, context: FindingContext) {
   if (!pair.cut) return true
   const cutRoles = rolesForCard(pair.cut.cutCard)
   const addRoles = rolesForCard(pair.addCard)
@@ -210,13 +224,18 @@ function keepsDeckWorking(
     ([theme, count]) =>
       !hasTag(pair.cut!.cutCard, theme) || hasTag(pair.addCard, theme) || count > 1,
   )
-  return rolesHold && themesHold
+  const cutParts = packagePartKeys(pair.cut.cutCard)
+  const addParts = packagePartKeys(pair.addCard)
+  const packagesHold = [...remaining.packages].every(
+    ([key, { count, cuts }]) =>
+      !cutParts.includes(key) ||
+      addParts.includes(key) ||
+      count - cuts.size + Number(cuts.has(pair.cut!.cutIndex)) > 1,
+  )
+  return rolesHold && themesHold && packagesHold
 }
 
-function applyToRemaining(
-  pair: CandidatePair,
-  remaining: { roles: Record<TargetKey, number>; themes: Map<string, number> },
-) {
+function applyToRemaining(pair: CandidatePair, remaining: Remaining) {
   if (!pair.cut) return
   const cutRoles = rolesForCard(pair.cut.cutCard)
   const addRoles = rolesForCard(pair.addCard)
@@ -227,14 +246,24 @@ function applyToRemaining(
       theme,
       count + Number(hasTag(pair.addCard, theme)) - Number(hasTag(pair.cut.cutCard, theme)),
     )
+  const cutParts = packagePartKeys(pair.cut.cutCard)
+  const addParts = packagePartKeys(pair.addCard)
+  // Reserve losses across findings; another suggestion's addition may never be selected.
+  for (const [key, { cuts }] of remaining.packages)
+    if (cutParts.includes(key) && !addParts.includes(key)) cuts.add(pair.cut.cutIndex)
 }
 
-function bestSuggestions(pairs: CandidatePair[], context: FindingContext) {
+function bestSuggestions(
+  pairs: CandidatePair[],
+  context: FindingContext,
+  packages: Remaining['packages'],
+) {
   const suggestions: DoctorSuggestion[] = []
   const usedCuts = new Set<number>()
   const usedAdditions = new Set<string>()
   const mainDeck = context.deck.slice(context.commanderCount)
-  const remaining = {
+  const remaining: Remaining = {
+    packages,
     roles: { ...context.counts },
     themes: new Map(
       [context.theme, ...context.activeSubThemes]
@@ -282,8 +311,19 @@ export function suggestDeckDoctorChanges(
   // never cut commanders, the finding's role/tag, scarce lands, or the last scarce role.
   // Add from the preference-filtered, shared-ranked pool only when it addresses the finding.
   // Prefer nearby curve buckets and coloured-pip requirements; below 90, add without cuts.
+  const packages: Remaining['packages'] = new Map(
+    Object.entries(packageCounts(input.deck, [input.theme, ...input.activeSubThemes])).flatMap(
+      ([name, parts]) =>
+        (['enabler', 'payoff'] as const).map(
+          (part) => [`${name}:${part}`, { count: parts[part], cuts: new Set<number>() }] as const,
+        ),
+    ),
+  )
   return Object.fromEntries(
-    input.findings.map((finding) => [finding.id, suggestionsForFinding(finding, context)]),
+    input.findings.map((finding) => [
+      finding.id,
+      suggestionsForFinding(finding, context, packages),
+    ]),
   )
 }
 

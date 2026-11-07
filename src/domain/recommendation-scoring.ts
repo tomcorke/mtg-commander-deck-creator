@@ -1,4 +1,5 @@
 import { hasTag } from './creature-types.ts'
+import { packageScore } from './strategy-packages.ts'
 import type { PrintingLike, ScryfallCard } from './card-model.ts'
 import {
   recommendationScoreFactorMaximums,
@@ -204,6 +205,7 @@ export function recommendationScoreBreakdown(
     activeSubThemes,
     pickedTags,
     tagCounts = {},
+    packageCounts,
     preferenceScores,
     neededRoles,
     cardRoles,
@@ -257,6 +259,7 @@ export function recommendationScoreBreakdown(
   )
   const manaFit = manaFitPenalty(card, manaSupport)
   const powerFit = powerFitPenalty(card, cardRoles, powerTarget)
+  const pkg = Math.round(packageScore(card.detail, packageCounts) * goalThemeWeight)
   const popularityPenalty =
     recommendationStyle === 'thematic' &&
     (card.reason === 'Commander favourite' || card.reason === 'Popular inclusion')
@@ -273,6 +276,7 @@ export function recommendationScoreBreakdown(
       deckNeeds +
       manaFit +
       powerFit +
+      pkg +
       popularityPenalty,
   )
   return {
@@ -287,6 +291,7 @@ export function recommendationScoreBreakdown(
     manaFitPenalty: manaFit,
     popularityPenalty,
     powerFitPenalty: powerFit,
+    package: pkg,
   }
 }
 

@@ -458,6 +458,7 @@ export function advanceRecommendationQueue<
   preferenceScores,
   pickedTags = new Set(),
   tagCounts,
+  packageCounts,
   activeSubThemes,
   extraSubTheme = '',
   theme,
@@ -479,7 +480,6 @@ export function advanceRecommendationQueue<
   liked: string[]
   preferenceScores: Record<string, number>
   pickedTags?: Set<string>
-  tagCounts?: Record<string, number>
   activeSubThemes: string[]
   extraSubTheme?: string
   theme: string
@@ -493,7 +493,7 @@ export function advanceRecommendationQueue<
   maxPrice?: number | null
   focusedRole?: string | null
   ignoreReasons?: Record<string, IgnoreReason>
-}) {
+} & Pick<RecommendationScoreContext, 'tagCounts' | 'packageCounts'>) {
   const { batch, released, candidates } = transitionBatch(
     queue,
     deferredCards,
@@ -518,6 +518,7 @@ export function advanceRecommendationQueue<
         .map(([tag]) => tag),
     ]),
     tagCounts,
+    packageCounts,
     preferenceScores: scores,
     neededRoles: new Set(Object.keys(roleBoosts).filter((role) => (roleBoosts[role] ?? 0) > 0)),
     cardRoles: [],

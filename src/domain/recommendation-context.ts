@@ -10,6 +10,7 @@ import type { Card, DeckCard } from './card-model.ts'
 import { commanderNames } from './commander-catalog.ts'
 import { countRoleSupply } from './recommendation-queue.ts'
 import { manaSupportFromAnalysis } from './recommendation-scoring.ts'
+import { packageCounts } from './strategy-packages.ts'
 import type { RecommendationScoreContext } from './recommendation-types.ts'
 
 // All recommendation surfaces use the same deck, preference, and candidate-supply signals.
@@ -52,6 +53,7 @@ export function buildRecommendationContext(
         .map(([tag]) => tag),
     ]),
     tagCounts,
+    packageCounts: packageCounts(deck, [settings.theme ?? '', ...(settings.activeSubThemes ?? [])]),
     preferenceScores: settings.preferenceScores ?? {},
     neededRoles: new Set(targetKeys.filter((role) => (roleBoosts[role] ?? 0) > 0)),
     cardRoles: [],
