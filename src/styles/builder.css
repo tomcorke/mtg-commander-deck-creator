@@ -487,6 +487,7 @@
 .collection-chips button {
   max-width: 100%;
   background: var(--surface-tinted);
+  color: var(--text-body);
   text-align: left;
 }
 .collection-affinity-actions {

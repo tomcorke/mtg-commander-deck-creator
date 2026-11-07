@@ -7,6 +7,9 @@ import {
   type SetStateAction,
 } from 'react'
 import { flushSync } from 'react-dom'
+import type { ScryfallSet } from '../../domain/card-model.ts'
+import { setPickerRows } from '../../domain/set-picker.ts'
+import { SetPicker } from '../../shared/SetPicker.tsx'
 import { colourNames, randomItems, selectableThemes } from '../../domain/commander-catalog.ts'
 import {
   chooseCuratedTheme as nextCuratedTheme,
@@ -133,6 +136,13 @@ type StartViewProps = {
   toggleColour: (colour: string) => void
   search: string
   setSearch: Dispatch<SetStateAction<string>>
+  rulesText: string
+  setRulesText: Dispatch<SetStateAction<string>>
+  maxManaValue: number | null
+  setMaxManaValue: Dispatch<SetStateAction<number | null>>
+  commanderSets: string[]
+  setCommanderSets: Dispatch<SetStateAction<string[]>>
+  setOptions: ScryfallSet[]
   chooseCommander: (name: string) => Promise<boolean>
   commander: string
   commanderDetails: CommanderDetails | null
@@ -142,11 +152,27 @@ type StartViewProps = {
   setIntroGuideRequested: Dispatch<SetStateAction<boolean>>
 }
 
+/** Active commander criteria as one line, or "All commanders" when none apply. */
+function filterSummary(props: StartViewProps, setLabel: (code: string) => string) {
+  return (
+    [
+      [props.theme, ...props.extraCreatureTypes].filter(Boolean).join(' + '),
+      ...props.colours.map((colour) => colourNames[colour]),
+      props.search.trim().length >= 2 ? `Name: ${props.search.trim()}` : '',
+      props.rulesText.trim().length >= 2 ? `Rules text: ${props.rulesText.trim()}` : '',
+      props.maxManaValue != null ? `Mana value ${props.maxManaValue} or less` : '',
+      props.commanderSets.length ? `Sets: ${props.commanderSets.map(setLabel).join(', ')}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ') || 'All commanders'
+  )
+}
+
 // eslint-disable-next-line max-lines-per-function -- Start-screen markup stays together; search helpers and render callbacks remain checked.
 export function StartView(props: StartViewProps) {
   const { darkMode } = useVisualPreferences()
   const discovery = useCommanderDiscovery(
-    { ...props, creatureTypes: props.extraCreatureTypes },
+    { ...props, creatureTypes: props.extraCreatureTypes, sets: props.commanderSets },
     true,
   )
   const reason = discovery.status === 'idle' ? discovery.suggestions[0]?.reason : undefined
@@ -167,6 +193,9 @@ export function StartView(props: StartViewProps) {
     props.declareTheme('')
     props.setColours([])
     props.setSearch('')
+    props.setRulesText('')
+    props.setMaxManaValue(null)
+    props.setCommanderSets([])
     // Clear filters disables itself, so hand focus to the Name search; below 600px it must be unfolded first.
     flushSync(() => setFiltersOpen(true))
     document.getElementById('commander-search-name')?.focus()
@@ -182,17 +211,16 @@ export function StartView(props: StartViewProps) {
     event.preventDefault()
     choices[Math.min(choices.length - 1, Math.max(0, index + step))]?.focus()
   }
-  const summary =
-    [
-      [props.theme, ...props.extraCreatureTypes].filter(Boolean).join(' + '),
-      ...props.colours.map((colour) => colourNames[colour]),
-      props.search.trim().length >= 2 ? `Name: ${props.search.trim()}` : '',
-    ]
-      .filter(Boolean)
-      .join(' · ') || 'All commanders'
-  const filtered = Boolean(
-    props.theme || props.extraCreatureTypes.length || props.colours.length || props.search,
-  )
+  const [setQuery, setSetQuery] = useState('')
+  const [showSupplementalSets, setShowSupplementalSets] = useState(false)
+  const setLabel = (code: string) =>
+    props.setOptions.find((set) => set.code === code)?.name ?? code.toUpperCase()
+  const toggleSet = (code: string) =>
+    props.setCommanderSets((sets) =>
+      sets.includes(code) ? sets.filter((set) => set !== code) : [...sets, code],
+    )
+  const summary = filterSummary(props, setLabel)
+  const filtered = summary !== 'All commanders' || Boolean(props.search || props.rulesText)
   // The empty grid carries its own Clear filters, so the panel's steps aside to keep one on screen.
   const noMatches = discovery.status === 'idle' && !discovery.suggestions.length
   // Below 600px the controls fold away; start open only when nothing is filtered yet.
@@ -347,6 +375,54 @@ export function StartView(props: StartViewProps) {
                 }}
               />
             </label>
+            <label className="commander-search">
+              <span className="filter-heading">Rules text or ability</span>
+              <input
+                id="commander-search-rules"
+                value={props.rulesText}
+                onChange={(event) => props.setRulesText(event.target.value)}
+                placeholder="e.g. Eminence, draw a card…"
+                aria-describedby="commander-result-count"
+                autoComplete="off"
+              />
+            </label>
+            <label className="commander-search commander-max-mana-value">
+              <span className="filter-heading">Max mana value</span>
+              <select
+                value={props.maxManaValue ?? ''}
+                onChange={(event) =>
+                  props.setMaxManaValue(
+                    event.target.value === '' ? null : Number(event.target.value),
+                  )
+                }
+              >
+                <option value="">Any</option>
+                {Array.from({ length: 11 }, (_, value) => (
+                  <option key={value} value={value}>
+                    {value} or less
+                  </option>
+                ))}
+              </select>
+            </label>
+            <details className="commander-set-filter collection-picker">
+              <summary className="filter-heading">
+                Sets{props.commanderSets.length ? ` (${props.commanderSets.length} selected)` : ''}
+              </summary>
+              <div className="collection-set-controls">
+                <SetPicker
+                  query={setQuery}
+                  setQuery={setSetQuery}
+                  showSupplemental={showSupplementalSets}
+                  setShowSupplemental={setShowSupplementalSets}
+                  setOptions={props.setOptions}
+                  rows={setPickerRows(props.setOptions, setQuery, showSupplementalSets)}
+                  selected={props.commanderSets}
+                  toggle={toggleSet}
+                  label={setLabel}
+                  emptySelection="No sets selected. Commanders from every set are shown."
+                />
+              </div>
+            </details>
           </div>
           <div className="filter-summary">
             <p role="status">
@@ -423,8 +499,8 @@ export function StartView(props: StartViewProps) {
             <div className="empty">
               <h3>No commanders match these filters</h3>
               <p>
-                Remove a colour or theme, or try a different name. Curated themes are a limited
-                selection.
+                Remove a colour, theme, set or mana value limit, or try different name or rules
+                text. Curated themes are a limited selection.
               </p>
               <button className="export" type="button" onClick={clearFilters}>
                 Clear filters
