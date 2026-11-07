@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import type { Page } from 'playwright-core'
 import { setDisplayPreferences } from './browser-display.ts'
 import { button, heading, openScenario, withBrowser } from './fixtures/browser-harness.ts'
-import { makeState } from './fixtures/b10-browser.ts'
+import { themeFirstState } from './fixtures/b10-browser.ts'
 import { colourThemes } from '../src/domain/commander-catalog.ts'
 
 // These run in the page: self-contained, installed by `lowContrast` through a script tag.
@@ -180,7 +180,7 @@ const themes = [
 await withBrowser('CONTRAST', 5243, async (browser, base) => {
   const failures: string[] = []
   for (const theme of themes) {
-    const scenario = await openScenario(browser, base, makeState())
+    const scenario = await openScenario(browser, base, themeFirstState())
     const { page } = scenario
     const check = async (screen: string) =>
       failures.push(...(await lowContrast(page, `${theme.name} ${screen}`)))
@@ -206,6 +206,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
     }
     try {
       await setDisplayPreferences(page, theme.values)
+      await page.locator('.health-lane .card-reference').first().waitFor()
       await check('Builder')
       failures.push(...(await lowContrastStates(page, `${theme.name} Builder`)))
       // Accents only show with commander colours on; check the builder in every colour.

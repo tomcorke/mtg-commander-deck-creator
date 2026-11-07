@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import type { Page } from 'playwright-core'
 import { button, heading, openScenario, withBrowser } from './fixtures/browser-harness.ts'
-import { allRecords, makeState } from './fixtures/b10-browser.ts'
+import { allRecords, themeFirstState } from './fixtures/b10-browser.ts'
 
 const allowed = [
   '.card-reference',
@@ -51,11 +51,12 @@ async function bareNames(page: Page, screen: string) {
 }
 
 await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
-  const scenario = await openScenario(browser, base, makeState())
+  const scenario = await openScenario(browser, base, themeFirstState())
   const { page } = scenario
   const failures: string[] = []
   const check = async (screen: string) => failures.push(...(await bareNames(page, screen)))
   try {
+    await page.locator('.health-lane .card-reference').first().waitFor()
     await check('Builder')
     await button(page, '+ Search & add cards').click()
     await page.getByPlaceholder('Any name').fill('B10')
