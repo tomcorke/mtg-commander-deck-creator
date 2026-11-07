@@ -146,11 +146,7 @@ export function CollectionBrowserDialog({
                       aria-label={`Show details for ${card.name}`}
                       onClick={() => onOpenCard(card)}
                     >
-                      {display.image ? (
-                        <SmallCardImage image={display.image} placement="reference" />
-                      ) : (
-                        <span>No card art</span>
-                      )}
+                      <SmallCardImage image={display.image} placement="reference" />
                     </button>
                   }
                   name={<CardReference card={display} onOpen={() => onOpenCard(card)} />}

@@ -9,6 +9,7 @@ import {
 } from 'react'
 
 import type { CardFinish } from '../domain/card-model'
+import { MissingCardArt } from './MissingCardArt.tsx'
 import { useVisualPreferences } from './VisualPreferencesContext.tsx'
 import {
   foilPointer,
@@ -90,6 +91,7 @@ export function FinishedCardImage({
   const { cardEffects: effectsEnabled } = useVisualPreferences()
   const [loadedImage, setLoadedImage] = useState('')
   const [flipped, setFlipped] = useState(false)
+  const [failedImage, setFailedImage] = useState<string>()
   const displayedImage = flipped && backImage ? backImage : image
   const foilHue =
     [...displayedImage].reduce(
@@ -100,6 +102,7 @@ export function FinishedCardImage({
   const flipName = printing?.name ?? cardName ?? 'card'
   const hasActions = Boolean(printing?.count && printing.count > 1) || (showFlipButton && backImage)
   const name = cardName ?? printing?.name
+  const missing = !displayedImage || failedImage === displayedImage
 
   const foil = useFoilImage(
     { image: displayedImage, finish, foilType, set, collectorNumber, name },
@@ -115,15 +118,22 @@ export function FinishedCardImage({
         className={`finished-card ${loadedImage === displayedImage ? 'image-ready' : ''} ${effectsEnabled ? 'tilting-card' : ''} ${finishClass}`}
         style={effectsEnabled ? ({ '--foil-hue': `${foilHue}deg` } as CSSProperties) : undefined}
       >
-        <img
-          className={className}
-          src={displayedImage}
-          alt={flipped ? `${alt} (back face)` : alt}
-          onLoad={() => setLoadedImage(displayedImage)}
-          onError={() => setLoadedImage(displayedImage)}
-        />
+        {missing ? (
+          <MissingCardArt />
+        ) : (
+          <img
+            className={className}
+            src={displayedImage}
+            alt={flipped ? `${alt} (back face)` : alt}
+            onLoad={() => setLoadedImage(displayedImage)}
+            onError={() => {
+              setLoadedImage(displayedImage)
+              setFailedImage(displayedImage)
+            }}
+          />
+        )}
         {hasSynergyGlow && <span className="synergy-connector" aria-hidden="true" />}
-        {effectsEnabled && finish && finish !== 'nonfoil' && (
+        {!missing && effectsEnabled && finish && finish !== 'nonfoil' && (
           <img
             className={`finish-edges ${finish}-edges ${className}`}
             src={displayedImage}

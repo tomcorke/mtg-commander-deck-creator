@@ -758,8 +758,7 @@
 .card-reference-name:has(.card-reference-thumbnail):focus-visible {
   color: inherit;
 }
-.card-reference-thumbnail.missing,
-.small-card-image-thumbnail.missing {
+.card-reference-thumbnail.missing {
   aspect-ratio: 488 / 680;
   background: var(--surface-muted);
 }
@@ -1249,4 +1248,17 @@ li b {
   .card-offer .actions > div button {
     width: auto;
   }
+}
+
+.missing-card-art {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 488 / 680;
+  place-items: center;
+  padding: 8px;
+  border-radius: 4.75%;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  text-align: center;
 }

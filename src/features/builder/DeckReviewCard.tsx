@@ -123,11 +123,7 @@ export function ReviewCardTile({
           aria-label={`Show details for ${card.name}`}
           onClick={() => openCard(card)}
         >
-          {card.image ? (
-            <SmallCardImage image={card.image} placement="reference" />
-          ) : (
-            <span>No card art</span>
-          )}
+          <SmallCardImage image={card.image} placement="reference" />
         </button>
       }
       badges={

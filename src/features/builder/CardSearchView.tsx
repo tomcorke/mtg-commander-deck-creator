@@ -390,11 +390,7 @@ function SearchCard({
           aria-label={`View ${card.name} card`}
           onClick={onOpen}
         >
-          {display.image ? (
-            <SmallCardImage image={display.image} placement="reference" />
-          ) : (
-            'No card art'
-          )}
+          <SmallCardImage image={display.image} placement="reference" />
         </button>
       }
       badges={location && <strong className="search-card-location">{location}</strong>}
