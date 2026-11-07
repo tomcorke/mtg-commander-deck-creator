@@ -1,5 +1,20 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  dft: {
+    description:
+      'Race toward max speed by making opponents lose life during your turn. Start your engines unlocks stronger abilities as your speed rises, while exhaust offers powerful abilities you can activate once per permanent.',
+    source: 'https://magic.wizards.com/en/news/feature/aetherdrift-release-notes',
+  },
+  dsk: {
+    description:
+      'Explore a plane contained within a haunted house. Room enchantments let you unlock two doors separately, building up a permanent with the abilities of both halves.',
+    source: 'https://magic.wizards.com/en/news/feature/duskmourn-house-of-horror-mechanics',
+  },
+  blb: {
+    description:
+      'Defend Valley from Calamity Beasts alongside its animal inhabitants. Offspring lets you pay extra for a small token copy of a creature, while gift offers an opponent a benefit to improve your own spell.',
+    source: 'https://magic.wizards.com/en/news/feature/bloomburrow-mechanics',
+  },
   fra: {
     description:
       "Jace's Echoverse collides with the Multiverse, bringing alternate versions of familiar characters. Empower Jace builds a planeswalker token for card selection and drawing, while Heartwood artifact tokens help you produce more mana.",
