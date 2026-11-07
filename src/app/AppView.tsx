@@ -233,6 +233,7 @@ function renderModals(props: AppViewProps) {
       <ChangeCommander
         commander={props.state.commander}
         deck={props.state.deck}
+        commanderColours={props.state.commanderDetails?.colours ?? []}
         openCard={props.actions.openCardReference}
         changeCommander={props.actions.promoteToCommander}
       />
