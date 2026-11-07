@@ -479,3 +479,14 @@ export const hasTag = (card: { tags: string[]; typeLine?: string }, tag: string)
   ((card.tags.includes(everyCreatureTypeTag) || card.tags.includes(chosenCreatureTypeTag)) &&
     singularByTheme.has(tag) &&
     !/\bLand\b/.test(card.typeLine ?? ''))
+
+/** Pressing a curated theme chip: it becomes the main theme and leaves the extras; a creature-type
+ * theme it replaces moves to the extras; pressing the current theme promotes the first extra. */
+export function chooseCuratedTheme(theme: string, extraTypes: string[], name: string) {
+  const extras = extraTypes.filter((extra) => extra !== name)
+  if (name === theme) return extras.length ? { theme: extras[0], extras: extras.slice(1) } : null
+  return {
+    theme: name,
+    extras: creatureTypeForTheme(theme) ? [theme, ...extras].slice(0, 2) : extras,
+  }
+}

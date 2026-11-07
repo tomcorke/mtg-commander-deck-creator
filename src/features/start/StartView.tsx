@@ -8,7 +8,11 @@ import {
 } from 'react'
 import { flushSync } from 'react-dom'
 import { colourNames, randomItems, selectableThemes } from '../../domain/commander-catalog.ts'
-import { creatureTypeForTheme, creatureTypeThemes } from '../../domain/creature-types.ts'
+import {
+  chooseCuratedTheme as nextCuratedTheme,
+  creatureTypeForTheme,
+  creatureTypeThemes,
+} from '../../domain/creature-types.ts'
 
 const creatureThemeNames = [...new Set(creatureTypeThemes.values())].sort()
 
@@ -151,17 +155,12 @@ export function StartView(props: StartViewProps) {
   const resume = Boolean(props.commander && props.deck.length)
   const draft =
     props.autosave.drafts.find(({ id }) => id === props.autosave.id) ?? props.autosave.notice?.draft
-  // A curated theme becomes the main theme; a creature-type theme it replaces moves to the extras,
-  // and clearing the theme promotes the first extra creature type.
   const chooseCuratedTheme = (name: string) => {
-    const extras = props.extraCreatureTypes
-    if (name === props.theme && extras.length) {
-      props.declareTheme(extras[0])
-      return props.setExtraCreatureTypes(extras.slice(1))
-    }
-    if (creatureTypeForTheme(props.theme) && name !== props.theme)
-      props.setExtraCreatureTypes([props.theme, ...extras].slice(0, 2))
-    props.chooseTheme(name)
+    const next = nextCuratedTheme(props.theme, props.extraCreatureTypes, name)
+    if (!next) return props.chooseTheme(name)
+    props.setExtraCreatureTypes(next.extras)
+    if (name === props.theme) props.declareTheme(next.theme)
+    else props.chooseTheme(name)
   }
   const clearFilters = () => {
     props.setExtraCreatureTypes([])
