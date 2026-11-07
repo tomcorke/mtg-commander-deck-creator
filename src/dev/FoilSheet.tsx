@@ -161,6 +161,8 @@ const sheetPreferences = {
   setCardReveals: () => undefined,
   cardEffects: true,
   setCardEffects: () => undefined,
+  previewScale: 1,
+  setPreviewScale: () => undefined,
 }
 
 export function FoilSheet() {

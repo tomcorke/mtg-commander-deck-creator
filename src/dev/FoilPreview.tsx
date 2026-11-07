@@ -167,6 +167,8 @@ export function FoilPreview() {
         setCardReveals: () => undefined,
         cardEffects,
         setCardEffects,
+        previewScale: 1,
+        setPreviewScale: () => undefined,
       }}
     >
       <div className={darkMode ? 'dark' : ''} style={{ colorScheme: darkMode ? 'dark' : 'light' }}>

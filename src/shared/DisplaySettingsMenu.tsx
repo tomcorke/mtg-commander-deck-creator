@@ -62,6 +62,17 @@ export function DisplaySettingsMenu() {
               {label}
             </label>
           ))}
+          <label>
+            Zoomed card size{' '}
+            <select
+              value={preferences.previewScale}
+              onChange={(event) => preferences.setPreviewScale(Number(event.target.value))}
+            >
+              <option value={1}>Standard</option>
+              <option value={1.4}>Large</option>
+              <option value={1.8}>Extra large</option>
+            </select>
+          </label>
           <RequestActivitySummary />
         </div>
       )}

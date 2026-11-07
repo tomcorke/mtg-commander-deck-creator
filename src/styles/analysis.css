@@ -945,7 +945,11 @@ li.deck-highlight-dimmed {
   z-index: 160;
   left: 50%;
   display: block;
-  width: min(260px, 50vw);
+  width: min(
+    calc(260px * var(--card-preview-scale, 1)),
+    calc(100vw - 32px),
+    calc((100vh - 42px) * 63 / 88)
+  );
   padding: 4px;
   border: 1px solid #ffffff55;
   border-radius: 10px;
