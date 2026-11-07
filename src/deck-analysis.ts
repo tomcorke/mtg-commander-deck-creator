@@ -395,6 +395,62 @@ export const manaGuidanceSymbols = (identity: string[]): ManaGuidanceSymbol[] =>
   'S',
 ]
 
+export type LandGuidance = {
+  centre: number
+  range: [number, number]
+  /** Each adjustment from the 35-land baseline, signed in lands. */
+  reasons: { label: string; lands: number }[]
+  spellCount: number
+}
+
+const round1 = (value: number) => Math.round(value * 10) / 10
+
+/**
+ * Rough land-count heuristic from the developing deck. Partial decks project role counts to a
+ * 64-spell deck, blended toward the 10-card defaults until 40 spells, and widen the range.
+ * shortcut: ignores fixing, reducers, land strategies and MDFC value; calibrate with #98 evals.
+ */
+export function estimateLandGuidance(
+  spells: AnalysisCard[],
+  counts: Pick<DeckTargets, 'ramp' | 'draw'>,
+  averageManaValue: number,
+): LandGuidance {
+  const n = spells.length
+  const weight = Math.min(1, n / 40)
+  const project = (count: number) => (n ? 10 + (count * (64 / n) - 10) * weight : 10)
+  const ramp = project(counts.ramp)
+  const draw = project(counts.draw)
+  const heavyShare = n ? spells.filter((card) => card.manaValue >= 5).length / n : 0.15
+  const reasons = [
+    {
+      label: `Average spell mana value ${averageManaValue.toFixed(1)}`,
+      lands: n ? (averageManaValue - 3) * 2 : 0,
+    },
+    {
+      label: `${Math.round(heavyShare * 100)}% of spells cost 5 or more`,
+      lands: n ? (heavyShare - 0.15) * 10 : 0,
+    },
+    { label: `About ${Math.round(ramp)} ramp cards projected`, lands: -(ramp - 10) / 3 },
+    {
+      label: `About ${Math.round(draw)} card draw projected`,
+      lands: -Math.min(1, Math.max(-1, (draw - 10) / 6)),
+    },
+  ]
+    .map((reason) => ({ ...reason, lands: round1(reason.lands) }))
+    .filter((reason) => Math.abs(reason.lands) >= 0.3)
+  const centre = Math.max(
+    32,
+    Math.min(40, Math.round(35 + reasons.reduce((sum, reason) => sum + reason.lands, 0))),
+  )
+  const spread = n >= 50 ? 1 : n >= 20 ? 2 : 3
+  return {
+    centre,
+    range: [Math.max(30, centre - spread), Math.min(42, centre + spread)],
+    reasons,
+    spellCount: n,
+  }
+}
+
 export function analyseDeck(cards: AnalysisCard[]) {
   const spells = cards.filter((card) => curveBucket(card) !== null)
   const curve = Array.from({ length: 8 }, (_, manaValue) => ({
@@ -439,10 +495,7 @@ export function analyseDeck(cards: AnalysisCard[]) {
   const averageManaValue = spells.length
     ? spells.reduce((sum, card) => sum + card.manaValue, 0) / spells.length
     : 0
-  const landCentre = Math.max(
-    32,
-    Math.min(40, Math.round(35 + (averageManaValue - 3) * 2 - (counts.ramp - 10) / 3)),
-  )
+  const landGuidance = estimateLandGuidance(spells, counts, averageManaValue)
   return {
     curve,
     required,
@@ -452,7 +505,8 @@ export function analyseDeck(cards: AnalysisCard[]) {
     averageManaValue,
     // Saved decks drop type lines, so the curve is unknown until current card data loads.
     curvePending: cards.some((card) => card.dataStatus === 'pending'),
-    landRange: [Math.max(30, landCentre - 1), Math.min(42, landCentre + 1)] as [number, number],
+    landGuidance,
+    landRange: landGuidance.range,
   }
 }
 

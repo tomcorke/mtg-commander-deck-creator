@@ -456,3 +456,51 @@ test('card features separate ramp, fixing and burst; draw from cantrips; and rem
     ['draw', 'removal'],
   )
 })
+
+// #379: land guidance responds to curve shape, ramp and draw, not average mana value alone.
+const spellsAt = (costs: number[], ramp = 0, draw = 0) =>
+  costs.map((manaValue, index) =>
+    card({
+      name: `Spell ${index}`,
+      manaValue,
+      detail:
+        index < ramp
+          ? 'Search your library for a basic land card, put it onto the battlefield tapped.'
+          : index < ramp + draw
+            ? 'Whenever a creature you control enters, draw a card.'
+            : '',
+    }),
+  )
+const repeat = (value: number, count: number) => Array<number>(count).fill(value)
+
+test('Rabbit/Upgraded regression: a 3.1 average with a heavy top and light ramp asks for more than 35', () => {
+  // 64 spells, average 3.1, ~22% at 5+, 6 ramp, 6 draw: the reported feel of a short mana base.
+  const costs = [
+    ...repeat(1, 7),
+    ...repeat(2, 21),
+    ...repeat(3, 14),
+    ...repeat(4, 8),
+    ...repeat(5, 11),
+    ...repeat(6, 3),
+  ]
+  const guidance = analyseDeck(spellsAt(costs, 6, 6)).landGuidance
+  assert.ok(guidance.centre >= 37, `centre ${guidance.centre}`)
+  assert.deepEqual(guidance.range, [guidance.centre - 1, guidance.centre + 1])
+  assert.ok(guidance.reasons.some((reason) => reason.label.includes('cost 5 or more')))
+})
+
+test('land guidance comparisons: low curve with ramp asks for fewer; same average with flat curve stays near 35', () => {
+  const lowCurve = analyseDeck(
+    spellsAt([...repeat(1, 14), ...repeat(2, 30), ...repeat(3, 20)], 14, 12),
+  )
+  assert.ok(lowCurve.landGuidance.centre <= 33, `low ${lowCurve.landGuidance.centre}`)
+  const flat = analyseDeck(spellsAt([...repeat(3, 58), ...repeat(4, 6)], 10, 10))
+  assert.ok(Math.abs(flat.landGuidance.centre - 35) <= 1, `flat ${flat.landGuidance.centre}`)
+})
+
+test('land guidance widens for a partial deck and does not overreact to its few role cards', () => {
+  const partial = analyseDeck(spellsAt(repeat(3, 10))).landGuidance
+  assert.equal(partial.spellCount, 10)
+  assert.equal(partial.range[1] - partial.range[0], 6)
+  assert.ok(partial.centre <= 38, `partial ${partial.centre}`)
+})

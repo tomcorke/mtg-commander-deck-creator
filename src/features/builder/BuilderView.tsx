@@ -401,7 +401,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   // Any-colour sources (Command Tower, Fellwar Stone) cannot make off-identity mana.
   const manaSymbols = manaGuidanceSymbols(commanderDetails?.colours ?? [...manaColours])
   const [landLow, landHigh] = analysis.landRange
-  const suggestedLands = Math.round((landLow + landHigh) / 2)
+  const suggestedLands = analysis.landGuidance.centre
   const reviewFilterNames = new Set(deckReviewFilter?.cardNames ?? [])
   const activeHighlightLabel =
     deckReviewFilter?.label ??
@@ -1155,23 +1155,41 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="target-heading">
               <h4>Deck targets</h4>
             </div>
-            {!analysis.curvePending &&
-              (deckTargets.lands < landLow || deckTargets.lands > landHigh) && (
-                <p className="land-fill-later">
+            {!analysis.curvePending && (
+              <details className="land-guidance">
+                <summary className="land-fill-later">
                   <span>
-                    Rough curve heuristic: {landLow}–{landHigh} lands (not a probability).
+                    Rough land heuristic: {landLow}–{landHigh} lands (not a probability).
                   </span>
-                  <button
-                    type="button"
-                    className="compact-action"
-                    onClick={() =>
-                      dispatchBuilder({ type: 'targets', targets: { lands: suggestedLands } })
-                    }
-                  >
-                    Use {suggestedLands}
-                  </button>
+                  {(deckTargets.lands < landLow || deckTargets.lands > landHigh) && (
+                    <button
+                      type="button"
+                      className="compact-action"
+                      onClick={(event) => {
+                        event.preventDefault() // inside <summary>: apply without toggling
+                        dispatchBuilder({ type: 'targets', targets: { lands: suggestedLands } })
+                      }}
+                    >
+                      Use {suggestedLands}
+                    </button>
+                  )}
+                </summary>
+                <ul>
+                  <li>Starts from 35 lands.</li>
+                  {analysis.landGuidance.reasons.map((reason) => (
+                    <li key={reason.label}>
+                      {reason.label}: {reason.lands > 0 ? '+' : ''}
+                      {reason.lands} lands
+                    </li>
+                  ))}
+                </ul>
+                <p>
+                  From {analysis.landGuidance.spellCount} nonland spells; the range narrows as the
+                  deck fills. Ignores fixing, cost reducers, land-based strategies and spell/land
+                  cards, so treat it as a starting point.
                 </p>
-              )}
+              </details>
+            )}
             {analysis.curvePending ? (
               <p className="land-fill-later" aria-busy="true">
                 <span>Land fill waits for card data.</span>
