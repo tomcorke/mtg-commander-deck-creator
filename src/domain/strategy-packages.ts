@@ -1,6 +1,6 @@
 // Heuristic strategy packages: a plan is a set of enablers, payoffs that reward them, and
 // protection or recovery that keeps the engine running. Regex detection, like theme tags.
-// ponytail: two families only; add more once #98's rank bench can measure them.
+// shortcut: two families only; add more once #98's rank bench can measure them.
 export const packageParts = ['enabler', 'payoff', 'protection'] as const
 export type PackagePart = (typeof packageParts)[number]
 export type PackageCounts = Record<string, Record<PackagePart, number>>
@@ -14,7 +14,8 @@ export const strategyPackages: ReadonlyArray<{
     parts: {
       enabler:
         /sacrifice (?:a|an|another|one or more|x) (?:other )?(?:creature|permanent|artifact)/i,
-      payoff: /whenever (?:a|an|another|one or more) [^.]*\b(?:dies|die|you sacrifice)/i,
+      payoff:
+        /whenever (?:(?:you|a player) sacrifices?\b|(?:a|an|another|one or more) [^.]*\b(?:dies|die))/i,
       protection:
         /return (?:target|up to \w+ target|all) [^.]*creature cards? from your graveyard to the battlefield/i,
     },
@@ -23,16 +24,21 @@ export const strategyPackages: ReadonlyArray<{
     name: 'Tokens',
     parts: {
       enabler:
-        /create[s]? (?:one|two|three|four|five|a|an|x|that many|\d+) (?![^.]*\b(?:Treasure|Food|Clue|Blood|Gold|Map) tokens?\b)[^.]*token/i,
-      payoff:
-        /tokens? you control|whenever (?:a|one or more) [^.]*tokens? (?:enters|you control)|creatures you control get \+/i,
+        /creates? (?:one|two|three|four|five|a|an|x|that many|\d+) [^.;]*?\bcreature tokens?\b/i,
+      payoff: /tokens? you control|whenever (?:a|one or more) [^.]*tokens? (?:enters|you control)/i,
       protection: /creatures you control (?:gain|have) [^.]*(?:indestructible|hexproof)/i,
     },
   },
 ])
 
 export const packagePartsFor = (pkg: (typeof strategyPackages)[number], detail = '') =>
-  packageParts.filter((part) => pkg.parts[part].test(detail))
+  packageParts.filter((part) =>
+    pkg.parts[part].test(
+      pkg.name === 'Sacrifice' && part === 'enabler'
+        ? detail.replace(/(?:whenever|when|if) [^,.:;]*\bsacrifices?\b[^,.:;]*[,.:;]/gi, '')
+        : detail,
+    ),
+  )
 
 /**
  * Counts each package's parts across the deck, commanders included: a commander is a strategic

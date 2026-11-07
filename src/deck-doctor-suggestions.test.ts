@@ -434,3 +434,53 @@ test('a cut never removes the only enabler of an active strategy package', () =>
   const cuts = rampSuggestions(options).map(({ cut }) => cut?.cutCard.name)
   assert.deepEqual(cuts, ['Low B'])
 })
+
+test('different findings cannot together remove every package enabler', () => {
+  const options = {
+    ...input(
+      [
+        card('Outlet A', { detail: 'Sacrifice another creature: Scry 1.' }),
+        card('Outlet B', { detail: 'Sacrifice another creature: Scry 1.' }),
+      ],
+      [addition('Ramp A'), addition('Ramp B')],
+    ),
+    activeSubThemes: ['Sacrifice'],
+    findings: [finding('weak-a', ['Outlet A']), finding('weak-b', ['Outlet B'])],
+  }
+  const suggestions = suggestDeckDoctorChanges(options)
+  assert.equal(suggestions['weak-a'].length, 1)
+  assert.equal(suggestions['weak-b'].length, 0)
+})
+
+test('package safety does not depend on selecting an earlier addition', () => {
+  const options = {
+    ...input(
+      [
+        card('Low A', { tags: ['DrawSupport'] }),
+        card('Only outlet', { detail: 'Sacrifice another creature: Scry 1.' }),
+      ],
+      [
+        addition('New outlet', { detail: '{T}: Add {G}. Sacrifice another creature: Scry 1.' }),
+        addition('Ramp B', { tags: ['DrawSupport'] }),
+      ],
+    ),
+    activeSubThemes: ['Sacrifice'],
+    findings: [finding('weak-a', ['Low A']), finding('theme-support:DrawSupport')],
+  }
+  const suggestions = suggestDeckDoctorChanges(options)
+  assert.equal(suggestions['weak-a'][0].addCard.name, 'New outlet')
+  assert.equal(suggestions['theme-support:DrawSupport'].length, 0)
+})
+
+test('a mixed creature and resource token maker is protected as the only enabler', () => {
+  const options = input([
+    card('Only token maker', {
+      detail: 'Create X 1/1 white Halfling creature tokens and X Food tokens.',
+    }),
+    card('Low B'),
+  ])
+  assert.deepEqual(
+    rampSuggestions(options).map(({ cut }) => cut?.cutCard.name),
+    ['Low B'],
+  )
+})

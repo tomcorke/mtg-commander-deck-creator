@@ -51,7 +51,7 @@ type Remaining = {
   roles: Record<TargetKey, number>
   themes: Map<string, number>
   /** `<package>:<part>` counts for active strategy packages; enablers and payoffs only. */
-  packages: Map<string, number>
+  packages: Map<string, { count: number; cuts: Set<number> }>
 }
 const packagePartKeys = (card: { detail?: string }) =>
   strategyPackages.flatMap((pkg) =>
@@ -172,7 +172,11 @@ function pairPriority(cut: DeckCard, addition: Card, fit: number, context: Sugge
   )
 }
 
-function suggestionsForFinding(finding: DeckDoctorFinding, input: SuggestionContext) {
+function suggestionsForFinding(
+  finding: DeckDoctorFinding,
+  input: SuggestionContext,
+  packages: Remaining['packages'],
+) {
   const context: FindingContext = {
     ...input,
     finding,
@@ -199,7 +203,7 @@ function suggestionsForFinding(finding: DeckDoctorFinding, input: SuggestionCont
         pairs.push({ cut, addCard, priority: pairPriority(cut.cutCard, addCard, fit, context) })
     }
   }
-  return bestSuggestions(pairs, context)
+  return bestSuggestions(pairs, context, packages)
 }
 
 /**
@@ -223,7 +227,10 @@ function keepsDeckWorking(pair: CandidatePair, remaining: Remaining, context: Fi
   const cutParts = packagePartKeys(pair.cut.cutCard)
   const addParts = packagePartKeys(pair.addCard)
   const packagesHold = [...remaining.packages].every(
-    ([key, count]) => !cutParts.includes(key) || addParts.includes(key) || count > 1,
+    ([key, { count, cuts }]) =>
+      !cutParts.includes(key) ||
+      addParts.includes(key) ||
+      count - cuts.size + Number(cuts.has(pair.cut!.cutIndex)) > 1,
   )
   return rolesHold && themesHold && packagesHold
 }
@@ -241,26 +248,22 @@ function applyToRemaining(pair: CandidatePair, remaining: Remaining) {
     )
   const cutParts = packagePartKeys(pair.cut.cutCard)
   const addParts = packagePartKeys(pair.addCard)
-  for (const [key, count] of remaining.packages)
-    remaining.packages.set(
-      key,
-      count + Number(addParts.includes(key)) - Number(cutParts.includes(key)),
-    )
+  // Reserve losses across findings; another suggestion's addition may never be selected.
+  for (const [key, { cuts }] of remaining.packages)
+    if (cutParts.includes(key) && !addParts.includes(key)) cuts.add(pair.cut.cutIndex)
 }
 
-function bestSuggestions(pairs: CandidatePair[], context: FindingContext) {
+function bestSuggestions(
+  pairs: CandidatePair[],
+  context: FindingContext,
+  packages: Remaining['packages'],
+) {
   const suggestions: DoctorSuggestion[] = []
   const usedCuts = new Set<number>()
   const usedAdditions = new Set<string>()
   const mainDeck = context.deck.slice(context.commanderCount)
-  const themes = [context.theme, ...context.activeSubThemes]
   const remaining: Remaining = {
-    packages: new Map(
-      Object.entries(packageCounts(context.deck, themes)).flatMap(([name, parts]) => [
-        [`${name}:enabler`, parts.enabler] as const,
-        [`${name}:payoff`, parts.payoff] as const,
-      ]),
-    ),
+    packages,
     roles: { ...context.counts },
     themes: new Map(
       [context.theme, ...context.activeSubThemes]
@@ -308,8 +311,19 @@ export function suggestDeckDoctorChanges(
   // never cut commanders, the finding's role/tag, scarce lands, or the last scarce role.
   // Add from the preference-filtered, shared-ranked pool only when it addresses the finding.
   // Prefer nearby curve buckets and coloured-pip requirements; below 90, add without cuts.
+  const packages: Remaining['packages'] = new Map(
+    Object.entries(packageCounts(input.deck, [input.theme, ...input.activeSubThemes])).flatMap(
+      ([name, parts]) =>
+        (['enabler', 'payoff'] as const).map(
+          (part) => [`${name}:${part}`, { count: parts[part], cuts: new Set<number>() }] as const,
+        ),
+    ),
+  )
   return Object.fromEntries(
-    input.findings.map((finding) => [finding.id, suggestionsForFinding(finding, context)]),
+    input.findings.map((finding) => [
+      finding.id,
+      suggestionsForFinding(finding, context, packages),
+    ]),
   )
 }
 

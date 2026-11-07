@@ -43,9 +43,44 @@ test('the commander counts as a package piece', () => {
 })
 
 test('resource tokens are not token-army enablers', () => {
-  const deck = Array(3).fill({ detail: 'Creatures you control get +1/+1.' })
+  const deck = Array(3).fill({
+    detail: 'Whenever a creature token you control enters, draw a card.',
+  })
   assert.equal(score('Create a Treasure token.', deck, ['Tokens']), 0)
   assert.ok(score('Create two 1/1 white Soldier creature tokens.', deck, ['Tokens']) > 0)
+})
+
+test('sacrifice triggers are payoffs without inventing an outlet', () => {
+  const reward = 'Whenever you sacrifice a permanent, draw a card.'
+  assert.deepEqual(packageCounts([{ detail: reward }], ['Sacrifice']).Sacrifice, {
+    enabler: 0,
+    payoff: 1,
+    protection: 0,
+  })
+  assert.ok(score(outlet, [{ detail: reward }], ['Sacrifice']) > 0)
+  const both = `${outlet}\nWhenever a player sacrifices a creature, draw a card.`
+  assert.deepEqual(packageCounts([{ detail: both }], ['Sacrifice']).Sacrifice, {
+    enabler: 1,
+    payoff: 1,
+    protection: 0,
+  })
+})
+
+test('creature tokens count even when created alongside resource tokens', () => {
+  const mixed = 'Create X 1/1 white Halfling creature tokens and X Food tokens.'
+  assert.equal(packageCounts([{ detail: mixed }], ['Tokens']).Tokens.enabler, 1)
+  for (const resource of ['Treasure', 'Food', 'Clue', 'Blood', 'Gold', 'Map', 'Powerstone']) {
+    assert.equal(
+      packageCounts([{ detail: `Create a tapped ${resource} token.` }], ['Tokens']).Tokens.enabler,
+      0,
+    )
+  }
+})
+
+test('tribal lords do not activate token packages', () => {
+  const deck = Array(3).fill({ detail: 'Other Elf creatures you control get +1/+1.' })
+  assert.deepEqual(packageCounts(deck), {})
+  assert.equal(score('Create two 1/1 white Soldier creature tokens.', deck), 0)
 })
 
 test('protection scores only once the package has both enablers and payoffs', () => {
