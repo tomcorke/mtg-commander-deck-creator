@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { MissingCardArt } from './MissingCardArt.tsx'
 import { showCardPreview } from './card-preview.ts'
 
 export function CardImagePreview({
@@ -24,7 +25,7 @@ export function CardImagePreview({
           showCardPreview(currentTarget.parentElement)
       }}
     >
-      {children ?? (image ? <img src={image} alt="" loading="lazy" /> : 'Card art unavailable')}
+      {children ?? (image ? <img src={image} alt="" loading="lazy" /> : <MissingCardArt />)}
     </span>
   )
 }

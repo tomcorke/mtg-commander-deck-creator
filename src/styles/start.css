@@ -251,7 +251,8 @@
 .continue-art {
   flex: none;
 }
-.continue-art .small-card-image-thumbnail {
+.continue-art .small-card-image-thumbnail,
+.continue-art .missing-card-art {
   width: 76px;
   height: auto;
 }
@@ -293,7 +294,8 @@
     flex-wrap: wrap;
     gap: 8px;
   }
-  .continue-art .small-card-image-thumbnail {
+  .continue-art .small-card-image-thumbnail,
+  .continue-art .missing-card-art {
     width: 48px;
   }
 }

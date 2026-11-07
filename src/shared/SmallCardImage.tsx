@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CardImagePreview } from './CardImagePreview.tsx'
+import { MissingCardArt } from './MissingCardArt.tsx'
 import { hideCardPreview, showCardPreview } from './card-preview.ts'
 
 export function SmallCardImage({
@@ -11,6 +12,7 @@ export function SmallCardImage({
   placement?: 'center' | 'reference'
 }) {
   const ref = useRef<HTMLSpanElement>(null)
+  const [failed, setFailed] = useState<string>()
   const reference = placement === 'reference'
   useEffect(() => {
     const span = ref.current
@@ -30,7 +32,7 @@ export function SmallCardImage({
       for (const [name, handler] of events) anchor.removeEventListener(name, handler)
     }
   }, [reference, image])
-  if (!image) return null
+  if (!image || failed === image) return <MissingCardArt />
   return (
     <span className="small-card-image" aria-hidden="true" ref={ref}>
       <img
@@ -38,11 +40,7 @@ export function SmallCardImage({
         src={image}
         alt=""
         loading="lazy"
-        // Keep the thumbnail's space as a plain placeholder when the image fails.
-        onError={({ currentTarget }) => {
-          currentTarget.removeAttribute('src')
-          currentTarget.classList.add('missing')
-        }}
+        onError={() => setFailed(image)}
       />
       <CardImagePreview image={image} placement={placement} />
     </span>

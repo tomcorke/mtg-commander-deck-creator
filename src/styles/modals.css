@@ -1657,7 +1657,8 @@ main > .commander-header {
   background: none;
   cursor: pointer;
 }
-.saved-deck-art .small-card-image-thumbnail {
+.saved-deck-art .small-card-image-thumbnail,
+.saved-deck-art .missing-card-art {
   width: 44px;
   height: auto;
 }

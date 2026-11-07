@@ -38,11 +38,7 @@ export function HealthLane({
                   aria-label={`View ${card.name} details`}
                   onClick={() => onOpen(card)}
                 >
-                  {card.image ? (
-                    <SmallCardImage image={card.image} placement="reference" />
-                  ) : (
-                    'No card art'
-                  )}
+                  <SmallCardImage image={card.image} placement="reference" />
                 </button>
               }
               badges={
