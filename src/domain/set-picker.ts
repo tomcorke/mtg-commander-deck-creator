@@ -1,4 +1,4 @@
-import type { ScryfallSet } from './card-model.ts'
+import type { ScryfallCard, ScryfallSet } from './card-model.ts'
 
 // Below this, Only mode rarely leaves enough real choices to fill 99 slots.
 export const onlyModeMinimumPool = 150
@@ -39,4 +39,19 @@ export function setPickerRows(
   const matches = (set?: ScryfallSet) =>
     !!set && `${set.name} ${set.code}`.toLowerCase().includes(search)
   return rows.filter((row) => matches(row.set) || matches(row.commander)).slice(0, 40)
+}
+
+const colourOrder = ['W', 'U', 'B', 'R', 'G']
+
+/** Up to three colours that most of the set's legends share, strongest first. */
+export function colourLeanings(legends: Pick<ScryfallCard, 'color_identity'>[]) {
+  const counts = new Map<string, number>()
+  for (const card of legends)
+    for (const colour of card.color_identity ?? [])
+      counts.set(colour, (counts.get(colour) ?? 0) + 1)
+  const top = Math.max(0, ...counts.values())
+  return colourOrder
+    .filter((colour) => (counts.get(colour) ?? 0) >= (top * 2) / 3 && top > 0)
+    .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))
+    .slice(0, 3)
 }

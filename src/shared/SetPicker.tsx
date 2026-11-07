@@ -1,6 +1,10 @@
-import { useId } from 'react'
-import type { ScryfallSet } from '../domain/card-model.ts'
-import type { SetPickerRow } from '../domain/set-picker.ts'
+import { useEffect, useId, useState } from 'react'
+import { searchScryfallCached } from '../adapters/scryfall.ts'
+import { toCard, type ScryfallCard, type ScryfallSet } from '../domain/card-model.ts'
+import { setGuides } from '../domain/set-guides.ts'
+import { CardReference } from './CardReference.tsx'
+import { ManaSymbols } from './ManaSymbols.tsx'
+import { colourLeanings, type SetPickerRow } from '../domain/set-picker.ts'
 
 function SetIcon({ uri }: { uri?: string }) {
   return uri ? (
@@ -39,6 +43,103 @@ function SetMeta({ set }: { set: ScryfallSet }) {
   )
 }
 
+function useSetLegends(code: string) {
+  const [legends, setLegends] = useState<ScryfallCard[]>()
+  useEffect(() => {
+    const controller = new AbortController()
+    searchScryfallCached(
+      `e:${code} is:legendary t:creature not:reprint`,
+      fetch,
+      controller.signal,
+      'edhrec',
+    )
+      .then(setLegends)
+      .catch(() => controller.signal.aborted || setLegends([]))
+    return () => controller.abort()
+  }, [code])
+  return legends
+}
+
+function SetGuide({ set }: { set: ScryfallSet }) {
+  const legends = useSetLegends(set.code)
+  const guide = setGuides[set.code]
+  const artUri = legends
+    ?.map((card) => card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop)
+    .find(Boolean)
+  const leanings = legends ? colourLeanings(legends) : []
+  return (
+    <div className="set-guide">
+      {artUri ? (
+        <img className="set-guide-art" src={artUri} alt="" loading="lazy" />
+      ) : (
+        <span className="set-guide-art" aria-hidden="true" />
+      )}
+      {guide && (
+        <p>
+          {guide.description}{' '}
+          <a
+            href={guide.source}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Source for the ${set.name} description (opens in a new tab)`}
+          >
+            Source
+          </a>
+        </p>
+      )}
+      {legends === undefined ? (
+        <p className="set-picker-meta">Loading legends…</p>
+      ) : legends.length > 0 ? (
+        <>
+          {leanings.length > 0 && (
+            <span className="set-picker-meta set-guide-colours">
+              Legends lean <ManaSymbols symbols={leanings} />
+            </span>
+          )}
+          <span className="set-picker-meta">Sample legends</span>
+          <ul className="set-guide-legends">
+            {legends.slice(0, 4).map((card) => (
+              <li key={card.oracle_id ?? card.name}>
+                <CardReference
+                  card={toCard(card, '')}
+                  thumbnail
+                  onOpen={() => window.open(card.scryfall_uri, '_blank', 'noreferrer')}
+                />
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="set-picker-meta">No legendary creatures in this set.</p>
+      )}
+    </div>
+  )
+}
+
+function SetSearch({ query, setQuery }: { query: string; setQuery: (query: string) => void }) {
+  return (
+    <label className="collection-set-search">
+      <span>Find a set</span>
+      <span className="collection-set-input">
+        <input
+          className="clearable-input"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Set name or code…"
+        />
+        <button
+          type="button"
+          className="clear-deck-name"
+          onClick={() => setQuery('')}
+          aria-label="Clear set search"
+        >
+          ×
+        </button>
+      </span>
+    </label>
+  )
+}
+
 type SetPickerProps = {
   query: string
   setQuery: (query: string) => void
@@ -57,28 +158,11 @@ type SetPickerProps = {
 export function SetPicker(props: SetPickerProps) {
   const rowsLabel = useId()
   const searching = props.query.trim().length >= 2
+  const [browsing, setBrowsing] = useState(false)
   return (
     <>
       <div className="collection-set-filters">
-        <label className="collection-set-search">
-          <span>Find a set</span>
-          <span className="collection-set-input">
-            <input
-              className="clearable-input"
-              value={props.query}
-              onChange={(event) => props.setQuery(event.target.value)}
-              placeholder="Set name or code…"
-            />
-            <button
-              type="button"
-              className="clear-deck-name"
-              onClick={() => props.setQuery('')}
-              aria-label="Clear set search"
-            >
-              ×
-            </button>
-          </span>
-        </label>
+        <SetSearch query={props.query} setQuery={props.setQuery} />
         <label className="collection-supplemental-toggle">
           <input
             type="checkbox"
@@ -87,11 +171,22 @@ export function SetPicker(props: SetPickerProps) {
           />
           Show promos and digital sets
         </label>
+        <button
+          type="button"
+          className="export"
+          aria-pressed={browsing}
+          onClick={() => setBrowsing(!browsing)}
+        >
+          Browse sets
+        </button>
       </div>
       <div className="collection-set-list">
         <span id={rowsLabel}>{searching ? 'Matching sets' : 'Recent releases'}</span>
         {props.rows.length > 0 ? (
-          <ul className="set-picker-rows" aria-labelledby={rowsLabel}>
+          <ul
+            className={`set-picker-rows${browsing ? ' browsing' : ''}`}
+            aria-labelledby={rowsLabel}
+          >
             {props.rows.map(({ set, commander }) => (
               <li key={set.code} className="set-picker-row">
                 <label>
@@ -105,6 +200,7 @@ export function SetPicker(props: SetPickerProps) {
                   <small>{set.released_at?.slice(0, 4)}</small>
                 </label>
                 <SetMeta set={set} />
+                {browsing && <SetGuide set={set} />}
                 {commander && (
                   <label className="set-picker-commander">
                     <input
