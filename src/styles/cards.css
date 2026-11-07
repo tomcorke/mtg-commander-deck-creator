@@ -873,12 +873,14 @@ button:disabled {
   color: var(--text-muted);
   font-weight: 600;
 }
-.card-details a {
+.card-details a,
+.set-picker-meta a {
   color: var(--text-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.card-details a:hover {
+.card-details a:hover,
+.set-picker-meta a:hover {
   color: var(--text-strong);
 }
 .score-breakdown {
