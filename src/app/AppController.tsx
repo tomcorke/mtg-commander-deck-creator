@@ -34,6 +34,8 @@ function App({ workspace }: { workspace: DeckWorkspace }) {
         setCardReveals: state.setCardReveals,
         cardEffects: state.cardEffects,
         setCardEffects: state.setCardEffects,
+        previewScale: state.previewScale,
+        setPreviewScale: state.setPreviewScale,
       }}
     >
       <div
@@ -43,6 +45,7 @@ function App({ workspace }: { workspace: DeckWorkspace }) {
             colorScheme: state.darkMode ? 'dark' : 'light',
             '--commander-accent': themed ? builderData.primaryTheme[0] : undefined,
             '--commander-highlight': themed ? builderData.secondaryTheme[1] : undefined,
+            '--card-preview-scale': state.previewScale,
           } as CSSProperties
         }
       >

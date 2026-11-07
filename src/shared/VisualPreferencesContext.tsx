@@ -9,6 +9,9 @@ export type VisualPreferences = {
   setCardReveals: Dispatch<SetStateAction<boolean>>
   cardEffects: boolean
   setCardEffects: Dispatch<SetStateAction<boolean>>
+  // Multiplier for every enlarged card preview; applied as --card-preview-scale.
+  previewScale: number
+  setPreviewScale: Dispatch<SetStateAction<number>>
 }
 
 export const VisualPreferencesContext = createContext<VisualPreferences | null>(null)

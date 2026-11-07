@@ -1469,7 +1469,11 @@ main > .commander-header {
 }
 .card-zoom img {
   display: block;
-  width: min(360px, calc((100vw - 56px) / 2));
+  width: min(
+    calc(360px * var(--card-preview-scale, 1)),
+    calc((100vw - 56px) / 2),
+    calc((100vh - 48px) * 63 / 88)
+  );
   max-height: calc(100vh - 48px);
   border-radius: 4.75%;
   object-fit: contain;

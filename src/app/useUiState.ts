@@ -19,6 +19,7 @@ export function useUiState(
   const [commanderStyling, setCommanderStyling] = useStoredOption('commanderStyling', () => true)
   const [cardReveals, setCardReveals] = useStoredOption('cardReveals', () => true)
   const [cardEffects, setCardEffects] = useStoredOption('cardEffects', () => true)
+  const [previewScale, setPreviewScale] = useStoredOption('previewScale', () => 1)
   const [awaitingPlayStyle, setAwaitingPlayStyle] = useState(false)
   const [firstBatchPending, setFirstBatchPending] = useState(saved?.firstBatchPending ?? false)
   const [showIntroGuide, setShowIntroGuide] = useState(false)
@@ -66,6 +67,8 @@ export function useUiState(
     setCardReveals,
     cardEffects,
     setCardEffects,
+    previewScale,
+    setPreviewScale,
     awaitingPlayStyle,
     setAwaitingPlayStyle,
     resetFirstUse,
