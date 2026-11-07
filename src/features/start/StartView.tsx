@@ -6,6 +6,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from 'react'
+import { flushSync } from 'react-dom'
 import { colourNames, randomItems, selectableThemes } from '../../domain/commander-catalog.ts'
 import { creatureTypeForTheme, creatureTypeThemes } from '../../domain/creature-types.ts'
 
@@ -167,6 +168,9 @@ export function StartView(props: StartViewProps) {
     props.declareTheme('')
     props.setColours([])
     props.setSearch('')
+    // Clear filters disables itself, so hand focus to the Name search; below 600px it must be unfolded first.
+    flushSync(() => setFiltersOpen(true))
+    document.getElementById('commander-search-name')?.focus()
   }
   const moveBetweenChoices = (event: KeyboardEvent<HTMLDivElement>) => {
     const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key]
@@ -330,6 +334,7 @@ export function StartView(props: StartViewProps) {
             <label className="commander-search">
               <span className="filter-heading">Name</span>
               <input
+                id="commander-search-name"
                 value={props.search}
                 onChange={(event) => props.setSearch(event.target.value)}
                 placeholder="Search commanders…"
