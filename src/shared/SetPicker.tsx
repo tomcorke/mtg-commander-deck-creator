@@ -74,7 +74,7 @@ function SetGuide({ set }: { set: ScryfallSet }) {
       ) : (
         <span className="set-guide-art" aria-hidden="true" />
       )}
-      {guide && (
+      {guide ? (
         <p>
           {guide.description}{' '}
           <a
@@ -86,6 +86,8 @@ function SetGuide({ set }: { set: ScryfallSet }) {
             Source
           </a>
         </p>
+      ) : (
+        <p className="set-picker-meta">Description unavailable.</p>
       )}
       {legends === undefined ? (
         <p className="set-picker-meta">Loading legends…</p>
