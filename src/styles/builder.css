@@ -702,7 +702,11 @@
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
-.health-card-role {
+/* Compound selector beats the shared no-wrap badge rule: one role label fills the row and must wrap (#360). */
+.card-tile-badges > .health-card-role {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--text-accent);
   font-weight: 600;
   letter-spacing: 0.04em;
