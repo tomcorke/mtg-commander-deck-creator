@@ -5,8 +5,8 @@
   margin: 0 0.08em;
   vertical-align: -0.2em;
 }
-/* Scryfall's {H} is an unframed black glyph. */
-.dark img.mana-symbol[src$='/H.svg'] {
+/* Scryfall's {H} is an unframed black glyph. Match the symbol, not the URL: dev replay proxies `src`. */
+.dark img[data-symbol='{H}'] {
   filter: invert(1);
 }
 .actions {

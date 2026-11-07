@@ -50,6 +50,7 @@ function ManaSymbolImage({
     <img
       className={className}
       src={details.svg_uri}
+      data-symbol={details.symbol}
       alt={decorative ? '' : details.english || fallbackManaSymbolName(symbol)}
       aria-hidden={decorative || undefined}
     />
