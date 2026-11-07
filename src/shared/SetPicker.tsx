@@ -44,7 +44,7 @@ function SetMeta({ set }: { set: ScryfallSet }) {
 }
 
 function useSetLegends(code: string) {
-  const [legends, setLegends] = useState<ScryfallCard[]>()
+  const [legends, setLegends] = useState<ScryfallCard[] | null>()
   useEffect(() => {
     const controller = new AbortController()
     searchScryfallCached(
@@ -54,7 +54,7 @@ function useSetLegends(code: string) {
       'edhrec',
     )
       .then(setLegends)
-      .catch(() => controller.signal.aborted || setLegends([]))
+      .catch(() => controller.signal.aborted || setLegends(null))
     return () => controller.abort()
   }, [code])
   return legends
@@ -89,6 +89,8 @@ function SetGuide({ set }: { set: ScryfallSet }) {
       )}
       {legends === undefined ? (
         <p className="set-picker-meta">Loading legends…</p>
+      ) : legends === null ? (
+        <p className="set-picker-meta">Couldn’t load legends from Scryfall.</p>
       ) : legends.length > 0 ? (
         <>
           {leanings.length > 0 && (
