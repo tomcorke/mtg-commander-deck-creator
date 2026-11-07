@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 
 import { scryfallImage, type Card, type ScryfallCard } from '../../domain/card-model.ts'
 import { basicLandNames } from '../../deck-analysis.ts'
@@ -139,7 +139,11 @@ export function BasicLandDialog({
   const busy = styleLoading || basicLandState === 'loading'
   const setCount = (name: string, count: number) =>
     setLandCountState({ key: planKey, counts: { ...landCounts, [name]: count } })
+  // One gallery load at a time: loading and progress state are shared across lands.
+  const galleryLoading = useRef(false)
   const loadGallery = async (name: string) => {
+    if (galleryLoading.current) return
+    galleryLoading.current = true
     setStyleLoading(true)
     setStyleError('')
     setRetryName('')
@@ -153,6 +157,7 @@ export function BasicLandDialog({
       setStyleError(`Could not load ${name} printings.`)
       setRetryName(name)
     } finally {
+      galleryLoading.current = false
       setPartial(undefined)
       setStyleLoading(false)
     }
@@ -419,6 +424,7 @@ export function BasicLandDialog({
                 <button
                   type="button"
                   className="compact-action"
+                  disabled={busy}
                   onClick={() => void loadGallery(retryName)}
                 >
                   Retry
