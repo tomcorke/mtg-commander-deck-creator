@@ -421,6 +421,10 @@ export function StartView(props: StartViewProps) {
                   label={setLabel}
                   emptySelection="No sets selected. Commanders from every set are shown."
                 />
+                <p className="collection-picker-help">
+                  These sets only filter this commander list. Choose recommendation sets later in
+                  Recommendation settings, where you can add these.
+                </p>
               </div>
             </details>
           </div>

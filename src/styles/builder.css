@@ -455,6 +455,10 @@
   font-size: var(--type-data);
   font-variant-numeric: tabular-nums;
 }
+.set-picker-meta {
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
 .set-picker-icon {
   display: block;
   width: 18px;
