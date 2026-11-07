@@ -12,6 +12,7 @@ import {
   addManualCard,
   addSearchCards,
   applyDeckDoctorSwapPlan,
+  copyDeck,
   undoDeckDoctorSwap,
   hydrateDeckCardDetails,
   openCardReference,
@@ -277,4 +278,23 @@ test('cached printing metadata enriches details without replacing selected art o
   assert.equal(deps.deck[0].price, '3')
   assert.equal(deps.deck[0].setName, 'Old Set')
   assert.equal(requests, 2, 'Name and printing-list requests must warm detail hydration')
+})
+
+test('copyDeck reports failure when navigator.clipboard is undefined', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true })
+  const copied: unknown[] = []
+  try {
+    await copyDeck({
+      commander: null,
+      deck: [],
+      sideboard: [],
+      exportFormat: 'plain',
+      setCopied: (value: unknown) => copied.push(value),
+    } as unknown as AppActionContext)
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'navigator', original)
+    else delete (globalThis as { navigator?: unknown }).navigator
+  }
+  assert.deepEqual(copied, ['failed'])
 })
