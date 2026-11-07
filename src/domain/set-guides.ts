@@ -1,5 +1,124 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  mdd: {
+    description:
+      'Marvel heroes and villains choose sides in a supernatural war across dimensions. Dormammu and Hela use the Darkhold to tear open reality, unleashing arcane nightmares into this new Marvel setting.',
+    source: 'https://magic.wizards.com/en/products/marvel/marvel-darkhold-destiny',
+  },
+  nau: {
+    description:
+      'Explore an underwater plane that stretches far beneath the waves. Nauctis begins in calm waters, with greater magic and danger awaiting those who venture deeper.',
+    source: 'https://magic.wizards.com/en/products/nauctis-the-sunken-realm',
+  },
+  trk: {
+    description:
+      'Explore Star Trek through familiar crews, strange worlds, and starships. Beam me up lets you reuse certain spells from your graveyard by returning one of your creatures to your hand and paying the listed cost.',
+    source: 'https://magic.wizards.com/en/news/feature/star-trek-mechanics',
+  },
+  om1: {
+    description:
+      "Magic-world counterparts of Marvel's Spider-Man cards originally released on MTG Arena. Following Spider-Man's arrival on Arena, Through the Omenpaths versions remain available as alternate card styles.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/marvel-super-heroes',
+  },
+  big: {
+    description:
+      'A thirty-card collection released alongside Outlaws of Thunder Junction. The Big Score offers a separate glimpse of the treasures and schemes surrounding the frontier adventure.',
+    source: 'https://magic.wizards.com/en/news/feature/outlaws-of-thunder-junction-mechanics',
+  },
+  lci: {
+    description:
+      "Explore Ixalan's depths and turn discoveries into something greater. Craft uses other permanents or graveyard cards as materials to transform a permanent into its more powerful reverse face.",
+    source: 'https://magic.wizards.com/en/news/feature/the-lost-caverns-of-ixalan-mechanics',
+  },
+  woe: {
+    description:
+      'Enter a fairy-tale world where creatures take on new roles. Role tokens are Auras that give creatures different bonuses or drawbacks, making enchantments part of the story.',
+    source: 'https://magic.wizards.com/en/news/feature/wilds-of-eldraine-mechanics',
+  },
+  mat: {
+    description:
+      'A fifty-card epilogue follows the Phyrexian invasion. Heroes mourn and celebrate, planes become connected in new ways, and many planeswalkers lose their ability to travel between worlds.',
+    source:
+      'https://magic.wizards.com/en/news/feature/collecting-march-of-the-machine-the-aftermath',
+  },
+  mom: {
+    description:
+      'The Multiverse fights back against the Phyrexian invasion. Backup creatures place counters on a creature and can temporarily share some of their printed abilities, encouraging allies to strengthen one another.',
+    source: 'https://magic.wizards.com/en/news/feature/march-of-the-machine-mechanics',
+  },
+  one: {
+    description:
+      'Enter Phyrexia as its forces spread corruption. Toxic creatures give poison counters when they deal combat damage to players, adding another threat alongside ordinary damage.',
+    source: 'https://magic.wizards.com/en/news/feature/phyrexia-all-will-be-one-mechanics',
+  },
+  bro: {
+    description:
+      'Artifact war machines dominate the conflict between Urza and Mishra. Prototype lets you cast certain artifact creatures as smaller, cheaper versions while keeping their other abilities.',
+    source: 'https://magic.wizards.com/en/news/feature/the-brothers-war-mechanics',
+  },
+  dmu: {
+    description:
+      'Return to Dominaria with mechanics that reward a varied mana base. Domain improves effects according to the basic land types you control, while kicker lets you pay extra for stronger spells.',
+    source: 'https://magic.wizards.com/en/news/feature/dominaria-united-mechanics',
+  },
+  snc: {
+    description:
+      "Five crime families compete in New Capenna. The Obscura's connive mechanic improves your hand by drawing and discarding, and can grow creatures when you discard nonland cards.",
+    source: 'https://magic.wizards.com/en/news/feature/streets-of-new-capenna-mechanics-2022-04-07',
+  },
+  neo: {
+    description:
+      'Technology meets tradition on Kamigawa. Reconfigure turns artifact creatures into Equipment and back again, offering a choice between an extra creature and an upgrade for another one.',
+    source: 'https://magic.wizards.com/en/news/feature/kamigawa-neon-dynasty-mechanics-2022-01-27',
+  },
+  vow: {
+    description:
+      "Innistrad's vampires gather for a sinister wedding. Blood tokens let you trade cards in hand for new draws, while the set also revisits transforming creatures and graveyard abilities.",
+    source: 'https://magic.wizards.com/en/news/feature/innistrad-crimson-vow-mechanics-2021-10-28',
+  },
+  mid: {
+    description:
+      'Return to Innistrad as day and night shape its Werewolves. Disturb lets some creatures return from the graveyard as their transformed faces, while coven rewards creatures with different powers.',
+    source: 'https://magic.wizards.com/en/news/feature/innistrad-midnight-hunt-mechanics',
+  },
+  afr: {
+    description:
+      'Dungeons & Dragons comes to Magic through adventures in the Forgotten Realms. Venture abilities take you through dungeon rooms for rewards, while twenty-sided dice and Class enchantments bring tabletop roleplaying elements to the cards.',
+    source:
+      'https://magic.wizards.com/en/news/feature/adventures-forgotten-realms-mechanics-2021-07-02',
+  },
+  stx: {
+    description:
+      'Study at five magical colleges, each with its own approach to spellcasting. Magecraft rewards casting or copying instants and sorceries, encouraging creatures and spells to work together.',
+    source:
+      'https://magic.wizards.com/en/news/feature/strixhaven-school-mages-mechanics-2021-03-25',
+  },
+  khm: {
+    description:
+      "Explore Kaldheim's realms of myth, snow, and Sagas. Foretell lets you set a card aside face down during your turn and cast it from exile on a later turn for its foretell cost.",
+    source: 'https://magic.wizards.com/en/news/feature/kaldheim-mechanics-2021-01-07',
+  },
+  znr: {
+    description:
+      'Adventure across Zendikar with Clerics, Rogues, Warriors, and Wizards. Party rewards assembling those different roles, while landfall gives bonuses when lands enter under your control.',
+    source: 'https://magic.wizards.com/en/news/feature/zendikar-rising-mechanics-2020-09-01',
+  },
+  m21: {
+    description:
+      'A core-set collection includes Dogs, prowess creatures, and legendary Shrines. Shrines grow stronger together, while prowess rewards casting noncreature spells with temporary creature boosts.',
+    source:
+      'https://magic.wizards.com/en/news/feature/core-set-2021-and-jumpstart-release-notes-2020-06-20',
+  },
+  iko: {
+    description:
+      'Build unusual monsters on Ikoria. Mutate combines creatures into one permanent, while keyword counters can give creatures abilities such as flying, trample, or lifelink.',
+    source: 'https://magic.wizards.com/en/news/feature/ikoria-lair-behemoths-mechanics-2020-04-02',
+  },
+  thb: {
+    description:
+      "Return to Theros as the boundary between life and the underworld weakens. Escape lets cards be cast from your graveyard using mana and other graveyard cards, while devotion rewards coloured mana symbols in your permanents' mana costs.",
+    source: 'https://magic.wizards.com/en/news/feature/theros-beyond-death-mechanics-2019-12-12',
+  },
   mdc: {
     description:
       "Commander decks enter Marvel's supernatural war across dimensions. Darkhold Destiny brings heroes and villains into a setting where Dormammu and Hela unleash arcane nightmares across the Multiverse.",
