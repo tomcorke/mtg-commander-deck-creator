@@ -1,5 +1,106 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  m14: {
+    description:
+      'Slivers return to the core set with new designs that strengthen other Slivers you control. Collecting several together lets their bonuses and abilities build on one another.',
+    source: 'https://magic.wizards.com/en/news/making-magic/sliver-pate-2013-07-01',
+  },
+  dgm: {
+    description:
+      'All ten Ravnican guilds meet in one set. Split cards with fuse let you cast either half separately, or both halves together from your hand by paying their combined costs.',
+    source: 'https://magic.wizards.com/en/news/feature/dragons-maze-mechanics',
+  },
+  gtc: {
+    description:
+      'Five Ravnican guilds bring new mechanics to the city. Orzhov extort lets you spend spare mana after casting spells to drain life from each opponent and gain it yourself.',
+    source: 'https://magic.wizards.com/en/news/feature/gatecrash-mechanics',
+  },
+  rtr: {
+    description:
+      'Return to a city ruled by two-colour guilds. Five guilds have their own mechanics, including Selesnya populate for copying creature tokens and Golgari scavenge for turning graveyard creatures into counters.',
+    source: 'https://magic.wizards.com/en/news/feature/return-to-ravnica-mechanics',
+  },
+  m13: {
+    description:
+      'Exalted returns in this core set, rewarding attacks with a single creature. New black cards join white cards in exploring creatures lending strength to a lone champion.',
+    source: 'https://magic.wizards.com/en/news/making-magic/core-merrier-2012-06-25',
+  },
+  avr: {
+    description:
+      'Avacyn returns as humans and Angels fight for Innistrad. Soulbond pairs creatures to share benefits, while miracle offers special casting costs when a spell is the first card you draw in a turn.',
+    source: 'https://magic.wizards.com/en/news/feature/avacyn-restored-mechanics',
+  },
+  dka: {
+    description:
+      "Innistrad's darkness deepens, and some creatures refuse to stay dead. Undying returns a creature with a +1/+1 counter if it had none when it died.",
+    source: 'https://magic.wizards.com/en/news/feature/dark-ascension-mechanics',
+  },
+  isd: {
+    description:
+      'Explore a world of Gothic horror, transforming creatures, and graveyard magic. Morbid rewards a creature having died that turn, while flashback lets instants and sorceries be cast from the graveyard.',
+    source: 'https://magic.wizards.com/en/news/feature/innistrad-mechanics',
+  },
+  m12: {
+    description:
+      'This core set brings back bloodthirst, rewarding damage dealt to opponents with creatures that enter carrying extra +1/+1 counters. It also introduces hexproof as a keyword and dies as shorter rules terminology.',
+    source: 'https://magic.wizards.com/en/news/feature/magic-2012-mechanics',
+  },
+  nph: {
+    description:
+      'Phyrexia spreads through all five colours on the conquered Mirrodin. Phyrexian mana symbols offer a choice between coloured mana and paying two life, changing how you can pay for certain spells and abilities.',
+    source: 'https://magic.wizards.com/en/news/feature/new-phyrexia-mechanics',
+  },
+  mbs: {
+    description:
+      'Mirrans and Phyrexians fight for their metal world. Living weapon Equipment arrives attached to a newly created Germ token, giving the weapon a creature to wield it immediately.',
+    source: 'https://magic.wizards.com/en/news/feature/mirrodin-besieged-mechanics',
+  },
+  som: {
+    description:
+      'Artifacts shape the metal world of Mirrodin as Phyrexian corruption spreads. Metalcraft rewards controlling three artifacts, while infect deals damage to creatures as -1/-1 counters and to players as poison counters.',
+    source: 'https://magic.wizards.com/en/news/feature/scars-of-mirrodin-mechanics',
+  },
+  m11: {
+    description:
+      'Scry returns in this core set to help improve future draws. It gives you a look at cards on top of your library and a choice about which ones to keep there.',
+    source: 'https://magic.wizards.com/en/news/making-magic/twist-fate-2014-03-10',
+  },
+  roe: {
+    description:
+      'Enormous Eldrazi threaten Zendikar, while its defenders find new ways to grow. Level up lets creatures gain larger stats or new abilities as you invest mana in them over time.',
+    source: 'https://magic.wizards.com/en/news/feature/rise-of-the-eldrazi-mechanics',
+  },
+  wwk: {
+    description:
+      "Zendikar's lands awaken and join the fight. Multikicker lets you pay an extra cost repeatedly to strengthen a spell, while landfall continues rewarding lands entering under your control.",
+    source: 'https://magic.wizards.com/en/news/feature/worldwake-mechanics',
+  },
+  zen: {
+    description:
+      "An adventure world built around lands and exploration. Landfall rewards lands entering under your control, making ordinary land development part of your cards' engines.",
+    source: 'https://magic.wizards.com/en/news/feature/zendikar-rising-mechanics-2020-09-01',
+  },
+  m10: {
+    description:
+      'A reworked core set mixes new card designs with returning cards. It moves beyond the earlier all-reprint model, giving the core set fresh material of its own.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-2',
+  },
+  arb: {
+    description:
+      "Alara's shards come together in an all-gold set: every card is multicoloured. The collection also includes cards that care about multicoloured cards, reinforcing its focus on combining colours.",
+    source: 'https://magic.wizards.com/en/news/making-magic/goldfingers-2009-04-17',
+  },
+  con: {
+    description:
+      "Alara's five shards collide, expanding the block toward five-colour play. Domain and a range of mana-fixing cards support decks that reach across the colours.",
+    source: 'https://magic.wizards.com/en/news/feature/conflux-design-feature',
+  },
+  ala: {
+    description:
+      "Explore five shards of Alara, each with its own identity and three-colour focus. Bant's exalted rewards a creature attacking alone, letting other permanents lend it strength.",
+    source:
+      'https://magic.wizards.com/en/news/making-magic/between-rock-and-shard-place-2008-09-05',
+  },
   eld: {
     description:
       'Fairy tales meet a realm of knights and courts. Adventure cards let you cast an instant or sorcery, then cast the creature from exile, giving one card two parts to play.',
