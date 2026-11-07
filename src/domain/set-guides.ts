@@ -1,5 +1,96 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  eve: {
+    description:
+      "Builds on Shadowmoor's theme of hybrid mana with enemy-colour pairs. It shifts the colour combinations you can explore while continuing the block's focus on mana symbols.",
+    source: 'https://magic.wizards.com/en/news/making-magic/state-design-2008-2008-09-01',
+  },
+  shm: {
+    description:
+      "Hybrid mana sits at the centre of this set's colour theme. Cards built around flexible coloured costs offer a different approach to multicolour play from traditional gold cards.",
+    source: 'https://magic.wizards.com/en/news/making-magic/state-design-2008-2008-09-01',
+  },
+  mor: {
+    description:
+      "Expands Lorwyn's creature-type theme by focusing on classes. The set asks you to look at what creatures do as well as what kind of creatures they are.",
+    source: 'https://magic.wizards.com/en/news/making-magic/state-design-2008-2008-09-01',
+  },
+  lrw: {
+    description:
+      'Build around creature types such as Elves, Goblins, Faeries, and Treefolk. Changeling creatures have every creature type, helping different groups work together; Lorwyn also introduces planeswalker cards.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
+  fut: {
+    description:
+      'Looks toward possible futures for Magic. Futureshifted cards use a distinctive frame to preview unusual mechanics, themes, and creative ideas, some of which later appeared in other sets.',
+    source: 'https://magic.wizards.com/en/news/making-magic/test-time-spiral-remastered-2021-03-01',
+  },
+  plc: {
+    description:
+      "Explores an alternate present where familiar effects belong to different colours. Its colourshifted cards reimagine older designs within that alternate version of Magic's colour pie.",
+    source: 'https://magic.wizards.com/en/news/making-magic/test-time-spiral-remastered-2021-03-01',
+  },
+  tsb: {
+    description:
+      'A 121-card bonus collection from Time Spiral, reprinting older cards in the original Magic frame. These timeshifted cards use a purple expansion symbol and originally appeared one per booster.',
+    source: 'https://magic.wizards.com/en/news/making-magic/test-time-spiral-remastered-2021-03-01',
+  },
+  tsp: {
+    description:
+      "Revisits Magic's past through nostalgia and returning designs. Its boosters also included a separate timeshifted collection of older cards, making the set's time theme visible in the cards themselves.",
+    source: 'https://magic.wizards.com/en/news/making-magic/test-time-spiral-remastered-2021-03-01',
+  },
+  csp: {
+    description:
+      'Returns to the Ice Age setting with a snow theme. Coldsnap develops snow into a supertype and introduces a snow mana symbol, giving snowy cards a shared mechanical identity.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
+  dis: {
+    description:
+      "Completes the original Ravnica block's guild lineup with Azorius, Rakdos, and Simic. These guilds explore controlling order, immediate aggression and sacrifice, and the combination of blue and green.",
+    source: 'https://magic.wizards.com/en/news/making-magic/seeds-dissension-2006-04-10',
+  },
+  gpt: {
+    description:
+      "Three guilds join Ravnica's conflict: Orzhov in white and black, Izzet in blue and red, and Gruul in red and green. Each pair brings its own distinct approach to the game.",
+    source:
+      'https://magic.wizards.com/en/news/making-magic/if-you-guild-it-they-will-come-2006-01-09',
+  },
+  rav: {
+    description:
+      'A city of guilds connects faction identities with distinct mechanics. This multicolour set also introduces hybrid mana, letting some costs be paid with either of two colours.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
+  sok: {
+    description:
+      "Treats your hand as a resource, rewarding cards kept in reserve instead of immediately played. Its theme of hand size grows out of Kamigawa's existing ways to return, discard, and reuse cards.",
+    source: 'https://magic.wizards.com/en/news/making-magic/sunll-come-out-maro-2005-05-16',
+  },
+  bok: {
+    description:
+      'Introduces Ninjas and their sneaky combat identity. Ninjutsu lets a Ninja in your hand trade places with an unblocked attacker after blockers are declared, returning the original creature to your hand.',
+    source: 'https://magic.wizards.com/en/news/making-magic/when-ninjas-attack-2005-01-10',
+  },
+  chk: {
+    description:
+      'Legendary creatures take a central role in Kamigawa. Flip cards tell stories of ordinary creatures achieving a feat and becoming legendary heroes, using two versions printed on one face of the card.',
+    source: 'https://magic.wizards.com/en/news/making-magic/flipping-out-2004-09-20',
+  },
+  '5dn': {
+    description:
+      'Introduces scry, a mechanic designed to improve card flow. Looking at upcoming cards and deciding which to leave on top helps you shape future draws.',
+    source: 'https://magic.wizards.com/en/news/making-magic/twist-fate-2014-03-10',
+  },
+  dst: {
+    description:
+      "Introduces indestructible as a way to make permanents harder to destroy. Darksteel adds this durable new tool during Magic's artifact-focused Mirrodin era.",
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
+  mrd: {
+    description:
+      'Artifacts define the metal world of Mirrodin. Equipment makes weapons and other gear into artifacts that creatures can carry, establishing a new way to outfit your battlefield.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
   m14: {
     description:
       'Slivers return to the core set with new designs that strengthen other Slivers you control. Collecting several together lets their bonuses and abilities build on one another.',
