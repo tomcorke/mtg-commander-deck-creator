@@ -1,5 +1,131 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  eld: {
+    description:
+      'Fairy tales meet a realm of knights and courts. Adventure cards let you cast an instant or sorcery, then cast the creature from exile, giving one card two parts to play.',
+    source: 'https://magic.wizards.com/en/news/feature/throne-eldraine-mechanics-2019-09-04',
+  },
+  m20: {
+    description:
+      'Chandra Nalaar takes the spotlight in this core set, appearing through several planeswalker cards and fiery spells. Returning Leylines and protection offer additional themes to explore.',
+    source: 'https://magic.wizards.com/en/news/feature/core-set-2020-release-notes-2019-06-25',
+  },
+  war: {
+    description:
+      'Planeswalkers gather on Ravnica as Nicol Bolas unleashes the Dreadhorde. Amass builds up an Army creature with +1/+1 counters, while proliferate supports decks that use counters.',
+    source: 'https://magic.wizards.com/en/news/feature/war-spark-mechanics-2019-03-31',
+  },
+  rna: {
+    description:
+      'Five more Ravnican guilds bring their own approaches to battle. The Rakdos spectacle mechanic offers alternative spell costs after an opponent has lost life that turn.',
+    source: 'https://magic.wizards.com/en/news/feature/ravnica-allegiance-mechanics',
+  },
+  grn: {
+    description:
+      'Five Ravnican guilds compete across the city. Dimir surveil helps arrange future draws and fill the graveyard, while the other guilds offer their own spellcasting and creature mechanics.',
+    source: 'https://magic.wizards.com/en/news/feature/guilds-ravnica-mechanics-2018-09-04',
+  },
+  m19: {
+    description:
+      'This core set explores Nicol Bolas and his past. A double-faced Bolas card depicts both his legendary Dragon form and the planeswalker power that follows his transformation.',
+    source: 'https://magic.wizards.com/en/news/feature/core-set-2019-release-notes-2018-06-22',
+  },
+  dom: {
+    description:
+      "Return to Magic's original home world and its living history. Historic abilities connect artifacts, legendary cards, and Sagas, while kicker lets spells scale up when you have more mana.",
+    source: 'https://magic.wizards.com/en/news/feature/dominaria-mechanics-2018-03-21',
+  },
+  rix: {
+    description:
+      "The struggle for Ixalan's golden city continues. Ascend unlocks stronger effects through the city's blessing, rewarding decks that build up to ten permanents.",
+    source: 'https://magic.wizards.com/en/news/feature/rivals-ixalan-mechanics-2018-01-01',
+  },
+  xln: {
+    description:
+      'Dinosaurs, Pirates, Merfolk, and Vampires compete on Ixalan. Explore helps creatures find land cards or gain +1/+1 counters while giving you a choice about a nonland card on top of your library.',
+    source: 'https://magic.wizards.com/en/news/feature/ixalan-mechanics',
+  },
+  hou: {
+    description:
+      "Nicol Bolas's undead Eternals arrive on Amonkhet. Eternalize exiles creature cards from your graveyard to create 4/4 Zombie token copies, giving their abilities another life in a stronger body.",
+    source: 'https://magic.wizards.com/en/news/feature/hour-devastation-mechanics-2017-06-16',
+  },
+  akh: {
+    description:
+      'Gods, trials, and mummies shape life on Amonkhet. Embalm exiles certain creature cards from your graveyard to create Zombie token copies, encouraging you to get value from them more than once.',
+    source: 'https://magic.wizards.com/en/news/feature/amonkhet-mechanics-2017-04-03',
+  },
+  aer: {
+    description:
+      "Kaladesh's inventors rise against the Consulate. Revolt rewards a permanent you control leaving the battlefield, while improvise lets you tap artifacts to help pay the generic part of a spell's cost.",
+    source: 'https://magic.wizards.com/en/news/feature/aether-revolt-mechanics-2017-01-02',
+  },
+  kld: {
+    description:
+      'Invention runs on aether in Kaladesh. Energy counters are a resource you can save and spend across different cards, while Vehicles give your creatures machines to crew.',
+    source: 'https://magic.wizards.com/en/news/feature/kaladesh-mechanics-2016-09-02',
+  },
+  emn: {
+    description:
+      'Eldrazi horror spreads across Innistrad. Emerge lets you sacrifice a creature to help cast a larger threat, while meld combines particular pairs of cards into a single enormous permanent.',
+    source: 'https://magic.wizards.com/en/news/feature/eldritch-moon-mechanics-2016-06-27',
+  },
+  soi: {
+    description:
+      'Investigate a mystery on Innistrad with Clue tokens and transforming creatures. Delirium rewards having four or more card types in your graveyard, while madness gives discarded cards a chance to become spells.',
+    source: 'https://magic.wizards.com/en/news/feature/shadows-over-innistrad-mechanics',
+  },
+  ogw: {
+    description:
+      'The fight for Zendikar highlights Eldrazi and colourless mana. Some costs specifically require colourless mana, and the new basic land Wastes provides another way to produce it.',
+    source: 'https://magic.wizards.com/en/news/feature/oath-gatewatch-mechanics-2015-12-28',
+  },
+  bfz: {
+    description:
+      "Zendikar's defenders face the Eldrazi once more. Awaken spells can turn your lands into creatures, landfall rewards lands entering play, and rally brings Allies together.",
+    source: 'https://magic.wizards.com/en/news/feature/battle-for-zendikar-mechanics',
+  },
+  ori: {
+    description:
+      'Explore the beginnings of Gideon, Jace, Liliana, Chandra, and Nissa. Double-faced cards show them first as legendary creatures, then as planeswalkers when their sparks ignite.',
+    source: 'https://magic.wizards.com/en/news/feature/magic-origins-mechanics',
+  },
+  dtk: {
+    description:
+      'Dragons rule Tarkir and its five clans. Rebound gives some instants and sorceries a second casting on your next upkeep, while other clan mechanics support sacrifice, aggression, and larger creatures.',
+    source: 'https://magic.wizards.com/en/news/feature/mechanics-of-dragons-of-tarkir',
+  },
+  frf: {
+    description:
+      "Visit Tarkir's past, when Ugin still lives. Manifest hides cards on the battlefield as face-down creatures, with creature cards able to reveal themselves later when you pay their mana costs.",
+    source: 'https://magic.wizards.com/en/news/feature/mechanics-fate-reforged-2014-12-29',
+  },
+  ktk: {
+    description:
+      'Five three-colour clans vie for supremacy on Tarkir. Their mechanics include outlast for growing creatures over time, raid for attacking, and ferocious for controlling a creature with power four or greater.',
+    source: 'https://magic.wizards.com/en/news/feature/mechanics-khans-tarkir',
+  },
+  m15: {
+    description:
+      'A core set brings back convoke, letting your creatures help cast spells by tapping to pay part of their costs. Returning Slivers and the Souls cycle offer other build-around creatures.',
+    source:
+      'https://magic.wizards.com/en/news/feature/magic-2015-core-set-release-notes-2014-07-07',
+  },
+  jou: {
+    description:
+      'Divine constellations enter the mortal world of Theros. Constellation rewards enchantments entering under your control, while strive lets you pay extra to include more targets in a spell.',
+    source: 'https://magic.wizards.com/en/news/feature/mechanics-of-journey-into-nyx',
+  },
+  bng: {
+    description:
+      "Xenagos's rise to godhood throws Theros into conflict. Inspired rewards creatures becoming untapped, while tribute makes an opponent choose between a larger creature and another effect.",
+    source: 'https://magic.wizards.com/en/news/feature/born-of-the-gods-mechanics',
+  },
+  ths: {
+    description:
+      'Heroes, monsters, and gods inhabit Theros. Bestow lets enchantment creatures serve as Auras, while devotion rewards coloured mana symbols in the mana costs of permanents you control.',
+    source: 'https://magic.wizards.com/en/news/feature/mechanics-2013-09-02',
+  },
   mdd: {
     description:
       'Marvel heroes and villains choose sides in a supernatural war across dimensions. Dormammu and Hela use the Darkhold to tear open reality, unleashing arcane nightmares into this new Marvel setting.',
