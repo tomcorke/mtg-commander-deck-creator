@@ -663,7 +663,7 @@
   padding: 14px;
   border: 1px dashed var(--border-control);
   border-radius: 9px;
-  background: #faf9ff;
+  background: var(--surface-panel);
 }
 .health-lane h3 {
   margin: 0;

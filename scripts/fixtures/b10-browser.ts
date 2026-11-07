@@ -184,3 +184,13 @@ export function makeState(overrides: Partial<PersistedDeckState> = {}): Persiste
     ...overrides,
   })
 }
+
+/** Theme first with ramp below target; queued ramp past the first four fills the health lane. */
+export const themeFirstState = () =>
+  makeState({
+    recommendationStyle: 'thematic',
+    prioritizeDeckHealth: false,
+    queue: [...baseCandidates.slice(4), ...baseCandidates.slice(0, 4)].map((record) =>
+      toCard(record, 'Commander synergy'),
+    ),
+  })
