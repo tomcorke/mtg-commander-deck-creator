@@ -21,7 +21,7 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 - Render every displayed mana cost with all its symbols—including generic mana—as icons through `OracleText`. When a full cost is shown, omit separate colour-identity icons. Findings show the full cost rather than identity-only symbols. If identity appears without a cost, use icons without repeating colour names; keep names in icon alt text. Omit derived `MV` totals when full costs are shown.
 - Full-page builder modes reuse `CommanderCardArt` and `CommanderSummary` for commander context; preserve shared sizing, printing switches, and face-flip controls.
 - Small card images enlarge on hover or keyboard focus, triggered from the image itself as well as card-name references.
-- Show both card images in comparisons and label which card is currently in the deck. Reflow the pair on narrow screens.
+- Show both card images in comparisons and label which card is currently in the deck. Reflow the pair on narrow screens. When one card is compared with many (Compare commanders), show the in-deck card once above the options.
 
 ## Buttons
 

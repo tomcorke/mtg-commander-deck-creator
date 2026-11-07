@@ -716,7 +716,6 @@
   gap: 18px 12px;
 }
 .doctor-plan-pair,
-.doctor-commander-pair,
 .doctor-history-pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -724,7 +723,6 @@
   gap: 10px;
 }
 .doctor-plan-pair .doctor-pair-arrow,
-.doctor-commander-pair .doctor-pair-arrow,
 .doctor-history-pair .doctor-pair-arrow {
   align-self: center;
 }
@@ -780,14 +778,19 @@
   display: grid;
   gap: 12px;
 }
-/* One centred column, settled in #296; tile previews now use the top layer (#297), so two columns would fit. */
+/* The in-deck commander shows once above the alternatives (#337); two columns fit the 760px dialog (#339). */
 .doctor-commander-results {
-  grid-template-columns: minmax(0, 460px);
-  justify-content: center;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   margin-top: 8px;
 }
-.doctor-commander-results > p {
+.doctor-commander-results > p,
+.doctor-commander-current {
   grid-column: 1 / -1;
+}
+.doctor-commander-current,
+.doctor-commander-option > .doctor-card-tile {
+  justify-self: center;
+  width: min(100%, 170px);
 }
 .doctor-commander-empty {
   display: flex;
