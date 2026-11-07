@@ -126,8 +126,7 @@ async function noOverflow(page: Page) {
   )
 }
 async function showAllThemes(page: Page) {
-  while (!(await page.getByRole('button', { name: 'Tokens', exact: true }).count()))
-    await press(page, page.getByRole('button', { name: 'Show more themes' }))
+  await press(page, page.getByRole('button', { name: 'Show all themes' }))
 }
 async function chooseCommander(page: Page) {
   await press(page, page.getByRole('button', { name: `Choose ${chosen.name}`, exact: false }))

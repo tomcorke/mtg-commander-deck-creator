@@ -10,7 +10,11 @@ import { flushSync } from 'react-dom'
 import type { ScryfallSet } from '../../domain/card-model.ts'
 import { setPickerRows } from '../../domain/set-picker.ts'
 import { SetPicker } from '../../shared/SetPicker.tsx'
-import { colourNames, randomItems, selectableThemes } from '../../domain/commander-catalog.ts'
+import {
+  colourNames,
+  selectableThemes,
+  visibleThemeChoices,
+} from '../../domain/commander-catalog.ts'
 import {
   chooseCuratedTheme as nextCuratedTheme,
   creatureTypeForTheme,
@@ -116,6 +120,96 @@ import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.
 import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
 import { CommanderSummary } from '../builder/CommanderSummary.tsx'
 
+/** Theme search over every theme, with a sample or full list while not searching. */
+function ThemeFilter({
+  sample,
+  theme,
+  extras,
+  choose,
+  declareTheme,
+  setExtras,
+}: {
+  sample: string[]
+  theme: string
+  extras: string[]
+  choose: (name: string) => void
+  declareTheme: (name: string) => void
+  setExtras: (extras: string[]) => void
+}) {
+  const [themeQuery, setThemeQuery] = useState('')
+  const [allThemes, setAllThemes] = useState(false)
+  const themeChoices = visibleThemeChoices(themeQuery, sample, theme, allThemes)
+  const themeMatches = visibleThemeChoices(themeQuery, [], '', false).length
+  const clearThemeSearch = () => {
+    setThemeQuery('')
+    document.getElementById('theme-search')?.focus()
+  }
+  return (
+    <>
+      <input
+        className="theme-search"
+        id="theme-search"
+        type="search"
+        value={themeQuery}
+        onChange={(event) => setThemeQuery(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && themeQuery) {
+            event.preventDefault()
+            setThemeQuery('')
+          }
+        }}
+        placeholder={`Search all ${selectableThemes.length} themes…`}
+        aria-label="Search themes"
+        aria-describedby="theme-search-status"
+        autoComplete="off"
+      />
+      <div className="themes" role="group" aria-labelledby="theme-filter-heading">
+        {themeChoices.map((name) => (
+          <button
+            className={theme === name ? 'selected' : ''}
+            aria-pressed={theme === name}
+            key={name}
+            type="button"
+            onClick={() => choose(name)}
+          >
+            {name}
+          </button>
+        ))}
+        <CreatureTypeChips
+          theme={theme}
+          extras={extras}
+          curated={themeChoices}
+          declareTheme={declareTheme}
+          setExtras={setExtras}
+        />
+      </div>
+      <p className="theme-search-status">
+        {themeQuery.trim() ? (
+          <>
+            <span id="theme-search-status" role="status">
+              {themeMatches
+                ? `${themeMatches} ${themeMatches === 1 ? 'theme matches' : 'themes match'} “${themeQuery.trim()}”`
+                : `No themes match “${themeQuery.trim()}”`}
+            </span>
+            <button className="export" type="button" onClick={clearThemeSearch}>
+              Clear theme search
+            </button>
+          </>
+        ) : (
+          <button
+            className="reroll"
+            type="button"
+            aria-expanded={allThemes}
+            onClick={() => setAllThemes((all) => !all)}
+          >
+            {allThemes ? 'Show fewer themes' : 'Show all themes'}
+          </button>
+        )}
+      </p>
+    </>
+  )
+}
+
 type StartViewProps = {
   extraCreatureTypes: string[]
   setExtraCreatureTypes: Dispatch<SetStateAction<string[]>>
@@ -127,7 +221,6 @@ type StartViewProps = {
   workspaceNotice: ReactNode
   importModal: ReactNode
   visibleThemes: string[]
-  setVisibleThemes: Dispatch<SetStateAction<string[]>>
   theme: string
   declareTheme: (name: string) => void
   chooseTheme: (name: string) => void
@@ -315,43 +408,14 @@ export function StartView(props: StartViewProps) {
             <h3 className="filter-heading" id="theme-filter-heading">
               Theme
             </h3>
-            <div className="themes" role="group" aria-labelledby="theme-filter-heading">
-              {props.visibleThemes.map((name) => (
-                <button
-                  className={props.theme === name ? 'selected' : ''}
-                  aria-pressed={props.theme === name}
-                  key={name}
-                  type="button"
-                  onClick={() => chooseCuratedTheme(name)}
-                >
-                  {name}
-                </button>
-              ))}
-              <CreatureTypeChips
-                theme={props.theme}
-                extras={props.extraCreatureTypes}
-                curated={props.visibleThemes}
-                declareTheme={props.declareTheme}
-                setExtras={props.setExtraCreatureTypes}
-              />
-            </div>
-            {props.visibleThemes.length < selectableThemes.length && (
-              <button
-                className="reroll"
-                type="button"
-                onClick={() =>
-                  props.setVisibleThemes((current) => [
-                    ...current,
-                    ...randomItems(
-                      selectableThemes.filter((name) => !current.includes(name)),
-                      6,
-                    ),
-                  ])
-                }
-              >
-                Show more themes
-              </button>
-            )}
+            <ThemeFilter
+              sample={props.visibleThemes}
+              theme={props.theme}
+              extras={props.extraCreatureTypes}
+              choose={chooseCuratedTheme}
+              declareTheme={props.declareTheme}
+              setExtras={props.setExtraCreatureTypes}
+            />
             <h3 className="filter-heading" id="colour-filter-heading">
               Colour identity
             </h3>
