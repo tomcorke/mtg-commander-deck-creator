@@ -724,25 +724,28 @@
   list-style: none;
 }
 .nonbasic-land-list li {
-  display: flex;
+  display: grid;
+  /* Fixed name column so every description starts at the same x. */
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 6px 16px;
   padding: 6px 0;
   border-bottom: 1px solid var(--border-subtle);
 }
+.nonbasic-land-list .card-reference-name {
+  text-align: left;
+}
 .land-trade-off {
-  flex: 1;
   margin: 0;
   color: var(--text-muted);
   font-size: var(--type-data);
 }
 @media (max-width: 620px) {
   .nonbasic-land-list li {
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
   .land-trade-off {
-    flex-basis: 100%;
+    grid-column: 1 / -1;
     order: 1;
   }
 }
