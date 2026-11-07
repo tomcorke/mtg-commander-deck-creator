@@ -1016,3 +1016,42 @@
   min-width: 0;
   justify-content: flex-start;
 }
+.set-picker-rows.browsing {
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+}
+.set-guide {
+  display: grid;
+  gap: 6px;
+}
+.set-guide p {
+  margin: 0;
+  font-size: var(--type-data);
+  line-height: 1.4;
+}
+.set-guide-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 140px;
+  border-radius: 4px;
+  background: var(--surface-tinted);
+  object-fit: cover;
+}
+.set-guide-colours {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.set-guide-legends {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--type-data);
+}
+.set-guide-legends li {
+  padding: 0;
+  border: 0;
+}
