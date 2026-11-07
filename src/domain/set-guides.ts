@@ -1,5 +1,41 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  who: {
+    description:
+      'Travel with the Doctor, companions, and enemies across eras of the television series. Paradox rewards casting spells from outside your hand, while villainous choices make opponents choose between unwelcome outcomes.',
+    source: 'https://magic.wizards.com/en/news/feature/magic-the-gathering-doctor-who-mechanics',
+  },
+  pip: {
+    description:
+      'Explore the Fallout wasteland with familiar survivors and creatures. Junk tokens offer temporary access to extra cards, rad counters fill graveyards at a cost, and energy counters power equipment and other abilities.',
+    source: 'https://magic.wizards.com/en/news/feature/magic-the-gathering-fallout-mechanics',
+  },
+  '40k': {
+    description:
+      'Bring Warhammer 40,000 to Commander with four faction decks: Tyranid Swarm, The Ruinous Powers, Necron Dynasties, and Forces of the Imperium. The release introduces legends and cards from that universe.',
+    source: 'https://magic.wizards.com/en/news/announcements/warhammer-40000-commander-decklists',
+  },
+  ltc: {
+    description:
+      'Middle-earth characters appear in four Commander decks, each introducing twenty new Commander cards alongside cards with new Lord of the Rings artwork. The release also offers familiar lands and artifacts reimagined as Middle-earth locations and relics.',
+    source: 'https://magic.wizards.com/en/products/the-lord-of-the-rings-tales-of-middle-earth',
+  },
+  cmm: {
+    description:
+      'A reprint collection built for Commander, with cards from across Magic history. Its accompanying preconstructed decks also introduce new Commander-focused cards.',
+    source: 'https://magic.wizards.com/en/products/commander-masters',
+  },
+  cmr: {
+    description:
+      'Encore gives creatures in your graveyard a final performance. Exile one and pay its encore cost to make temporary, hasty copies for each opponent, giving arrival, attack, and death abilities another chance to matter.',
+    source: 'https://magic.wizards.com/en/news/feature/commander-legends-mechanics-2020-10-26',
+  },
+  clb: {
+    description:
+      "Explore the Dungeons & Dragons city of Baldur's Gate. Background enchantments give commander creatures bonuses, while the initiative encourages attacking and defending your progress through the Undercity dungeon.",
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-legends-battle-for-baldurs-gate-mechanics',
+  },
   mh3: {
     description:
       'Mix returning mechanics, including energy counters you can save between turns and spend for bonuses. Modified creatures reward building with counters, Equipment, and Auras.',
