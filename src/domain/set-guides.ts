@@ -1,5 +1,20 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  mh3: {
+    description:
+      'Mix returning mechanics, including energy counters you can save between turns and spend for bonuses. Modified creatures reward building with counters, Equipment, and Auras.',
+    source: 'https://magic.wizards.com/en/news/feature/modern-horizons-3-mechanics',
+  },
+  otj: {
+    description:
+      'Gather outlaws on Thunder Junction. Crime rewards targeting opponents and their resources, while spree spells let you pay for the combination of effects you need.',
+    source: 'https://magic.wizards.com/en/news/feature/outlaws-of-thunder-junction-mechanics',
+  },
+  mkm: {
+    description:
+      'Keep opponents guessing with hidden creatures. Disguise lets you cast creatures face down and pay to reveal them later, while cloak puts cards onto the battlefield face down.',
+    source: 'https://magic.wizards.com/en/news/feature/murders-at-karlov-manor-mechanics',
+  },
   dft: {
     description:
       'Race toward max speed by making opponents lose life during your turn. Start your engines unlocks stronger abilities as your speed rises, while exhaust offers powerful abilities you can activate once per permanent.',
