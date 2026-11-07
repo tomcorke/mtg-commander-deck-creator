@@ -746,7 +746,7 @@ export function DeckDoctorView({
             : 'Find more legal replacements'}
       </button>
       {candidateError && (
-        <p className="doctor-error" role="status">
+        <p className="doctor-error form-error" role="alert">
           {candidateError}
         </p>
       )}
@@ -1454,7 +1454,7 @@ export function DeckDoctorView({
               </label>
             )}
             {error && (
-              <p className="doctor-error" role="status">
+              <p className="doctor-error form-error" role="alert">
                 {error}
               </p>
             )}
@@ -1510,7 +1510,7 @@ export function DeckDoctorView({
                 {exploreCommanders && (
                   <div className="doctor-commander-results" aria-live="polite">
                     {commanderState === 'loading' && <p>Searching Commander-legal options…</p>}
-                    {commanderState === 'error' && <p className="doctor-error">{commanderError}</p>}
+                    {commanderState === 'error' && <p className="doctor-error form-error" role="alert">{commanderError}</p>}
                     {commanderState === 'done' && commanderCandidates.length === 0 && (
                       <p>No Commander-legal alternative found for this theme and deck identity.</p>
                     )}
