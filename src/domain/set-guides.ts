@@ -1,5 +1,111 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  tmkm: {
+    description:
+      'Clue tokens with hidden puzzle elements help set the mood for Murders at Karlov Manor. This booster collection includes twenty full-art tokens and a Mysterious Creature helper for face-down creatures.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-murders-at-karlov-manor',
+  },
+  tmkc: {
+    description:
+      'The four Murders at Karlov Manor Commander decks bring their own supporting pieces: twenty-six full-art tokens and five helpers across the decks. Each deck supplies ten double-sided tokens to track its board.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-murders-at-karlov-manor',
+  },
+  totj: {
+    description:
+      "Thunder Junction's main-set token collection supplies eighteen tokens and a plot helper. These full-art pieces accompany the Western adventure, with the plot reminder appearing on the back of selected Play Booster tokens.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-outlaws-of-thunder-junction',
+  },
+  tbig: {
+    description:
+      "Seven full-art tokens accompany The Big Score's cards. They share Thunder Junction's booster token slots with the main set and Breaking News, and also appear as traditional foil double-sided tokens in Collector Boosters.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-outlaws-of-thunder-junction',
+  },
+  totp: {
+    description:
+      "Breaking News contributes five full-art tokens to Thunder Junction's booster lineup. These supporting pieces accompany the bonus collection alongside tokens from the main set and The Big Score.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-outlaws-of-thunder-junction',
+  },
+  totc: {
+    description:
+      'Thunder Junction Commander adds bounties to its supporting token lineup. Across the four decks are twenty-seven tokens, twelve bounties, and two helpers; bounty cards carry their rules on the reverse.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-outlaws-of-thunder-junction',
+  },
+  tmh3: {
+    description:
+      "Modern Horizons 3's booster support ranges from Goblins and Zombies to Eldrazi and Tarmogoyf. The lineup includes thirty-four full-art tokens, a planeswalker emblem, and an Energy Reserve helper for tracking energy.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-modern-horizons-3',
+  },
+  tm3c: {
+    description:
+      "Modern Horizons 3 Commander supplies tokens, two emblems, and an Energy Reserve helper across its four decks. The Collector's Edition adds ripple-foil token faces, giving the battlefield pieces a treatment to match those upgraded decks.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-modern-horizons-3',
+  },
+  tblb: {
+    description:
+      "Bloomburrow's full-art support includes offspring creatures and artifact tokens, plus an emblem for Ral, Crackling Wit. Twenty-nine tokens accompany the animalfolk adventure, with double-sided foil versions in Collector Boosters.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-bloomburrow',
+  },
+  tblc: {
+    description:
+      'Bloomburrow Commander has its own collection of thirty-nine tokens and two helpers. Each preconstructed deck includes ten double-sided tokens, providing the extra battlefield pieces for its animalfolk-centered games.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-bloomburrow',
+  },
+  tdsk: {
+    description:
+      "Duskmourn's horror extends to sixteen full-art tokens and Kaito's emblem. A manifest helper provides a reminder for face-down creatures, and the supporting pieces also appear on double-sided foil tokens in Collector Boosters.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-duskmourn-house-of-horror',
+  },
+  tdsc: {
+    description:
+      "The four Duskmourn Commander decks each include ten double-sided tokens. These supporting pieces help track the battlefield while the decks bring the House's modern-horror setting into multiplayer games.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-duskmourn-house-of-horror',
+  },
+  tinr: {
+    description:
+      'Innistrad Remastered gathers Gothic-horror battlefield pieces alongside its reprints. Its support collection includes twenty-two full-art tokens, five planeswalker emblems, and a helper for playing with double-faced cards.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-innistrad-remastered',
+  },
+  tdft: {
+    description:
+      "Aetherdrift's racing support includes twelve tokens, an emblem, and a double-sided speed helper. The speed card keeps its two sides together, while the tokens and emblem appear in assorted double-sided combinations.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-aetherdrift',
+  },
+  tdrc: {
+    description:
+      "Each Aetherdrift Commander deck brings ten double-sided tokens to support its games. The lineup includes an energy helper for Living Energy; other Commander tokens can also appear in foil in the set's Collector Boosters.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-aetherdrift',
+  },
+  ttdm: {
+    description:
+      "Tarkir: Dragonstorm's booster token lineup contains sixteen full-art designs. They appear in different double-sided combinations, with traditional foil versions in Collector Boosters supporting the return to Tarkir.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-tarkir-dragonstorm',
+  },
+  ttdc: {
+    description:
+      "Tarkir: Dragonstorm Commander decks each supply ten non-foil double-sided tokens. These are the supporting battlefield pieces packaged with the preconstructed decks, distinct from the main set's booster token lineup.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-tarkir-dragonstorm',
+  },
+  teoe: {
+    description:
+      'Edge of Eternities brings five different Lander designs, each associated with a color of mana. They form part of a ten-token full-art lineup with an emblem for Tezzeret, Cruel Captain.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-edge-of-eternities',
+  },
+  teoc: {
+    description:
+      'Edge of Eternities Commander has sixteen token designs across its two decks. World Shaper includes ten double-sided tokens; Counter Intelligence combines six double-sided tokens with four punch-out counter cards.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-edge-of-eternities',
+  },
+  tacr: {
+    description:
+      "Assassin's Creed's booster support includes eight full-art tokens. Beyond Boosters also carry separate minigame inserts, while Collector Boosters present the token designs as traditional foil double-sided cards.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-assassins-creed',
+  },
   ptg: {
     description:
       "My Little Pony meets Magic in three silver-bordered charity cards, including one double-sided card. Ponies: The Galloping brings Princess Twilight Sparkle, Rarity, and Princess Luna's Nightmare Moon transformation to a playful crossover supporting Extra Life.",
