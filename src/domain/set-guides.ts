@@ -1,5 +1,70 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  scg: {
+    description:
+      'Explores large mana costs as a theme, alongside Dragons and the debut of storm. The set gives expensive spells and creatures new ways to matter.',
+    source: 'https://magic.wizards.com/en/news/making-magic/bigger-better-2003-05-12',
+  },
+  lgn: {
+    description:
+      "An expansion made entirely of creature cards. It pushes Onslaught's creature-type theme further, putting the focus on creatures and what they can do.",
+    source: 'https://magic.wizards.com/en/news/making-magic/lions-and-tigers-and-bears-2003-01-20',
+  },
+  ons: {
+    description:
+      "Creature types shape the set's main theme. Morph adds hidden information by letting creatures begin face down before revealing their identities later.",
+    source: 'https://magic.wizards.com/en/news/making-magic/need-i-say-morph-2019-08-05',
+  },
+  jud: {
+    description:
+      "A green-and-white emphasis answers Torment's focus on black. The set also includes alternate-win enchantments for those colours, continuing a cycle spread across the Odyssey block.",
+    source: 'https://magic.wizards.com/en/news/making-magic/old-timers-2012-07-02',
+  },
+  tor: {
+    description:
+      "Black takes an unusually large share of this set's cards. Torment deliberately gives black more cards than the other colours, shaping a different kind of expansion within the Odyssey block.",
+    source: 'https://magic.wizards.com/en/news/making-magic/old-timers-2012-07-02',
+  },
+  ody: {
+    description:
+      'The graveyard becomes a growing resource. Flashback gives spells another use from the graveyard, while threshold improves cards when you have seven or more cards in your graveyard.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
+  apc: {
+    description:
+      "Enemy-colour combinations complete the Invasion block's multicolour theme. The Volvers use off-colour kicker costs to add counters and abilities, letting a creature fit different combinations of mana.",
+    source: 'https://magic.wizards.com/en/news/making-magic/expanding-your-horizons-eldrazi',
+  },
+  pls: {
+    description:
+      "Builds on Invasion's allied-colour theme. Battlemages offer two off-colour kicker costs with different arrival effects, turning extra colours into more options for your creatures.",
+    source: 'https://magic.wizards.com/en/news/making-magic/expanding-your-horizons-eldrazi',
+  },
+  inv: {
+    description:
+      "Encourages playing across several colours. Kicker provides flexible extra costs, including costs in other colours, while domain supports the block's broader multicolour approach.",
+    source: 'https://magic.wizards.com/en/news/making-magic/expanding-your-horizons-eldrazi',
+  },
+  uds: {
+    description:
+      "Reworks the Urza block's echo theme around creatures with death triggers. Sometimes letting an echo creature go to the graveyard becomes another way to get value from it.",
+    source: 'https://magic.wizards.com/en/news/making-magic/you-can-say-again-2007-03-12',
+  },
+  ulg: {
+    description:
+      'Pairs echo creatures with abilities that trigger when they enter the battlefield. Their initial effects can matter even if you later choose not to keep the creature by paying echo.',
+    source: 'https://magic.wizards.com/en/news/making-magic/you-can-say-again-2007-03-12',
+  },
+  usg: {
+    description:
+      'Introduces echo, creating creatures whose costs are spread over time. The mechanic asks whether to invest more in keeping a permanent, opening up choices around its arrival and departure.',
+    source: 'https://magic.wizards.com/en/news/making-magic/you-can-say-again-2007-03-12',
+  },
+  mmq: {
+    description:
+      'Rebels, Mercenaries, Spellshapers, and alternative casting costs give Mercadian Masques its mechanical identity. Its themes largely work without introducing named keyword mechanics.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
   eve: {
     description:
       "Builds on Shadowmoor's theme of hybrid mana with enemy-colour pairs. It shifts the colour combinations you can explore while continuing the block's focus on mana symbols.",
