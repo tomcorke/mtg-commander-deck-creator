@@ -1,5 +1,52 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  ugl: {
+    description:
+      "A humorous Magic detour features Chickens, dice, multiplayer antics, and hidden messages. Unglued mixes familiar Magic ideas with deliberately silly designs that play with the game's conventions.",
+    source: 'https://mtg-jp.com/products/0000134/',
+  },
+  unh: {
+    description:
+      "A humorous follow-up to Unglued, filled with Donkeys, Apes, fractions, and the gotcha mechanic. Unhinged pushes Magic's silliness further through unconventional cards and playful interactions.",
+    source: 'https://mtg-jp.com/products/0000133/',
+  },
+  ust: {
+    description:
+      "An experimental silver-bordered set that bends Magic's usual rules with unusual effects and playful card names. Designed especially for Draft and Sealed, Unstable explores ideas outside ordinary set design.",
+    source: 'https://mtg-jp.com/products/0000069/',
+  },
+  und: {
+    description:
+      'A collection of silver-bordered silliness combining sixteen new designs with favorites from earlier Un-sets. Unsanctioned brings together returning jokes and fresh cards for another unconventional Magic experience.',
+    source: 'https://mtg-jp.com/products/0000188/',
+  },
+  unf: {
+    description:
+      "A science-fiction carnival set at Myra the Magnificent's Intergalactic Astrotorium of Fun. Attractions represent rides and games, while sticker sheets provide another way to customize cards during the set's playful games.",
+    source: 'https://magic.wizards.com/en/news/feature/unfinity-mechanics-2022-09-20',
+  },
+  sunf: {
+    description:
+      "Sticker sheets created for Unfinity's space carnival. Each sheet combines name, art, ability, and power-and-toughness stickers, designed to work with the set's sticker effects and ticket counters.",
+    source: 'https://magic.wizards.com/en/news/feature/unfinity-mechanics-2022-09-20',
+  },
+  ulst: {
+    description:
+      'Traditional foil reprints from earlier Un-sets, collected as The List for Unfinity. These silver-bordered cards carry a small Planeswalker symbol and appear in Unfinity Collector Boosters.',
+    source:
+      'https://magic.wizards.com/en/news/feature/almost-everything-know-about-unfinity-boosters-2022-09-20',
+  },
+  cmb1: {
+    description:
+      "Experimental playtest cards from Mystery Booster's original Convention Edition. Unusual frames and staff-created artwork present early-design ideas with varying degrees of seriousness, rather than polished, rigorously balanced cards.",
+    source: 'https://magic.wizards.com/en/news/feature/mystery-booster-release-notes-2019-11-11',
+  },
+  cmb2: {
+    description:
+      "The 2021 printing of Mystery Booster's R&D Playtest cards. Soulmates and Yawgmoth's Testament receive new artwork, and this printing omits the small Planeswalker symbol found on the original playtest cards.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/mystery-booster-convention-edition-returns-store-events-2021-06-21',
+  },
   cst: {
     description:
       "Coldsnap's theme decks revisit the Ice Age block with cards from Ice Age and Alliances alongside the new set. The older reprints use updated card frames while keeping their original artwork.",
