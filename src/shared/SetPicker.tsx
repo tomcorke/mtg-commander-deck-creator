@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { searchScryfallCached } from '../adapters/scryfall.ts'
 import { toCard, type ScryfallCard, type ScryfallSet } from '../domain/card-model.ts'
 import { setGuides } from '../domain/set-guides.ts'
@@ -60,7 +60,8 @@ function useSetLegends(code: string) {
   return legends
 }
 
-function SetGuide({ set }: { set: ScryfallSet }) {
+/** Browse view: key art banner above the row's header, then description and legends. */
+function SetGuide({ set, children }: { set: ScryfallSet; children: ReactNode }) {
   const legends = useSetLegends(set.code)
   const guide = setGuides[set.code]
   const artUri = legends
@@ -68,55 +69,75 @@ function SetGuide({ set }: { set: ScryfallSet }) {
     .find(Boolean)
   const leanings = legends ? colourLeanings(legends) : []
   return (
-    <div className="set-guide">
+    <>
       {artUri ? (
         <img className="set-guide-art" src={artUri} alt="" loading="lazy" />
       ) : (
         <span className="set-guide-art" aria-hidden="true" />
       )}
-      {guide ? (
-        <p>
-          {guide.description}{' '}
-          <a
-            href={guide.source}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`Source for the ${set.name} description (opens in a new tab)`}
-          >
-            Source
-          </a>
-        </p>
-      ) : (
-        <p className="set-picker-meta">Description unavailable.</p>
-      )}
-      {legends === undefined ? (
-        <p className="set-picker-meta">Loading legends…</p>
-      ) : legends === null ? (
-        <p className="set-picker-meta">Couldn’t load legends from Scryfall.</p>
-      ) : legends.length > 0 ? (
-        <>
-          {leanings.length > 0 && (
-            <span className="set-picker-meta set-guide-colours">
-              Legends lean <ManaSymbols symbols={leanings} />
+      {children}
+      <div className="set-guide">
+        {guide ? (
+          <p>
+            {guide.description}{' '}
+            <a
+              href={guide.source}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Source for the ${set.name} description (opens in a new tab)`}
+            >
+              Source
+            </a>
+          </p>
+        ) : (
+          <p className="set-picker-meta">Description unavailable.</p>
+        )}
+        {legends === undefined ? (
+          <p className="set-picker-meta">Loading legends…</p>
+        ) : legends === null ? (
+          <p className="set-picker-meta">Couldn’t load legends from Scryfall.</p>
+        ) : legends.length > 0 ? (
+          <>
+            <span className="set-picker-meta set-guide-legends-heading">
+              Sample legends
+              {leanings.length > 0 && (
+                <span className="set-guide-colours">
+                  Legends lean <ManaSymbols symbols={leanings} />
+                </span>
+              )}
             </span>
-          )}
-          <span className="set-picker-meta">Sample legends</span>
-          <ul className="set-guide-legends">
-            {legends.slice(0, 4).map((card) => (
-              <li key={card.oracle_id ?? card.name}>
-                <CardReference
-                  card={toCard(card, '')}
-                  thumbnail
-                  onOpen={() => window.open(card.scryfall_uri, '_blank', 'noreferrer')}
-                />
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p className="set-picker-meta">No legendary creatures in this set.</p>
-      )}
-    </div>
+            <ul className="set-guide-legends">
+              {legends.slice(0, 4).map((card) => (
+                <li key={card.oracle_id ?? card.name}>
+                  <CardReference
+                    card={toCard(card, '')}
+                    thumbnail
+                    onOpen={() => window.open(card.scryfall_uri, '_blank', 'noreferrer')}
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="set-picker-meta">No legendary creatures in this set.</p>
+        )}
+      </div>
+    </>
+  )
+}
+
+function SetHeader(props: { set: ScryfallSet; checked: boolean; toggle: (code: string) => void }) {
+  const { set } = props
+  return (
+    <>
+      <label>
+        <input type="checkbox" checked={props.checked} onChange={() => props.toggle(set.code)} />
+        <SetIcon uri={set.icon_svg_uri} />
+        <span className="set-picker-name">{set.name}</span>
+        <small>{set.released_at?.slice(0, 4)}</small>
+      </label>
+      <SetMeta set={set} />
+    </>
   )
 }
 
@@ -193,18 +214,21 @@ export function SetPicker(props: SetPickerProps) {
           >
             {props.rows.map(({ set, commander }) => (
               <li key={set.code} className="set-picker-row">
-                <label>
-                  <input
-                    type="checkbox"
+                {browsing ? (
+                  <SetGuide set={set}>
+                    <SetHeader
+                      set={set}
+                      checked={props.selected.includes(set.code)}
+                      toggle={props.toggle}
+                    />
+                  </SetGuide>
+                ) : (
+                  <SetHeader
+                    set={set}
                     checked={props.selected.includes(set.code)}
-                    onChange={() => props.toggle(set.code)}
+                    toggle={props.toggle}
                   />
-                  <SetIcon uri={set.icon_svg_uri} />
-                  <span className="set-picker-name">{set.name}</span>
-                  <small>{set.released_at?.slice(0, 4)}</small>
-                </label>
-                <SetMeta set={set} />
-                {browsing && <SetGuide set={set} />}
+                )}
                 {commander && (
                   <label className="set-picker-commander">
                     <input
