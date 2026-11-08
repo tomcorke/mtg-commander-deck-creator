@@ -1,5 +1,16 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  cst: {
+    description:
+      "Coldsnap's theme decks revisit the Ice Age block with cards from Ice Age and Alliances alongside the new set. The older reprints use updated card frames while keeping their original artwork.",
+    source: 'https://magic.wizards.com/en/news/making-magic/coldsnap-qa-2006-02-06',
+  },
+  dkm: {
+    description:
+      'Richard Garfield and Jon Finkel face off through two sixty-two-card decks drawn from Ice Age and Alliances. Four exclusive premium printings and a booklet of deck analysis accompany this Deckmasters collection.',
+    source:
+      'https://web.archive.org/web/20101219141525id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg_tcg_deckmasters2001_productinfo',
+  },
   slz: {
     description:
       "A Secret Lair collaboration with MSCHF inspired by Magic's earliest playtest cards. Familiar designs receive black-and-white photocopy, negative, and color-banding treatments that evoke improvised prototypes from the game's beginnings.",
