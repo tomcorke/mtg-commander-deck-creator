@@ -1,5 +1,34 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  slz: {
+    description:
+      "A Secret Lair collaboration with MSCHF inspired by Magic's earliest playtest cards. Familiar designs receive black-and-white photocopy, negative, and color-banding treatments that evoke improvised prototypes from the game's beginnings.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/chaos-vault-the-zeta-set-puts-the-playtest-in-your-hands',
+  },
+  pa1: {
+    description:
+      'Eleven cards added to MTG Arena as Explorer became Pioneer. The selection was informed by competitive Magic Online decks and Arena Championship players, including Rakdos Charm, Roast, Warping Wail, and Sanctum of Ugin.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/announcing-pioneer',
+  },
+  ath: {
+    description:
+      "Two themed decks bring together cards from every Magic expansion and edition from Alpha through Urza's Saga. Green-white and black-red armies accompany a booklet reflecting on the game's history with Richard Garfield.",
+    source:
+      'https://web.archive.org/web/20090217065337id_/http://wizards.com/magic/tcg/productarticle.aspx?x=mtg_tcg_anthologies_productinfo',
+  },
+  brb: {
+    description:
+      'Four forty-card decks designed for multiplayer Magic. Battle Royale combines returning cards with a focus on table politics and competing against several opponents, with classics such as Armageddon and Land Tax.',
+    source:
+      'https://web.archive.org/web/20000420194942id_/http://www.wizards.com/Magic/expert/Battle_Royale/Welcome.asp',
+  },
+  btd: {
+    description:
+      'Two sixty-one-card decks built around large creatures and combat: Ground Pounder and Aerodoom. Familiar threats such as Mahamoti Djinn, Erhnam Djinn, and Sengir Vampire lead this ready-to-play collection.',
+    source:
+      'https://web.archive.org/web/20090217065402id_/http://wizards.com/magic/tcg/productarticle.aspx?x=mtg_tcg_beatdown_productinfo',
+  },
   aa1: {
     description:
       "An artifact-focused addition to MTG Arena's card pool. Guild Signets, Talismans, and several Swords join other Equipment, offering a collection centered on familiar artifacts from Magic's history.",
