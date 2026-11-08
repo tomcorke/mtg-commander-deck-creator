@@ -1,5 +1,80 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  aa1: {
+    description:
+      "An artifact-focused addition to MTG Arena's card pool. Guild Signets, Talismans, and several Swords join other Equipment, offering a collection centered on familiar artifacts from Magic's history.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/announcements-august-18-2025',
+  },
+  aa2: {
+    description:
+      'A broad collection of cards added to MTG Arena alongside the first Arena Anthology. Its selection ranges from Mother of Runes and Eternal Witness to Wrenn and Six, Grist, and Mox Opal.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/announcements-august-18-2025',
+  },
+  aa3: {
+    description:
+      "A collection of powerful historical cards brought to MTG Arena. It includes equipment such as Umezawa's Jitte, spells such as Chain Lightning, and creatures such as Broadside Bombardiers and Gut, True Soul Zealot.",
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/through-the-omenpaths-card-and-event-updates',
+  },
+  aa4: {
+    description:
+      "Twenty-eight creature cards previously encountered in Arena's Momir events become collectible. This anthology expands access to those formerly uncollectible creatures rather than introducing a new expansion setting.",
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/through-the-omenpaths-card-and-event-updates',
+  },
+  ha1: {
+    description:
+      'The first curated Historic card collection for MTG Arena. Its varied selection includes Captain Sisay, Fauna Shaman, Goblin Matron, Phyrexian Arena, Soul Warden, and Serra Ascendant.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/mtg-arena-formats',
+  },
+  ha2: {
+    description:
+      'An anthology of returning cards added to Arena, including Thalia, Guardian of Thraben, Pack Rat, and Knight of the Reliquary. Cycling lands, Bojuka Bog, and Ghost Quarter broaden the land selection.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/mtg-arena-formats',
+  },
+  ha3: {
+    description:
+      "A varied historical collection for Arena, including the five Honden Shrines and Gempalm creatures. Enchantress's Presence, Mirari's Wake, Maze's End, and Ulamog, the Ceaseless Hunger offer further directions to explore.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/mtg-arena-formats',
+  },
+  ha4: {
+    description:
+      "Twenty-five returning cards expand Arena's Historic collection. The selection touches graveyards, discard, Elves, artifacts, and snow, with Death's Shadow, Sword of Body and Mind, and Marit Lage's Slumber among its cards.",
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/get-ready-historic-anthology-iv-2021-03-05',
+  },
+  ha5: {
+    description:
+      "Twenty-five cards added to Arena's Historic pool, headlined by the five original Phyrexian Praetors. Commands from Dragons of Tarkir and Stifle join the collection's other returning designs.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/get-ready-historic-anthology-5-2021-05-17',
+  },
+  ha6: {
+    description:
+      "A historical Arena collection featuring Avacyn, Tarmogoyf, Go-Shintai of Life's Origin, and other returning cards. Ten Bridge artifact lands accompany designs such as Phyrexian Metamorph and Retrofitter Foundry.",
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/bridge-your-way-to-new-historic-decks-with-historic-anthology-6',
+  },
+  ha7: {
+    description:
+      'An Arena anthology featuring all five Titans: Sun, Frost, Grave, Inferno, and Primeval. Utility cards, Sword of Fire and Ice, and five horizon lands round out the selection.',
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/historic-anthology-7',
+  },
+  ea1: {
+    description:
+      'The first Explorer anthology brings cards from popular Pioneer decks and other favorites to Arena. Its selection includes Siege Rhino, Supreme Verdict, Tireless Tracker, Elvish Mystic, and Hangarback Walker.',
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/new-decks-and-new-play-options-with-explorer-anthology-1',
+  },
+  ea2: {
+    description:
+      'A second Explorer collection adds cards such as Mutavault, Nykthos, and Thought-Knot Seer to Arena. Eldrazi, creatures from several past sets, and supporting spells join the selection, alongside the arrival of Wastes.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/explorer-anthology-2-arrives-december-13',
+  },
+  ea3: {
+    description:
+      "Returning cards for Arena's Explorer pool include Cyclonic Rift, Chord of Calling, and Voice of Resurgence. Guild Charms, five battle lands, and Thespian's Stage give this anthology a varied supporting cast.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/explorer-anthology-3',
+  },
   yfra: {
     description:
       "A digital expansion of Jace's fractured Echoverse. Remnants of Beleren has a spellbook filled with different Jace cards, extending Reality Fracture's alternate vision of the Multiverse.",
