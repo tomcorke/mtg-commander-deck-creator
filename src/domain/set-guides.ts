@@ -1,5 +1,80 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  anb: {
+    description:
+      "An introductory card pool for MTG Arena's monocolor teaching decks. Its cards were selected to help beginners learn the game and give them clear starting points for upgrading their decks.",
+    source:
+      'https://web.archive.org/web/20200804233846id_/https://magic.wizards.com/en/articles/archive/magic-digital/mtg-arena-state-game-august-2020-04',
+  },
+  gn3: {
+    description:
+      'Five monocolor decks for battles with friends and family, in duels or multiplayer games. The themes range from combat and political tricks to sacrifice, Dragons, and Elves, with a new foil card for each deck.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/game-night-free-all-2022-decklists-2022-09-29',
+  },
+  gn2: {
+    description:
+      'An out-of-the-box multiplayer collection with five ready-to-play decks. Returning cards are joined by five new designs, including Highcliff Felidar, Sphinx of Enlightenment, Calculating Lich, Fiendish Duo, and Earthshaker Giant.',
+    source: 'https://magic.wizards.com/en/news/announcements/game-night-decklists-2019-10-14',
+  },
+  gnt: {
+    description:
+      'An introductory multiplayer Magic experience designed for a group to play straight from the box. Five preconstructed decks, one per color, each include an exclusive card and come with play accessories.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/introducing-magic-game-night-and-updated-gift-pack-2018-08-27',
+  },
+  gk1: {
+    description:
+      "Guild-themed decks drawing on cards from Ravnica's visits across Magic's history. Dimir, Boros, Selesnya, Izzet, and Golgari each bring their own leaders, mechanics, and two-color identity to the collection.",
+    source: 'https://magic.wizards.com/en/news/feature/getting-kitted-out-guilds-kits-2018-11-02',
+  },
+  gk2: {
+    description:
+      'Five decks celebrate Azorius, Rakdos, Gruul, Orzhov, and Simic history. They mix cards from Ravnica sets, with alternate-art foil legendary leaders and guild-watermarked basic lands, for battles between the guilds.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/ravnica-allegiance-guild-kits-2019-01-15',
+  },
+  g18: {
+    description:
+      'A gift collection featuring five exclusive creature cards and five foil basic lands. These special cards accompany the updated Gift Pack, offering a small selection beyond the regular expansion releases.',
+    source: 'https://mtg-jp.com/products/0000175/',
+  },
+  e02: {
+    description:
+      'An Ixalan-themed boxed experience combining four sixty-card decks with a map to explore. Fifty map tiles, scout markers, tokens, and counters accompany the decks as players seek the golden city.',
+    source: 'https://mtg-jp.com/products/0000157/',
+  },
+  md1: {
+    description:
+      'A ready-made sixty-card deck of reprints designed as an entry into Modern play. A fifteen-card sideboard and strategy guide accompany the deck, along with sleeves, tokens, and a life counter.',
+    source: 'https://mtg-jp.com/products/0000148/',
+  },
+  q06: {
+    description:
+      'Four ready-to-play decks originally built for Pioneer, each with a different strategy. Every deck includes a sixty-card main deck and fifteen-card sideboard, offering a starting point for local competitive play.',
+    source: 'https://magic.wizards.com/en/news/announcements/pioneer-challenger-decks-2021-08-24',
+  },
+  q07: {
+    description:
+      'Ready-to-play decks originally designed around competitive Standard strategies in 2022. Each combines a sixty-card main deck with a fifteen-card sideboard, plus tokens and reference cards for matches.',
+    source: 'https://magic.wizards.com/en/news/feature/challenger-decks-2022',
+  },
+  sld: {
+    description:
+      'Collectible card drops built around distinctive themes and experimental artwork. Secret Lair gives familiar Magic cards new visual identities, from artist showcases to illustrations that connect into larger panoramas.',
+    source: 'https://magic.wizards.com/en/news/announcements/secret-lair-recap-2019-11-25',
+  },
+  slu: {
+    description:
+      'Special boxed Secret Lair land collections. The original Ultimate Edition features five enemy-color fetch lands with new artwork depicting different planes, presented as nonfoil cards in a commemorative box.',
+    source: 'https://mtg-jp.com/products/0000197/',
+  },
+  slc: {
+    description:
+      'Individually wrapped cards arranged for a gradual reveal. Countdown Kits use a unifying theme; An Encyclopedia of Magic, for example, pairs twenty-six cards with the letters of the alphabet and different artists.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/secret-lair-countdown-kit-an-encyclopedia-of-magic',
+  },
   ajmp: {
     description:
       "Replacement cards used in MTG Arena's version of Jumpstart. The digital release swaps selected tabletop cards for alternatives because of power, gameplay, or technical concerns, while keeping the themed-booster experience.",
