@@ -1,5 +1,142 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  ddu: {
+    description:
+      'Pits a gathering of Elves against inventors and their machines. The matchup contrasts a force defending nature with creators unleashing destructive inventions.',
+    source: 'https://mtg-jp.com/products/0000161/',
+  },
+  ddt: {
+    description:
+      'Pairs two familiar creature groups: Merfolk and Goblins. The decks draw cards from Magic history, presenting a duel between cunning Merfolk and reckless Goblins.',
+    source: 'https://mtg-jp.com/products/0000074/',
+  },
+  dds: {
+    description:
+      'Contrasts cunning with brute strength in a Duel Decks matchup. Mind and Might present rival approaches built around outthinking an opponent or overwhelming them with force.',
+    source: 'https://mtg-jp.com/products/0000075/',
+  },
+  ddr: {
+    description:
+      "Nissa draws on Zendikar's land and summons Elementals, while Ob Nixilis commands Demons and destructive dark magic. Their rival decks frame a struggle over the power of the Khalni Heart.",
+    source: 'https://mtg-jp.com/products/0000076/',
+  },
+  ddq: {
+    description:
+      "Innistrad's Humans, Spirits, and Angels stand against the restless dead and powerful Demons. The matchup follows defenders joining together to preserve humanity against the forces of the night.",
+    source: 'https://mtg-jp.com/products/0000077/',
+  },
+  ddp: {
+    description:
+      "Zendikar's defenders draw on their world's mana to resist the awakened Eldrazi. The opposing forces bring the struggle between the plane's inhabitants and its enormous invaders into paired decks.",
+    source: 'https://mtg-jp.com/products/0000078/',
+  },
+  ddo: {
+    description:
+      "Elspeth summons an army to defend those in need, while Kiora calls creatures from the deep. The paired decks contrast a knight's protective forces with the power of the sea.",
+    source: 'https://mtg-jp.com/products/0000079/',
+  },
+  ddn: {
+    description:
+      'Sets a relentless attacking force against defenders relying on ambush and careful planning. The matchup asks whether a headlong assault or a well-timed trap will decide the battle.',
+    source: 'https://mtg-jp.com/products/0000080/',
+  },
+  ddm: {
+    description:
+      "Jace and Vraska face one another amid Ravnica's unstable guild politics. The mind mage seeks to preserve peace, while the independent Gorgon assassin follows her own dangerous agenda.",
+    source: 'https://mtg-jp.com/products/0000081/',
+  },
+  ddl: {
+    description:
+      'A duel between glory-seeking heroes and the monsters threatening civilisation. The paired decks bring together champions rising to a challenge and the legendary threats they must overcome.',
+    source: 'https://mtg-jp.com/products/0000082/',
+  },
+  ddk: {
+    description:
+      "Sorin and Tibalt clash over the fate of Innistrad's Humans. Sorin works to preserve them, while Tibalt's pain magic serves his appetite for suffering.",
+    source: 'https://mtg-jp.com/products/0000083/',
+  },
+  ddj: {
+    description:
+      "Ravnica's Izzet and Golgari guilds collide in the undercity. Knowledge-seeking Izzet intruders meet Golgari defenders who see both a threat to their hidden world and a supply of fresh corpses.",
+    source: 'https://mtg-jp.com/products/0000084/',
+  },
+  ddi: {
+    description:
+      'Venser and Koth share the aim of saving Mirrodin but disagree about how to do it. Their duel reflects the conflict between seeking Karn and immediately defending the Mirran people.',
+    source: 'https://mtg-jp.com/products/0000086/',
+  },
+  ddh: {
+    description:
+      "Ajani's search for vengeance brings him into conflict with Nicol Bolas on Alara. The paired decks frame the clash between the determined leonin and a dragon manipulating a world to recover his power.",
+    source: 'https://mtg-jp.com/products/0000087/',
+  },
+  ddg: {
+    description:
+      "Knights gather to end the terror of Dragons, while Goblins defend the Dragons' domain and buy time for their aerial assault. The matchup contrasts a determined hunting force with fire-breathing threats.",
+    source: 'https://mtg-jp.com/products/0000088/',
+  },
+  ddf: {
+    description:
+      "Pairs Elspeth, a knight who found refuge on Bant, with Tezzeret, an artificer from Esper. Their stories emerge from Alara's divided world and the conflicts surrounding Nicol Bolas.",
+    source: 'https://mtg-jp.com/products/0000089/',
+  },
+  dde: {
+    description:
+      "A black-mana Phyrexian army confronts the five-colour Coalition of Dominaria. The matchup brings the invaders' killing machines against an alliance united to defend its world.",
+    source: 'https://mtg-jp.com/products/0000090/',
+  },
+  ddd: {
+    description:
+      "Garruk's ferocious summoned creatures face Liliana's necromantic power. The duel contrasts the hunter's untamed natural strength with the dark magic of another dangerous planeswalker.",
+    source: 'https://mtg-jp.com/products/0000091/',
+  },
+  ddc: {
+    description:
+      'Angels and Demons meet in a battle for control of the skies. The paired decks set radiant defenders against creatures summoned through dark magic.',
+    source: 'https://mtg-jp.com/products/0000092/',
+  },
+  dd2: {
+    description:
+      "Jace's mind magic meets Chandra's pyromancy in a planeswalker duel. Each brings an arsenal of spells to the confrontation, contrasting mental power with fiery aggression.",
+    source: 'https://mtg-jp.com/products/0000093/',
+  },
+  dd1: {
+    description:
+      'Elves and Goblins face one another in the original Duel Decks release. The selection draws cards from Apocalypse through Lorwyn, gathering familiar cards for this creature-type rivalry.',
+    source: 'https://mtg-jp.com/products/0000094/',
+  },
+  evg: {
+    description:
+      'Reissues Elves vs. Goblins within Duel Decks Anthology. The collection returns the first four Duel Decks matchups as eight ready-to-play sixty-card decks.',
+    source: 'https://mtg-jp.com/products/0000095/',
+  },
+  jvc: {
+    description:
+      'The Jace vs. Chandra matchup returns in Duel Decks Anthology. It is part of the collection of the first four Duel Decks releases, presented as eight ready-to-play sixty-card decks.',
+    source: 'https://mtg-jp.com/products/0000095/',
+  },
+  dvd: {
+    description:
+      'The Divine vs. Demonic matchup returns in Duel Decks Anthology. This reissue belongs to the collection bringing the original four Duel Decks releases together as eight sixty-card decks.',
+    source: 'https://mtg-jp.com/products/0000095/',
+  },
+  gvl: {
+    description:
+      'The Garruk vs. Liliana matchup returns in Duel Decks Anthology. Its decks accompany the other original duels in a collection of eight ready-to-play sixty-card decks.',
+    source: 'https://mtg-jp.com/products/0000095/',
+  },
+  gs1: {
+    description:
+      "Introductory planeswalker decks centred on Jiang Yanggu and Mu Yanling. Created with Chinese artists and designers, the pair brings Chinese mythology and culture into Magic's characters and world.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/global-series-meet-jiang-yanggu-and-mu-yanling-2018-05-18',
+  },
+  td2: {
+    description:
+      'An online-only Duel Decks release with its own set symbol. Some of its digital printings were later revisited for paper cards in Mystery Booster 2.',
+    source:
+      'https://magic.wizards.com/en/news/feature/the-nonsense-files-the-many-frames-of-mystery-booster-2',
+  },
   cc1: {
     description:
       "Eight Commander reprints selected around green's large creatures and plentiful mana. New artwork references familiar legendary characters, with regular and premium foil editions of the collection.",
