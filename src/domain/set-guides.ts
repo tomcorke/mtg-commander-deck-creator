@@ -1,5 +1,97 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  tlci: {
+    description:
+      "The Lost Caverns of Ixalan supplies eighteen full-art booster tokens for its underground adventure. Its supporting pieces also include a punch-out card with +1/+1, stun, and finality counters, helping keep the expedition's board state organized.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-lost-caverns-of-ixalan',
+  },
+  slci: {
+    description:
+      "Blank helper cards support The Lost Caverns of Ixalan's double-faced cards. These write-in substitutes appear in Draft and Set Boosters, providing a way to represent double-faced cards while keeping their identities concealed.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-lost-caverns-of-ixalan',
+  },
+  tlcc: {
+    description:
+      "Ixalan's Commander decks bring fifteen full-art tokens, a planeswalker emblem, and reminders for the monarch and city's blessing. Each deck includes ten double-faced tokens selected for that deck's contents.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-lost-caverns-of-ixalan',
+  },
+  trex: {
+    description:
+      'Two full-art tokens accompany the Jurassic World Collection. These crossover supporting pieces appear alongside Lost Caverns of Ixalan tokens in Set Boosters and as foil double-faced tokens in Collector Boosters.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-lost-caverns-of-ixalan',
+  },
+  twoe: {
+    description:
+      "Wilds of Eldraine's supporting pieces include Role tokens and an On an Adventure reminder alongside fourteen full-art booster tokens. The Role cards pair two Roles on each card, bringing the fairy-tale set's transformations to the table.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-wilds-of-eldraine',
+  },
+  twoc: {
+    description:
+      "Wilds of Eldraine Commander has exclusive full-art tokens and paired Role cards to support its decks. Each deck comes with ten double-faced tokens; Wizards' gallery also documents the printing mix-up affecting tokens in Virtue and Valor.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-wilds-of-eldraine',
+  },
+  tcmm: {
+    description:
+      'Commander Masters gathers a broad collection of full-art tokens, planeswalker emblems, and helpers for large Commander boards. The range spans the booster release and its four preconstructed decks, with foil double-faced tokens in Collector Boosters.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-commander-masters',
+  },
+  tltr: {
+    description:
+      "Middle-earth's booster tokens support both a Fellowship and an Orc army. The collection includes three different Food illustrations among twelve token designs, plus The Ring helper for keeping track of the Ring's influence.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-lord-of-the-rings-tales-of-middle-earth',
+  },
+  tltc: {
+    description:
+      'The Tales of Middle-earth Commander decks supply fourteen token designs and The Monarch helper. Each of the four decks contains ten double-faced tokens, giving its forces supporting pieces for the multiplayer battlefield.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-lord-of-the-rings-tales-of-middle-earth',
+  },
+  tmom: {
+    description:
+      "March of the Machine's booster support includes transforming Incubator and Phyrexian tokens, planeswalker emblems, and different Treasure designs for the invaders and defenders. These pieces help stage the Phyrexian invasion on the battlefield.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-march-of-the-machine',
+  },
+  tmoc: {
+    description:
+      "March of the Machine Commander adds forty-two token designs, an emblem, and status markers for the monarch and city's blessing. Each of the five decks has ten double-faced tokens, with combinations chosen for its particular theme.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-march-of-the-machine',
+  },
+  tone: {
+    description:
+      "Phyrexia: All Will Be One's booster support includes full-art tokens, Koth's emblem, and a poison counter helper. A Phyrexian Germ token accompanies Tangleweave Armor in Set and Collector Boosters, alongside the set's other battlefield pieces.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-phyrexia-all-will-be-one',
+  },
+  tonc: {
+    description:
+      'The two Phyrexia: All Will Be One Commander decks share a supporting lineup of twenty-one token designs. Corrupting Influence includes poison counter helpers, while Rebellion Rising includes The Monarch; each deck supplies ten double-sided tokens.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-phyrexia-all-will-be-one',
+  },
+  tbro: {
+    description:
+      "The Brothers' War's booster token lineup includes twelve full-art designs and Saheeli's emblem. Collector Booster tokens pair these supporting pieces with a Powerstone token on the other face, all in traditional foil.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-brothers-war',
+  },
+  tbrc: {
+    description:
+      "The Brothers' War Commander decks contribute thirteen token types to the artifact war. Urza's Iron Alliance and Mishra's Burnished Banner each include ten double-sided tokens to help represent their battlefield forces.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-brothers-war',
+  },
+  tbot: {
+    description:
+      "Laserbeak and Ravage bring Transformers into Magic's token lineup. These two full-art crossover tokens appear in The Brothers' War Set and Collector Boosters alongside the release's other supporting pieces.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-brothers-war',
+  },
+  tclb: {
+    description:
+      "Battle for Baldur's Gate's tokens support a Dungeons & Dragons Commander adventure. The collection includes full-art creatures, emblems, and a double-sided Undercity dungeon with The Initiative reminder on its reverse, across boosters and the related Commander decks.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-commander-legends-battle-for-baldurs-gate',
+  },
   tmkm: {
     description:
       'Clue tokens with hidden puzzle elements help set the mood for Murders at Karlov Manor. This booster collection includes twenty full-art tokens and a Mysterious Creature helper for face-down creatures.',
