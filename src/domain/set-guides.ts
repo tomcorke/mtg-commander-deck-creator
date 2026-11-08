@@ -1,5 +1,25 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  ptg: {
+    description:
+      "My Little Pony meets Magic in three silver-bordered charity cards, including one double-sided card. Ponies: The Galloping brings Princess Twilight Sparkle, Rarity, and Princess Luna's Nightmare Moon transformation to a playful crossover supporting Extra Life.",
+    source: 'https://magic.wizards.com/en/news/announcements/magic-extra-life-2019-10-03',
+  },
+  h17: {
+    description:
+      'The HASCON cards celebrate other Hasbro worlds through playful Magic designs. Sword of Dungeons & Dragons brings a gold Dragon and a twenty-sided die into the mix, with a D&D watermark distinguishing this version from its Unstable printing.',
+    source: 'https://magic.wizards.com/en/news/making-magic/unstable-scraps-part-3-2017-12-11',
+  },
+  pvan: {
+    description:
+      'Oversized character cards change the starting conditions of a game. Each Vanguard choice adjusts starting life and starting and maximum hand size, while adding abilities that give its player a different way to approach the match.',
+    source: 'https://magic.wizards.com/en/news/feature/vanguard-2008-08-14',
+  },
+  pmoa: {
+    description:
+      "Magic Online's Vanguard avatars offer a digital version of the character-based variant. An avatar's abilities and adjustments to life and hand size change how its player approaches a game alongside an ordinary Constructed deck.",
+    source: 'https://magic.wizards.com/en/news/feature/casual-formats-2008-08-11',
+  },
   macr: {
     description:
       "Assassin's Creed minigame inserts offer activities beyond ordinary Magic. Into the Story: Assassin Edition asks players to create their own storyline using cards from their boosters as inspiration.",
