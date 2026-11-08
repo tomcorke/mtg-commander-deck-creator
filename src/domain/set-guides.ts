@@ -1,5 +1,91 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  macr: {
+    description:
+      "Assassin's Creed minigame inserts offer activities beyond ordinary Magic. Into the Story: Assassin Edition asks players to create their own storyline using cards from their boosters as inspiration.",
+    source:
+      'https://scryfall.com/card/macr/1/into-the-story:-assassin-edition-story-beats?utm_source=api',
+  },
+  mltr: {
+    description:
+      "Sharkey's Tithe turns booster cards into a game about the occupied Shire. Players try to protect valuable Hobbit heirlooms from Sharkey and his ruffians.",
+    source: 'https://scryfall.com/card/mltr/4/sharkeys-tithe-sharkeys-tithe-(contd)?utm_source=api',
+  },
+  mone: {
+    description:
+      'Minigame inserts accompanying Phyrexia: All Will Be One include Cyber Simulacrum. Players use internet images as clues to work out the identities of their cards.',
+    source:
+      'https://scryfall.com/card/mone/3/cyber-simulacrum-cyber-simulacrum-(contd)?utm_source=api',
+  },
+  mbro: {
+    description:
+      "The Brothers' War minigames include Mishra's Manufactory. Players act as assembly workers, collecting cards by color to build the best invention from parts on a conveyor belt.",
+    source:
+      'https://scryfall.com/card/mbro/1/mishras-manufactory-mishras-manufactory-(contd)?utm_source=api',
+  },
+  mdmu: {
+    description:
+      "Dominaria United's minigame inserts include Telepathic Transmission. Players try to order their cards without communicating, turning booster contents into a cooperative test of coordination.",
+    source:
+      'https://scryfall.com/card/mdmu/3/telepathic-transmission-telepathic-transmission-(contd)?utm_source=api',
+  },
+  mclb: {
+    description:
+      "Baldur's Gate minigames include Mimic Match. Players match and collect treasure chests while trying to avoid the mimics concealed among the loot.",
+    source: 'https://scryfall.com/card/mclb/2/mimic-match-mimic-match-(contd)?utm_source=api',
+  },
+  msnc: {
+    description:
+      "New Capenna's minigames include Demon's Due, a game of crime-family profits. Players show off their valuables while the most valuable trinkets go to the mob boss.",
+    source:
+      'https://scryfall.com/card/msnc/2/demons-due-(minigame)-demons-due-(contd)?utm_source=api',
+  },
+  mneo: {
+    description:
+      'Kamigawa: Neon Dynasty minigame inserts include Cyber Simulacrum. Players identify cards through internet-image clues, using technology for a different kind of guessing game.',
+    source:
+      'https://scryfall.com/card/mneo/3/cyber-simulacrum-cyber-simulacrum-(contd)?utm_source=api',
+  },
+  mvow: {
+    description:
+      "Crimson Vow's minigames include Vampire Wedding Planner. Players compete to arrange the best wedding for Olivia Voldaren by matching cards to her chosen theme.",
+    source:
+      'https://scryfall.com/card/mvow/2/vampire-wedding-planner-vampire-wedding-planner-(contd)?utm_source=api',
+  },
+  mmid: {
+    description:
+      'Midnight Hunt minigame inserts include Into the Story: Horror Edition. Players use the cards in a booster as inspiration to tell a horror story.',
+    source:
+      'https://scryfall.com/card/mmid/3/into-the-story:-horror-edition-into-the-story-(contd)?utm_source=api',
+  },
+  mafr: {
+    description:
+      'Forgotten Realms minigames include Magic and Minions. Booster cards inspire a one-shot adventure, bringing storytelling and a six-sided die into an activity for four players.',
+    source:
+      'https://scryfall.com/card/mafr/3/magic-and-minions-magic-and-minions-(contd)?utm_source=api',
+  },
+  mmh2: {
+    description:
+      'Modern Horizons 2 minigames include Foraging Squirrels. Players become squirrels competing to collect the best food for winter from a shared forest floor.',
+    source:
+      'https://scryfall.com/card/mmh2/2/foraging-squirrels-foraging-squirrels-(contd)?utm_source=api',
+  },
+  mstx: {
+    description:
+      "Strixhaven's minigame inserts include Careful Study. Players take turns memorizing Magic cards and then try to stump one another with questions about what they saw.",
+    source:
+      'https://scryfall.com/card/mstx/3/careful-study-(minigame)-careful-study-(contd)?utm_source=api',
+  },
+  mkhm: {
+    description:
+      "Kaldheim's minigame collection includes Booster Sleuth. Players use other cards as clues to discover facts about an opponent's mystery card.",
+    source: 'https://scryfall.com/card/mkhm/3/booster-sleuth-booster-sleuth-(contd)?utm_source=api',
+  },
+  mznr: {
+    description:
+      "Zendikar Rising's minigames include Base Race, a grid-based contest between treasure hunters. Players move cards to find the opposing base camp before their own is discovered.",
+    source: 'https://scryfall.com/card/mznr/1/base-race-base-race-(contd)?utm_source=api',
+  },
   ugl: {
     description:
       "A humorous Magic detour features Chickens, dice, multiplayer antics, and hidden messages. Unglued mixes familiar Magic ideas with deliberately silly designs that play with the game's conventions.",
