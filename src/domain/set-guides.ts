@@ -1,5 +1,91 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  mbc: {
+    description:
+      'A Mystery Booster release built for Commander Draft, combining reprints from across Magic history with new commanders. Unusual frames, playtest designs, and other surprises add to its experimental character.',
+    source:
+      'https://magic.wizards.com/en/news/feature/whats-inside-mystery-booster-commander-edition',
+  },
+  j25: {
+    description:
+      'Themed twenty-card packs combine in pairs to make a ready-to-play deck. Foundations Jumpstart mixes new cards and reprints, with anime-style artwork and themes designed to work in many combinations.',
+    source: 'https://magic.wizards.com/en/news/announcements/foundations-jumpstart-booster-themes',
+  },
+  acr: {
+    description:
+      'Brings the Assassins and Templars into Magic. Freerunning offers alternative costs after an Assassin or commander deals combat damage to a player, alongside returning historic, disguise, and cloak mechanics.',
+    source: 'https://magic.wizards.com/en/news/feature/assassins-creed-mechanics',
+  },
+  h2r: {
+    description:
+      'Retro-frame reprints from the first two Modern Horizons sets, offered with Modern Horizons 3. This collection revisits earlier Horizons cards through a different frame treatment.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-modern-horizons-3',
+  },
+  clu: {
+    description:
+      'Combines Magic with a Clue-style murder mystery in Ravnica. Guild-themed booster packs accompany Evidence cards, giving players a mystery to solve alongside their games.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-murders-at-karlov-manor',
+  },
+  ltr: {
+    description:
+      "Brings Tolkien's characters and journeys to Magic. The Ring tempts you and develops bonuses for a chosen Ring-bearer, while amass Orcs, Food, and Sagas support other parts of Middle-earth's story.",
+    source:
+      'https://magic.wizards.com/en/news/feature/the-lord-of-the-rings-tales-of-middle-earth-mechanics',
+  },
+  j22: {
+    description:
+      'Themed twenty-card packs are shuffled together in pairs for quick games. Jumpstart 2022 offers combinations such as Blink Cats and Zombies Go to School, with the lands needed to play included.',
+    source:
+      'https://magic.wizards.com/en/news/feature/jumpstart-2022-booster-themes-and-card-lists',
+  },
+  dbl: {
+    description:
+      'Combines Innistrad: Midnight Hunt and Innistrad: Crimson Vow in a shared draft release. Black-and-white artwork and silver screen foils give the cards a classic horror-film presentation.',
+    source:
+      'https://magic.wizards.com/en/news/feature/innistrad-double-feature-product-overview-2021-11-15',
+  },
+  j21: {
+    description:
+      'An Arena release mixing cards from Modern Horizons, Modern Horizons 2, and beyond with new digital designs. Its made-for-digital mechanics explore effects that extend beyond the tabletop experience.',
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/what-mtg-arenas-jumpstart-historic-horizons-2021-07-26',
+  },
+  h1r: {
+    description:
+      'Retro-frame versions of cards from the original Modern Horizons, offered in Modern Horizons 2 Collector Boosters. Familiar cards such as Force of Negation and Giver of Runes receive the older visual treatment.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-modern-horizons-2-2021-05-21',
+  },
+  mh2: {
+    description:
+      'Combines many returning mechanics with cards reprinted into Modern for the first time. Suspend, madness, storm, flashback, and other older ideas meet in one mechanically varied set.',
+    source: 'https://magic.wizards.com/en/news/feature/modern-horizons-2-release-notes-2021-06-04',
+  },
+  jmp: {
+    description:
+      'Combines themed twenty-card packs in pairs to make a deck, with combinations such as Pirates and Unicorns. Reprints and new cards sit alongside basic lands illustrated to match the pack themes.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/introducing-jumpstart-new-way-play-magic-2020-02-20',
+  },
+  mh1: {
+    description:
+      'Brings back a wide range of older mechanics on new cards and selected reprints. Slivers, snow, changeling, and cycling are featured elements, with many other mechanics making smaller appearances.',
+    source: 'https://magic.wizards.com/en/news/feature/modern-horizons-mechanics-2019-05-31',
+  },
+  bbd: {
+    description:
+      "Built for two-player teams in Two-Headed Giant games, set in the arena of Valor's Reach on Kylem. Partner with, assist, and support encourage players to coordinate with a teammate.",
+    source: 'https://magic.wizards.com/en/news/feature/battlebond-mechanics-2018-05-21',
+  },
+  cn2: {
+    description:
+      "A multiplayer draft set centred on competition for the crown. The monarch, council's dilemma, goad, and melee add political choices and incentives to attack different opponents.",
+    source: 'https://magic.wizards.com/en/news/feature/conspiracy-take-crown-mechanics-2016-08-15',
+  },
+  cns: {
+    description:
+      'A set built around drafting and multiplayer games in Fiora. Some cards affect the draft itself, while conspiracies and voting through will of the council add new ways for the table to interact.',
+    source: 'https://magic.wizards.com/en/news/feature/conspiracy-mechanics',
+  },
   tpr: {
     description:
       'Rebuilds Tempest, Stronghold, and Exodus as a single draftable set on Magic Online. The selection aims to capture the original block while arranging its cards into a fresh Limited environment.',
