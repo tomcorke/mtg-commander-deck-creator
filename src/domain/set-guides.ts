@@ -1,5 +1,76 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  cc1: {
+    description:
+      "Eight Commander reprints selected around green's large creatures and plentiful mana. New artwork references familiar legendary characters, with regular and premium foil editions of the collection.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/commander-collection-green-packaging-and-contents-2020-08-22',
+  },
+  cc2: {
+    description:
+      'Eight reprints selected to showcase black strategies in Commander. Each receives new artwork referencing legendary characters, with both non-foil and traditional foil editions of the collection.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/commander-collection-black-packaging-and-contents-2021-08-24',
+  },
+  cm1: {
+    description:
+      'A collection of Commander favourites presented in premium forms, including cards receiving their first foil printing. Oversized versions of legendary creatures accompany the regular-sized cards.',
+    source:
+      'https://magic.wizards.com/en/news/making-magic/commanders-arsenal-initial-barrage-2012-10-23',
+  },
+  hop: {
+    description:
+      "The original Planechase release introduced a journey through Magic's worlds. Oversized plane cards change the battlefield's conditions, while a planar die can trigger chaos effects or move the game elsewhere.",
+    source: 'https://magic.wizards.com/en/news/feature/what-is-planechase-and-why-is-it-awesome',
+  },
+  ohop: {
+    description:
+      'The oversized plane cards for the original Planechase experience. Each location brings effects tied to its world, with chaos abilities and planeswalking making the setting change during play.',
+    source: 'https://magic.wizards.com/en/news/feature/what-is-planechase-and-why-is-it-awesome',
+  },
+  pc2: {
+    description:
+      'A Planechase release with preconstructed decks built around distinct strategies. Its decks include the cascade-driven Chaos Reigns and the enchantment-focused Savage Auras, later collected in Planechase Anthology.',
+    source:
+      'https://magic.wizards.com/en/news/feature/planechase-anthology-celebration-magics-history-2016-11-14',
+  },
+  opc2: {
+    description:
+      'Oversized planes and phenomena for the 2012 Planechase release. Planes alter the shared battlefield, while phenomena create brief events as players travel between locations.',
+    source: 'https://magic.wizards.com/en/news/feature/what-is-planechase-and-why-is-it-awesome',
+  },
+  pca: {
+    description:
+      "Collects the four sixty-card decks from Planechase 2012 alongside oversized planar cards. The included planes, phenomena, and planar die turn games into changing journeys through Magic's worlds.",
+    source:
+      'https://magic.wizards.com/en/news/feature/planechase-anthology-celebration-magics-history-2016-11-14',
+  },
+  opca: {
+    description:
+      'The oversized planar collection from Planechase Anthology, containing 78 planes and eight phenomena. These locations and events add changing global effects to games played with the planar die.',
+    source:
+      'https://magic.wizards.com/en/news/feature/planechase-anthology-celebration-magics-history-2016-11-14',
+  },
+  arc: {
+    description:
+      "Introduces Archenemy through sixty-card preconstructed decks. One player takes the villain's role against a team of opponents, supported by a separate deck of powerful schemes.",
+    source: 'https://magic.wizards.com/en/news/announcements/evolving-archenemy',
+  },
+  oarc: {
+    description:
+      'The scheme cards for the original Archenemy experience. These oversized cards provide the lone villain with powerful effects as a team of opponents works together to defeat them.',
+    source: 'https://magic.wizards.com/en/news/announcements/evolving-archenemy',
+  },
+  e01: {
+    description:
+      "Pits Nicol Bolas against the Gatewatch in an Archenemy release. Bolas's blue-black-red deck combines mana acceleration, removal, and large threats, backed by a separate deck of schemes.",
+    source: 'https://magic.wizards.com/en/news/feature/archenemy-nicol-bolas-preview-2017-06-05',
+  },
+  oe01: {
+    description:
+      "The twenty scheme cards accompanying Archenemy: Nicol Bolas. They supply powerful effects for the player taking Bolas's role, adding another layer of threats for the opposing team to overcome.",
+    source: 'https://magic.wizards.com/en/news/feature/archenemy-nicol-bolas-preview-2017-06-05',
+  },
   mbc: {
     description:
       'A Mystery Booster release built for Commander Draft, combining reprints from across Magic history with new commanders. Unusual frames, playtest designs, and other surprises add to its experimental character.',
