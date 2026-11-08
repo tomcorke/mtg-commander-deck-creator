@@ -1,5 +1,60 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  pcy: {
+    description:
+      'Rhystic spells and sacrificing lands are the main themes. Prophecy takes a different mechanical direction from the earlier Mercadian Masques sets.',
+    source: 'https://magic.wizards.com/en/news/making-magic/third-times-charm-2013-04-29',
+  },
+  nem: {
+    description:
+      'Introduces fading: permanents trade a lower cost for a limited stay on the battlefield. These cards ask you to make use of their effects before their time runs out.',
+    source: 'https://magic.wizards.com/en/news/making-magic/utter-chaos-2007-01-15',
+  },
+  exo: {
+    description:
+      "Continues the Weatherlight story and develops the buyback and shadow mechanics from the earlier Tempest sets. It builds on the block's existing ideas rather than introducing new keywords.",
+    source: 'https://magic.wizards.com/en/news/making-magic/third-times-charm-2013-04-29',
+  },
+  sth: {
+    description:
+      'Spikes move +1/+1 counters to other creatures, while cards such as Mindwarper turn those counters into effects. The set explores counters as resources as well as creature boosts.',
+    source: 'https://magic.wizards.com/en/news/making-magic/thats-the-spirit-2004-10-11',
+  },
+  tmp: {
+    description:
+      'Follows the Weatherlight crew to the plane of Rath. Tempest begins a block planned around that journey, continuing the story introduced in Weatherlight.',
+    source: 'https://magic.wizards.com/en/news/making-magic/playing-blocks-2009-12-07',
+  },
+  wth: {
+    description:
+      'Makes the graveyard a major mechanical theme and introduces the Weatherlight Saga. The set connects to Mirage and Visions while taking its own direction in both gameplay and story.',
+    source: 'https://magic.wizards.com/en/news/making-magic/playing-blocks-2009-12-07',
+  },
+  vis: {
+    description:
+      'Creatures with effects when they enter the battlefield are a notable innovation here. Visions combines a creature with a spell-like effect, an approach that became a lasting part of Magic design.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
+  mir: {
+    description:
+      'Begins the Mirage block, with Visions designed alongside it. The two sets grew from the same design project, establishing a connected large-set and small-set release.',
+    source: 'https://magic.wizards.com/en/news/making-magic/playing-blocks-2009-12-07',
+  },
+  all: {
+    description:
+      'Introduces pitch spells such as Force of Will, which use alternative costs instead of mana. These cards let players react even when their lands are tapped, using other resources to pay.',
+    source: 'https://magic.wizards.com/en/news/making-magic/free-play-2002-08-19',
+  },
+  hml: {
+    description:
+      'Visits Ulgrotha, a dark world built around early Magic creatures such as Serra Angel, Sengir Vampire, and Hurloon Minotaur. The Sengir vampire family is a prominent part of its identity.',
+    source: 'https://magic.wizards.com/en/news/making-magic/choosing-your-battles-part-2',
+  },
+  ice: {
+    description:
+      'Snow-covered lands, cumulative upkeep, and spells that draw a replacement card on a later upkeep distinguish this early expansion. It establishes mechanics later revisited in Coldsnap.',
+    source: 'https://magic.wizards.com/en/news/making-magic/ice-and-men-2006-07-03',
+  },
   scg: {
     description:
       'Explores large mana costs as a theme, alongside Dragons and the debut of storm. The set gives expensive spells and creatures new ways to matter.',
