@@ -1,5 +1,67 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  tpr: {
+    description:
+      'Rebuilds Tempest, Stronghold, and Exodus as a single draftable set on Magic Online. The selection aims to capture the original block while arranging its cards into a fresh Limited environment.',
+    source: 'https://magic.wizards.com/en/news/making-magic/test-time-spiral-remastered-2021-03-01',
+  },
+  vma: {
+    description:
+      'Combines cards sought for Vintage decks with rares chosen to inspire Limited strategies. Its larger rare and mythic rare selection makes room for both Constructed favourites and varied draft decks.',
+    source: 'https://mtg-jp.com/reading/translated/ld/0010728/',
+  },
+  mma: {
+    description:
+      'Collects Modern reprints from Eighth Edition through Alara Reborn. Cards from different blocks are arranged into a shared draft environment, combining familiar Constructed cards with supported Limited themes.',
+    source: 'https://magic.wizards.com/en/news/making-magic/developing-masters-2013-05-27',
+  },
+  me4: {
+    description:
+      "An online-only reprint collection spanning early sets and Portal releases, using original artwork and old-style frames. Booster packs include a dedicated slot for an Urza's Mine, Power Plant, or Tower.",
+    source:
+      'https://web.archive.org/web/20101110205101id_/http://www.wizards.com/Magic/TCG/ProductArticle.aspx?x=mtg%2Ftcg%2Fmastersed4%2Fproductinfo',
+  },
+  me3: {
+    description:
+      'An online-only reprint collection drawing from sets including Legends, Alliances, The Dark, and Portal Three Kingdoms. The cards retain their original artwork and old-style frames.',
+    source:
+      'https://web.archive.org/web/20100116040143id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg/tcg/mastersed3/productinfo',
+  },
+  me2: {
+    description:
+      'A Magic Online reprint collection that preserves original artwork and old-style card frames. It also includes the five snow-covered basic lands from Ice Age alongside cards from earlier releases.',
+    source:
+      'https://web.archive.org/web/20090709232828id_/http://www.wizards.com/Magic/TCG/ProductArticle.aspx?x=mtg_tcg_mastersed2_productinfo',
+  },
+  me1: {
+    description:
+      'Brings pre-Mirage cards, reaching back to Alpha and Beta, into a Magic Online compilation. Original artwork and old-style frames accompany the reprints, with basic lands from the original game.',
+    source:
+      'https://web.archive.org/web/20081218160032id_/http://www.wizards.com/Magic/TCG/ProductArticle.aspx?x=mtg_tcg_mastersed_productinfo',
+  },
+  rin: {
+    description:
+      'The Italian Renaissance selection reprints Chronicles cards while leaving out cards originally from Legends and The Dark. This black-bordered regional release includes cards such as City of Brass and Triskelion.',
+    source:
+      'https://web.archive.org/web/20200122155826id_/http://www.wizards.com/magic/generic/cardlists/Ren_Italian.html',
+  },
+  ren: {
+    description:
+      'A French and German black-bordered reprint selection of cards entering Fourth Edition. It provided translated versions of those expansion cards before the white-bordered Fourth Edition release.',
+    source:
+      'https://web.archive.org/web/20200122155826id_/http://www.wizards.com/magic/generic/cardlists/Ren_Italian.html',
+  },
+  bchr: {
+    description:
+      'Black-bordered foreign-language printings of Chronicles. They formed part of the early effort to make older cards available in translated editions; Italy instead received a different Renaissance selection.',
+    source:
+      'https://web.archive.org/web/20200122155826id_/http://www.wizards.com/magic/generic/cardlists/Ren_Italian.html',
+  },
+  chr: {
+    description:
+      'Reprints cards from Legends, Arabian Nights, Antiquities, and The Dark. Legends supplies much of the selection, bringing cards from several early expansions together in one booster release.',
+    source: 'https://mtg-jp.com/products/0000141/',
+  },
   inr: {
     description:
       'A Gothic-horror collection drawing from across the Innistrad sets. Transforming double-faced cards, flashback, disturb, Clues, and Blood tokens return alongside other familiar mechanics.',
