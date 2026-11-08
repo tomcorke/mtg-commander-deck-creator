@@ -1,5 +1,63 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  ajmp: {
+    description:
+      "Replacement cards used in MTG Arena's version of Jumpstart. The digital release swaps selected tabletop cards for alternatives because of power, gameplay, or technical concerns, while keeping the themed-booster experience.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/mtg-arena-state-game-june-2020-06-23',
+  },
+  w17: {
+    description:
+      'An introduction to Magic through ready-to-play, thirty-card Welcome Decks. Each half-deck highlights a color and includes a rare card; two can be combined into a sixty-card deck.',
+    source: 'https://wpn.wizards.com/en/news/make-most-welcome-decks',
+  },
+  w16: {
+    description:
+      "Cards from Welcome Decks used to teach Magic's basics in game stores. The decks introduce the five colors and their different identities, giving beginners a starting point for exploring creatures and spells.",
+    source: 'https://wpn.wizards.com/en/news/magic-tutorial-sticks',
+  },
+  cp3: {
+    description:
+      "Alternate-art cards from the Magic Origins Clash Pack. Its Armed and Dangerous decks can battle each other or combine into a single deck, offering two ways to explore the product's card selection.",
+    source:
+      'https://magic.wizards.com/en/news/feature/magic-origins-clash-pack-and-intro-pack-decklists-2015-07-09',
+  },
+  cp2: {
+    description:
+      "Premium alternate-art cards from Fate Reforged's Power and Profit Clash Pack. Two ready-to-play decks can face each other or combine into a stronger deck, with three special printings in each.",
+    source: 'https://mtg-jp.com/publicity/0011845/',
+  },
+  cp1: {
+    description:
+      'Six premium alternate-art cards from the Magic 2015 Clash Pack. Its Fate and Fury decks were designed for two players to battle, providing a ready-to-play introduction to the game.',
+    source: 'https://mtg-jp.com/publicity/0010806/',
+  },
+  s00: {
+    description:
+      "A follow-up introductory Starter release built around Magic's simpler cards. Its teaching approach uses ordered decks and a booklet that guides two players through a game turn by turn.",
+    source:
+      'https://magic.wizards.com/en/news/making-magic/starting-with-a-good-foundations-part-1',
+  },
+  s99: {
+    description:
+      "An introductory set using normal Magic terminology and a simpler selection of lands, creatures, and spells. Starter's boxed tutorial walks two players through an arranged game, with boosters offering another way to collect.",
+    source:
+      'https://magic.wizards.com/en/news/making-magic/starting-with-a-good-foundations-part-1',
+  },
+  ptk: {
+    description:
+      'Heroes and legendary events from Romance of the Three Kingdoms enter Magic. The set revisits the Peach Garden oath, the Battle of Red Cliffs, and other moments from the famous Chinese story.',
+    source: 'https://mtg-jp.com/products/0000144/',
+  },
+  p02: {
+    description:
+      'The second Portal introductory set, designed specifically for beginners. It followed the original Portal before similar teaching products adopted the Starter name.',
+    source: 'https://mtg-jp.com/products/0000143/',
+  },
+  por: {
+    description:
+      'The first Portal introductory set, created specifically for beginner players. It began a line of teaching products that later continued under the Starter name.',
+    source: 'https://mtg-jp.com/products/0000142/',
+  },
   sds: {
     description:
       "Familiar Magic cards reimagined through Star Trek characters and memorable moments. These borderless reprints draw on the franchise's history, including alternate incarnations of its heroes.",
