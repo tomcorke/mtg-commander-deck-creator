@@ -1,5 +1,103 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  yfra: {
+    description:
+      "A digital expansion of Jace's fractured Echoverse. Remnants of Beleren has a spellbook filled with different Jace cards, extending Reality Fracture's alternate vision of the Multiverse.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-reality-fracture-spellbook',
+  },
+  ysos: {
+    description:
+      "Strixhaven's academic setting continues in a digital release for MTG Arena. New cards and spellbooks accompany the university's return, offering another selection beyond the tabletop expansion.",
+    source: 'https://magic.wizards.com/en/products/secrets-of-strixhaven/card-image-gallery',
+  },
+  yecl: {
+    description:
+      'More of Lorwyn-Shadowmoor in digital form. Adaptive Armorer and Thoughtsteal Sprites let players draft additional cards from spellbooks featuring Equipment and familiar Faerie cards.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-lorwyn-spellbooks',
+  },
+  yeoe: {
+    description:
+      "A digital journey farther into Edge of Eternities. Its spellbook selections include lands, Planets, and Slivers, bringing additional cards into play through Arena's digital design space.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-edge-of-eternities-spellbooks',
+  },
+  ytdm: {
+    description:
+      "Tarkir's five clans receive a digital expansion. Dragon Typhoon and Dragonweave Tapestry offer spellbooks of Dragons and Stormbrood cards, letting players draft additional cards during a game.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-tarkir-spellbooks',
+  },
+  ydft: {
+    description:
+      "Aetherdrift gains thirty digital cards for MTG Arena. Support Skyforge's spellbook features Vehicles, while Masterpiece Vault offers Equipment, including several familiar Swords.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-aetherdrift-spellbooks',
+  },
+  ydsk: {
+    description:
+      "Thirty digital cards expand Duskmourn's horrors on MTG Arena. Glimmer Hoarder and Razor Demon have spellbooks, with the latter offering Demonic Bargain, Demonic Pact, and Ever After.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-duskmourn-card-image-gallery',
+  },
+  yblb: {
+    description:
+      'Thirty additional Bloomburrow cards for MTG Arena, including spellbooks and conjured cards. The selection connects new animal characters with familiar spells such as Lightning Bolt, Sanguine Bond, and Think Twice.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-bloomburrow-card-image-gallery',
+  },
+  yotj: {
+    description:
+      'A digital addition to Thunder Junction with spellbooks and conjured cards. The five Collector cards conjure their corresponding Moxes, while Saint Elenda has a spellbook of white spells.',
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/alchemy-thunder-junction',
+  },
+  ymkm: {
+    description:
+      'A digital return to Ravnica alongside the Karlov Manor release. Spellbooks revisit guild Signets and cards associated with Emmara and Tajic, while other designs conjure additional cards.',
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/alchemy-karlov-manor',
+  },
+  ylci: {
+    description:
+      "Ixalan receives thirty digital cards with spellbooks and conjured cards. Brazen Boarding's spellbook gathers Pirates, while Scalespeaker Shepherd's selection features Dinosaurs from Magic's history.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-ixalan-card-image-gallery',
+  },
+  ywoe: {
+    description:
+      'A digital collection of Eldraine fairy tales, including the Three Little Pigs. Spellbooks and conjured cards bring in familiar designs such as Seven Dwarves, Gilded Goose, and Golden Egg.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-eldraine-card-image-gallery',
+  },
+  yone: {
+    description:
+      "Thirty additional cards continue the Phyrexians' Great Work on MTG Arena. This Alchemy collection supplements the tabletop Phyrexia release with another selection across the five colors and multicolor cards.",
+    source: 'https://magic.wizards.com/en/news/mtg-arena/alchemy-phyrexia-card-image-gallery',
+  },
+  ybro: {
+    description:
+      "Thirty digital cards build on The Brothers' War. Kayla's Kindling and Raddic, Tal Zealot have spellbooks that draw on familiar damage spells, creatures, and Knights.",
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/alchemy-the-brothers-war-card-image-gallery',
+  },
+  ydmu: {
+    description:
+      "A thirty-card digital expansion of Dominaria. Its spellbooks range from Darigaaz's Dragons and Goblin Influx Array's Goblins to Oracle of the Alpha's selection of nine famous early Magic cards.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/alchemy-dominaria',
+  },
+  hbg: {
+    description:
+      "Baldur's Gate adapted for one-on-one digital play, combining cards from Battle for Baldur's Gate and Adventures in the Forgotten Realms with new designs. Digital mechanics include boon, double team, and specialize.",
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/mtg-arena-state-of-the-game-alchemy-horizons-baldurs-gate',
+  },
+  ysnc: {
+    description:
+      "Thirty digital cards extend New Capenna's streets and syndicates. Spellbooks include Celestial Vault's Angels, Big Spender's artifacts, and creatures associated with Xander's Wake and Loose in the Park.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/alchemy-new-capenna-card-image-gallery',
+  },
+  yneo: {
+    description:
+      "Thirty digital cards add to Kamigawa's selection. Spellbooks feature lands for Boseiju Pathlighter, Vehicles for Experimental Pilot, and samurai-associated cards for Imperial Blademaster.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/alchemy-kamigawa',
+  },
+  ymid: {
+    description:
+      'The first Alchemy supplemental set introduces sixty-three new cards to MTG Arena. Its spellbooks include Equipment for Arms Scavenger, witch-themed cards for Cursebound Witch, and enchantments for Faithful Disciple.',
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/alchemy-innistrad',
+  },
   anb: {
     description:
       "An introductory card pool for MTG Arena's monocolor teaching decks. Its cards were selected to help beginners learn the game and give them clear starting points for upgrading their decks.",
