@@ -1,5 +1,112 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  inr: {
+    description:
+      'A Gothic-horror collection drawing from across the Innistrad sets. Transforming double-faced cards, flashback, disturb, Clues, and Blood tokens return alongside other familiar mechanics.',
+    source: 'https://magic.wizards.com/en/news/feature/innistrad-remastered-mechanics',
+  },
+  pio: {
+    description:
+      'Brings cards from Pioneer history to MTG Arena, combining new-to-Arena cards with familiar reprints. Its Limited events also use rotating bonus sheets to vary the draft and sealed environment.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/collecting-pioneer-masters',
+  },
+  mb2: {
+    description:
+      'Mixes reprints from across Magic history with unusual frames and experimental playtest cards. Future Sight frames and white-bordered cards give familiar spells a different look.',
+    source: 'https://magic.wizards.com/en/news/feature/whats-inside-mystery-booster-2',
+  },
+  rvr: {
+    description:
+      'Revisits Ravnica mechanics, including convoke, dredge, extort, and populate. Shock lands, Guildgates, and split cards return alongside those different guild approaches to building a deck.',
+    source: 'https://magic.wizards.com/en/news/feature/ravnica-remastered-release-notes',
+  },
+  sis: {
+    description:
+      'A bonus collection of cards from Innistrad, Dark Ascension, and Avacyn Restored for Shadows over Innistrad Remastered. The Arena Limited events rotate themed selections from this older card pool.',
+    source:
+      'https://magic.wizards.com/en/news/mtg-arena/shadows-of-the-past-card-list-and-schedule',
+  },
+  sir: {
+    description:
+      'Brings cards from Shadows over Innistrad and Eldritch Moon together on MTG Arena. Packs also include the separate Shadows of the Past collection, adding selections from the original Innistrad block.',
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/shadows-over-innistrad-remastered-card-image-gallery',
+  },
+  dmr: {
+    description:
+      'Brings back mechanics such as flashback, madness, and split cards. Reusing spells from the graveyard, casting discarded cards, and choosing between two spell halves offer different ways to get value from a card.',
+    source: 'https://magic.wizards.com/en/news/feature/dominaria-remastered-release-notes',
+  },
+  '2x2': {
+    description:
+      'Builds its draft themes around all ten three-colour combinations. The reprint selection supports overlapping strategies, with two cards taken on the first pick of each booster.',
+    source:
+      'https://magic.wizards.com/en/news/making-magic/seeing-double-masters-2022-or-magic-the-gathering',
+  },
+  slx: {
+    description:
+      'Reimagines crossover cards as characters from Magic worlds. These Universes Within versions include Street Fighter-inspired designs with new Magic identities while counting as the same cards for deck building.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/a-first-look-at-phyrexia-all-will-be-one',
+  },
+  tsr: {
+    description:
+      "Combines cards from Time Spiral, Planar Chaos, and Future Sight to revisit that block's draft experience. A separate bonus sheet puts other familiar cards into retro frames.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/its-time-time-spiral-remastered-2021-02-25',
+  },
+  klr: {
+    description:
+      'Combines Kaladesh and Aether Revolt on MTG Arena. Energy, Vehicles, and Thopters return to a world of inventors, intricate machines, and aether-powered creations.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/kaladesh-remastered-kick-2020-11-02',
+  },
+  plst: {
+    description:
+      'A changing selection of reprints from across Magic history, introduced as bonus cards in Set Boosters. It spans rarities and can include cards chosen to connect with the accompanying set.',
+    source: 'https://magic.wizards.com/en/news/feature/updating-list-modern-horizons-2-2021-06-04',
+  },
+  akr: {
+    description:
+      'Combines Amonkhet and Hour of Devastation into an Arena release set on a desert world. Cycling, embalm, eternalize, exert, and other block mechanics return in a rebuilt Limited environment.',
+    source: 'https://mtg-jp.com/reading/kochima/0034267/',
+  },
+  '2xm': {
+    description:
+      'An artifact-focused reprint set with two rare or mythic rare slots per booster. Drafting begins each pack with a two-card pick, helping players assemble cards that work together.',
+    source: 'https://magic.wizards.com/en/news/making-magic/double-deal-2020-07-20',
+  },
+  uma: {
+    description:
+      'Collects reprints into a new Limited environment with many returning mechanics. Delve, dredge, flashback, and madness offer several ways to make discarded cards and the graveyard useful.',
+    source: 'https://magic.wizards.com/en/news/feature/ultimate-masters-release-notes-2018-11-29',
+  },
+  a25: {
+    description:
+      "Celebrates Magic's first 25 years through reprints, iconic cards, and combinations from its history. Cards carry watermarks identifying their original sets, making their origins part of the presentation.",
+    source: 'https://magic.wizards.com/en/news/making-magic/every-card-has-story-2018-02-26',
+  },
+  ima: {
+    description:
+      'Brings together large Angels, Sphinxes, Demons, Dragons, and Hydras with memorable spells from Magic history. The reprints are arranged for a Limited environment with cards not previously drafted together.',
+    source: 'https://magic.wizards.com/en/news/feature/iconic-masters-release-notes-2017-09-11',
+  },
+  mm3: {
+    description:
+      'Revisits Modern cards from worlds including Innistrad, Zendikar, New Phyrexia, Alara, and Ravnica. Flashback, populate, flickering creatures, and other returning mechanics meet in a new draft environment.',
+    source:
+      'https://magic.wizards.com/en/news/feature/modern-masters-2017-edition-release-notes-2017-03-03',
+  },
+  ema: {
+    description:
+      "Combines reprints ranging from Magic's earliest release through Magic Origins. Returning mechanics include cascade, flashback, retrace, and threshold, bringing cards from different eras into the same Limited environment.",
+    source: 'https://magic.wizards.com/en/news/feature/eternal-masters-release-notes-2016-06-02',
+  },
+  mm2: {
+    description:
+      'Revisits Modern cards from worlds such as Zendikar, Mirrodin, Ravnica, Lorwyn, Kamigawa, and Alara. Returning mechanics include affinity for artifacts, annihilator, graft, and proliferate.',
+    source:
+      'https://magic.wizards.com/en/news/feature/modern-masters-2015-edition-release-notes-2015-05-12',
+  },
   '5ed': {
     description:
       'A white-bordered core set from 1997 containing 449 cards, the largest core selection at the time of release. Its introductory products include paired teaching decks as well as boosters.',
