@@ -1,5 +1,30 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  '5ed': {
+    description:
+      'A white-bordered core set from 1997 containing 449 cards, the largest core selection at the time of release. Its introductory products include paired teaching decks as well as boosters.',
+    source: 'https://mtg-jp.com/products/0000128/',
+  },
+  '4ed': {
+    description:
+      'Refreshes the core selection with cards from earlier expansions, replacing part of the previous lineup. Fourth Edition also revises the rulebook and incorporates rules introduced with Legends.',
+    source: 'https://mtg-jp.com/products/0000129/',
+  },
+  '4bb': {
+    description:
+      "Fourth Edition brings earlier expansion cards into the core selection. This collection shares that edition's mix of familiar cards and additions drawn from Magic's early expansions.",
+    source: 'https://mtg-jp.com/products/0000129/',
+  },
+  '3ed': {
+    description:
+      'Combines cards from the original game with early expansion reprints. Atog from Antiquities and Erg Raiders from Arabian Nights join the Revised core-set selection.',
+    source: 'https://magic.wizards.com/en/news/making-magic/how-trivial-2018-10-22',
+  },
+  fbb: {
+    description:
+      'The Revised selection draws on the original game and its early expansions. Cards such as Atog and Erg Raiders bring Antiquities and Arabian Nights into that core-set card pool.',
+    source: 'https://magic.wizards.com/en/news/making-magic/how-trivial-2018-10-22',
+  },
   fem: {
     description:
       'Creature-type factions struggle for control of Sarpadia on Dominaria. Each colour has its own faction, facing rivals outside its ranks and conflict within them.',
