@@ -1,5 +1,132 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  sds: {
+    description:
+      "Familiar Magic cards reimagined through Star Trek characters and memorable moments. These borderless reprints draw on the franchise's history, including alternate incarnations of its heroes.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-star-trek',
+  },
+  hoc: {
+    description:
+      'Extra cards accompanying The Hobbit, separate from the main expansion. The collecting guide introduces nine mythic rare designs with extended-art versions in Collector Boosters and versions for the Battle of Five Armies Co-Op Kit.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-the-hobbit',
+  },
+  soa: {
+    description:
+      "Strixhaven's library opens again with a new collection of instant and sorcery reprints. Updated frames and Japanese alternate-art versions celebrate spells from across Magic's history.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-secrets-of-strixhaven',
+  },
+  pza: {
+    description:
+      'Classic Magic cards reimagined with artwork from Teenage Mutant Ninja Turtles history. Comic covers and other familiar images meet special borderless frames, sometimes with alternate card names.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-teenage-mutant-ninja-turtles',
+  },
+  tmc: {
+    description:
+      'Additional Teenage Mutant Ninja Turtles cards beyond the main expansion, including Commander designs and Turtle Team-Up cards. The cooperative product brings four Turtle-themed decks together against an enemy deck.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-teenage-mutant-ninja-turtles',
+  },
+  tle: {
+    description:
+      'Extra Avatar cards accompanying the main expansion, including Jumpstart and Beginner Box designs. Cards from these products also appear in Collector Boosters.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-avatar-the-last-airbender',
+  },
+  mar: {
+    description:
+      "Magic reprints presented through Marvel comic artwork. The Spider-Man source-material selection gives familiar cards new creative treatments inspired by the web-slinger's comic-book history.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-marvels-spider-man',
+  },
+  spe: {
+    description:
+      "Spider-Man cards beyond the main expansion, including Welcome Deck cards and the Spidey's Sensational Showdown scene. Six scene cards join together to depict a larger illustration.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-marvels-spider-man',
+  },
+  omb: {
+    description:
+      'A digital bonus collection found alongside the main cards in Through the Omenpaths packs on MTG Arena. Its separately coded cards form the Omenpaths Bonus Sheet rather than the main expansion.',
+    source: 'https://magic.wizards.com/en/news/mtg-arena/through-the-omenpaths-release-faq',
+  },
+  eos: {
+    description:
+      'A bonus sheet of land reprints with cosmic artwork depicting planets in the Sothera system. Stellar Sights also offers travel-poster versions of these familiar Magic locations.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-edge-of-eternities',
+  },
+  fca: {
+    description:
+      "Familiar Magic cards paired with existing artwork from the FINAL FANTASY series. This bonus sheet celebrates the games' artistic history, including work by Yoshitaka Amano and Tetsuya Nomura.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-final-fantasy',
+  },
+  otp: {
+    description:
+      "A bonus sheet of reprints selected to support Thunder Junction's crime theme. Every Breaking News card can satisfy the committing-a-crime mechanic, connecting familiar spells with the main set.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-outlaws-of-thunder-junction',
+  },
+  spg: {
+    description:
+      "Borderless reprints of familiar Magic cards, introduced with The Lost Caverns of Ixalan. Special Guests is a recurring collection separate from each accompanying expansion's main set.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-the-lost-caverns-of-ixalan',
+  },
+  rex: {
+    description:
+      'Jurassic Park and Jurassic World come to Magic in a crossover collection accompanying The Lost Caverns of Ixalan. Cards revisit movie moments, with themed lands and Command Tower joining the selection.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-the-lost-caverns-of-ixalan',
+  },
+  wot: {
+    description:
+      "A bonus sheet of enchantment reprints given Eldraine's fairy-tale artwork. Selected cards also have anime-inspired alternate treatments, bringing another visual style to these familiar enchantments.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-wilds-of-eldraine',
+  },
+  mul: {
+    description:
+      'Legendary reprints from across the Multiverse accompany March of the Machine. Each uses a showcase treatment associated with its home plane, bringing familiar characters and distinctive worlds together.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-march-of-the-machine',
+  },
+  brr: {
+    description:
+      "Artifact reprints from Magic's past in the retro frame. Each also has a schematic version with artwork imagining an early design for the artifact, matching The Brothers' War's historical setting.",
+    source: 'https://magic.wizards.com/en/news/feature/whats-inside-the-brothers-war-boosters',
+  },
+  bot: {
+    description:
+      'Autobots and Decepticons arrive as double-faced cards that convert between robot and alternate forms. Their artwork draws on the original television series and the role-reversing Shattered Glass universe.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/transformers-arrives-brothers-war-2022-10-06',
+  },
+  sta: {
+    description:
+      "A library of sixty-three spells from Magic's history accompanies Strixhaven. The Mystical Archive gives these returning cards distinctive illustrations and frames, with additional Japanese-art versions.",
+    source:
+      'https://magic.wizards.com/en/news/feature/first-lesson-introduction-strixhaven-2021-02-18',
+  },
+  zne: {
+    description:
+      'Thirty returning lands presented as Zendikar Expeditions alongside Zendikar Rising. These special-frame versions appear as nonfoil box toppers and foil cards in Collector Boosters.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-zendikar-rising-2020-09-01',
+  },
+  puma: {
+    description:
+      'Forty cards from Ultimate Masters receive a special premium frame treatment. Each booster display includes one separately wrapped Ultimate Box Topper, highlighting a card from the reprint set.',
+    source: 'https://magic.wizards.com/en/news/feature/ultimate-masters-release-notes-2018-11-29',
+  },
+  med: {
+    description:
+      'Premium borderless planeswalker cards from the Mythic Edition releases. These special versions accompanied selected packs in limited booster products, spotlighting iconic planeswalkers and newer additions.',
+    source: 'https://magic.wizards.com/en/news/announcements/war-spark-mythic-edition-2019-04-18',
+  },
+  mp2: {
+    description:
+      'A special collection of powerful returning spells associated with Amonkhet and its gods. Invocations appeared across Amonkhet and Hour of Devastation boosters as part of the Masterpiece Series.',
+    source: 'https://magic.wizards.com/en/news/feature/hour-devastation-release-notes-2017-06-30',
+  },
+  mps: {
+    description:
+      "Artifacts from Magic's history presented as Kaladesh's finest inventions. Their ornate filigree frames connect these Masterpiece Series cards to the plane's Inventors' Fair and technological creativity.",
+    source: 'https://magic.wizards.com/en/news/feature/kaladesh-release-notes-2016-09-16',
+  },
+  exp: {
+    description:
+      "Special versions of lands from Magic's history, reimagined as locations on Zendikar. This collection accompanied Battle for Zendikar and Oath of the Gatewatch as Zendikar Expeditions.",
+    source: 'https://magic.wizards.com/en/news/feature/oath-gatewatch-release-notes-2016-01-13',
+  },
   v17: {
     description:
       'A collection of transforming cards whose hidden faces reveal different forms and powers. From the Vault: Transform gathers these double-sided designs into a limited-edition release.',
