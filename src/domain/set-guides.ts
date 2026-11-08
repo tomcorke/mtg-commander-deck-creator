@@ -1,5 +1,78 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  fem: {
+    description:
+      'Creature-type factions struggle for control of Sarpadia on Dominaria. Each colour has its own faction, facing rivals outside its ranks and conflict within them.',
+    source: 'https://magic.wizards.com/en/news/making-magic/faction-packed-2018-10-15',
+  },
+  drk: {
+    description:
+      "Goblins are one of this early expansion's supported creature themes. Several cards strengthen or otherwise help Goblins, while another card specifically works against them.",
+    source: 'https://magic.wizards.com/en/news/making-magic/typal-through-the-years-part-1',
+  },
+  leg: {
+    description:
+      "Introduces legendary permanents and multicoloured gold cards. Its legendary creatures combine colours, opening up new combinations beyond the original game's single-colour cards.",
+    source: 'https://magic.wizards.com/en/news/making-magic/trivial-pursuit-more-or-less',
+  },
+  atq: {
+    description:
+      "Artifacts form the set's mechanical theme. Cards such as Argivian Archaeologist support building around artifacts and recovering them from the graveyard.",
+    source: 'https://magic.wizards.com/en/news/making-magic/commander-masters-storyteller-part-1',
+  },
+  arn: {
+    description:
+      'Visits Rabiah, a desert realm with elements drawn from One Thousand and One Nights. Its setting became a multitude of related planes known as Rabiah the Infinite.',
+    source: 'https://magic.wizards.com/en/news/feature/known-mutliverse-2008-03-19',
+  },
+  lea: {
+    description:
+      'The original Magic release establishes the five-colour system and mana as the foundation for building decks. It introduces the core idea of choosing your own cards to shape how you play.',
+    source: 'https://magic.wizards.com/en/news/making-magic/looking-back-part-1',
+  },
+  leb: {
+    description:
+      'A follow-up printing of the original game, adding Circle of Protection: Black and Volcanic Island after their accidental omission from Alpha. It also adds another set of basic-land illustrations.',
+    source:
+      'https://magic.wizards.com/en/news/making-magic/25-more-random-things-about-magic-2016-06-20',
+  },
+  '2ed': {
+    description:
+      'Revisits the original card selection from Alpha and Beta. Unlimited preserves that early foundation rather than introducing a new world or a separate mechanical theme.',
+    source: 'https://magic.wizards.com/en/news/making-magic/good-core-2003-07-07',
+  },
+  sum: {
+    description:
+      'A replacement printing of Revised Edition, codenamed Edgar, intended to address printing and illustration problems. Most copies were destroyed; the surviving release is known as Summer Magic.',
+    source:
+      'https://magic.wizards.com/en/news/making-magic/25-more-random-things-about-magic-2016-06-20',
+  },
+  '6ed': {
+    description:
+      'Released alongside the major rules overhaul that introduced the stack. Classic Sixth Edition marks a shift toward a more consistent system for handling spells and abilities.',
+    source: 'https://magic.wizards.com/en/news/making-magic/stack-2006-11-20',
+  },
+  '7ed': {
+    description:
+      'Combines the core-set experience with a beginner Starter Box. Its tutorial decks and accompanying computer opponent were designed to help new players learn basic strategies at their own pace.',
+    source:
+      'https://magic.wizards.com/en/news/making-magic/starting-with-a-good-foundations-part-1',
+  },
+  '8ed': {
+    description:
+      'Designed as an entry point for new players, using straightforward creatures alongside cards that demonstrate deck-building themes. Goblin King, for example, shows how creatures of a shared type can work together.',
+    source: 'https://magic.wizards.com/en/news/making-magic/lets-start-very-beginning-2003-07-14',
+  },
+  '9ed': {
+    description:
+      'Brings Equipment into the core set, alongside the defender and vigilance keywords. Protection and trample also return to core-set use, with more complicated abilities placed at higher rarities.',
+    source: 'https://magic.wizards.com/en/news/making-magic/evergreen-eggs-ham-2015-06-08',
+  },
+  '10e': {
+    description:
+      'Brings flash, lifelink, reach, and shroud into the core-set keyword lineup. Familiar effects receive concise names as the core set adopts mechanics from the surrounding expansions.',
+    source: 'https://magic.wizards.com/en/news/making-magic/evergreen-eggs-ham-2015-06-08',
+  },
   pcy: {
     description:
       'Rhystic spells and sacrificing lands are the main themes. Prophecy takes a different mechanical direction from the earlier Mercadian Masques sets.',
