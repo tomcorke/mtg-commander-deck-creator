@@ -1,5 +1,85 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  v17: {
+    description:
+      'A collection of transforming cards whose hidden faces reveal different forms and powers. From the Vault: Transform gathers these double-sided designs into a limited-edition release.',
+    source: 'https://mtg-jp.com/products/0000085/',
+  },
+  v16: {
+    description:
+      "Collects cards associated with memorable events and stories from across the Multiverse. From the Vault: Lore looks back at moments that helped shape Magic's history.",
+    source: 'https://mtg-jp.com/products/0000116/',
+  },
+  v15: {
+    description:
+      "A fifteen-card collection celebrating Angels. It brings together the winged warriors that have appeared across Magic's worlds in a limited From the Vault release.",
+    source: 'https://mtg-jp.com/products/0000117/',
+  },
+  v14: {
+    description:
+      'A fifteen-card collection focused on devastating effects that clear the battlefield. Annihilation gathers destructive spells into a limited From the Vault release.',
+    source: 'https://mtg-jp.com/products/0000118/',
+  },
+  v13: {
+    description:
+      "Celebrates Magic's twentieth anniversary with twenty cards that played important roles in premier-event winning decks. The selection looks back across twenty years of tournament history.",
+    source: 'https://mtg-jp.com/products/0000119/',
+  },
+  v12: {
+    description:
+      "A fifteen-land collection drawing on locations from across Magic's planes. From the Vault: Realms puts the spotlight on lands and the mana associated with those worlds.",
+    source: 'https://mtg-jp.com/products/0000120/',
+  },
+  v11: {
+    description:
+      'A fifteen-card premium collection of legendary creatures. Seven cards receive new illustrations, with the distinctive From the Vault foil treatment giving the selection a shared presentation.',
+    source: 'https://mtg-jp.com/products/0000121/',
+  },
+  v10: {
+    description:
+      'A fifteen-card collection of artifacts from Magic history. From the Vault: Relics gathers notable tools and weapons of earlier eras into a limited release.',
+    source: 'https://mtg-jp.com/products/0000122/',
+  },
+  v09: {
+    description:
+      "A fifteen-card collection selected for the cards' history of being banned or restricted. The theme looks back at their impact on tournament play.",
+    source: 'https://mtg-jp.com/products/0000123/',
+  },
+  drb: {
+    description:
+      "Fifteen foil cards gathered around a Dragon theme. This compact From the Vault release presents a curated selection for players interested in Magic's Dragons.",
+    source: 'https://mtg-jp.com/products/0000124/',
+  },
+  ss3: {
+    description:
+      'Eight cards themed around Chandra Nalaar, accompanied by a foil card. The collection uses special frames and includes new artwork to present spells associated with the pyromancer.',
+    source: 'https://mtg-jp.com/products/0000195/',
+  },
+  ss2: {
+    description:
+      'Eight cards themed around Gideon Jura, accompanied by a foil card. Special frames and new artwork give this compact collection a presentation centred on the planeswalker.',
+    source: 'https://mtg-jp.com/products/0000183/',
+  },
+  ss1: {
+    description:
+      'Eight cards with Jace-themed artwork and special frames, plus a foil copy of one randomly chosen card. The collection presents a compact selection for fans of the blue planeswalker.',
+    source: 'https://mtg-jp.com/products/0000164/',
+  },
+  pd3: {
+    description:
+      'A sixty-card premium foil deck built around the graveyard and powerful creatures. Graveborn sends large creatures into the graveyard and calls the dead back to serve its plans.',
+    source: 'https://mtg-jp.com/products/0000147/',
+  },
+  pd2: {
+    description:
+      'A sixty-card premium foil deck collecting fire and lightning spells from Magic history. The release gives its fiery theme a foil presentation, including cards receiving that treatment for the first time.',
+    source: 'https://mtg-jp.com/products/0000146/',
+  },
+  h09: {
+    description:
+      'A sixty-card premium foil deck built around Slivers and their shared abilities. The collection includes Sliver cards receiving a premium printing for the first time.',
+    source: 'https://mtg-jp.com/products/0000145/',
+  },
   ddu: {
     description:
       'Pits a gathering of Elves against inventors and their machines. The matchup contrasts a force defending nature with creators unleashing destructive inventions.',
