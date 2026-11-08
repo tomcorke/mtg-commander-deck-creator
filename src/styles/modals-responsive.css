@@ -31,13 +31,15 @@
   color: color-mix(in srgb, var(--commander-highlight) 72%, white);
 }
 .dark.commander-themed .recommendation-options legend,
-.dark.commander-themed .recommendation-options button:not(.compact-action) {
+.dark.commander-themed .recommendation-options button:not(.compact-action, .card-reference-name) {
   color: var(--commander-highlight);
 }
-.dark.commander-themed .recommendation-options button:not(.compact-action) {
+.dark.commander-themed .recommendation-options button:not(.compact-action, .card-reference-name) {
   border-color: var(--commander-highlight);
 }
-.dark.commander-themed .recommendation-options button:not(.compact-action):hover {
+.dark.commander-themed
+  .recommendation-options
+  button:not(.compact-action, .card-reference-name):hover {
   background: var(--commander-accent);
   color: white;
 }
