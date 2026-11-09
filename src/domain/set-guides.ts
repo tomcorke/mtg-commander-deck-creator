@@ -3815,4 +3815,102 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Core Set 2021’s Buy-a-Box promo was foil extended-art Rin and Seri, Inseparable, with the non-foil extended-art version also appearing in Collector Boosters.',
     source: 'https://magic.wizards.com/en/news/card-preview/collecting-core-set-2021-2020-06-05',
   },
+  ppc1: {
+    description:
+      'Magic 2015’s oversized Garruk was the centrepiece of an optional prerelease game: one player faced Garruk, who started at 20 loyalty, between rounds.',
+    source: 'https://magic.wizards.com/en/news/feature/magic-2015-prerelease-primer',
+  },
+  psdg: {
+    description:
+      'Wizards traces Velukan Dragon to Magic: The Gathering for Dreamcast; Mystery Booster 2 later brought the card into tabletop Magic.',
+    source:
+      'https://magic.wizards.com/en/news/feature/the-nonsense-files-the-many-frames-of-mystery-booster-2',
+  },
+  pmic: {
+    description:
+      'Wizards documents a MicroProse-era oversized printing of Aswan Jaguar, measuring 6 by 9 inches.',
+    source: 'https://magic.wizards.com/en/news/feature/astral-cards-2009-02-12',
+  },
+  olep: {
+    description:
+      'Organized Play distributed oversized Magic cards as prizes; Wizards identifies Jester’s Cap as one example from that giant-card series.',
+    source:
+      'https://magic.wizards.com/en/news/making-magic/80000-words-directors-commentary-2008-11-20',
+  },
+  olgc: {
+    description:
+      'Legacy Championship winners have received original paintings of iconic format cards in oversized frames; 2023 examples included Force of Will, Volcanic Island, and Lightning Bolt.',
+    source: 'https://magic.gg/news/october-commandfests-and-2023-eternal-weekend-news',
+  },
+  ovnt: {
+    description:
+      'Vintage Championship winners have received original paintings of iconic cards in oversized frames; the 2023 events awarded Black Lotus paintings in three regional styles.',
+    source: 'https://magic.gg/news/october-commandfests-and-2023-eternal-weekend-news',
+  },
+  pssc: {
+    description:
+      'Secret Lair Spectacular added a custom Planechase deck to its Modern event, letting players use a one-time ticket to take a match into the Secret Lair.',
+    source:
+      'https://www.mtgfestivals.com/global/en-us/magiccon-news/all-play-your-guide-to-ticketed-and-on-demand-events-at-magiccon.html',
+  },
+  tzen: {
+    description:
+      'Landfall can add flying Birds: Emeria Angel lets you create a 1/1 white Bird token whenever a land enters under your control.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000071/190399/',
+  },
+  tm10: {
+    description:
+      'Magic 2010 includes Garruk Wildspeaker, whose loyalty ability creates a 3/3 green Beast token.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000040/191243/',
+  },
+  tarb: {
+    description:
+      'Thopter Foundry trades a non-token artifact for a flying 1/1 Thopter and one life.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000002/183017/',
+  },
+  tddc: {
+    description:
+      'The official Divine vs. Demonic gallery lists Spirit, Demon, and Thrull tokens alongside the deck cards.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000092/',
+  },
+  tcon: {
+    description:
+      'Conflux includes Rakka Mar, who can tap to create a hasty 3/1 red Elemental token.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000016/185810/',
+  },
+  tala: {
+    description:
+      'Shards of Alara tokens range from disposable artifact creatures and variable-size Oozes to Sarkhan Vol’s five 4/4 flying Dragons.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
+  teve: {
+    description:
+      'Eventide used Springjack Shepherd and Springjack Pasture to create 0/1 white Goat tokens.',
+    source: 'https://magic.wizards.com/en/news/making-magic/then-and-now-part-2',
+  },
+  tshm: {
+    description:
+      'Shadowmoor’s Rhys the Redeemed was the first card to copy tokens, opening up a new line of token interactions.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
+  tmor: {
+    description:
+      'Morningtide’s Ambassador Oak used a token to make one card function as two vanilla creatures.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
+  tlrw: {
+    description:
+      'Lorwyn’s planeswalkers were designed around creature tokens: Ajani and Garruk make them, while Heat Shimmer creates temporary copies.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
+  t10e: {
+    description:
+      'Tenth Edition put Goblin and Wasp tokens on the backs of booster ad cards, turning the ads into play aids.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
+  tugl: {
+    description:
+      'Unglued’s unnamed, full-art tokens borrowed from Japanese play accessories and were left open-ended so they could represent different creatures.',
+    source: 'https://magic.wizards.com/en/news/making-magic/putting-un-fun-2004-08-16',
+  },
 }
