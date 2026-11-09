@@ -4018,4 +4018,103 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Iconic Masters reprints include token-makers such as Angelic Accord’s 4/4 flying Angels and Hunting Pack’s 4/4 green Beasts.',
     source: 'https://magic.wizards.com/en/news/feature/iconic-masters-release-notes-2017-09-11',
   },
+  pw27: {
+    description:
+      'WPN’s 2027 Black History Month Commander event lists a Vivien Reid promo and event emblems among its materials.',
+    source: 'https://wpn.wizards.com/en/event/magic-presents-black-history-month-celebration',
+  },
+  p30m: {
+    description:
+      'Magic’s 30th-anniversary program spanned 30 promos across eight Prereleases from 2022 to 2024, with cards celebrating each year of Magic.',
+    source:
+      'https://wpn.wizards.com/en/news/magic-30th-anniversary-kicks-off-with-promos-products-more',
+  },
+  psvc: {
+    description:
+      'Japan’s 2022 Summer Vacation campaign offered seven foil promos: three with Summer Vacation stamps and four Japanese Year of the Ox cards.',
+    source: 'https://mtg-jp.com/reading/kochima/0036193/',
+  },
+  pss3: {
+    description:
+      'Core Set 2019 Standard Showdown prize boosters held recent-set rares and foils plus foil basic lands by Alayna Danner.',
+    source: 'https://wpn.wizards.com/en/news/see-your-m19-promo-cards',
+  },
+  pust: {
+    description:
+      'Unstable Draft Weekend’s promo was a squirrel lord, matching the set’s squirrel subtheme.',
+    source: 'https://wpn.wizards.com/en/news/10-cards-make-unstable-amazing',
+  },
+  pxln: {
+    description:
+      'Ixalan’s WPN kits included a foil Burning Sun’s Avatar Buy-a-Box promo alongside promos for store events.',
+    source: 'https://wpn.wizards.com/en/news/preview-your-xln-kits',
+  },
+  pxtc: {
+    description:
+      'The Ixalan Buy-a-Box pack combined Rebecca Guay foil basics, Standard rares or mythics, other foils, and a foil Burning Sun’s Avatar.',
+    source: 'https://wpn.wizards.com/en/news/preview-your-xln-kits',
+  },
+  pss2: {
+    description:
+      'Ixalan Standard Showdown prize boosters contained two Standard rares or mythics, a foil common or uncommon, and a Rebecca Guay foil basic land.',
+    source: 'https://wpn.wizards.com/en/news/preview-your-xln-kits',
+  },
+  pdom: {
+    description: 'Dominaria’s release included one unique in-store Buy-a-Box promotional card.',
+    source: 'https://magic.wizards.com/en/news/feature/dominaria-release-notes',
+  },
+  pgtc: {
+    description:
+      'Gatecrash event promos included a guild-specific alternate-art prerelease foil, a League Soldier token, and Game Day participation and Top 8 cards.',
+    source: 'https://magic.wizards.com/en/news/feature/promo-cards-2013-01-02',
+  },
+  pdgm: {
+    description:
+      'Dragon’s Maze offered an alternate-art foil prerelease card; every Implicit Maze participant also received a foil basic land promo.',
+    source: 'https://magic.wizards.com/en/news/feature/dragons-maze-prerelease-primer',
+  },
+  pdka: {
+    description:
+      'Dark Ascension prereleases offered an exclusive promo and a monster-hunt challenge that split players among four creature factions.',
+    source: 'https://magic.wizards.com/en/news/feature/dark-ascension-prerelease-primer',
+  },
+  pavr: {
+    description:
+      'Avacyn Restored prereleases paired a foil participant promo with a Helvault challenge that players advanced through achievements.',
+    source: 'https://magic.wizards.com/en/news/feature/avacyn-restored-prerelease-primer',
+  },
+  pf19: {
+    description:
+      'Wizards’ card archive identifies a Lightning Bolt printing as an RNA MagicFest promo, a documented card from the 2019 event-promo group.',
+    source: 'https://magic.wizards.com/en/news/feature/cards-list-2020-09-10',
+  },
+  g17: {
+    description:
+      'The 2017 Gift Pack bundled five Mark Poole premium basics, premium Kari Zev and Metalwork Colossus, three boosters, a spindown, and a mini-poster.',
+    source:
+      'https://web.archive.org/web/20170901000000id_/http://wpn.wizards.com/en/products/gift-pack',
+  },
+  wc97: {
+    description:
+      'Wizards’ archive preserves the 1997 World Championship decks of Jakub Slemr, Janosch Kuhn, Svend Sparre Geertsen, and Paul McCabe.',
+    source:
+      'https://web.archive.org/web/20020607022006/https://www.wizards.com/sideboard/article.asp?x=results/ptworlds97_decks',
+  },
+  wc98: {
+    description:
+      'Wizards mass-produced four top Standard decks from each Worlds with special borders and backs; its 1998 example is Randy Buehler’s blue control deck.',
+    source:
+      'https://web.archive.org/web/20021021125813id_/http://www.wizards.com:80/default.asp?x=mtgcom/arcana/162',
+  },
+  td0: {
+    description:
+      'Magic Online’s Deck Series offered the aggressive Legacy-ready Boltslinger and Exiler decks, each with a ready-to-play 60-card deck and 15-card sideboard.',
+    source:
+      'https://web.archive.org/web/20110903024229id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg/tcg/mtgodeckseries/productinfo',
+  },
+  mgb: {
+    description:
+      'Wizards’ Multiverse Gift Box mixed six boosters in five languages, including two Visions preview packs, in a display box that converts into a carrying case.',
+    source: 'https://archive.org/stream/the-duelist-14/The%20Duelist%20%2314_djvu.txt',
+  },
 }
