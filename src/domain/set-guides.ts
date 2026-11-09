@@ -1,5 +1,72 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  pecl: {
+    description:
+      "Lorwyn Eclipsed's Buy-a-Box promo is Harmonized Crescendo, a merfolk card offered with local-game-store Play or Collector Booster box preorders.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-lorwyn-eclipsed',
+  },
+  pl26: {
+    description:
+      "Japan's 2026 Magic League rotates foil Year of the Horse promos as its monthly reward: two matches on separate days earn that period's card, with a Plains or Treasure token scheduled for December.",
+    source: 'https://mtg-jp.com/reading/kochima/0039380/',
+  },
+  ptla: {
+    description:
+      "Avatar: The Last Airbender's Buy-a-Box promo is Firebending Student, offered as a traditional foil with a local-game-store Play or Collector Booster box preorder.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-avatar-the-last-airbender',
+  },
+  lmar: {
+    description:
+      'Marvel Legends Series figures each pair with a traditional-foil borderless Magic promo whose art matches the figure; the Huntmaster of the Fells card depicts Man-Wolf.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/marvel-legends-teams-up-with-spider-man',
+  },
+  pspm: {
+    description:
+      "Spider-Sense is the traditional-foil Buy-a-Box promo for Marvel's Spider-Man, offered with a local-game-store Play or Collector Booster box preorder.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-marvels-spider-man',
+  },
+  peoe: {
+    description:
+      "Edge of Eternities' Buy-a-Box promo is Singularity Rupture, shown in traditional foil with extended art.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-edge-of-eternities',
+  },
+  rfin: {
+    description:
+      'Final Fantasy Regional Championship participants receive a nonfoil Aerith Gainsborough promo, while top finishers receive traditional-foil copies that vary by market.',
+    source: 'https://magic.wizards.com/en/news/feature/where-to-play-final-fantasy',
+  },
+  pfin: {
+    description:
+      "Herald's Horn is the traditional-foil Buy-a-Box promo for Final Fantasy, offered with a local-game-store Play or Collector Booster box preorder.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-final-fantasy',
+  },
+  pss5: {
+    description:
+      'Final Fantasy Standard Showdown winners receive one of two traditional-foil promos: Ultima or Squall, SeeD Mercenary.',
+    source: 'https://magic.wizards.com/en/news/feature/where-to-play-final-fantasy',
+  },
+  ptdm: {
+    description:
+      'Tarkir: Dragonstorm promos include Qarsi Revenant as a traditional-foil Buy-a-Box card and Dragonspeaker Shaman for Commander Party participants.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/where-and-how-to-play-tarkir-dragonstorm',
+  },
+  pdft: {
+    description:
+      'Aetherdrift promos include the traditional-foil extended-art Lifecraft Engine Buy-a-Box card and three Raceway cards packed in Finish Line Bundles.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-aetherdrift',
+  },
+  pjsc: {
+    description:
+      "The 2025 Japan Standard Cup at Players Convention Chiba paired a Japanese-foil Brotherhood's End participation promo with a Japanese-foil Tishana's Tidebinder prize for top finishers.",
+    source: 'https://mtg-jp.com/reading/kochima/0038324/',
+  },
+  pspl: {
+    description:
+      'At Magic Spotlight: Secrets, registered players received a nonfoil borderless Liliana Vess promo, with traditional-foil copies for the Top 128.',
+    source: 'https://magic.wizards.com/en/news/feature/where-to-play-secrets-of-strixhaven',
+  },
   te01: {
     description:
       'Archenemy: Nicol Bolas scheme cards can unleash 3/3 black Horror tokens. Some schemes create one outright, while others send a Horror after each opponent.',
