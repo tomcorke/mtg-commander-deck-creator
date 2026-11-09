@@ -1,5 +1,102 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  tdmu: {
+    description:
+      "Dominaria United's booster lineup brings twenty-four full-art tokens and two planeswalker emblems to the struggle for Dominaria. Its supporting forces range from small creatures to Powerstones and Treasure, with foil double-sided versions in Collector Boosters.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-dominaria-united-2022-08-26',
+  },
+  tdmc: {
+    description:
+      "Dominaria United's Commander decks add twelve token types beyond the booster collection. Legends' Legacy and Painbow each come with ten double-sided tokens, supporting their different armies with creatures such as Zombie Knights and Kavu.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-dominaria-united-2022-08-26',
+  },
+  t2x2: {
+    description:
+      'Double Masters 2022 gathers twenty-two full-art tokens and two planeswalker emblems to accompany its reprints. The range includes Eldrazi Scions, an embalmed Aven Initiate, and a Cat Dragon, with foil double-sided combinations in Collector Boosters.',
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/the-tokens-of-double-masters-2022',
+  },
+  tsnc: {
+    description:
+      "New Capenna's booster tokens include Citizens and five family-themed Treasure designs. Seventeen full-art tokens and two double-sided punch-out cards support the city's battles, while Collector Boosters offer foil versions of the full-art tokens.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/the-tokens-from-streets-of-new-capenna',
+  },
+  tncc: {
+    description:
+      "The five New Capenna Commander decks bring thirty-six exclusive full-art tokens to the city. Each family's deck includes ten double-sided tokens and a double-sided punch-out card, supplying the supporting pieces for its own strategy.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/the-tokens-from-streets-of-new-capenna',
+  },
+  tneo: {
+    description:
+      "Neon Dynasty's token collection blends spirits and technology, including Samurai, Pilots, Mechtitan, and Tamiyo's Notebook. Planeswalker emblems and a Shrine token join the lineup, with Wizards' gallery noting printing exceptions affecting Shrine availability in some Set Boosters.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-kamigawa-neon-dynasty',
+  },
+  tnec: {
+    description:
+      'Neon Dynasty Commander adds twelve exclusive token designs across Power Up and Upgrades Unleashed. Each deck includes ten double-sided tokens, with supporting creatures and artifacts ranging from Thopters and Pilots to Smoke Blessing.',
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-kamigawa-neon-dynasty',
+  },
+  tmid: {
+    description:
+      "Midnight Hunt's token lineup includes decayed Zombies, Clues, and two planeswalker emblems. A double-sided Day and Night reminder accompanies the sixteen full-art booster tokens, helping mark the changing light over Innistrad.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-innistrad-midnight-hunt',
+  },
+  tmic: {
+    description:
+      'Midnight Hunt Commander brings eleven exclusive full-art tokens across its two decks. Undead Unleashed pairs Zombies with clues and other undead, while Coven Counters supplies a broader creature menagerie; each deck includes ten double-sided tokens.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-innistrad-midnight-hunt',
+  },
+  tvow: {
+    description:
+      "Crimson Vow's booster support includes Blood, Spirits, Vampires, and Chandra's emblem. Nineteen full-art tokens accompany the set, along with a double-sided Day and Night reminder in Draft and Set Boosters.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/tokens-innistrad-crimson-vow-2021-11-11',
+  },
+  tvoc: {
+    description:
+      'Crimson Vow Commander supplies supporting pieces for Spirit Squadron and Vampiric Bloodline. The decks include six exclusive full-art token designs; each comes with ten double-sided tokens, pairing spectral creatures or Blood with the other pieces its strategy needs.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/tokens-innistrad-crimson-vow-2021-11-11',
+  },
+  tafr: {
+    description:
+      'Forgotten Realms brings dungeons into its supporting-card lineup. Fifteen full-art booster tokens and four emblems accompany the adventure, with three of those tokens carrying a dungeon on the reverse.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/tokens-adventures-forgotten-realms-2021-07-12',
+  },
+  tafc: {
+    description:
+      'Forgotten Realms Commander adds thirteen exclusive full-art tokens to the Dungeons & Dragons adventure. Each deck includes ten double-sided tokens, with sixteen different front-and-back combinations across the release.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/tokens-adventures-forgotten-realms-2021-07-12',
+  },
+  tmh2: {
+    description:
+      'Modern Horizons 2 supplies twenty-one full-art booster tokens, including Squirrels, Constructs, and token versions of Timeless Dragon and Timeless Witness. Clue, Food, and Treasure each have different illustrations, while Collector Boosters offer foil double-sided tokens.',
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-modern-horizons-2-2021-06-03',
+  },
+  tstx: {
+    description:
+      "Strixhaven's seven token designs include the colleges' Elemental, Fractal, Inkling, Pest, and Spirit mascots, alongside two planeswalker emblems. College-themed Prerelease Packs also contain double-sided tokens aligned with the chosen school.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-stx-and-c21-2021-04-15',
+  },
+  tc21: {
+    description:
+      "Commander 2021 adds thirty exclusive token designs to Strixhaven's college-themed decks. Each of the five decks comes with ten double-sided tokens, from Witherbloom's Food and Pests to Quandrix's Fractals and larger creatures.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-stx-and-c21-2021-04-15',
+  },
+  tkhm: {
+    description:
+      "Kaldheim's twenty full-art tokens bring mythic creatures and magical objects to the battlefield, including Koma's Coil, Icy Manalith, and Replicated Ring. Three planeswalker emblems round out the main set's supporting collection.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-kaldheim-2021-01-20',
+  },
+  tkhc: {
+    description:
+      'Kaldheim Commander includes eight exclusive token designs alongside pieces shared with the main set. Each deck supplies ten double-sided tokens, with combinations spanning Elves, Spirits, Thopters, and other supporting creatures.',
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-kaldheim-2021-01-20',
+  },
   tlci: {
     description:
       "The Lost Caverns of Ixalan supplies eighteen full-art booster tokens for its underground adventure. Its supporting pieces also include a punch-out card with +1/+1, stun, and finality counters, helping keep the expedition's board state organized.",
