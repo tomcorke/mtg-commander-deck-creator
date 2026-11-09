@@ -4390,4 +4390,75 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'The August-October 2014 FNM promos were Bile Blight, Banishing Light, and Fanatic of Xenagos, one card for each month.',
     source: 'https://mtg-jp.com/reading/publicity/0010848/',
   },
+  f17: {
+    description:
+      'FNM seasons aligned with set releases in 2017; the first Ixalan season offered three foil double-sided tokens.',
+    source: 'https://magic.wizards.com/en/news/feature/store-play-evolves-2017-07-16',
+  },
+  j16: {
+    description:
+      "Wizards' 2016 story page captions Vindicate as a Judge Promo, a dated example from the judge-card program.",
+    source: 'https://magic.wizards.com/en/news/magic-story/promises-old-and-new-2016-04-13',
+  },
+  ps16: {
+    description:
+      'Wizards announced foil Magic promos for San Diego Comic-Con 2016 and pictured the card faces in its release.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/san-diego-comic-con-2016-magic-promos-2016-07-19',
+  },
+  pchk: {
+    description:
+      'Wizards recalls a unique Champions of Kamigawa promo card given away at Grand Prix events.',
+    source: 'https://magic.wizards.com/en/news/making-magic/how-trivial-2018-10-22',
+  },
+  p5dn: {
+    description:
+      'Fifth Dawn Prereleases awarded a commemorative foil card alongside the set’s five-color themes and sunburst mechanic.',
+    source: 'https://magic.wizards.com/en/news/feature/fifth-dawn-prerelease-primer',
+  },
+  pmrd: {
+    description:
+      'Mirrodin Prereleases included a commemorative foil card; Wizards framed the set around fresh mechanics and artifacts.',
+    source: 'https://magic.wizards.com/en/news/feature/mirrodin-prerelease-primer',
+  },
+  pdis: {
+    description:
+      'Dissension’s foil Prerelease promo was an alternate-art Ink-Eyes, Servant of Oni.',
+    source: 'https://magic.wizards.com/en/news/feature/dissension-prerelease-primer',
+  },
+  ptsp: {
+    description:
+      'Lotus Bloom was the Time Spiral Prerelease card, part of the commemorative alternate-art promo series.',
+    source: 'https://magic.wizards.com/en/news/feature/planar-chaos-prerelease-primer',
+  },
+  pplc: {
+    description:
+      'Wizards’ Planar Chaos Prerelease primer frames the set as a what-if reworking of the color pie with a time-shifted twist.',
+    source: 'https://magic.wizards.com/en/news/feature/planar-chaos-prerelease-primer',
+  },
+  pfut: {
+    description:
+      'Future Sight’s Prerelease feature uses messages from the future to frame its event and discusses the alternate-art promo card.',
+    source: 'https://magic.wizards.com/en/news/feature/future-sight-prerelease-primer',
+  },
+  psok: {
+    description:
+      'Saviors of Kamigawa Prerelease attendees received an exclusive foil rare with a date stamp and alternate art.',
+    source: 'https://magic.wizards.com/en/news/feature/saviors-of-kamigawa-prerelease-primer',
+  },
+  psom: {
+    description:
+      'Wurmcoil Engine was the Scars of Mirrodin Prerelease promo as Phyrexians invaded the returning artifact plane.',
+    source: 'https://magic.wizards.com/en/news/feature/scars-of-mirrodin-prerelease-primer',
+  },
+  pwwk: {
+    description:
+      'Comet Storm was Worldwake’s Prerelease promo; the event primer notes that its promo copy could not be used in the sealed deck.',
+    source: 'https://magic.wizards.com/en/news/feature/worldwake-prerelease-primer',
+  },
+  parb: {
+    description:
+      'Alara Reborn Prerelease flights awarded a foil promo card alongside the all-gold set’s multicolor card pool.',
+    source: 'https://magic.wizards.com/en/news/feature/alara-reborn-prerelease-primer',
+  },
 }
