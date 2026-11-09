@@ -1,5 +1,109 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  ttrk: {
+    description:
+      "Star Trek's booster token collection includes twenty-seven full-art designs. Different illustrations for Officers, Klingon Warriors, Borg, and Clues capture the universe's variety, with double-sided non-foil and traditional foil versions across booster products.",
+    source: 'https://magic.wizards.com/en/news/card-preview/star-trek-tokens-and-art-cards',
+  },
+  ttrc: {
+    description:
+      "Star Trek Commander decks each supply ten double-sided tokens, mixing booster designs with pieces made for the decks. Collector's Edition decks give these supporting pieces surge foil on one face, with a non-foil reverse.",
+    source: 'https://magic.wizards.com/en/news/card-preview/star-trek-tokens-and-art-cards',
+  },
+  tfra: {
+    description:
+      "Reality Fracture's booster lineup brings fifteen full-art tokens and three emblems to the altered Multiverse. They appear in assorted double-sided combinations, with non-foil versions in Play Boosters and traditional foil versions in Collector Boosters.",
+    source: 'https://magic.wizards.com/en/news/card-preview/reality-fracture-tokens-and-art-cards',
+  },
+  tfrc: {
+    description:
+      "Multiverse Reforged's supporting pieces include a Gingerbrute token and The Monarch helper. The Commander collection has sixteen token designs, with ten double-sided tokens in the deck; The Angel token appears in Collector Boosters and later printings of the Commander deck.",
+    source: 'https://magic.wizards.com/en/news/card-preview/reality-fracture-tokens-and-art-cards',
+  },
+  thob: {
+    description:
+      "The Hobbit's token collection depicts creatures and characters from Middle-earth, with thirteen full-art designs and two helpers in Play Boosters. Different Goblin Army and Treasure illustrations show growing forces and wealth, while Collector Boosters provide foil tokens.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-hobbit-tokens',
+  },
+  tmsh: {
+    description:
+      "Marvel Super Heroes' tokens include Robot Villains and shawarma Food among twenty-two full-art booster designs. The supporting lineup also has a Robot Hero created by Iron Man, Tony Stark, available only in the Beginner Box.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-marvel-super-heroes',
+  },
+  tmsc: {
+    description:
+      "Marvel Super Heroes Commander combines fifteen Commander token designs and a helper with tokens from the boosters. Each deck has ten double-sided tokens; Collector's Edition decks add surge-foil faces, and the Commander lineup includes Vibranium and Council of Reeds.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-marvel-super-heroes',
+  },
+  tsos: {
+    description:
+      "Secrets of Strixhaven supplies two illustrations of each college's mascot: Elementals, Fractals, Inklings, Pests, and Spirits. These form part of a twelve-token booster collection with an emblem for Professor Dellian Fel.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-secrets-of-strixhaven',
+  },
+  tsoc: {
+    description:
+      'Secrets of Strixhaven Commander adds twenty-eight token designs to the return to school. Each deck contains ten double-sided tokens, and the tokens can also appear in foil in Collector Boosters, while Commander helpers stay out of those boosters.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-secrets-of-strixhaven',
+  },
+  ttmt: {
+    description:
+      "Teenage Mutant Ninja Turtles' main-set collection supplies ten full-art token designs for its battles. They appear in different double-sided combinations, with non-foil versions in Play Boosters and traditional foil versions in Collector Boosters.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-teenage-mutant-ninja-turtles',
+  },
+  ttmc: {
+    description:
+      "This supplemental collection includes Turtle Team-Up's bosses and event cards. In that cooperative experience, two to four players face an automated enemy deck featuring Shredder and other foes, with new bosses and events increasing the challenge as play progresses.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/teenage-mutant-ninja-turtles-turtle-team-up-contents',
+  },
+  tecl: {
+    description:
+      "Lorwyn Eclipsed's booster support brings eleven full-art tokens and Oko, Shadowmoor Scion's emblem to Lorwyn-Shadowmoor. The designs appear in assorted double-sided combinations, with foil versions in Collector Boosters.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-lorwyn-eclipsed',
+  },
+  tecc: {
+    description:
+      'Lorwyn Eclipsed Commander adds eleven unique token designs across Dance of the Elements and Blight Curse. Each deck includes ten double-sided tokens, and Blight Curse also supplies a punch-out counter card.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-lorwyn-eclipsed',
+  },
+  tspm: {
+    description:
+      "Marvel's Spider-Man supplies seven full-art token designs to support its superhero battles. Play Boosters contain non-foil double-sided tokens, while Collector Boosters offer the same token lineup in traditional foil.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-spider-man',
+  },
+  tfin: {
+    description:
+      "Final Fantasy's booster token collection includes twenty-three full-art designs and Sephiroth's emblem. Eight different Hero tokens depict characters from Final Fantasy XIV, bringing recognizable companions to the battlefield.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-final-fantasy',
+  },
+  tfic: {
+    description:
+      "Final Fantasy Commander adds nine unique token designs and two helpers, with surge-foil versions in Collector's Edition decks. Counter Blitz replaces four double-sided tokens with punch-out counter cards; Commander-exclusive tokens are separate from the Collector Booster lineup.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-final-fantasy',
+  },
+  tfdn: {
+    description:
+      "Foundations' booster collection has twenty-three tokens and emblems for Kaito and Vivien Reid. The Starter Collection adds eight more token types, with double-sided non-foil pieces across those products and foil tokens in Collector Boosters.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-foundations',
+  },
+  tpip: {
+    description:
+      "Fallout's supporting pieces include Junk, Robots, mutated creatures, and energy and radiation helpers. Twenty full-art tokens and two helpers span the release, with ten double-sided tokens in each Commander deck and foil versions in Collector Boosters.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-magic-the-gathering-fallout',
+  },
+  trvr: {
+    description:
+      'Ravnica Remastered supplies nineteen full-art tokens and a Domri Rade emblem to accompany its return to the City of Guilds. Draft Boosters contain non-foil single-faced versions, while Collector Boosters offer traditional foil double-faced tokens.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-ravnica-remastered',
+  },
+  twho: {
+    description:
+      "Doctor Who's thirty-two full-art tokens accompany the Doctor, companions, and foes through space and time. Each Commander deck has ten fixed double-faced tokens, and Collector Boosters can include double-faced surge-foil versions.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/the-tokens-of-magic-the-gathering-doctor-who',
+  },
   amkm: {
     description:
       "Murders at Karlov Manor's art-card collection features forty-nine illustrations, including Aurelia's Vindicator and Case File Auditor. These Play Booster collectibles also appear with gold-stamped artist signatures or Planeswalker symbols.",
