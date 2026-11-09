@@ -4209,4 +4209,110 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Innistrad’s Gothic-horror token play centers on Zombie hordes and Spider Spawning’s token-supported draft strategy.',
     source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
   },
+  tjou: {
+    description:
+      'Journey into Nyx’s token-makers range from Launch the Fleet’s attacking Soldiers to King Macar’s Gold, Hydra Broodmaster’s Hydras, Hour of Need’s Sphinxes, and graveyard-made Zombies or Spiders.',
+    source: 'https://magic.wizards.com/en/news/feature/release-notes-2014-04-23',
+  },
+  tbng: {
+    description:
+      'Born of the Gods features vigilant Cat Soldier tokens: Brimaz creates them both when he attacks and when he blocks.',
+    source: 'https://magic.wizards.com/en/news/feature/release-notes-2014-01-22',
+  },
+  tm15: {
+    description:
+      'Magic 2015’s release notes feature Goblin Kaboomist’s repeatable Land Mine artifact token and Spirit Bonds’ Spirit tokens, alongside a refreshed token card frame.',
+    source:
+      'https://magic.wizards.com/en/news/feature/magic-2015-core-set-release-notes-2014-07-07',
+  },
+  tbbd: {
+    description:
+      'Battlebond’s team-focused Two-Headed Giant Limited includes Regna, who creates two 1/1 white Warrior tokens at each end step if her team gained life that turn.',
+    source: 'https://magic.wizards.com/en/news/feature/battlebond-release-notes-2018-06-01',
+  },
+  twwk: {
+    description:
+      'Worldwake’s Bestial Menace was the first Magic card to create three different creature token types, a milestone in token design.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
+  tdka: {
+    description:
+      'Dark Ascension’s Séance continues a design experiment in using creature tokens to challenge players to discover creative uses for them.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
+  tavr: {
+    description:
+      'Avacyn Restored’s Helvault Prerelease promotion introduced Magic’s first double-faced tokens: Angel on one side and Demon on the other.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
+  tmm2: {
+    description:
+      'Modern Masters 2015 brings token makers into a new Limited draft, from Creakwood Liege’s recurring Worm to Kiki-Jiki’s hasty temporary creature copies.',
+    source:
+      'https://magic.wizards.com/en/news/feature/modern-masters-2015-edition-release-notes-2015-05-12',
+  },
+  taer: {
+    description:
+      'Aether Revolt’s revolt sees permanents such as Clues leave the battlefield, while improvise lets artifact tokens such as Servos or Clues help cast spells.',
+    source: 'https://magic.wizards.com/en/news/feature/aether-revolt-mechanics-2017-01-02',
+  },
+  trix: {
+    description:
+      'Rivals of Ixalan includes Treasure makers such as Hornswoggle and Pitiless Plunderer, as well as Polyraptor’s self-copying creature tokens.',
+    source: 'https://magic.wizards.com/en/news/feature/rivals-ixalan-release-notes-2018-01-05',
+  },
+  tgn2: {
+    description:
+      'Game Night 2019 is a five-deck out-of-box multiplayer experience whose official lists include token spells such as Raise the Alarm.',
+    source: 'https://magic.wizards.com/en/news/announcements/game-night-decklists-2019-10-14',
+  },
+  tc16: {
+    description:
+      'Commander 2016’s five decklists include token makers such as Tana and Mycoloth in Open Hostility and Migratory Route in Stalwart Unity.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/commander-2016-edition-decklists-2016-10-28',
+  },
+  tc17: {
+    description:
+      'Commander 2017’s four decks build around Cats, Vampires, Dragons, or Wizards, with distinct approaches including a controlling Wizard deck.',
+    source:
+      'https://magic.wizards.com/en/news/feature/tales-designing-commander-2017-edition-2017-08-17',
+  },
+  tcm2: {
+    description:
+      'Commander Anthology Volume II reissues four past Commander decks; Built from Scratch’s official list includes token makers such as Myr Battlesphere and Pentavus.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/commander-anthology-vol-ii-legends-and-decklists-2018-05-08',
+  },
+  tdds: {
+    description:
+      'Duel Decks: Mind vs. Might pits a Mind deck that builds an army of free tokens against Might’s flashback spells and giant creatures.',
+    source: 'https://magic.wizards.com/en/news/feature/duel-decks-mind-vs-might-2017-03-20',
+  },
+  tgk1: {
+    description:
+      'Guilds of Ravnica Guild Kits pair each guild with a ready-to-play deck drawing on Ravnica’s past and present, including token makers in the Golgari and Selesnya lists.',
+    source: 'https://magic.wizards.com/en/news/announcements/guilds-ravnica-guild-kits-2018-09-25',
+  },
+  tgk2: {
+    description:
+      'Ravnica Allegiance Guild Kits bring the other five guilds together in ready-to-play decks built from cards across Ravnica’s history and meant to face one another.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/ravnica-allegiance-guild-kits-2019-01-15',
+  },
+  tgrn: {
+    description:
+      'Guilds of Ravnica includes Emmara’s 1/1 white Soldier tokens with lifelink, created whenever she becomes tapped.',
+    source: 'https://magic.wizards.com/en/news/feature/guilds-ravnica-release-notes-2018-09-20',
+  },
+  tema: {
+    description:
+      'Eternal Masters’ history-spanning Limited pool includes Elephant Guide, which turns an enchanted creature’s death into a 3/3 green Elephant token.',
+    source: 'https://magic.wizards.com/en/news/feature/eternal-masters-release-notes-2016-06-02',
+  },
+  tcns: {
+    description:
+      'Conspiracy is built for booster draft that becomes multiplayer free-for-all, with draft-changing cards and politics such as dethrone and Will of the Council.',
+    source: 'https://magic.wizards.com/en/news/feature/conspiracy-mechanics',
+  },
 }
