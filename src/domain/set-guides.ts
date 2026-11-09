@@ -1,5 +1,128 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  amkm: {
+    description:
+      "Murders at Karlov Manor's art-card collection features forty-nine illustrations, including Aurelia's Vindicator and Case File Auditor. These Play Booster collectibles also appear with gold-stamped artist signatures or Planeswalker symbols.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/murders-at-karlov-manor-art-cards',
+  },
+  aotj: {
+    description:
+      'Outlaws of Thunder Junction collects fifty-four illustrations on art cards, including Frontier Seeker and Canyon Crab. Found in Play Boosters, the cards also have gold-stamped signature or Planeswalker-symbol versions.',
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/outlaws-of-thunder-junction-art-cards',
+  },
+  amh3: {
+    description:
+      "Modern Horizons 3 gives fifty-four of its illustrations their own art cards. These Play Booster collectibles appear in ordinary form and with gold-stamped artist signatures or Planeswalker symbols, putting the set's artwork on display.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/modern-horizons-3-art-cards',
+  },
+  aacr: {
+    description:
+      "Assassin's Creed's art-card collection showcases twenty illustrations from the crossover. The cards appear in Beyond Boosters, with both unstamped versions and versions bearing a gold-stamped artist signature or Planeswalker symbol.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/assassins-creed-art-cards',
+  },
+  ablb: {
+    description:
+      "Bloomburrow's art cards put fifty-four illustrations from the animalfolk adventure on display. The Play Booster collection offers ordinary art cards and versions with gold-stamped artist signatures or Planeswalker symbols.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/bloomburrow-art-cards',
+  },
+  adsk: {
+    description:
+      "Duskmourn's art cards showcase fifty-four illustrations from the horror setting. These collectibles can appear in Play Boosters, either unstamped or with a gold-stamped artist signature or Planeswalker symbol.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/duskmourn-house-of-horror-art-cards',
+  },
+  afdn: {
+    description:
+      "Foundations celebrates Magic's artwork with fifty-four art-card illustrations, including Kiora, the Rising Tide. The Play Booster collection includes both unstamped cards and versions with gold-stamped signatures or Planeswalker symbols.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/foundations-art-cards',
+  },
+  ainr: {
+    description:
+      "Innistrad Remastered's twenty-five art cards feature vampires, moonlit landscapes, and desperate battles in Thraben. Found in Play Boosters, these illustration cards also have gold-stamped signature or Planeswalker-symbol versions.",
+    source: 'https://magic.wizards.com/en/news/card-preview/innistrad-remastered-art-cards',
+  },
+  adft: {
+    description:
+      "Aetherdrift's fifty-four art cards put its Multiverse-spanning race on display. The Play Booster collectibles feature the set's high-speed artwork, with additional versions bearing gold-stamped artist signatures or Planeswalker symbols.",
+    source: 'https://magic.wizards.com/en/news/card-preview/aetherdrift-art-cards',
+  },
+  atdm: {
+    description:
+      "Tarkir: Dragonstorm's art cards showcase fifty-four pieces of artwork from the set. They can appear in Play Boosters, with ordinary illustrations and versions accented by gold-stamped artist signatures or Planeswalker symbols.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tarkir-dragonstorm-art-cards',
+  },
+  afin: {
+    description:
+      "Final Fantasy's art-card collection presents fifty-three illustrations from the crossover, including Cloud, Ex-SOLDIER. These Play Booster collectibles also appear with gold-stamped artist signatures or Planeswalker symbols.",
+    source: 'https://magic.wizards.com/en/news/card-preview/final-fantasy-art-cards',
+  },
+  aeoe: {
+    description:
+      "Edge of Eternities' fifty-four art cards celebrate the cosmic scale of its Sothera-system space opera. This collection appears in Collector Boosters, with unstamped illustrations and gold-stamped signature or Planeswalker-symbol versions.",
+    source: 'https://magic.wizards.com/en/news/card-preview/edge-of-eternities-art-cards',
+  },
+  aspm: {
+    description:
+      "Marvel's Spider-Man showcases fifty-four illustrations on art cards, including The Soul Stone. Found in Collector Boosters, the series includes ordinary versions and versions with a gold-stamped artist signature or Planeswalker symbol.",
+    source: 'https://magic.wizards.com/en/news/card-preview/spider-man-art-cards',
+  },
+  atla: {
+    description:
+      "Avatar: The Last Airbender's booster art cards give the crossover's illustrations their own collectible presentation. They appear in Collector Boosters, including some with a gold-stamped artist signature or Planeswalker symbol.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-avatar-the-last-airbender',
+  },
+  atle: {
+    description:
+      "Avatar's Scene Box art cards accompany Tea Time at the Jasmine Dragon and The Black Sun Invasion. Each box supplies six art cards and a display easel alongside its six-card playable scene, offering a way to display the illustration.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-avatar-the-last-airbender',
+  },
+  aecl: {
+    description:
+      "Lorwyn Eclipsed's art-card collection highlights fifty-four illustrations from the return to Lorwyn-Shadowmoor. Collector Boosters include these artwork-focused cards, with some gold stamped with an artist's signature or Planeswalker symbol.",
+    source: 'https://magic.wizards.com/en/news/card-preview/lorwyn-eclipsed-art-cards',
+  },
+  atmt: {
+    description:
+      'Teenage Mutant Ninja Turtles art cards showcase fifty-four illustrations of the Turtles, their foes, and their world. The Collector Booster series includes ordinary cards and versions with gold-stamped artist signatures or Planeswalker symbols.',
+    source: 'https://magic.wizards.com/en/news/card-preview/teenage-mutant-ninja-turtles-art-cards',
+  },
+  asos: {
+    description:
+      "Secrets of Strixhaven's fifty-four art cards feature illustrations from the set and the Mystical Archive. These Collector Booster collectibles celebrate the school's artwork, including versions with gold-stamped artist signatures or Planeswalker symbols.",
+    source: 'https://magic.wizards.com/en/news/card-preview/secrets-of-strixhaven-art-cards',
+  },
+  amsh: {
+    description:
+      'Marvel Super Heroes offers forty-five individual art cards plus nine pieces that assemble into the artwork for Thanos, the Mad Titan. Found in Collector Boosters, the individual illustrations can also have gold-stamped signatures; the Thanos pieces are unstamped.',
+    source: 'https://magic.wizards.com/en/news/card-preview/marvel-super-heroes-art-cards',
+  },
+  ahob: {
+    description:
+      "The Hobbit's booster art cards showcase fifty-four illustrations of Tolkien's Middle-earth. The Collector Booster collection includes ordinary versions and versions gold stamped with an artist's signature or Planeswalker symbol.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-hobbit-art-cards',
+  },
+  ahoc: {
+    description:
+      "The Hobbit's Scene Boxes include art cards that mirror each box's six-card scene. These illustration pieces let collectors display the larger image separately from the playable cards that make up the scene.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-hobbit-art-cards',
+  },
+  afra: {
+    description:
+      "Reality Fracture's art cards feature fifty-four illustrations from the set. They appear only in Collector Boosters, with ordinary versions and versions gold stamped with an artist's signature or Planeswalker symbol.",
+    source: 'https://magic.wizards.com/en/news/card-preview/reality-fracture-tokens-and-art-cards',
+  },
+  atrk: {
+    description:
+      "Star Trek's booster art-card collection showcases fifty-four illustrations, including artwork featuring Spock. Collector Boosters contain the series, with both ordinary and gold-stamped artist-signature or Planeswalker-symbol versions.",
+    source: 'https://magic.wizards.com/en/news/card-preview/star-trek-tokens-and-art-cards',
+  },
+  atrc: {
+    description:
+      "Star Trek's Scene Boxes each include six art cards that form a moment from the series. These scene illustrations are separate from the Collector Booster art-card lineup and do not have signature or Planeswalker-symbol stamps.",
+    source: 'https://magic.wizards.com/en/news/card-preview/star-trek-tokens-and-art-cards',
+  },
   tmh1: {
     description:
       "Modern Horizons accompanies its many token-making cards with twenty-one supporting token and emblem designs. The collection mixes familiar token types with new pieces, providing battlefield representations for the set's varied mechanics.",
