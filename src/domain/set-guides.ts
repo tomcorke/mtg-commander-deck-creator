@@ -1,5 +1,51 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  ttle: {
+    description:
+      'The TLE source-material reimagining The Boy in the Iceberg can create Marit Lage, a 20/20 black Avatar token with flying and indestructible.',
+    source: 'https://magic.wizards.com/en/news/feature/avatar-the-last-airbender-release-notes',
+  },
+  ttla: {
+    description:
+      "Avatar's main TLA cards make tokens ranging from Clues and Food to Allies and Fire Nation Soldiers; the release notes show how cards create them.",
+    source: 'https://magic.wizards.com/en/news/feature/avatar-the-last-airbender-release-notes',
+  },
+  tmul: {
+    description:
+      'Multiverse Legends token cards follow their returning card engines: Brudiclad creates Phyrexian Myrs, while Valduk makes temporary red Elementals.',
+    source: 'https://magic.wizards.com/en/news/feature/march-of-the-machine-release-notes',
+  },
+  wmkm: {
+    description:
+      "Japan's Murders at Karlov Manor campaign gave a foil paper token card for each three Play Boosters bought at participating convenience stores, with different designs at FamilyMart and Lawson.",
+    source: 'https://mtg-jp.com/reading/kochima/0037547/',
+  },
+  wwoe: {
+    description:
+      "Japan's Wilds of Eldraine campaign gave a foil token card for each three Set Boosters bought at participating FamilyMart or Lawson stores; its six options were five tokens plus the Monarch card, split by chain.",
+    source: 'https://mtg-jp.com/reading/kochima/0037157/',
+  },
+  wdmu: {
+    description:
+      "Japan's Dominaria United campaign offered a foil Japanese-themed token for each five Set Boosters bought at participating stores, with the available design varying by retailer.",
+    source: 'https://mtg-jp.com/reading/kochima/0036252/',
+  },
+  ptbro: {
+    description:
+      "The Brothers' War token lineup includes Construct (Urzan) and artifact Zombie cards among its full-art army, alongside Powerstones, Soldiers, and Commander-deck tokens.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-the-brothers-war',
+  },
+  ptdmu: {
+    description:
+      "Dominaria United's token sheet includes Angel, Soldier, and Zombie cards among its full-art creatures, with Commander decks adding their own double-sided tokens.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-dominaria-united-2022-08-26',
+  },
+  sstx: {
+    description:
+      'Strixhaven substitute cards stand in for double-faced cards when their identity is hidden, such as in a library or face-down exile; the release notes explain how to use them.',
+    source:
+      'https://magic.wizards.com/en/news/feature/strixhaven-school-mages-and-commander-2021-edition-release-notes-2021-04-16',
+  },
   pss4: {
     description:
       "The Murders at Karlov Manor Standard Showdown season included weekly full-art foil Omenpath lands for top players, with Dragonlord's Servant and Sarkhan Unbroken for its Lunar New Year kickoff.",
