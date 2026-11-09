@@ -3093,4 +3093,85 @@ export const setGuides: Record<string, { description: string; source: string }> 
       "A broad introduction to Magic's fantasy battles and returning mechanics. Flashback lets you cast spells again from the graveyard, while threshold rewards building a graveyard of seven or more cards.",
     source: 'https://magic.wizards.com/en/news/feature/foundations-mechanics',
   },
+  thp1: {
+    description:
+      "Theros begins the Hero's Path with five color-linked paths and Hero Cards that aid players in the block's in-store quests. These cards have Magic-like effects but are separate from playable Magic cards.",
+    source: 'https://magic.wizards.com/en/news/making-magic/path-hero-2013-07-24',
+  },
+  tfth: {
+    description:
+      'Face the Hydra is a Theros Game Day challenge deck where a player or group fights an automated Hydra that follows a set sequence of head and sorcery cards. Beating the Hydra earns a Hero Card for the next part of the adventure.',
+    source: 'https://magic.wizards.com/en/news/making-magic/path-hero-2013-07-24',
+  },
+  thp2: {
+    description:
+      "Born of the Gods continues the Hero's Path with five color-linked Hero Cards, including The General, The Savant, and The Provider. Their special abilities are intended for Game Day challenges along the story's second arc.",
+    source: 'https://magic.wizards.com/en/news/feature/born-of-the-gods-prerelease-primer',
+  },
+  tbth: {
+    description:
+      'Battle the Horde is a Born of the Gods Game Day experience built around a minotaur onslaught. Wizards invited players to face that horde as part of the set’s event weekend.',
+    source: 'https://magic.wizards.com/en/news/magic-story/walls-akros-2014-02-26',
+  },
+  thp3: {
+    description:
+      "Journey into Nyx's Hero's Path centers on forging a godslaying weapon: players choose a color path, gather component stickers, and add a permanent ability to its matching Hero Card.",
+    source: 'https://magic.wizards.com/en/news/feature/journey-into-nyx-prerelease-primer',
+  },
+  tdag: {
+    description:
+      'Defeat a God is one of the three Challenge Decks developed for the Theros block, alongside Face the Hydra and Battle the Horde.',
+    source: 'https://magic.wizards.com/en/news/making-magic/developing-conspiracy-2014-05-20',
+  },
+  '30a': {
+    description:
+      'A commemorative, collectible celebration of Magic’s 30th anniversary, inspired by Limited Edition Beta and built around iconic cards from the game’s early years. Its cards are not legal in sanctioned tournaments.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/celebrate-30-years-magic-gathering-30th-anniversary-edition-2022-10-04',
+  },
+  phtr: {
+    description:
+      'The 2016 Heroes of the Realm entry belongs to a staff recognition series: Wizards describes these cards as a prize for company teams who get to design their own card.',
+    source: 'https://www.youtube.com/watch?v=4WNBRWoHq9E',
+  },
+  ph17: {
+    description:
+      'The 2017 Heroes of the Realm entry belongs to a staff recognition series: Wizards describes these cards as a prize for company teams who get to design their own card.',
+    source: 'https://www.youtube.com/watch?v=4WNBRWoHq9E',
+  },
+  ph18: {
+    description:
+      'The 2018 Heroes of the Realm entry belongs to a staff recognition series: Wizards describes these cards as a prize for company teams who get to design their own card.',
+    source: 'https://www.youtube.com/watch?v=4WNBRWoHq9E',
+  },
+  ph19: {
+    description:
+      'The 2019 Heroes of the Realm entry belongs to a staff recognition series: Wizards describes these cards as a prize for company teams who get to design their own card.',
+    source: 'https://www.youtube.com/watch?v=4WNBRWoHq9E',
+  },
+  ph20: {
+    description:
+      'The 2020 Heroes of the Realm entry belongs to a staff recognition series: Wizards describes these cards as a prize for company teams who get to design their own card.',
+    source: 'https://www.youtube.com/watch?v=4WNBRWoHq9E',
+  },
+  ph21: {
+    description:
+      'The 2021 Heroes of the Realm entry belongs to a staff recognition series: Wizards describes these cards as a prize for company teams who get to design their own card.',
+    source: 'https://www.youtube.com/watch?v=4WNBRWoHq9E',
+  },
+  ph22: {
+    description:
+      'The 2022 Heroes of the Realm entry is part of a distinct special-back card series. Wizards’ tournament rules classify Heroes of the Realm cards as unauthorized in sanctioned events.',
+    source: 'https://media.wizards.com/ContentResources/WPN/MTG_MTR_2026_Feb27_EN.pdf',
+  },
+  ph23: {
+    description:
+      'The 2023 Heroes of the Realm entry is part of a distinct special-back card series. Wizards’ tournament rules classify Heroes of the Realm cards as unauthorized in sanctioned events.',
+    source: 'https://media.wizards.com/ContentResources/WPN/MTG_MTR_2026_Feb27_EN.pdf',
+  },
+  hho: {
+    description:
+      'Magic’s holiday gift cards are playful yearly presents for Wizards employees and business partners. The series includes the 2006 Fruitcake Elemental and 2007 Gifts Given.',
+    source: 'https://magic.wizards.com/en/news/making-magic/seeing-forest-treefolk-2007-12-17-0',
+  },
 }
