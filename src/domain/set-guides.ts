@@ -1,5 +1,55 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  tcmr: {
+    description:
+      'Commander Legends supplies full-art tokens for both its draft boosters and preconstructed decks. The range includes Rock, Treasure, and The Monarch alongside creatures such as Salamander Warriors, with foil double-sided tokens in Collector Boosters.',
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-commander-legends-2020-11-04',
+  },
+  tznr: {
+    description:
+      "Zendikar Rising's twelve full-art tokens accompany an adventuring party through a dangerous landscape. The collection includes an Angel Warrior, a small Cat, and a larger Cat Beast, giving the set's created creatures their own battlefield pieces.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-zendikar-rising-2020-09-08',
+  },
+  tm21: {
+    description:
+      "Core Set 2021 pairs seventeen full-art tokens with three planeswalker emblems. Its creature lineup includes Angels, Birds, Griffins, and a Dog, reflecting the core set's mix of familiar Magic creatures.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-core-set-2021-2020-06-16',
+  },
+  tiko: {
+    description:
+      "Ikoria's full-art tokens reflect its unusual creature combinations: a Cat Bird joins an ordinary Cat and a Human Soldier. The main set's supporting pieces form part of the shared token gallery with Commander 2020.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-ikoria-and-c20-2020-04-09',
+  },
+  tc20: {
+    description:
+      "Commander 2020's token gallery accompanies the preconstructed decks released alongside Ikoria. Its full-art supporting pieces join the main set's tokens in a combined collection of thirty-one tokens and a planeswalker emblem.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-ikoria-and-c20-2020-04-09',
+  },
+  t2xm: {
+    description:
+      'Double Masters supplies thirty-one full-art tokens to accompany its reprints. The lineup starts with an Eldrazi Spawn, a changeling Shapeshifter, and an Angel, providing supporting creatures for a wide range of decks.',
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-double-masters-2020-07-29',
+  },
+  teld: {
+    description:
+      "Throne of Eldraine's full-art tokens bring its fairy-tale world to the battlefield, including Goats, Knights, and a Mouse. The collection also includes planeswalker and On an Adventure reminders alongside its creature and Food tokens.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-throne-eldraine-2019-09-19',
+  },
+  tm20: {
+    description:
+      "Core Set 2020 presents ten token designs and two planeswalker emblems in full art. This supporting collection marks a shift from earlier token presentation, giving the illustrations more of each card's space.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-core-set-2020-2019-06-20',
+  },
+  twar: {
+    description:
+      "War of the Spark's supporting pieces represent both Ravnica's defenders and Bolas's invading forces. Eighteen token designs and a planeswalker emblem accompany the battle for the City of Guilds.",
+    source: 'https://magic.wizards.com/en/news/card-preview/tokens-war-spark-2019-04-18',
+  },
+  tdmr: {
+    description:
+      "Dominaria Remastered's fourteen full-art tokens range from Birds and Squirrels to Marit Lage. They accompany the set's reprints in Draft Boosters, with traditional foil double-sided versions in Collector Boosters.",
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-dominaria-remastered',
+  },
   tdmu: {
     description:
       "Dominaria United's booster lineup brings twenty-four full-art tokens and two planeswalker emblems to the struggle for Dominaria. Its supporting forces range from small creatures to Powerstones and Treasure, with foil double-sided versions in Collector Boosters.",
