@@ -1,5 +1,86 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  pl25: {
+    description:
+      'Lunar New Year events at select WPN stores offered a traditional-foil Xyris, the Writhing Storm together with a matching Snake token.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/earn-sweet-year-of-the-snake-promos-at-your-local-game-store',
+  },
+  pmh3: {
+    description:
+      "Modern Horizons 3's promo lineup included Sleight of Hand for Modern RCQ participants and Supreme Verdict for top finishers.",
+    source: 'https://magic.wizards.com/en/news/announcements/play-on-the-modern-horizons',
+  },
+  pmat: {
+    description:
+      'The Aftermath promos appeared across product offers: Jolrael, Voice of Zhalfir was a Buy-a-Box card, while Bundles included a traditional-foil Spark Rupture.',
+    source:
+      'https://magic.wizards.com/en/news/feature/collecting-march-of-the-machine-the-aftermath',
+  },
+  pmom: {
+    description:
+      'A traditional-foil Omnath, Locus of All was the Buy-a-Box promo for March of the Machine booster displays, available while supplies lasted.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-march-of-the-machine',
+  },
+  pbro: {
+    description:
+      "The Brothers' War promos covered Prerelease, box, and Bundle purchases: four Prerelease card options, Mishra's Foundry as the Buy-a-Box promo, and Queen Kayla bin-Kroog for Bundles.",
+    source: 'https://magic.wizards.com/en/news/announcements/first-look-brothers-war-2022-09-29',
+  },
+  pdmu: {
+    description:
+      'Dominaria United Bundles included a traditional-foil Herd Migration promo with unique alternate art, alongside themed lands and an oversized spindown.',
+    source:
+      'https://magic.wizards.com/en/news/feature/dominaria-united-product-overview-2022-08-18',
+  },
+  pneo: {
+    description:
+      'A foil borderless Satoru Umezawa was offered as a Buy-a-Box promo when preordering Kamigawa: Neon Dynasty booster displays at participating WPN stores.',
+    source: 'https://magic.wizards.com/en/products/kamigawa-neon-dynasty',
+  },
+  pvow: {
+    description:
+      "Innistrad: Crimson Vow promos included Castle Dracula, an alternate-art Voldaren Estate, and a traditional-foil alternate-art Sigarda's Summons in Bundles.",
+    source:
+      'https://magic.wizards.com/en/news/feature/innistrad-crimson-vow-product-overview-2021-10-28',
+  },
+  pmid: {
+    description:
+      'Champion of the Perished was the Buy-a-Box promo for Innistrad: Midnight Hunt booster displays, available while supplies lasted.',
+    source: 'https://magic.wizards.com/en/products/midnight-hunt',
+  },
+  pafr: {
+    description:
+      'Adventures in the Forgotten Realms used exclusive promotional artwork for its Buy-a-Box Vorpal Sword, a distinct printing from the versions in boosters.',
+    source:
+      'https://magic.wizards.com/en/news/feature/adventures-forgotten-realms-product-overview-2021-06-29',
+  },
+  pmh2: {
+    description:
+      'Modern Horizons 2 paired its retro-frame reprints with a traditional-foil retro-frame Sanctum Prelate Buy-a-Box promo featuring new artwork.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-modern-horizons-2-2021-05-21',
+  },
+  pstx: {
+    description:
+      "Strixhaven's Buy-a-Box promo was a traditional-foil alternate-art extended-frame Dragonsguard Elite, tied to booster display purchases.",
+    source:
+      'https://magic.wizards.com/en/news/feature/collecting-strixhaven-school-of-mages-2021-03-25',
+  },
+  pkhm: {
+    description:
+      'Kaldheim offered Realmwalker as a foil extended-art Buy-a-Box promo with unique artwork through select game stores.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-kaldheim-2021-01-07',
+  },
+  pznr: {
+    description:
+      'Zendikar Rising’s Buy-a-Box promo was Orah, Skyclave Hierophant in foil extended art, with artwork exclusive to the promotional printing.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-zendikar-rising-2020-09-01',
+  },
+  pone: {
+    description:
+      "Green Sun's Twilight was the Buy-a-Box promo for Phyrexia: All Will Be One, available with eligible booster displays while supplies lasted.",
+    source: 'https://magic.wizards.com/en/news/feature/collecting-phyrexia-all-will-be-one',
+  },
   wc99: {
     description:
       'Four 90-card decks recreate the top finishers from the 1999 World Championship. Each product deck includes its sideboard and proxy cards.',
