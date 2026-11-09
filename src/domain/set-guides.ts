@@ -4525,4 +4525,65 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'The Phyrexia vs. the Coalition gallery lists a Minion and a Saproling in its colorless section.',
     source: 'https://mtg-jp.com/products/card-gallery/0000090/',
   },
+  pbfz: {
+    description:
+      'Battle for Zendikar’s Buy-a-Box promo was Ruinous Path, featured alongside the set’s Eldrazi invasion story.',
+    source: 'https://mtg-jp.com/reading/kochima/0015775/',
+  },
+  pori: {
+    description:
+      'Magic Origins promos included Relic Seeker for Buy-a-Box, Mizzium Meddler for Launch Weekend, and Game Day cards such as Council’s Naturalist.',
+    source: 'https://mtg-jp.com/reading/publicity/0015199/',
+  },
+  ps15: {
+    description:
+      'The 2015 Comic-Con Magic Origins Pack paired five exclusive Wayne Reynolds cards featuring its planeswalkers with a hardcover Planeswalker Anthology.',
+    source: 'https://newsroom.hasbro.com/node/13786',
+  },
+  ptkdf: {
+    description:
+      'Tarkir Dragonfury was a Dragons of Tarkir Prerelease spin-down scoring game with four promo-card rewards at different point thresholds.',
+    source: 'https://mtg-jp.com/reading/publicity/0014456/',
+  },
+  pdtk: {
+    description:
+      'Beyond the separate Dragonfury prizes, Dragons of Tarkir promos included Launch Weekend and Game Day cards such as Deathbringer Regent and Scaleguard Sentinels.',
+    source: 'https://mtg-jp.com/reading/publicity/0014485/',
+  },
+  pfrf: {
+    description:
+      'Fate Reforged promos included the Game Day Mardu Shadowspear, Buy-a-Box Shamanic Revelation, and Launch Weekend cards.',
+    source: 'https://mtg-jp.com/reading/publicity/0011833/',
+  },
+  ugin: {
+    description:
+      'Ugin’s Fate booster prizes contained two new-art cards, a Fate Reforged land, and a token; Wizards listed 26 card designs plus ten basic lands.',
+    source: 'https://mtg-jp.com/reading/publicity/0012023/',
+  },
+  f15: {
+    description:
+      'Friday Night Magic promos in 2015 followed a monthly card-reward program; Wizards’ January update also describes the Casual and Competitive event tracks.',
+    source: 'https://mtg-jp.com/reading/publicity/0011856/',
+  },
+  ps14: {
+    description:
+      'The 2014 Comic-Con Magic 2015 Planeswalker Pack paired six black-on-black Planeswalkers with new Jae Lee art and Garruk’s Axe.',
+    source:
+      'https://newsroom.hasbro.com/news-releases/news-release-details/hasbro-delivers-hottest-special-edition-toys-comic-con',
+  },
+  pjou: {
+    description:
+      'Journey into Nyx promos included five Hero’s Path Prerelease cards, followed by Launch Weekend and Game Day promo cards.',
+    source: 'https://mtg-jp.com/reading/publicity/0008675/',
+  },
+  pbng: {
+    description:
+      'The Born of the Gods promo announcement groups its featured cards by Prerelease, Launch Weekend, Game Day, and Buy-a-Box events.',
+    source: 'https://mtg-jp.com/reading/publicity/0006803/',
+  },
+  pths: {
+    description:
+      'Theros Game Day offered one promo to participants and a separate card to the Top 8 as part of its Hero’s Path event series.',
+    source: 'https://mtg-jp.com/reading/wpn/0004774/',
+  },
 }
