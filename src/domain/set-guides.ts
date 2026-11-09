@@ -4117,4 +4117,96 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Wizards’ Multiverse Gift Box mixed six boosters in five languages, including two Visions preview packs, in a display box that converts into a carrying case.',
     source: 'https://archive.org/stream/the-duelist-14/The%20Duelist%20%2314_djvu.txt',
   },
+  sbro: {
+    description:
+      'The Brothers’ War Set Booster slot could contain a token, double-faced-card helper, punch-out counter card, or ad card.',
+    source: 'https://magic.wizards.com/en/news/feature/whats-inside-the-brothers-war-boosters',
+  },
+  skhm: {
+    description:
+      'Kaldheim substitute cards can stand in for double-faced cards in hidden zones, keeping their identity concealed in a deck or face-down exile.',
+    source: 'https://magic.wizards.com/en/news/feature/kaldheim-release-notes-2021-01-22',
+  },
+  smh3: {
+    description:
+      'Modern Horizons 3 includes an Energy Reserve helper card alongside tokens across Play Boosters, Collector Boosters, and its Commander decks.',
+    source: 'https://magic.wizards.com/en/news/card-preview/the-tokens-of-modern-horizons-3',
+  },
+  smid: {
+    description:
+      'Midnight Hunt Prerelease Packs include three double-faced helper cards that can stand in for a double-faced card in a deck.',
+    source: 'https://magic.wizards.com/en/news/feature/innistrad-midnight-hunt-prerelease-primer',
+  },
+  smom: {
+    description:
+      'March of the Machine Set and Draft Booster support slots could contain a token, double-faced-card helper, or ad card.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-march-of-the-machine',
+  },
+  sneo: {
+    description:
+      'Neon Dynasty Set Boosters could include a token, ad, helper card, or card from The List; Draft Boosters include a token, ad, or helper card.',
+    source:
+      'https://magic.wizards.com/en/news/feature/kamigawa-neon-dynasty-product-overview-2022-01-27',
+  },
+  svow: {
+    description:
+      'Crimson Vow Prerelease Packs contain three double-faced helper cards, and Draft Boosters include one to support the set’s transforming cards.',
+    source:
+      'https://magic.wizards.com/en/news/feature/innistrad-crimson-vow-product-overview-2021-10-28',
+  },
+  sznr: {
+    description:
+      'Zendikar Rising helper cards can stand in for double-faced cards while they are in hidden zones, such as a hand or library.',
+    source: 'https://magic.wizards.com/en/news/feature/zendikar-rising-release-notes-2020-09-10',
+  },
+  tmbs: {
+    description:
+      'Mirrodin Besieged’s Living Weapon Equipment create 0/0 black Germ tokens and attach themselves, keeping the tokens alive with a toughness boost.',
+    source: 'https://magic.wizards.com/en/news/feature/mirrodin-besieged-mechanics',
+  },
+  tnph: {
+    description:
+      'New Phyrexia’s Splicers create colorless 3/3 Golem artifacts, while its returning Living Weapon mechanic uses black Germ tokens.',
+    source: 'https://magic.wizards.com/en/news/feature/new-phyrexia-mechanics',
+  },
+  troe: {
+    description:
+      'Rise of the Eldrazi’s 0/1 colorless Eldrazi Spawn tokens can be sacrificed for mana to help cast the set’s enormous Eldrazi.',
+    source: 'https://magic.wizards.com/zh-Hant/news/feature/rise-of-the-eldrazi-mechanics',
+  },
+  tktk: {
+    description:
+      'Khans of Tarkir booster packs could include an optional overlay card that reminds players what a face-down morph creature represents.',
+    source: 'https://magic.wizards.com/en/news/feature/mechanics-khans-tarkir',
+  },
+  tdtk: {
+    description:
+      'Dragons of Tarkir booster packs bring back the optional morph overlay as a reminder for face-down megamorph creatures.',
+    source: 'https://magic.wizards.com/en/news/feature/mechanics-of-dragons-of-tarkir',
+  },
+  trtr: {
+    description:
+      'Return to Ravnica token-makers include flying Birds, while populate copies a creature token you already control, including larger Rhinos.',
+    source: 'https://magic.wizards.com/en/news/feature/return-to-ravnica-mechanics',
+  },
+  tc14: {
+    description:
+      'Commander 2014 token-makers range from Feldon’s temporary artifact copies to Horror and Spirit creatures made by other cards.',
+    source: 'https://magic.wizards.com/en/news/feature/release-notes-2014-11-10',
+  },
+  tuma: {
+    description:
+      'Ultimate Masters reprints include cards that make X/X green Oozes and two 1/1 red Elementals.',
+    source: 'https://magic.wizards.com/en/news/feature/ultimate-masters-release-notes-2018-11-29',
+  },
+  tths: {
+    description:
+      'Theros includes Master of Waves’ 1/0 blue Elementals, which get +1/+1 from their creator, and an ongoing stream of tokens from Akroan Horse.',
+    source: 'https://magic.wizards.com/en/news/feature/release-notes-2013-09-16',
+  },
+  tisd: {
+    description:
+      'Innistrad’s Gothic-horror token play centers on Zombie hordes and Spider Spawning’s token-supported draft strategy.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-2',
+  },
 }
