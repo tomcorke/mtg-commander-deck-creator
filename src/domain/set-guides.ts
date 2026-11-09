@@ -3049,6 +3049,45 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Five clans face dangerous dragonstorms on the war-torn world of Tarkir. Clan mechanics offer different strategies, including growing creatures or making tokens with endure, casting multiple spells with flurry, and using graveyard cards through renew.',
     source: 'https://magic.wizards.com/en/news/feature/tarkir-dragonstorm-mechanics',
   },
+  tfdc: {
+    description:
+      'Foundations Commander tokens support five introductory monocolor decks, each supplied with ten double-sided tokens. The decklists pair those pieces with strategies ranging from artifacts and large creatures to Dragons.',
+    source: 'https://magic.wizards.com/en/news/announcements/foundations-commander-decklists',
+  },
+  tscd: {
+    description:
+      'Each of the five two-color Starter Commander decks includes ten double-sided tokens alongside strategy advice and rules summaries. The token lists include pairings such as Cat Bird with Thopter, Spirit, or Faerie tokens.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/starter-commander-decks-decklists-2022-10-20',
+  },
+  tgn3: {
+    description:
+      'Game Night: Free-for-All packs ten token designs in fifteen double-sided combinations with five 60-card monocolor decks. The product is built for one-on-one games or multiplayer melees.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/game-night-free-all-2022-decklists-2022-09-29',
+  },
+  t40k: {
+    description:
+      "These double-sided token pairs support four Warhammer Commander armies, from Tyranids and Necrons to the Imperium's soldiers and the Ruinous Powers' Plaguebearers. Each decklist shows the markers for its faction.",
+    source: 'https://magic.wizards.com/en/news/announcements/warhammer-40000-commander-decklists',
+  },
+  tunf: {
+    description:
+      "Unfinity's Draft Boosters contain fourteen tokens, including a double-sided Contortionist, and forty-eight sticker inserts. The stickers aren't played in main decks, while Collector Boosters use a separate set of thirteen foil tokens.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/tokens-and-stickers-unfinity-2022-09-27',
+  },
+  ttsr: {
+    description:
+      'Time Spiral Remastered includes fifteen single-sided full-art tokens, with one in each Draft Booster. The gallery notes that the Kobolds of Kher Keep token was printed as ‘Kobold,’ though its correct name is Kobolds of Kher Keep.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/tokens-time-spiral-remastered-2021-03-05',
+  },
+  t30a: {
+    description:
+      'The 30th Anniversary token gallery groups creature and artifact markers, including Human Warrior, Soldier, Human Wizard, Clue, Treasure, and Wasp tokens.',
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/30th-anniversary-edition',
+  },
   fdn: {
     description:
       "A broad introduction to Magic's fantasy battles and returning mechanics. Flashback lets you cast spells again from the graveyard, while threshold rewards building a graveyard of seven or more cards.",
