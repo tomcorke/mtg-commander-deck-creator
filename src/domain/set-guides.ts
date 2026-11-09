@@ -4315,4 +4315,79 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Conspiracy is built for booster draft that becomes multiplayer free-for-all, with draft-changing cards and politics such as dethrone and Will of the Council.',
     source: 'https://magic.wizards.com/en/news/feature/conspiracy-mechanics',
   },
+  pm12: {
+    description:
+      "Magic 2012 event promos include Bloodlord of Vaasgoth for Prerelease, Garruk's Horde for Launch Party, and full-art Stormblood Berserker and Dungrove Elder for Game Day.",
+    source: 'https://mtg-jp.com/reading/wpn/0004677/',
+  },
+  pm13: {
+    description:
+      'Magic 2013 Game Day offered Mwonvuli Beast Tracker to participants and foil full-art Magmaquake to the Top 8.',
+    source: 'https://mtg-jp.com/reading/wpn/0004727/',
+  },
+  pm14: {
+    description:
+      'The Magic 2014 promo roundup spans Prerelease, launch weekend, Game Day participation and Top 8, plus a Buy-a-Box card.',
+    source: 'https://mtg-jp.com/reading/publicity/0004897/',
+  },
+  pm15: {
+    description:
+      'Magic 2015 begins with five Prerelease promo variants; its announcement also shows Entry Set front-card versions and further promo offers.',
+    source: 'https://mtg-jp.com/reading/publicity/0010797/',
+  },
+  pisd: {
+    description:
+      "Innistrad promo coverage spans Prerelease, release party, and Game Day; examples include Ludevic's Test Subject, Diregraf Ghoul, and Elite Inquisitor.",
+    source: 'https://mtg-jp.com/reading/wpn/0004689/',
+  },
+  pktk: {
+    description:
+      'Khans of Tarkir Game Day offered full-art Heir of the Wilds to participants and Utter End to the Top 8; the promo lineup also included Buy-a-Box Whisperwood Elemental.',
+    source: 'https://mtg-jp.com/reading/publicity/0011173/',
+  },
+  pcns: {
+    description:
+      'Conspiracy is designed for six to eight players to draft, then split into three-to-four-player free-for-all games with draft-changing, multiplayer-focused cards.',
+    source: 'https://mtg-jp.com/reading/publicity/0008483/',
+  },
+  pdp13: {
+    description:
+      'Duels of the Planeswalkers 2013 redemption packs used platform-specific promos: Vampire Nocturnus for PS3, Primordial Hydra for Xbox, and Serra Avatar for PC or iPad.',
+    source: 'https://mtg-jp.com/reading/wpn/0004723/',
+  },
+  pdp14: {
+    description:
+      'Duels of the Planeswalkers 2014 purchasers could redeem a code for a six-card premium promo booster with an alternate-art card; the offer was limited to participating stores.',
+    source: 'https://mtg-jp.com/reading/digital/magic2014/0004777/',
+  },
+  pdp15: {
+    description:
+      'The Duels of the Planeswalkers 2015 promo pack offered alternate-art Soul of Ravnica with Xbox 360 purchases or Soul of Zendikar on other listed platforms.',
+    source: 'https://mtg-jp.com/reading/publicity/0010765/',
+  },
+  j13: {
+    description:
+      'Wizards presented judge promos as recognition for event support and introduced Crucible of Worlds and Bribery as two new cards for the judge community.',
+    source: 'https://mtg-jp.com/reading/publicity/0004882/',
+  },
+  j14: {
+    description:
+      'A judge-program milestone sent a premium Force of Will promo to judges who had certified another judge by 2005, alongside additional judge-promo previews.',
+    source: 'https://mtg-jp.com/reading/publicity/0010589/',
+  },
+  f12: {
+    description:
+      'FNM promos were distributed as monthly rewards; the September 2012 card was Lingering Souls.',
+    source: 'https://mtg-jp.com/reading/wpn/0004733/',
+  },
+  f13: {
+    description:
+      "April 2013's FNM promo was Call of the Conclave, a dated example from that year's monthly program.",
+    source: 'https://mtg-jp.com/reading/wpn/0004762/',
+  },
+  f14: {
+    description:
+      'The August-October 2014 FNM promos were Bile Blight, Banishing Light, and Fanatic of Xenagos, one card for each month.',
+    source: 'https://mtg-jp.com/reading/publicity/0010848/',
+  },
 }
