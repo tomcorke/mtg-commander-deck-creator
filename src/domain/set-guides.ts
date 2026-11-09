@@ -1,5 +1,42 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  pz2: {
+    description:
+      'Magic Online Treasure Chests are digital prizes built from random card and Play Point slots; Wizards publishes updated contents and drop tables.',
+    source: 'https://www.mtgo.com/news/mtgo-treasure-chest-info',
+  },
+  punk: {
+    description:
+      'MagicCon’s Unknown Planechase is a Commander event with convention-themed playtest planes; Black Lotus VIPs could play and take home five assorted planes plus a themed planar die.',
+    source:
+      'https://mcchicago.mtgfestivals.com/en-us/badges/buy-badges/black-lotus-vip-experience.html',
+  },
+  unk: {
+    description:
+      'The MagicCon Unknown event is built around boosters, chaos, and unusual gameplay, with Gavin Verhey leading an experience that changes from convention to convention.',
+    source:
+      'https://www.mtgfestivals.com/global/en-us/magiccon-news/magiccon-philadelphia-the-lineup.html',
+  },
+  past: {
+    description:
+      'The MicroProse Magic game had an in-game Astral mini-expansion with unpredictable card effects; Aswan Jaguar also appeared as an oversized 6-by-9-inch card.',
+    source: 'https://magic.wizards.com/en/news/feature/astral-cards-2009-02-12',
+  },
+  phel: {
+    description:
+      'Avacyn Restored Prerelease used achievement cards to unlock Helvault seals, giving players a shared event goal alongside their matches.',
+    source: 'https://magic.wizards.com/en/news/feature/avacyn-restored-prerelease-primer',
+  },
+  ptc: {
+    description:
+      'Wizards commemorated the first Pro Tour with eight unique-backed decks that duplicate the Top Eight decklists.',
+    source: 'https://magic.wizards.com/en/news/making-magic/tour-part-1-2004-07-26',
+  },
+  ced: {
+    description:
+      'Collectors’ Edition cards have gold borders and square corners, details Wizards cites to distinguish them from Beta cards that people sometimes tried to imitate.',
+    source: 'https://magic.wizards.com/en/news/feature/buyer-beware-2004-04-26',
+  },
   pfra: {
     description:
       'Reality Fracture’s WPN promo lineup spans Commander, Standard Showdown, Store Championship, and Magic Presents events, with cards such as Crystal Ball, Thought Scour, and Leyline of Anticipation.',
