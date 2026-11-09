@@ -4461,4 +4461,44 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Alara Reborn Prerelease flights awarded a foil promo card alongside the all-gold set’s multicolor card pool.',
     source: 'https://magic.wizards.com/en/news/feature/alara-reborn-prerelease-primer',
   },
+  tust: {
+    description:
+      'Unstable’s playful token gallery includes Squirrel, Gnome, Brainiac, and Storm Crow tokens, with double-faced variants.',
+    source: 'https://mtg-jp.com/reading/publicity/0029930/',
+  },
+  tfrf: {
+    description:
+      'Fate Reforged’s four tokens include a Spirit, manifest and morph helper cards, a Mardu Warrior, and a prowess Monk.',
+    source: 'https://mtg-jp.com/reading/publicity/0011848/',
+  },
+  tcma: {
+    description:
+      'Commander Anthology repackages four earlier Commander decks and includes the token cards used by those decks.',
+    source: 'https://mtg-jp.com/products/0000158/',
+  },
+  tmd1: {
+    description:
+      'The Modern Event Deck paired a 60-card Modern build with a 15-card sideboard and five double-sided token cards.',
+    source: 'https://mtg-jp.com/products/0000148/',
+  },
+  tmma: {
+    description:
+      'Modern Masters packs included tokens, several new to paper at the time, including a Bat token.',
+    source: 'https://magic.wizards.com/en/news/making-magic/modern-masters-explained-2012-10-22',
+  },
+  tdgm: {
+    description:
+      'Dragon’s Maze highlights Selesnya’s token strategy, with Advent of the Wurm and Trostani’s Summoner adding token makers.',
+    source: 'https://magic.wizards.com/en/news/feature/appreciation-tokens-2013-04-18',
+  },
+  tgtc: {
+    description:
+      'Gatecrash’s promo overview shows a Soldier token among League prizes alongside guild-themed event promos.',
+    source: 'https://magic.wizards.com/en/news/feature/promo-cards-2013-01-02',
+  },
+  l13: {
+    description:
+      'A documented 2013 League reward was the Soldier token offered at the end of the Gatecrash League.',
+    source: 'https://magic.wizards.com/en/news/feature/promo-cards-2013-01-02',
+  },
 }
