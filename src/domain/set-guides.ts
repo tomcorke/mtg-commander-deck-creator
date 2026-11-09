@@ -1,5 +1,41 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  wc99: {
+    description:
+      'Four 90-card decks recreate the top finishers from the 1999 World Championship. Each product deck includes its sideboard and proxy cards.',
+    source:
+      'https://web.archive.org/web/20110217043835id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg/tcg/champdeck1999/productinfo',
+  },
+  wc00: {
+    description:
+      'Four decks reproduce the top finishers at the 2000 World Championship. Each 90-card package contains a 60-card main deck, 15-card sideboard, 12 proxy cards, and three information cards.',
+    source:
+      'https://web.archive.org/web/20110217043840id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg/tcg/champdeck2000/productinfo',
+  },
+  wc01: {
+    description:
+      'These four World Championship Decks reproduce the Top 4 Standard decks from 2001, with gold borders and non-tournament card backs. Each includes proxy cards alongside the deck and sideboard.',
+    source:
+      'https://web.archive.org/web/20110217043232id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg/tcg/champdeck2001/productinfo',
+  },
+  wc02: {
+    description:
+      'Four decks reproduce the Top 4 at the 2002 World Championship, a Standard event. Each package includes the main deck, sideboard, and proxy cards.',
+    source:
+      'https://web.archive.org/web/20110217044100id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg/tcg/champdeck2002/productinfo',
+  },
+  wc03: {
+    description:
+      "The 2003 World Championship Decks marked Magic's tenth anniversary with the 8th Edition card frame, including on reproduced cards that originally used earlier frames.",
+    source:
+      'https://web.archive.org/web/20110217043845id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg/tcg/champdeck2003/productinfo',
+  },
+  wc04: {
+    description:
+      'Four deck products reproduce the decks of the top finishers from the 2004 World Championship, a Standard event.',
+    source:
+      'https://web.archive.org/web/20110217043237id_/http://www.wizards.com/magic/tcg/productarticle.aspx?x=mtg/tcg/champdeck2004/productinfo',
+  },
   fjmp: {
     description:
       "Jumpstart's theme cards identify the color and idea behind each twenty-card booster. Labels such as Predatory introduce the half-deck inside, ready to combine with another pack for a complete mix-and-match deck.",
