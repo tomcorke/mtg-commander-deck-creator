@@ -3638,4 +3638,76 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Magic’s holiday gift cards are playful yearly presents for Wizards employees and business partners. The series includes the 2006 Fruitcake Elemental and 2007 Gifts Given.',
     source: 'https://magic.wizards.com/en/news/making-magic/seeing-forest-treefolk-2007-12-17-0',
   },
+  plg20: {
+    description:
+      'The 2020 Love Your Local Game Store promotion paired a Reliquary Tower purchase promo and Mechagodzilla/Hangarback Walker Buy-a-Box card with event art prints.',
+    source: 'https://wpn.wizards.com/en/news/announcing-love-your-local-game-store-promotion',
+  },
+  piko: {
+    description:
+      'Ikoria promotions included Godzilla, King of the Monsters as a Buy-a-Box card and foil Godzilla Series cards in box-topper packs.',
+    source: 'https://magic.wizards.com/en/news/card-preview/collecting-ikoria-2020-04-02',
+  },
+  pthb: {
+    description:
+      'Theros Beyond Death Promo Packs paired stamped set and curated-list rares with a dark-frame FNM card and an Arena booster code; Premium packs foiled the first three cards.',
+    source: 'https://media.wizards.com/2020/downloads/promo_packs/THB_Promo_Pack_01202020.pdf',
+  },
+  peld: {
+    description:
+      'Throne of Eldraine promos included Kenrith, the Returned King as Buy-a-Box, Piper of the Swarm in Bundles, and event cards in four-card Promo Packs.',
+    source: 'https://magic.wizards.com/en/news/card-preview/throne-eldraine-promos-2019-09-20',
+  },
+  pwcs: {
+    description:
+      'Japan’s 2019 PWCS season awarded foil Pteramander to the top 50, Experimental Frenzy to the top eight, and Vraska, Golgari Queen to the winner.',
+    source: 'https://mtg-jp.com/reading/kochima/0032715/',
+  },
+  pm20: {
+    description:
+      'Core Set 2020 promos included Rienne, Angel of Rebirth as Buy-a-Box, Chandra’s Regulator in Bundles, and cards distributed through Promo Packs.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/core-set-2020-promos-and-packaging-2019-06-17',
+  },
+  ppp1: {
+    description:
+      'The M20 universal Promo Pack introduced stamped set and curated-list rares, an alternate-art basic land, and an FNM-style promo; one in four replaced the curated slot with a Japanese planeswalker.',
+    source: 'https://wpn.wizards.com/en/news/revealed-your-m20-promo-kit',
+  },
+  pmh1: {
+    description:
+      'Modern Horizons’ prerelease promo was an alternate-art Astral Drift, with Flusterstorm offered as the Buy-a-Box card.',
+    source: 'https://magic.wizards.com/en/news/feature/modern-horizons-prerelease-primer',
+  },
+  pwar: {
+    description:
+      'War of the Spark had one unique promotional card, Tezzeret, Master of the Bridge, distributed through its in-store Buy-a-Box promotion.',
+    source: 'https://magic.wizards.com/en/news/feature/war-spark-release-notes-2019-04-19',
+  },
+  prw2: {
+    description:
+      'Ravnica Allegiance Ravnica Weekend paired a competitive tournament and Guild Kit battles with Lavinia, Azorius Renegade participation promos and guild-themed foil basic lands.',
+    source: 'https://wpn.wizards.com/en/news/promo-cards-revealed-ravnica-allegiance',
+  },
+  prna: {
+    description:
+      'Ravnica Allegiance’s promo program covered Open House, Draft Weekend, League, Friday Night Magic, Standard Showdown, and Ravnica Weekend events.',
+    source: 'https://wpn.wizards.com/en/news/promo-cards-revealed-ravnica-allegiance',
+  },
+  prwk: {
+    description:
+      'Guilds of Ravnica’s Ravnica Weekend was a casual community event with four-pack drafts, Guild Kit battles, D&D sessions, and foil basic-land prizes.',
+    source: 'https://wpn.wizards.com/en/news/ravnica-weekend-need-knows-grn-and-rna',
+  },
+  pgrn: {
+    description:
+      'Guilds of Ravnica’s promo season included Impervious Greatwurm as Buy-a-Box plus cards for Open House, Draft Weekend, Magic League, Store Championship, and Friday Night Magic.',
+    source:
+      'https://magic.wizards.com/en/news/card-preview/guilds-ravnica-packaging-promos-and-more-2018-09-04',
+  },
+  pm19: {
+    description:
+      'Core Set 2019’s WPN season included foil full-art Guttersnipe for Open House and Demon of Catastrophes for Store Championship participants, alongside other event promos.',
+    source: 'https://wpn.wizards.com/en/news/see-your-m19-promo-cards',
+  },
 }
