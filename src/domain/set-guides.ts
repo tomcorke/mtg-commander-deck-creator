@@ -4501,4 +4501,28 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'A documented 2013 League reward was the Soldier token offered at the end of the Gatecrash League.',
     source: 'https://magic.wizards.com/en/news/feature/promo-cards-2013-01-02',
   },
+  l12: {
+    description:
+      'Magic 2013 League prize cards included a Goblin token that Wizards said was distributed only as a League reward, not in boosters.',
+    source: 'https://mtg-jp.com/reading/wpn/0004722/',
+  },
+  tdd1: {
+    description:
+      'The Elves vs. Goblins gallery lists Elemental, Elf Warrior, and Goblin in its colorless section.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000094/',
+  },
+  tdd2: {
+    description: 'The Jace vs. Chandra gallery lists an Elemental Shaman in its colorless section.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000093/',
+  },
+  tddd: {
+    description:
+      'The Garruk vs. Liliana gallery lists two Beast entries and an Elephant in its colorless section.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000091/',
+  },
+  tdde: {
+    description:
+      'The Phyrexia vs. the Coalition gallery lists a Minion and a Saproling in its colorless section.',
+    source: 'https://mtg-jp.com/products/card-gallery/0000090/',
+  },
 }
