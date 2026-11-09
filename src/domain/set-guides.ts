@@ -1,5 +1,111 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  tmh1: {
+    description:
+      "Modern Horizons accompanies its many token-making cards with twenty-one supporting token and emblem designs. The collection mixes familiar token types with new pieces, providing battlefield representations for the set's varied mechanics.",
+    source: 'https://mtg-jp.com/reading/publicity/0032574/',
+  },
+  amh1: {
+    description:
+      "Modern Horizons introduced a numbered collection of fifty-four art cards focused on the illustrations themselves. The selection includes Serra the Benevolent, Wrenn and Six, and Urza, Lord High Artificer, giving collectors a different view of the set's artwork.",
+    source: 'https://mtg-jp.com/reading/publicity/0032574/',
+  },
+  aznr: {
+    description:
+      "Zendikar Rising's art cards showcase its landscapes, adventurers, and planeswalkers, including Jace and Nahiri. Found in Set Boosters, the collection has ordinary versions and gold-stamped artist-signature versions with the same illustrations.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/zendikar-rising-art-cards-2020-09-18',
+  },
+  akhm: {
+    description:
+      "Kaldheim's art-card collection features figures such as Halvar, Reidane, and Toski alongside the plane's landscapes. Set Boosters contain both ordinary art cards and versions with a foil-stamped signature, letting the illustrations take center stage.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/kaldheim-art-cards-2021-02-03',
+  },
+  astx: {
+    description:
+      "Strixhaven's Set Booster art cards present eighty-one illustrations, including selected Mystical Archive pieces. Ordinary and signature-stamped versions celebrate the school's artwork, with Shadrix Silverquill among the featured subjects.",
+    source:
+      'https://magic.wizards.com/en/news/feature/collecting-strixhaven-school-mages-2021-03-25',
+  },
+  amh2: {
+    description:
+      "Modern Horizons 2 expands its art-card collection to eighty-one illustrations, including Timeless Dragon and Dakkon, Shadow Slayer. Set Boosters contain ordinary versions and versions gold stamped with an artist's signature or the Planeswalker symbol.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/modern-horizons-2-art-cards-2021-06-03',
+  },
+  aafr: {
+    description:
+      'Forgotten Realms art cards showcase eighty-one illustrations from the Dungeons & Dragons crossover. Twenty-seven feature monster statistics on the reverse, combining collectible artwork with D&D reference material; gold-stamped versions also appear in Set Boosters.',
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/adventures-forgotten-realms-art-cards-2021-07-12',
+  },
+  avow: {
+    description:
+      "Crimson Vow's eighty-one art cards include Sorin, bridal finery, and Dracula-inspired subjects such as Mina Harker. The Set Booster collection has unstamped versions and gold-stamped artist-signature or Planeswalker-symbol versions.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/innistrad-crimson-vow-art-cards-2021-11-11',
+  },
+  aneo: {
+    description:
+      "Neon Dynasty's eighty-one art cards spotlight illustrations such as Bearer of Memory, Skyswimmer Koi, and Atsushi, the Blazing Sky. The Set Booster collection offers both ordinary cards and versions with a gold-stamped signature or Planeswalker symbol.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/kamigawa-neon-dynasty-art-cards-2022-02-10',
+  },
+  asnc: {
+    description:
+      "New Capenna's eighty-one art cards feature the city's characters and luxuries, from Elspeth Resplendent to Mysterious Limousine. Set Boosters include unstamped cards and versions bearing a gold-stamped artist signature or Planeswalker symbol.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/streets-of-new-capenna-art-cards',
+  },
+  aclb: {
+    description:
+      "Baldur's Gate art cards combine eighty-one Dungeons & Dragons illustrations with extra reference material. The first twenty-seven have monster statistics on the reverse, and the Set Booster collection also includes gold-stamped signature or Planeswalker-symbol versions.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/commander-legends-battle-for-baldurs-gate-art-cards',
+  },
+  admu: {
+    description:
+      "Dominaria United's art-card collection highlights eighty-one illustrations, beginning with two depictions of Karn, Living Legacy. Found in Set Boosters, the cards also have versions gold stamped with an artist's signature or the Planeswalker symbol.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/dominaria-united-art-cards-2022-08-30',
+  },
+  abro: {
+    description:
+      "The Brothers' War art cards showcase eighty-one illustrations of Dominaria's conflict, including Mass Production, Powerstone Engineer, and Urza's Sylex. Set Boosters offer ordinary cards alongside gold-stamped signature or Planeswalker-symbol versions.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/the-brothers-war-art-cards',
+  },
+  aone: {
+    description:
+      "Phyrexia: All Will Be One's eighty-one art cards include Elesh Norn, the Eternal Wanderer, and Mondrak. The Set Booster collection presents these illustrations in ordinary form and with gold-stamped artist signatures or Planeswalker symbols.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/phyrexia-all-will-be-one-art-cards',
+  },
+  amom: {
+    description:
+      "March of the Machine's art cards showcase eighty-one illustrations, including Archangel Elspeth, Elesh Norn, and Invasion of Dominaria. These Set Booster collectibles also appear with gold-stamped artist signatures or Planeswalker symbols.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/march-of-the-machine-art-cards',
+  },
+  altr: {
+    description:
+      "Tales of Middle-earth's eighty-one art cards feature subjects such as Boromir, Gandalf, and the Barrow-downs. The Set Booster collection gives the crossover's illustrations their own cards, including gold-stamped signature or Planeswalker-symbol versions.",
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/the-lord-of-the-rings-tales-of-middle-earth-art-cards',
+  },
+  acmm: {
+    description:
+      "Commander Masters presents eighty-one pieces of artwork as collectible art cards in Set Boosters. Subjects include Kemba, Kha Regent and Bribery, with ordinary versions and versions gold stamped with the artist's signature or a Planeswalker symbol.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/commander-masters-art-cards',
+  },
+  awoe: {
+    description:
+      "Wilds of Eldraine's Set Booster art cards collect eighty-one illustrations from its fairy-tale return, including Cooped Up. The same artwork appears on unstamped cards and versions with gold-stamped artist signatures or Planeswalker symbols.",
+    source: 'https://magic.wizards.com/en/news/card-image-gallery/wilds-of-eldraine-art-cards',
+  },
+  alci: {
+    description:
+      'Lost Caverns of Ixalan art cards collect eighty-one illustrations, including Cosmium Blast and Might of the Ancestors. Set Boosters contain these artwork-focused collectibles in ordinary form and with gold-stamped signatures or Planeswalker symbols.',
+    source:
+      'https://magic.wizards.com/en/news/card-image-gallery/the-lost-caverns-of-ixalan-art-cards',
+  },
   tcmr: {
     description:
       'Commander Legends supplies full-art tokens for both its draft boosters and preconstructed decks. The range includes Rock, Treasure, and The Monarch alongside creatures such as Salamander Warriors, with foil double-sided tokens in Collector Boosters.',
