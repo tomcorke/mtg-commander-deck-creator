@@ -1,5 +1,74 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  pfra: {
+    description:
+      'Reality Fracture’s WPN promo lineup spans Commander, Standard Showdown, Store Championship, and Magic Presents events, with cards such as Crystal Ball, Thought Scour, and Leyline of Anticipation.',
+    source:
+      'https://wpn.wizards.com/en/news/reality-fracture-marketing-kit-and-promotional-resources',
+  },
+  psos: {
+    description:
+      'Secrets of Strixhaven’s WPN event promos range from Access Tunnel for Commander to Psychic Frog and Abhorrent Oculus for Store Championship play.',
+    source:
+      'https://wpn.wizards.com/en/news/secrets-of-strixhaven-marketing-kit-and-promotional-resources',
+  },
+  pw26: {
+    description:
+      'The 2026 WPN promo slate spans Commander, Standard Showdown, Store Championships, and Magic Presents; Reality Fracture’s lineup includes Crystal Ball, Thought Scour, and Jace Reawakened.',
+    source:
+      'https://wpn.wizards.com/en/news/reality-fracture-marketing-kit-and-promotional-resources',
+  },
+  pw25: {
+    description:
+      'Avatar’s 2025 WPN events offered character-themed promos, including Gran-Gran for Commander Box League and Unlucky Cabbage Merchant for Standard Showdown, plus Firebending Student with a Play Booster box.',
+    source: 'https://magic.wizards.com/en/news/feature/where-to-play-avatar-the-last-airbender',
+  },
+  pfdn: {
+    description:
+      'Foundations WPN promos support learning and tournament play: Darksteel Colossus for Magic Academy, Go for the Throat for Standard Showdown, and seasonal buy-a-box cards including Solemn Simulacrum and Sol Ring.',
+    source:
+      'https://wpn.wizards.com/en/news/magic-the-gathering-foundations-events-and-promos-overview',
+  },
+  pltc: {
+    description:
+      'The Lord of the Rings Commander Bundles add four traditional-foil promos from the Starter Kit: Frodo, Gandalf, Gollum, and the Balrog.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/the-lord-of-the-rings-tales-of-middle-earth-returns-with-commander',
+  },
+  pdsk: {
+    description:
+      'Duskmourn’s WPN event promos include Chromatic Sphere, Reality Smasher, and Void Winnower for Store Championship tiers, plus Crippling Fear for Commander Party.',
+    source: 'https://wpn.wizards.com/en/news/duskmourn-house-of-horror-events-and-promos-overview',
+  },
+  plg24: {
+    description:
+      'Love Your Local Game Store 2024 offered a full-art Sakura-Tribe Elder for buying three Modern Horizons 3 Play Boosters or joining the event draft.',
+    source:
+      'https://wpn.wizards.com/en/news/love-your-local-game-store-2024-begins-july-5-with-all-new-lylgs-draft-event',
+  },
+  pblb: {
+    description:
+      'Bloomburrow’s WPN promo lineup tied cards to events, from Ravenous Squirrel for Open House to Urza’s Saga for the Store Championship winner.',
+    source: 'https://wpn.wizards.com/en/news/bloomburrow-events-and-promos-overview',
+  },
+  pcbb: {
+    description:
+      'The five traditional-foil Cowboy Bebop promos are Standard Showdown rewards, from Ossification through Snakeskin Veil.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/announcing-cowboy-bebop-collaboration-promo-cards',
+  },
+  potj: {
+    description:
+      'Outlaws of Thunder Junction Store Championships awarded Blazing Rootwalla for participation, Hollow One for Top 8, and textless full-art Vengevine to the winner.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/where-to-play-outlaw-of-thunder-junctions-for-fun-and-promo-cards',
+  },
+  pw24: {
+    description:
+      'WPN Premium stores received quarterly borderless promos Lord of Atlantis, Zombie Master, Goblin King, and Gaea’s Liege, plus a yellow-cosmium-neon-ink Cavern of Souls.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/check-out-wpn-premium-store-promos-arriving-throughout-2024',
+  },
   ttle: {
     description:
       'The TLE source-material reimagining The Boy in the Iceberg can create Marit Lage, a 20/20 black Avatar token with flying and indestructible.',
