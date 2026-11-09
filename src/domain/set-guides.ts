@@ -1,5 +1,74 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  te01: {
+    description:
+      'Archenemy: Nicol Bolas scheme cards can unleash 3/3 black Horror tokens. Some schemes create one outright, while others send a Horror after each opponent.',
+    source:
+      'https://magic.wizards.com/en/news/feature/archenemy-nicol-bolas-release-notes-2017-06-16',
+  },
+  thou: {
+    description:
+      "Hour of Devastation's eternalize mechanic makes a 4/4 black Zombie token copy of a creature, representing Nicol Bolas's undead army on Amonkhet.",
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-3',
+  },
+  takh: {
+    description:
+      "Amonkhet's embalm creatures each have a matching token: a white Zombie copy that keeps the creature's other types while shedding its original color and mana cost.",
+    source: 'https://magic.wizards.com/en/news/feature/amonkhet-mechanics-2017-04-03',
+  },
+  tmm3: {
+    description:
+      'Modern Masters 2017 revisits many Magic settings through a curated draft set. Its token-producing reprints include flying Birds from Eyes in the Skies and a temporary 4/4 Giant Warrior from Giantbaiting.',
+    source:
+      'https://magic.wizards.com/en/news/feature/modern-masters-2017-edition-release-notes-2017-03-03',
+  },
+  tpca: {
+    description:
+      'Planechase Anthology bundles four ready-to-play decks with oversized planar cards and 35 double-sided token cards, bringing its plane-hopping multiplayer format together in one box.',
+    source:
+      'https://magic.wizards.com/en/news/feature/planechase-anthology-celebration-magics-history-2016-11-14',
+  },
+  tkld: {
+    description:
+      "Kaladesh's fabricate cards offer a choice between +1/+1 counters and Servo tokens; Weaponcraft Enthusiast can add two counters or make two 1/1 colorless artifact creatures.",
+    source: 'https://magic.wizards.com/en/news/feature/kaladesh-release-notes-2016-09-16',
+  },
+  tcn2: {
+    description:
+      'Conspiracy: Take the Crown includes a reminder card for the monarch, a player designation that can change through combat. The monarch draws a card at the beginning of their end step.',
+    source: 'https://magic.wizards.com/en/news/feature/conspiracy-take-crown-mechanics-2016-08-15',
+  },
+  temn: {
+    description:
+      "Eldritch Moon's release notes show several paths to 3/2 colorless Eldrazi Horror tokens, from Emrakul's Evangel to Extricator of Sin and Howling Chorus.",
+    source: 'https://magic.wizards.com/en/news/feature/eldritch-moon-release-notes-2016-07-08',
+  },
+  tsoi: {
+    description:
+      'Shadows over Innistrad uses investigate to create Clue artifact tokens. Sacrificing a Clue for two mana draws a card, letting the set turn its mystery into a resource.',
+    source:
+      'https://magic.wizards.com/en/news/feature/shadows-over-innistrad-release-notes-2016-03-30',
+  },
+  togw: {
+    description:
+      'Oath of the Gatewatch Eldrazi Scions are 1/1 colorless creatures that can be sacrificed for colorless mana, turning the invaders into a resource as they swarm the battlefield.',
+    source: 'https://magic.wizards.com/en/news/feature/oath-gatewatch-mechanics-2015-12-28',
+  },
+  tc15: {
+    description:
+      'Commander 2015 introduced myriad, a multiplayer mechanic that lets one attacker pressure every opponent through temporary token copies of the attacking creature.',
+    source: 'https://magic.wizards.com/en/news/making-magic/the-history-of-tokens-part-3',
+  },
+  tbfz: {
+    description:
+      'Battle for Zendikar Eldrazi Scions are 1/1 colorless tokens that can be sacrificed for colorless mana, making the alien swarm an expendable source of power.',
+    source: 'https://magic.wizards.com/en/news/feature/battle-for-zendikar-mechanics',
+  },
+  tori: {
+    description:
+      "Magic Origins' release notes feature four vigilant Knight tokens from Gideon's Phalanx and flying Thopters from Hangarback Walker, showcasing the set's varied token makers.",
+    source: 'https://magic.wizards.com/en/news/feature/magic-origins-release-notes-2015-07-08',
+  },
   pl25: {
     description:
       'Lunar New Year events at select WPN stores offered a traditional-foil Xyris, the Writhing Storm together with a matching Snake token.',
