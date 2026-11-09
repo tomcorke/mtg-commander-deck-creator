@@ -1,5 +1,64 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  pss4: {
+    description:
+      "The Murders at Karlov Manor Standard Showdown season included weekly full-art foil Omenpath lands for top players, with Dragonlord's Servant and Sarkhan Unbroken for its Lunar New Year kickoff.",
+    source:
+      'https://wpn.wizards.com/en/news/standard-showdown-overview-for-murders-at-karlov-manor',
+  },
+  pmkm: {
+    description:
+      "The Murders at Karlov Manor promo kit covered a season of events, from retro-frame Arcane Signet, Commander's Sphere, and Chaos Warp for drafts to Rogue's Passage for Commander Party and Wojek Investigator for Buy-a-Box.",
+    source: 'https://wpn.wizards.com/en/news/murders-at-karlov-manor-events-and-promos-overview',
+  },
+  pl24: {
+    description:
+      "Japan's 2024 Year of the Dragon program rotated promos through Magic League and Friendly Events, including Sarkhan Unbroken, Dragonlord's Servant with a Dragon token, Steel Hellkite, Korvold, and Dragon Tempest.",
+    source: 'https://mtg-jp.com/reading/kochima/0037488/',
+  },
+  plci: {
+    description:
+      'The Lost Caverns of Ixalan event kit mixed promos for several play settings: Jadelight Spelunker for Buy-a-Box, Ravenous Chupacabra for Open House, Unclaimed Territory for Commander Party, and tournament rewards.',
+    source: 'https://wpn.wizards.com/en/news/the-lost-caverns-of-ixalan-events-and-promos-overview',
+  },
+  pwoe: {
+    description:
+      "Wilds of Eldraine's event promos covered Open House, Commander Party, Store Championships, and a Lotus Petal season giveaway, with cards including Drown in the Loch, Syr Konrad, and Moonshaker Cavalry.",
+    source: 'https://wpn.wizards.com/en/news/wilds-of-eldraine-events-and-promos-overview',
+  },
+  pmda: {
+    description:
+      "Japan's Magic × Duel Masters promos put Duel Masters artwork on four foil Magic cards—Earthquake, Serra Angel, Pouncing Jaguar, and Nicol Bolas—awarded at scheduled Friday Night Magic Standard events.",
+    source: 'https://mtg-jp.com/reading/kochima/0037149/',
+  },
+  ptsr: {
+    description:
+      "Time Spiral Remastered's promo is an alternate-art Lotus Bloom, distributed for booster-box purchases and Launch Party events; it does not appear in TSR Draft Boosters.",
+    source: 'https://wpn.wizards.com/en/news/time-spiral-remastered-all-dates-and-info-you-need',
+  },
+  p30t: {
+    description:
+      'The Tokyo 30th Anniversary event offered day-ticket visitors a special promo card with art by Naoki Saito, alongside its anniversary exhibits and play spaces.',
+    source: 'https://mtg-jp.com/reading/special/0037185/',
+  },
+  pltr: {
+    description:
+      'The Lord of the Rings: Tales of Middle-earth promo kit supported several events, with a Lórien Brooch Buy-a-Box card, anniversary Prerelease promos, Commander Party cards, and Store Championship rewards.',
+    source:
+      'https://wpn.wizards.com/en/news/the-lord-of-the-rings-tales-of-middle-earth-promo-kit-overview',
+  },
+  pl23: {
+    description:
+      "The APAC League's 2023 Year of the Rabbit program rotated seasonal promos, from Rabbit Battery plus a Food token to Kwain, Swiftfoot Boots, Ethereal Armor, and Arcbound Ravager.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/2023-apac-league-and-the-year-of-the-rabbit',
+  },
+  pr23: {
+    description:
+      "For 2023's April–August RCQs, Unholy Heat was the participation promo and Eldritch Evolution rewarded top finishers; the associated Regional Championships had a separate Ugin promo.",
+    source:
+      'https://wpn.wizards.com/en/news/regional-championship-qualifier-format-update-and-upcoming-promo-cards',
+  },
   pecl: {
     description:
       "Lorwyn Eclipsed's Buy-a-Box promo is Harmonized Crescendo, a merfolk card offered with local-game-store Play or Collector Booster box preorders.",
