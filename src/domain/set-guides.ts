@@ -1,5 +1,103 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  fjmp: {
+    description:
+      "Jumpstart's theme cards identify the color and idea behind each twenty-card booster. Labels such as Predatory introduce the half-deck inside, ready to combine with another pack for a complete mix-and-match deck.",
+    source:
+      'https://magic.wizards.com/en/news/card-preview/behind-scenes-designing-jumpstart-2020-06-17',
+  },
+  fj22: {
+    description:
+      "Jumpstart 2022's front cards identify themes such as Blink, Cats, and Go to School. These inserts accompany the twenty-card packs, helping players choose and remember the two themes combined into a ready-to-play deck.",
+    source:
+      'https://magic.wizards.com/en/news/feature/jumpstart-2022-booster-themes-and-card-lists',
+  },
+  fdmu: {
+    description:
+      "Dominaria United's Jumpstart front cards describe ten booster themes, including Arcane Mischief and Coalition Corps. Each label identifies a ready-made half-deck, giving players a quick way to see which theme they are mixing with another pack.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/dominaria-united-jumpstart-booster-contents-2022-08-31',
+  },
+  fbro: {
+    description:
+      "The Brothers' War Jumpstart inserts name themes such as Infantry and Powerstones. Each twenty-card booster includes a theme description card, with two versions within each color theme for mixing into quick-play decks.",
+    source: 'https://magic.wizards.com/en/news/feature/the-brothers-war-jumpstart-booster-contents',
+  },
+  fone: {
+    description:
+      "Phyrexia: All Will Be One's theme inserts label Jumpstart packs such as Mite-y, Progress, and Toxic. They accompany twenty-card half-decks, making the pack's identity clear before it is combined with a second booster.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/phyrexia-all-will-be-one-jumpstart-booster-themes-and-card-lists',
+  },
+  fmom: {
+    description:
+      "March of the Machine's Jumpstart front cards identify themes such as Reinforcement, Brood, and Overachiever. These labels accompany the set's ready-made half-decks, letting players see the theme of each pack they combine.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/march-of-the-machine-jumpstart-booster-themes-and-card-lists',
+  },
+  fltr: {
+    description:
+      "Tales of Middle-earth's theme cards label Jumpstart boosters from the original release and Jumpstart Volume 2. Names such as Courageous and Orcish identify the half-decks, helping players mix different Middle-earth stories into a game.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/the-lord-of-the-rings-tales-of-middle-earth-jumpstart-booster-contents',
+  },
+  fclu: {
+    description:
+      "Clue Edition's front cards identify the ten guild themes of its Ravnica Boosters. Each guild has two booster variations, making twenty possible twenty-card packs whose labels show the guild behind that part of the deck.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/ravnica-clue-edition-ravnica-cluedo-edition-booster-contents',
+  },
+  fj25: {
+    description:
+      'Foundations Jumpstart theme cards identify packs such as Angels, Bookworms, and Ninjas. Each booster includes a theme card with its name and decklist, helping players keep track of the half-decks they shuffle together.',
+    source: 'https://magic.wizards.com/en/news/announcements/foundations-jumpstart-booster-themes',
+  },
+  ffdn: {
+    description:
+      'Foundations Beginner Box front cards label its ten themed half-decks. Cats and Vampires are used for the ordered tutorial, while the wider set of themes gives new players options to mix and match after learning the basics.',
+    source: 'https://magic.wizards.com/en/news/feature/foundations-beginner-box-contents',
+  },
+  ftla: {
+    description:
+      "Avatar's Beginner Box front cards identify ten themed half-decks, including the ordered Aang Tutorial and Zuko Tutorial decks. The labels organize the introductory decks and the other themes players can combine as they learn Magic.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/avatar-the-last-airbender-beginner-box-contents',
+  },
+  jtla: {
+    description:
+      "Avatar Jumpstart front cards identify character and skill themes such as Aang, Azula, and Airbending. The labels accompany ready-made half-decks, helping players see which parts of Avatar's world they are shuffling together.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/avatar-the-last-airbender-jumpstart-booster-themes',
+  },
+  ftmc: {
+    description:
+      "Turtle Team-Up's front cards label the Leonardo, Donatello, Raphael, and Michelangelo decks, plus the Bosses + Events deck. These labels help organize the themed decks and automated opposition used in the cooperative experience.",
+    source:
+      'https://magic.wizards.com/en/news/announcements/teenage-mutant-ninja-turtles-turtle-team-up-contents',
+  },
+  fmsc: {
+    description:
+      'Marvel Super Heroes Jumpstart front cards identify themed packs such as Agents of S.H.I.E.L.D. and Atlantis. They label the half-decks players combine, bringing different corners of the Marvel Universe together in a quick-play deck.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/marvel-super-heroes-jumpstart-booster-themes',
+  },
+  afic: {
+    description:
+      'Final Fantasy Scene Boxes present moments from Final Fantasy I, VIII, IX, and XV. Each box includes six art cards that mirror its six playable scene cards, plus a display easel for showing the larger illustration.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-final-fantasy',
+  },
+  altc: {
+    description:
+      "Tales of Middle-earth Scene Boxes include six art cards matching each box's six-card scene. A display easel lets collectors show the illustration while keeping the traditional foil playable cards available for their decks.",
+    source:
+      'https://magic.wizards.com/en/news/feature/collecting-the-lord-of-the-rings-tales-of-middle-earth',
+  },
+  amid: {
+    description:
+      "Midnight Hunt's eighty-one art cards include different depictions of Arlinn and Tovolar alongside the set's other illustrations. Found in Set Boosters, the collection has ordinary versions and versions gold stamped with an artist's signature or Planeswalker symbol.",
+    source:
+      'https://web.archive.org/web/20211001000000id_/https://magic.wizards.com/en/articles/archive/card-image-gallery/innistrad-midnight-hunt-art-cards-2021-09-16',
+  },
   ocmd: {
     description:
       "The original Commander release supplied three oversized premium cards with each of its five decks. This fifteen-card collection pairs the decks' new legendary leaders with returning Dragons from Planar Chaos, presenting their commanders in a larger format.",
