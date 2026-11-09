@@ -3961,4 +3961,61 @@ export const setGuides: Record<string, { description: string; source: string }> 
     source:
       'https://web.archive.org/web/19961219053020id_/http://www.wizards.com:80/Marketing/MTG/QuickStart.html',
   },
+  wmom: {
+    description:
+      'Japan’s March of the Machine plastic-token campaign featured six designs: Monk, Soldier, Knight, Zombie, Dinosaur, and Thopter.',
+    source: 'https://mtg-jp.com/reading/kochima/0036818/',
+  },
+  wone: {
+    description:
+      'Japan’s Phyrexia: All Will Be One campaign offered six original-art plastic tokens depicting Samurai, Cat, Phyrexian Mite, and Phyrexian Goblin tokens.',
+    source: 'https://mtg-jp.com/reading/kochima/0036641/',
+  },
+  tund: {
+    description:
+      'Unsanctioned’s five mix-and-match silver-bordered decks came with ten double-sided tokens.',
+    source: 'https://magic.wizards.com/en/news/announcements/announcing-unsanctioned-2019-10-10',
+  },
+  tthb: {
+    description:
+      'Theros Beyond Death token-makers include Satyrs, Zombies, Spiders, Pegasi, and Gold artifacts.',
+    source:
+      'https://magic.wizards.com/en/news/feature/theros-beyond-death-release-notes-2020-01-10',
+  },
+  tc19: {
+    description:
+      'Commander 2019’s Grismold creates a green Plant token for each player, turning the table’s tokens into fuel for his growth.',
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2019-edition-release-notes-2019-08-09',
+  },
+  trna: {
+    description:
+      'Ravnica Allegiance’s afterlife ability leaves flying white-and-black Spirit tokens behind when its creatures die.',
+    source: 'https://magic.wizards.com/en/news/feature/ravnica-allegiance-release-notes-2019-01-16',
+  },
+  tdom: {
+    description:
+      'Dominaria token-makers range from Fungal Infection’s Saproling to Verix Bladewing’s legendary flying Dragon, Karox Bladewing.',
+    source: 'https://magic.wizards.com/en/news/feature/dominaria-release-notes',
+  },
+  tc18: {
+    description:
+      'Commander 2018 includes Estrid’s Mask Aura tokens and the 2/1 blue Myr made by Brudiclad.',
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2018-edition-release-notes-2018-07-27',
+  },
+  tm19: {
+    description: 'Core Set 2019 token-makers include Bat, Angel, Soldier, and Ox creatures.',
+    source: 'https://magic.wizards.com/en/news/feature/core-set-2019-release-notes-2018-06-22',
+  },
+  txln: {
+    description:
+      'Ixalan’s four Treasure-token designs each picture valuables from one of its Pirate factions; cards also create Plants, Vampires, and other creatures.',
+    source: 'https://magic.wizards.com/en/news/feature/ixalan-release-notes',
+  },
+  tima: {
+    description:
+      'Iconic Masters reprints include token-makers such as Angelic Accord’s 4/4 flying Angels and Hunting Pack’s 4/4 green Beasts.',
+    source: 'https://magic.wizards.com/en/news/feature/iconic-masters-release-notes-2017-09-11',
+  },
 }
