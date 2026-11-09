@@ -3710,4 +3710,109 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Core Set 2019’s WPN season included foil full-art Guttersnipe for Open House and Demon of Catastrophes for Store Championship participants, alongside other event promos.',
     source: 'https://wpn.wizards.com/en/news/see-your-m19-promo-cards',
   },
+  pw23: {
+    description:
+      'The 2023 WPN holiday gift included two promos: the playful Seasonal Sequels and the Duel Masters card Enter the Dragon.',
+    source: 'https://wpn.wizards.com/en/news/now-showing-2023-holiday-promos-for-the-wpn',
+  },
+  slp: {
+    description:
+      'Secret Lair play and prize promos included Wrenn and Six for Pro Tour players, Valakut for RCQ participants, and Springleaf Drum or Goblin Guide in local qualifiers.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/where-to-play-outlaw-of-thunder-junctions-for-fun-and-promo-cards',
+  },
+  pewk: {
+    description:
+      'Eternal Weekend 2023 gave retro-frame promo cards to Championship Top 8 players: Mental Misstep for Vintage and Dragon’s Rage Channeler for Legacy.',
+    source: 'https://magic.gg/news/october-commandfests-and-2023-eternal-weekend-news',
+  },
+  prcq: {
+    description:
+      'The 2023 Pro Tour 3 qualifying round used Mystical Dispute for RCQ participants, Thing in the Ice // Awoken Horror for top finishers, and Snapcaster Mage at Regional Championships.',
+    source:
+      'https://magic.gg/news/qualify-for-pro-tour-3-in-2023-and-earn-these-upcoming-promo-cards',
+  },
+  p30h: {
+    description:
+      'Magic’s 30th-anniversary Prerelease promos offered one of 30 historical cards, one for each year; several were printed only in non-English languages.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/kicking-magics-30th-anniversary-celebration-2022-10-04',
+  },
+  p30a: {
+    description:
+      'The 30th-anniversary Play promos were alternate-art cards for the path to Pro Tour 3, including Mystical Dispute, Thing in the Ice // Awoken Horror, and Snapcaster Mage.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/kicking-magics-30th-anniversary-celebration-2022-10-04',
+  },
+  sch: {
+    description:
+      'Bloomburrow Store Championships used a three-tier promo set: Monastery Swiftspear for participation, Shark Typhoon for Top 8, and full-art Urza’s Saga for the winner.',
+    source: 'https://wpn.wizards.com/en/news/bloomburrow-events-and-promos-overview',
+  },
+  plg22: {
+    description:
+      'The 2022 Love Your Local Game Store promotion offered a foil retro-frame Sol Ring to customers who spent at least $50 on sealed Magic product.',
+    source: 'https://wpn.wizards.com/en/news/love-your-local-game-store-starts-next-month',
+  },
+  pclb: {
+    description:
+      'Commander Legends: Battle for Baldur’s Gate promos included Elder Brain as Buy-a-Box and alternate-art foil Wand of Wonder in Bundles.',
+    source: 'https://wpn.wizards.com/en/news/commander-legends-battle-baldurs-gate-retail-guide',
+  },
+  pncc: {
+    description:
+      'Streets of New Capenna Commander Launch Party participants who bought and played a Commander deck could receive Swiftfoot Boots as a promo.',
+    source:
+      'https://wpn.wizards.com/en/news/streets-of-new-capenna-product-delays-commander-launch-party-dates-extended',
+  },
+  psnc: {
+    description:
+      'Streets of New Capenna Game Day promos stepped from Power Word Kill for participation to Skyclave Apparition for Top 8 and All-Seeing Arbiter for the winner.',
+    source:
+      'https://wpn.wizards.com/en/news/streets-of-new-capenna-game-day-tips-and-promo-reveals',
+  },
+  gdy: {
+    description:
+      'Game Day used three prize tiers—participation, Top 8, and winner—with Streets of New Capenna examples Power Word Kill, Skyclave Apparition, and All-Seeing Arbiter.',
+    source:
+      'https://wpn.wizards.com/en/news/streets-of-new-capenna-game-day-tips-and-promo-reveals',
+  },
+  pw22: {
+    description:
+      'The 2022 WPN holiday card was Chaos Wrap, an English-only promo sent to WPN stores worldwide and created outside previously released Magic sets.',
+    source: 'https://wpn.wizards.com/en/news/2022-holiday-promo-coming',
+  },
+  pl22: {
+    description:
+      'APAC League’s 2022 promo cycle featured Temur Sabertooth, Jedit Ojanen, Yuriko, Snapdax, and Herald’s Horn across four set-season and Commander League events.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/celebrate-year-tiger-apac-league-events-and-promos-2022-02-09',
+  },
+  plg21: {
+    description:
+      'European Love Your Local Game Store event-entry promos included foil retro-frame Aven Mindcensor, Dig Through Time, Bolas’s Citadel, Goblin Guide, and Scavenging Ooze.',
+    source:
+      'https://wpn.wizards.com/en/news/play-metrics-reactivated-europe-innistrad-midnight-hunt-prerelease',
+  },
+  pw21: {
+    description:
+      'WPN’s 2021 holiday promo was Last-Minute Chopping, an English-only unique card created for WPN retailers rather than another released Magic set.',
+    source: 'https://wpn.wizards.com/en/news/your-wpn-holiday-promo-its-way',
+  },
+  pl21: {
+    description:
+      'The 2021 APAC Year of the Ox Store Challenger Series featured Moraug, Ox of Agonas, Angrath, and Tahngarth promos across its event rounds.',
+    source:
+      'https://magic.wizards.com/en/news/announcements/year-ox-store-challenger-series-2021-promos-2021-05-17',
+  },
+  pcmr: {
+    description:
+      'Commander Legends promos included foil Mana Confluence as Buy-a-Box and an alternate-art foil Sengir, the Dark Baron for Prerelease week.',
+    source: 'https://magic.wizards.com/en/news/feature/collecting-commander-legends-2020-10-26',
+  },
+  pm21: {
+    description:
+      'Core Set 2021’s Buy-a-Box promo was foil extended-art Rin and Seri, Inseparable, with the non-foil extended-art version also appearing in Collector Boosters.',
+    source: 'https://magic.wizards.com/en/news/card-preview/collecting-core-set-2021-2020-06-05',
+  },
 }
