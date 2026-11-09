@@ -1,5 +1,97 @@
 // Curated plain-English set summaries for newer players; each cites the official source it paraphrases.
 export const setGuides: Record<string, { description: string; source: string }> = {
+  ocmd: {
+    description:
+      "The original Commander release supplied three oversized premium cards with each of its five decks. This fifteen-card collection pairs the decks' new legendary leaders with returning Dragons from Planar Chaos, presenting their commanders in a larger format.",
+    source: 'https://mtg-jp.com/products/0000132/',
+  },
+  ocm1: {
+    description:
+      "Commander's Arsenal includes ten oversized cards designed to show off a deck's commander. The collection features legends such as Azusa, Lost but Seeking and Grimgrin, Corpse-Born, alongside the product's separate regular-size cards.",
+    source:
+      'https://magic.wizards.com/en/news/making-magic/commanders-arsenal-initial-barrage-2012-10-23',
+  },
+  oc13: {
+    description:
+      "Commander 2013's five decks each came with three oversized foil commander cards, making fifteen in this collection. They correspond to ordinary cards in the decks and offer a large-format presentation of the release's legendary choices.",
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2013-edition-release-notes-2013-10-22',
+  },
+  oc14: {
+    description:
+      'Commander 2014 spotlights its five planeswalker leaders in oversized foil form. Each deck included one of these collectible companions, presenting figures such as Daretti and Nahiri on a larger card alongside the ordinary deck.',
+    source: 'https://magic.wizards.com/en/news/feature/release-notes-2014-11-10',
+  },
+  oc15: {
+    description:
+      "Commander 2015's five decks each included an oversized foil version of their lead commander. These larger-format companions feature the release's experience-counter leaders, including Meren of Clan Nel Toth and Mizzix of the Izmagnus.",
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2015-edition-release-notes-2015-11-11',
+  },
+  oc16: {
+    description:
+      'Commander 2016 presents its five four-color leaders as oversized foil cards, one with each deck. This collection puts commanders such as Atraxa and Breya on a larger canvas alongside their regular-size deck versions.',
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2016-edition-release-notes-2016-10-28',
+  },
+  oc17: {
+    description:
+      "Commander 2017's four decks each supplied an oversized foil commander card. The collection accompanies Arcane Wizardry, Draconic Domination, Feline Ferocity, and Vampiric Bloodlust, giving their legendary leaders a larger display format.",
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2017-edition-release-notes-2017-08-11',
+  },
+  oc18: {
+    description:
+      "Commander 2018's oversized foil cards showcase the planeswalkers leading its four decks: Aminatou, Estrid, Lord Windgrace, and Saheeli. Each deck included one large-format card alongside its ordinary playable contents.",
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2018-edition-release-notes-2018-07-27',
+  },
+  oc19: {
+    description:
+      "Commander 2019's four decks each included an oversized foil commander. This collection showcases Anje Falkenrath, Ghired, Kadena, and Sevinne in a larger format, accompanying the decks' regular-size cards.",
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-2019-edition-release-notes-2019-08-09',
+  },
+  oc20: {
+    description:
+      "Commander 2020's five Ikoria-themed decks came with oversized foil commander cards. These larger-format companions showcase the leaders of Ruthless Regiment, Arcane Maelstrom, Symbiotic Swarm, Timeless Wisdom, and Enhanced Evolution.",
+    source: 'https://mtg-jp.com/products/0000193/',
+  },
+  oc21: {
+    description:
+      'Commander 2021 introduced thick-cardstock display commanders as the replacement for oversized foils in the decks. These collectible companions show off the Strixhaven commanders while fitting inside the deck box with the ordinary cards.',
+    source:
+      'https://magic.wizards.com/en/news/feature/check-out-new-packaging-commander-2021-edition-and-beyond-2021-04-08',
+  },
+  oafc: {
+    description:
+      'Forgotten Realms Commander continues the thick-cardstock display commander format introduced with Strixhaven. Each of its four adventuring-party decks includes a foil-etched display piece alongside the regular-size Commander deck.',
+    source:
+      'https://magic.wizards.com/en/news/feature/adventures-forgotten-realms-product-overview-2021-06-29',
+  },
+  omic: {
+    description:
+      "Midnight Hunt's Coven Counters and Undead Unleashed decks each include a foil-etched display commander. These thick-cardstock copies feature textured foil in the border and artwork, giving the lead commander a dedicated display piece.",
+    source: 'https://wpn.wizards.com/en/news/look-inside-innistrad-midnight-hunt-products',
+  },
+  ovoc: {
+    description:
+      "Crimson Vow's foil-etched display commanders accompany its two preconstructed decks. Strefan, Maurer Progenitor leads Vampiric Bloodline, while Millicent, Restless Revenant leads Spirit Squadron, with a display version included alongside each deck.",
+    source:
+      'https://magic.wizards.com/en/news/feature/innistrad-crimson-vow-product-overview-2021-10-28',
+  },
+  oafr: {
+    description:
+      "Forgotten Realms Bundles include oversized versions of all three dungeons from the set. This collection gives the adventure's dungeon cards a larger presentation, accompanying the Bundle's boosters and other accessories.",
+    source:
+      'https://magic.wizards.com/en/news/feature/adventures-forgotten-realms-product-overview-2021-06-29',
+  },
+  oclb: {
+    description:
+      "The Baldur's Gate Bundle includes an oversized Undercity dungeon card. This large-format adventure piece accompanies the set's Dungeons & Dragons Commander experience and comes packaged with the Bundle's boosters, lands, and accessories.",
+    source:
+      'https://magic.wizards.com/en/news/feature/commander-legends-battle-for-baldurs-gate-product-overview',
+  },
   ttrk: {
     description:
       "Star Trek's booster token collection includes twenty-seven full-art designs. Different illustrations for Officers, Klingon Warriors, Borg, and Clues capture the universe's variety, with double-sided non-foil and traditional foil versions across booster products.",
