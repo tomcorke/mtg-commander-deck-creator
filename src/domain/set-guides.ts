@@ -3913,4 +3913,52 @@ export const setGuides: Record<string, { description: string; source: string }> 
       'Unglued’s unnamed, full-art tokens borrowed from Japanese play accessories and were left open-ended so they could represent different creatures.',
     source: 'https://magic.wizards.com/en/news/making-magic/putting-un-fun-2004-08-16',
   },
+  phop: {
+    description:
+      'Planechase release events offered Tazeem as a forty-first plane card outside the four decks.',
+    source: 'https://magic.wizards.com/en/news/feature/planes-planechase-2009-12-30',
+  },
+  pala: {
+    description:
+      'Alara Reborn Prerelease Sealed participants received a promo foil and built with three Shards of Alara and three Alara Reborn boosters.',
+    source: 'https://magic.wizards.com/en/news/feature/alara-reborn-prerelease-primer',
+  },
+  pm11: {
+    description: 'Magic 2011 Prerelease events offered Sun Titan as their promotional card.',
+    source: 'https://magic.wizards.com/en/news/feature/magic-2011-prerelease-primer',
+  },
+  ps17: {
+    description:
+      'Hasbro’s 2017 Comic-Con Planeswalker Pack paired six exclusive-art Planeswalkers with a Nicol Bolas screen print.',
+    source: 'https://investor.hasbro.com/node/17006',
+  },
+  ps18: {
+    description:
+      'The 2018 Comic-Con Timeless Legends collection gathered five Planeswalkers with exclusive Terese Nielsen art.',
+    source: 'https://corp.hasbro.com/node/30216/pdf',
+  },
+  ps19: {
+    description:
+      'Hasbro’s 2019 Comic-Con five-card set features Nicol Bolas and the four God-Eternals in exclusive Adam Paquette art and special frames.',
+    source:
+      'https://corp.hasbro.com/news-releases/news-release-details/hasbro-heads-2019-san-diego-comic-con-hasbro-pulse-convention',
+  },
+  ps11: {
+    description:
+      'Salvat’s 2011 Magic collection arrived in weekly issues pairing a fascicle with a 12-card exclusive-deck booster and a six-card random booster.',
+    source:
+      'https://web.archive.org/web/20101231081056id_/http://www.salvat.com:80/colecciones/magic/faq.html',
+  },
+  dpa: {
+    description:
+      'Inspired by the Duels of the Planeswalkers game, these ready-to-play 60-card decks included five rares (one foil) and a 15-card Magic 2010 booster.',
+    source:
+      'https://web.archive.org/web/20100111033713id_/http://www.wizards.com:80/Magic/Magazine/Article.aspx?x=mtg/daily/arcana/359',
+  },
+  rqs: {
+    description:
+      'Wizards designed Rivals as a Quick Start introduction, pairing two preconstructed 56-card decks with a first-game guide for each player and quick-reference rules cards.',
+    source:
+      'https://web.archive.org/web/19961219053020id_/http://www.wizards.com:80/Marketing/MTG/QuickStart.html',
+  },
 }
