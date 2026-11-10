@@ -2,10 +2,9 @@ import type { ReactNode } from 'react'
 
 import type { CollectionMode } from '../../recommendations.ts'
 import type { CommanderPromotionInfo } from '../../domain/commander-promotion.ts'
-import { cardScryfallUri, cardTypeLine, type DeckCard } from '../../domain/card-model.ts'
-import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
-import { CardDetails, ModalCloseButton } from '../../shared/CardDetails.tsx'
-import { OracleText } from '../../shared/ManaSymbols.tsx'
+import type { DeckCard } from '../../domain/card-model.ts'
+import { CardDetailContent } from '../../shared/CardDetailContent.tsx'
+import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
 
@@ -96,50 +95,22 @@ export function DeckCardModal({
             label={`Close ${selectedDeckCard.name} details`}
           />
         </div>
-        <div className="deck-card-modal-content">
-          <figure className="deck-card-modal-art">
-            <FinishedCardImage
-              image={selectedDeckCard.image}
-              backImage={selectedDeckCard.backImage}
-              alt={`${selectedDeckCard.name} card`}
-              cardName={selectedDeckCard.name}
-              finish={selectedDeckCard.finish}
-              foilType={selectedDeckCard.foilType}
-              set={selectedDeckCard.set}
-              collectorNumber={selectedDeckCard.collectorNumber}
-              className="deck-card-modal-image"
-              showFlipButton
-              printing={{
-                count: selectedDeckCard.printings?.length ?? 0,
-                index: selectedDeckCard.printing ?? 0,
-                loading: Boolean(loadingArt),
-                name: selectedDeckCard.name,
-                onClick: () => void cycleSelectedDeckCardPrinting(),
-              }}
-            />
-            <ArtLoading active={loadingArt === selectedDeckCard.name} />
-          </figure>
-          <div className="deck-card-modal-copy">
-            <div className="deck-card-modal-title">
-              <h2 id="deck-card-title">{selectedDeckCard.name}</h2>
-              <span className="deck-card-modal-mana">
-                <OracleText text={selectedDeckCard.manaCost} />
-              </span>
-            </div>
-            <p className="card-type-line">{cardTypeLine(selectedDeckCard)}</p>
-            <p className="deck-card-description">
-              <OracleText text={selectedDeckCard.detail} />
-            </p>
-            <CardDetails
-              card={selectedDeckCard}
-              source={{ label: 'Scryfall', uri: cardScryfallUri(selectedDeckCard) }}
-              onToggleSet={() => toggleCollectionSet(selectedDeckCard.set)}
-              collectionSelected={
-                collectionMode !== 'none' && collectionSets.includes(selectedDeckCard.set)
-              }
-            />
-          </div>
-        </div>
+        <CardDetailContent
+          card={selectedDeckCard}
+          titleId="deck-card-title"
+          printing={{
+            count: selectedDeckCard.printings?.length ?? 0,
+            index: selectedDeckCard.printing ?? 0,
+            loading: Boolean(loadingArt),
+            name: selectedDeckCard.name,
+            onClick: () => void cycleSelectedDeckCardPrinting(),
+          }}
+          loading={loadingArt === selectedDeckCard.name}
+          onToggleSet={() => toggleCollectionSet(selectedDeckCard.set)}
+          collectionSelected={
+            collectionMode !== 'none' && collectionSets.includes(selectedDeckCard.set)
+          }
+        />
         {notice && <p role="status">{notice}</p>}
         {addAction && (
           <div className="export-actions deck-card-modal-actions">

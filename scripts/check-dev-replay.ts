@@ -84,6 +84,17 @@ async function drive(page: Page, base: string) {
   await page.evaluate("dr.text('commanders shown')")
   assert(await page.locator('.commander-tile').count(), 'start discovery renders')
   console.log('Drive: fresh start discovery rendered')
+  await page.getByRole('button', { name: 'Random commander', exact: true }).click()
+  const random = page.getByRole('dialog', { name: 'Random commander', exact: true })
+  await random.locator('.card-reference-name').waitFor()
+  assert.equal(
+    await random.locator('.deck-card-description').count(),
+    1,
+    'rules description rendered',
+  )
+  await random.getByRole('heading', { name: 'Identified themes', exact: true }).waitFor()
+  await random.getByRole('button', { name: 'Cancel', exact: true }).click()
+  console.log('Drive: random commander preview rendered and cancelled')
   await importDeck(page, partial, 84)
   console.log('Drive: full documented partial-deck import and builderReady completed')
   // The documented card-details state, driven without provider mocks.
@@ -95,11 +106,23 @@ async function drive(page: Page, base: string) {
   console.log('Drive: complete-deck import and builderReady completed')
   await checkTexture(page)
   await page.evaluate('document.fonts.ready')
-  const images = await page.evaluate(() =>
-    Array.from(document.images)
-      .filter((img) => img.checkVisibility() && (!img.complete || !img.naturalWidth))
-      .map((img) => img.src),
-  )
+  const images = await page.evaluate(async () => {
+    // Offscreen lazy images stay pending until scrolled into view.
+    const visible = [...document.images].filter((image) => {
+      const rect = image.getBoundingClientRect()
+      return (
+        image.checkVisibility() &&
+        rect.bottom > 0 &&
+        rect.top < innerHeight &&
+        rect.right > 0 &&
+        rect.left < innerWidth
+      )
+    })
+    await Promise.all(visible.map((image) => image.decode()))
+    return visible
+      .filter((image) => !image.complete || !image.naturalWidth)
+      .map((image) => image.src)
+  })
   assert.deepEqual(images, [], 'visible images decoded')
   const output = join(replayCacheDirectory(), 'evidence')
   await mkdir(output, { recursive: true })

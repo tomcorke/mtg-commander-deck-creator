@@ -119,6 +119,7 @@ import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
 import { CommanderSummary } from '../builder/CommanderSummary.tsx'
+import { RandomCommanderDialog } from './RandomCommanderDialog.tsx'
 
 /** Theme search over every theme, with a sample or full list while not searching. */
 function ThemeFilter({
@@ -263,6 +264,7 @@ function filterSummary(props: StartViewProps, setLabel: (code: string) => string
 
 // eslint-disable-next-line max-lines-per-function -- Start-screen markup stays together; search helpers and render callbacks remain checked.
 export function StartView(props: StartViewProps) {
+  const [randomCommanderOpen, setRandomCommanderOpen] = useState(false)
   const { darkMode } = useVisualPreferences()
   const discovery = useCommanderDiscovery(
     { ...props, creatureTypes: props.extraCreatureTypes, sets: props.commanderSets },
@@ -339,6 +341,13 @@ export function StartView(props: StartViewProps) {
       {props.workspaceNotice}
       {props.savedDecksModal}
       {props.importModal}
+      {randomCommanderOpen && (
+        <RandomCommanderDialog
+          onClose={() => setRandomCommanderOpen(false)}
+          chooseCommander={props.chooseCommander}
+          openCard={props.openCardReference}
+        />
+      )}
       <section className="start">
         {resume && (
           <section className="continue-card" aria-label="Deck in progress">
@@ -388,6 +397,11 @@ export function StartView(props: StartViewProps) {
           Combine a theme and colour identity, or search for a commander.
           {resume && ' Choosing a new commander keeps this deck in Autosaved drafts.'}
         </p>
+        <div className="export-actions">
+          <button className="export" type="button" onClick={() => setRandomCommanderOpen(true)}>
+            Random commander
+          </button>
+        </div>
         <section
           className={`start-panel commander-filters${filtersOpen ? '' : ' collapsed'}`}
           aria-label="Commander filters"

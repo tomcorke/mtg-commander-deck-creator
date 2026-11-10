@@ -71,7 +71,7 @@ function approvedApi(url: URL, method: string, body: string) {
   }
   if (
     method === 'GET' &&
-    (/^\/cards\/(search|named|[a-f0-9-]{36}|[a-z0-9]+\/[a-z0-9-]+)$/i.test(url.pathname) ||
+    (/^\/cards\/(search|named|random|[a-f0-9-]{36}|[a-z0-9]+\/[a-z0-9-]+)$/i.test(url.pathname) ||
       ['/sets', '/symbology', '/catalog/creature-types'].includes(url.pathname))
   )
     return 'application/json'

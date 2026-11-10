@@ -9,6 +9,26 @@ import { imageCatalog } from './images.ts'
 import { replayTransform } from './transform.ts'
 
 const named = new URL('https://api.scryfall.com/cards/named?exact=Sol+Ring')
+test('random commander queries record and replay each distinct re-roll without upstream calls', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dev-random-replay-'))
+  const first = new URL('https://api.scryfall.com/cards/random?q=is%3Acommander')
+  const next = new URL(`${first.href}%20-oracleid%3Aprevious`)
+  try {
+    const record = createReplayStore(directory, 'record', async (url) =>
+      Response.json({ url: String(url) }),
+    )
+    await record.request(first)
+    await record.request(next)
+    const replay = createReplayStore(directory, 'replay', async () => {
+      throw new Error('Forbidden upstream')
+    })
+    assert.deepEqual(await (await replay.request(first)).json(), { url: first.href })
+    assert.deepEqual(await (await replay.request(next)).json(), { url: next.href })
+    assert.equal(replay.stats.upstream, 0)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
 test('record persists/coalesces; replay hits, misses, and corruption never dispatch upstream', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dev-replay-'))
   let calls = 0
