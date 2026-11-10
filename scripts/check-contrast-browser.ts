@@ -241,6 +241,16 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
       await page.setViewportSize({ width: 1440, height: 1000 })
       await check('Start')
       failures.push(...(await lowContrastStates(page, `${theme.name} Start`)))
+      await button(page, 'Random commander').click()
+      await page.locator('.random-commander-modal .card-reference').waitFor()
+      await check('Random commander')
+      failures.push(...(await lowContrastStates(page, `${theme.name} Random commander`)))
+      await page.setViewportSize({ width: 390, height: 900 })
+      await check('Narrow random commander')
+      await button(
+        page.getByRole('dialog', { name: 'Random commander', exact: true }),
+        'Cancel',
+      ).click()
       await button(page, 'Import deck').click()
       await check('Start > Import')
       assert.deepEqual(scenario.errors, [], 'no page errors or unexpected dialogs')

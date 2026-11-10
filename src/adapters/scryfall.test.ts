@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  fetchRandomScryfallCommander,
   fetchScryfallCard,
   fetchScryfallCardsByIdentifiers,
   fetchScryfallCollection,
@@ -18,6 +19,53 @@ const response = (body: unknown, init?: ResponseInit) =>
     headers: { 'Content-Type': 'application/json' },
     ...init,
   })
+
+test('random commander requests are fresh, constrained, cancellable and exclude the previous identity', async () => {
+  const card = {
+    name: 'Random fixture',
+    type_line: 'Legendary Creature',
+    color_identity: [],
+    oracle_id: 'previous-id',
+    set: 'tst',
+    collector_number: '1',
+    prints_search_uri: '',
+  }
+  const queries: string[] = []
+  const controller = new AbortController()
+  const fetcher: typeof fetch = async (input, init) => {
+    const url = new URL(String(input))
+    assert.equal(url.pathname, '/cards/random')
+    assert.equal(init?.signal, controller.signal)
+    queries.push(url.searchParams.get('q')!)
+    return response(card)
+  }
+  assert.deepEqual(await fetchRandomScryfallCommander(undefined, controller.signal, fetcher), card)
+  await fetchRandomScryfallCommander('previous-id', controller.signal, fetcher)
+  await fetchRandomScryfallCommander('previous-id', controller.signal, fetcher)
+  assert.deepEqual(queries, [
+    'is:commander legal:commander date<=today',
+    'is:commander legal:commander date<=today -oracleid:previous-id',
+    'is:commander legal:commander date<=today -oracleid:previous-id',
+  ])
+  controller.abort()
+  await assert.rejects(fetchRandomScryfallCommander(undefined, controller.signal, fetcher), {
+    name: 'AbortError',
+  })
+  assert.equal(queries.length, 3, 'cancelled draw never dispatches')
+})
+
+test('random commander rejects unavailable and malformed responses', async () => {
+  await assert.rejects(
+    fetchRandomScryfallCommander(undefined, undefined, async () => response({}, { status: 503 })),
+    /unavailable/,
+  )
+  await assert.rejects(
+    fetchRandomScryfallCommander(undefined, undefined, async () =>
+      response({ name: 'Incomplete' }),
+    ),
+    /incomplete/,
+  )
+})
 
 test('card search exposes page counts, sorting, warnings, and the cancellation signal', async () => {
   const controller = new AbortController()

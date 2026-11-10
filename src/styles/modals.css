@@ -30,6 +30,20 @@
   overflow-x: hidden;
   overflow-y: auto;
 }
+.random-commander-themes ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.random-commander-themes li {
+  padding: 4px 10px;
+  border: 1px solid var(--selected-border);
+  border-radius: 16px;
+  background: var(--selected-background);
+  color: var(--text-body);
+}
 .deck-card-modal-content {
   display: grid;
   flex: 0 0 auto;

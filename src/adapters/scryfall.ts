@@ -366,6 +366,26 @@ export async function fetchScryfallCard<T extends ScryfallCard = ScryfallCard>(
   return card as T
 }
 
+/** Random draws bypass the query cache so each re-roll makes a fresh choice. */
+export async function fetchRandomScryfallCommander(
+  previousOracleId?: string,
+  signal?: AbortSignal,
+  fetcher: ScryfallFetcher = fetch,
+) {
+  const query = `is:commander legal:commander date<=today${previousOracleId ? ` -oracleid:${previousOracleId}` : ''}`
+  const response = await requestScryfall(
+    `https://api.scryfall.com/cards/random?q=${encodeURIComponent(query)}`,
+    fetcher,
+    { signal },
+  )
+  if (!response.ok) throw new Error('Random commander unavailable. Please try again.')
+  const card: unknown = await response.json()
+  signal?.throwIfAborted()
+  if (!isScryfallCard(card))
+    throw new Error('Random commander data is incomplete. Please try again.')
+  return card
+}
+
 function isScryfallManaSymbol(value: unknown): value is ScryfallManaSymbol {
   if (typeof value !== 'object' || value === null) return false
   const symbol = value as Record<string, unknown>

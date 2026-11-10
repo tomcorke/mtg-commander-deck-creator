@@ -119,6 +119,8 @@ async function mockScryfall(route: Route, provider: Provider) {
       })
     return route.fulfill({ json: record })
   }
+  if (url.pathname === '/cards/random')
+    return route.fulfill({ json: recordFor(provider, 'B10 Commander') })
   if (url.pathname === '/cards/collection') {
     const identifiers = route.request().postDataJSON().identifiers as {
       name?: string

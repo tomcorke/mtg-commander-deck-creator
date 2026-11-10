@@ -73,6 +73,10 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
     await button(page, 'Saved decks').click()
     await check('Saved decks')
     await page.keyboard.press('Escape')
+    await page.goto(`${base}#start`)
+    await button(page, 'Random commander').click()
+    await page.locator('.random-commander-modal .card-reference').waitFor()
+    await check('Random commander')
     assert.deepEqual(scenario.errors, [], 'no page errors or unexpected dialogs')
   } finally {
     await scenario.context.close()
