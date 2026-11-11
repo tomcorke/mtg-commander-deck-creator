@@ -83,6 +83,15 @@ test('tribal lords do not activate token packages', () => {
   assert.equal(score('Create two 1/1 white Soldier creature tokens.', deck), 0)
 })
 
+test('reminder-only token references are not payoffs for the deck token makers', () => {
+  const reminder =
+    'When this creature enters, empower Jace 2. (Put two loyalty counters on a Jace token you control. If you do not control one, first create a blue Jace planeswalker token.)'
+  const deck = Array(5).fill({ detail: 'Create a 1/1 white Soldier creature token.' })
+  assert.equal(score(reminder, deck, ['Tokens']), 0)
+  assert.equal(packageCounts([{ detail: reminder }], ['Tokens']).Tokens.payoff, 0)
+  assert.equal(score(`${reminder}\nCreature tokens you control get +1/+1.`, deck, ['Tokens']), 8)
+})
+
 test('protection scores only once the package has both enablers and payoffs', () => {
   const recursion = 'Return target creature card from your graveyard to the battlefield.'
   assert.equal(score(recursion, [{ detail: payoff }], ['Sacrifice']), 0)

@@ -1,5 +1,7 @@
 # Deckbuild evaluation data
 
+The [strategy-package comparison](strategy-package-comparison-v1.md) evaluates #256 on the unchanged three-spec ranking suite, records mixed results and a reminder-only payoff correction, and explains #105's owner-approved closure without a retrospective preference-improvement claim.
+
 The [dev-3 pool repair](dev3-pool-repair-v1.md) replaces the 47-card Ayula pool with a 1,142-card Scryfall-only pool and records an all-compatible 14-case audit at current pins.
 
 The [development-6 Claude builds](final-dev6-claude-v1.md) record two bracket-1 repeats that stopped at their first failure (one tooling collision, #273, and one documentation defect, fixed with that record) and a validated review of the dev-1 repeat-2 deck. Development-6 still has no completed build or ~71-card state.
