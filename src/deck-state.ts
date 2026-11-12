@@ -235,16 +235,30 @@ export function restoredRecommendationDecisions(state: PersistedDeckState | null
 export const deckPageTitle = (cardCount: number, name: string, modified = false) =>
   `${modified ? '*' : ''}${cardCount}/100 ${name} - Commander Deck Creator`
 
-export function deckStateChanged(saved: PersistedDeckState, current: PersistedDeckState) {
+/** Stable JSON for edit detection: loading an unchanged deck must compare equal to its save. */
+export function comparableDeckState(state: PersistedDeckState) {
   // Sort keys: in-memory cards and schema-parsed saves order the same fields differently.
-  const sortKeys = (_key: string, value: unknown) =>
-    value && typeof value === 'object' && !Array.isArray(value)
-      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1)))
-      : value
-  const comparable = (state: PersistedDeckState) => {
-    const { savedDeckId: _savedDeckId, ...fields } = deckStateForStorage(state)
-    return JSON.stringify(fields, sortKeys)
+  // Every load re-checks card data (`dataStatus`), so that check is not a player edit.
+  const sortKeys = (key: string, value: unknown) =>
+    key === 'dataStatus'
+      ? undefined
+      : value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1)))
+        : value
+  // Older saves omit fields that loading fills with these defaults.
+  const withDefaults: PersistedDeckState = {
+    ...state,
+    localCandidateBuffer: state.localCandidateBuffer ?? [],
+    ignoreReasons: state.ignoreReasons ?? {},
+    maxPrice: state.maxPrice ?? null,
+    deckBudget: state.deckBudget ?? null,
   }
+  return JSON.stringify(deckStateForStorage(withDefaults), sortKeys)
+}
+
+export function deckStateChanged(saved: PersistedDeckState, current: PersistedDeckState) {
+  const comparable = (state: PersistedDeckState) =>
+    comparableDeckState({ ...state, savedDeckId: '' })
   return comparable(saved) !== comparable(current)
 }
 

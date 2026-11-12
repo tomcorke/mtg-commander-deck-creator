@@ -245,6 +245,19 @@ test('unchanged reload saves do not make the last-edited time look newer', async
   reloaded.close()
 })
 
+test('defaults filled in after loading an older draft are not an edit', async () => {
+  const env = environment()
+  const session = memoryStorage()
+  const workspace = await env.tab(session)
+  const { localCandidateBuffer: _buffer, ...older } = { ...state, localCandidateBuffer: [] }
+  await workspace.save(older, 'Original')
+  const timestamp = listAutosaves(env.storage)[0].updatedAt
+  env.setTime('2026-10-04T12:00:00Z')
+  await workspace.save({ ...older, localCandidateBuffer: [] }, 'Original')
+  assert.equal(listAutosaves(env.storage)[0].updatedAt, timestamp)
+  workspace.close()
+})
+
 test('damaged drafts do not hide valid autosaves', async () => {
   const env = environment()
   const workspace = await env.tab()

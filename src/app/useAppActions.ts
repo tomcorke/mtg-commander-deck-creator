@@ -170,6 +170,25 @@ function signatureBatchCommitted(
   )
 }
 
+/**
+ * Saves keep only the chosen printing, so a restored batch reloads its alternates once per
+ * workspace or draft load. Batch commits load their own printings, so a busy builder skips this.
+ */
+function useRestoredPrintings(
+  state: AppState,
+  loadPrintings: (cards: Card[], preferredSet: string) => Promise<void>,
+) {
+  const load = useEffectEvent(() => {
+    const builder = state.getBuilderState()
+    if (state.recommendationState !== 'idle' || builder.fetchBoundary) return
+    void loadPrintings(
+      focusedRecommendations(builder.queue, builder.focusedRole, rolesForCard).slice(0, 8),
+      builder.collectionSets[0] || builder.preferredPrintSet,
+    ).catch(() => undefined)
+  })
+  useEffect(() => load(), [state.autosave.id, state.signatureEpoch])
+}
+
 async function loadBasicLandPrintings(
   name: string,
   onPage?: (loaded: ScryfallCard[], total: number) => void,
@@ -203,6 +222,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
       selectedCollectionMode,
     )
   useSignatureRecommendations(state, () => signatureBatchCommitted(state, loadPrintings))
+  useRestoredPrintings(state, loadPrintings)
   useAppEffects({
     initialRoute: state.initialRoute,
     savedCommander: state.savedCommander,
