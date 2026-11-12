@@ -5,7 +5,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { toCard, type Card, type ScryfallCard } from './card-model.ts'
-import { excludedByOptions, releasedBy } from './recommendation-sources.ts'
+import { excludedByOptions, releasedBy, toRecommendationCard } from './recommendation-sources.ts'
 import type { RecommendationStyle } from './recommendation-types.ts'
 import {
   explainCard,
@@ -322,4 +322,24 @@ test('explainCard covers every outcome', () => {
   const ranked = explainCard(input, 'Bravo')
   assert.equal(ranked.status, 'ranked')
   assert.equal(ranked.status === 'ranked' && ranked.name, 'Bravo')
+})
+
+test('recommendations price their default finish', () => {
+  const card = {
+    name: 'Foil-only promo',
+    type_line: 'Artifact',
+    cmc: 1,
+    color_identity: [],
+    set: 'prm',
+    collector_number: '1',
+    finishes: ['foil'],
+    prices: { usd: null, usd_foil: '12.00' },
+  } as ScryfallCard
+  const foilOnly = toRecommendationCard(card, 'Commander synergy')
+  assert.deepEqual([foilOnly.finish, foilOnly.price], ['foil', '12.00'])
+  const both = toRecommendationCard(
+    { ...card, finishes: ['foil', 'nonfoil'], prices: { usd: '1.50', usd_foil: '12.00' } },
+    'Commander synergy',
+  )
+  assert.deepEqual([both.finish, both.price], ['nonfoil', '1.50'])
 })

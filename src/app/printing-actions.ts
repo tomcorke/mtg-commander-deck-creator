@@ -1,49 +1,12 @@
 import { builderAction } from './builder-action.ts'
 import { withinPriceCap } from '../domain/recommendation-tuning.ts'
-import { rolesForCard } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
-import { printingOptions } from '../domain/printing.ts'
-import { buildRecommendationContext } from '../domain/recommendation-context.ts'
-import {
-  orderedPrintings,
-  preferredPrintingIndex,
-  recommendationScore,
-} from '../recommendations.ts'
+import { nonfoilFirstIndex, printingOptions } from '../domain/printing.ts'
+import { orderedPrintings, preferredPrintingIndex } from '../recommendations.ts'
 import type { Card, Printing, ScryfallCard } from '../domain/card-model.ts'
-import { recommendedScoreThreshold, type CollectionMode } from '../recommendations.ts'
+import type { CollectionMode } from '../recommendations.ts'
 import type { AppActionContext } from './recommendation-actions.ts'
 import { deckJob } from './deck-job.ts'
-import { seededFraction } from '../domain/recommender.ts'
-
-function scoringContext(
-  deps: AppActionContext,
-  cards: Card[],
-  selectedCollectionSets: string[],
-  selectedCollectionMode: CollectionMode,
-) {
-  const context = buildRecommendationContext(
-    { ...deps, collectionSets: selectedCollectionSets, collectionMode: selectedCollectionMode },
-    deps.queue,
-  )
-  const score = (card: Card) =>
-    recommendationScore(card, { ...context, cardRoles: rolesForCard(card) })
-  const specialCards = new Set(
-    [0, 4].flatMap((start) => {
-      const recommended = cards
-        .slice(start, start + 4)
-        .reduce<Card | null>(
-          (best, card) => (!best || score(card) > score(best) ? card : best),
-          null,
-        )
-      return recommended &&
-        score(recommended) >= recommendedScoreThreshold &&
-        seededFraction(`${deps.commander}:${recommended.name}`) < 0.5
-        ? [recommended]
-        : []
-    }),
-  )
-  return { specialCards }
-}
 
 function buildPrintings(card: Card, result: ScryfallCard[]) {
   return orderedPrintings(card, [
@@ -52,10 +15,10 @@ function buildPrintings(card: Card, result: ScryfallCard[]) {
   ])
 }
 
+// Automatic choices never pick a foil or etched finish while a matching nonfoil option exists.
 function selectedPrintingIndex(
   card: Card,
-  printings: any[],
-  specialCards: Set<Card>,
+  printings: Printing[],
   preferredSet: string,
   selectedCollectionSets: string[],
   selectedCollectionMode: CollectionMode,
@@ -66,33 +29,17 @@ function selectedPrintingIndex(
     return printings.findIndex(
       (printing) => printing.image === card.image && printing.finish === card.finish,
     )
-  const specialOptions = printings
-    .map((printing, index) =>
-      (printing.finish === 'foil' || printing.finish === 'etched') &&
-      withinPriceCap(printing, maxPrice)
-        ? index
-        : -1,
-    )
-    .filter((index) => index >= 0)
-  const special =
-    specialCards.has(card) && specialOptions.length
-      ? specialOptions[Math.floor(seededFraction(`${card.name}:finish`) * specialOptions.length)]
-      : -1
+  const affordable = (printing: Printing) => withinPriceCap(printing, maxPrice)
   const collectionPrinting =
-    !card.printingManuallySelected &&
-    selectedCollectionMode !== 'none' &&
-    selectedCollectionSets.length
-      ? printings.findIndex(
-          (printing) =>
-            selectedCollectionSets.includes(printing.set) && withinPriceCap(printing, maxPrice),
+    selectedCollectionMode !== 'none' && selectedCollectionSets.length
+      ? nonfoilFirstIndex(
+          printings,
+          (printing) => selectedCollectionSets.includes(printing.set) && affordable(printing),
         )
       : -1
-  if (special >= 0) return special
   if (collectionPrinting >= 0) return collectionPrinting
   const preferred = preferredPrintingIndex(printings, preferredSet)
-  return withinPriceCap(printings[preferred], maxPrice)
-    ? preferred
-    : printings.findIndex((printing) => withinPriceCap(printing, maxPrice))
+  return affordable(printings[preferred]) ? preferred : nonfoilFirstIndex(printings, affordable)
 }
 
 function updateQueuedCard(
@@ -123,12 +70,6 @@ export async function loadPrintings(
   const job = deckJob(deps)
   deps = job.deps
   const { fetchPrintings } = deps
-  const { specialCards } = scoringContext(
-    deps,
-    cards,
-    selectedCollectionSets,
-    selectedCollectionMode,
-  )
   for (const offered of cards.slice(0, 8)) {
     if (!job.isCurrent()) return
     if (
@@ -158,7 +99,6 @@ export async function loadPrintings(
     const selectedIndex = selectedPrintingIndex(
       offered,
       printings,
-      specialCards,
       preferredSet,
       selectedCollectionSets,
       selectedCollectionMode,

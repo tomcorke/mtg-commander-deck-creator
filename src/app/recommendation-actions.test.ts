@@ -718,6 +718,91 @@ test('automatic printing enrichment respects the cap even for a preferred set or
   assert.equal(queued.finish, 'nonfoil')
 })
 
+test('automatic printing choices default to nonfoil when a printing has both finishes', async () => {
+  // Issue #497: Crypt of Agadeem ZEN #212 was offered as a $37.64 foil beside its $5.56 nonfoil.
+  const crypt = (name: string) => [
+    {
+      ...card(name, 'Land'),
+      set: 'zen',
+      collector_number: '212',
+      image_uris: { normal: `${name}-zen` },
+      finishes: ['foil', 'nonfoil'],
+      prices: { usd: '5.56', usd_foil: '37.64' },
+      promo_types: ['ripplefoil'],
+    },
+    {
+      ...card(name, 'Land'),
+      set: 'tdc',
+      collector_number: '354',
+      image_uris: { normal: `${name}-tdc` },
+      finishes: ['nonfoil', 'foil'],
+      prices: { usd: '3.92', usd_foil: '3.50' },
+    },
+  ]
+  const choose = async (
+    queued: Card[],
+    preferredSet = '',
+    settings: { maxPrice?: number; collectionSets?: string[] } = {},
+  ) => {
+    let queue = queued
+    await loadPrintings(
+      {
+        commander: 'Meren of Clan Nel Toth',
+        queue,
+        deck: [],
+        sideboard: [],
+        collectionSets: settings.collectionSets ?? [],
+        collectionMode: settings.collectionSets ? 'prefer' : 'none',
+        maxPrice: settings.maxPrice ?? null,
+        theme: 'Lands',
+        preferenceScores: { Lands: 10 },
+        fetchPrintings: async (uri: string) => crypt(new URL(uri).searchParams.get('q') ?? ''),
+        setQueue: (update) => {
+          queue = update(queue)
+        },
+      },
+      queued,
+      preferredSet,
+    )
+    return queue
+  }
+  const offered = Array.from({ length: 8 }, (_, index) => ({
+    ...toCard(
+      {
+        ...card(`Crypt ${index}`, 'Land'),
+        prints_search_uri: `https://api.scryfall.com/cards/search?q=Crypt%20${index}`,
+        image_uris: { normal: `Crypt ${index}-zen` },
+        set: 'zen',
+        collector_number: '212',
+        finishes: ['foil', 'nonfoil'],
+        prices: { usd: '5.56', usd_foil: '37.64' },
+      },
+      'Commander synergy',
+    ),
+    score: 100,
+  }))
+  for (const queued of await choose(offered)) {
+    assert.equal(queued.finish, 'nonfoil', queued.name)
+    assert.equal(queued.set, 'zen')
+    assert.equal(queued.price, '5.56')
+    assert.equal(queued.foilType, undefined)
+  }
+  const [preferred] = await choose(offered.slice(0, 1), 'zen')
+  assert.deepEqual([preferred.set, preferred.finish, preferred.price], ['zen', 'nonfoil', '5.56'])
+  const [collection] = await choose(offered.slice(0, 1), '', { collectionSets: ['zen'] })
+  assert.deepEqual([collection.set, collection.finish], ['zen', 'nonfoil'])
+  // The cap compares nonfoil prices, so the cheaper nonfoil printing wins over an even cheaper foil.
+  const [capped] = await choose(offered.slice(0, 1), 'zen', { maxPrice: 4.5 })
+  assert.deepEqual([capped.set, capped.finish, capped.price], ['tdc', 'nonfoil', '3.92'])
+  // A foil under the cap never stands in for a nonfoil over it; the card keeps its nonfoil price.
+  const [overCap] = await choose(offered.slice(0, 1), '', { maxPrice: 3.9 })
+  assert.deepEqual([overCap.set, overCap.finish, overCap.price], ['zen', 'nonfoil', '5.56'])
+  const [manual] = await choose([
+    { ...offered[0], finish: 'foil', price: '37.64', printingManuallySelected: true },
+  ])
+  assert.deepEqual([manual.finish, manual.price], ['foil', '37.64'])
+})
+
 test('theme search results are tagged from their own text, not the query themes', async () => {
   const recursion = {
     ...card('Artifact Recursion'),

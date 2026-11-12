@@ -2,6 +2,7 @@ import { hasTag } from './creature-types.ts'
 import { packageScore } from './strategy-packages.ts'
 import { activeOwnershipMode, isOwned } from './owned-cards.ts'
 import type { PrintingLike, ScryfallCard } from './card-model.ts'
+import { nonfoilFirstIndex } from './printing.ts'
 import {
   recommendationScoreFactorMaximums,
   recommendedScoreThreshold,
@@ -387,7 +388,12 @@ export function preferredPrintingIndex(
 ) {
   if (manuallySelected) return current
   const preferred = preferredSet
-    ? printings.findIndex((printing) => printing.set === preferredSet)
+    ? nonfoilFirstIndex(printings, (printing) => printing.set === preferredSet)
     : -1
-  return preferred >= 0 ? preferred : 0
+  if (preferred >= 0) return preferred
+  // Index 0 is the original printing; take its nonfoil option when it has one.
+  return Math.max(
+    0,
+    nonfoilFirstIndex(printings, (printing) => printing.image === printings[0]?.image),
+  )
 }
