@@ -6,6 +6,7 @@ import {
   discoveryNames,
   discoveryQueries,
   filterCommanders,
+  orderByDeckCount,
   orderCommanders,
   scryfallPageSize,
   type CommanderSort,
@@ -292,6 +293,30 @@ test('a chosen sort orders searches on Scryfall and curated lists locally', asyn
   assert.deepEqual(orders, ['edhrec', 'edhrec', 'name', 'cmc', 'released'])
   assert.deepEqual(await names('name', 'Tokens'), ['Alpha', 'Bravo', 'Charlie'], 'curated list')
   assert.equal(orders.length, 6, 'the curated list is not searched; its broader section is')
+})
+
+test('popularity by deck count puts known counts first, then keeps EDHREC rank order', () => {
+  const counts = new Map([
+    ['Brago', 15611],
+    ['Atraxa', 46229],
+    ['Tie', 15611],
+  ])
+  // Scryfall's EDHREC rank order: Brago 2340 before Atraxa 2353.
+  const pool = ['Unranked one', 'Brago', 'Atraxa', 'Unranked two', 'Tie'].map((name) => ({
+    card: card(name),
+    reason: 'Test',
+  }))
+  const order = (suggestions: typeof pool) =>
+    orderByDeckCount(suggestions, ({ name }) => counts.get(name)).map(({ card: { name } }) => name)
+  assert.deepEqual(order(pool), ['Atraxa', 'Brago', 'Tie', 'Unranked one', 'Unranked two'])
+  assert.deepEqual(
+    order([
+      { ...pool[0], coverage: 2 },
+      ...pool.slice(1).map((entry) => ({ ...entry, coverage: 1 })),
+    ]),
+    ['Unranked one', 'Atraxa', 'Brago', 'Tie', 'Unranked two'],
+    'creature-type coverage still leads',
+  )
 })
 
 test('creature-type coverage still leads a chosen sort', () => {

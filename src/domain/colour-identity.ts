@@ -25,7 +25,7 @@ const scryfallOperators: Record<ColourMatch, string> = {
 /**
  * EDHREC's commander list page for each colour identity, keyed by WUBRG-ordered colours.
  * Slugs from the identity links on https://json.edhrec.com/pages/commanders/colorless.json,
- * checked 2026-11-12. Each page lists that identity's top commanders (100; colourless 75)
+ * checked 2026-11-12. Each page lists up to 100 of that identity's top commanders, often fewer,
  * with `num_decks`.
  */
 export const identitySlugs: Record<string, string> = {

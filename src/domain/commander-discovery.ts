@@ -299,6 +299,21 @@ export const orderCommanders = (cards: CommanderSuggestion[], sort?: CommanderSo
   )
 
 /**
+ * Popularity by EDHREC deck count (#514): commanders with a known count first, most decks first;
+ * those without one follow in their existing order, Scryfall's EDHREC rank. Creature-type coverage
+ * still leads, and equal counts keep rank order.
+ */
+export const orderByDeckCount = (
+  cards: CommanderSuggestion[],
+  deckCount: (card: ScryfallCard) => number | undefined,
+) =>
+  cards.toSorted(
+    (left, right) =>
+      (right.coverage ?? 0) - (left.coverage ?? 0) ||
+      (deckCount(right.card) ?? -1) - (deckCount(left.card) ?? -1),
+  )
+
+/**
  * Every legal second commander for `first`, most popular first: Scryfall finds cards with a
  * matching partner ability, then the shared construction check keeps only legal pairs (#487).
  */

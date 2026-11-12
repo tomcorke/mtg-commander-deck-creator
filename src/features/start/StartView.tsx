@@ -107,7 +107,6 @@ import type { AppModal, AppView } from '../../app/routes.ts'
 import type { CommanderDetails, DeckCard } from '../../domain/card-model.ts'
 import type { DeckWorkspace } from '../../autosaves.ts'
 import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
-import { useEdhrecDeckCounts } from '../../app/useEdhrecDeckCounts.ts'
 import type { CommanderSort } from '../../domain/commander-discovery.ts'
 import { Pagination } from '../../shared/Pagination.tsx'
 import { CommanderChoiceTile, CommanderTilePlaceholders } from '../../shared/CommanderChoice.tsx'
@@ -340,18 +339,28 @@ type StartViewProps = {
   setIntroGuideRequested: Dispatch<SetStateAction<boolean>>
 }
 
-/**
- * Sort choices, each with the phrase the grid header uses to name its order. Popularity is
- * Scryfall's EDHREC rank, which counts every deck a card is in, not only decks it leads.
- */
+/** Sort choices, each with the phrase the grid header uses to name its order. */
 const commanderSorts: Record<CommanderSort, { label: string; order: string }> = {
-  popularity: { label: 'Popularity (EDHREC rank)', order: 'EDHREC rank' },
+  popularity: {
+    label: 'Popularity (EDHREC decks)',
+    order: 'EDHREC deck count, then EDHREC rank for commanders without a count',
+  },
   name: { label: 'Name', order: 'name, A to Z' },
   manaValue: { label: 'Mana value', order: 'mana value, lowest first' },
   newest: { label: 'Newest printing', order: 'newest printing' },
 }
 
 type Discovery = ReturnType<typeof useCommanderDiscovery>
+
+/**
+ * The order phrase for `sort`. Popularity follows EDHREC deck counts once every shown identity's
+ * list has loaded (#514). Until then, and for commanders those lists omit, it falls back to
+ * Scryfall's EDHREC rank, which also counts decks using a card in the 99.
+ */
+const sortOrder = (sort: CommanderSort, discovery: Discovery) =>
+  sort === 'popularity' && discovery.popularity === 'rank'
+    ? 'EDHREC rank until deck counts load'
+    : commanderSorts[sort].order
 type BroaderDiscovery = NonNullable<Discovery['broader']>
 
 const countLabel = ({ count, more }: { count: number; more: boolean }) =>
@@ -371,8 +380,8 @@ function DiscoveryHeading({
   // Several creature types rank commanders covering more of them first.
   const order =
     discovery.suggestions[0]?.coverage === undefined
-      ? `Sorted by ${commanderSorts[sort].order}`
-      : `Most chosen creature types first, then by ${commanderSorts[sort].order}`
+      ? `Sorted by ${sortOrder(sort, discovery)}`
+      : `Most chosen creature types first, then by ${sortOrder(sort, discovery)}`
   return (
     <>
       <div className="commander-discovery-heading">
@@ -562,9 +571,7 @@ export function StartView(props: StartViewProps) {
   const discovery = useCommanderDiscovery(
     { ...props, creatureTypes: props.extraCreatureTypes, sets: props.commanderSets, sort },
     true,
-  )
-  const deckCount = useEdhrecDeckCounts(
-    [...discovery.suggestions, ...(discovery.broader?.suggestions ?? [])].map(({ card }) => card),
+    true,
   )
   // Leaving the start screen opens the next view at the top, not at the old scroll position.
   useEffect(() => () => scrollTo({ top: 0 }), [])
@@ -620,7 +627,7 @@ export function StartView(props: StartViewProps) {
       key={card.oracle_id ?? card.name}
       card={card}
       openCard={props.openCardReference}
-      insights={{ deckCount: deckCount(card) }}
+      insights={{ deckCount: discovery.deckCount(card) }}
       action={
         <button
           className="export commander-choose"
@@ -923,7 +930,7 @@ export function StartView(props: StartViewProps) {
           {discovery.status === 'idle' && discovery.broader && (
             <BroaderCommanders
               broader={discovery.broader}
-              order={commanderSorts[sort].order}
+              order={sortOrder(sort, discovery)}
               renderTile={renderTile}
             />
           )}

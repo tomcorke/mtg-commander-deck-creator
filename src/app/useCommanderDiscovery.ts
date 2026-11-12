@@ -3,17 +3,30 @@ import type { ScryfallCard } from '../domain/card-model.ts'
 import {
   discoverCommanders,
   discoverPartners,
+  orderByDeckCount,
   type CommanderDiscovery,
   type CommanderMatches,
+  type CommanderSort,
+  type CommanderSuggestion,
   type DiscoveryFilters,
 } from '../domain/commander-discovery.ts'
 import { pageWindow } from '../shared/pagination.ts'
+import { useEdhrecDeckCounts } from './useEdhrecDeckCounts.ts'
 
 export const commanderPageSize = 12
 
 const emptyDiscovery: CommanderDiscovery = { commanders: [], more: false }
 
-export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean) {
+/**
+ * Commander suggestions for `filters`, paged. With `deckCounts`, tiles get EDHREC deck counts, and
+ * the popularity sort orders by them (#514): it reads every loaded commander's identity page, then
+ * reorders once when all have settled, so tiles move at most once.
+ */
+export function useCommanderDiscovery(
+  filters: DiscoveryFilters,
+  active: boolean,
+  deckCounts = false,
+) {
   const [found, setFound] = useState(emptyDiscovery)
   const [page, setPage] = useState(0)
   const [broaderPage, setBroaderPage] = useState(0)
@@ -80,11 +93,13 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     sets,
     sort,
   ])
-  const { start, end } = pageWindow(found.commanders.length, commanderPageSize, page)
   const broader = found.broader
-  const broaderWindow = pageWindow(broader?.commanders.length ?? 0, commanderPageSize, broaderPage)
+  const shown = useShownCommanders(deckCounts ? (sort ?? null) : undefined, found, status, [
+    page,
+    broaderPage,
+  ])
   return {
-    suggestions: found.commanders.slice(start, end),
+    suggestions: shown.suggestions,
     count: found.commanders.length,
     more: found.more,
     page,
@@ -92,7 +107,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     /** A curated theme's separately labelled rules-text matches, paged on their own. */
     broader: broader && {
       heading: broader.heading,
-      suggestions: broader.commanders.slice(broaderWindow.start, broaderWindow.end),
+      suggestions: shown.broader,
       count: broader.commanders.length,
       more: broader.more,
       page: broaderPage,
@@ -100,6 +115,47 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     },
     status,
     error,
+    deckCount: shown.deckCount,
+    /**
+     * For the popularity sort: `rank` while identity pages load (Scryfall's EDHREC rank order),
+     * then `decks` once suggestions follow deck counts.
+     */
+    popularity: shown.ranked ? ('decks' as const) : ('rank' as const),
+  }
+}
+
+/**
+ * The shown page of each section, with deck counts for their tiles; `sort` is undefined when tiles
+ * show none. The popularity sort reads every loaded commander's identity page and reorders once all
+ * have settled (#514); other sorts never reorder, so they read only the shown pages' identities.
+ */
+function useShownCommanders(
+  sort: CommanderSort | null | undefined,
+  found: CommanderDiscovery,
+  status: 'loading' | 'idle' | 'error',
+  [page, broaderPage]: [number, number],
+) {
+  const pageOf = (commanders: CommanderSuggestion[], at: number) => {
+    const { start, end } = pageWindow(commanders.length, commanderPageSize, at)
+    return commanders.slice(start, end)
+  }
+  const byDeckCount = sort === 'popularity'
+  const broader = found.broader?.commanders ?? []
+  const counted =
+    sort === undefined
+      ? []
+      : byDeckCount
+        ? [...found.commanders, ...broader]
+        : [...pageOf(found.commanders, page), ...pageOf(broader, broaderPage)]
+  const { deckCount, pending } = useEdhrecDeckCounts(counted.map(({ card }) => card))
+  const ranked = byDeckCount && status === 'idle' && !pending
+  const order = (commanders: CommanderSuggestion[]) =>
+    ranked ? orderByDeckCount(commanders, deckCount) : commanders
+  return {
+    suggestions: pageOf(order(found.commanders), page),
+    broader: pageOf(order(broader), broaderPage),
+    deckCount,
+    ranked,
   }
 }
 
