@@ -31,6 +31,7 @@ import type { PowerTarget } from '../domain/recommendation-types.ts'
 import { setPickerRows } from '../domain/set-picker.ts'
 import { buildRecommendationContext } from '../domain/recommendation-context.ts'
 import { describeRemainingBudget, remainingDeckBudget } from '../domain/deck-price.ts'
+import { activeOwnershipMode, allowedByOwnership, ownedCardReason } from '../domain/owned-cards.ts'
 import type { DeckDoctorFinding } from '../deck-doctor.ts'
 import { suggestDeckDoctorChanges } from '../deck-doctor-suggestions.ts'
 import { deckDataStatus, recommendationDataError } from '../domain/deck-data-status.ts'
@@ -280,6 +281,7 @@ function evidenceSentence(card: Card, commander: string) {
     'Fills a role gap': 'Scryfall tags it for a role your deck is short on.',
     'Matches commander text': 'Its text matches a mechanic on your commander.',
     'Collection match': 'Comes from a set you chose to build with.',
+    [ownedCardReason]: 'A card you own that suits your commander’s colours.',
     'Theme-compatible commander': 'A commander that shares your deck’s theme.',
   }
   return sentences[card.reason] ?? `${card.reason}.`
@@ -374,7 +376,8 @@ function buildRecommendationData(
           !blockedReplacements.has(card.name) &&
           (deps.collectionMode !== 'only' ||
             card.collectionMatch ||
-            deps.collectionSets.includes(card.set)),
+            deps.collectionSets.includes(card.set)) &&
+          allowedByOwnership(card, deps.ownedCards, deps.ownershipMode),
       )
       .map((card) => ({
         card,
@@ -449,6 +452,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
     collectionSets.length && collectionMode !== 'none'
       ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} selected sets`
       : 'All sets'
+  const ownership = activeOwnershipMode(deps.ownershipMode, deps.ownedCards)
   const recommendationSettingsSummary = [
     recommendationStyleLabel,
     powerTargetLabel,
@@ -463,6 +467,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
         ]),
     includeCreature ? 'Creatures included' : 'Creatures optional',
     collectionSummary,
+    ...(ownership === 'ignore' ? [] : [ownership === 'only' ? 'Owned only' : 'Prefer owned']),
     excludedRecommendations.length
       ? `${excludedRecommendations.length} exclusions`
       : 'No exclusions',
@@ -480,6 +485,8 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
     excludeExtraTurns,
     excludeUnreleased,
     deps.ignoredCards,
+    ownership,
+    deps.ownedRevision,
   ])
   return { recommendationSettingsSummary, recommendationQueryKey }
 }

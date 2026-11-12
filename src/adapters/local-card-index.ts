@@ -14,6 +14,8 @@ export type LocalCardQuery = {
   creatureTypes?: string[]
   roles?: string[]
   features?: string[]
+  /** `cardNameKey` names, such as the player's owned cards. */
+  names?: string[]
 }
 export type LocalIndexStatus = {
   state: 'unloaded' | 'fresh' | 'stale' | 'unchecked' | 'unavailable'
@@ -60,6 +62,10 @@ export function queryLocalCardIndex(index: LocalCardIndex, query: LocalCardQuery
   if (types.length) add(index.indexes.tags, [everyCreatureTypeTag, chosenCreatureTypeTag])
   add(index.indexes.roles, query.roles)
   add(index.indexes.features, query.features)
+  if (query.names?.length) {
+    const names = new Set(query.names)
+    index.cards.forEach((card, id) => names.has(cardNameKey(card.name)) && ids.add(id))
+  }
   const colours = new Set(query.colours)
   return [...ids]
     .sort((left, right) => left - right)

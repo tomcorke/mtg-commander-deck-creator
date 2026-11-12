@@ -221,3 +221,24 @@ test('deck budget setting normalises input and sets remaining budget from the ma
     'other settings keep the budget',
   )
 })
+
+test('owned cards stay with the player across restores; Owned only rebuilds its pool', () => {
+  const list = { cards: [{ name: 'Sol Ring', quantity: 2 }], updatedAt: '2026-11-12T10:00:00Z' }
+  const ignoring = apply(initial(), { type: 'ownedCards', list })
+  assert.deepEqual(ignoring.ownedCards, { 'sol ring': 2 })
+  assert.equal(ignoring.recommendationOptionsChanged, false, 'Ignore needs no re-rank')
+  const preferring = apply(initial({ ownershipMode: 'prefer' }), { type: 'ownedCards', list })
+  assert.equal(preferring.recommendationOptionsChanged, true)
+  assert.equal(builderPoolKey(preferring), builderPoolKey(initial({ ownershipMode: 'prefer' })))
+  const only = apply(initial({ ownershipMode: 'only' }), { type: 'ownedCards', list })
+  assert.notEqual(builderPoolKey(only), builderPoolKey(initial({ ownershipMode: 'only' })))
+  const restored = apply(ignoring, { type: 'restore', state: initial() })
+  assert.deepEqual(restored.ownedCards, { 'sol ring': 2 })
+  assert.equal(restored.ownedRevision, list.updatedAt)
+  const cleared = apply(ignoring, { type: 'ownedCards', list: null })
+  assert.deepEqual(cleared.ownedCards, {})
+  assert.equal(
+    buildRecommendationContext({ ...preferring, ownershipMode: 'only' }, []).ownershipMode,
+    'only',
+  )
+})

@@ -6,8 +6,14 @@
 import assert from 'node:assert/strict'
 import type { Page } from 'playwright-core'
 import { setDisplayPreferences } from './browser-display.ts'
-import { button, heading, openScenario, withBrowser } from './fixtures/browser-harness.ts'
-import { themeFirstState } from './fixtures/b10-browser.ts'
+import {
+  button,
+  heading,
+  openScenario,
+  withBrowser,
+  withOwnedCards,
+} from './fixtures/browser-harness.ts'
+import { baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
 import { colourThemes } from '../src/domain/commander-catalog.ts'
 
 // These run in the page: self-contained, installed by `lowContrast` through a script tag.
@@ -170,6 +176,18 @@ async function setCommanderColours(page: Page, colours: string[]) {
   }, colours)
 }
 
+/** Opens Owned cards over Recommendation settings and returns the screen name. */
+async function openOwnedCards(page: Page) {
+  await button(page, 'Recommendation settings').click()
+  await button(page, 'View or import owned cards').click()
+  await heading(page, 'Owned cards').waitFor()
+  return 'Owned cards'
+}
+async function closeOwnedCards(page: Page) {
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+}
+
 const themes = [
   { name: 'light', values: { 'Dark mode': false, 'Commander art and colours': false } },
   { name: 'dark', values: { 'Dark mode': true, 'Commander art and colours': false } },
@@ -180,7 +198,15 @@ const themes = [
 await withBrowser('CONTRAST', 5243, async (browser, base) => {
   const failures: string[] = []
   for (const theme of themes) {
-    const scenario = await openScenario(browser, base, themeFirstState())
+    // Owned cards add badges to the batch and health lane, and the Still needed export choice.
+    const scenario = await openScenario(
+      browser,
+      base,
+      themeFirstState(),
+      undefined,
+      undefined,
+      withOwnedCards(baseCandidates.map(({ name }) => name)),
+    )
     const { page } = scenario
     const check = async (screen: string) =>
       failures.push(...(await lowContrast(page, `${theme.name} ${screen}`)))
@@ -225,6 +251,8 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
       await page.locator('.saved-deck-list article').nth(1).waitFor()
       await page.keyboard.press('Escape')
       await checkDialogs('Builder')
+      await check(await openOwnedCards(page))
+      await closeOwnedCards(page)
       await button(page, '+ Search & add cards').click()
       await page.getByPlaceholder('Card name or rules text').fill('B10')
       await button(page, 'Search cards').click()

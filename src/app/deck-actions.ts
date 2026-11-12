@@ -1,3 +1,4 @@
+import { stillNeededCards } from '../domain/owned-cards.ts'
 import { builderAction } from './builder-action.ts'
 import { restoreBuilderState } from './builder-restore.ts'
 import { withBuilderPrinting } from '../domain/builder-data.ts'
@@ -296,14 +297,27 @@ export function deckList(deps: AppActionContext, format: ExportFormat) {
       })
       .join('\n')
   }
-  const commanders = section(deck.slice(0, commanderCount), 'Commander')
-  const mainboard = section(deck.slice(commanderCount), 'Mainboard')
-  const side = section(sideboard, 'Sideboard')
+  // The still-needed list is a shopping list: main-deck cards, commanders included, not owned.
+  const needed = deps.exportNeededOnly && Object.keys(deps.ownedCards ?? {}).length > 0
+  const covered = {}
+  const unowned = (cards: DeckCard[]) =>
+    needed ? stillNeededCards(cards, deps.ownedCards, covered) : cards
+  const commanders = section(unowned(deck.slice(0, commanderCount)), 'Commander')
+  const mainboard = section(unowned(deck.slice(commanderCount)), 'Mainboard')
+  const side = needed ? '' : section(sideboard, 'Sideboard')
+  if (needed && format === 'moxfield') return [commanders, mainboard].filter(Boolean).join('\n')
   if (format === 'csv')
     return ['Quantity,Name,Set,Collector Number,Foil,Board', commanders, mainboard, side]
       .filter(Boolean)
       .join('\n')
-  const main = format === 'plain' ? `COMMANDER:\n${commanders}\n\nDECK:\n${mainboard}` : mainboard
+  const main =
+    format !== 'plain'
+      ? mainboard
+      : needed
+        ? [commanders && `COMMANDER:\n${commanders}`, mainboard && `DECK:\n${mainboard}`]
+            .filter(Boolean)
+            .join('\n\n')
+        : `COMMANDER:\n${commanders}\n\nDECK:\n${mainboard}`
   return `${main}${side ? `\n\nSIDEBOARD:\n${side}` : ''}`
 }
 

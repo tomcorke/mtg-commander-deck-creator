@@ -73,3 +73,7 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 **Deck review** and **Deck Doctor** — analysis of the current deck, and an optional flow that proposes equal-count swaps for the player to approve.
 
 **Set selection** — set codes the player prefers or restricts to, shown as "Sets to build from". It is not an inventory of owned cards. Older code and documents call this "collection".
+
+**Owned cards** — a list of cards the player owns, imported from a text list or a collection CSV and stored only in this browser. Ownership is by card name; each owned copy covers one card of that name in any printing. It belongs to the player, not to a deck.
+
+**Ownership mode** — Ignore owned cards, Prefer owned cards, or Owned cards only. Prefer ranks owned cards higher; Owned only offers nothing else. Export's **Still needed** list holds the main-deck cards, commanders included, that owned cards do not cover.

@@ -10,6 +10,7 @@ import {
   type IgnoreReason,
 } from './recommendation-tuning.ts'
 import { exceedsDeckBudget } from './deck-price.ts'
+import { allowedByOwnership } from './owned-cards.ts'
 import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
 import type {
   CollectionMode,
@@ -167,13 +168,14 @@ export function rankRecommendationCards<
   cardRoles: (card: T) => string[] = () => [],
   observe?: PlacementObserver<T>,
 ) {
-  const eligible =
+  const eligible = (
     context.collectionMode === 'only' && context.collectionSets?.length
       ? cards.filter(
           (card) =>
             card.collectionMatch || (card.set && context.collectionSets?.includes(card.set)),
         )
       : cards
+  ).filter((card) => allowedByOwnership(card, context.ownedCards, context.ownershipMode))
   const affordable = eligible.filter((card) => withinPriceCap(card, context.maxPrice))
   const scores = new Map<T, ReturnType<typeof recommendationScoreBreakdown>>()
   const score = (card: T) => {
@@ -452,8 +454,32 @@ export function countRoleSupply<T extends { localIndexSnapshot?: boolean }>(
 
 type QueueScoreSettings = Pick<
   RecommendationScoreContext,
-  'tagCounts' | 'packageCounts' | 'manaSupport' | 'maxPrice' | 'remainingBudget'
+  | 'tagCounts'
+  | 'packageCounts'
+  | 'manaSupport'
+  | 'maxPrice'
+  | 'remainingBudget'
+  | 'ownedCards'
+  | 'ownershipMode'
 >
+
+const queueScoreSettings = ({
+  tagCounts,
+  packageCounts,
+  manaSupport,
+  maxPrice,
+  remainingBudget,
+  ownedCards,
+  ownershipMode,
+}: QueueScoreSettings): QueueScoreSettings => ({
+  tagCounts,
+  packageCounts,
+  manaSupport,
+  maxPrice,
+  remainingBudget,
+  ownedCards,
+  ownershipMode,
+})
 
 export function advanceRecommendationQueue<
   T extends {
@@ -474,22 +500,18 @@ export function advanceRecommendationQueue<
   liked,
   preferenceScores,
   pickedTags = new Set(),
-  tagCounts,
-  packageCounts,
   activeSubThemes,
   extraSubTheme = '',
   theme,
   includeCreature,
   roleBoosts = {},
   cardRoles = () => [],
-  manaSupport,
   recommendationStyle = 'balanced',
   collectionSets = [],
   collectionMode = 'none',
-  maxPrice,
-  remainingBudget,
   focusedRole,
   ignoreReasons = {},
+  ...settings
 }: {
   queue: T[]
   deferredCards: DeferredCard<T>[]
@@ -533,8 +555,7 @@ export function advanceRecommendationQueue<
         .filter(([, score]) => score > 0)
         .map(([tag]) => tag),
     ]),
-    tagCounts,
-    packageCounts,
+    ...queueScoreSettings(settings),
     preferenceScores: scores,
     neededRoles: new Set(Object.keys(roleBoosts).filter((role) => (roleBoosts[role] ?? 0) > 0)),
     cardRoles: [],
@@ -544,9 +565,6 @@ export function advanceRecommendationQueue<
     roleBoosts,
     roleSupply,
     batchNumber: released.batchNumber,
-    manaSupport,
-    maxPrice,
-    remainingBudget,
   }
   return {
     queue: rankRecommendationCards(candidates, context, includeCreature, cardRoles),

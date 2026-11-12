@@ -32,6 +32,8 @@ export function buildRecommendationContext(
       | 'batchNumber'
       | 'maxPrice'
       | 'deckBudget'
+      | 'ownedCards'
+      | 'ownershipMode'
     >
   > & { prioritizeDeckHealth?: boolean } & Record<string, unknown>,
   candidates: Card[],
@@ -69,5 +71,7 @@ export function buildRecommendationContext(
     manaSupport: manaSupportFromAnalysis(analysis, targets),
     maxPrice: settings.maxPrice as number | null | undefined,
     remainingBudget: remainingDeckBudget(settings.deckBudget as number | null | undefined, deck),
+    ownedCards: settings.ownedCards,
+    ownershipMode: settings.ownershipMode,
   }
 }

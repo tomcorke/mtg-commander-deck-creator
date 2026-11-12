@@ -316,3 +316,58 @@ test('a creature slot does not pull an over-budget creature ahead of affordable 
     'Pricey Elf',
   )
 })
+
+test('Owned only offers owned cards; Prefer owned ranks an owned card ahead', () => {
+  const cards = [
+    card('Token maker', 'Create a 1/1 white Soldier creature token.'),
+    card('Owned rock'),
+    card('Other rock'),
+  ]
+  const ownedCards = { 'owned rock': 1 }
+  const names = (ranked: Card[]) => ranked.map(({ name }) => name)
+  const unowned = names(rankRecommendationCards(cards, context, false))
+  assert.equal(unowned[0], 'Token maker')
+  assert.deepEqual(
+    names(rankRecommendationCards(cards, { ...context, ownedCards, ownershipMode: 'only' }, false)),
+    ['Owned rock'],
+  )
+  const preferred = names(
+    rankRecommendationCards(cards, { ...context, ownedCards, ownershipMode: 'prefer' }, false),
+  )
+  assert.equal(preferred.length, 3, 'Prefer removes nothing')
+  assert(preferred.indexOf('Owned rock') < preferred.indexOf('Other rock'))
+  assert.deepEqual(
+    names(
+      rankRecommendationCards(cards, { ...context, ownedCards, ownershipMode: 'ignore' }, false),
+    ),
+    unowned,
+  )
+  // Without owned cards, Owned only falls back to every card rather than an empty queue.
+  assert.deepEqual(
+    names(
+      rankRecommendationCards(cards, { ...context, ownedCards: {}, ownershipMode: 'only' }, false),
+    ),
+    unowned,
+  )
+})
+
+test('advancing a batch keeps the ownership filter', () => {
+  const queue = ['A', 'B', 'C', 'D', 'Owned one', 'Unowned'].map((name) => card(name))
+  const next = advanceRecommendationQueue({
+    queue,
+    deferredCards: [],
+    batchNumber: 1,
+    decisions: {},
+    liked: [],
+    preferenceScores: {},
+    activeSubThemes: [],
+    theme: '',
+    includeCreature: false,
+    ownedCards: { 'owned one': 1 },
+    ownershipMode: 'only',
+  })
+  assert.deepEqual(
+    next.queue.map(({ name }) => name),
+    ['Owned one'],
+  )
+})

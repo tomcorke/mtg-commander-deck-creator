@@ -1,3 +1,5 @@
+import { openOwnedCard, saveOwnedCards, unrecognisedOwnedNames } from './owned-card-actions.ts'
+import type { OwnedCard } from '../domain/owned-cards.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import { builderAction } from './builder-action.ts'
@@ -373,6 +375,7 @@ function useRecommendationInteractions(state: AppState, remote: RemoteActions) {
       state.showBuilder &&
       !state.awaitingPlayStyle &&
       state.activeModal !== 'recommendation-settings' &&
+      state.activeModal !== 'owned-cards' &&
       state.recommendationOptionsChanged &&
       state.recommendationState === 'idle'
     )
@@ -418,6 +421,19 @@ function queueSubTheme(
     state.commanderDetails?.colours ?? [],
     [state.theme, ...activeSubThemes],
   ).catch(() => {})
+}
+
+function ownedCardActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
+  const deps = {
+    ...remote.recommendationDeps,
+    ...state,
+    openModal: (_deps: unknown, modal: AppModal) => routing.openModal(modal),
+  }
+  return {
+    saveOwnedCards: (cards: OwnedCard[] | null) => saveOwnedCards(deps, cards),
+    unrecognisedOwnedNames: (cards: OwnedCard[]) => unrecognisedOwnedNames(deps, cards),
+    openOwnedCard: (name: string) => openOwnedCard(deps, name),
+  }
 }
 
 function useBuilderActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
@@ -510,6 +526,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     chooseCollectionMode,
     toggleCollectionSet,
     browseCollection,
+    ...ownedCardActions(state, routing, remote),
     fanCards,
     resetFan,
     clickCardImage: (event: any, card: Card) => clickCardImageAction(event, card, actions.decide),

@@ -8,6 +8,7 @@ import {
   type LocalIndexStatus,
 } from '../adapters/local-card-index.ts'
 import { deckJob } from './deck-job.ts'
+import { activeOwnershipMode, ownedCardReason } from '../domain/owned-cards.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
 import { roleSearchTags } from '../domain/card-search.ts'
 import { resetSignatureContext } from './signature-actions.ts'
@@ -635,6 +636,41 @@ async function coreRecommendations(
   return prepared.pool
 }
 
+/**
+ * Owned only: every owned card the local card index knows in the commander's colours joins the
+ * pool, so the queue is not limited to owned cards other sources happened to find.
+ */
+export async function ownedRecommendations(
+  deps: AppActionContext,
+  identityColours: string[],
+): Promise<Card[]> {
+  if (activeOwnershipMode(deps.ownershipMode, deps.ownedCards) !== 'only' || !deps.fetchLocalCards)
+    return []
+  try {
+    const cards: ScryfallCard[] = await deps.fetchLocalCards({
+      colours: identityColours,
+      names: Object.keys(deps.ownedCards),
+    })
+    return prepareCandidates(
+      {
+        theme: {
+          cards: cards.map((card) => ({ card, reason: ownedCardReason, localIndexSnapshot: true })),
+        },
+      },
+      {
+        ...deps,
+        identity: identityColours,
+        collectionMode: 'none',
+        collectionSets: [],
+        seed: recommendationPoolKey(deps),
+        today: deps.today,
+      },
+    ).pool
+  } catch {
+    return []
+  }
+}
+
 async function addCollectionRecommendations(
   deps: AppActionContext,
   offeredCards: Card[],
@@ -669,12 +705,15 @@ export async function fetchDeckDoctorCandidates(deps: AppActionContext) {
     collectionMode === 'only'
       ? []
       : await coreRecommendations(deps, commanders, identityColours, true)
-  const candidates: Card[] = await addCollectionRecommendations(
-    deps,
-    offered,
-    identityColours,
-    collectionSets,
-    collectionMode,
+  const candidates: Card[] = mergeRecommendationCandidates(
+    await addCollectionRecommendations(
+      deps,
+      offered,
+      identityColours,
+      collectionSets,
+      collectionMode,
+    ),
+    await ownedRecommendations(deps, identityColours),
   )
   const existingNames = new Set([
     ...[...deps.deck, ...deps.sideboard, ...commanders].map(({ name }: { name: string }) => name),
@@ -748,12 +787,15 @@ async function collectOfferedCards(
     activeCollectionMode === 'only'
       ? []
       : await coreRecommendations(deps, commanders, identityColours, preserveDeck)
-  return addCollectionRecommendations(
-    deps,
-    offeredCards,
-    identityColours,
-    activeCollectionSets,
-    activeCollectionMode,
+  return mergeRecommendationCandidates(
+    await addCollectionRecommendations(
+      deps,
+      offeredCards,
+      identityColours,
+      activeCollectionSets,
+      activeCollectionMode,
+    ),
+    await ownedRecommendations(deps, identityColours),
   )
 }
 
@@ -777,6 +819,8 @@ export function rankInitialRecommendations(
       includeCreature: deps.includeCreature,
       maxPrice: deps.maxPrice ?? null,
       deckBudget: deps.deckBudget ?? null,
+      ownershipMode: deps.ownershipMode,
+      ownedCards: deps.ownedCards,
       deckTargets: deps.deckTargets,
       focusedRole: deps.focusedRole,
       identity: deps.commanderDetails?.colours ?? [],

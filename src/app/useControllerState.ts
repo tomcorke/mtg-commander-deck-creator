@@ -13,6 +13,7 @@ import type { AppHistoryState } from './routes.ts'
 import type { DeckWorkspace } from '../autosaves.ts'
 import { useWorkspaceState } from './useWorkspaceState.ts'
 import { useBuilderState } from './useBuilderState.ts'
+import { useOwnedCardsState } from './useOwnedCardsState.ts'
 
 function useCurrentDeckState(state: Record<string, any>) {
   const {
@@ -124,12 +125,14 @@ export function useControllerState(
   const collection = useCollectionState()
   const recommendation = useRecommendationState(saved?.limitedRecommendations ?? false)
   const builder = useBuilderState(saved)
+  const owned = useOwnedCardsState()
   const deck = useDeckState()
   const ui = useUiState(saved, initialRoute, workspace.initialName)
   const workspaceState = useWorkspaceState(workspace, ui.setSavedDecks)
   const state = {
     ...commander,
     ...collection,
+    ...owned,
     ...recommendation,
     ...deck,
     ...ui,
@@ -187,6 +190,7 @@ export function useControllerState(
     showBasicLands: state.activeModal === 'basics',
     showCardSearch: state.activeModal === 'search',
     showRecommendationSettings: state.activeModal === 'recommendation-settings',
+    showOwnedCards: state.activeModal === 'owned-cards',
     showSavedDecks: state.activeModal === 'saved',
     showImport: state.activeModal === 'import',
     showDeckCard:

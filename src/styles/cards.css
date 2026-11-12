@@ -1152,3 +1152,17 @@ button:disabled {
   margin: 0;
   pointer-events: none;
 }
+/* A card the player owns, by name. Success tokens theme it in light and dark. */
+.owned-badge {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--text-success) 45%, transparent);
+  border-radius: 999px;
+  background: var(--surface-success);
+  color: var(--text-success);
+  font-size: var(--type-caption);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.5;
+  white-space: nowrap;
+}

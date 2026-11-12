@@ -244,6 +244,17 @@ export async function openScenario(
   return scenario
 }
 
+/** An `openScenario` hook that stores these owned cards before the app starts (#505). */
+export const withOwnedCards = (names: string[]) => (page: Page) =>
+  page.addInitScript(
+    (cards) =>
+      localStorage.setItem(
+        'commander-owned-cards',
+        JSON.stringify({ cards, updatedAt: '2026-11-12T00:00:00.000Z' }),
+      ),
+    names.map((name) => ({ name, quantity: 1 })),
+  )
+
 /** Starts Vite (unless `${env}_URL` is set) and sandboxed headless Chrome, then runs `run`. */
 export async function withBrowser(
   env: string,

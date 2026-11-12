@@ -74,6 +74,8 @@ import { openSectionsWithHighlights } from './deck-section-highlight.ts'
 import { recommendationDataError } from '../../domain/deck-data-status.ts'
 import type { LandSuggestion } from '../../land-suggestions.ts'
 import { DeckPrice } from '../../shared/DeckPrice.tsx'
+import { OwnedBadge } from '../../shared/OwnedBadge.tsx'
+import { activeOwnershipMode } from '../../domain/owned-cards.ts'
 
 type AnyFunction = (...args: any[]) => any
 
@@ -897,6 +899,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       )}
                       <div className="offer-heading">
                         <p className="suggestion-type">{reason.label}</p>
+                        <OwnedBadge owned={model.ownedCards} name={card.name} />
                       </div>
                       <div className="offered-image">
                         <FinishedCardImage
@@ -1048,7 +1051,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       <ScoreBreakdown
                         score={score}
                         showPopularityPenalty={recommendationStyle === 'thematic'}
-                        showCollection={collectionMode !== 'none' && collectionSets.length > 0}
+                        showCollection={
+                          (collectionMode !== 'none' && collectionSets.length > 0) ||
+                          activeOwnershipMode(model.ownershipMode, model.ownedCards) !== 'ignore'
+                        }
                         showTheme={Boolean(theme)}
                         showSubThemes={activeSubThemes.length > 0}
                       />
@@ -1105,6 +1111,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <HealthLane
               cards={healthSuggestions}
               missingRoles={missingHealthRoles}
+              ownedCards={model.ownedCards}
               onOpen={openGuidanceCard}
               onAdd={addRecommendationCard}
             />

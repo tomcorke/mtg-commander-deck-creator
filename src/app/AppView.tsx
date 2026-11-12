@@ -29,6 +29,7 @@ import { ChangeCommander } from '../features/modals/ChangeCommanderModal.tsx'
 import { DeckCardModal } from '../features/modals/DeckCardModal.tsx'
 import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
+import { OwnedCardsModal } from '../features/modals/OwnedCardsModal.tsx'
 import { SavedDecksModal } from '../features/modals/SavedDecksModal.tsx'
 import { WorkspaceNotice } from '../features/modals/WorkspaceNotice.tsx'
 import { StartView } from '../features/start/StartView.tsx'
@@ -201,6 +202,9 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       browseCollection={() => void actions.browseCollection()}
       collectionError={state.collectionError}
       collectionPoolSize={state.collectionPoolSize}
+      ownershipMode={state.ownershipMode}
+      ownedCardList={state.ownedCardList}
+      openOwnedCards={() => actions.openModal('owned-cards')}
       excludeGameChangers={state.excludeGameChangersSetting}
       limitGameChangers={state.limitGameChangers}
       excludeTutors={state.excludeTutors}
@@ -223,6 +227,9 @@ function renderModals(props: AppViewProps) {
         sideboard={props.state.sideboard}
         exportFormat={props.state.exportFormat}
         setExportFormat={props.state.setExportFormat}
+        ownedCards={props.state.ownedCards}
+        exportNeededOnly={props.state.exportNeededOnly}
+        setExportNeededOnly={props.state.setExportNeededOnly}
         copied={props.state.copied}
         deckList={props.actions.deckList}
         copyDeck={props.actions.copyDeck}
@@ -232,7 +239,19 @@ function renderModals(props: AppViewProps) {
     importModal: <ImportModalView {...props} />,
     savedDecksModal: <SavedDecksModalView {...props} />,
     deckCardModal: <DeckCardModalView {...props} />,
-    recommendationSettingsModal: <RecommendationSettingsView {...props} />,
+    recommendationSettingsModal: (
+      <>
+        <RecommendationSettingsView {...props} />
+        <OwnedCardsModal
+          show={props.state.showOwnedCards}
+          ownedCardList={props.state.ownedCardList}
+          saveOwnedCards={props.actions.saveOwnedCards}
+          unrecognisedOwnedNames={props.actions.unrecognisedOwnedNames}
+          openOwnedCard={props.actions.openOwnedCard}
+          closeModal={() => props.actions.closeModal()}
+        />
+      </>
+    ),
     changeCommander: (
       <ChangeCommander
         commander={props.state.commander}
@@ -347,6 +366,7 @@ function useBuilderMode(state: Record<string, any>) {
     'import',
     'saved',
     'recommendation-settings',
+    'owned-cards',
     'doctor-history',
   ].includes(activeModal)
   const modeReturn = preservesMode ? storedModeReturn : null

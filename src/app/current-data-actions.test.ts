@@ -680,3 +680,31 @@ test('dropping the outgoing commander frees its colours for the new one', async 
     ['Mono green', 'Added'],
   )
 })
+
+test('the still-needed export lists main-deck cards, commanders included, that owned cards do not cover', () => {
+  const forest = toDeckCard(raw('Forest'))
+  const deps = fixture()
+  deps.deck = [deps.deck[0], ...Array.from({ length: 5 }, () => ({ ...forest })), deps.deck[1]]
+  deps.sideboard = [toDeckCard(raw('Spare'))]
+  deps.ownedCards = { forest: 3, added: 1 }
+  deps.exportNeededOnly = true
+  const needed = (format: 'plain' | 'moxfield' | 'csv') =>
+    parseDeckImportSource(deckList(deps, format)).cards.map(({ name, quantity, board }) => [
+      name,
+      quantity,
+      board,
+    ])
+  assert.deepEqual(needed('plain'), [
+    ['Commander', 1, 'commander'],
+    ['Forest', 2, 'mainboard'],
+  ])
+  // Moxfield's list keeps the commander with the cards to buy.
+  assert.deepEqual(needed('moxfield'), [
+    ['Commander', 1, 'mainboard'],
+    ['Forest', 2, 'mainboard'],
+  ])
+  assert.deepEqual(needed('csv'), needed('plain'))
+  // Without owned cards the toggle cannot hide anything.
+  deps.ownedCards = {}
+  assert.match(deckList(deps, 'plain'), /SIDEBOARD:\n1 Spare/)
+})

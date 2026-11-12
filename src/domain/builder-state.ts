@@ -58,6 +58,12 @@ import {
   normalizeMaxPrice,
   type IgnoreReason,
 } from './recommendation-tuning.ts'
+import {
+  ownedQuantities,
+  type OwnedCardList,
+  type OwnedQuantities,
+  type OwnershipMode,
+} from './owned-cards.ts'
 import type {
   CollectionMode,
   DeferredCard,
@@ -91,6 +97,11 @@ export type BuilderState = {
   powerTarget: PowerTarget
   maxPrice: number | null
   deckBudget: number | null
+  ownershipMode: OwnershipMode
+  /** The player's owned cards. App-wide rather than deck data: never saved with a deck. */
+  ownedCards: OwnedQuantities
+  /** Changes whenever the owned list does, so Owned only rebuilds its pool. */
+  ownedRevision: string
   focusedRole: TargetKey | null
   includeCreature: boolean
   excludeGameChangers: boolean
@@ -144,6 +155,9 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     powerTarget: 'precon',
     maxPrice: null,
     deckBudget: null,
+    ownershipMode: 'ignore',
+    ownedCards: {},
+    ownedRevision: '',
     focusedRole: null,
     includeCreature: true,
     excludeGameChangers: true,
@@ -178,6 +192,7 @@ export type BuilderSettings = Pick<
   | 'powerTarget'
   | 'maxPrice'
   | 'deckBudget'
+  | 'ownershipMode'
   | 'includeCreature'
   | 'excludeGameChangers'
   | 'limitGameChangers'
@@ -240,6 +255,7 @@ export type BuilderAction =
   | { type: 'focus'; role: TargetKey | null }
   | { type: 'completeFocus' }
   | { type: 'collectionMode'; mode: CollectionMode }
+  | { type: 'ownedCards'; list: OwnedCardList | null }
   | { type: 'toggleSet'; code: string }
   | { type: 'commitSettings' }
   | { type: 'nextBatch'; extraSubTheme?: string }
@@ -923,6 +939,19 @@ function applyUndoBulkAdd(state: BuilderState): BuilderActionResult {
   }
 }
 
+const ownedState = ({ ownedCards, ownedRevision }: BuilderState) => ({ ownedCards, ownedRevision })
+
+/** A new owned list re-ranks recommendations whenever ownership affects them. */
+function applyOwnedCards(state: BuilderState, list: OwnedCardList | null): BuilderState {
+  return {
+    ...state,
+    ownedCards: ownedQuantities(list),
+    ownedRevision: list?.updatedAt ?? '',
+    recommendationOptionsChanged:
+      state.recommendationOptionsChanged || state.ownershipMode !== 'ignore',
+  }
+}
+
 /** No mutation, IDs, clock reads, storage, or live requests. */
 function reduceBuilderAction(state: BuilderState, action: BuilderAction): BuilderActionResult {
   switch (action.type) {
@@ -962,7 +991,10 @@ function reduceBuilderAction(state: BuilderState, action: BuilderAction): Builde
     case 'retryData':
       return done({ ...retryBuilderData(state), hydrationBoundary: state.hydrationBoundary + 1 })
     case 'restore':
-      return done(action.state)
+      // Owned cards belong to the player, not to the restored deck.
+      return done({ ...action.state, ...ownedState(state) })
+    case 'ownedCards':
+      return done(applyOwnedCards(state, action.list))
     case 'data':
       return done({ ...state, ...action.changes })
     case 'decide':
