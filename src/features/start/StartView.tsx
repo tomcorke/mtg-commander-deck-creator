@@ -11,6 +11,8 @@ import { flushSync } from 'react-dom'
 import { toDeckCard, type ScryfallCard, type ScryfallSet } from '../../domain/card-model.ts'
 import { canAddPartner } from '../../domain/commander-pairing.ts'
 import { PartnerDialog } from './PartnerDialog.tsx'
+import { ColourIdentityFilter } from './ColourIdentityFilter.tsx'
+import { identitySummary, type ColourMatch } from '../../domain/colour-identity.ts'
 import { setPickerRows } from '../../domain/set-picker.ts'
 import { SetPicker } from '../../shared/SetPicker.tsx'
 import { colourNames, selectableThemes } from '../../domain/commander-catalog.ts'
@@ -108,11 +110,7 @@ import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommander
 import { useEdhrecDeckCounts } from '../../app/useEdhrecDeckCounts.ts'
 import type { CommanderSort } from '../../domain/commander-discovery.ts'
 import { Pagination } from '../../shared/Pagination.tsx'
-import {
-  ColourPicker,
-  CommanderChoiceTile,
-  CommanderTilePlaceholders,
-} from '../../shared/CommanderChoice.tsx'
+import { CommanderChoiceTile, CommanderTilePlaceholders } from '../../shared/CommanderChoice.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
@@ -322,6 +320,8 @@ type StartViewProps = {
   colours: string[]
   setColours: Dispatch<SetStateAction<string[]>>
   toggleColour: (colour: string) => void
+  colourMatch: ColourMatch
+  setColourMatch: Dispatch<SetStateAction<ColourMatch>>
   search: string
   setSearch: Dispatch<SetStateAction<string>>
   rulesText: string
@@ -415,17 +415,41 @@ function DiscoveryHeading({
 }
 
 /**
- * One-click ways to widen a near-empty result (#481): drop each chosen colour, the theme, or
- * another active criterion. Colour identity matches exactly, so dropping a colour shows the
- * remaining colours' commanders rather than a superset.
+ * Colour widening for the match mode (#482). Exactly widens to Within or Including, and dropping a
+ * colour shows the remaining colours' commanders rather than a superset. Including widens by
+ * dropping a colour. Within narrows when a colour is dropped, so it offers clearing the colours.
+ */
+function colourWidening({
+  colours,
+  colourMatch,
+  toggleColour,
+  setColours,
+  setColourMatch,
+}: StartViewProps) {
+  const remove = colours.map((colour) => ({
+    label: `Remove ${colourNames[colour]}`,
+    widen: () => toggleColour(colour),
+  }))
+  if (!colours.length || colourMatch === 'including') return remove
+  if (colourMatch === 'within')
+    return [{ label: 'Clear colour identity', widen: () => setColours([]) }]
+  return [
+    { label: 'Allow fewer colours', widen: () => setColourMatch('within') },
+    ...(colours.length < 5
+      ? [{ label: 'Allow more colours', widen: () => setColourMatch('including') }]
+      : []),
+    ...remove,
+  ]
+}
+
+/**
+ * One-click ways to widen a near-empty result (#481): change the colour match or colours, drop
+ * the theme, or clear another active criterion.
  */
 function widenActions(props: StartViewProps, setLabel: (code: string) => string) {
   const theme = [props.theme, ...props.extraCreatureTypes].filter(Boolean).join(' + ')
   return [
-    ...props.colours.map((colour) => ({
-      label: `Remove ${colourNames[colour]}`,
-      widen: () => props.toggleColour(colour),
-    })),
+    ...colourWidening(props),
     theme && {
       label: `Remove ${theme} theme`,
       widen: () => (props.setExtraCreatureTypes([]), props.declareTheme('')),
@@ -512,7 +536,7 @@ function filterSummary(props: StartViewProps, setLabel: (code: string) => string
   return (
     [
       [props.theme, ...props.extraCreatureTypes].filter(Boolean).join(' + '),
-      ...props.colours.map((colour) => colourNames[colour]),
+      identitySummary(props.colours, props.colourMatch),
       props.search.trim().length >= 2 ? `Name: ${props.search.trim()}` : '',
       props.rulesText.trim().length >= 2 ? `Rules text: ${props.rulesText.trim()}` : '',
       props.maxManaValue != null ? `Mana value ${props.maxManaValue} or less` : '',
@@ -750,9 +774,12 @@ export function StartView(props: StartViewProps) {
             <h3 className="filter-heading" id="colour-filter-heading">
               Colour identity
             </h3>
-            <div role="group" aria-labelledby="colour-filter-heading">
-              <ColourPicker colours={props.colours} toggleColour={props.toggleColour} />
-            </div>
+            <ColourIdentityFilter
+              colours={props.colours}
+              toggleColour={props.toggleColour}
+              match={props.colourMatch}
+              setMatch={props.setColourMatch}
+            />
             <label className="commander-search">
               <span className="filter-heading">Name</span>
               <input
@@ -869,8 +896,8 @@ export function StartView(props: StartViewProps) {
             <div className="empty">
               <h3>No commanders match these filters</h3>
               <p>
-                Remove a colour, theme, set or mana value limit, or try different name or rules
-                text. Curated themes are a limited selection.
+                Change the colour identity or its match, remove a theme, set or mana value limit, or
+                try different name or rules text. Curated themes are a limited selection.
               </p>
               <div className="commander-widen-actions">
                 <WidenButtons actions={widen} />
@@ -909,7 +936,7 @@ export function StartView(props: StartViewProps) {
               <div className="commander-widen-actions">
                 <WidenButtons actions={widen} />
               </div>
-              {props.colours.length > 0 && (
+              {props.colours.length > 0 && props.colourMatch === 'exactly' && (
                 <p className="commander-widen-note">
                   Colour identity matches exactly, so removing a colour shows commanders of the
                   colours that remain.

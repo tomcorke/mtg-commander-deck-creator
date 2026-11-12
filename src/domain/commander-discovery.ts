@@ -4,10 +4,13 @@ import { creatureTypeForTheme, creatureTypeTags } from './creature-types.ts'
 import { commanderConstructionError } from './commander-construction.ts'
 import { pairName, partnerSearchScope } from './commander-pairing.ts'
 import { cardNameKey, toDeckCard, type ScryfallCard } from './card-model.ts'
+import { identityTerm, matchesIdentity, type ColourMatch } from './colour-identity.ts'
 
 export type DiscoveryFilters = {
   theme: string
   colours: string[]
+  /** How `colours` match a commander's identity; absent means exactly. */
+  colourMatch?: ColourMatch
   search: string
   /** More creature types after a creature-type theme; commanders matching any of them are found. */
   creatureTypes?: string[]
@@ -149,7 +152,7 @@ export function commanderCriteriaTerms(filters: DiscoveryFilters) {
   const name = filters.search.trim()
   const sets = filters.sets ?? []
   return [
-    filters.colours.length ? `id=${[...filters.colours].sort().join('').toLowerCase()}` : '',
+    identityTerm(filters.colours, filters.colourMatch),
     name.length >= 2 ? `name:${JSON.stringify(name)}` : '',
     // Named abilities such as Eminence are not always in Scryfall's keyword field, so match Oracle text too.
     text.length >= 2 ? `(o:${JSON.stringify(text)} or kw:${JSON.stringify(text)})` : '',
@@ -161,14 +164,21 @@ export function commanderCriteriaTerms(filters: DiscoveryFilters) {
 }
 
 export function filterCommanders(cards: ScryfallCard[], filters: DiscoveryFilters) {
-  const identity = [...filters.colours].sort().join('')
   const search = filters.search.trim().toLowerCase()
   const rulesText = (filters.rulesText ?? '').trim().toLowerCase()
   const seen = new Set<string>()
   return cards.filter((card) => {
     const key = card.oracle_id ?? card.name
     if (seen.has(key) || commanderConstructionError([toDeckCard(card)])) return false
-    if (identity && [...card.color_identity].sort().join('') !== identity) return false
+    // An unknown identity fails closed whenever colours are chosen.
+    if (
+      filters.colours.length &&
+      !(
+        card.color_identity &&
+        matchesIdentity(card.color_identity, filters.colours, filters.colourMatch)
+      )
+    )
+      return false
     if (search.length >= 2 && !card.name.toLowerCase().includes(search)) return false
     if (rulesText.length >= 2 && !cardRulesText(card).includes(rulesText)) return false
     if (filters.maxManaValue != null && !((card.cmc ?? Infinity) <= filters.maxManaValue))

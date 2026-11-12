@@ -152,6 +152,23 @@
   width: 25px;
   height: 25px;
 }
+/* Pips with the Exactly / Within / Including match beside them; the match wraps below when narrow. */
+.colour-identity-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+.colour-identity-name {
+  margin: 10px 0 0;
+  font-weight: 600;
+}
+.colour-identity-help {
+  max-width: 60ch;
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
 .commander-search {
   display: grid;
   gap: 8px;

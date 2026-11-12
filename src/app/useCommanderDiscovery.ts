@@ -20,6 +20,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
   const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading')
   const [error, setError] = useState('')
   const identity = [...filters.colours].sort().join('')
+  const colourMatch = filters.colourMatch ?? 'exactly'
   const search = filters.search.trim().length >= 2 ? filters.search.trim() : ''
   const creatureTypes = filters.creatureTypes ?? []
   const rulesText = (filters.rulesText ?? '').trim().length >= 2 ? filters.rulesText!.trim() : ''
@@ -40,6 +41,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
           {
             theme: filters.theme,
             colours: [...identity],
+            colourMatch,
             search,
             creatureTypes,
             rulesText,
@@ -70,6 +72,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     active,
     filters.theme,
     identity,
+    colourMatch,
     search,
     creatureTypes.join('|'),
     rulesText,

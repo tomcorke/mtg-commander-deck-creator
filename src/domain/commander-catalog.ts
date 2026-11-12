@@ -1,13 +1,7 @@
 import { supportedThemes } from '../recommendations.ts'
 import { creatureTypeForTheme } from './creature-types.ts'
 
-export const colourNames: Record<string, string> = {
-  W: 'White',
-  U: 'Blue',
-  B: 'Black',
-  R: 'Red',
-  G: 'Green',
-}
+export { colourNames } from './colour-identity.ts'
 export const colourThemes: Record<string, [string, string]> = {
   W: ['#7d5f24', '#f3df9b'],
   U: ['#286da8', '#8dc9ee'],
