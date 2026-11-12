@@ -6,7 +6,14 @@ import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { SetPicker } from '../../shared/SetPicker.tsx'
 import type { ScryfallSet } from '../../domain/card-model.ts'
 import { onlyModeMinimumPool, type SetPickerRow } from '../../domain/set-picker.ts'
-import { normalizeMaxPrice, priorityLabels } from '../../domain/recommendation-tuning.ts'
+import { normalizeMaxPrice } from '../../domain/recommendation-tuning.ts'
+import {
+  formatTerms,
+  optionHelp,
+  powerTerms,
+  priorityLabels,
+  priorityTerms,
+} from '../../domain/glossary.ts'
 import { priceSourceNote } from '../../domain/deck-price.ts'
 import type { CollectionMode, RecommendationStyle } from '../../recommendations.ts'
 
@@ -176,7 +183,7 @@ export function RecommendationSettingsModal({
             <SettingHelp
               id="recommendation-style-help"
               label="Priority"
-              description="Theme first favors themes and selected sets; Balanced mixes theme and deck needs; Deck needs first favors missing roles and mana fit; Surprise me boosts interesting new picks."
+              description={optionHelp(priorityTerms)}
             />
           </div>
           <div className="recommendation-setting">
@@ -186,14 +193,16 @@ export function RecommendationSettingsModal({
               value={powerTarget}
               onChange={(event) => choosePowerTarget(event.target.value as PowerTarget)}
             >
-              <option value="precon">Core (Bracket 2)</option>
-              <option value="upgraded">Upgraded (Bracket 3)</option>
-              <option value="high">High power (Bracket 4)</option>
+              {(['precon', 'upgraded', 'high'] as const).map((power) => (
+                <option key={power} value={power}>
+                  {powerTerms[power].term} ({powerTerms[power].bracketHint})
+                </option>
+              ))}
             </select>
             <SettingHelp
               id="power-target-help"
               label="Power"
-              description="Core excludes a short list of fast-mana cards as an app preference. Upgraded and High power allow them. These settings do not verify a bracket."
+              description={`${optionHelp(powerTerms)} These settings do not verify a bracket.`}
             />
           </div>
           <div className="recommendation-setting">
@@ -367,7 +376,7 @@ export function RecommendationSettingsModal({
               <SettingHelp
                 id="exclude-game-changers-help"
                 label="Exclude Game Changers"
-                description="Wizards' bracket guidance allows zero in Brackets 1–2 (Bracket 1 exceptions need pregame agreement), up to three in Bracket 3, and no limit in Brackets 4–5. This optional filter removes all Game Changers."
+                description={`${formatTerms.gameChanger.definition} This optional filter removes all Game Changers.`}
               />
             </div>
             <div className="recommendation-setting-toggle">

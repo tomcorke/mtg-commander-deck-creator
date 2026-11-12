@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { SavedDeck } from '../../deck-state.ts'
+import { CommanderPrimerDialog } from '../../shared/CommanderPrimer.tsx'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
 import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.tsx'
 import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
@@ -24,6 +26,7 @@ export function BuilderTopBar({
   onSaveLoad,
   startOver,
 }: BuilderTopBarProps) {
+  const [primerOpen, setPrimerOpen] = useState(false)
   return (
     <header>
       <span className="brand">
@@ -71,8 +74,12 @@ export function BuilderTopBar({
         <button className="export" type="button" onClick={onExport}>
           Export deck
         </button>
+        <button className="export" type="button" onClick={() => setPrimerOpen(true)}>
+          Commander basics
+        </button>
         <RequestActivityIndicator />
       </div>
+      {primerOpen && <CommanderPrimerDialog onClose={() => setPrimerOpen(false)} />}
     </header>
   )
 }

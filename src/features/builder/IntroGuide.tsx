@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Joyride, type TooltipRenderProps, type Step } from 'react-joyride'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
+import { RoleSkeleton } from '../../shared/CommanderPrimer.tsx'
 
 const steps: Step[] = [
   {
@@ -27,8 +28,7 @@ const steps: Step[] = [
   {
     target: '[data-guide="targets"]',
     title: 'Deck targets',
-    content:
-      'Edit role targets in the sidebar. Counts are app estimates, not construction requirements.',
+    content: <RoleSkeleton />,
   },
   {
     target: '[data-guide="review"]',
@@ -68,7 +68,11 @@ function GuideTooltip({
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         Guide: {step.title}. {index + 1} of {size}.
       </p>
-      <p id="intro-guide-content">{step.content}</p>
+      {typeof step.content === 'string' ? (
+        <p id="intro-guide-content">{step.content}</p>
+      ) : (
+        <div id="intro-guide-content">{step.content}</div>
+      )}
       <div className="export-actions">
         <button {...skipProps} className="export" type="button">
           Skip

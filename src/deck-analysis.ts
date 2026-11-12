@@ -1,3 +1,5 @@
+import { roleLabels } from './domain/glossary.ts'
+
 export const targetKeys = ['lands', 'ramp', 'draw', 'removal', 'wipes'] as const
 export type TargetKey = (typeof targetKeys)[number]
 export type DeckTargets = Record<TargetKey, number>
@@ -48,13 +50,7 @@ export const defaultDeckTargets: Readonly<DeckTargets> = Object.freeze({
   removal: 8,
   wipes: 3,
 })
-export const targetLabels: Record<TargetKey, string> = {
-  lands: 'Lands',
-  ramp: 'Ramp',
-  draw: 'Card draw',
-  removal: 'Targeted removal',
-  wipes: 'Board wipes',
-}
+export const targetLabels: Record<TargetKey, string> = roleLabels
 export const cardTypes = [
   'Creature',
   'Artifact',

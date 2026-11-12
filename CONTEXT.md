@@ -32,6 +32,8 @@ Prefer reading rules and policy from Scryfall fields at runtime over hard-coding
 
 ## Glossary
 
+Player-facing names and definitions for these terms live in `src/domain/glossary.ts`. Change UI copy there so role labels, settings help, the intro guide and Commander basics stay in step.
+
 **Commander** — the legendary card designated to lead the deck. It starts in the command zone and counts towards the 100 cards. A deck has one commander, or two through a partner ability.
 
 **Partner pair** — two commanders allowed by one shared partner ability. Their colour identities combine. The deck is still 100 cards, so 98 remain.

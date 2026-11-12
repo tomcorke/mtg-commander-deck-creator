@@ -25,11 +25,9 @@ import {
   themeMatchesSearch,
 } from '../recommendations.ts'
 
-import {
-  focusedRecommendations,
-  priorityLabels,
-  withinPriceCap,
-} from '../domain/recommendation-tuning.ts'
+import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
+import { powerLabels, priorityLabels } from '../domain/glossary.ts'
+import type { PowerTarget } from '../domain/recommendation-types.ts'
 import { setPickerRows } from '../domain/set-picker.ts'
 import { buildRecommendationContext } from '../domain/recommendation-context.ts'
 import { describeRemainingBudget, remainingDeckBudget } from '../domain/deck-price.ts'
@@ -440,9 +438,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
   } = deps
   const recommendationStyleLabel =
     priorityLabels[recommendationStyle as keyof typeof priorityLabels]
-  const powerTargetLabel = (
-    { precon: 'Core', upgraded: 'Upgraded', high: 'High power' } as Record<string, string>
-  )[powerTarget]
+  const powerTargetLabel = powerLabels[powerTarget as PowerTarget]
   const excludedRecommendations = [
     excludeGameChangers && 'Game Changers',
     excludeTutors && 'tutors',

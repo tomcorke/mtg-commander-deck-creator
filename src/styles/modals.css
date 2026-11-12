@@ -1734,3 +1734,68 @@ main > .commander-header {
   /* Themed dark accent text drops below AA on the selected tint. */
   color: var(--text-body);
 }
+/* Commander basics: a reading dialog built from the shared glossary. */
+.commander-primer h3 {
+  margin: 22px 0 8px;
+  font-size: var(--type-card-name);
+}
+.commander-primer > p:not(.eyebrow) {
+  margin: 8px 0;
+  color: var(--text-muted);
+  font-size: var(--type-body);
+  line-height: 1.5;
+}
+.glossary-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.glossary-list dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  color: var(--text-strong);
+  font-size: var(--type-body);
+  font-weight: 600;
+}
+.glossary-list dd {
+  margin: 2px 0 0;
+  font-size: var(--type-body);
+  line-height: 1.5;
+}
+.glossary-count {
+  min-width: 2ch;
+  color: var(--text-accent);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.glossary-kind {
+  padding: 1px 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+  font-weight: 400;
+}
+.glossary-citation {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.glossary-list.compact {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+/* The intro guide's popover reads each entry as one run-in line to stay short. */
+.glossary-list.compact dt,
+.glossary-list.compact dd {
+  display: inline;
+  margin: 0;
+}
+.glossary-list.compact dt::after {
+  content: ':';
+}
+.glossary-list.compact dd::before {
+  content: ' ';
+}

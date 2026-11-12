@@ -122,6 +122,8 @@ import { RequestActivityIndicator } from '../../shared/RequestActivityIndicator.
 import { DraftSavedTime } from '../modals/WorkspaceNotice.tsx'
 import { CommanderSummary } from '../builder/CommanderSummary.tsx'
 import { RandomCommanderDialog } from './RandomCommanderDialog.tsx'
+import { CommanderPrimerDialog, NewToCommanderCard } from '../../shared/CommanderPrimer.tsx'
+import { useStoredOption } from '../../shared/hooks.ts'
 
 /** Theme search over every theme, with a sample or full list while not searching. */
 function ThemeFilter({
@@ -339,6 +341,12 @@ function filterSummary(props: StartViewProps, setLabel: (code: string) => string
 // eslint-disable-next-line max-lines-per-function -- Start-screen markup stays together; search helpers and render callbacks remain checked.
 export function StartView(props: StartViewProps) {
   const [randomCommanderOpen, setRandomCommanderOpen] = useState(false)
+  const [primerOpen, setPrimerOpen] = useState(false)
+  const [primerDismissed, setPrimerDismissed] = useStoredOption(
+    'primerDismissed',
+    () => false,
+    (value) => value === true,
+  )
   const [sort, setSort] = useState<CommanderSort>('popularity')
   const { darkMode } = useVisualPreferences()
   const discovery = useCommanderDiscovery(
@@ -410,6 +418,9 @@ export function StartView(props: StartViewProps) {
           <button className="export" type="button" onClick={props.openSavedDecks}>
             Saved decks
           </button>
+          <button className="export" type="button" onClick={() => setPrimerOpen(true)}>
+            Commander basics
+          </button>
           <RequestActivityIndicator />
         </div>
       </header>
@@ -423,6 +434,7 @@ export function StartView(props: StartViewProps) {
           openCard={props.openCardReference}
         />
       )}
+      {primerOpen && <CommanderPrimerDialog onClose={() => setPrimerOpen(false)} />}
       <section className="start">
         {resume && (
           <section className="continue-card" aria-label="Deck in progress">
@@ -466,8 +478,19 @@ export function StartView(props: StartViewProps) {
             </div>
           </section>
         )}
+        {!primerDismissed && (
+          <NewToCommanderCard
+            open={() => setPrimerOpen(true)}
+            dismiss={() => {
+              setPrimerDismissed(true)
+              document.getElementById('start-title')?.focus()
+            }}
+          />
+        )}
         <p className="eyebrow">Build from scratch</p>
-        <h1>What do you want to play?</h1>
+        <h1 id="start-title" tabIndex={-1}>
+          What do you want to play?
+        </h1>
         <p className="lead">
           Combine a theme and colour identity, or search for a commander.
           {resume && ' Choosing a new commander keeps this deck in Autosaved drafts.'}
