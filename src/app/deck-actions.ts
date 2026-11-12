@@ -48,6 +48,7 @@ import {
   type ImportedCard,
   type ImportedDeck,
 } from '../deck-import.ts'
+import { pairName } from '../domain/commander-pairing.ts'
 import { commandersPromotionInfo } from '../domain/commander-promotion.ts'
 import { start as startRecommendations, type AppActionContext } from './recommendation-actions.ts'
 import { resetSignatureContext } from './signature-actions.ts'
@@ -124,12 +125,15 @@ export async function promoteToCommander(
     keepOutgoing ? (commanderDetails?.colours ?? []) : [],
   )
   if (!promotion.canPromote) return
-  const error = commanderConstructionError(candidates)
+  const commanderName = partner ? pairName(candidate, partner) : candidate.name
+  const error =
+    commanderConstructionError(candidates) ||
+    (commanderName ? '' : 'This pair cannot be saved: a name contains " & ".')
   if (error) {
     setBatchAnnouncement(error)
     return
   }
-  const loaded = await start(names.join(' & '), true)
+  const loaded = await start(commanderName, true)
   if (!loaded || !job.isCurrent()) return
   const latest = deps.getCurrentState?.() ?? deps
   const promoted = candidates.map(
