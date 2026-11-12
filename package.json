@@ -42,7 +42,8 @@
     "evaluate:local-retrieval": "node --experimental-strip-types scripts/evaluate-local-retrieval.ts",
     "measure:local-card-index": "node --experimental-strip-types scripts/measure-local-card-index.ts",
     "check:owned-cards:browser": "node --experimental-strip-types scripts/check-owned-cards-browser.ts",
-    "check:land-fill-budget:browser": "node --experimental-strip-types scripts/check-land-fill-budget-browser.ts"
+    "check:land-fill-budget:browser": "node --experimental-strip-types scripts/check-land-fill-budget-browser.ts",
+    "check:deck-board-layout:browser": "node --experimental-strip-types scripts/check-deck-board-layout-browser.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

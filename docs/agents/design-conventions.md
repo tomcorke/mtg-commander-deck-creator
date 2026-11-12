@@ -59,7 +59,7 @@ Each entry names the place and why it stays, or the issue that owns the fix.
 
 - Diagnose finding grids keep `minmax(150px, 1fr)` columns, so a row of 6 leaves an empty seventh column at 1366px.
 - Card search keeps uncapped `auto-fill` columns. It sizes each page to the column count (`searchPageSize`), so pages already fill whole rows, and a cap would change page sizes.
-- Deck board groups stay name rows with a `CardReference` thumbnail, not tiles: a 100-card list is scanned by name, cost and count. A tile view is #330.
+- Deck board groups default to name rows with a `CardReference` thumbnail: a 100-card list is scanned by name, cost and count. Tiles is opt-in (#330). `DeckBoardLayout` places groups by the board's width (#499): List balances them into columns, none empty; Tiles lets groups share rows of 150px tile tracks.
 
 **Dialogs**
 

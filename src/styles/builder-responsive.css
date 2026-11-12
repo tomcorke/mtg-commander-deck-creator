@@ -132,9 +132,6 @@
   border-color: color-mix(in srgb, var(--commander-highlight) 28%, #252931);
 }
 @media (max-width: 1050px) {
-  .deck-board .deck-list {
-    grid-template-columns: 1fr;
-  }
   .recommendation-setup {
     grid-column: 1 / -1;
     padding: 16px 0 0;
@@ -185,9 +182,6 @@
     align-items: stretch;
     flex-direction: column;
     gap: 8px;
-  }
-  .deck-board .deck-list {
-    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 520px) {

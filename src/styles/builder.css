@@ -60,15 +60,19 @@
 .deck-board .meter {
   margin: 16px 0 24px;
 }
+/* DeckBoardLayout sets --deck-tracks from the board's width and marks where each balanced
+   column starts (#499); one flat list of slots keeps groups mounted when they move. */
 .deck-board .deck-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0 32px;
+  column-count: var(--deck-tracks, 1);
+  column-gap: 32px;
   max-width: 1940px;
-  align-items: start;
 }
-.deck-board .deck-column {
+.deck-board .deck-board-slot {
   min-width: 0;
+  break-inside: avoid;
+}
+.deck-board .deck-board-slot[data-column-start] {
+  break-before: column;
 }
 .deck-board .deck-group {
   break-inside: avoid;
@@ -965,13 +969,24 @@
     flex-wrap: wrap;
   }
 }
-/* Opt-in tile view of the deck board: each group wraps CardTile art instead of compact rows. */
+/* Opt-in tile view of the deck board: groups share rows of tile tracks, each spanning
+   --tile-span tracks and wrapping CardTile art inside them. */
 .deck-board .deck-list--tiles {
-  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  grid-template-columns: repeat(var(--deck-tracks), minmax(0, 1fr));
+  align-items: start;
+  column-count: auto;
+  column-gap: 10px;
+}
+.deck-board .deck-list--tiles .deck-group h3 {
+  gap: 8px;
+}
+.deck-board .deck-list--tiles > .deck-board-slot {
+  grid-column: span var(--tile-span, 1);
 }
 .deck-board .deck-list--tiles .deck-group ol {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(130px, 100%), 1fr));
+  grid-template-columns: repeat(var(--tile-span, 1), minmax(0, 1fr));
   gap: 10px;
 }
 .deck-board .deck-list--tiles .deck-group ol > li {
