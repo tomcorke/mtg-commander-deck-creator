@@ -19,9 +19,12 @@ export type Printing = {
   priceUri?: string
   finish?: CardFinish
   foilType?: string
+  /** Memorabilia, oversized, digital or non-English: offered to pick, never chosen automatically. */
+  nonStandard?: true
 }
 
-export type PrintingLike = Pick<Printing, 'image' | 'set' | 'collectorNumber' | 'finish'>
+export type PrintingLike = Pick<Printing, 'image' | 'set' | 'collectorNumber' | 'finish'> &
+  Partial<Pick<Printing, 'price' | 'nonStandard'>>
 
 export type ScryfallCardFace = {
   type_line?: string
@@ -47,6 +50,10 @@ export type ScryfallCard = {
   legalities?: { commander?: string }
   set: string
   set_name?: string
+  set_type?: string
+  lang?: string
+  digital?: boolean
+  oversized?: boolean
   collector_number: string
   scryfall_uri?: string
   prints_search_uri: string

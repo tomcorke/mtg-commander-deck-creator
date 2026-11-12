@@ -15,7 +15,7 @@ import {
   type SignatureSeed,
 } from '../domain/signature-recommendations.ts'
 import { fetchScryfallCardsByIdentifiers, fetchScryfallPrintings } from '../adapters/scryfall.ts'
-import { toDeckCard, toCard, type Card } from '../domain/card-model.ts'
+import { toDeckCard, toCard, type Card, type ScryfallCard } from '../domain/card-model.ts'
 import { cyclePrinting } from './deck-actions.ts'
 import { loadPrintings as loadPrintingsAction } from './printing-actions.ts'
 import { withBuilderActions, withBuilderFixture } from './builder-test-fixture.ts'
@@ -781,10 +781,11 @@ test('automatic printing choices default to nonfoil when a printing has both fin
     ),
     score: 100,
   }))
+  // With no set preferred, the cheapest nonfoil wins (#527), never the $3.50 TDC foil.
   for (const queued of await choose(offered)) {
     assert.equal(queued.finish, 'nonfoil', queued.name)
-    assert.equal(queued.set, 'zen')
-    assert.equal(queued.price, '5.56')
+    assert.equal(queued.set, 'tdc')
+    assert.equal(queued.price, '3.92')
     assert.equal(queued.foilType, undefined)
   }
   const [preferred] = await choose(offered.slice(0, 1), 'zen')
@@ -801,6 +802,88 @@ test('automatic printing choices default to nonfoil when a printing has both fin
     { ...offered[0], finish: 'foil', price: '37.64', printingManuallySelected: true },
   ])
   assert.deepEqual([manual.finish, manual.price], ['foil', '37.64'])
+})
+
+test('automatic printing choices default to the cheapest standard nonfoil printing', async () => {
+  // Issue #527: live Counterspell printings put gold-bordered World Championship copies and
+  // foreign-language printings below the cheapest ordinary nonfoil.
+  const printing = (
+    set: string,
+    usd: string | null,
+    extra: Record<string, unknown> = {},
+  ): ScryfallCard => ({
+    ...card('Counterspell'),
+    set,
+    collector_number: '1',
+    image_uris: { normal: `art-${set}` },
+    finishes: ['nonfoil', 'foil'],
+    prices: { usd, usd_foil: '0.50' },
+    lang: 'en',
+    ...extra,
+  })
+  const printings = [
+    printing('fdc', '2.61'),
+    printing('wc00', '1.34', { set_type: 'memorabilia', border_color: 'gold' }),
+    printing('4bb', '0.99', { lang: 'es' }),
+    printing('oc21', '0.75', { oversized: true }),
+    printing('omb', null, { digital: true }),
+    printing('unpriced', null),
+    printing('dmr', '2.45'),
+    printing('cmm', '2.45'),
+  ]
+  const choose = async (
+    preferredSet = '',
+    settings: { maxPrice?: number; collectionSets?: string[]; card?: Partial<Card> } = {},
+    result = printings,
+  ) => {
+    let queue: Card[] = [
+      {
+        ...toCard({ ...printing('fdc', '2.61'), name: 'Counterspell' }, 'Commander synergy'),
+        ...settings.card,
+      },
+    ]
+    await loadPrintings(
+      {
+        queue,
+        deck: [],
+        sideboard: [],
+        collectionSets: settings.collectionSets ?? [],
+        collectionMode: settings.collectionSets ? 'prefer' : 'none',
+        maxPrice: settings.maxPrice ?? null,
+        fetchPrintings: async () => result,
+        setQueue: (update) => {
+          queue = update(queue)
+        },
+      },
+      queue,
+      preferredSet,
+    )
+    return [queue[0].set, queue[0].finish, queue[0].price]
+  }
+  // DMR and CMM tie at $2.45; the earlier option wins.
+  assert.deepEqual(await choose(), ['dmr', 'nonfoil', '2.45'])
+  assert.deepEqual(await choose('cmm'), ['cmm', 'nonfoil', '2.45'])
+  assert.deepEqual(await choose('', { collectionSets: ['fdc'] }), ['fdc', 'nonfoil', '2.61'])
+  assert.deepEqual(
+    await choose('', {
+      card: {
+        set: 'wc00',
+        image: 'art-wc00',
+        price: '1.34',
+        finish: 'nonfoil',
+        printingManuallySelected: true,
+      },
+    }),
+    ['wc00', 'nonfoil', '1.34'],
+  )
+  // With no priced standard nonfoil, the original printing stays.
+  assert.deepEqual(
+    await choose('', {}, [
+      printing('fdc', null),
+      printing('wc00', '1.34', { set_type: 'memorabilia' }),
+    ]),
+    ['fdc', 'nonfoil', undefined],
+  )
 })
 
 test('theme search results are tagged from their own text, not the query themes', async () => {
