@@ -368,8 +368,49 @@
   padding: 12px;
   border-radius: 6px;
 }
-.theme-search-status .reroll {
+/* Strategies, Mechanics and Creature types (#483). Hidden chip popovers are clipped sideways so
+   they never widen the page; the inline padding keeps chip focus rings inside the clip. */
+.theme-groups {
+  display: grid;
+  gap: 16px;
+  margin-inline: -4px;
+  padding-inline: 4px;
+  overflow-x: clip;
+}
+.theme-group-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+.theme-group-heading h4 {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+  font-weight: 600;
+}
+.theme-group-heading .reroll {
   margin-top: 0;
+  font-size: var(--type-data);
+}
+/* Each chip anchors its own popover; placeThemeHelp keeps it inside the groups. */
+.theme-chip {
+  position: relative;
+}
+.theme-help {
+  left: var(--theme-help-left, 0);
+  width: max-content;
+  max-width: min(260px, calc(100vw - 64px));
+  translate: none;
+}
+.theme-description {
+  max-width: 60ch;
+  margin: 12px 0 0;
+  color: var(--text-muted);
+}
+.theme-description strong {
+  color: var(--text-body);
 }
 .theme-search-status {
   display: flex;

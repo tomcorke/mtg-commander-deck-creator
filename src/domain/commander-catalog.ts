@@ -329,23 +329,6 @@ export const selectableThemes = Object.keys(themeCommanders).filter((name) =>
 )
 export const randomItems = <T>(items: T[], count: number) =>
   [...items].sort(() => Math.random() - 0.5).slice(0, count)
-/** Theme chips to show: matches across every theme while searching, else the sample or all; the selection always stays visible. */
-export function visibleThemeChoices(
-  query: string,
-  sample: string[],
-  selected: string,
-  all: boolean,
-) {
-  const typed = query.trim().toLowerCase()
-  const shown = typed
-    ? selectableThemes.filter((name) => name.toLowerCase().includes(typed))
-    : all
-      ? selectableThemes
-      : sample
-  return selected && selectableThemes.includes(selected) && !shown.includes(selected)
-    ? [selected, ...shown]
-    : shown
-}
 export const randomThree = (items: string[]) => randomItems(items, 3)
 export const themeSearchTerms: Record<string, string> = {
   Tokens: 'o:token',

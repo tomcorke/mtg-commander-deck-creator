@@ -126,8 +126,15 @@ async function noOverflow(page: Page) {
     'No horizontal overflow',
   )
 }
-async function showAllThemes(page: Page) {
-  await press(page, page.getByRole('button', { name: 'Show all themes' }))
+/** Expands Strategies and checks the chips' description popovers and the selected description. */
+async function showAllStrategies(page: Page) {
+  await press(page, page.getByRole('button', { name: /^Show all \d+ strategies$/ }))
+  const voltron = page.getByRole('button', { name: 'Voltron', exact: true })
+  const help = await voltron.getAttribute('aria-describedby')
+  assert.match(
+    (await page.locator(`[id="${help}"][role="tooltip"]`).textContent()) ?? '',
+    /commander damage|combat damage/,
+  )
 }
 async function chooseCommander(page: Page) {
   await press(page, page.getByRole('button', { name: `Choose ${chosen.name}`, exact: false }))
@@ -182,8 +189,9 @@ async function discoveryAndDisplay(page: Page, label: string) {
     await page.getByRole('button', { name: 'Display', exact: true }).getAttribute('aria-expanded'),
     'false',
   )
-  await showAllThemes(page)
+  await showAllStrategies(page)
   await press(page, page.getByRole('button', { name: 'Tokens', exact: true }))
+  assert.match(await page.locator('.theme-description').innerText(), /^Tokens: /)
   await press(page, page.getByRole('button', { name: 'Green', exact: true }))
   await press(page, page.getByRole('button', { name: 'White', exact: true }))
   await page.getByRole('button', { name: `Choose ${chosen.name}`, exact: false }).waitFor()
