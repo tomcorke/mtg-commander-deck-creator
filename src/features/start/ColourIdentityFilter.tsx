@@ -48,9 +48,10 @@ export function ColourIdentityFilter({
         {colours.length ? identityLabel(colours) : 'Any colour identity'}
       </p>
       <p id="colour-identity-help" className="colour-identity-help">
-        A commander’s colour identity is every colour in its cost and rules text; your deck must fit
-        within it. Exactly, the default, finds only these colours; Within adds commanders with
-        fewer, Including ones with more.
+        A commander’s colour identity is the colours of the mana symbols in its cost and rules text
+        (not reminder text) on every face, plus any colour indicator; your deck must fit within it.
+        Exactly, the default, finds only these colours; Within adds commanders with fewer, Including
+        ones with more.
       </p>
     </div>
   )
