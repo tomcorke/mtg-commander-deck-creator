@@ -72,7 +72,11 @@ await withBrowser('PLANNED_FETCHES', 5248, async (browser, base) => {
       before,
     )
     // A repeated click while responses are missing cannot reserve or advance again.
-    await button(page, 'Next recommendations').click()
+    // Since #231 Next disables and reads "Preparing..." while busy, so click it directly.
+    const next = page.locator('.batch-controls .nav-forward')
+    assert(await next.isDisabled(), 'Next is disabled while signature responses are missing')
+    assert.equal(await next.getAttribute('aria-busy'), 'true')
+    await next.evaluate((element) => (element as HTMLButtonElement).click())
     release.resolve()
     await page.getByText('Batch 2', { exact: true }).waitFor()
     await page
