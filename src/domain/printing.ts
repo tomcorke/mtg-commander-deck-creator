@@ -42,6 +42,38 @@ export const nonfoilFirstIndex = <T extends { image: string; finish?: CardFinish
   return printings.findIndex((printing) => matches(printing) && !nonfoilImages.has(printing.image))
 }
 
+// Memorabilia sets (World Championship decks, Collectors' Edition, 30th Anniversary) are not
+// tournament legal; the set picker drops them for the same reason.
+const isNonStandard = (card: Pick<ScryfallCard, 'set_type' | 'lang' | 'digital' | 'oversized'>) =>
+  card.set_type === 'memorabilia' ||
+  Boolean(card.oversized) ||
+  Boolean(card.digital) ||
+  (card.lang !== undefined && card.lang !== 'en')
+
+// With no set to prefer, an automatic choice takes the cheapest priced nonfoil option of a standard
+// printing (#527). Ties keep the earlier option, so the original printing wins an equal price.
+export const cheapestNonfoilIndex = <
+  T extends { finish?: CardFinish; price?: string; nonStandard?: true },
+>(
+  printings: T[],
+) => {
+  let cheapest = -1
+  let cheapestPrice = Infinity
+  printings.forEach((printing, index) => {
+    const price = printing.price?.trim() ? Number(printing.price) : NaN
+    if (
+      (printing.finish ?? 'nonfoil') === 'nonfoil' &&
+      !printing.nonStandard &&
+      Number.isFinite(price) &&
+      price < cheapestPrice
+    ) {
+      cheapest = index
+      cheapestPrice = price
+    }
+  })
+  return cheapest
+}
+
 // Scryfall promo_types that name a foil treatment; names follow the mtg.wiki "Foil" page.
 export const foilTypeNames: Record<string, string> = {
   surgefoil: 'Surge foil',
@@ -113,6 +145,7 @@ export const printingOptions = (cards: ScryfallCard[]) =>
             priceUri: printing.purchase_uris?.tcgplayer,
             finish,
             foilType: foilTypeFor(printing, finish),
+            ...(isNonStandard(printing) && { nonStandard: true as const }),
           }))
         : []
     })
