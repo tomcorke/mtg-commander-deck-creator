@@ -36,6 +36,11 @@ await withBrowser('BATCH_BUSY', 5254, async (browser, base) => {
       const button = document.querySelector('.batch-controls .nav-forward') as HTMLButtonElement
       return !button.disabled && button.innerText.includes('Next recommendations')
     })
+    // The undecided note waits for a decision, so a fresh batch carries no warning (#494).
+    const note = page.locator('.batch-undecided')
+    assert.equal(await note.count(), 0, 'no undecided note before any decision')
+    await page.locator('.card-offer').first().getByRole('button', { name: 'Later' }).click()
+    assert.equal(await note.innerText(), '3 cards left undecided may come back later')
     const idleBounds = await next.boundingBox()
     await next.click()
     await page.waitForSelector('[data-card-reveal="waiting"]')
@@ -52,13 +57,11 @@ await withBrowser('BATCH_BUSY', 5254, async (browser, base) => {
       await page.locator('.batch-controls [role=status]').innerText(),
       'Preparing recommendations...',
     )
-    const batch = await page.locator('.recommendation-setup .section-title > span').innerText()
+    const batchNumber = () =>
+      page.locator('.recommendation-setup').getAttribute('data-batch-number')
+    const batch = await batchNumber()
     await next.evaluate((element) => (element as HTMLButtonElement).click())
-    assert.equal(
-      await page.locator('.recommendation-setup .section-title > span').innerText(),
-      batch,
-      'repeat clicks do not advance another batch',
-    )
+    assert.equal(await batchNumber(), batch, 'repeat clicks do not advance another batch')
     mode = 'pass'
     release()
     await page.waitForSelector('[data-card-reveal-phase="leaving"]')

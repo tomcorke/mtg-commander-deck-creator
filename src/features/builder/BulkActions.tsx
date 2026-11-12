@@ -14,6 +14,7 @@ export function BulkActions({
   openSlots,
   busy,
   blockedReason,
+  note,
   status,
   onAddAll,
   onBuild,
@@ -29,6 +30,8 @@ export function BulkActions({
   busy: boolean
   /** Why a starting deck can't be built right now, or empty. */
   blockedReason: string
+  /** Batch context shown before the shortcuts, such as the undecided-cards note. */
+  note?: ReactNode
   status: BulkAddStatus
   onAddAll: () => void
   onBuild: () => Promise<string>
@@ -51,6 +54,7 @@ export function BulkActions({
       <div className="bulk-actions-row">
         {zoneToggle}
         <div className="bulk-actions-buttons">
+          {note}
           <button
             className="compact-action"
             type="button"

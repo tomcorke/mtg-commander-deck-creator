@@ -69,13 +69,6 @@
   font-size: var(--type-data);
   font-weight: 500;
 }
-/* Out of flow so the note never moves the button off the toolbar row. */
-.batch-undecided {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  white-space: nowrap;
-}
 .limited-mode {
   display: flex;
   flex-wrap: wrap;
@@ -193,12 +186,6 @@
   .batch-controls .nav-forward {
     width: 100%;
     max-width: none;
-  }
-  .batch-undecided {
-    position: static;
-    display: block;
-    margin-top: 4px;
-    white-space: normal;
   }
 }
 .completion {
