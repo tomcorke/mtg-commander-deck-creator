@@ -13,7 +13,7 @@ import {
   targetLabels,
 } from '../deck-analysis.ts'
 import { rankLandSuggestions } from '../land-suggestions.ts'
-import { colourThemes, commanderNames, deckColumnSections } from '../domain/commander-catalog.ts'
+import { colourThemes, commanderNames, deckSections } from '../domain/commander-catalog.ts'
 import type { Card, DeckCard, ScryfallCard } from '../domain/card-model.ts'
 import {
   compareRecommendationScores,
@@ -196,29 +196,25 @@ function buildDeckData(deps: BuilderDataDeps) {
     cards: indexedDeck.filter(({ card }) => card.name === name),
   }))
   const mainboardDeck = indexedDeck.slice(commanderNames(commander).length)
-  const groupedDeckColumns = deckColumnSections.map((sections) =>
-    sections
-      .map((section) => {
-        const cards =
-          section === 'Commander'
-            ? commanders
-            : mainboardDeck.filter(
-                ({ card }) => displayDeckSection(card) === section && !isBasicLandName(card.name),
-              )
-        return {
-          section,
-          cards,
-          count:
-            cards.length +
-            (section === 'Lands'
-              ? groupedBasics.reduce((sum, basic) => sum + basic.cards.length, 0)
-              : 0),
-        }
-      })
-      .filter(
-        ({ section, cards }) => cards.length || (section === 'Lands' && groupedBasics.length),
-      ),
-  )
+  const deckGroups = deckSections
+    .map((section) => {
+      const cards =
+        section === 'Commander'
+          ? commanders
+          : mainboardDeck.filter(
+              ({ card }) => displayDeckSection(card) === section && !isBasicLandName(card.name),
+            )
+      return {
+        section,
+        cards,
+        count:
+          cards.length +
+          (section === 'Lands'
+            ? groupedBasics.reduce((sum, basic) => sum + basic.cards.length, 0)
+            : 0),
+      }
+    })
+    .filter(({ section, cards }) => cards.length || (section === 'Lands' && groupedBasics.length))
   const legalBasicNames = commanderDetails?.colours.length
     ? commanderDetails.colours.map(
         (colour: string) => basicLandNames[colour as keyof typeof basicLandNames],
@@ -242,7 +238,7 @@ function buildDeckData(deps: BuilderDataDeps) {
     nonbasicLands,
     showLandFill,
     groupedBasics,
-    groupedDeckColumns,
+    deckGroups,
     legalBasicNames,
     displayedTypeCounts,
     maxTypeCount,

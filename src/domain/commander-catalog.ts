@@ -311,11 +311,19 @@ export const dualCommanders: Record<string, string[]> = {
   'Kodama & Sakashima': ['Kodama of the East Tree', 'Sakashima of a Thousand Faces'],
 }
 export const commanderNames = (name: string) => dualCommanders[name] ?? name.split(' & ')
-export const deckColumnSections = [
-  ['Commander', 'Planeswalkers', 'Creatures'],
-  ['Enchantments', 'Artifacts', 'Other Permanents'],
-  ['Sorceries', 'Instants', 'Other Non-permanents'],
-  ['Other', 'Lands'],
+/** Deck board group order; the board places groups by its width (#499). */
+export const deckSections = [
+  'Commander',
+  'Planeswalkers',
+  'Creatures',
+  'Enchantments',
+  'Artifacts',
+  'Other Permanents',
+  'Sorceries',
+  'Instants',
+  'Other Non-permanents',
+  'Other',
+  'Lands',
 ] as const
 export const defaultCommanders = Object.values(themeCommanders).flat()
 export const selectableThemes = Object.keys(themeCommanders).filter((name) =>

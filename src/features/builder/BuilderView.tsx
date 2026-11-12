@@ -70,6 +70,7 @@ import { HealthLane } from './HealthLane.tsx'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { openSectionsWithHighlights } from './deck-section-highlight.ts'
+import { DeckBoardLayout, type DeckBoardGroup } from './DeckBoardLayout.tsx'
 
 import { recommendationDataError } from '../../domain/deck-data-status.ts'
 import type { LandSuggestion } from '../../land-suggestions.ts'
@@ -124,11 +125,11 @@ type BuilderViewModel = {
   filteredCollectionCards: ScryfallCard[]
   filteredSubThemes: string[]
   groupedBasics: { name: string; cards: { card: DeckCard; index: number }[] }[]
-  groupedDeckColumns: {
+  deckGroups: {
     section: string
     cards: { card: DeckCard; index: number }[]
     count: number
-  }[][]
+  }[]
   guidance: { key: string; strong: boolean; text: string }[]
   healthSuggestions: Card[]
   highlightedManaValue: number | null
@@ -305,7 +306,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     filteredCollectionCards,
     filteredSubThemes,
     groupedBasics,
-    groupedDeckColumns,
+    deckGroups,
     guidance,
     healthSuggestions,
     highlightedManaValue,
@@ -1410,168 +1411,170 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           <div className="meter">
             <span style={{ width: `${deck.length}%` }} />
           </div>
-          <div
-            className={`deck-list${deckTiles ? ' deck-list--tiles' : ''}`}
-            aria-busy={analysis.curvePending}
-          >
-            {/* eslint-disable-next-line max-lines-per-function -- Each map renders existing deck section markup; no independent behavior is being extracted here. */}
-            {groupedDeckColumns.map((column, columnIndex) => (
-              <div className="deck-column" key={`deck-column-${columnIndex}`}>
-                {/* eslint-disable-next-line max-lines-per-function -- Section markup stays with its grouping; nested renderers remain checked. */}
-                {column.map(({ section, cards, count }) => {
-                  const heading = (
-                    <h3>
-                      {analysis.curvePending && section === 'Other'
-                        ? 'Checking card types…'
-                        : section}
-                      <span>{count}</span>
-                    </h3>
-                  )
-                  const cardList = (
-                    <ol>
-                      {cards.map(({ card, index }) => {
-                        const curveValue = curveBucket(card)
-                        const highlighted =
-                          (!deckReviewFilter || reviewFilterNames.has(card.name)) &&
-                          (highlightedManaValue === null || highlightedManaValue === curveValue)
-                        return (
-                          <li
-                            data-highlighted={highlighted || undefined}
-                            className={highlighted ? '' : 'deck-highlight-dimmed'}
-                            key={`${card.name}-${index}`}
-                          >
-                            {activeHighlightLabel && highlighted && (
-                              <span className="sr-only">
-                                Matches active deck highlight filter.{' '}
-                              </span>
-                            )}
-                            {deckEntry(
-                              card,
-                              { board: 'deck', index },
-                              <span className="deck-card-reference">
-                                {(card.printing ?? 0) > 0 && (
-                                  <span
-                                    className="alternate-printing"
-                                    title="Alternate printing selected"
-                                    aria-label="Alternate printing selected"
-                                  />
-                                )}
-                                <CardReference
-                                  card={card}
-                                  className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                                  onOpen={() => openDeckCard(card, { board: 'deck', index })}
-                                  thumbnail={!deckTiles}
+          <DeckBoardLayout
+            tiles={deckTiles}
+            busy={analysis.curvePending}
+            groups={[
+              // eslint-disable-next-line max-lines-per-function -- Section markup stays with its grouping; nested renderers remain checked.
+              ...deckGroups.map(({ section, cards, count }): DeckBoardGroup => {
+                const heading = (
+                  <h3>
+                    {analysis.curvePending && section === 'Other'
+                      ? 'Checking card types…'
+                      : section}
+                    <span>{count}</span>
+                  </h3>
+                )
+                const cardList = (
+                  <ol>
+                    {cards.map(({ card, index }) => {
+                      const curveValue = curveBucket(card)
+                      const highlighted =
+                        (!deckReviewFilter || reviewFilterNames.has(card.name)) &&
+                        (highlightedManaValue === null || highlightedManaValue === curveValue)
+                      return (
+                        <li
+                          data-highlighted={highlighted || undefined}
+                          className={highlighted ? '' : 'deck-highlight-dimmed'}
+                          key={`${card.name}-${index}`}
+                        >
+                          {activeHighlightLabel && highlighted && (
+                            <span className="sr-only">Matches active deck highlight filter. </span>
+                          )}
+                          {deckEntry(
+                            card,
+                            { board: 'deck', index },
+                            <span className="deck-card-reference">
+                              {(card.printing ?? 0) > 0 && (
+                                <span
+                                  className="alternate-printing"
+                                  title="Alternate printing selected"
+                                  aria-label="Alternate printing selected"
                                 />
-                              </span>,
-                              <span className="deck-mana">
-                                {card.typeLine.includes('Land') && card.producedMana.length ? (
+                              )}
+                              <CardReference
+                                card={card}
+                                className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                                onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                thumbnail={!deckTiles}
+                              />
+                            </span>,
+                            <span className="deck-mana">
+                              {card.typeLine.includes('Land') && card.producedMana.length ? (
+                                <ManaSymbols symbols={card.producedMana} />
+                              ) : (
+                                <OracleText text={card.manaCost} />
+                              )}
+                              {finishLabel(card) && (
+                                <small className="finish-label">{finishLabel(card)}</small>
+                              )}
+                            </span>,
+                            index >= commanderNames(commander).length && (
+                              <>
+                                <button
+                                  className={`danger deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
+                                  type="button"
+                                  onClick={() =>
+                                    pendingRemoval === index
+                                      ? removeDeckCard(index)
+                                      : setPendingRemoval(index)
+                                  }
+                                  aria-label={
+                                    pendingRemoval === index
+                                      ? `Confirm removal of ${card.name}`
+                                      : `Remove ${card.name}`
+                                  }
+                                >
+                                  {pendingRemoval === index ? '✓' : '×'}
+                                </button>
+                                {pendingRemoval === index && (
+                                  <span className="action-help end remove-confirm" role="tooltip">
+                                    Click again to confirm removal
+                                  </span>
+                                )}
+                              </>
+                            ),
+                          )}
+                        </li>
+                      )
+                    })}
+                    {section === 'Lands' && (
+                      <>
+                        {groupedBasics.map(({ name, cards: basics }) => {
+                          const { card, index } = basics[0]
+                          const labels = new Set<string>()
+                          for (const { card: basic } of basics) {
+                            const label = finishLabel(basic)
+                            if (label) labels.add(label)
+                          }
+                          return (
+                            <li className="basic-land-row" key={name}>
+                              {deckEntry(
+                                card,
+                                { board: 'deck', index },
+                                <span className="deck-card-reference">
+                                  <b className="card-quantity">{basics.length}×</b>
+                                  <CardReference
+                                    card={card}
+                                    className="deck-card-name"
+                                    onOpen={() => openDeckCard(card, { board: 'deck', index })}
+                                    thumbnail={!deckTiles}
+                                  />
+                                </span>,
+                                <span className="deck-mana">
                                   <ManaSymbols symbols={card.producedMana} />
-                                ) : (
-                                  <OracleText text={card.manaCost} />
-                                )}
-                                {finishLabel(card) && (
-                                  <small className="finish-label">{finishLabel(card)}</small>
-                                )}
-                              </span>,
-                              index >= commanderNames(commander).length && (
+                                  {labels.size > 0 && (
+                                    <small className="finish-label">
+                                      {[...labels].join(' · ')}
+                                    </small>
+                                  )}
+                                </span>,
                                 <>
                                   <button
-                                    className={`danger deck-remove ${pendingRemoval === index ? 'confirm' : ''}`}
+                                    className="deck-add"
                                     type="button"
-                                    onClick={() =>
-                                      pendingRemoval === index
-                                        ? removeDeckCard(index)
-                                        : setPendingRemoval(index)
-                                    }
-                                    aria-label={
-                                      pendingRemoval === index
-                                        ? `Confirm removal of ${card.name}`
-                                        : `Remove ${card.name}`
-                                    }
+                                    onClick={() => removeDeckCard(index)}
+                                    aria-label={`Remove one ${card.name}`}
                                   >
-                                    {pendingRemoval === index ? '✓' : '×'}
+                                    −
                                   </button>
-                                  {pendingRemoval === index && (
-                                    <span className="action-help end remove-confirm" role="tooltip">
-                                      Click again to confirm removal
-                                    </span>
-                                  )}
-                                </>
-                              ),
-                            )}
-                          </li>
-                        )
-                      })}
-                      {section === 'Lands' && (
-                        <>
-                          {groupedBasics.map(({ name, cards: basics }) => {
-                            const { card, index } = basics[0]
-                            const labels = new Set<string>()
-                            for (const { card: basic } of basics) {
-                              const label = finishLabel(basic)
-                              if (label) labels.add(label)
-                            }
-                            return (
-                              <li className="basic-land-row" key={name}>
-                                {deckEntry(
-                                  card,
-                                  { board: 'deck', index },
-                                  <span className="deck-card-reference">
-                                    <b className="card-quantity">{basics.length}×</b>
-                                    <CardReference
-                                      card={card}
-                                      className="deck-card-name"
-                                      onOpen={() => openDeckCard(card, { board: 'deck', index })}
-                                      thumbnail={!deckTiles}
-                                    />
-                                  </span>,
-                                  <span className="deck-mana">
-                                    <ManaSymbols symbols={card.producedMana} />
-                                    {labels.size > 0 && (
-                                      <small className="finish-label">
-                                        {[...labels].join(' · ')}
-                                      </small>
-                                    )}
-                                  </span>,
-                                  <>
-                                    <button
-                                      className="deck-add"
-                                      type="button"
-                                      onClick={() => removeDeckCard(index)}
-                                      aria-label={`Remove one ${card.name}`}
-                                    >
-                                      −
-                                    </button>
-                                    <button
-                                      className="deck-add"
-                                      type="button"
-                                      onClick={() => void addOneBasic(card.name)}
-                                      aria-label={`Add another ${card.name}`}
-                                    >
-                                      +
-                                    </button>
-                                  </>,
-                                )}
-                              </li>
-                            )
-                          })}
-                          {unrepresentedBasicNames.map((name) => (
-                            <li className="basic-placeholder" key={name}>
-                              <button
-                                type="button"
-                                disabled={deck.length >= 100}
-                                onClick={() => void addOneBasic(name)}
-                              >
-                                <span>Add {name}</span>
-                                <b>+</b>
-                              </button>
+                                  <button
+                                    className="deck-add"
+                                    type="button"
+                                    onClick={() => void addOneBasic(card.name)}
+                                    aria-label={`Add another ${card.name}`}
+                                  >
+                                    +
+                                  </button>
+                                </>,
+                              )}
                             </li>
-                          ))}
-                        </>
-                      )}
-                    </ol>
-                  )
-                  return (
+                          )
+                        })}
+                        {unrepresentedBasicNames.map((name) => (
+                          <li className="basic-placeholder" key={name}>
+                            <button
+                              type="button"
+                              disabled={deck.length >= 100}
+                              onClick={() => void addOneBasic(name)}
+                            >
+                              <span>Add {name}</span>
+                              <b>+</b>
+                            </button>
+                          </li>
+                        ))}
+                      </>
+                    )}
+                  </ol>
+                )
+                return {
+                  key: section,
+                  entries:
+                    cards.length +
+                    (section === 'Lands'
+                      ? groupedBasics.length + unrepresentedBasicNames.length
+                      : 0),
+                  node: (
                     <section className="deck-group" key={section}>
                       {section === 'Commander' ? (
                         <>
@@ -1585,64 +1588,74 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         </details>
                       )}
                     </section>
-                  )
-                })}
-              </div>
-            ))}
-            {sideboard.length > 0 && (
-              <section className="deck-group sideboard-column">
-                <details className="deck-group-details" open>
-                  <summary>
-                    <h3>
-                      Sideboard<span>{sideboard.length}</span>
-                    </h3>
-                  </summary>
-                  <ol>
-                    {sideboard.map((card, index) => (
-                      <li key={`${card.name}-${index}`}>
-                        {deckEntry(
-                          card,
-                          { board: 'sideboard', index },
-                          <span className="deck-card-reference">
-                            <CardReference
-                              card={card}
-                              className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
-                              onOpen={() => openDeckCard(card, { board: 'sideboard', index })}
-                              thumbnail={!deckTiles}
-                            />
-                          </span>,
-                          <span className="deck-mana">
-                            <OracleText text={card.manaCost} />
-                            {finishLabel(card) && (
-                              <small className="finish-label">{finishLabel(card)}</small>
-                            )}
-                          </span>,
-                          <>
-                            <button
-                              className="compact-action"
-                              type="button"
-                              disabled={deck.length >= 100}
-                              onClick={() => moveSideboardCard(index)}
-                            >
-                              Move to deck
-                            </button>
-                            <button
-                              className="danger deck-remove"
-                              type="button"
-                              onClick={() => removeSideboardCard(index)}
-                              aria-label={`Remove ${card.name} from sideboard`}
-                            >
-                              ×
-                            </button>
-                          </>,
-                        )}
-                      </li>
-                    ))}
-                  </ol>
-                </details>
-              </section>
-            )}
-          </div>
+                  ),
+                }
+              }),
+              ...(sideboard.length
+                ? [
+                    {
+                      key: 'Sideboard',
+                      entries: sideboard.length,
+                      node: (
+                        <section className="deck-group sideboard-column" key="Sideboard">
+                          <details className="deck-group-details" open>
+                            <summary>
+                              <h3>
+                                Sideboard<span>{sideboard.length}</span>
+                              </h3>
+                            </summary>
+                            <ol>
+                              {sideboard.map((card, index) => (
+                                <li key={`${card.name}-${index}`}>
+                                  {deckEntry(
+                                    card,
+                                    { board: 'sideboard', index },
+                                    <span className="deck-card-reference">
+                                      <CardReference
+                                        card={card}
+                                        className={`deck-card-name ${card.finish === 'foil' ? 'foil-card-name' : card.finish === 'etched' ? 'etched-card-name' : ''}`}
+                                        onOpen={() =>
+                                          openDeckCard(card, { board: 'sideboard', index })
+                                        }
+                                        thumbnail={!deckTiles}
+                                      />
+                                    </span>,
+                                    <span className="deck-mana">
+                                      <OracleText text={card.manaCost} />
+                                      {finishLabel(card) && (
+                                        <small className="finish-label">{finishLabel(card)}</small>
+                                      )}
+                                    </span>,
+                                    <>
+                                      <button
+                                        className="compact-action"
+                                        type="button"
+                                        disabled={deck.length >= 100}
+                                        onClick={() => moveSideboardCard(index)}
+                                      >
+                                        Move to deck
+                                      </button>
+                                      <button
+                                        className="danger deck-remove"
+                                        type="button"
+                                        onClick={() => removeSideboardCard(index)}
+                                        aria-label={`Remove ${card.name} from sideboard`}
+                                      >
+                                        ×
+                                      </button>
+                                    </>,
+                                  )}
+                                </li>
+                              ))}
+                            </ol>
+                          </details>
+                        </section>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </section>
         <FinishFilters />
       </div>
