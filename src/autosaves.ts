@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import {
-  deckStateForStorage,
+  comparableDeckState,
   deckStateKey,
   deckStateVersion,
   encodeDeckState,
@@ -44,16 +44,11 @@ function serializeDraft(value: AutosavedDraft) {
 
 function stateForComparison(state: PersistedDeckState) {
   // Startup defaults and recovered Add choices are not player edits to an older draft.
-  return JSON.stringify(
-    deckStateForStorage(
-      persistedDeckStateSchema.parse({
-        ...state,
-        ignoreReasons: state.ignoreReasons ?? {},
-        maxPrice: state.maxPrice ?? null,
-        deckBudget: state.deckBudget ?? null,
-        decisions: restoredRecommendationDecisions(state),
-      }),
-    ),
+  return comparableDeckState(
+    persistedDeckStateSchema.parse({
+      ...state,
+      decisions: restoredRecommendationDecisions(state),
+    }),
   )
 }
 

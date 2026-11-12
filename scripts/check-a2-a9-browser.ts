@@ -208,7 +208,7 @@ async function discoveryAndDisplay(page: Page, label: string) {
   await page.waitForFunction(() => document.querySelectorAll('.commander-tile').length === 1)
   assert.match(
     await page.getByRole('status').filter({ hasText: 'Searching within this theme' }).innerText(),
-    /Tokens.*Green.*White/,
+    /Tokens.*Selesnya \(White, Green\)/,
   )
   await page.getByRole('textbox', { name: 'Search commanders' }).fill('No such leader')
   await page.getByRole('heading', { name: 'No commanders match these filters' }).waitFor()

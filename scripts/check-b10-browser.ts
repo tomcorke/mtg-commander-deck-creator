@@ -490,7 +490,7 @@ async function loadingErrorAndRecovery(scenario: Scenario) {
   assert.match(await rampFinding(page).innerText(), /No safe swap found/)
   provider.failNamed = true
   await button(page, 'Find more legal replacements').click()
-  await page.getByRole('status').filter({ hasText: 'Scryfall card unavailable' }).waitFor()
+  await page.getByRole('alert').filter({ hasText: 'Scryfall card unavailable' }).waitFor()
   assert.equal(await rows(page).count(), 0)
   provider.failNamed = false
   let release!: () => void

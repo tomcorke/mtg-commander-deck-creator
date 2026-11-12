@@ -118,6 +118,23 @@ test('saved decks keep only the chosen printing and store card lists as field ta
   assert.equal(deckStateChanged(loaded, saved), false)
 })
 
+test('a load-time card data check does not mark a saved deck changed', () => {
+  const checking = (card: PersistedDeckState['deck'][number]) => ({
+    ...card,
+    dataStatus: 'pending' as const,
+  })
+  const loading = { ...state, deck: state.deck.map(checking) }
+  assert.equal(deckStateChanged(state, loading), false)
+  assert.equal(deckStateChanged(loading, state), false)
+  assert.equal(deckStateChanged(state, { ...loading, deck: [] }), true)
+})
+
+test('defaults filled in after loading an older save do not mark it changed', () => {
+  const { localCandidateBuffer: _buffer, ignoreReasons: _reasons, ...older } = state
+  const loaded = { ...older, localCandidateBuffer: [], ignoreReasons: {}, maxPrice: null }
+  assert.equal(deckStateChanged(older, loaded), false)
+})
+
 test('preserves finishes for cards and their printing choices', () => {
   const storage = memoryStorage()
   const foilPrinting = {

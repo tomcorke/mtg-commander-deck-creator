@@ -173,7 +173,7 @@ async function respondToConfirmation(page: Page, action: () => Promise<unknown>,
   const dialog = page.locator('.confirm-modal')
   const message = await dialog.innerText()
   await dialog
-    .locator('.confirm-actions button')
+    .locator('.export-actions button')
     .nth(accept ? 1 : 0)
     .click()
   await dialog.waitFor({ state: 'detached' })
