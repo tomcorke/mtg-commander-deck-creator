@@ -5,16 +5,19 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type SetStateAction,
+  type SyntheticEvent,
 } from 'react'
 import { flushSync } from 'react-dom'
 import type { ScryfallSet } from '../../domain/card-model.ts'
 import { setPickerRows } from '../../domain/set-picker.ts'
 import { SetPicker } from '../../shared/SetPicker.tsx'
+import { colourNames, selectableThemes } from '../../domain/commander-catalog.ts'
 import {
-  colourNames,
-  selectableThemes,
-  visibleThemeChoices,
-} from '../../domain/commander-catalog.ts'
+  collapsedThemeCount,
+  themeChoiceGroups,
+  themeDescription,
+  type ThemeGroupName,
+} from '../../domain/theme-guide.ts'
 import {
   chooseCuratedTheme as nextCuratedTheme,
   creatureTypeForTheme,
@@ -125,16 +128,94 @@ import { RandomCommanderDialog } from './RandomCommanderDialog.tsx'
 import { CommanderPrimerDialog, NewToCommanderCard } from '../../shared/CommanderPrimer.tsx'
 import { useStoredOption } from '../../shared/hooks.ts'
 
-/** Theme search over every theme, with a sample or full list while not searching. */
+/** Moves a theme chip's popover sideways so it stays inside the theme groups. */
+function placeThemeHelp(event: SyntheticEvent<HTMLElement>) {
+  const chip = event.currentTarget
+  const help = chip.querySelector<HTMLElement>('.theme-help')
+  const bounds = chip.closest('.theme-groups')?.getBoundingClientRect()
+  if (!help || !bounds) return
+  const box = chip.getBoundingClientRect()
+  const left = Math.max(bounds.left, Math.min(box.left, bounds.right - help.offsetWidth))
+  help.style.setProperty('--theme-help-left', `${left - box.left}px`)
+}
+
+const themeId = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+
+/** A theme chip whose description shows as a popover on hover and keyboard focus. */
+function ThemeChip({
+  name,
+  selected,
+  choose,
+}: {
+  name: string
+  selected: boolean
+  choose: (name: string) => void
+}) {
+  const help = `theme-help-${themeId(name)}`
+  return (
+    <span className="theme-chip" onPointerEnter={placeThemeHelp} onFocus={placeThemeHelp}>
+      <button
+        className={selected ? 'selected' : ''}
+        aria-pressed={selected}
+        aria-describedby={help}
+        type="button"
+        onClick={() => choose(name)}
+      >
+        {name}
+      </button>
+      <span className="action-help theme-help" id={help} role="tooltip">
+        {themeDescription(name)}
+      </span>
+    </span>
+  )
+}
+
+/**
+ * A labelled group of theme chips with its own Show all toggle while not searching. An empty
+ * group is hidden, except Creature types, which keeps its creature-type picker.
+ */
+function ThemeGroup({
+  name,
+  total,
+  themes,
+  open,
+  toggle,
+  children,
+}: {
+  name: ThemeGroupName
+  total: number
+  themes: string[]
+  open: boolean
+  toggle?: () => void
+  children: ReactNode
+}) {
+  if (!themes.length && name !== 'Creature types') return null
+  const heading = `theme-group-${themeId(name)}`
+  return (
+    <div className="theme-group">
+      <div className="theme-group-heading">
+        <h4 id={heading}>{name}</h4>
+        {toggle && total > collapsedThemeCount && (
+          <button className="reroll" type="button" aria-expanded={open} onClick={toggle}>
+            {open ? `Show fewer ${name.toLowerCase()}` : `Show all ${total} ${name.toLowerCase()}`}
+          </button>
+        )}
+      </div>
+      <div className="themes" role="group" aria-labelledby={heading}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** Theme search over every theme, and themes grouped as strategies, mechanics and creature types. */
 function ThemeFilter({
-  sample,
   theme,
   extras,
   choose,
   declareTheme,
   setExtras,
 }: {
-  sample: string[]
   theme: string
   extras: string[]
   choose: (name: string) => void
@@ -142,13 +223,19 @@ function ThemeFilter({
   setExtras: (extras: string[]) => void
 }) {
   const [themeQuery, setThemeQuery] = useState('')
-  const [allThemes, setAllThemes] = useState(false)
-  const themeChoices = visibleThemeChoices(themeQuery, sample, theme, allThemes)
-  const themeMatches = visibleThemeChoices(themeQuery, [], '', false).length
+  const [expanded, setExpanded] = useState<ThemeGroupName[]>([])
+  const searching = Boolean(themeQuery.trim())
+  const groups = themeChoiceGroups(themeQuery, theme, expanded)
+  const themeMatches = groups.reduce((count, group) => count + group.themes.length, 0)
+  const description = themeDescription(theme)
   const clearThemeSearch = () => {
     setThemeQuery('')
     document.getElementById('theme-search')?.focus()
   }
+  const toggleGroup = (name: ThemeGroupName) =>
+    setExpanded((open) =>
+      open.includes(name) ? open.filter((group) => group !== name) : [...open, name],
+    )
   return (
     <>
       <input
@@ -168,49 +255,46 @@ function ThemeFilter({
         aria-describedby="theme-search-status"
         autoComplete="off"
       />
-      <div className="themes" role="group" aria-labelledby="theme-filter-heading">
-        {themeChoices.map((name) => (
-          <button
-            className={theme === name ? 'selected' : ''}
-            aria-pressed={theme === name}
-            key={name}
-            type="button"
-            onClick={() => choose(name)}
+      <div className="theme-groups" role="group" aria-labelledby="theme-filter-heading">
+        {groups.map((group) => (
+          <ThemeGroup
+            key={group.name}
+            {...group}
+            open={expanded.includes(group.name)}
+            toggle={searching ? undefined : () => toggleGroup(group.name)}
           >
-            {name}
-          </button>
+            {group.themes.map((choice) => (
+              <ThemeChip key={choice} name={choice} selected={theme === choice} choose={choose} />
+            ))}
+            {group.name === 'Creature types' && (
+              <CreatureTypeChips
+                theme={theme}
+                extras={extras}
+                curated={group.themes}
+                declareTheme={declareTheme}
+                setExtras={setExtras}
+              />
+            )}
+          </ThemeGroup>
         ))}
-        <CreatureTypeChips
-          theme={theme}
-          extras={extras}
-          curated={themeChoices}
-          declareTheme={declareTheme}
-          setExtras={setExtras}
-        />
       </div>
-      <p className="theme-search-status">
-        {themeQuery.trim() ? (
-          <>
-            <span id="theme-search-status" role="status">
-              {themeMatches
-                ? `${themeMatches} ${themeMatches === 1 ? 'theme matches' : 'themes match'} “${themeQuery.trim()}”`
-                : `No themes match “${themeQuery.trim()}”`}
-            </span>
-            <button className="export" type="button" onClick={clearThemeSearch}>
-              Clear theme search
-            </button>
-          </>
-        ) : (
-          <button
-            className="reroll"
-            type="button"
-            aria-expanded={allThemes}
-            onClick={() => setAllThemes((all) => !all)}
-          >
-            {allThemes ? 'Show fewer themes' : 'Show all themes'}
+      {description && (
+        <p className="theme-description">
+          <strong>{theme}:</strong> {description}
+        </p>
+      )}
+      {searching && (
+        <p className="theme-search-status">
+          <span id="theme-search-status" role="status">
+            {themeMatches
+              ? `${themeMatches} ${themeMatches === 1 ? 'theme matches' : 'themes match'} “${themeQuery.trim()}”`
+              : `No themes match “${themeQuery.trim()}”`}
+          </span>
+          <button className="export" type="button" onClick={clearThemeSearch}>
+            Clear theme search
           </button>
-        )}
-      </p>
+        </p>
+      )}
     </>
   )
 }
@@ -225,7 +309,6 @@ type StartViewProps = {
   savedDecksModal: ReactNode
   workspaceNotice: ReactNode
   importModal: ReactNode
-  visibleThemes: string[]
   theme: string
   declareTheme: (name: string) => void
   chooseTheme: (name: string) => void
@@ -521,7 +604,6 @@ export function StartView(props: StartViewProps) {
               Theme
             </h3>
             <ThemeFilter
-              sample={props.visibleThemes}
               theme={props.theme}
               extras={props.extraCreatureTypes}
               choose={chooseCuratedTheme}
