@@ -7,6 +7,7 @@ import { SetPicker } from '../../shared/SetPicker.tsx'
 import type { ScryfallSet } from '../../domain/card-model.ts'
 import { onlyModeMinimumPool, type SetPickerRow } from '../../domain/set-picker.ts'
 import { normalizeMaxPrice, priorityLabels } from '../../domain/recommendation-tuning.ts'
+import { priceSourceNote } from '../../domain/deck-price.ts'
 import type { CollectionMode, RecommendationStyle } from '../../recommendations.ts'
 
 type PowerTarget = 'precon' | 'upgraded' | 'high'
@@ -45,6 +46,7 @@ type RecommendationSettingsModalProps = {
   choosePowerTarget: (value: PowerTarget) => void
   maxPrice: number | null
   chooseMaxPrice: (value: number | null) => void
+  deckBudget: number | null
   includeCreature: boolean
   collectionSearch: string
   setCollectionSearch: Dispatch<SetStateAction<string>>
@@ -84,6 +86,7 @@ export function RecommendationSettingsModal({
   choosePowerTarget,
   maxPrice,
   chooseMaxPrice,
+  deckBudget,
   includeCreature,
   collectionSearch,
   setCollectionSearch,
@@ -147,7 +150,8 @@ export function RecommendationSettingsModal({
               <summary>How recommendations work</summary>
               <p className="settings-help">
                 Priority controls ranking, not deck legality. Power, price, and exclusions filter
-                the cards offered. No setting guarantees a bracket or competitive strength.
+                the cards offered; a deck budget only moves cards that would exceed it later. No
+                setting guarantees a bracket or competitive strength.
               </p>
             </details>
           </div>
@@ -211,6 +215,29 @@ export function RecommendationSettingsModal({
               id="max-price-help"
               label="Max price per card"
               description="Limits recommendations by their displayed US dollar price. Leave empty for no limit. Cards without a price are still offered."
+            />
+          </div>
+          <div className="recommendation-setting">
+            <label htmlFor="deck-budget">Deck budget</label>
+            <span className="price-limit-input">
+              <span aria-hidden="true">$</span>
+              <input
+                id="deck-budget"
+                type="number"
+                min="0"
+                step="1"
+                value={deckBudget ?? ''}
+                placeholder="No budget"
+                onChange={(event) =>
+                  chooseOptions({ deckBudget: normalizeMaxPrice(event.target.value) })
+                }
+                aria-describedby="deck-budget-help"
+              />
+            </span>
+            <SettingHelp
+              id="deck-budget-help"
+              label="Deck budget"
+              description={`Recommendations that would take the main deck past this total come later. ${priceSourceNote}`}
             />
           </div>
           <div className="recommendation-setting-toggle">

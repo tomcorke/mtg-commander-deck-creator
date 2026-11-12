@@ -32,6 +32,7 @@ import {
 } from '../domain/recommendation-tuning.ts'
 import { setPickerRows } from '../domain/set-picker.ts'
 import { buildRecommendationContext } from '../domain/recommendation-context.ts'
+import { describeRemainingBudget, remainingDeckBudget } from '../domain/deck-price.ts'
 import type { DeckDoctorFinding } from '../deck-doctor.ts'
 import { suggestDeckDoctorChanges } from '../deck-doctor-suggestions.ts'
 import { deckDataStatus, recommendationDataError } from '../domain/deck-data-status.ts'
@@ -456,6 +457,14 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
     recommendationStyleLabel,
     powerTargetLabel,
     ...(maxPrice == null ? [] : [`≤ $${maxPrice}`]),
+    ...(deps.deckBudget == null
+      ? []
+      : [
+          describeRemainingBudget(
+            deps.deckBudget,
+            remainingDeckBudget(deps.deckBudget, deps.deck) ?? deps.deckBudget,
+          ),
+        ]),
     includeCreature ? 'Creatures included' : 'Creatures optional',
     collectionSummary,
     excludedRecommendations.length

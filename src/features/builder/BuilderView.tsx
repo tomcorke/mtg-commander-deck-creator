@@ -73,6 +73,7 @@ import { openSectionsWithHighlights } from './deck-section-highlight.ts'
 
 import { recommendationDataError } from '../../domain/deck-data-status.ts'
 import type { LandSuggestion } from '../../land-suggestions.ts'
+import { DeckPrice } from '../../shared/DeckPrice.tsx'
 
 type AnyFunction = (...args: any[]) => any
 
@@ -1327,6 +1328,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <h2 id="deck-list-title">
                 {deck.length} card{deck.length === 1 ? '' : 's'}
               </h2>
+              <DeckPrice deck={deck} sideboard={sideboard} />
             </div>
             <div>
               <div className="add-zone-toggle" role="group" aria-label="Deck board view">

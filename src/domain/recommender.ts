@@ -255,6 +255,7 @@ export type RecommendState = {
   prioritizeDeckHealth: boolean
   includeCreature: boolean
   maxPrice: number | null
+  deckBudget?: number | null
   collectionMode: CollectionMode
   collectionSets: string[]
   deckTargets?: DeckTargets

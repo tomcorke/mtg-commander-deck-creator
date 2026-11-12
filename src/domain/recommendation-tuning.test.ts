@@ -266,3 +266,53 @@ test('returning deferred cards respect the price cap too', () => {
     ['Affordable'],
   )
 })
+
+test('deck budget moves cards that would exceed it behind the rest without removing them', () => {
+  const cards = [
+    card('Expensive', 'Create a 1/1 white Soldier creature token.', '30.00'),
+    card('Cheap', '', '1.00'),
+    card('Unpriced'),
+  ]
+  const unbudgeted = rankRecommendationCards(cards, context, false).map(({ name }) => name)
+  assert.equal(unbudgeted[0], 'Expensive')
+  const placed: string[] = []
+  const budgeted = rankRecommendationCards(
+    cards,
+    { ...context, remainingBudget: 10 },
+    false,
+    undefined,
+    (card, reason) => reason === 'over-budget' && placed.push(card.name),
+  ).map(({ name }) => name)
+  assert.deepEqual(budgeted, [...unbudgeted.filter((name) => name !== 'Expensive'), 'Expensive'])
+  assert.deepEqual(placed, ['Expensive'])
+  assert.deepEqual(
+    rankRecommendationCards(cards, { ...context, remainingBudget: 30 }, false).map(
+      ({ name }) => name,
+    ),
+    unbudgeted,
+  )
+})
+
+test('a creature slot does not pull an over-budget creature ahead of affordable cards', () => {
+  const creature = (name: string, price: string): Card => ({
+    ...card(name, '', price),
+    typeLine: 'Creature — Elf',
+  })
+  const cards = [
+    card('Rock A', '', '1'),
+    card('Rock B', '', '1'),
+    card('Rock C', '', '1'),
+    card('Rock D', '', '1'),
+    creature('Pricey Elf', '50'),
+  ]
+  assert.ok(
+    rankRecommendationCards(cards, context, true)
+      .slice(0, 4)
+      .some(({ name }) => name === 'Pricey Elf'),
+    'without a budget the creature slot promotes the elf',
+  )
+  assert.equal(
+    rankRecommendationCards(cards, { ...context, remainingBudget: 10 }, true).at(-1)?.name,
+    'Pricey Elf',
+  )
+})

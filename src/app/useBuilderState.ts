@@ -12,6 +12,7 @@ import { normalizeRecommendationStyle, type PowerTarget } from '../domain/recomm
 const storedFields = [
   'recommendationStyle',
   'maxPrice',
+  'deckBudget',
   'includeCreature',
   'powerTarget',
   'excludeGameChangers',
@@ -45,7 +46,8 @@ function initialBuilderState(saved: PersistedDeckState | null) {
       if (stored === null) continue
       const value: unknown = JSON.parse(stored)
       if (field === 'recommendationStyle') state[field] = storedRecommendationStyle(value, saved)
-      else if (field === 'maxPrice') state[field] = normalizeMaxPrice(value)
+      else if (field === 'maxPrice' || field === 'deckBudget')
+        state[field] = normalizeMaxPrice(value)
       else if (field === 'powerTarget') {
         if (isPowerTarget(value)) state[field] = value
       } else if (typeof value === 'boolean') state[field] = value

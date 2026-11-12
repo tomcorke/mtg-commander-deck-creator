@@ -776,6 +776,7 @@ export function rankInitialRecommendations(
       prioritizeDeckHealth: deps.prioritizeDeckHealth,
       includeCreature: deps.includeCreature,
       maxPrice: deps.maxPrice ?? null,
+      deckBudget: deps.deckBudget ?? null,
       deckTargets: deps.deckTargets,
       focusedRole: deps.focusedRole,
       identity: deps.commanderDetails?.colours ?? [],

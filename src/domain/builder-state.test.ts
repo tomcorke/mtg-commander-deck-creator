@@ -7,6 +7,7 @@ import {
   type BuilderAction,
 } from './builder-state.ts'
 import { builderPoolKey } from './builder-settings.ts'
+import { buildRecommendationContext } from './recommendation-context.ts'
 import { toCard, type Card } from './card-model.ts'
 
 const card = (name: string): Card =>
@@ -199,4 +200,24 @@ test('saved local enrichment survives restore until its next batch boundary', as
     poolKey: '',
   })
   assert.deepEqual(replaced.localCandidateBuffer, [])
+})
+
+test('deck budget setting normalises input and sets remaining budget from the main deck', () => {
+  const priced = (name: string, price: string) => ({ ...card(name), price })
+  const deck = [priced('Commander', '10.00'), priced('Rock', '2.50')]
+  const budgeted = apply(initial({ deck }), { type: 'settings', settings: { deckBudget: 20 } })
+  assert.equal(budgeted.deckBudget, 20)
+  assert.equal(budgeted.recommendationOptionsChanged, true)
+  assert.equal(buildRecommendationContext(budgeted, []).remainingBudget, 7.5)
+  const cleared = apply(budgeted, {
+    type: 'settings',
+    settings: { deckBudget: '' as unknown as null },
+  })
+  assert.equal(cleared.deckBudget, null)
+  assert.equal(buildRecommendationContext(cleared, []).remainingBudget, null)
+  assert.equal(
+    apply(budgeted, { type: 'settings', settings: { maxPrice: 3 } }).deckBudget,
+    20,
+    'other settings keep the budget',
+  )
 })

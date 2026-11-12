@@ -9,6 +9,7 @@ import {
   withinPriceCap,
   type IgnoreReason,
 } from './recommendation-tuning.ts'
+import { exceedsDeckBudget } from './deck-price.ts'
 import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
 import type {
   CollectionMode,
@@ -183,17 +184,26 @@ export function rankRecommendationCards<
   const urgentRole = mostUrgentRole(context.roleBoosts)
   const skipPenalty = (card: T) =>
     cardRoles(card).some((role) => urgentRole.has(role)) ? 0 : 5 * (undecidedSkipsOf(card) ?? 0)
-  const ranked = [...affordable].sort(
+  const sorted = [...affordable].sort(
     (left, right) =>
       score(right).total - skipPenalty(right) - (score(left).total - skipPenalty(left)) ||
       compareRecommendationScores(score(left), score(right)),
   )
+  // Cards that would take the deck past its budget wait behind the rest, keeping their order. Batch
+  // slots and theme swaps can pull them forward again, so the final queue is partitioned too.
+  const overBudget = (card: T) => exceedsDeckBudget(card, context.remainingBudget)
+  const budgetLast = (queue: T[]) => [
+    ...queue.filter((card) => !overBudget(card)),
+    ...queue.filter(overBudget),
+  ]
+  const ranked = budgetLast(sorted)
+  for (const card of ranked) if (overBudget(card)) observe?.(card, 'over-budget')
   const canUse = (card: T) =>
     !card.typeLine.includes('Creature') ||
     score(card).manaFitPenalty > -recommendationScoreFactorMaximums.manaFitPenalty / 2
   const style = context.recommendationStyle ?? 'balanced'
   const batches = batchRecommendations(ranked, includeCreature, canUse, style, observe)
-  if (style === 'competitive') return batches
+  if (style === 'competitive') return budgetLast(batches)
   const varied = spreadRoles(
     balanceThemeCoverage(
       batches,
@@ -207,7 +217,9 @@ export function rankRecommendationCards<
     canUse,
     observe,
   )
-  return style === 'thematic' ? keepThemeIdentity(varied, context, canUse, observe) : varied
+  return budgetLast(
+    style === 'thematic' ? keepThemeIdentity(varied, context, canUse, observe) : varied,
+  )
 }
 
 /**
@@ -438,6 +450,11 @@ export function countRoleSupply<T extends { localIndexSnapshot?: boolean }>(
   )
 }
 
+type QueueScoreSettings = Pick<
+  RecommendationScoreContext,
+  'tagCounts' | 'packageCounts' | 'manaSupport' | 'maxPrice' | 'remainingBudget'
+>
+
 export function advanceRecommendationQueue<
   T extends {
     name: string
@@ -470,6 +487,7 @@ export function advanceRecommendationQueue<
   collectionSets = [],
   collectionMode = 'none',
   maxPrice,
+  remainingBudget,
   focusedRole,
   ignoreReasons = {},
 }: {
@@ -486,14 +504,12 @@ export function advanceRecommendationQueue<
   includeCreature: boolean
   roleBoosts?: Record<string, number>
   cardRoles?: (card: T) => string[]
-  manaSupport?: RecommendationScoreContext['manaSupport']
   recommendationStyle?: RecommendationStyle
   collectionSets?: string[]
   collectionMode?: CollectionMode
-  maxPrice?: number | null
   focusedRole?: string | null
   ignoreReasons?: Record<string, IgnoreReason>
-} & Pick<RecommendationScoreContext, 'tagCounts' | 'packageCounts'>) {
+} & QueueScoreSettings) {
   const { batch, released, candidates } = transitionBatch(
     queue,
     deferredCards,
@@ -530,6 +546,7 @@ export function advanceRecommendationQueue<
     batchNumber: released.batchNumber,
     manaSupport,
     maxPrice,
+    remainingBudget,
   }
   return {
     queue: rankRecommendationCards(candidates, context, includeCreature, cardRoles),

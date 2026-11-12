@@ -1,12 +1,14 @@
 import { commanderNames } from '../../domain/commander-catalog.ts'
-import type { ExportFormat } from '../../domain/card-model.ts'
+import type { DeckCard, ExportFormat } from '../../domain/card-model.ts'
+import { DeckPrice } from '../../shared/DeckPrice.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
 
 type Props = {
   commander: string
   copied: boolean | 'failed'
-  deckCount: number
+  deck: DeckCard[]
+  sideboard: DeckCard[]
   deckList: (format: ExportFormat) => string
   exportFormat: ExportFormat
   show: boolean
@@ -18,7 +20,8 @@ type Props = {
 export function ExportDeckModal({
   commander,
   copied,
-  deckCount,
+  deck,
+  sideboard,
   deckList,
   exportFormat,
   show,
@@ -30,6 +33,7 @@ export function ExportDeckModal({
   if (!show) return null
 
   const names = commanderNames(commander)
+  const deckCount = deck.length
 
   return (
     <div
@@ -87,6 +91,7 @@ export function ExportDeckModal({
         {!deckCount && (
           <p className="saved-decks-empty">The deck is empty. Add cards to export it.</p>
         )}
+        {deckCount > 0 && <DeckPrice deck={deck} sideboard={sideboard} showSource />}
         <textarea
           readOnly
           value={deckList(exportFormat)}

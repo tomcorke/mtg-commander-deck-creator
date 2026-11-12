@@ -87,6 +87,7 @@ export type BuilderState = {
   recommendationStyle: RecommendationStyle
   powerTarget: PowerTarget
   maxPrice: number | null
+  deckBudget: number | null
   focusedRole: TargetKey | null
   includeCreature: boolean
   excludeGameChangers: boolean
@@ -137,6 +138,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     recommendationStyle: 'balanced',
     powerTarget: 'precon',
     maxPrice: null,
+    deckBudget: null,
     focusedRole: null,
     includeCreature: true,
     excludeGameChangers: true,
@@ -169,6 +171,7 @@ export type BuilderSettings = Pick<
   | 'recommendationStyle'
   | 'powerTarget'
   | 'maxPrice'
+  | 'deckBudget'
   | 'includeCreature'
   | 'excludeGameChangers'
   | 'limitGameChangers'
@@ -467,6 +470,10 @@ function applySettings(
       action.settings.maxPrice === undefined
         ? state.maxPrice
         : normalizeMaxPrice(action.settings.maxPrice),
+    deckBudget:
+      action.settings.deckBudget === undefined
+        ? state.deckBudget
+        : normalizeMaxPrice(action.settings.deckBudget),
     recommendationOptionsChanged: true,
   })
 }
