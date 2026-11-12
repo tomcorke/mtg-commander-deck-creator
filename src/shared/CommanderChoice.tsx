@@ -8,9 +8,11 @@ import {
   type DeckCard,
   type ScryfallCard,
 } from '../domain/card-model.ts'
+import { deckCountLabel } from '../domain/commander-popularity.ts'
 import { FinishedCardImage } from './CardArt.tsx'
 import { CardReference } from './CardReference.tsx'
 import { CardTile } from './CardTile.tsx'
+import { IdentifiedThemes } from './IdentifiedThemes.tsx'
 import { ManaSymbols } from './ManaSymbols.tsx'
 
 /** Colour identity toggles shared by the start screen and the change-commander dialog. */
@@ -39,19 +41,26 @@ export function ColourPicker({
   )
 }
 
-/** A commander search result: art, name reference, cost, type line, and the caller's choose action. */
+/**
+ * A commander search result: art, name reference, cost, type line, and the caller's choose action.
+ * With `insights`, up to three identified themes and the EDHREC deck count follow the type line;
+ * the page states once that themes are estimates.
+ */
 export function CommanderChoiceTile({
   card,
   openCard,
   action,
   note,
   selected,
+  insights,
 }: {
   card: ScryfallCard
   openCard: (card: DeckCard) => void
   action: ReactNode
   note?: ReactNode
   selected?: boolean
+  /** `deckCount` is undefined while loading or when EDHREC's lists omit the commander. */
+  insights?: { deckCount?: number }
 }) {
   const converted = toDeckCard(card)
   return (
@@ -76,6 +85,15 @@ export function CommanderChoiceTile({
       detail={converted.typeLine}
       actions={action}
     >
+      {insights && (
+        <>
+          <IdentifiedThemes card={converted} limit={3} compact />
+          {/* The line keeps its height while the count loads, so rows do not jump. */}
+          <p className="commander-deck-count">
+            {insights.deckCount !== undefined && deckCountLabel(insights.deckCount)}
+          </p>
+        </>
+      )}
       {note}
     </CardTile>
   )

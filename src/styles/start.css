@@ -217,9 +217,34 @@
   aspect-ratio: 488 / 680;
   border-radius: 4.75%;
 }
-/* Count header: heading, then one muted line with the count and the batch's shared reason. */
+/* Count header: heading, then one muted line with the count, the batch's shared reason and its
+   order; the sort control sits on the right and the insight note spans below. */
 .commander-discovery-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 16px;
   margin-bottom: 16px;
+}
+.commander-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--type-data);
+}
+.commander-sort select {
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.commander-discovery-heading > .commander-insight-note {
+  flex-basis: 100%;
+  min-height: 0;
+  margin: 0;
+}
+.card-tile-caption > .commander-deck-count {
+  min-height: 1.5em;
+  color: var(--text-muted);
 }
 .commander-discovery-heading h2 {
   margin: 0;

@@ -10,6 +10,7 @@ import { chromium, type BrowserContext, type Page } from 'playwright-core'
 import { firstUseCards } from './fixtures/a2-a9.ts'
 import { commanderConstructionError } from '../src/domain/commander-construction.ts'
 import { cardNameKey, toDeckCard } from '../src/domain/card-model.ts'
+import { edhrecIdentitySlugs } from '../src/domain/commander-popularity.ts'
 import { autosavePrefix, workspaceSessionKey } from '../src/autosaves.ts'
 import { storedDeckStateSchema } from '../src/deck-state.ts'
 
@@ -266,7 +267,12 @@ async function styleAndResume(page: Page, requests: string[], label: string) {
   assert.ok(await guideOption.isChecked())
   await chooseCommander(page)
   assert.equal(
-    requests.filter((url) => url.includes('json.edhrec.com')).length,
+    // Start's tiles read colour-identity list pages for deck counts; those are not a batch.
+    requests.filter(
+      (url) =>
+        url.includes('json.edhrec.com') &&
+        !edhrecIdentitySlugs.some((slug) => url.endsWith(`/commanders/${slug}.json`)),
+    ).length,
     0,
     'No first batch before style choice',
   )

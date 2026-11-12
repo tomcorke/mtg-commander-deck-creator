@@ -20,6 +20,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
   const rulesText = (filters.rulesText ?? '').trim().length >= 2 ? filters.rulesText!.trim() : ''
   const maxManaValue = filters.maxManaValue ?? null
   const sets = (filters.sets ?? []).join('|')
+  const sort = filters.sort
   useEffect(() => {
     if (!active) return
     const controller = new AbortController()
@@ -39,6 +40,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
             rulesText,
             maxManaValue,
             sets: sets ? sets.split('|') : [],
+            sort,
           },
           controller.signal,
         )
@@ -69,6 +71,7 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     rulesText,
     maxManaValue,
     sets,
+    sort,
   ])
   const { start, end } = pageWindow(pool.length, commanderPageSize, page)
   return {

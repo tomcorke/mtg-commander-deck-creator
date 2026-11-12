@@ -107,6 +107,8 @@ import type { AppModal, AppView } from '../../app/routes.ts'
 import type { CommanderDetails, DeckCard } from '../../domain/card-model.ts'
 import type { DeckWorkspace } from '../../autosaves.ts'
 import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
+import { useEdhrecDeckCounts } from '../../app/useEdhrecDeckCounts.ts'
+import type { CommanderSort } from '../../domain/commander-discovery.ts'
 import { Pagination } from '../../shared/Pagination.tsx'
 import {
   ColourPicker,
@@ -246,6 +248,78 @@ type StartViewProps = {
   setIntroGuideRequested: Dispatch<SetStateAction<boolean>>
 }
 
+/**
+ * Sort choices, each with the phrase the grid header uses to name its order. Popularity is
+ * Scryfall's EDHREC rank, which counts every deck a card is in, not only decks it leads.
+ */
+const commanderSorts: Record<CommanderSort, { label: string; order: string }> = {
+  popularity: { label: 'Popularity (EDHREC rank)', order: 'EDHREC rank' },
+  name: { label: 'Name', order: 'name, A to Z' },
+  manaValue: { label: 'Mana value', order: 'mana value, lowest first' },
+  newest: { label: 'Newest printing', order: 'newest printing' },
+}
+
+/** The grid's heading: count, shared reason and order, the sort control and the insight note. */
+function DiscoveryHeading({
+  discovery,
+  sort,
+  setSort,
+}: {
+  discovery: ReturnType<typeof useCommanderDiscovery>
+  sort: CommanderSort
+  setSort: (sort: CommanderSort) => void
+}) {
+  const reason = discovery.status === 'idle' ? discovery.suggestions[0]?.reason : undefined
+  // Several creature types rank commanders covering more of them first.
+  const order =
+    discovery.suggestions[0]?.coverage === undefined
+      ? `Sorted by ${commanderSorts[sort].order}`
+      : `Most chosen creature types first, then by ${commanderSorts[sort].order}`
+  return (
+    <>
+      <div className="commander-discovery-heading">
+        <div>
+          <h2 id="commander-discovery-title">Choose a commander</h2>
+          {/* Every suggestion in a batch shares one reason, so it is shown once. */}
+          <p aria-hidden="true">
+            {discovery.status === 'loading' && 'Finding legal commanders…'}
+            {/* The empty state names the zero itself. */}
+            {discovery.status === 'idle' &&
+              discovery.count > 0 &&
+              [
+                `${discovery.count}${discovery.more ? ' loaded' : ''} ${discovery.count === 1 ? 'commander' : 'commanders'}`,
+                reason,
+                order,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+          </p>
+        </div>
+        <label className="commander-sort">
+          <span>Sort by</span>
+          <select value={sort} onChange={(event) => setSort(event.target.value as CommanderSort)}>
+            {Object.entries(commanderSorts).map(([value, { label }]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="commander-insight-note">
+          Themes are app estimates from card type and rules text; other strategies may fit. Deck
+          counts are EDHREC decks led by that commander, shown for the most-built commanders in each
+          colour identity. EDHREC rank also counts decks using a card in the 99.
+        </p>
+      </div>
+      <p id="commander-result-count" className="sr-only" role="status">
+        {discovery.status === 'loading' && 'Finding legal commanders…'}
+        {discovery.status === 'idle' &&
+          `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length ? ` of ${discovery.count}${discovery.more ? ' loaded' : ''}` : ''} ${discovery.count === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}${discovery.count > 1 ? `. ${order}` : ''}. Press Down to move through them.`}
+      </p>
+    </>
+  )
+}
+
 /** Active commander criteria as one line, or "All commanders" when none apply. */
 function filterSummary(props: StartViewProps, setLabel: (code: string) => string) {
   return (
@@ -265,12 +339,13 @@ function filterSummary(props: StartViewProps, setLabel: (code: string) => string
 // eslint-disable-next-line max-lines-per-function -- Start-screen markup stays together; search helpers and render callbacks remain checked.
 export function StartView(props: StartViewProps) {
   const [randomCommanderOpen, setRandomCommanderOpen] = useState(false)
+  const [sort, setSort] = useState<CommanderSort>('popularity')
   const { darkMode } = useVisualPreferences()
   const discovery = useCommanderDiscovery(
-    { ...props, creatureTypes: props.extraCreatureTypes, sets: props.commanderSets },
+    { ...props, creatureTypes: props.extraCreatureTypes, sets: props.commanderSets, sort },
     true,
   )
-  const reason = discovery.status === 'idle' ? discovery.suggestions[0]?.reason : undefined
+  const deckCount = useEdhrecDeckCounts(discovery.suggestions.map(({ card }) => card))
   // Leaving the start screen opens the next view at the top, not at the old scroll position.
   useEffect(() => () => scrollTo({ top: 0 }), [])
   const resume = Boolean(props.commander && props.deck.length)
@@ -531,27 +606,7 @@ export function StartView(props: StartViewProps) {
           aria-labelledby="commander-discovery-title"
           aria-busy={discovery.status === 'loading'}
         >
-          <div className="commander-discovery-heading">
-            <h2 id="commander-discovery-title">Choose a commander</h2>
-            {/* Every suggestion in a batch shares one reason, so it is shown once. */}
-            <p aria-hidden="true">
-              {discovery.status === 'loading' && 'Finding legal commanders…'}
-              {/* The empty state names the zero itself. */}
-              {discovery.status === 'idle' &&
-                discovery.count > 0 &&
-                [
-                  `${discovery.count}${discovery.more ? ' loaded' : ''} ${discovery.count === 1 ? 'commander' : 'commanders'}`,
-                  reason,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-            </p>
-          </div>
-          <p id="commander-result-count" className="sr-only" role="status">
-            {discovery.status === 'loading' && 'Finding legal commanders…'}
-            {discovery.status === 'idle' &&
-              `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length ? ` of ${discovery.count}${discovery.more ? ' loaded' : ''}` : ''} ${discovery.count === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}. Press Down to move through them.`}
-          </p>
+          <DiscoveryHeading discovery={discovery} sort={sort} setSort={setSort} />
           <div className="commander-grid" onKeyDown={moveBetweenChoices}>
             {discovery.status === 'loading' && <CommanderTilePlaceholders />}
             {discovery.suggestions.map(({ card }) => (
@@ -559,6 +614,7 @@ export function StartView(props: StartViewProps) {
                 key={card.oracle_id ?? card.name}
                 card={card}
                 openCard={props.openCardReference}
+                insights={{ deckCount: deckCount(card) }}
                 action={
                   <button
                     className="export commander-choose"

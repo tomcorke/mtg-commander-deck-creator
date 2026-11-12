@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchRandomScryfallCommander } from '../../adapters/scryfall.ts'
 import { toDeckCard, type DeckCard } from '../../domain/card-model.ts'
 import { commanderConstructionError } from '../../domain/commander-construction.ts'
-import { supportedThemes } from '../../domain/recommendation-themes.ts'
 import { CardDetailContent } from '../../shared/CardDetailContent.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
+import { IdentifiedThemes } from '../../shared/IdentifiedThemes.tsx'
 
 function useRandomCommander() {
   const [card, setCard] = useState<DeckCard | null>(null)
@@ -42,27 +42,6 @@ function useRandomCommander() {
     setRoll((value) => value + 1)
   }
   return { card, loading, error, reRoll }
-}
-
-function IdentifiedThemes({ card }: { card: DeckCard }) {
-  const themes = card.tags.filter((theme) => supportedThemes.includes(theme))
-  return (
-    <section className="random-commander-themes" aria-labelledby="random-themes-heading">
-      <h3 id="random-themes-heading">Identified themes</h3>
-      {themes.length ? (
-        <ul>
-          {themes.map((theme) => (
-            <li key={theme}>{theme}</li>
-          ))}
-        </ul>
-      ) : (
-        <p>No themes identified for this commander.</p>
-      )}
-      <p className="card-type-line">
-        App estimates from card type and rules text; other strategies may fit.
-      </p>
-    </section>
-  )
 }
 
 export function RandomCommanderDialog({
