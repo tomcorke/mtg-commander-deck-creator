@@ -134,3 +134,28 @@ test('reload restores current-batch choices and the first Add click removes an a
 test('a fresh session has no recommendation decisions', () => {
   assert.deepEqual(restore(null).decisions, {})
 })
+
+test('a saved deck budget restores with its deck; older saves have none', () => {
+  const saved = persistedDeckStateSchema.parse({
+    commander: 'Commander',
+    commanderDetails: { images: [], art: [], colours: ['B'], printings: [], selections: [] },
+    theme: '',
+    queue: [],
+    deckBudget: 150,
+    decisions: {},
+    deck: [toDeckCard(raw('Commander'))],
+    limitedRecommendations: false,
+    ignoredCards: [],
+    liked: [],
+    activeSubThemes: [],
+    dismissedSubThemes: [],
+    preferenceScores: {},
+    commanderSubThemes: [],
+    deferredCards: [],
+    batchNumber: 1,
+    preferredPrintSet: '',
+    deckTargets: { lands: 35, ramp: 10, draw: 10, removal: 8, wipes: 3 },
+  })
+  assert.equal(restore(saved).deckBudget, 150)
+  assert.equal(restore({ ...saved, deckBudget: undefined }).deckBudget, null)
+})

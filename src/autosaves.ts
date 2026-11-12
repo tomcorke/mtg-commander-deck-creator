@@ -50,6 +50,7 @@ function stateForComparison(state: PersistedDeckState) {
         ...state,
         ignoreReasons: state.ignoreReasons ?? {},
         maxPrice: state.maxPrice ?? null,
+        deckBudget: state.deckBudget ?? null,
         decisions: restoredRecommendationDecisions(state),
       }),
     ),

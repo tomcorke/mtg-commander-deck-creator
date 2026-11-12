@@ -12,6 +12,7 @@ import { countRoleSupply } from './recommendation-queue.ts'
 import { manaSupportFromAnalysis } from './recommendation-scoring.ts'
 import { packageCounts } from './strategy-packages.ts'
 import type { RecommendationScoreContext } from './recommendation-types.ts'
+import { remainingDeckBudget } from './deck-price.ts'
 
 // All recommendation surfaces use the same deck, preference, and candidate-supply signals.
 export function buildRecommendationContext(
@@ -30,6 +31,7 @@ export function buildRecommendationContext(
       | 'collectionMode'
       | 'batchNumber'
       | 'maxPrice'
+      | 'deckBudget'
     >
   > & { prioritizeDeckHealth?: boolean } & Record<string, unknown>,
   candidates: Card[],
@@ -66,5 +68,6 @@ export function buildRecommendationContext(
     batchNumber: settings.batchNumber,
     manaSupport: manaSupportFromAnalysis(analysis, targets),
     maxPrice: settings.maxPrice as number | null | undefined,
+    remainingBudget: remainingDeckBudget(settings.deckBudget as number | null | undefined, deck),
   }
 }

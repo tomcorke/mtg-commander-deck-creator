@@ -18,7 +18,7 @@ export function normalizeRecommendationStyle(value: unknown): RecommendationStyl
 export type CollectionMode = 'none' | 'prefer' | 'only'
 export type RecommendationSource = 'edhrec' | 'scryfall'
 export type BatchPlacementReason =
-  'creature-slot' | 'mana-slot' | 'diversity' | 'theme-coverage' | 'focus'
+  'creature-slot' | 'mana-slot' | 'diversity' | 'theme-coverage' | 'focus' | 'over-budget'
 export type PlacementObserver<T> = (card: T, reason: BatchPlacementReason) => void
 export type CuratedCollection = { id: string; name: string; setCodes: string[] }
 export const curatedCollections: CuratedCollection[] = [
@@ -153,6 +153,8 @@ export type RecommendationScoreContext = {
   batchNumber?: number
   manaSupport?: ManaSupport
   maxPrice?: number | null
+  /** Deck budget left after the main deck; null or undefined without a budget. */
+  remainingBudget?: number | null
 }
 export type RecommendationScoreBreakdown = {
   total: number

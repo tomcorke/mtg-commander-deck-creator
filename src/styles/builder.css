@@ -1082,3 +1082,23 @@
   margin-top: auto;
   padding-top: 4px;
 }
+/* Deck price totals: the deck board heading and the export dialog (#496). */
+.deck-price p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.deck-price b {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+.export-modal .deck-price {
+  margin: 0 0 12px;
+}
+.deck-price .deck-price-source {
+  display: block;
+  line-height: 1.45;
+}

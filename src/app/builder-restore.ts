@@ -44,6 +44,7 @@ export function restoreBuilderState(
       saved.prioritizeDeckHealth,
     ),
     maxPrice: saved.maxPrice ?? null,
+    deckBudget: saved.deckBudget ?? null,
     collectionMode: saved.collectionSets.length ? saved.collectionMode : 'none',
     collectionSets: saved.collectionSets,
     collectionGroups: saved.collectionGroups,

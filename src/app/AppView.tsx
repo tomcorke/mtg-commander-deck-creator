@@ -182,6 +182,7 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       choosePowerTarget={actions.choosePowerTarget}
       maxPrice={state.maxPrice}
       chooseMaxPrice={actions.chooseMaxPrice}
+      deckBudget={state.deckBudget}
       includeCreature={state.includeCreature}
       collectionSearch={state.collectionSearch}
       setCollectionSearch={state.setCollectionSearch}
@@ -217,7 +218,8 @@ function renderModals(props: AppViewProps) {
       <ExportDeckModal
         show={props.state.showExport}
         commander={props.state.commander}
-        deckCount={props.state.deck.length}
+        deck={props.state.deck}
+        sideboard={props.state.sideboard}
         exportFormat={props.state.exportFormat}
         setExportFormat={props.state.setExportFormat}
         copied={props.state.copied}

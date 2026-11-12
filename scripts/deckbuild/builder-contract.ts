@@ -59,6 +59,8 @@ export const initialStateSchema = stateSchema
   })
   .extend({
     ...settingsSchema.shape,
+    // The bench pins no deck budget; recipes predate it.
+    deckBudget: z.null().default(null),
     today: z.iso.date(),
     signatureDeckKey: name,
     commanderDetails: details.nullable(),

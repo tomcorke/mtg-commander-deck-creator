@@ -114,6 +114,7 @@ export const persistedDeckStateSchema = z.object({
   decisions: z.record(z.string(), decisionSchema),
   ignoreReasons: z.record(z.string(), z.enum(ignoreReasons)).optional(),
   maxPrice: z.number().nonnegative().nullable().optional(),
+  deckBudget: z.number().nonnegative().nullable().optional(),
   ignoredCards: z.array(z.string()),
   liked: z.array(z.string()),
   activeSubThemes: z.array(z.string()),
