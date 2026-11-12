@@ -1,3 +1,4 @@
+import { allowedByOwnership, type OwnedQuantities, type OwnershipMode } from './owned-cards.ts'
 import { hasTag } from './creature-types.ts'
 import type { Card, DeckCard, ScryfallCard } from './card-model.ts'
 import { focusedRecommendations, withinPriceCap } from './recommendation-tuning.ts'
@@ -254,6 +255,8 @@ export type SignatureSettings = RecommendationOptions & {
   commanderDetails: { colours: string[] } | null
   collectionMode: 'none' | 'prefer' | 'only'
   collectionSets: string[]
+  ownedCards?: OwnedQuantities
+  ownershipMode?: OwnershipMode
   focusedRole?: string | null
 }
 export type SignatureResult = {
@@ -273,7 +276,7 @@ function allowedResult(raw: ScryfallCard, settings: SignatureSettings) {
     return false
   // ponytail: collection-only accepts the hydrated printing; resolve allowed printings if wider coverage is needed.
   if (settings.collectionMode === 'only' && !settings.collectionSets.includes(raw.set)) return false
-  return true
+  return allowedByOwnership(raw, settings.ownedCards, settings.ownershipMode)
 }
 
 export function mergeSignatureResults(

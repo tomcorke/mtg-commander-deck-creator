@@ -2,17 +2,24 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PersistedDeckState } from '../deck-state.ts'
 import { builderPoolKey } from '../domain/builder-settings.ts'
 import { restoreBuilderState } from './builder-restore.ts'
-import { applyBuilderAction, type BuilderAction } from '../domain/builder-state.ts'
+import {
+  applyBuilderAction,
+  reconcileOwnership,
+  type BuilderAction,
+} from '../domain/builder-state.ts'
 import {
   migrateRecommendationPriority,
   normalizeMaxPrice,
 } from '../domain/recommendation-tuning.ts'
 import { normalizeRecommendationStyle, type PowerTarget } from '../domain/recommendation-types.ts'
+import { isOwnershipMode, ownedQuantities, readOwnedCardList } from '../domain/owned-cards.ts'
+import { appStorage } from '../app-storage.ts'
 
 const storedFields = [
   'recommendationStyle',
   'maxPrice',
   'deckBudget',
+  'ownershipMode',
   'includeCreature',
   'powerTarget',
   'excludeGameChangers',
@@ -34,6 +41,19 @@ function storedRecommendationStyle(value: unknown, saved: PersistedDeckState | n
   )
 }
 
+/** A stored option's value, or undefined when it is not valid for that field. */
+function storedOption(
+  field: (typeof storedFields)[number],
+  value: unknown,
+  saved: PersistedDeckState | null,
+) {
+  if (field === 'recommendationStyle') return storedRecommendationStyle(value, saved)
+  if (field === 'maxPrice' || field === 'deckBudget') return normalizeMaxPrice(value)
+  if (field === 'powerTarget') return isPowerTarget(value) ? value : undefined
+  if (field === 'ownershipMode') return isOwnershipMode(value) ? value : undefined
+  return typeof value === 'boolean' ? value : undefined
+}
+
 function initialBuilderState(saved: PersistedDeckState | null) {
   const state = restoreBuilderState(
     saved,
@@ -44,18 +64,17 @@ function initialBuilderState(saved: PersistedDeckState | null) {
     try {
       const stored = localStorage.getItem(`option:${field}`)
       if (stored === null) continue
-      const value: unknown = JSON.parse(stored)
-      if (field === 'recommendationStyle') state[field] = storedRecommendationStyle(value, saved)
-      else if (field === 'maxPrice' || field === 'deckBudget')
-        state[field] = normalizeMaxPrice(value)
-      else if (field === 'powerTarget') {
-        if (isPowerTarget(value)) state[field] = value
-      } else if (typeof value === 'boolean') state[field] = value
+      const value = storedOption(field, JSON.parse(stored), saved)
+      if (value !== undefined) Object.assign(state, { [field]: value })
     } catch {
       /* Storage is optional; use the resolved defaults. */
     }
   }
-  return { ...state, committedPoolKey: builderPoolKey(state) }
+  // Owned cards are the player's, kept apart from any deck.
+  const owned = readOwnedCardList(appStorage)
+  state.ownedCards = ownedQuantities(owned)
+  state.ownedRevision = owned?.updatedAt ?? ''
+  return reconcileOwnership({ ...state, committedPoolKey: builderPoolKey(state) })
 }
 
 export function useBuilderState(saved: PersistedDeckState | null) {

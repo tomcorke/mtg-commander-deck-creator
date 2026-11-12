@@ -279,3 +279,16 @@ test('a starting deck is refused when the budget cannot cover a full deck', () =
   assert.match(result.error ?? '', /budget can’t cover/)
   assert.equal(result.state, state)
 })
+
+test('under Owned only a starting deck drafts no unowned queued or Later card', () => {
+  const later = ramp('Later Rock')
+  const state = builder({
+    queue: [ramp('Owned Rock'), ramp('Shop Rock'), draw('Owned Draw')],
+    deferredCards: [{ card: later, eligibleBatch: 3 }],
+    ownershipMode: 'only',
+    ownedCards: { 'owned rock': 1, 'owned draw': 1 },
+  })
+  const deck = names(apply(state, { type: 'buildStartingDeck', basics: [forest] }).state.deck)
+  assert.ok(deck.includes('Owned Rock') && deck.includes('Owned Draw'))
+  assert.ok(!deck.includes('Shop Rock') && !deck.includes('Later Rock'))
+})

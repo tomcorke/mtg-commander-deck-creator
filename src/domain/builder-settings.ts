@@ -16,6 +16,8 @@ type PoolSettings = Pick<
   | 'collectionMode'
   | 'collectionSets'
   | 'deck'
+  | 'ownershipMode'
+  | 'ownedRevision'
 >
 
 /** Settings that decide which cards are fetched; other settings only re-rank the pool. */
@@ -33,5 +35,7 @@ export function builderPoolKey(settings: Partial<PoolSettings>) {
     [...(settings.activeSubThemes ?? [])].sort(),
     settings.collectionMode ?? 'none',
     [...(settings.collectionSets ?? [])].sort(),
+    // Owned only adds every owned card to the pool, so a new owned list rebuilds it.
+    settings.ownershipMode === 'only' ? `only:${settings.ownedRevision ?? ''}` : 'any',
   ])
 }

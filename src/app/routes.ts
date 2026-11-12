@@ -12,6 +12,7 @@ export type AppModal =
   | 'doctor'
   | 'doctor-history'
   | 'recommendation-settings'
+  | 'owned-cards'
 export type AppHistoryState = {
   app: 'commander-deck-creator'
   view: AppView
@@ -34,6 +35,7 @@ export const appModals: AppModal[] = [
   'doctor',
   'doctor-history',
   'recommendation-settings',
+  'owned-cards',
 ]
 
 export const reviewSteps = ['Diagnose', 'Choose changes', 'Confirm'] as const
@@ -48,6 +50,7 @@ const routesPreservingDeckReview = new Set<AppModal>([
   'import',
   'saved',
   'recommendation-settings',
+  'owned-cards',
 ])
 
 export function reviewStepForModal(modal: AppModal | null): DeckReviewStep | null {

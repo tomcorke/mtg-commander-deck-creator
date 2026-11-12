@@ -59,8 +59,11 @@ export const initialStateSchema = stateSchema
   })
   .extend({
     ...settingsSchema.shape,
-    // The bench pins no deck budget; recipes predate it.
+    // The bench pins no deck budget or owned cards; recipes predate them.
     deckBudget: z.null().default(null),
+    ownershipMode: z.literal('ignore').default('ignore'),
+    ownedCards: z.strictObject({}).default({}),
+    ownedRevision: z.literal('').default(''),
     today: z.iso.date(),
     signatureDeckKey: name,
     commanderDetails: details.nullable(),

@@ -1,3 +1,4 @@
+import { allowedByOwnership, type OwnedQuantities, type OwnershipMode } from './owned-cards.ts'
 import {
   analyseDeck,
   basicLandPlan,
@@ -52,6 +53,8 @@ export type StartingDeckInput = {
   limitGameChangers: boolean
   collectionMode: CollectionMode
   collectionSets: string[]
+  ownedCards?: OwnedQuantities
+  ownershipMode?: OwnershipMode
 }
 
 export type StartingDeckPlan = {
@@ -86,7 +89,8 @@ function draftCandidates(input: StartingDeckInput) {
       cards.findIndex(({ name }) => name === card.name) === index &&
       withinPriceCap(card, input.maxPrice) &&
       !(input.powerTarget === 'precon' && preconFastMana.has(card.name)) &&
-      inSets(card),
+      inSets(card) &&
+      allowedByOwnership(card, input.ownedCards, input.ownershipMode),
   )
 }
 

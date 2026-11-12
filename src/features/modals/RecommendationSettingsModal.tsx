@@ -16,6 +16,13 @@ import {
 } from '../../domain/glossary.ts'
 import { priceSourceNote } from '../../domain/deck-price.ts'
 import type { CollectionMode, RecommendationStyle } from '../../recommendations.ts'
+import {
+  describeOwnedCards,
+  ownershipModeLabels,
+  ownershipModes,
+  type OwnedCardList,
+  type OwnershipMode,
+} from '../../domain/owned-cards.ts'
 
 type PowerTarget = 'precon' | 'upgraded' | 'high'
 
@@ -72,6 +79,9 @@ type RecommendationSettingsModalProps = {
   browseCollection: () => void
   collectionError: string
   collectionPoolSize: number | null
+  ownershipMode: OwnershipMode
+  ownedCardList: OwnedCardList | null
+  openOwnedCards: () => void
   excludeGameChangers: boolean
   limitGameChangers: boolean
   excludeTutors: boolean
@@ -111,6 +121,9 @@ export function RecommendationSettingsModal({
   browseCollection,
   collectionError,
   collectionPoolSize,
+  ownershipMode,
+  ownedCardList,
+  openOwnedCards,
   excludeGameChangers,
   limitGameChangers,
   excludeTutors,
@@ -267,6 +280,49 @@ export function RecommendationSettingsModal({
               description="Keeps a creature in each recommendation batch when one is available. Turn it off for a deck that does not need creatures."
             />
           </div>
+          <fieldset className="collection-picker">
+            <legend>
+              <span>Owned cards</span>
+              <SettingHelp
+                id="owned-cards-help"
+                label="Owned cards"
+                description="Cards you own, imported from a list or collection CSV and kept only in this browser. Ownership is by card name, whatever the printing."
+              />
+            </legend>
+            <p className="collection-picker-help">
+              {ownedCardList
+                ? `${describeOwnedCards(ownedCardList)} saved in this browser.`
+                : 'Import the cards you own to prefer them or build only from them.'}
+            </p>
+            <div className="collection-affinity-actions">
+              <div className="collection-mode-setting">
+                <label htmlFor="ownership-mode">Use</label>
+                <select
+                  id="ownership-mode"
+                  aria-label="Use owned cards"
+                  value={ownedCardList ? ownershipMode : 'ignore'}
+                  disabled={!ownedCardList}
+                  onChange={(event) =>
+                    chooseOptions({ ownershipMode: event.target.value as OwnershipMode })
+                  }
+                >
+                  {ownershipModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {ownershipModeLabels[mode]}
+                    </option>
+                  ))}
+                </select>
+                <SettingHelp
+                  id="ownership-mode-help"
+                  label="Owned card matching"
+                  description="Prefer ranks owned cards first. Owned only offers nothing else: it adds every owned card in your commander’s colours and removes the rest."
+                />
+              </div>
+              <button type="button" className="compact-action" onClick={openOwnedCards}>
+                {ownedCardList ? 'View or import owned cards' : 'Import owned cards'}
+              </button>
+            </div>
+          </fieldset>
           <fieldset id="recommendation-sets" className="collection-picker" tabIndex={-1}>
             <legend>
               <span>Sets to build from</span>

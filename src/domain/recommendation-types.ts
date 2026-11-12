@@ -1,3 +1,4 @@
+import type { OwnedQuantities, OwnershipMode } from './owned-cards.ts'
 import type { PackageCounts } from './strategy-packages.ts'
 import type { CardFinish } from './card-model.ts'
 
@@ -112,6 +113,7 @@ export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'
   Partial<
     Pick<
       RecommendationCard,
+      | 'name'
       | 'set'
       | 'collectionMatch'
       | 'typeLine'
@@ -155,6 +157,8 @@ export type RecommendationScoreContext = {
   maxPrice?: number | null
   /** Deck budget left after the main deck; null or undefined without a budget. */
   remainingBudget?: number | null
+  ownedCards?: OwnedQuantities
+  ownershipMode?: OwnershipMode
 }
 export type RecommendationScoreBreakdown = {
   total: number

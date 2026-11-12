@@ -1,5 +1,6 @@
 import { hasTag } from './creature-types.ts'
 import { packageScore } from './strategy-packages.ts'
+import { activeOwnershipMode, isOwned } from './owned-cards.ts'
 import type { PrintingLike, ScryfallCard } from './card-model.ts'
 import {
   recommendationScoreFactorMaximums,
@@ -58,15 +59,21 @@ function evidenceScore(
 
 function collectionScore(
   card: RecommendationScoreCard,
-  style: RecommendationScoreContext['recommendationStyle'],
-  sets: string[],
-  mode: RecommendationScoreContext['collectionMode'],
+  {
+    recommendationStyle: style = 'balanced',
+    collectionSets: sets = [],
+    collectionMode: mode = 'none',
+    ownedCards,
+    ownershipMode,
+  }: RecommendationScoreContext,
 ) {
-  const matches =
+  const setMatch =
     mode !== 'none' && Boolean(card.collectionMatch || (card.set && sets.includes(card.set)))
-  if (!matches) return { value: 0, matches: false }
+  const ownership = activeOwnershipMode(ownershipMode, ownedCards)
+  const ownedMatch = ownership !== 'ignore' && Boolean(card.name && isOwned(ownedCards, card.name))
+  if (!setMatch && !ownedMatch) return { value: 0, matches: false }
   const value =
-    mode === 'only' || style === 'thematic'
+    (setMatch && mode === 'only') || (ownedMatch && ownership === 'only') || style === 'thematic'
       ? recommendationScoreFactorMaximums.collection
       : style === 'fun' || style === 'balanced'
         ? 8
@@ -200,7 +207,9 @@ function powerFitPenalty(
 
 export function recommendationScoreBreakdown(
   card: RecommendationScoreCard,
-  {
+  context: RecommendationScoreContext,
+): RecommendationScoreBreakdown {
+  const {
     theme: declaredTheme,
     activeSubThemes,
     pickedTags,
@@ -211,16 +220,13 @@ export function recommendationScoreBreakdown(
     cardRoles,
     cardRoleCredit = {},
     recommendationStyle = 'balanced',
-    collectionSets = [],
-    collectionMode = 'none',
     roleBoosts = {},
     roleSupply = {},
     batchNumber = 1,
     manaSupport,
     powerTarget,
-  }: RecommendationScoreContext,
-): RecommendationScoreBreakdown {
-  const collection = collectionScore(card, recommendationStyle, collectionSets, collectionMode)
+  } = context
+  const collection = collectionScore(card, context)
   const evidence = evidenceScore(card, recommendationStyle)
   const goalThemeWeight = recommendationStyle === 'competitive' ? 0.5 : 1
   const theme =

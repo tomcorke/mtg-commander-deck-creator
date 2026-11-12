@@ -12,6 +12,7 @@ import {
   releaseDeferred,
 } from './recommendation-queue.ts'
 import { focusedRecommendations, withinPriceCap } from './recommendation-tuning.ts'
+import type { OwnedQuantities, OwnershipMode } from './owned-cards.ts'
 import type {
   CollectionMode,
   DeferredCard,
@@ -256,6 +257,8 @@ export type RecommendState = {
   includeCreature: boolean
   maxPrice: number | null
   deckBudget?: number | null
+  ownershipMode?: OwnershipMode
+  ownedCards?: OwnedQuantities
   collectionMode: CollectionMode
   collectionSets: string[]
   deckTargets?: DeckTargets

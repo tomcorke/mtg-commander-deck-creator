@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   applyBuilderAction,
   createBuilderState,
+  reconcileOwnership,
   type BuilderState,
   type BuilderAction,
 } from './builder-state.ts'
@@ -220,4 +221,49 @@ test('deck budget setting normalises input and sets remaining budget from the ma
     20,
     'other settings keep the budget',
   )
+})
+
+test('owned cards stay with the player across restores; Owned only rebuilds its pool', () => {
+  const list = { cards: [{ name: 'Sol Ring', quantity: 2 }], updatedAt: '2026-11-12T10:00:00Z' }
+  const ignoring = apply(initial(), { type: 'ownedCards', list })
+  assert.deepEqual(ignoring.ownedCards, { 'sol ring': 2 })
+  assert.equal(ignoring.recommendationOptionsChanged, false, 'Ignore needs no re-rank')
+  const preferring = apply(initial({ ownershipMode: 'prefer' }), { type: 'ownedCards', list })
+  assert.equal(preferring.recommendationOptionsChanged, true)
+  assert.equal(builderPoolKey(preferring), builderPoolKey(initial({ ownershipMode: 'prefer' })))
+  const only = apply(initial({ ownershipMode: 'only' }), { type: 'ownedCards', list })
+  assert.notEqual(builderPoolKey(only), builderPoolKey(initial({ ownershipMode: 'only' })))
+  const restored = apply(ignoring, { type: 'restore', state: initial() })
+  assert.deepEqual(restored.ownedCards, { 'sol ring': 2 })
+  assert.equal(restored.ownedRevision, list.updatedAt)
+  const cleared = apply(ignoring, { type: 'ownedCards', list: null })
+  assert.deepEqual(cleared.ownedCards, {})
+  assert.equal(
+    buildRecommendationContext({ ...preferring, ownershipMode: 'only' }, []).ownershipMode,
+    'only',
+  )
+})
+
+test('a restored queue drops unowned cards under Owned only and rebuilds its pool', () => {
+  const list = { cards: [{ name: 'Mine', quantity: 1 }], updatedAt: '2026-11-12T10:00:00Z' }
+  const current = apply(initial({ ownershipMode: 'only' }), { type: 'ownedCards', list })
+  const saved = initial({ ownershipMode: 'only', queue: [card('Mine'), card('Theirs')] })
+  const restored = apply(
+    { ...current, recommendationOptionsChanged: false },
+    {
+      type: 'restore',
+      state: saved,
+    },
+  )
+  assert.deepEqual(
+    restored.queue.map(({ name }) => name),
+    ['Mine'],
+  )
+  assert.equal(restored.recommendationOptionsChanged, true)
+  assert.notEqual(restored.committedPoolKey, builderPoolKey(restored), 'the pool rebuilds')
+  // An already-owned queue restores untouched.
+  const owned = initial({ ownershipMode: 'only', queue: [card('Mine')] })
+  const kept = apply(current, { type: 'restore', state: owned })
+  assert.equal(kept.queue, owned.queue)
+  assert.equal(reconcileOwnership(initial({ queue: [card('Theirs')] })).queue.length, 1)
 })

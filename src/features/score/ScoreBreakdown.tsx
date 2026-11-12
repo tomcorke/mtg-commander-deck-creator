@@ -24,10 +24,10 @@ const recommendationScoreFactors = [
   },
   {
     key: 'collection',
-    label: 'Collection',
+    label: 'Sets and owned cards',
     max: recommendationScoreFactorMaximums.collection,
     description:
-      'Affinity with the set or sets you selected. Only mode filters; Prefer mode boosts matches.',
+      'Matches the sets you build from or the cards you own. Only modes filter; Prefer modes boost matches.',
   },
   {
     key: 'deckFit',

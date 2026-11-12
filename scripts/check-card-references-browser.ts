@@ -2,8 +2,14 @@
 // the shared CardReference (docs/agents/ui.md). CARD_REFERENCES_URL may point at a running server.
 import assert from 'node:assert/strict'
 import type { Page } from 'playwright-core'
-import { button, heading, openScenario, withBrowser } from './fixtures/browser-harness.ts'
-import { allRecords, themeFirstState } from './fixtures/b10-browser.ts'
+import {
+  button,
+  heading,
+  openScenario,
+  withBrowser,
+  withOwnedCards,
+} from './fixtures/browser-harness.ts'
+import { allRecords, baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
 
 const allowed = [
   '.card-reference',
@@ -51,13 +57,26 @@ async function bareNames(page: Page, screen: string) {
 }
 
 await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
-  const scenario = await openScenario(browser, base, themeFirstState())
+  const scenario = await openScenario(
+    browser,
+    base,
+    themeFirstState(),
+    undefined,
+    undefined,
+    withOwnedCards(baseCandidates.map(({ name }) => name)),
+  )
   const { page } = scenario
   const failures: string[] = []
   const check = async (screen: string) => failures.push(...(await bareNames(page, screen)))
   try {
     await page.locator('.health-lane .card-reference').first().waitFor()
     await check('Builder')
+    await button(page, 'Recommendation settings').click()
+    await button(page, 'View or import owned cards').click()
+    await page.locator('.owned-card-grid .card-reference').first().waitFor()
+    await check('Owned cards')
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Escape')
     await button(page, '+ Search & add cards').click()
     await page.getByPlaceholder('Card name or rules text').fill('B10')
     await button(page, 'Search cards').click()

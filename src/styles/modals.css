@@ -1819,3 +1819,65 @@ main > .commander-header {
 .change-commander-modal > .export-actions {
   justify-content: flex-end;
 }
+
+/* Owned cards: import, then a paged name list. The dialog shares the import modal's controls. */
+.owned-cards-modal h3 {
+  margin: 22px 0 0;
+  color: var(--text-strong);
+  font-size: var(--type-card-name);
+}
+.owned-cards-modal textarea {
+  min-height: 180px;
+}
+.owned-cards-file,
+.owned-cards-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.owned-cards-file input,
+.owned-cards-search input {
+  min-width: 0;
+  max-width: 100%;
+  padding: 5px 8px;
+  border-radius: 5px;
+}
+.owned-cards-search input {
+  flex: 1 1 220px;
+}
+.owned-cards-import > .export-actions {
+  margin-top: 12px;
+}
+.owned-cards-list {
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+.owned-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  gap: 4px 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.owned-card-grid > li {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--type-body);
+}
+.owned-card-grid .card-reference-name {
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.owned-card-quantity {
+  color: var(--text-muted);
+  font-size: var(--type-data);
+  white-space: nowrap;
+}
