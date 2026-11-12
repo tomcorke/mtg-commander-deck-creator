@@ -292,3 +292,27 @@ test('deck budget moves cards that would exceed it behind the rest without remov
     unbudgeted,
   )
 })
+
+test('a creature slot does not pull an over-budget creature ahead of affordable cards', () => {
+  const creature = (name: string, price: string): Card => ({
+    ...card(name, '', price),
+    typeLine: 'Creature — Elf',
+  })
+  const cards = [
+    card('Rock A', '', '1'),
+    card('Rock B', '', '1'),
+    card('Rock C', '', '1'),
+    card('Rock D', '', '1'),
+    creature('Pricey Elf', '50'),
+  ]
+  assert.ok(
+    rankRecommendationCards(cards, context, true)
+      .slice(0, 4)
+      .some(({ name }) => name === 'Pricey Elf'),
+    'without a budget the creature slot promotes the elf',
+  )
+  assert.equal(
+    rankRecommendationCards(cards, { ...context, remainingBudget: 10 }, true).at(-1)?.name,
+    'Pricey Elf',
+  )
+})

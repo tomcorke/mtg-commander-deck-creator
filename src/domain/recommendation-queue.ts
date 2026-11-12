@@ -189,16 +189,21 @@ export function rankRecommendationCards<
       score(right).total - skipPenalty(right) - (score(left).total - skipPenalty(left)) ||
       compareRecommendationScores(score(left), score(right)),
   )
-  // Cards that would take the deck past its budget wait behind the rest, in score order.
+  // Cards that would take the deck past its budget wait behind the rest, keeping their order. Batch
+  // slots and theme swaps can pull them forward again, so the final queue is partitioned too.
   const overBudget = (card: T) => exceedsDeckBudget(card, context.remainingBudget)
-  const ranked = [...sorted.filter((card) => !overBudget(card)), ...sorted.filter(overBudget)]
+  const budgetLast = (queue: T[]) => [
+    ...queue.filter((card) => !overBudget(card)),
+    ...queue.filter(overBudget),
+  ]
+  const ranked = budgetLast(sorted)
   for (const card of ranked) if (overBudget(card)) observe?.(card, 'over-budget')
   const canUse = (card: T) =>
     !card.typeLine.includes('Creature') ||
     score(card).manaFitPenalty > -recommendationScoreFactorMaximums.manaFitPenalty / 2
   const style = context.recommendationStyle ?? 'balanced'
   const batches = batchRecommendations(ranked, includeCreature, canUse, style, observe)
-  if (style === 'competitive') return batches
+  if (style === 'competitive') return budgetLast(batches)
   const varied = spreadRoles(
     balanceThemeCoverage(
       batches,
@@ -212,7 +217,9 @@ export function rankRecommendationCards<
     canUse,
     observe,
   )
-  return style === 'thematic' ? keepThemeIdentity(varied, context, canUse, observe) : varied
+  return budgetLast(
+    style === 'thematic' ? keepThemeIdentity(varied, context, canUse, observe) : varied,
+  )
 }
 
 /**
