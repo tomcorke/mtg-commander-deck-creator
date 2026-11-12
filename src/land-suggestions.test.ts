@@ -141,3 +141,42 @@ test('excluded, basic and duplicate candidates are skipped and output is determi
   assert.deepEqual(rank(pool, deck, ['R', 'W'], ['Sacred Foundry']), [])
   assert.deepEqual(rank(pool, deck, ['R', 'W']), rank([...pool].reverse(), deck, ['R', 'W']))
 })
+
+test('a max price drops lands above it and a budget ranks over-budget lands last (#498)', () => {
+  const deck = deckOf([basic('Mountain', 'R'), 4], [spell('{R}{W}', 2), 20])
+  const priced = (land: AnalysisCard, price?: string) => ({ ...land, price })
+  const budgetGate = card('Budget Gate', {
+    producedMana: ['R', 'W'],
+    detail: 'Budget Gate enters tapped.\n{T}: Add {R} or {W}.',
+  })
+  const pool = [priced(sacredFoundry, '300.00'), priced(budgetGate, '2.00')]
+  const options = { excluded: [], identity: ['R', 'W'], landTarget: 35, limit: 6 }
+  const unlimited = rankLandSuggestions(pool, deck, options)
+  assert.deepEqual(names(unlimited), ['Sacred Foundry', 'Budget Gate'])
+  assert(unlimited.every(({ overBudget }) => !overBudget))
+
+  assert.deepEqual(names(rankLandSuggestions(pool, deck, { ...options, maxPrice: 5 })), [
+    'Budget Gate',
+  ])
+
+  const budgeted = rankLandSuggestions(pool, deck, { ...options, remainingBudget: 10 })
+  assert.deepEqual(
+    budgeted.map(({ card, overBudget }) => [card.name, overBudget]),
+    [
+      ['Budget Gate', false],
+      ['Sacred Foundry', true],
+    ],
+  )
+  // The over-budget land still yields its slot to an affordable one before the limit applies.
+  assert.deepEqual(
+    names(rankLandSuggestions(pool, deck, { ...options, remainingBudget: 10, limit: 1 })),
+    ['Budget Gate'],
+  )
+  // Unpriced lands are never treated as over budget or over the cap.
+  const unpriced = [priced(sacredFoundry)]
+  assert.equal(
+    rankLandSuggestions(unpriced, deck, { ...options, maxPrice: 1, remainingBudget: 0 })[0]
+      .overBudget,
+    false,
+  )
+})

@@ -4,7 +4,7 @@ import { scryfallImage, type Card, type ScryfallCard } from '../../domain/card-m
 import { basicLandNames } from '../../deck-analysis.ts'
 import type { LandSuggestion } from '../../land-suggestions.ts'
 import { ArtLoading } from '../../shared/CardArt.tsx'
-import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { CardPriceLink, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
@@ -225,7 +225,7 @@ export function BasicLandDialog({
               Each one you add replaces a basic.
             </p>
             <ul className="nonbasic-land-list">
-              {nonbasicLands.map(({ card, benefit, drawback }) => (
+              {nonbasicLands.map(({ card, benefit, drawback, overBudget }) => (
                 <li key={card.name}>
                   <CardReference
                     card={card}
@@ -235,6 +235,10 @@ export function BasicLandDialog({
                   />
                   <p className="land-trade-off">
                     <span>{benefit}.</span> <span>{drawback}.</span>
+                  </p>
+                  <p className="land-price">
+                    {card.price ? <CardPriceLink card={card} /> : <span>Unpriced</span>}
+                    {overBudget && <strong>Over budget</strong>}
                   </p>
                   <button
                     type="button"

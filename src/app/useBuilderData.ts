@@ -179,6 +179,8 @@ function buildDeckData(deps: BuilderDataDeps) {
     identity: commanderDetails?.colours ?? [],
     landTarget: calculatedLandTarget,
     limit: Math.min(6, landGap),
+    maxPrice: deps.maxPrice,
+    remainingBudget: remainingDeckBudget(deps.deckBudget, deck),
   })
   const showLandFill = landFillReady(deck.length, analysis.counts.lands, calculatedLandTarget)
   const indexedDeck: { card: DeckCard; index: number }[] = deck.map(
