@@ -66,6 +66,8 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 
 **Recommendation batch** — a group of up to four candidate cards. The player chooses **Add**, **Later**, **Ignore**, or **More like this** for each.
 
+**Starting deck** — an app-built draft that fills the main deck to 100 from the ranked recommendations, role targets and basic lands. It is a heuristic draft for the player to edit, never a tuned list. **Add all** adds every undecided card in the visible batch. One undo removes either.
+
 **Signature seed** — a selected main-deck card whose engine is used to find more candidates from EDHREC. Its results show `Seen with <seed>`.
 
 **Deck review** and **Deck Doctor** — analysis of the current deck, and an optional flow that proposes equal-count swaps for the player to approve.

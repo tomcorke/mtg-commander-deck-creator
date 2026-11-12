@@ -587,8 +587,33 @@ main > header:has(.display-settings-panel) {
 .dark .add-zone-toggle button {
   border-color: var(--border-control);
 }
-.recommendations > .add-zone-toggle {
+.recommendations > .add-zone-toggle,
+.bulk-actions {
   margin-top: 10px;
+}
+/* Bulk shortcuts share the add-zone row: the zone choice left, the shortcuts right. */
+.bulk-actions-row,
+.bulk-actions-buttons,
+.bulk-actions-status:not(:empty) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.bulk-actions-row {
+  justify-content: space-between;
+  column-gap: 16px;
+}
+.bulk-actions-help {
+  width: 280px;
+}
+.bulk-actions-status:not(:empty) {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.bulk-actions .form-error {
+  margin: 8px 0 0;
 }
 .pagination {
   display: flex;

@@ -83,6 +83,7 @@ export const initialStateSchema = stateSchema
     recommendationOptionsChanged: z.boolean(),
     committedPoolKey: z.string(),
     deckDoctorHistory: z.array(z.never()).length(0),
+    bulkAdd: z.null().default(null),
     signatureQuota: z.strictObject({ pages: count, cards: count }),
     fetchEpoch: count,
     hydrationBoundary: count,

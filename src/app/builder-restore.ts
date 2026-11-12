@@ -10,7 +10,14 @@ export function restoreBuilderState(
   defaults?: BuilderState,
 ): BuilderState {
   const initial = defaults
-    ? { ...defaults, today, signatureDeckKey: id, focusedRole: null, deckDoctorHistory: [] }
+    ? {
+        ...defaults,
+        today,
+        signatureDeckKey: id,
+        focusedRole: null,
+        deckDoctorHistory: [],
+        bulkAdd: null,
+      }
     : createBuilderState(today, id)
   if (!saved) return initial
   const restored: BuilderState = {

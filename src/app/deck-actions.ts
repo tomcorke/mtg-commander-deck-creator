@@ -7,7 +7,7 @@ import {
   fetchScryfallPrintings,
   ScryfallRateLimitError,
 } from '../adapters/scryfall.ts'
-import { type AddZone } from '../deck-analysis.ts'
+import { basicLandNames, type AddZone } from '../deck-analysis.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
 import { defaultFinish, finishPrice, foilTypeFor, printingOptions } from '../domain/printing.ts'
 import type {
@@ -372,6 +372,48 @@ export async function addBasicLands(
   } catch {
     setBasicLandState('error')
   }
+}
+
+export function addAllInBatch(deps: AppActionContext) {
+  const result = builderAction(deps, { type: 'addBatch' })
+  deps.setBatchAnnouncement(result.error ?? result.notice ?? '')
+  return result.error ?? ''
+}
+
+/** Fetch the commander's basics, then fill the deck to 100 and open Deck review. */
+export async function buildStartingDeck(deps: AppActionContext) {
+  const job = deckJob(deps)
+  const expectedDeck = deps.deck
+  const colours: string[] = deps.commanderDetails?.colours ?? []
+  const names = colours.length
+    ? colours.map((colour) => basicLandNames[colour as keyof typeof basicLandNames])
+    : ['Wastes']
+  let basics: DeckCard[]
+  try {
+    basics = await Promise.all(names.map(fetchBasic))
+  } catch {
+    return 'Basic lands are unavailable right now. Try again shortly.'
+  }
+  if (!job.isCurrent()) return ''
+  if ((deps.getCurrentState?.() ?? deps).deck !== expectedDeck)
+    return 'The deck changed while basics loaded. Try again.'
+  const result = builderAction(deps, { type: 'buildStartingDeck', basics })
+  if (result.error) {
+    deps.setBatchAnnouncement(result.error)
+    return result.error
+  }
+  // This flow opens review itself; the completion effect must not open it again.
+  deps.skipCompletionReviewDecks.current.add(result.state.deck)
+  deps.setBatchAnnouncement(result.notice ?? '')
+  deps.setDeckDoctorError('')
+  deps.openModal(deps, 'review')
+  return ''
+}
+
+export function undoBulkAdd(deps: AppActionContext) {
+  const result = builderAction(deps, { type: 'undoBulkAdd' })
+  deps.setBatchAnnouncement(result.error ?? result.notice ?? '')
+  return result.error ?? ''
 }
 
 export async function selectManualCard(deps: AppActionContext, card: ScryfallCard) {
