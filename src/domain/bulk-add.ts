@@ -22,8 +22,13 @@ import type { CollectionMode, DeferredCard, PowerTarget } from './recommendation
  */
 export type BulkAddRecord = {
   kind: 'batch' | 'draft'
-  /** Each card added, in order. Basic lands repeat. */
-  added: { name: string; board: 'deck' | 'sideboard' }[]
+  /** Copies added of each card name. */
+  added: Record<string, number>
+  /**
+   * Copies of each added name across deck and sideboard before the add. Copies above this are the
+   * add's, wherever the player has since moved them; basics are interchangeable, so a count is exact.
+   */
+  baseline: Record<string, number>
   /** Basic lands added past the land target because candidates ran out. */
   extraBasics: number
   before: { queue: Card[]; deferredCards: DeferredCard<Card>[] }
@@ -177,74 +182,84 @@ export function planStartingDeck(input: StartingDeckInput, basics: DeckCard[]): 
   return { additions, taken, extraBasics: fill - landsShort }
 }
 
-/** Names of a bulk add's cards still on their boards, with basics counted once. */
-export function bulkAddedNames(record: BulkAddRecord | null, deck: DeckCard[]) {
-  if (!record) return new Set<string>()
-  const present = new Set(deck.map(({ name }) => name))
-  return new Set(
-    record.added
-      .filter(({ name, board }) => board === 'deck' && present.has(name))
-      .map(({ name }) => name),
-  )
+type Boards = { deck: DeckCard[]; sideboard: DeckCard[] }
+
+const copiesOf = (name: string, boards: Boards) =>
+  boards.deck.filter((card) => card.name === name).length +
+  boards.sideboard.filter((card) => card.name === name).length
+
+/** Count each name's copies across both boards, for a record's baseline. */
+export function boardCounts(names: Iterable<string>, boards: Boards) {
+  return Object.fromEntries([...new Set(names)].map((name) => [name, copiesOf(name, boards)]))
 }
 
-/** Remove each recorded card once from its board, newest copy first. */
-export function removeBulkAdded(
-  record: BulkAddRecord,
-  boards: { deck: DeckCard[]; sideboard: DeckCard[] },
-  commanderCount: number,
-) {
-  const next = { deck: [...boards.deck], sideboard: [...boards.sideboard] }
-  for (const { name, board } of [...record.added].reverse()) {
-    const cards = next[board]
-    const index = cards.findLastIndex((card) => card.name === name)
-    if (index >= (board === 'deck' ? commanderCount : 0)) cards.splice(index, 1)
+/** Copies of each added name still on either board, never counting the player's own copies. */
+export function remainingBulkAdded(record: BulkAddRecord | null, boards: Boards) {
+  const remaining = new Map<string, number>()
+  if (!record) return remaining
+  for (const [name, added] of Object.entries(record.added)) {
+    const count = Math.min(
+      added,
+      Math.max(0, copiesOf(name, boards) - (record.baseline[name] ?? 0)),
+    )
+    if (count) remaining.set(name, count)
   }
+  return remaining
+}
+
+/** Names of a bulk add's cards still in the main deck. */
+export function bulkAddedNames(record: BulkAddRecord | null, boards: Boards) {
+  const present = new Set(boards.deck.map(({ name }) => name))
+  return new Set([...remainingBulkAdded(record, boards).keys()].filter((name) => present.has(name)))
+}
+
+/** Remove the add's surviving copies, newest first: main deck (never commanders), then sideboard. */
+export function removeBulkAdded(record: BulkAddRecord, boards: Boards, commanderCount: number) {
+  const next = { deck: [...boards.deck], sideboard: [...boards.sideboard] }
+  for (const [name, count] of remainingBulkAdded(record, boards))
+    for (let copy = 0; copy < count; copy += 1) {
+      const index = next.deck.findLastIndex((card) => card.name === name)
+      const spare = next.sideboard.findLastIndex((card) => card.name === name)
+      if (index >= commanderCount) next.deck.splice(index, 1)
+      else if (spare >= 0) next.sideboard.splice(spare, 1)
+    }
   return next
 }
 
 /** A starting deck's cards still in the main deck: spells and nonbasic lands, then basics by name. */
-export function startingDeckSummary(record: BulkAddRecord | null, deck: DeckCard[]) {
+export function startingDeckSummary(record: BulkAddRecord | null, boards: Boards) {
   if (record?.kind !== 'draft') return null
-  const drafted = bulkAddedNames(record, deck)
+  const remaining = remainingBulkAdded(record, boards)
   const cards: DeckCard[] = []
-  const basics = new Map<string, { card: DeckCard; count: number }>()
-  const recordedCopies = new Map<string, number>()
-  for (const { name } of record.added) recordedCopies.set(name, (recordedCopies.get(name) ?? 0) + 1)
-  for (const card of deck) {
-    if (!drafted.has(card.name)) continue
-    if (!isBasicLandName(card.name)) {
-      if (!cards.some(({ name }) => name === card.name)) cards.push(card)
+  const basics: { card: DeckCard; count: number }[] = []
+  for (const card of boards.deck) {
+    const count = remaining.get(card.name)
+    if (
+      !count ||
+      [...cards, ...basics.map((basic) => basic.card)].some(({ name }) => name === card.name)
+    )
       continue
-    }
-    const entry = basics.get(card.name) ?? { card, count: 0 }
-    // Count only the copies the draft added, not basics the player had already.
-    if (entry.count < (recordedCopies.get(card.name) ?? 0)) entry.count += 1
-    basics.set(card.name, entry)
+    if (isBasicLandName(card.name))
+      basics.push({
+        card,
+        count: Math.min(count, boards.deck.filter(({ name }) => name === card.name).length),
+      })
+    else cards.push(card)
   }
-  const basicList = [...basics.values()]
-  if (!cards.length && !basicList.length) return null
+  if (!cards.length && !basics.length) return null
   return {
     cards,
-    basics: basicList,
-    total: cards.length + basicList.reduce((sum, { count }) => sum + count, 0),
+    basics,
+    total: cards.length + basics.reduce((sum, { count }) => sum + count, 0),
     extraBasics: record.extraBasics,
   }
 }
 
-/** The last bulk add and how many of its cards are still on their boards; null once none are. */
-export function bulkAddStatus(
-  record: BulkAddRecord | null,
-  boards: { deck: DeckCard[]; sideboard: DeckCard[] },
-) {
-  if (!record) return null
-  let count = 0
-  for (const board of ['deck', 'sideboard'] as const) {
-    const added = new Map<string, number>()
-    for (const entry of record.added)
-      if (entry.board === board) added.set(entry.name, (added.get(entry.name) ?? 0) + 1)
-    for (const [name, copies] of added)
-      count += Math.min(copies, boards[board].filter((card) => card.name === name).length)
-  }
-  return count ? { kind: record.kind, count } : null
+/** The last bulk add and how many of its cards are still on either board; null once none are. */
+export function bulkAddStatus(record: BulkAddRecord | null, boards: Boards) {
+  const count = [...remainingBulkAdded(record, boards).values()].reduce(
+    (sum, value) => sum + value,
+    0,
+  )
+  return record && count ? { kind: record.kind, count } : null
 }

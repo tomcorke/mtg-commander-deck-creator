@@ -10,7 +10,7 @@ import { builderPoolKey } from './builder-settings.ts'
 import { toCard, toDeckCard, type Card, type ScryfallCard } from './card-model.ts'
 import { cardConstructionError } from './commander-construction.ts'
 import { analyseDeck, rolesForCard } from '../deck-analysis.ts'
-import { bulkAddedNames, startingDeckSummary } from './bulk-add.ts'
+import { bulkAddStatus, bulkAddedNames, startingDeckSummary } from './bulk-add.ts'
 import { deckPriceTotal } from './deck-price.ts'
 
 const scryfall = (name: string, overrides: Partial<ScryfallCard> = {}): ScryfallCard => ({
@@ -96,7 +96,7 @@ test('Add all skips cards that break construction rules and says why', () => {
   const result = apply(builder({ queue: [card('Alpha'), offColour] }), { type: 'addBatch' })
   assert.deepEqual(names(result.state.deck), ['Leader', 'Alpha'])
   assert.match(result.notice ?? '', /Skipped Bolt: Card is outside/)
-  assert.deepEqual(result.state.bulkAdd?.added, [{ name: 'Alpha', board: 'deck' }])
+  assert.deepEqual(result.state.bulkAdd?.added, { Alpha: 1 })
 })
 
 test('undo after the batch advanced removes the cards and offers them again', () => {
@@ -139,10 +139,12 @@ test('a starting deck fills role targets, then slots, then lands, to exactly 100
   assert.match(result.notice ?? '', /added 98 cards/)
   // Drafted cards leave the queue and are marked for Deck review.
   assert.ok(
-    !result.state.queue.some(({ name }) => bulkAddedNames(result.state.bulkAdd, deck).has(name)),
+    !result.state.queue.some(({ name }) =>
+      bulkAddedNames(result.state.bulkAdd, result.state).has(name),
+    ),
   )
-  assert.ok(bulkAddedNames(result.state.bulkAdd, deck).has('Forest'))
-  assert.ok(!bulkAddedNames(result.state.bulkAdd, deck).has('Sol Ring'))
+  assert.ok(bulkAddedNames(result.state.bulkAdd, result.state).has('Forest'))
+  assert.ok(!bulkAddedNames(result.state.bulkAdd, result.state).has('Sol Ring'))
 
   const undone = apply(result.state, { type: 'undoBulkAdd' }).state
   assert.deepEqual(undone.deck, state.deck)
@@ -238,10 +240,42 @@ test('basics split by colour demand even when spells already make one colour', (
 test('Deck review summary lists drafted spells and only the basics the draft added', () => {
   const state = builder({ queue: draftPool(), deck: [commander, forest, forest] })
   const built = apply(state, { type: 'buildStartingDeck', basics: [forest] }).state
-  const summary = startingDeckSummary(built.bulkAdd, built.deck)
+  const summary = startingDeckSummary(built.bulkAdd, built)
   assert.ok(summary)
   const forests = built.deck.filter(({ name }) => name === 'Forest').length
   assert.equal(summary.basics[0].count, forests - 2)
   assert.equal(summary.total, 97)
-  assert.equal(startingDeckSummary(null, built.deck), null)
+  assert.equal(startingDeckSummary(null, built), null)
+})
+
+test('undo never removes the player’s own copies, even after drafted copies were removed', () => {
+  const state = builder({ queue: draftPool(), deck: [commander, forest, forest] })
+  const built = apply(state, { type: 'buildStartingDeck', basics: [forest] }).state
+  const forestIndexes = built.deck.flatMap((item, index) => (item.name === 'Forest' ? [index] : []))
+  // The player removes five Forests, more than they owned before the draft.
+  let edited = built
+  for (const index of forestIndexes.slice(-5).reverse())
+    edited = apply(edited, { type: 'removeCard', board: 'deck', index }).state
+  const undone = apply(edited, { type: 'undoBulkAdd' }).state
+  assert.deepEqual(names(undone.deck), ['Leader', 'Forest', 'Forest'])
+})
+
+test('undo also removes drafted cards the player moved to the sideboard', () => {
+  const built = apply(builder({ queue: draftPool() }), {
+    type: 'buildStartingDeck',
+    basics: [forest],
+  }).state
+  const moved = apply(built, { type: 'moveCard', board: 'deck', index: 1 }).state
+  assert.equal(moved.sideboard.length, 1)
+  assert.equal(bulkAddStatus(moved.bulkAdd, moved)?.count, 99)
+  const undone = apply(moved, { type: 'undoBulkAdd' }).state
+  assert.deepEqual(names(undone.deck), ['Leader'])
+  assert.deepEqual(undone.sideboard, [])
+})
+
+test('a starting deck is refused when the budget cannot cover a full deck', () => {
+  const state = builder({ queue: draftPool(), deckBudget: 5 })
+  const result = apply(state, { type: 'buildStartingDeck', basics: [forest] })
+  assert.match(result.error ?? '', /budget can’t cover/)
+  assert.equal(result.state, state)
 })

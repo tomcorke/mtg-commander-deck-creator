@@ -43,7 +43,8 @@ import { mergeRecommendationCandidates } from './recommender.ts'
 import { cardConstructionError, commanderConstructionError } from './commander-construction.ts'
 import { recommendationDataError } from './deck-data-status.ts'
 import { addCardSearchCards } from './card-search.ts'
-import { planStartingDeck, removeBulkAdded, type BulkAddRecord } from './bulk-add.ts'
+import { remainingDeckBudget } from './deck-price.ts'
+import { boardCounts, planStartingDeck, removeBulkAdded, type BulkAddRecord } from './bulk-add.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import {
   advanceRecommendationQueue,
@@ -799,23 +800,23 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 function applyAddBatch(state: BuilderState): BuilderActionResult {
   const batch = focusedRecommendations(state.queue, state.focusedRole, rolesForCard).slice(0, 4)
   let next = state
-  const added: BulkAddRecord['added'] = []
+  const added: string[] = []
   const skipped: string[] = []
   for (const card of batch) {
     if (next.decisions[card.name]) continue
-    const board = addsToSideboard(next) ? 'sideboard' : 'deck'
     const result = decision(next, { type: 'decide', card, decision: 'add' })
     if (result.error) skipped.push(result.error)
     else {
       next = result.state
-      added.push({ name: card.name, board })
+      added.push(card.name)
     }
   }
   if (!added.length)
     return invalid(state, skipped[0] ?? 'Every card in this batch already has a decision.')
   const record: BulkAddRecord = {
     kind: 'batch',
-    added,
+    added: Object.fromEntries(added.map((name) => [name, 1])),
+    baseline: boardCounts(added, state),
     extraBasics: 0,
     before: { queue: state.queue, deferredCards: state.deferredCards },
     after: { queue: next.queue, deferredCards: next.deferredCards },
@@ -848,11 +849,20 @@ function applyBuildStartingDeck(
     if (error) return invalid(state, `${deck[index].name}: ${error}`)
   }
   if (deck.length !== 100) return invalid(state, 'Could not fill the deck to 100 cards.')
+  const budgetLeft = remainingDeckBudget(state.deckBudget, deck)
+  if (budgetLeft !== null && budgetLeft < 0)
+    return invalid(
+      state,
+      'Your deck budget can’t cover a full 100-card deck. Raise it in Recommendation settings.',
+    )
+  const addedCopies: Record<string, number> = {}
+  for (const { name } of plan.additions) addedCopies[name] = (addedCopies[name] ?? 0) + 1
   const queue = state.queue.filter((card) => !plan.taken.has(card.name))
   const deferredCards = state.deferredCards.filter(({ card }) => !plan.taken.has(card.name))
   const record: BulkAddRecord = {
     kind: 'draft',
-    added: plan.additions.map(({ name }) => ({ name, board: 'deck' })),
+    added: addedCopies,
+    baseline: boardCounts(Object.keys(addedCopies), state),
     extraBasics: plan.extraBasics,
     before: { queue: state.queue, deferredCards: state.deferredCards },
     after: { queue, deferredCards },
@@ -867,7 +877,7 @@ function applyUndoBulkAdd(state: BuilderState): BuilderActionResult {
   const record = state.bulkAdd
   if (!record) return invalid(state, 'Nothing to undo.')
   const boards = removeBulkAdded(record, state, commanderNames(state.commander).length)
-  const names = new Set(record.added.map(({ name }) => name))
+  const names = new Set(Object.keys(record.added))
   const decisions = { ...state.decisions }
   for (const name of names) if (decisions[name] === 'add') delete decisions[name]
   const held = new Set([

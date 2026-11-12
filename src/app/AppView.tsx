@@ -442,6 +442,7 @@ function DeckReviewScreen({
   step: DeckReviewStep
   rememberMode: () => void
 }) {
+  const boards = { deck: state.deck, sideboard: state.sideboard }
   const closePage = () => {
     state.setBuilderModeReturn(null)
     const depth = readAppRoute()?.reviewDepth
@@ -512,7 +513,7 @@ function DeckReviewScreen({
         closePage={closePage}
         undoSwap={actions.undoDeckDoctorSwap}
         chooseTheme={() => void (state.setShowSubThemePicker(true), closePage())}
-        startingDeck={startingDeckSummary(state.bulkAdd, state.deck)}
+        startingDeck={startingDeckSummary(state.bulkAdd, boards)}
         undoStartingDeck={actions.undoBulkAdd}
       />
       {modals.importModal}
