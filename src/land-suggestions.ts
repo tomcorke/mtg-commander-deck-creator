@@ -7,8 +7,17 @@ import {
   type AnalysisCard,
   type ManaColour,
 } from './deck-analysis.ts'
+import { exceedsDeckBudget } from './domain/deck-price.ts'
+import { withinPriceCap } from './domain/recommendation-tuning.ts'
 
-export type LandSuggestion<T> = { card: T; score: number; benefit: string; drawback: string }
+export type LandSuggestion<T> = {
+  card: T
+  score: number
+  benefit: string
+  drawback: string
+  /** Adding it would take the deck past its budget (#498). */
+  overBudget: boolean
+}
 
 const sourceSymbols = ['W', 'U', 'B', 'R', 'G', 'C'] as const
 type SourceSymbol = (typeof sourceSymbols)[number]
@@ -173,9 +182,10 @@ function describeLand<T extends AnalysisCard>(
 
 /**
  * Nonbasic lands that beat the untapped basic they would replace, best first. Ties sort by name,
- * so a fixed pool and deck always give the same list.
+ * so a fixed pool and deck always give the same list. Like recommendations, lands above the max
+ * price are dropped and lands that would exceed the remaining deck budget wait behind the rest.
  */
-export function rankLandSuggestions<T extends AnalysisCard>(
+export function rankLandSuggestions<T extends AnalysisCard & { price?: string }>(
   candidates: T[],
   deck: AnalysisCard[],
   {
@@ -183,11 +193,15 @@ export function rankLandSuggestions<T extends AnalysisCard>(
     identity,
     landTarget,
     limit,
+    maxPrice = null,
+    remainingBudget = null,
   }: {
     excluded: string[]
     identity: string[]
     landTarget: number
     limit: number
+    maxPrice?: number | null
+    remainingBudget?: number | null
   },
 ): LandSuggestion<T>[] {
   const gaps = sourceGaps(deck, landTarget)
@@ -200,10 +214,19 @@ export function rankLandSuggestions<T extends AnalysisCard>(
         !/\bBasic\b/.test(card.typeLine) &&
         !isBasicLandName(card.name) &&
         !excluded.includes(card.name) &&
+        withinPriceCap(card, maxPrice) &&
         candidates.findIndex((other) => other.name === card.name) === index,
     )
-    .map((card) => describeLand(card, deck, identity, gaps, basic))
+    .map((card) => ({
+      ...describeLand(card, deck, identity, gaps, basic),
+      overBudget: exceedsDeckBudget(card, remainingBudget),
+    }))
     .filter(({ score }) => score > basic)
-    .sort((a, b) => b.score - a.score || a.card.name.localeCompare(b.card.name))
+    .sort(
+      (a, b) =>
+        Number(a.overBudget) - Number(b.overBudget) ||
+        b.score - a.score ||
+        a.card.name.localeCompare(b.card.name),
+    )
     .slice(0, Math.max(0, limit))
 }

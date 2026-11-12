@@ -726,7 +726,7 @@
 .nonbasic-land-list li {
   display: grid;
   /* Fixed name column so every description starts at the same x. */
-  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 6px 16px;
   padding: 6px 0;
@@ -740,9 +740,28 @@
   color: var(--text-muted);
   font-size: var(--type-data);
 }
+.land-price {
+  display: grid;
+  justify-items: end;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+  white-space: nowrap;
+}
+.land-price a {
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.land-price a:hover {
+  color: var(--text-strong);
+}
+.land-price strong {
+  color: var(--text-warning);
+}
 @media (max-width: 620px) {
   .nonbasic-land-list li {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
   }
   .land-trade-off {
     grid-column: 1 / -1;
