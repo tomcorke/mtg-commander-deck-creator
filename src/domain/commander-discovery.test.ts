@@ -52,6 +52,37 @@ test('combined exact identity/name filters fail closed and deduplicate Oracle id
   assert.deepEqual(orderCommanders(pool), pool, 'search order is kept so pages never repeat')
 })
 
+test('Within and Including match colour identity by subset and superset (#482)', async () => {
+  const cards = [
+    card('Mono black', { color_identity: ['B'] }),
+    card('Golgari', { color_identity: ['B', 'G'] }),
+    card('Sultai', { color_identity: ['B', 'G', 'U'] }),
+    card('Colourless', { color_identity: [] }),
+    card('Unknown', { color_identity: undefined } as unknown as Partial<ScryfallCard>),
+  ]
+  const names = (colourMatch: 'exactly' | 'within' | 'including') =>
+    filterCommanders(cards, { theme: '', colours: ['G', 'B'], colourMatch, search: '' }).map(
+      ({ name }) => name,
+    )
+  assert.deepEqual(names('exactly'), ['Golgari'])
+  assert.deepEqual(names('within'), ['Mono black', 'Golgari', 'Colourless'])
+  assert.deepEqual(names('including'), ['Golgari', 'Sultai'])
+
+  const queries: string[] = []
+  const search = async (query: string) => (queries.push(query), cards)
+  for (const colourMatch of ['within', 'including'] as const)
+    await discoverCommanders(
+      { theme: '', colours: ['G', 'B'], colourMatch, search: '' },
+      undefined,
+      {
+        search,
+        hydrate: async () => [],
+      },
+    )
+  assert.match(queries[0], / id<=bg$/)
+  assert.match(queries[1], / id>=bg$/)
+})
+
 test('every start theme has a bounded query or an expanded curated fallback', () => {
   for (const theme of selectableThemes) {
     if (discoveryQueries[theme]) continue

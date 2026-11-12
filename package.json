@@ -35,6 +35,7 @@
     "check:primer:browser": "node --experimental-strip-types scripts/check-primer-browser.ts",
     "check:broader-commanders:browser": "node --experimental-strip-types scripts/check-broader-commanders-browser.ts",
     "check:partner-pairs:browser": "node --experimental-strip-types scripts/check-partner-pairs-browser.ts",
+    "check:colour-identity-mode:browser": "node --experimental-strip-types scripts/check-colour-identity-mode-browser.ts",
     "check:card-references:browser": "node --experimental-strip-types scripts/check-card-references-browser.ts",
     "check:local-card-index:browser": "node --experimental-strip-types scripts/check-local-card-index-browser.ts",
     "evaluate:local-retrieval": "node --experimental-strip-types scripts/evaluate-local-retrieval.ts",
