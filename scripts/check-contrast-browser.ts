@@ -193,6 +193,13 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
       await button(page, 'Export deck').click()
       await check(`${screen} > Export`)
       await button(page, 'Close export').click()
+      await checkPrimer(screen)
+    }
+    const checkPrimer = async (screen: string) => {
+      await button(page, 'Commander basics').click()
+      await heading(page, 'Commander basics').waitFor()
+      await check(`${screen} > Commander basics`)
+      await page.keyboard.press('Escape')
     }
     const checkCommanderColours = async (themeName: string) => {
       let fixture: string[] | undefined
@@ -251,6 +258,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
         page.getByRole('dialog', { name: 'Random commander', exact: true }),
         'Cancel',
       ).click()
+      await checkPrimer('Start')
       await button(page, 'Import deck').click()
       await check('Start > Import')
       assert.deepEqual(scenario.errors, [], 'no page errors or unexpected dialogs')

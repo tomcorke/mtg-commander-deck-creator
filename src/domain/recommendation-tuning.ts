@@ -1,12 +1,5 @@
 import { normalizeRecommendationStyle, type RecommendationStyle } from './recommendation-types.ts'
 
-export const priorityLabels: Record<RecommendationStyle, string> = {
-  thematic: 'Theme first',
-  balanced: 'Balanced',
-  competitive: 'Deck needs first',
-  fun: 'Surprise me',
-}
-
 // Keep the stored style names; fold the old health override into the nearest priority.
 export function migrateRecommendationPriority(
   value: unknown,

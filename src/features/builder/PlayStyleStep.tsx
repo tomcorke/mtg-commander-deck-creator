@@ -5,9 +5,7 @@ import {
   type PlayStyle,
   type PlayStyleSettings,
 } from '../../domain/play-style.ts'
-import { priorityLabels } from '../../domain/recommendation-tuning.ts'
-
-const powerLabels = { precon: 'Core', upgraded: 'Upgraded', high: 'High power' }
+import { powerLabels, priorityLabels } from '../../domain/glossary.ts'
 
 // Art crops of chosen printings that hint at each tier, served by Scryfall (never stored here).
 // Cyclonic Rift is a Game Changer (checked against mtg-knowledge-base, 2026-10-25).
