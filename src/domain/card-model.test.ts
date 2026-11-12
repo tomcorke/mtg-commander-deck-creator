@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { scryfallBackImage, toDeckCard, type ScryfallCard } from './card-model.ts'
+import { cardSourceLink, scryfallBackImage, toDeckCard, type ScryfallCard } from './card-model.ts'
 
 const doubleFacedCard: ScryfallCard = {
   name: 'Front // Back',
@@ -34,4 +34,17 @@ test('does not treat split-card faces as back images', () => {
   const split = { ...doubleFacedCard, layout: 'split' }
   assert.equal(scryfallBackImage(split), undefined)
   assert.equal(toDeckCard(split).backImage, undefined)
+})
+
+test('credits EDHREC-sourced cards to EDHREC and everything else to Scryfall', () => {
+  const card = { name: "Kodama's Reach // Back", set: 'c21', collectorNumber: '1' }
+  assert.deepEqual(cardSourceLink({ ...card, source: 'edhrec' }), {
+    label: 'EDHREC',
+    uri: 'https://edhrec.com/cards/kodamas-reach',
+  })
+  assert.deepEqual(cardSourceLink({ ...card, source: 'scryfall' }), {
+    label: 'Scryfall',
+    uri: 'https://scryfall.com/card/c21/1',
+  })
+  assert.equal(cardSourceLink(card).label, 'Scryfall')
 })

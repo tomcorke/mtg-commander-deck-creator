@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react'
 
-import { cardScryfallUri, cardTypeLine, type DeckCard } from '../domain/card-model.ts'
+import { cardSourceLink, cardTypeLine, type DeckCard } from '../domain/card-model.ts'
 import { ArtLoading, FinishedCardImage } from './CardArt.tsx'
 import { CardDetails } from './CardDetails.tsx'
 import { OracleText } from './ManaSymbols.tsx'
@@ -57,7 +57,7 @@ export function CardDetailContent({
         {children}
         <CardDetails
           card={card}
-          source={{ label: 'Scryfall', uri: cardScryfallUri(card) }}
+          source={cardSourceLink(card)}
           onToggleSet={onToggleSet}
           collectionSelected={collectionSelected}
         />
