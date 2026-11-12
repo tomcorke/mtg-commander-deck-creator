@@ -428,6 +428,14 @@ function buildRecommendationData(
   }
 }
 
+// Before a play style is chosen the defaults are not a choice, so the summary must not read as one.
+function playStyleSummary(deps: BuilderDataDeps, settingsSummary: string) {
+  if (deps.awaitingPlayStyle) return 'Play style: not chosen yet'
+  return deps.playStyleSkippedBatch === deps.batchNumber
+    ? `Play style skipped · ${settingsSummary}`
+    : settingsSummary
+}
+
 function buildSettingsSummary(deps: BuilderDataDeps) {
   const {
     recommendationStyle,
@@ -455,7 +463,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
       ? `${collectionMode === 'only' ? 'Only' : 'Prefer'} selected sets`
       : 'All sets'
   const ownership = activeOwnershipMode(deps.ownershipMode, deps.ownedCards)
-  const recommendationSettingsSummary = [
+  const settingsSummary = [
     recommendationStyleLabel,
     powerTargetLabel,
     ...(maxPrice == null ? [] : [`≤ $${maxPrice}`]),
@@ -490,7 +498,10 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
     ownership,
     deps.ownedRevision,
   ])
-  return { recommendationSettingsSummary, recommendationQueryKey }
+  return {
+    recommendationSettingsSummary: playStyleSummary(deps, settingsSummary),
+    recommendationQueryKey,
+  }
 }
 
 export function buildBuilderData(deps: BuilderDataDeps) {

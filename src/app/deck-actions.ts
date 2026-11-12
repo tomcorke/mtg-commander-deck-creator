@@ -791,6 +791,9 @@ export function storeDeck(deps: AppActionContext, overwrite = false) {
 export function loadSavedDeck(deps: AppActionContext, saved: SavedDeck, checkCurrentData = true) {
   const state = checkCurrentData ? pendingDeckData(saved.state) : saved.state
   deps.setFirstBatchPending?.(state.firstBatchPending ?? false)
+  // Saved decks, drafts and imports resume building; only a reload returns to the play-style step.
+  deps.setAwaitingPlayStyle?.(false)
+  deps.setPlayStyleSkippedBatch?.(null)
   const signatureDeckKey =
     state.savedDeckId || saved.id || deps.buildIdentity?.id || deps.builderState.signatureDeckKey
   const today = deps.buildIdentity?.today ?? deps.builderState.today

@@ -139,6 +139,26 @@ test('named-save and recovery loads mark every persisted card pending without al
   }
 })
 
+test('loading a draft saved on the play-style step resumes building and clears an earlier skip', () => {
+  const deps = fixture()
+  deps.awaitingPlayStyle = true
+  deps.setAwaitingPlayStyle = (value: boolean) => (deps.awaitingPlayStyle = value)
+  deps.setFirstBatchPending = (value: boolean) => (deps.firstBatchPending = value)
+  deps.playStyleSkippedBatch = 1
+  deps.setPlayStyleSkippedBatch = (value: number | null) => (deps.playStyleSkippedBatch = value)
+  const source = {
+    ...a14BaseState,
+    deck: deps.deck,
+    queue: [],
+    firstBatchPending: true,
+    playStylePending: true,
+  }
+  loadSavedDeck(deps, { id: '', name: 'Draft', updatedAt: '', state: source })
+  assert.equal(deps.awaitingPlayStyle, false)
+  assert.equal(deps.firstBatchPending, true)
+  assert.equal(deps.playStyleSkippedBatch, null, 'An earlier skip does not label the loaded deck')
+})
+
 test('legacy swap undo refreshes the cut card and preserves its printing; all failed undos retain history', async () => {
   for (const mode of ['legal', 'banned', 'offline', 'missing-added', 'missing-sideboard']) {
     const deps = fixture()

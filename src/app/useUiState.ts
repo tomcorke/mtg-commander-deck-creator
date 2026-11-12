@@ -20,23 +20,6 @@ export function useUiState(
   const [cardReveals, setCardReveals] = useStoredOption('cardReveals', () => true)
   const [cardEffects, setCardEffects] = useStoredOption('cardEffects', () => true)
   const [previewScale, setPreviewScale] = useStoredOption('previewScale', () => 1)
-  const [awaitingPlayStyle, setAwaitingPlayStyle] = useState(false)
-  const [firstBatchPending, setFirstBatchPending] = useState(saved?.firstBatchPending ?? false)
-  const [showIntroGuide, setShowIntroGuide] = useState(false)
-  const [introGuideRequested, setIntroGuideRequested] = useStoredOption(
-    'introGuideRequested',
-    () => true,
-    (value) => value === true,
-  )
-  const [newDeckGuidePending, setNewDeckGuidePending] = useState(false)
-  const [firstBatchFocusPending, setFirstBatchFocusPending] = useState(false)
-  const resetFirstUse = useCallback(() => {
-    setAwaitingPlayStyle(false)
-    setShowIntroGuide(false)
-    setNewDeckGuidePending(false)
-    setFirstBatchFocusPending(false)
-    setFirstBatchPending(false)
-  }, [])
   const [pendingSubThemes, setPendingSubThemes] = useState<string[]>([])
   const pendingReviewChanges = useRef(false)
   const setPendingReviewChanges = useCallback((pending: boolean) => {
@@ -69,19 +52,7 @@ export function useUiState(
     setCardEffects,
     previewScale,
     setPreviewScale,
-    awaitingPlayStyle,
-    setAwaitingPlayStyle,
-    resetFirstUse,
-    firstBatchPending,
-    setFirstBatchPending,
-    showIntroGuide,
-    setShowIntroGuide,
-    introGuideRequested,
-    setIntroGuideRequested,
-    newDeckGuidePending,
-    setNewDeckGuidePending,
-    firstBatchFocusPending,
-    setFirstBatchFocusPending,
+    ...useFirstUseState(saved),
     pendingSubThemes,
     setPendingSubThemes,
     pendingReviewChanges,
@@ -100,6 +71,47 @@ export function useUiState(
     setPendingSavedDeckRemoval,
     historyReady,
     ...useImportState(),
+  }
+}
+
+/** New-deck setup: the play-style step, the first batch, and the optional guide. */
+function useFirstUseState(saved: PersistedDeckState | null) {
+  const [awaitingPlayStyle, setAwaitingPlayStyle] = useState(saved?.playStylePending ?? false)
+  // The batch on which Skip kept the current settings; its summary says so until the next batch.
+  const [playStyleSkippedBatch, setPlayStyleSkippedBatch] = useState<number | null>(null)
+  const [firstBatchPending, setFirstBatchPending] = useState(saved?.firstBatchPending ?? false)
+  const [showIntroGuide, setShowIntroGuide] = useState(false)
+  const [introGuideRequested, setIntroGuideRequested] = useStoredOption(
+    'introGuideRequested',
+    () => true,
+    (value) => value === true,
+  )
+  const [newDeckGuidePending, setNewDeckGuidePending] = useState(false)
+  const [firstBatchFocusPending, setFirstBatchFocusPending] = useState(false)
+  const resetFirstUse = useCallback(() => {
+    setAwaitingPlayStyle(false)
+    setPlayStyleSkippedBatch(null)
+    setShowIntroGuide(false)
+    setNewDeckGuidePending(false)
+    setFirstBatchFocusPending(false)
+    setFirstBatchPending(false)
+  }, [])
+  return {
+    awaitingPlayStyle,
+    setAwaitingPlayStyle,
+    playStyleSkippedBatch,
+    setPlayStyleSkippedBatch,
+    resetFirstUse,
+    firstBatchPending,
+    setFirstBatchPending,
+    showIntroGuide,
+    setShowIntroGuide,
+    introGuideRequested,
+    setIntroGuideRequested,
+    newDeckGuidePending,
+    setNewDeckGuidePending,
+    firstBatchFocusPending,
+    setFirstBatchFocusPending,
   }
 }
 

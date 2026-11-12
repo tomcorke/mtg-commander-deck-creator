@@ -336,6 +336,7 @@ function useStartActions(state: AppState, routing: RoutingActions, remote: Remot
     const settings = style ? playStyleSettings(current, style) : current
     if (style) builderAction(state, { type: 'settings', settings })
     state.setAwaitingPlayStyle(false)
+    state.setPlayStyleSkippedBatch(style ? null : 1)
     state.setNewDeckGuidePending(true)
     state.setFirstBatchFocusPending(true)
     return remote.firstBatch(settings)
@@ -567,7 +568,7 @@ export function useAppActions(state: AppState) {
   const remote = useRemoteActions(appState, routing)
   const resumeFirstBatch = useEffectEvent(() => remote.start(state.commander, true))
   useEffect(() => {
-    // A14 restores a prepared draft without showing a new-deck play-style step again.
+    // A prepared draft resumes its first batch once its play style is chosen or skipped (A14, #490).
     if (
       state.showBuilder &&
       state.firstBatchPending &&
