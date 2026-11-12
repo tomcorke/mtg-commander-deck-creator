@@ -4,9 +4,12 @@ import test from 'node:test'
 import { toDeckCard, type ScryfallCard } from './card-model.ts'
 import {
   addCardSearchCards,
+  advancedFilterCount,
   buildCardSearchQuery,
   cardSearchManaOptions,
   defaultCardSearchFilters,
+  defaultCardSearchOrder,
+  startingCardSearch,
   type CardSearchFilters,
 } from './card-search.ts'
 
@@ -232,4 +235,71 @@ test('deck-need role filters add Scryfall tag terms', () => {
   assert.ok(result.includes('otag:ramp'))
   assert.ok(result.includes('-(otag:sweeper)'))
   assert.ok(!result.includes('otag:removal'))
+})
+
+test('the simple search box matches a card name or rules-text phrase', () => {
+  assert.equal(
+    query({ text: ' draw "a" card ' }),
+    'legal:commander id<=gu date<=today (name:"draw \\"a\\" card" or o:"draw \\"a\\" card")',
+  )
+  assert.equal(query({ text: '  ' }), 'legal:commander id<=gu date<=today')
+})
+
+test('"Fits my theme" ORs every searchable deck theme and ignores themes without a term', () => {
+  const themed = (fitsTheme: boolean, themes: string[]) =>
+    buildCardSearchQuery(
+      { ...defaultCardSearchFilters, fitsTheme },
+      ['G'],
+      false,
+      undefined,
+      themes,
+    )
+  assert.equal(
+    themed(true, ['Tokens', 'Lifegain', 'Not a theme', '']),
+    'legal:commander id<=g ((o:token) or (o:"gain life"))',
+  )
+  assert.equal(themed(false, ['Tokens']), 'legal:commander id<=g')
+  assert.equal(themed(true, ['Not a theme']), 'legal:commander id<=g')
+})
+
+test('opening search starts from the biggest deck need, then the theme, by popularity', () => {
+  const targets = { ramp: 10, draw: 10, removal: 8, wipes: 3 }
+  assert.equal(defaultCardSearchOrder, 'edhrec')
+  const need = startingCardSearch({ ramp: 8, draw: 3, removal: 2, wipes: 0 }, targets, ['Tokens'])
+  assert.deepEqual(need.filters, { ...defaultCardSearchFilters, matches: { draw: 'need' } })
+  assert.match(need.label, /biggest need, Card draw \(3\/10\)/)
+  // Ties keep the deck-needs order.
+  assert.deepEqual(
+    startingCardSearch({ ramp: 0, draw: 0, removal: 0, wipes: 0 }, targets, []).filters.matches,
+    { ramp: 'need' },
+  )
+  const full = { ramp: 10, draw: 12, removal: 8, wipes: 3 }
+  const theme = startingCardSearch(full, targets, ['Tokens', 'Not a theme'])
+  assert.deepEqual(theme.filters, { ...defaultCardSearchFilters, fitsTheme: true })
+  assert.match(theme.label, /fit your theme \(Tokens\)/)
+  const plain = startingCardSearch(full, targets, ['Not a theme'])
+  assert.deepEqual(plain.filters, defaultCardSearchFilters)
+  assert.match(plain.label, /colour identity/)
+})
+
+test('advanced filter count ignores the simple controls and required deck roles', () => {
+  const count = (filters: Partial<CardSearchFilters>) =>
+    advancedFilterCount({ ...defaultCardSearchFilters, ...filters })
+  assert.equal(count({ text: 'Sol', fitsTheme: true, matches: { ramp: 'need' } }), 0)
+  assert.equal(
+    count({ name: 'Sol', nameMatch: 'any', minimumManaValue: '2', manaValueMatch: 'any' }),
+    0,
+  )
+  assert.equal(
+    count({
+      name: 'Sol',
+      typeLine: 'Saga',
+      rulesNeed: 'draw',
+      rulesExclude: 'discard',
+      maximumManaValue: '3',
+      filterIdentity: false,
+      matches: { ramp: 'exclude', Flying: 'need', G: 'exclude' },
+    }),
+    9,
+  )
 })

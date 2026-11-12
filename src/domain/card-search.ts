@@ -3,9 +3,15 @@ import { toDeckCard } from './card-model.ts'
 import { defaultFinish, foilTypeFor } from './printing.ts'
 import { cardConstructionError } from './commander-construction.ts'
 import { releasedBy } from './recommendation-sources.ts'
+import { themeSearchTerm } from './commander-catalog.ts'
+import { roleLabels } from './glossary.ts'
 
 export type SearchMatch = 'any' | 'need' | 'exclude'
 export type CardSearchFilters = {
+  /** The simple search box: a card name or rules-text phrase. */
+  text: string
+  /** Limit results to cards matching the deck's theme or active sub-themes. */
+  fitsTheme: boolean
   name: string
   nameMatch: SearchMatch
   typeLine: string
@@ -20,6 +26,8 @@ export type CardSearchFilters = {
 }
 
 export const defaultCardSearchFilters: CardSearchFilters = {
+  text: '',
+  fitsTheme: false,
   name: '',
   nameMatch: 'need',
   typeLine: '',
@@ -32,6 +40,9 @@ export const defaultCardSearchFilters: CardSearchFilters = {
   rulesExclude: '',
   filterIdentity: true,
 }
+
+/** Commander popularity: Scryfall's EDHREC rank order. */
+export const defaultCardSearchOrder = 'edhrec'
 
 export const cardSearchKeywords = [
   { label: 'Lifelink', query: 'kw:lifelink' },
@@ -83,6 +94,16 @@ export function cardSearchManaOptions(colours: string[]) {
   ]
 }
 
+/** Deck themes that have a Scryfall search term, so "Fits my theme" can filter by them. */
+export function searchableThemes(themes: string[]) {
+  return [...new Set(themes.filter((theme) => theme && themeSearchTerm(theme)))]
+}
+
+function themeTerm(themes: string[]) {
+  const terms = [...new Set(searchableThemes(themes).map((theme) => themeSearchTerm(theme)!))]
+  return terms.length ? `(${terms.map((term) => `(${term})`).join(' or ')})` : ''
+}
+
 const quoted = (value: string) => `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
 const matchTerm = (query: string, match: SearchMatch) =>
   match === 'any' ? '' : match === 'exclude' ? `-(${query})` : query
@@ -106,6 +127,7 @@ export function buildCardSearchQuery(
   commanderColours: string[],
   excludeUnreleased: boolean,
   today?: string,
+  themes: string[] = [],
 ) {
   const range = manaValueTerms(filters)
   const manaOptions = cardSearchManaOptions(
@@ -121,6 +143,10 @@ export function buildCardSearchQuery(
     'legal:commander',
     filters.filterIdentity ? `id<=${commanderColours.join('').toLowerCase() || 'c'}` : '',
     excludeUnreleased ? releasedBy(today) : '',
+    filters.text.trim()
+      ? `(name:${quoted(filters.text.trim())} or o:${quoted(filters.text.trim())})`
+      : '',
+    filters.fitsTheme ? themeTerm(themes) : '',
     filters.name.trim() ? matchTerm(`name:${quoted(filters.name.trim())}`, filters.nameMatch) : '',
     ...phrases('t', filters.typeLine, filters.typeLineMatch),
     range ? matchTerm(range, filters.manaValueMatch) : '',
@@ -139,6 +165,55 @@ export function buildCardSearchQuery(
   if (query.length > 1000)
     throw new Error('Too many search terms. Shorten the name, types, or rules text.')
   return query
+}
+
+/**
+ * Filters set under "Advanced filters". A required deck role belongs to the deck-needs list, so
+ * only an excluded role counts here.
+ */
+export function advancedFilterCount(filters: CardSearchFilters) {
+  const text = (value: string, match: SearchMatch) => Boolean(value.trim()) && match !== 'any'
+  return [
+    text(filters.name, filters.nameMatch),
+    text(filters.typeLine, filters.typeLineMatch),
+    Boolean(filters.rulesNeed.trim()),
+    Boolean(filters.rulesExclude.trim()),
+    text(filters.minimumManaValue + filters.maximumManaValue, filters.manaValueMatch),
+    !filters.filterIdentity,
+    ...Object.entries(filters.matches).map(
+      ([label, match]) => match === 'exclude' || (match === 'need' && !(label in roleSearchTags)),
+    ),
+  ].filter(Boolean).length
+}
+
+/**
+ * The search shown when the page opens: the deck need furthest below its target, else the deck's
+ * theme, else every card in the commander's colours. Results sort by commander popularity.
+ */
+export function startingCardSearch(
+  counts: Record<SearchRole, number>,
+  targets: Record<SearchRole, number>,
+  themes: string[],
+) {
+  const [role] = (Object.keys(roleSearchTags) as SearchRole[])
+    .map((key) => ({ key, gap: targets[key] - counts[key] }))
+    .filter(({ gap }) => gap > 0)
+    .sort((a, b) => b.gap - a.gap)
+  if (role)
+    return {
+      filters: { ...defaultCardSearchFilters, matches: { [role.key]: 'need' as const } },
+      label: `Showing your deck's biggest need, ${roleLabels[role.key]} (${counts[role.key]}/${targets[role.key]}), most popular first.`,
+    }
+  const fitting = searchableThemes(themes)
+  if (fitting.length)
+    return {
+      filters: { ...defaultCardSearchFilters, fitsTheme: true },
+      label: `Showing cards that fit your theme (${fitting.join(', ')}), most popular first.`,
+    }
+  return {
+    filters: defaultCardSearchFilters,
+    label: "Showing cards in your commander's colour identity, most popular first.",
+  }
 }
 
 export function cardSearchError(card: ScryfallCard, deck: DeckCard[], commanderColours: string[]) {
