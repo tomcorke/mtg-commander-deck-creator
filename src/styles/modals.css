@@ -1799,3 +1799,23 @@ main > .commander-header {
 .glossary-list.compact dd::before {
   content: ' ';
 }
+
+/* Partner step (#487): the pair's combined identity and colour hints under a commander tile. */
+.card-tile-caption > .partner-identity,
+.card-tile-caption > .change-commander-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.partner-step-back {
+  width: fit-content;
+  margin-bottom: 12px;
+}
+.partner-modal .export-actions,
+.change-commander-modal > .export-actions {
+  justify-content: flex-end;
+}

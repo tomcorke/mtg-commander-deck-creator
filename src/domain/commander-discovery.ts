@@ -2,6 +2,7 @@ import { fetchScryfallCardsByIdentifiers, searchScryfallCached } from '../adapte
 import { themeCommanders, themeSearchTerm } from './commander-catalog.ts'
 import { creatureTypeForTheme, creatureTypeTags } from './creature-types.ts'
 import { commanderConstructionError } from './commander-construction.ts'
+import { pairName, partnerSearchScope } from './commander-pairing.ts'
 import { cardNameKey, toDeckCard, type ScryfallCard } from './card-model.ts'
 
 export type DiscoveryFilters = {
@@ -286,3 +287,26 @@ export const orderCommanders = (cards: CommanderSuggestion[], sort?: CommanderSo
       (right.coverage ?? 0) - (left.coverage ?? 0) ||
       (sort ? compareBy[sort](left.card, right.card) : 0),
   )
+
+/**
+ * Every legal second commander for `first`, most popular first: Scryfall finds cards with a
+ * matching partner ability, then the shared construction check keeps only legal pairs (#487).
+ */
+export async function discoverPartners(
+  first: ScryfallCard,
+  signal?: AbortSignal,
+  search = searchScryfallCached,
+): Promise<CommanderMatches> {
+  const leader = toDeckCard(first)
+  const scope = partnerSearchScope(leader)
+  if (!scope) return { commanders: [], more: false }
+  const cards = await search(`legal:commander date<=today (${scope})`, fetch, signal, 'edhrec')
+  signal?.throwIfAborted()
+  const commanders = cards
+    .filter((card) => {
+      const partner = toDeckCard(card)
+      return pairName(leader, partner) && !commanderConstructionError([leader, partner])
+    })
+    .map((card) => ({ card, reason: `Partners with ${first.name}` }))
+  return { commanders, more: cards.length >= scryfallPageSize }
+}

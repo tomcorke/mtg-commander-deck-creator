@@ -139,6 +139,7 @@ export const actionSchema = z.discriminatedUnion('type', [
   z.strictObject({
     type: z.literal('promote'),
     candidate: deckCard,
+    partner: deckCard.optional(),
     outgoingNames: strings,
     keepOutgoing: z.boolean(),
     details: details.nullable(),

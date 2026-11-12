@@ -36,13 +36,16 @@ const pageSchema = z.object({
   }),
 })
 export type EdhrecCommanderPage = z.infer<typeof pageSchema>
+// Provider data: a pair page requested in a non-canonical commander order answers with this body.
+const redirectSchema = z.object({ redirect: z.string() })
+type EdhrecRedirect = z.infer<typeof redirectSchema>
 export type EdhrecCardList = EdhrecCommanderPage['container']['json_dict']['cardlists'][number]
 export type EdhrecPageKind = 'cards' | 'commanders'
 type PageJob = {
   controller: AbortController
   users: number
   settled: boolean
-  promise: Promise<EdhrecCommanderPage>
+  promise: Promise<EdhrecCommanderPage | EdhrecRedirect>
   expiresAt: number
   policy: RequestPolicy
 }
@@ -52,7 +55,7 @@ const cooldowns = new WeakMap<typeof fetch, number>()
 function subscribe(job: PageJob, signal?: AbortSignal, background = false) {
   if (!background) job.policy.background = false
   job.users++
-  return new Promise<EdhrecCommanderPage>((resolve, reject) => {
+  return new Promise<EdhrecCommanderPage | EdhrecRedirect>((resolve, reject) => {
     let released = false
     const release = () => {
       if (released) return
@@ -79,6 +82,10 @@ function subscribe(job: PageJob, signal?: AbortSignal, background = false) {
   })
 }
 
+/**
+ * One EDHREC page. A redirect body, such as a partner pair named in the other order, is followed
+ * once to the page it names.
+ */
 export async function fetchEdhrecPage(
   kind: EdhrecPageKind,
   slug: string,
@@ -86,6 +93,22 @@ export async function fetchEdhrecPage(
   signal?: AbortSignal,
   policy: RequestPolicy = {},
 ): Promise<EdhrecCommanderPage> {
+  const page = await fetchEdhrecBody(kind, slug, fetcher, signal, policy)
+  if (!('redirect' in page)) return page
+  const target = page.redirect.match(/^\/(cards|commanders)\/([a-z0-9-]+)$/)
+  if (target?.[1] !== kind || target[2] === slug) throw new Error('EDHREC page moved')
+  const moved = await fetchEdhrecBody(kind, target[2], fetcher, signal, policy)
+  if ('redirect' in moved) throw new Error('EDHREC page moved')
+  return moved
+}
+
+function fetchEdhrecBody(
+  kind: EdhrecPageKind,
+  slug: string,
+  fetcher: typeof fetch,
+  signal: AbortSignal | undefined,
+  policy: RequestPolicy,
+) {
   signal?.throwIfAborted()
   if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Invalid EDHREC slug')
   let cache = clients.get(fetcher)
@@ -131,7 +154,9 @@ export async function fetchEdhrecPage(
           if (controller.signal.aborted) throw error
           throw new ProviderRequestError('EDHREC network unavailable')
         })
-        return pageSchema.parse(JSON.parse(text))
+        const body: unknown = JSON.parse(text)
+        const redirect = redirectSchema.safeParse(body)
+        return redirect.success ? redirect.data : pageSchema.parse(body)
       },
       controller.signal,
       policy,

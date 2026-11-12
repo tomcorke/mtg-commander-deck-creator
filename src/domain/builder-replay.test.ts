@@ -306,3 +306,49 @@ test('promotion uses shared construction rules and moves displaced cards to the 
     }).error,
   )
 })
+
+test('promotion to a partner pair needs their combined colours and keeps a staying commander', () => {
+  const leader = (name: string, colours: string[], text = 'Partner') =>
+    toDeckCard(
+      raw(name, {
+        type_line: 'Legendary Creature — Elf',
+        color_identity: colours,
+        oracle_text: text,
+      }),
+    )
+  const green = leader('Green partner', ['G'])
+  const blue = leader('Blue partner', ['U'])
+  const blueSpell = toDeckCard(raw('Blue spell', { color_identity: ['U'] }))
+  const previous = state({
+    commander: 'Green partner',
+    commanderDetails: { images: [], art: [], colours: ['G'], printings: [], selections: [] },
+    deck: [green, blueSpell, ...Array.from({ length: 98 }, (_, i) => card(`Owned ${i}`))],
+  })
+  assert.ok(
+    applyBuilderAction(previous, {
+      type: 'promote',
+      candidate: green,
+      partner: leader('Not a partner', ['U'], 'Flying'),
+      outgoingNames: [],
+      keepOutgoing: true,
+      details: null,
+    }).error,
+  )
+  const paired = run(previous, {
+    type: 'promote',
+    candidate: green,
+    partner: blue,
+    outgoingNames: [],
+    keepOutgoing: true,
+    details: null,
+  })
+  assert.equal(paired.commander, 'Green partner & Blue partner')
+  assert.deepEqual(
+    paired.deck.slice(0, 2).map(({ name }) => name),
+    ['Green partner', 'Blue partner'],
+  )
+  // 101 cards: the last moves to the sideboard, so the library is 98.
+  assert.equal(paired.deck.length, 100)
+  assert.equal(paired.sideboard.length, 1)
+  assert.ok(paired.deck.some(({ name }) => name === 'Blue spell'))
+})

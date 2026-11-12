@@ -62,14 +62,26 @@ export function commanderPromotionInfo<T extends CommanderCandidate>(
   commanderColours: string[] = [],
 ): CommanderPromotionInfo<T> | null {
   if (!isCommanderCandidate(candidate)) return null
-  if ([candidate, ...deck].some((card) => !card.colorIdentity))
+  return commandersPromotionInfo([candidate], deck, commanderColours)
+}
+
+/**
+ * Whether `candidates` together, one commander or a partner pair, cover every colour the deck
+ * and `commanderColours` need. Pair legality is the construction check's job, not this one's.
+ */
+export function commandersPromotionInfo<T extends CommanderCandidate>(
+  candidates: CommanderCandidate[],
+  deck: T[],
+  commanderColours: string[] = [],
+): CommanderPromotionInfo<T> {
+  if ([...candidates, ...deck].some((card) => !card.colorIdentity))
     return {
       canPromote: false,
       missingColours: [],
       dependentCards: [],
       error: "Can't check this commander: colour identity is unknown. Refresh card data first.",
     }
-  const candidateColours = new Set(cardColourIdentity(candidate))
+  const candidateColours = new Set(candidates.flatMap((card) => cardColourIdentity(card)))
   const requiredColours = distinct([
     ...commanderColours,
     ...deck.flatMap((card) => cardColourIdentity(card)),
@@ -97,10 +109,16 @@ export function commanderPromotionWarning(info: CommanderPromotionInfo<unknown>)
 }
 
 export function promoteDeckCard(deck: DeckCard[], sideboard: DeckCard[], candidate: DeckCard) {
-  const nextDeck = [candidate, ...deck.filter((card) => card.name !== candidate.name)]
+  return promoteDeckCards(deck, sideboard, [candidate])
+}
+
+/** Puts the commanders first, in order; a deck past 100 cards moves its last cards to the sideboard. */
+export function promoteDeckCards(deck: DeckCard[], sideboard: DeckCard[], candidates: DeckCard[]) {
+  const names = candidates.map(({ name }) => name)
+  const nextDeck = [...candidates, ...deck.filter((card) => !names.includes(card.name))]
   const displaced = nextDeck.splice(100)
   return {
     deck: nextDeck,
-    sideboard: [...displaced, ...sideboard.filter((card) => card.name !== candidate.name)],
+    sideboard: [...displaced, ...sideboard.filter((card) => !names.includes(card.name))],
   }
 }

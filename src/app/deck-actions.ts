@@ -48,7 +48,8 @@ import {
   type ImportedCard,
   type ImportedDeck,
 } from '../deck-import.ts'
-import { commanderPromotionInfo } from '../domain/commander-promotion.ts'
+import { pairName } from '../domain/commander-pairing.ts'
+import { commandersPromotionInfo } from '../domain/commander-promotion.ts'
 import { start as startRecommendations, type AppActionContext } from './recommendation-actions.ts'
 import { resetSignatureContext } from './signature-actions.ts'
 import {
@@ -100,40 +101,50 @@ export function decide(deps: AppActionContext, card: Card, action: 'add' | 'late
   })
   if (result.error) deps.setBatchAnnouncement(result.error)
 }
-// The outgoing commander stays as a deck card unless `keepOutgoing` is false.
+// Outgoing commanders stay as deck cards unless `keepOutgoing` is false. With `partner`, the
+// candidate and partner become a pair; a current commander may stay on as one of them.
 export async function promoteToCommander(
   deps: AppActionContext,
   candidate: Card | DeckCard,
   keepOutgoing = true,
+  partner?: Card | DeckCard,
 ) {
   const job = deckJob(deps)
   deps = job.deps
   const { commander, commanderDetails, deck, setBatchAnnouncement, start } = deps
-  const outgoing = commanderNames(commander)
-  if (outgoing.includes(candidate.name)) return
+  const current = commanderNames(commander)
+  const candidates = partner ? [candidate, partner] : [candidate]
+  const names = candidates.map(({ name }) => name)
+  if (names.length === current.length && names.every((name) => current.includes(name))) return
+  const outgoing = current.filter((name) => !names.includes(name))
   const withoutOutgoing = (cards: DeckCard[]) =>
     keepOutgoing ? cards : cards.filter((card) => !outgoing.includes(card.name))
-  const promotion = commanderPromotionInfo(
-    candidate,
+  const promotion = commandersPromotionInfo(
+    candidates,
     withoutOutgoing(deck),
     keepOutgoing ? (commanderDetails?.colours ?? []) : [],
   )
-  if (!promotion?.canPromote) return
-  const error = commanderConstructionError([candidate])
+  if (!promotion.canPromote) return
+  const commanderName = partner ? pairName(candidate, partner) : candidate.name
+  const error =
+    commanderConstructionError(candidates) ||
+    (commanderName ? '' : 'This pair cannot be saved: a name contains " & ".')
   if (error) {
     setBatchAnnouncement(error)
     return
   }
-  const loaded = await start(candidate.name, true)
+  const loaded = await start(commanderName, true)
   if (!loaded || !job.isCurrent()) return
-  const current = deps.getCurrentState?.() ?? deps
-  const existing = [...current.deck, ...current.sideboard].find(
-    (card: DeckCard) => card.name === candidate.name,
+  const latest = deps.getCurrentState?.() ?? deps
+  const promoted = candidates.map(
+    (card) =>
+      [...latest.deck, ...latest.sideboard].find((owned: DeckCard) => owned.name === card.name) ??
+      toDeckCardFromRecommendation(card as Card),
   )
-  const promoted = existing ?? toDeckCardFromRecommendation(candidate as Card)
   const result = builderAction(deps, {
     type: 'promote',
-    candidate: promoted,
+    candidate: promoted[0],
+    partner: promoted[1],
     outgoingNames: outgoing,
     keepOutgoing,
     details: deps.getBuilderState().commanderDetails,
@@ -142,7 +153,9 @@ export async function promoteToCommander(
     setBatchAnnouncement(result.error)
     return
   }
-  setBatchAnnouncement(`${candidate.name} is now your commander.`)
+  setBatchAnnouncement(
+    `${names.join(' and ')} ${names.length === 1 ? 'is now your commander' : 'are now your commanders'}.`,
+  )
 }
 
 export async function changeArt(

@@ -34,7 +34,8 @@ import {
 } from './card-model.ts'
 import { commanderNames } from './commander-catalog.ts'
 import { gameChangersAtLimit } from './play-style.ts'
-import { commanderPromotionInfo, promoteDeckCard } from './commander-promotion.ts'
+import { pairName } from './commander-pairing.ts'
+import { commandersPromotionInfo, promoteDeckCards } from './commander-promotion.ts'
 import { applyBuilderHydration, applyBuilderPrinting, retryBuilderData } from './builder-data.ts'
 import { beginBuilderRecommendations, resetBuilder } from './builder-lifecycle.ts'
 import { builderPoolKey } from './builder-settings.ts'
@@ -225,6 +226,8 @@ export type BuilderAction =
   | {
       type: 'promote'
       candidate: DeckCard
+      /** The second commander of a partner pair. */
+      partner?: DeckCard
       outgoingNames: string[]
       keepOutgoing: boolean
       details: CommanderDetails | null
@@ -759,22 +762,26 @@ function applyPromotion(
   const deck = action.keepOutgoing
     ? state.deck
     : state.deck.filter((card) => !action.outgoingNames.includes(card.name))
-  const promotion = commanderPromotionInfo(
-    action.candidate,
+  const candidates = [action.candidate, ...(action.partner ? [action.partner] : [])]
+  const promotion = commandersPromotionInfo(
+    candidates,
     deck,
     action.keepOutgoing ? (state.commanderDetails?.colours ?? []) : [],
   )
-  if (!promotion?.canPromote)
-    return invalid(state, promotion?.error ?? 'This card cannot lead the current deck.')
-  const error = commanderConstructionError([action.candidate])
+  if (!promotion.canPromote)
+    return invalid(state, promotion.error ?? 'This card cannot lead the current deck.')
+  const error = commanderConstructionError(candidates)
   if (error) return invalid(state, error)
-  const next = promoteDeckCard(deck, state.sideboard, action.candidate)
+  const names = candidates.map(({ name }) => name)
+  const commander = action.partner ? pairName(action.candidate, action.partner) : names[0]
+  if (!commander) return invalid(state, 'This pair cannot be saved: a name contains " & ".')
+  const next = promoteDeckCards(deck, state.sideboard, candidates)
   return done({
     ...state,
     ...next,
-    commander: action.candidate.name,
+    commander,
     commanderDetails: action.details,
-    queue: state.queue.filter((card) => card.name !== action.candidate.name),
+    queue: state.queue.filter((card) => !names.includes(card.name)),
   })
 }
 
