@@ -118,3 +118,7 @@ export function themeChoiceGroups(query: string, selected: string, expanded: The
     }
   })
 }
+
+/** Themes matching a search, excluding a selection kept visible without matching. */
+export const themeMatchCount = (query: string) =>
+  themeChoiceGroups(query, '', []).reduce((count, group) => count + group.themes.length, 0)

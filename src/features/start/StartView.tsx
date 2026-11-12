@@ -16,6 +16,7 @@ import {
   collapsedThemeCount,
   themeChoiceGroups,
   themeDescription,
+  themeMatchCount,
   type ThemeGroupName,
 } from '../../domain/theme-guide.ts'
 import {
@@ -62,15 +63,7 @@ function CreatureTypeChips({
       {chosen
         .filter((name) => name !== theme || !curated.includes(name))
         .map((name) => (
-          <button
-            className="selected"
-            type="button"
-            key={name}
-            aria-label={`Remove ${name}`}
-            onClick={() => remove(name)}
-          >
-            {name} <span aria-hidden="true">×</span>
-          </button>
+          <ThemeChip key={name} name={name} selected remove onPress={() => remove(name)} />
         ))}
       {chosen.length < 3 &&
         (open ? (
@@ -141,27 +134,34 @@ function placeThemeHelp(event: SyntheticEvent<HTMLElement>) {
 
 const themeId = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
-/** A theme chip whose description shows as a popover on hover and keyboard focus. */
+/**
+ * A theme chip whose description shows as a popover on hover and keyboard focus. A `remove` chip
+ * is a chosen creature type whose press removes it rather than toggling it.
+ */
 function ThemeChip({
   name,
   selected,
-  choose,
+  onPress,
+  remove = false,
 }: {
   name: string
   selected: boolean
-  choose: (name: string) => void
+  onPress: () => void
+  remove?: boolean
 }) {
-  const help = `theme-help-${themeId(name)}`
+  const help = `theme-help-${remove ? 'remove-' : ''}${themeId(name)}`
   return (
     <span className="theme-chip" onPointerEnter={placeThemeHelp} onFocus={placeThemeHelp}>
       <button
         className={selected ? 'selected' : ''}
-        aria-pressed={selected}
+        aria-pressed={remove ? undefined : selected}
+        aria-label={remove ? `Remove ${name}` : undefined}
         aria-describedby={help}
         type="button"
-        onClick={() => choose(name)}
+        onClick={onPress}
       >
         {name}
+        {remove && <span aria-hidden="true"> ×</span>}
       </button>
       <span className="action-help theme-help" id={help} role="tooltip">
         {themeDescription(name)}
@@ -226,7 +226,7 @@ function ThemeFilter({
   const [expanded, setExpanded] = useState<ThemeGroupName[]>([])
   const searching = Boolean(themeQuery.trim())
   const groups = themeChoiceGroups(themeQuery, theme, expanded)
-  const themeMatches = groups.reduce((count, group) => count + group.themes.length, 0)
+  const themeMatches = themeMatchCount(themeQuery)
   const description = themeDescription(theme)
   const clearThemeSearch = () => {
     setThemeQuery('')
@@ -264,7 +264,12 @@ function ThemeFilter({
             toggle={searching ? undefined : () => toggleGroup(group.name)}
           >
             {group.themes.map((choice) => (
-              <ThemeChip key={choice} name={choice} selected={theme === choice} choose={choose} />
+              <ThemeChip
+                key={choice}
+                name={choice}
+                selected={theme === choice}
+                onPress={() => choose(choice)}
+              />
             ))}
             {group.name === 'Creature types' && (
               <CreatureTypeChips

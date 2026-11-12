@@ -7,6 +7,7 @@ import {
   themeChoiceGroups,
   themeDescription,
   themeGroups,
+  themeMatchCount,
 } from './theme-guide.ts'
 
 test('every selectable theme sits in exactly one group', () => {
@@ -59,4 +60,9 @@ test('search matches across every group, ignoring collapse', () => {
   )
   assert.ok(themeChoiceGroups('TOK', '', [])[0].themes.includes('Tokens'))
   assert.deepEqual(themeChoiceGroups('zzz', 'Tokens', [])[0].themes, ['Tokens'])
+})
+
+test('the match count ignores a selected theme kept visible without matching', () => {
+  assert.equal(themeMatchCount('zzz'), 0)
+  assert.equal(themeMatchCount('blink'), 1)
 })
