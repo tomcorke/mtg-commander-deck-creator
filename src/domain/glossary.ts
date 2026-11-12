@@ -57,7 +57,7 @@ export const formatTerms = {
   colourIdentity: {
     term: 'Colour identity',
     definition:
-      "Every colour in a card's mana cost and rules text. Each card's colour identity must fit within your commander's; colourless cards fit any deck.",
+      "The colours of the mana symbols in a card's cost and rules text (not reminder text), plus any colour indicator or colour-setting ability. Every card's colour identity must fit within your commander's.",
     kind: 'rule',
     citation: 'Comprehensive Rules 903.4, 903.5c',
     source: rules,
