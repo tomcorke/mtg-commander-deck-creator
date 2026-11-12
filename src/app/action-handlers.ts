@@ -32,6 +32,9 @@ export function createActionHandlers(deps: AppActionContext) {
       ),
     undoDeckDoctorSwap: (id: string) => deckActions.undoDeckDoctorSwap(deps, id),
     addCollectionCard: (card: ScryfallCard) => deckActions.addCollectionCard(deps, card),
+    addAllInBatch: () => deckActions.addAllInBatch(deps),
+    buildStartingDeck: () => deckActions.buildStartingDeck(deps),
+    undoBulkAdd: () => deckActions.undoBulkAdd(deps),
     decide: (card: Card, action: 'add' | 'later' | 'ignore') =>
       deckActions.decide(deps, card, action),
     promoteToCommander: (

@@ -2,6 +2,8 @@ import { LandDropContext } from './LandDropContext.tsx'
 import { finishLabel } from '../../domain/printing.ts'
 import type { BatchRevealState } from './reveal-batch.ts'
 import { RecommendationBatch } from './RecommendationBatch.tsx'
+import { BulkActions } from './BulkActions.tsx'
+import { bulkAddStatus } from '../../domain/bulk-add.ts'
 import { FinishFilters } from '../../shared/FinishFilters.tsx'
 import type { BuilderAction } from '../../domain/builder-state.ts'
 import { creatureTypeForTheme, hasTag } from '../../domain/creature-types.ts'
@@ -814,9 +816,42 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </div>
           ) : scoredBatch.length ? (
             <>
-              <AddZoneToggle
-                zone={toSideboard ? 'sideboard' : 'deck'}
-                onChange={model.chooseAddZone}
+              <BulkActions
+                zoneToggle={
+                  <AddZoneToggle
+                    zone={toSideboard ? 'sideboard' : 'deck'}
+                    onChange={model.chooseAddZone}
+                  />
+                }
+                addableCount={
+                  scoredBatch.filter(
+                    ({ card }) =>
+                      !decisions[card.name] &&
+                      !recommendationDataError(
+                        card,
+                        recommendationBoard,
+                        commanderDetails?.colours ?? [],
+                        model.excludeGameChangers,
+                      ),
+                  ).length
+                }
+                openSlots={Math.max(0, 100 - deck.length)}
+                busy={batchBusy}
+                blockedReason={
+                  analysis.curvePending
+                    ? 'Card data is still being checked. Try again in a moment.'
+                    : model.recommendationOptionsChanged
+                      ? 'Show the next recommendations to apply your new settings first.'
+                      : ''
+                }
+                status={bulkAddStatus(model.bulkAdd, { deck, sideboard })}
+                onAddAll={model.addAllInBatch}
+                onBuild={model.buildStartingDeck}
+                onUndo={model.undoBulkAdd}
+                onReview={() => {
+                  setDeckDoctorError('')
+                  openModal('review')
+                }}
               />
               <RecommendationBatch
                 batchNumber={batchNumber}

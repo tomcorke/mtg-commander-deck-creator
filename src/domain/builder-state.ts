@@ -43,6 +43,7 @@ import { mergeRecommendationCandidates } from './recommender.ts'
 import { cardConstructionError, commanderConstructionError } from './commander-construction.ts'
 import { recommendationDataError } from './deck-data-status.ts'
 import { addCardSearchCards } from './card-search.ts'
+import { planStartingDeck, removeBulkAdded, type BulkAddRecord } from './bulk-add.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import {
   advanceRecommendationQueue,
@@ -103,6 +104,8 @@ export type BuilderState = {
   recommendationOptionsChanged: boolean
   committedPoolKey: string
   deckDoctorHistory: DeckDoctorSwapRecord[]
+  /** The last "Add all" or starting deck, undoable in one step. Session-only. */
+  bulkAdd: BulkAddRecord | null
   /** Per-build logical quota; transport caches and wall clocks never replenish it. */
   signatureQuota: { pages: number; cards: number }
   fetchEpoch: number
@@ -154,6 +157,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     recommendationOptionsChanged: false,
     committedPoolKey: '',
     deckDoctorHistory: [],
+    bulkAdd: null,
     pendingFetches: [],
     completedFetches: [],
     localCandidateBuffer: [],
@@ -255,6 +259,9 @@ export type BuilderAction =
       moveCutToSideboard: boolean
     }
   | { type: 'doctorUndo'; id: string; refreshedCut?: DeckCard }
+  | { type: 'addBatch' }
+  | { type: 'buildStartingDeck'; basics: DeckCard[] }
+  | { type: 'undoBulkAdd' }
 
 /** Phase 3 adds reservations, quotas and settlement to these boundary descriptions. */
 export type BuilderFetchRequest =
@@ -266,6 +273,8 @@ export type BuilderActionResult = {
   state: BuilderState
   fetchRequests: BuilderFetchRequest[]
   error?: string
+  /** A status line for a completed action, such as a bulk add that skipped some cards. */
+  notice?: string
 }
 
 const excludesGameChangers = (state: BuilderState) =>
@@ -785,6 +794,125 @@ function applyPromotion(
   })
 }
 
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
+
+function applyAddBatch(state: BuilderState): BuilderActionResult {
+  const batch = focusedRecommendations(state.queue, state.focusedRole, rolesForCard).slice(0, 4)
+  let next = state
+  const added: BulkAddRecord['added'] = []
+  const skipped: string[] = []
+  for (const card of batch) {
+    if (next.decisions[card.name]) continue
+    const board = addsToSideboard(next) ? 'sideboard' : 'deck'
+    const result = decision(next, { type: 'decide', card, decision: 'add' })
+    if (result.error) skipped.push(result.error)
+    else {
+      next = result.state
+      added.push({ name: card.name, board })
+    }
+  }
+  if (!added.length)
+    return invalid(state, skipped[0] ?? 'Every card in this batch already has a decision.')
+  const record: BulkAddRecord = {
+    kind: 'batch',
+    added,
+    extraBasics: 0,
+    before: { queue: state.queue, deferredCards: state.deferredCards },
+    after: { queue: next.queue, deferredCards: next.deferredCards },
+  }
+  return {
+    ...done({ ...next, bulkAdd: record }),
+    notice: `Added ${plural(added.length, 'card')} from this batch.${skipped.length ? ` Skipped ${skipped.join(' ')}` : ''}`,
+  }
+}
+
+function applyBuildStartingDeck(
+  state: BuilderState,
+  action: Extract<BuilderAction, { type: 'buildStartingDeck' }>,
+): BuilderActionResult {
+  if (!state.commanderDetails) return invalid(state, 'Choose a commander first.')
+  if (state.deck.length >= 100) return invalid(state, 'The main deck already has 100 cards.')
+  if (state.recommendationOptionsChanged || state.committedPoolKey !== builderPoolKey(state))
+    return invalid(state, 'Show the next recommendations to apply your new settings first.')
+  let plan
+  try {
+    plan = planStartingDeck(state, action.basics)
+  } catch (error) {
+    return invalid(state, error instanceof Error ? error.message : 'Could not build a draft.')
+  }
+  const deck = [...state.deck, ...plan.additions]
+  // A final full check, so a planning slip can never leave an illegal deck.
+  const identity = state.commanderDetails.colours
+  for (let index = state.deck.length; index < deck.length; index += 1) {
+    const error = cardConstructionError(deck[index], deck.slice(0, index), identity)
+    if (error) return invalid(state, `${deck[index].name}: ${error}`)
+  }
+  if (deck.length !== 100) return invalid(state, 'Could not fill the deck to 100 cards.')
+  const queue = state.queue.filter((card) => !plan.taken.has(card.name))
+  const deferredCards = state.deferredCards.filter(({ card }) => !plan.taken.has(card.name))
+  const record: BulkAddRecord = {
+    kind: 'draft',
+    added: plan.additions.map(({ name }) => ({ name, board: 'deck' })),
+    extraBasics: plan.extraBasics,
+    before: { queue: state.queue, deferredCards: state.deferredCards },
+    after: { queue, deferredCards },
+  }
+  return {
+    ...done({ ...state, deck, queue, deferredCards, bulkAdd: record }),
+    notice: `Starting deck built: added ${plural(plan.additions.length, 'card')}.${plan.extraBasics ? ` Ran short of suggestions, so ${plural(plan.extraBasics, 'extra basic land')} filled the gap.` : ''}`,
+  }
+}
+
+function applyUndoBulkAdd(state: BuilderState): BuilderActionResult {
+  const record = state.bulkAdd
+  if (!record) return invalid(state, 'Nothing to undo.')
+  const boards = removeBulkAdded(record, state, commanderNames(state.commander).length)
+  const names = new Set(record.added.map(({ name }) => name))
+  const decisions = { ...state.decisions }
+  for (const name of names) if (decisions[name] === 'add') delete decisions[name]
+  const held = new Set([
+    ...[...boards.deck, ...boards.sideboard].map(({ name }) => name),
+    ...state.ignoredCards,
+  ])
+  let { queue, deferredCards } = state
+  if (queue === record.after.queue && deferredCards === record.after.deferredCards) {
+    queue = record.before.queue
+    deferredCards = record.before.deferredCards
+  } else {
+    // The queue moved on since the add; return its cards and rank them again.
+    const present = new Set(
+      [...queue, ...deferredCards.map(({ card }) => card)].map(({ name }) => name),
+    )
+    const returning = [
+      ...record.before.queue,
+      ...record.before.deferredCards.map(({ card }) => card),
+    ].filter(
+      (card, index, cards) =>
+        names.has(card.name) &&
+        !present.has(card.name) &&
+        !held.has(card.name) &&
+        cards.findIndex(({ name }) => name === card.name) === index,
+    )
+    if (returning.length) {
+      const candidates = [...returning, ...queue]
+      const restored = { ...state, ...boards }
+      queue = rankRecommendationCards(
+        candidates,
+        context(restored, candidates),
+        state.includeCreature,
+        rolesForCard,
+      )
+    }
+  }
+  return {
+    ...done({ ...state, ...boards, decisions, queue, deferredCards, bulkAdd: null }),
+    notice:
+      record.kind === 'draft'
+        ? 'Starting deck removed.'
+        : `Removed ${plural(names.size, 'card')} added from the batch.`,
+  }
+}
+
 /** No mutation, IDs, clock reads, storage, or live requests. */
 function reduceBuilderAction(state: BuilderState, action: BuilderAction): BuilderActionResult {
   switch (action.type) {
@@ -875,6 +1003,12 @@ function reduceBuilderAction(state: BuilderState, action: BuilderAction): Builde
       return applyDoctorApply(state, action)
     case 'doctorUndo':
       return applyDoctorUndo(state, action)
+    case 'addBatch':
+      return applyAddBatch(state)
+    case 'buildStartingDeck':
+      return applyBuildStartingDeck(state, action)
+    case 'undoBulkAdd':
+      return applyUndoBulkAdd(state)
   }
 }
 
@@ -897,6 +1031,12 @@ export function applyBuilderAction(
   )
     return finishFetchBoundary(planFetches(state, action.extraSubTheme))
   const result = reduceBuilderAction(state, action)
+  // A new commander, deck or pool invalidates the undo record's snapshots.
+  if (
+    !result.error &&
+    ['startOver', 'beginRecommendations', 'commanders', 'promote'].includes(action.type)
+  )
+    result.state = { ...result.state, bulkAdd: null }
   if (['startOver', 'restore', 'beginRecommendations', 'poolLoaded'].includes(action.type))
     result.state = {
       ...result.state,

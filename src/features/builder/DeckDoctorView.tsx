@@ -40,6 +40,8 @@ import { reviewSteps, type DeckReviewStep } from '../../app/routes.ts'
 import { CommanderSummary } from './CommanderSummary.tsx'
 import { DeckOverview, ReviewStatus } from './DeckOverview.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
+import type { startingDeckSummary } from '../../domain/bulk-add.ts'
+import { StartingDeckDraft } from './StartingDeckDraft.tsx'
 
 type DoctorCard = Card | DeckCard
 
@@ -95,6 +97,9 @@ type Props = {
   closePage: () => void
   undoSwap: (id: string) => Promise<boolean>
   chooseTheme: () => void
+  /** Cards an app-built starting deck added, while any remain. */
+  startingDeck: ReturnType<typeof startingDeckSummary>
+  undoStartingDeck: () => void
 }
 
 const findingKindLabels: Record<DeckDoctorFinding['kind'], string> = {
@@ -330,6 +335,8 @@ export function DeckDoctorView({
   undoSwap,
   chooseTheme,
   closePage,
+  startingDeck,
+  undoStartingDeck,
 }: Props) {
   const { commanderStyling, darkMode } = useVisualPreferences()
   const [candidateFetch, setCandidateFetch] = useState({
@@ -592,9 +599,10 @@ export function DeckDoctorView({
     setShownCandidates({})
   }
 
+  const draftNames = new Set(startingDeck?.cards.map(({ name }) => name))
   function cutGroupTile({ card, indexes }: { card: DeckCard; indexes: number[] }) {
     const flagged = flaggedNames.has(card.name)
-    const status = flagged ? 'In deck · flagged' : 'In deck'
+    const status = `In deck${draftNames.has(card.name) ? ' · app draft' : ''}${flagged ? ' · flagged' : ''}`
     if (indexes.length > 1)
       return (
         <ReviewCardTile
@@ -1017,6 +1025,9 @@ export function DeckDoctorView({
               </>
             )}
           </section>
+        )}
+        {step === 'Diagnose' && startingDeck && (
+          <StartingDeckDraft summary={startingDeck} openCard={openCard} undo={undoStartingDeck} />
         )}
         {step === 'Diagnose' && (
           <>

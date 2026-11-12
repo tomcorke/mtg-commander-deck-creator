@@ -417,6 +417,16 @@ await dr.builderReady()
 const b = await dr.sel('.deck-target-focus')
 b.click()
 await dr.sleep(2500)
+// builder-add-all · #492 · #build
+await dr.builderReady()
+;[...document.querySelectorAll('.bulk-actions button')]
+  .find((b) => b.textContent.startsWith('Add all'))
+  .click()
+await dr.text('with Add all')
+// review-starting-deck · #492 · #build · fetches basics (seed with `pnpm dev:record` on a miss); re-import afterwards
+await dr.builderReady()
+await dr.click('Build a starting deck')
+await dr.sel('#starting-deck-draft')
 // builder-board-preview · #290 · #build
 await dr.builderReady()
 const n = document.querySelector('.deck-board .deck-card-name')

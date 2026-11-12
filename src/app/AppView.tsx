@@ -15,6 +15,7 @@ import { BuilderTopBar } from '../features/builder/BuilderTopBar.tsx'
 import { BuilderView } from '../features/builder/BuilderView.tsx'
 import { ExportDeckModal } from '../features/builder/ExportDeckModal.tsx'
 import { DeckDoctorView } from '../features/builder/DeckDoctorView.tsx'
+import { startingDeckSummary } from '../domain/bulk-add.ts'
 import { DeckReviewHistoryModal } from '../features/modals/DeckReviewHistoryModal.tsx'
 import {
   readAppRoute,
@@ -511,6 +512,8 @@ function DeckReviewScreen({
         closePage={closePage}
         undoSwap={actions.undoDeckDoctorSwap}
         chooseTheme={() => void (state.setShowSubThemePicker(true), closePage())}
+        startingDeck={startingDeckSummary(state.bulkAdd, state.deck)}
+        undoStartingDeck={actions.undoBulkAdd}
       />
       {modals.importModal}
       {modals.savedDecksModal}

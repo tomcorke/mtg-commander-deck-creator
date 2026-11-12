@@ -63,6 +63,10 @@ The queue balances creature/mana picks, novelty, reason variety, and theme cover
 
 The same module owns Later/undecided cooldowns and can advance to deferred cards when unseen cards run out. These are queue delays, never turns, elapsed-time waits, or usefulness judgments.
 
+## Bulk adds and starting decks
+
+`src/domain/bulk-add.ts` owns **Add all** and **Build a starting deck** (#492). Add all applies the same Add check to each undecided card in the visible batch and skips cards that fail it. A starting deck fills unmet nonland role targets from the ranked queue, then the remaining nonland slots in queue order, then nonbasic lands that beat a basic (`rankLandSuggestions`), then basics for every slot left. Candidates are the queue and the Later list, minus ignored, Later and deck cards, filtered again by price cap, Core fast mana and Only-sets mode. Every pick passes the Add construction and Game Changer checks. With a deck budget, a pick fits only if basics could still fill every slot after it, so spending stops before the budget; unpriced cards always fit. The basic split counts only lands as existing sources, unlike the land-fill dialog, so mana creatures and rocks do not crowd out a colour's basics. When candidates run out, extra basics reach 100 and the draft reports how many. Role counts use `rolesForCard`, so the role limits above apply. A starting deck is a ranked fill, not deck construction advice: it ignores curve shape, card quality beyond rank, synergy between picks and interaction balance. Never call it tuned, optimised, bracket-checked or a recommended final list. Undo removes each recorded copy from its board and restores the queue snapshot when the queue has not moved; otherwise it returns the cards and re-ranks. The record is session-only, like Deck Doctor history.
+
 ## Power and collection preferences
 
 - **Power presets:** `src/app/useRecommendationState.ts` and `src/app/useAppActions.ts` set optional exclusions. Loose bracket mappings over-filter acceptable Upgraded decks and miss combos, land denial, loops, and intent. Never present settings as bracket compliance.
