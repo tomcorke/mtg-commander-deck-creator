@@ -4,6 +4,20 @@ import { formatUsdPrice } from '../domain/recommendation-scoring'
 
 export type CardSource = { label: string; uri: string }
 
+/** One short price line: the USD price linking to its seller, or nothing when unpriced. */
+export function CardPriceLink({
+  card,
+}: {
+  card: Pick<Card, 'name' | 'set' | 'collectorNumber' | 'scryfallUri' | 'price' | 'priceUri'>
+}) {
+  if (!card.price) return null
+  return (
+    <a href={card.priceUri ?? cardScryfallUri(card)} target="_blank" rel="noreferrer">
+      {formatUsdPrice(card.price)} <span>{card.priceUri ? 'TCGplayer' : 'Scryfall'} ↗</span>
+    </a>
+  )
+}
+
 export function ModalCloseButton({
   label,
   onClick,
@@ -52,7 +66,6 @@ export function CardDetails({
   collectionSelected?: boolean
 }) {
   const scryfallUri = cardScryfallUri(card)
-  const priceUri = card.priceUri ?? scryfallUri
   const printingName =
     card.setName && card.setName.toLowerCase() !== card.set.toLowerCase() ? card.setName : undefined
   return (
@@ -89,9 +102,7 @@ export function CardDetails({
         <div>
           <dt>Price</dt>
           <dd>
-            <a href={priceUri} target="_blank" rel="noreferrer">
-              {formatUsdPrice(card.price)} <span>{card.priceUri ? 'TCGplayer' : 'Scryfall'} ↗</span>
-            </a>
+            <CardPriceLink card={card} />
           </dd>
         </div>
       )}

@@ -53,7 +53,42 @@
   z-index: 40;
 }
 .card-offer > .actions {
-  margin-top: 18px;
+  margin-top: 12px;
+}
+/* Side by side, each offer shares the batch's rows so names, reasons and decisions line up and an
+   opened breakdown grows only its own row. */
+@media (min-width: 801px) {
+  .card-offer {
+    display: grid;
+    grid-row: span 7;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+    align-content: start;
+  }
+  .card-offer > .offer-heading {
+    grid-row: 1;
+  }
+  .card-offer > .offered-image {
+    grid-row: 2;
+  }
+  .card-offer > .card-copy {
+    grid-row: 3;
+  }
+  .card-offer > .actions {
+    grid-row: 4;
+    align-self: start;
+  }
+  .card-offer > .ignore-feedback {
+    grid-area: 5 / 1 / 6 / -1;
+    top: 0;
+  }
+  .card-offer > .score-breakdown {
+    grid-row: 6;
+    align-self: start;
+  }
+  .card-offer > .commander-promotion {
+    grid-row: 7;
+  }
 }
 .card-offer.synergy-pair {
   --synergy: #9a72ba;
@@ -817,7 +852,7 @@ button:disabled {
 .card-copy h3 {
   position: relative;
   z-index: 2;
-  margin: 18px 0 10px;
+  margin: 12px 0 6px;
   font-size: var(--type-section);
   text-shadow:
     0 1px 2px var(--card-title-shadow, #f8f8ff),
@@ -825,7 +860,7 @@ button:disabled {
 }
 .card-copy > .offer-reason {
   min-height: 0;
-  margin: -4px 0 12px;
+  margin: 0 0 6px;
   color: var(--text-strong);
   font-size: var(--type-body);
   font-weight: 500;
@@ -833,11 +868,22 @@ button:disabled {
   white-space: normal;
 }
 .card-copy > p {
-  min-height: 48px;
+  margin: 0 0 6px;
   color: var(--text-muted);
   font-size: var(--type-data);
   line-height: 1.5;
   white-space: pre-line;
+}
+.card-copy > .offer-price {
+  white-space: nowrap;
+}
+.card-copy > .offer-price a {
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.card-copy > .offer-price a:hover {
+  color: var(--text-strong);
 }
 .card-details {
   display: grid;
@@ -884,8 +930,8 @@ button:disabled {
   color: var(--text-strong);
 }
 .score-breakdown {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--border-divider);
 }
 .score-breakdown-heading {
@@ -1095,6 +1141,7 @@ button:disabled {
 .card-offer[data-batch-changing] > .card-copy > :not(.batch-old-copy),
 .card-offer[data-batch-changing] > .offer-heading,
 .card-offer[data-batch-changing] > .actions,
+.card-offer[data-batch-changing] > .score-breakdown,
 .card-offer[data-batch-changing] .card-image-actions,
 .card-offer[data-batch-changing] .synergy-info {
   opacity: var(--batch-copy-opacity, 0);

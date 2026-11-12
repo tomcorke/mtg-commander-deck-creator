@@ -18,8 +18,6 @@ import {
 } from 'react'
 
 import {
-  cardScryfallUri,
-  edhrecSlug,
   type Card,
   type CommanderDetails,
   type DeckCard,
@@ -53,7 +51,7 @@ import type {
 } from '../../domain/recommendation-types.ts'
 import type { DeckReviewFilter } from '../../deck-review.ts'
 import { ArtLoading, FinishedCardImage } from '../../shared/CardArt.tsx'
-import { CardDetails } from '../../shared/CardDetails.tsx'
+import { CardPriceLink } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { CardTile } from '../../shared/CardTile.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
@@ -905,6 +903,32 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         )}
                         <ArtLoading active={loadingArt === card.name} />
                       </div>
+                      <div className="card-copy">
+                        <h3>
+                          <CardReference
+                            card={card}
+                            onOpen={() =>
+                              model.openCardReference(
+                                limitedRecommendations || card.collectionMatch
+                                  ? { ...card, source: 'scryfall' }
+                                  : card,
+                              )
+                            }
+                          />
+                        </h3>
+                        <p className="offer-reason">{reason.sentence}</p>
+                        {card.price && (
+                          <p className="offer-price">
+                            <CardPriceLink card={card} />
+                          </p>
+                        )}
+                        {/* Without art the tile is the only place the rules text is readable at a glance. */}
+                        {!card.image && (
+                          <p className="offer-rules">
+                            <OracleText text={card.detail} />
+                          </p>
+                        )}
+                      </div>
                       <div
                         data-guide={index === 0 ? 'decisions' : undefined}
                         className={`actions ${toSideboard ? 'sideboard-actions' : ''}`}
@@ -986,39 +1010,13 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             ))}
                         </div>
                       )}
-                      <div className="card-copy">
-                        <h3>
-                          <CardReference card={card} onOpen={() => model.openCardReference(card)} />
-                        </h3>
-                        <p className="offer-reason">{reason.sentence}</p>
-                        <p>
-                          <OracleText text={card.detail} />
-                        </p>
-                        <CardDetails
-                          card={card}
-                          source={
-                            limitedRecommendations ||
-                            card.source === 'scryfall' ||
-                            card.collectionMatch
-                              ? { label: 'Scryfall', uri: cardScryfallUri(card) }
-                              : {
-                                  label: 'EDHREC',
-                                  uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}`,
-                                }
-                          }
-                          onToggleSet={() => toggleCollectionSet(card.set)}
-                          collectionSelected={
-                            collectionMode !== 'none' && collectionSets.includes(card.set)
-                          }
-                        />
-                        <ScoreBreakdown
-                          score={score}
-                          showPopularityPenalty={recommendationStyle === 'thematic'}
-                          showCollection={collectionMode !== 'none' && collectionSets.length > 0}
-                          showTheme={Boolean(theme)}
-                          showSubThemes={activeSubThemes.length > 0}
-                        />
-                      </div>
+                      <ScoreBreakdown
+                        score={score}
+                        showPopularityPenalty={recommendationStyle === 'thematic'}
+                        showCollection={collectionMode !== 'none' && collectionSets.length > 0}
+                        showTheme={Boolean(theme)}
+                        showSubThemes={activeSubThemes.length > 0}
+                      />
                       {commanderPromotionInfo(card, deck, commanderDetails?.colours ?? [])
                         ?.canPromote && (
                         <CommanderPromotion

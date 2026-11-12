@@ -272,3 +272,11 @@ export function edhrecSlug(url: string | undefined, name: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 }
+
+/** Where a card's details credit it: EDHREC-sourced recommendations link there, anything else to Scryfall. */
+export const cardSourceLink = (
+  card: Pick<DeckCard, 'name' | 'set' | 'collectorNumber' | 'scryfallUri' | 'source'>,
+) =>
+  card.source === 'edhrec'
+    ? { label: 'EDHREC', uri: `https://edhrec.com/cards/${edhrecSlug(undefined, card.name)}` }
+    : { label: 'Scryfall', uri: cardScryfallUri(card) }

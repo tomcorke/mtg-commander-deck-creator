@@ -62,8 +62,13 @@
     align-items: start;
     scroll-snap-align: start;
   }
-  .card-offer > .actions {
+  /* Art left with the name, reason and price beside it; decisions span the offer below. */
+  .card-offer .card-copy h3 {
     margin-top: 0;
+  }
+  .card-offer > .actions,
+  .card-offer > .score-breakdown {
+    grid-column: 1 / -1;
   }
   /* The art column is narrower than Art + Flip, so they stack under the art. */
   .card-offer .card-image-actions {
@@ -74,16 +79,15 @@
   .card-offer .offered-image:has(.card-flip-button + *, * + .card-flip-button) {
     margin-bottom: 92px;
   }
-  .card-offer > .card-copy,
   .card-offer > .commander-promotion {
     grid-column: 1 / -1;
   }
   .connector-glow .synergy-pair .offered-image > .finished-card > .synergy-connector {
     display: none;
   }
-  /* Overlay the dimmed copy row, never the decision buttons beside the art. */
+  /* Overlay the dimmed art and copy, never the decisions; the rail clips anything below the offer. */
   .card-offer > .ignore-feedback {
-    grid-area: 3 / 1 / 4 / -1;
+    grid-area: 2 / 1 / 3 / -1;
     top: 0;
     right: 0;
     left: 0;

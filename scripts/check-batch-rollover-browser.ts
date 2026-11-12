@@ -21,7 +21,7 @@ await withBrowser('BATCH_ROLLOVER', 5253, async (browser, base) => {
   await page.waitForSelector('[data-card-reveal-phase="leaving"]')
   const outgoingPositions = await copyPositions(page, '.batch-old-copy')
   for (let index = 0; index < positions.length; index++) {
-    for (const field of ['title', 'reason', 'description'] as const)
+    for (const field of ['title', 'reason', 'price'] as const)
       assert(
         Math.abs(positions[index][field] - outgoingPositions[index][field]) < 0.5,
         `outgoing ${field} stays in place in slot ${index}`,
@@ -98,8 +98,10 @@ async function copyPositions(page: Page, selector: string) {
       return {
         title: element.querySelector('h3')!.getBoundingClientRect().top - top,
         reason: element.querySelector('.offer-reason')!.getBoundingClientRect().top - top,
-        description:
-          element.querySelector('p:not(.offer-reason)')!.getBoundingClientRect().top - top,
+        // Unpriced offers have no price line; compare the reason's bottom edge instead.
+        price:
+          (element.querySelector('.offer-price') ??
+            element.querySelector('.offer-reason'))!.getBoundingClientRect().bottom - top,
       }
     }),
   )
@@ -121,7 +123,7 @@ async function checkCopyLayouts(page: Page) {
     const after = await copyPositions(page, '.batch-old-copy')
     assert(before.length > 0 && before.length === after.length)
     for (let index = 0; index < before.length; index++) {
-      for (const field of ['title', 'reason', 'description'] as const)
+      for (const field of ['title', 'reason', 'price'] as const)
         assert(
           Math.abs(before[index][field] - after[index][field]) < 0.5,
           `${field} stays anchored at width ${width}, dark ${dark}`,

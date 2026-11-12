@@ -605,7 +605,10 @@ export function openCardReference(deps: AppActionContext, card: Card | DeckCard)
       index: sideboardIndex,
     })
 
-  deps.setSelectedCardReference('reason' in card ? toDeckCardFromRecommendation(card) : card)
+  // Keep a recommendation's source so its details link to the provider that suggested it.
+  deps.setSelectedCardReference(
+    'reason' in card ? { ...toDeckCardFromRecommendation(card), source: card.source } : card,
+  )
   deps.setSelectedDeckCardLocation(null)
   deps.setSelectedCollectionCard(null)
   deps.setSelectedGuidanceCard(null)
