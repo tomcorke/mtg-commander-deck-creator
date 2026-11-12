@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
 import {
   discoverCommanders,
-  type CommanderSuggestion,
+  type CommanderDiscovery,
   type DiscoveryFilters,
 } from '../domain/commander-discovery.ts'
 import { pageWindow } from '../shared/pagination.ts'
 
 export const commanderPageSize = 12
 
+const emptyDiscovery: CommanderDiscovery = { commanders: [], more: false }
+
 export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean) {
-  const [pool, setPool] = useState<CommanderSuggestion[]>([])
-  const [more, setMore] = useState(false)
+  const [found, setFound] = useState(emptyDiscovery)
   const [page, setPage] = useState(0)
+  const [broaderPage, setBroaderPage] = useState(0)
   const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading')
   const [error, setError] = useState('')
   const identity = [...filters.colours].sort().join('')
@@ -25,9 +27,9 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     if (!active) return
     const controller = new AbortController()
     setStatus('loading')
-    setPool([])
-    setMore(false)
+    setFound(emptyDiscovery)
     setPage(0)
+    setBroaderPage(0)
     setError('')
     const timer = setTimeout(
       () => {
@@ -44,10 +46,9 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
           },
           controller.signal,
         )
-          .then((found) => {
+          .then((discovery) => {
             if (controller.signal.aborted) return
-            setPool(found.commanders)
-            setMore(found.more)
+            setFound(discovery)
             setStatus('idle')
           })
           .catch((error: unknown) => {
@@ -73,13 +74,24 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
     sets,
     sort,
   ])
-  const { start, end } = pageWindow(pool.length, commanderPageSize, page)
+  const { start, end } = pageWindow(found.commanders.length, commanderPageSize, page)
+  const broader = found.broader
+  const broaderWindow = pageWindow(broader?.commanders.length ?? 0, commanderPageSize, broaderPage)
   return {
-    suggestions: pool.slice(start, end),
-    count: pool.length,
-    more,
+    suggestions: found.commanders.slice(start, end),
+    count: found.commanders.length,
+    more: found.more,
     page,
     setPage,
+    /** A curated theme's separately labelled rules-text matches, paged on their own. */
+    broader: broader && {
+      heading: broader.heading,
+      suggestions: broader.commanders.slice(broaderWindow.start, broaderWindow.end),
+      count: broader.commanders.length,
+      more: broader.more,
+      page: broaderPage,
+      setPage: setBroaderPage,
+    },
     status,
     error,
   }

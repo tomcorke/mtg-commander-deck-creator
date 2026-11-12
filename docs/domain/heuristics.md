@@ -37,6 +37,8 @@ Sub-theme inference uses **3 matches among the last 12** noncommander selections
 
 `src/domain/commander-catalog.ts` and `src/app/recommendation-actions.ts` own curated commander/pair shortcuts and narrow theme searches. They omit valid commanders, pairs, and implicit themes. Scryfall theme search is one page ordered by EDHREC popularity, not commander synergy; its fallback uses a random comparator, which is not uniform. Never call these exhaustive eligibility, general pairing validation, or unbiased recommendations.
 
+Start's broader section (#481) adds, below a curated theme's picks, one Scryfall page of commanders whose rules text or type matches the theme's search term (`broaderTerm` in `src/domain/commander-discovery.ts`). A word match is weaker than a pick: "sacrifice" also matches costs and unrelated effects. Label these results "not picked for this theme"; never show them under "Picked for".
+
 Pair clues match blink/ETB, tokens/payoffs, counters, sacrifice/death, graveyard/recursion, or artifact-token/payoff wording. They ignore ownership, targets, costs, timing, once-per-turn limits, and resources; setup may be missing or the beneficiary wrong. Other interactions are missed. Never present a pair as a proven interaction, infinite combo, or bracket-combo detector.
 
 ## Signature enrichment

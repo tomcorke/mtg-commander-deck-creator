@@ -349,13 +349,19 @@ const commanderSorts: Record<CommanderSort, { label: string; order: string }> = 
   newest: { label: 'Newest printing', order: 'newest printing' },
 }
 
+type Discovery = ReturnType<typeof useCommanderDiscovery>
+type BroaderDiscovery = NonNullable<Discovery['broader']>
+
+const countLabel = ({ count, more }: { count: number; more: boolean }) =>
+  `${count}${more ? ' loaded' : ''} ${count === 1 ? 'commander' : 'commanders'}`
+
 /** The grid's heading: count, shared reason and order, the sort control and the insight note. */
 function DiscoveryHeading({
   discovery,
   sort,
   setSort,
 }: {
-  discovery: ReturnType<typeof useCommanderDiscovery>
+  discovery: Discovery
   sort: CommanderSort
   setSort: (sort: CommanderSort) => void
 }) {
@@ -369,20 +375,16 @@ function DiscoveryHeading({
     <>
       <div className="commander-discovery-heading">
         <div>
-          <h2 id="commander-discovery-title">Choose a commander</h2>
+          <h2 id="commander-discovery-title" tabIndex={-1}>
+            Choose a commander
+          </h2>
           {/* Every suggestion in a batch shares one reason, so it is shown once. */}
           <p aria-hidden="true">
             {discovery.status === 'loading' && 'Finding legal commanders…'}
             {/* The empty state names the zero itself. */}
             {discovery.status === 'idle' &&
               discovery.count > 0 &&
-              [
-                `${discovery.count}${discovery.more ? ' loaded' : ''} ${discovery.count === 1 ? 'commander' : 'commanders'}`,
-                reason,
-                order,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
+              [countLabel(discovery), reason, order].filter(Boolean).join(' · ')}
           </p>
         </div>
         <label className="commander-sort">
@@ -404,9 +406,102 @@ function DiscoveryHeading({
       <p id="commander-result-count" className="sr-only" role="status">
         {discovery.status === 'loading' && 'Finding legal commanders…'}
         {discovery.status === 'idle' &&
-          `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length ? ` of ${discovery.count}${discovery.more ? ' loaded' : ''}` : ''} ${discovery.count === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}${discovery.count > 1 ? `. ${order}` : ''}. Press Down to move through them.`}
+          `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length ? ` of ${discovery.count}${discovery.more ? ' loaded' : ''}` : ''} ${discovery.count === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}${discovery.count > 1 ? `. ${order}` : ''}${discovery.broader?.count ? `. ${discovery.broader.heading}: ${countLabel(discovery.broader)}` : ''}. Press Down to move through them.`}
       </p>
     </>
+  )
+}
+
+/**
+ * One-click ways to widen a near-empty result (#481): drop each chosen colour, the theme, or
+ * another active criterion. Colour identity matches exactly, so dropping a colour shows the
+ * remaining colours' commanders rather than a superset.
+ */
+function widenActions(props: StartViewProps, setLabel: (code: string) => string) {
+  const theme = [props.theme, ...props.extraCreatureTypes].filter(Boolean).join(' + ')
+  return [
+    ...props.colours.map((colour) => ({
+      label: `Remove ${colourNames[colour]}`,
+      widen: () => props.toggleColour(colour),
+    })),
+    theme && {
+      label: `Remove ${theme} theme`,
+      widen: () => (props.setExtraCreatureTypes([]), props.declareTheme('')),
+    },
+    props.search.trim().length >= 2 && {
+      label: 'Clear name search',
+      widen: () => props.setSearch(''),
+    },
+    props.rulesText.trim().length >= 2 && {
+      label: 'Clear rules text',
+      widen: () => props.setRulesText(''),
+    },
+    props.maxManaValue != null && {
+      label: 'Remove mana value limit',
+      widen: () => props.setMaxManaValue(null),
+    },
+    props.commanderSets.length > 0 && {
+      label: `Remove ${props.commanderSets.length === 1 ? setLabel(props.commanderSets[0]) : 'set filter'}`,
+      widen: () => props.setCommanderSets([]),
+    },
+  ].filter((action): action is { label: string; widen: () => void } => Boolean(action))
+}
+
+/** The widening buttons; each moves focus to the grid heading, since the results reload. */
+function WidenButtons({ actions }: { actions: ReturnType<typeof widenActions> }) {
+  return actions.map(({ label, widen }) => (
+    <button
+      key={label}
+      className="export"
+      type="button"
+      onClick={() => {
+        widen()
+        document.getElementById('commander-discovery-title')?.focus()
+      }}
+    >
+      {label}
+    </button>
+  ))
+}
+
+/**
+ * A curated theme's rules-text matches beyond its picks, under their own heading and count so they
+ * never read as "Picked for" (#481).
+ */
+function BroaderCommanders({
+  broader,
+  order,
+  renderTile,
+}: {
+  broader: BroaderDiscovery
+  order: string
+  renderTile: (suggestion: Discovery['suggestions'][number]) => ReactNode
+}) {
+  if (!broader.count) return null
+  return (
+    <section className="commander-broader" aria-labelledby="commander-broader-title">
+      <div className="commander-discovery-heading">
+        <div>
+          <h3 id="commander-broader-title">{broader.heading}</h3>
+          <p>
+            {countLabel(broader)} · Found by rules text or type, not picked for this theme · Sorted
+            by {order}
+          </p>
+        </div>
+      </div>
+      <div className="commander-grid">{broader.suggestions.map(renderTile)}</div>
+      <Pagination
+        label="More commander result pages"
+        noun="commanders"
+        count={broader.count}
+        pageSize={commanderPageSize}
+        page={broader.page}
+        onPage={broader.setPage}
+        partial={broader.more}
+      >
+        {broader.more && <span>Narrow the filters to reach more commanders.</span>}
+      </Pagination>
+    </section>
   )
 }
 
@@ -441,7 +536,9 @@ export function StartView(props: StartViewProps) {
     { ...props, creatureTypes: props.extraCreatureTypes, sets: props.commanderSets, sort },
     true,
   )
-  const deckCount = useEdhrecDeckCounts(discovery.suggestions.map(({ card }) => card))
+  const deckCount = useEdhrecDeckCounts(
+    [...discovery.suggestions, ...(discovery.broader?.suggestions ?? [])].map(({ card }) => card),
+  )
   // Leaving the start screen opens the next view at the top, not at the old scroll position.
   useEffect(() => () => scrollTo({ top: 0 }), [])
   const resume = Boolean(props.commander && props.deck.length)
@@ -487,8 +584,28 @@ export function StartView(props: StartViewProps) {
     )
   const summary = filterSummary(props, setLabel)
   const filtered = summary !== 'All commanders' || Boolean(props.search || props.rulesText)
+  const total = discovery.count + (discovery.broader?.count ?? 0)
   // The empty grid carries its own Clear filters, so the panel's steps aside to keep one on screen.
-  const noMatches = discovery.status === 'idle' && !discovery.suggestions.length
+  const noMatches = discovery.status === 'idle' && !total
+  const widen = widenActions(props, setLabel)
+  const renderTile = ({ card }: Discovery['suggestions'][number]) => (
+    <CommanderChoiceTile
+      key={card.oracle_id ?? card.name}
+      card={card}
+      openCard={props.openCardReference}
+      insights={{ deckCount: deckCount(card) }}
+      action={
+        <button
+          className="export commander-choose"
+          type="button"
+          aria-label={`Choose ${card.name}`}
+          onClick={() => void props.chooseCommander(card.name)}
+        >
+          Choose
+        </button>
+      }
+    />
+  )
   // Below 600px the controls fold away; start open only when nothing is filtered yet.
   const [filtersOpen, setFiltersOpen] = useState(!filtered)
 
@@ -711,48 +828,41 @@ export function StartView(props: StartViewProps) {
             Walk me through the builder for this deck
           </label>
         </section>
+        {/* Arrow keys move through the Choose buttons of both grids. */}
         <section
           className="commander-discovery"
           aria-labelledby="commander-discovery-title"
           aria-busy={discovery.status === 'loading'}
+          onKeyDown={moveBetweenChoices}
         >
           <DiscoveryHeading discovery={discovery} sort={sort} setSort={setSort} />
-          <div className="commander-grid" onKeyDown={moveBetweenChoices}>
+          {discovery.status === 'idle' && !discovery.count && total > 0 && (
+            <p className="discovery-status">
+              None of the commanders picked for {props.theme} decks match these filters.
+            </p>
+          )}
+          <div className="commander-grid">
             {discovery.status === 'loading' && <CommanderTilePlaceholders />}
-            {discovery.suggestions.map(({ card }) => (
-              <CommanderChoiceTile
-                key={card.oracle_id ?? card.name}
-                card={card}
-                openCard={props.openCardReference}
-                insights={{ deckCount: deckCount(card) }}
-                action={
-                  <button
-                    className="export commander-choose"
-                    type="button"
-                    aria-label={`Choose ${card.name}`}
-                    onClick={() => void props.chooseCommander(card.name)}
-                  >
-                    Choose
-                  </button>
-                }
-              />
-            ))}
+            {discovery.suggestions.map(renderTile)}
           </div>
           {discovery.status === 'error' && (
             <p className="form-error discovery-error" role="alert">
               {discovery.error} Change a filter, or reload the page.
             </p>
           )}
-          {discovery.status === 'idle' && !discovery.suggestions.length && (
+          {noMatches && (
             <div className="empty">
               <h3>No commanders match these filters</h3>
               <p>
                 Remove a colour, theme, set or mana value limit, or try different name or rules
                 text. Curated themes are a limited selection.
               </p>
-              <button className="export" type="button" onClick={clearFilters}>
-                Clear filters
-              </button>
+              <div className="commander-widen-actions">
+                <WidenButtons actions={widen} />
+                <button className="export" type="button" onClick={clearFilters}>
+                  Clear filters
+                </button>
+              </div>
             </div>
           )}
           {discovery.status === 'idle' && (
@@ -767,6 +877,30 @@ export function StartView(props: StartViewProps) {
             >
               {discovery.more && <span>Narrow the filters to reach more commanders.</span>}
             </Pagination>
+          )}
+          {discovery.status === 'idle' && discovery.broader && (
+            <BroaderCommanders
+              broader={discovery.broader}
+              order={commanderSorts[sort].order}
+              renderTile={renderTile}
+            />
+          )}
+          {discovery.status === 'idle' && total > 0 && total <= 3 && widen.length > 0 && (
+            <div className="commander-widen" role="group" aria-labelledby="commander-widen-title">
+              <p id="commander-widen-title">
+                Only {total} {total === 1 ? 'commander matches' : 'commanders match'}. Widen the
+                search:
+              </p>
+              <div className="commander-widen-actions">
+                <WidenButtons actions={widen} />
+              </div>
+              {props.colours.length > 0 && (
+                <p className="commander-widen-note">
+                  Colour identity matches exactly, so removing a colour shows commanders of the
+                  colours that remain.
+                </p>
+              )}
+            </div>
           )}
         </section>
       </section>
