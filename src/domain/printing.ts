@@ -28,6 +28,20 @@ export const needsPrintingRepair = (card: PrintingRepairCard) =>
 export const defaultFinish = (finishes?: CardFinish[]) =>
   finishes?.includes('nonfoil') ? 'nonfoil' : finishes?.[0]
 
+// Automatic choices take a matching nonfoil option. A foil or etched option qualifies only when its
+// printing has no nonfoil option, so a price cap never swaps a nonfoil for a cheaper foil.
+// Options without a finish predate finishes and count as nonfoil.
+export const nonfoilFirstIndex = <T extends { image: string; finish?: CardFinish }>(
+  printings: T[],
+  matches: (printing: T) => boolean,
+) => {
+  const isNonfoil = (printing: T) => (printing.finish ?? 'nonfoil') === 'nonfoil'
+  const nonfoil = printings.findIndex((printing) => matches(printing) && isNonfoil(printing))
+  if (nonfoil >= 0) return nonfoil
+  const nonfoilImages = new Set(printings.filter(isNonfoil).map((printing) => printing.image))
+  return printings.findIndex((printing) => matches(printing) && !nonfoilImages.has(printing.image))
+}
+
 // Scryfall promo_types that name a foil treatment; names follow the mtg.wiki "Foil" page.
 export const foilTypeNames: Record<string, string> = {
   surgefoil: 'Surge foil',

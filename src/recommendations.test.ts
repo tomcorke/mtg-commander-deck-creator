@@ -193,6 +193,15 @@ test('printing preference preserves defaults and manual choices', () => {
   assert.equal(preferredPrintingIndex(printings, 'sld'), 1)
   assert.equal(preferredPrintingIndex(printings, 'missing'), 0)
   assert.equal(preferredPrintingIndex(printings, 'clb', 1, true), 1)
+  const finishes = [
+    { image: 'default', set: 'zen', collectorNumber: '212', finish: 'foil' as const },
+    { image: 'default', set: 'zen', collectorNumber: '212', finish: 'nonfoil' as const },
+    { image: 'promo', set: 'pzen', collectorNumber: '1', finish: 'etched' as const },
+  ]
+  assert.equal(preferredPrintingIndex(finishes, ''), 1)
+  assert.equal(preferredPrintingIndex(finishes, 'zen'), 1)
+  assert.equal(preferredPrintingIndex(finishes, 'pzen'), 2)
+  assert.equal(preferredPrintingIndex(finishes, 'zen', 0, true), 0)
 })
 
 test('EDHREC slug uses canonical front face for double-faced commanders', () => {

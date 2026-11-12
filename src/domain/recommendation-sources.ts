@@ -1,6 +1,6 @@
 import type { ScryfallCard } from './card-model.ts'
 import { hasBackFace } from './card-layout.ts'
-import { defaultFinish, foilTypeFor } from './printing.ts'
+import { defaultFinish, finishPrice, foilTypeFor } from './printing.ts'
 import {
   cardText,
   isManaCard,
@@ -91,7 +91,8 @@ export function toRecommendationCard(card: ScryfallCard, reason: string): Recomm
     collectorNumber: card.collector_number,
     scryfallUri: card.scryfall_uri,
     printsUri: card.prints_search_uri,
-    price: card.prices?.usd ?? undefined,
+    // Price the default finish, so a foil-only card is not treated as unpriced by the cap.
+    price: finishPrice(card, defaultFinish(card.finishes)),
     priceUri: card.purchase_uris?.tcgplayer,
     finish: defaultFinish(card.finishes),
     foilType: foilTypeFor(card, defaultFinish(card.finishes)),
