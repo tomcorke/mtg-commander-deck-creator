@@ -8,7 +8,7 @@ import {
   type LocalIndexStatus,
 } from '../adapters/local-card-index.ts'
 import { deckJob } from './deck-job.ts'
-import { activeOwnershipMode, ownedCardReason } from '../domain/owned-cards.ts'
+import { activeOwnershipMode, orderByOwnership, ownedCardReason } from '../domain/owned-cards.ts'
 import { currentCardData } from '../domain/current-card-data.ts'
 import { roleSearchTags } from '../domain/card-search.ts'
 import { resetSignatureContext } from './signature-actions.ts'
@@ -748,7 +748,7 @@ export async function fetchDeckDoctorCommanders(deps: AppActionContext): Promise
     'edhrec',
   )
   const seen = new Set(currentNames)
-  return results
+  return orderByOwnership<ScryfallCard>(results, deps.ownedCards, deps.ownershipMode)
     .filter((card: ScryfallCard) => {
       if (
         seen.has(card.name) ||

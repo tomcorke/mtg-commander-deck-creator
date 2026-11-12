@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   applyBuilderAction,
   createBuilderState,
+  reconcileOwnership,
   type BuilderState,
   type BuilderAction,
 } from './builder-state.ts'
@@ -241,4 +242,28 @@ test('owned cards stay with the player across restores; Owned only rebuilds its 
     buildRecommendationContext({ ...preferring, ownershipMode: 'only' }, []).ownershipMode,
     'only',
   )
+})
+
+test('a restored queue drops unowned cards under Owned only and rebuilds its pool', () => {
+  const list = { cards: [{ name: 'Mine', quantity: 1 }], updatedAt: '2026-11-12T10:00:00Z' }
+  const current = apply(initial({ ownershipMode: 'only' }), { type: 'ownedCards', list })
+  const saved = initial({ ownershipMode: 'only', queue: [card('Mine'), card('Theirs')] })
+  const restored = apply(
+    { ...current, recommendationOptionsChanged: false },
+    {
+      type: 'restore',
+      state: saved,
+    },
+  )
+  assert.deepEqual(
+    restored.queue.map(({ name }) => name),
+    ['Mine'],
+  )
+  assert.equal(restored.recommendationOptionsChanged, true)
+  assert.notEqual(restored.committedPoolKey, builderPoolKey(restored), 'the pool rebuilds')
+  // An already-owned queue restores untouched.
+  const owned = initial({ ownershipMode: 'only', queue: [card('Mine')] })
+  const kept = apply(current, { type: 'restore', state: owned })
+  assert.equal(kept.queue, owned.queue)
+  assert.equal(reconcileOwnership(initial({ queue: [card('Theirs')] })).queue.length, 1)
 })

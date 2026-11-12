@@ -59,6 +59,7 @@ import {
   type IgnoreReason,
 } from './recommendation-tuning.ts'
 import {
+  filterByOwnership,
   ownedQuantities,
   type OwnedCardList,
   type OwnedQuantities,
@@ -941,6 +942,16 @@ function applyUndoBulkAdd(state: BuilderState): BuilderActionResult {
 
 const ownedState = ({ ownedCards, ownedRevision }: BuilderState) => ({ ownedCards, ownedRevision })
 
+/**
+ * A restored queue was ranked under whatever ownership mode the deck was saved with. Owned only
+ * drops the unowned cards and, when it had to, rebuilds the pool so owned cards refill it.
+ */
+export function reconcileOwnership(state: BuilderState): BuilderState {
+  const queue = filterByOwnership(state.queue, state.ownedCards, state.ownershipMode)
+  if (queue.length === state.queue.length) return state
+  return { ...state, queue, committedPoolKey: '', recommendationOptionsChanged: true }
+}
+
 /** A new owned list re-ranks recommendations whenever ownership affects them. */
 function applyOwnedCards(state: BuilderState, list: OwnedCardList | null): BuilderState {
   return {
@@ -992,7 +1003,7 @@ function reduceBuilderAction(state: BuilderState, action: BuilderAction): Builde
       return done({ ...retryBuilderData(state), hydrationBoundary: state.hydrationBoundary + 1 })
     case 'restore':
       // Owned cards belong to the player, not to the restored deck.
-      return done({ ...action.state, ...ownedState(state) })
+      return done(reconcileOwnership({ ...action.state, ...ownedState(state) }))
     case 'ownedCards':
       return done(applyOwnedCards(state, action.list))
     case 'data':

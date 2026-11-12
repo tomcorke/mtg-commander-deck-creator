@@ -89,6 +89,18 @@ export function filterByOwnership<T extends { name: string }>(
     : cards
 }
 
+/** Only keeps owned cards; Prefer moves owned cards first, keeping each group's order. */
+export function orderByOwnership<T extends { name: string }>(
+  cards: T[],
+  owned: OwnedQuantities | undefined,
+  mode: OwnershipMode | undefined,
+) {
+  const active = activeOwnershipMode(mode, owned)
+  if (active === 'ignore') return cards
+  const mine = cards.filter((card) => isOwned(owned, card.name))
+  return active === 'only' ? mine : [...mine, ...cards.filter((card) => !isOwned(owned, card.name))]
+}
+
 /**
  * Cards the player still needs, in deck order. Each owned copy covers one entry with that name,
  * across printings, so 12 owned Forests leave 3 of 15 Forests needed.

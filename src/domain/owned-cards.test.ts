@@ -7,6 +7,7 @@ import {
   combineOwnedCards,
   describeOwnedCards,
   filterByOwnership,
+  orderByOwnership,
   ownedCardsStorageKey,
   ownedQuantities,
   ownedQuantity,
@@ -163,4 +164,19 @@ test('adding a list sums copies with the owned cards', () => {
       { name: 'Sol Ring', quantity: 2 },
     ],
   )
+})
+
+test('ordering by ownership keeps owned cards first, or only them', () => {
+  const cards = [{ name: 'A' }, { name: 'Owned B' }, { name: 'C' }, { name: 'Owned D' }]
+  const owned = { 'owned b': 1, 'owned d': 1 }
+  const names = (list: { name: string }[]) => list.map(({ name }) => name)
+  assert.deepEqual(names(orderByOwnership(cards, owned, 'prefer')), [
+    'Owned B',
+    'Owned D',
+    'A',
+    'C',
+  ])
+  assert.deepEqual(names(orderByOwnership(cards, owned, 'only')), ['Owned B', 'Owned D'])
+  assert.equal(orderByOwnership(cards, owned, 'ignore'), cards)
+  assert.equal(orderByOwnership(cards, {}, 'only'), cards)
 })

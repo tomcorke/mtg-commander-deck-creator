@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PersistedDeckState } from '../deck-state.ts'
 import { builderPoolKey } from '../domain/builder-settings.ts'
 import { restoreBuilderState } from './builder-restore.ts'
-import { applyBuilderAction, type BuilderAction } from '../domain/builder-state.ts'
+import {
+  applyBuilderAction,
+  reconcileOwnership,
+  type BuilderAction,
+} from '../domain/builder-state.ts'
 import {
   migrateRecommendationPriority,
   normalizeMaxPrice,
@@ -70,7 +74,7 @@ function initialBuilderState(saved: PersistedDeckState | null) {
   const owned = readOwnedCardList(appStorage)
   state.ownedCards = ownedQuantities(owned)
   state.ownedRevision = owned?.updatedAt ?? ''
-  return { ...state, committedPoolKey: builderPoolKey(state) }
+  return reconcileOwnership({ ...state, committedPoolKey: builderPoolKey(state) })
 }
 
 export function useBuilderState(saved: PersistedDeckState | null) {
