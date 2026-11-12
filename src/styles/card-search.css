@@ -102,6 +102,22 @@
   padding: 10px 8px;
   font-size: var(--type-data);
 }
+/* The simple search box leads the panel, so it reads as the main way in. */
+.search-quick {
+  font-weight: 600;
+}
+.card-search-shell .search-quick input {
+  padding: 10px;
+  font-weight: 400;
+}
+.search-advanced-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.card-search-filters .search-advanced-body > p:first-child {
+  margin: 0;
+}
 .search-value-bounds {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -155,17 +171,15 @@
 }
 .search-need-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 6px 10px;
+  gap: 6px;
   margin-top: 12px;
   font-size: var(--type-data);
 }
 .search-need-progress {
   display: flex;
-  grid-column: 1 / -1;
   align-items: center;
   gap: 10px;
+  padding-left: 24px;
 }
 .search-need-progress .ratio-bar {
   flex: 1;

@@ -281,6 +281,7 @@ function CardSearchScreen({
         mainLimit={mainDeckLimit(state)}
         roleCounts={builderData.analysis.counts}
         deckTargets={state.deckTargets}
+        themes={[state.theme, ...state.activeSubThemes]}
         zoneToggle={
           <AddZoneToggle
             zone={addsToSideboard(state) ? 'sideboard' : 'deck'}

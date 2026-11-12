@@ -86,6 +86,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 2560, height: 1440 } })
   const page = await context.newPage()
   const errors: string[] = []
+  const searches: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url())
@@ -99,6 +100,7 @@ try {
       if (url.pathname === '/sets') return route.fulfill({ json: { data: [] } })
       if (url.pathname === '/cards/collection') return route.fulfill({ json: { data: [] } })
       if (url.pathname === '/cards/search') {
+        searches.push(`${url.searchParams.get('q')} order:${url.searchParams.get('order')}`)
         const number = Number(url.searchParams.get('page') ?? 1)
         const first = (number - 1) * scryfallPageSize + 1
         const last = Math.min(totalCards, first + scryfallPageSize - 1)
@@ -125,6 +127,16 @@ try {
   const base = process.env.CARD_SEARCH_URL ?? 'http://127.0.0.1:5232/'
   await page.goto(`${base}#build`)
   await page.getByRole('button', { name: /Search & add cards/ }).click()
+  // Opening search shows the biggest deck need without any input, labelled with the query used.
+  await page.locator('.card-search-grid .search-card').first().waitFor()
+  if (!process.env.SKIP_ASSERTS) {
+    assert.match(searches[0] ?? '', /otag:ramp order:edhrec$/)
+    assert.match(
+      await page.locator('.card-search-results-panel').innerText(),
+      /Showing your deck's biggest need, Ramp \(0\/10\), most popular first\./,
+    )
+    assert.equal(await page.locator('details.search-advanced').getAttribute('open'), null)
+  }
   await page.getByRole('button', { name: 'Search cards', exact: true }).click()
   await page.locator('.card-search-grid .search-card').first().waitFor()
 

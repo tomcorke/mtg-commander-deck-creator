@@ -226,7 +226,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
       await page.keyboard.press('Escape')
       await checkDialogs('Builder')
       await button(page, '+ Search & add cards').click()
-      await page.getByPlaceholder('Any name').fill('B10')
+      await page.getByPlaceholder('Card name or rules text').fill('B10')
       await button(page, 'Search cards').click()
       await page.locator('.card-reference').first().waitFor()
       await check('Card search')
