@@ -348,10 +348,13 @@ async function skipAndReload(context: BrowserContext) {
   await page.locator('.commander-tile').first().waitFor()
   await page.getByRole('checkbox', { name: 'Walk me through the builder for this deck' }).uncheck()
   const before = await preferences(page)
+  const summary = page.locator('.recommendation-settings-summary > p')
   await chooseCommander(page)
+  assert.equal(await summary.textContent(), 'Play style: not chosen yet')
   await press(page, page.getByRole('button', { name: /^Keep current settings \(/ }))
   await batch(page)
   assert.deepEqual(await preferences(page), before)
+  assert.match((await summary.textContent()) ?? '', /^Play style skipped · /)
   assert.equal(await page.locator('.intro-guide').count(), 0)
   await page.goto('http://127.0.0.1:5282/#start')
   await page.locator('.commander-tile').first().waitFor()
@@ -359,16 +362,20 @@ async function skipAndReload(context: BrowserContext) {
   await page.waitForFunction(async ({ prefix, key }) => {
     const { appStorage } = await import(/* @vite-ignore */ '/src/app-storage.ts')
     const raw = appStorage().getItem(prefix + sessionStorage.getItem(key))
-    return raw && JSON.parse(raw).state.firstBatchPending === true
+    const state = raw && JSON.parse(raw).state
+    return state?.firstBatchPending === true && state.playStylePending === true
   }, draftKeys)
   await page.reload()
-  await page.locator('.card-offer').first().waitFor()
-  assert.equal(
-    await page.locator('.play-style-step').count(),
-    0,
-    'Prepared draft resumes without another style step',
-  )
-  assert.ok(!(await currentDraft(page)).state.firstBatchPending)
+  // A reload on the step returns to it rather than building with unchosen defaults (#490).
+  await page.getByRole('heading', { name: 'How do you want to play?' }).waitFor()
+  assert.equal(await page.locator('.card-offer').count(), 0, 'Reload stays on the style step')
+  assert.equal(await summary.textContent(), 'Play style: not chosen yet')
+  await press(page, page.getByRole('button', { name: /^Upgraded/ }))
+  await batch(page)
+  assert.equal(await page.locator('.play-style-step').count(), 0)
+  assert.match((await summary.textContent()) ?? '', /^Balanced · Upgraded · /)
+  const { state } = await currentDraft(page)
+  assert.ok(!state.firstBatchPending && !state.playStylePending)
   await page.close()
 }
 
@@ -416,7 +423,7 @@ try {
     console.log(
       process.argv.includes('--discovery-only')
         ? `${label}: discovery, keyboard/hover previews, DFC/details and display passed`
-        : `${label}: discovery, previews/DFC/details, display, preset/sets, guide keyboard/Escape, resume, skip and pre-batch reload passed`,
+        : `${label}: discovery, previews/DFC/details, display, preset/sets, guide keyboard/Escape, resume, skip and reload on the style step passed`,
     )
     await context.close()
   }

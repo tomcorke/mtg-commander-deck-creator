@@ -183,6 +183,15 @@ test('priority and price summary reflect tuning, and the visible batch filters o
   assert(!buildBuilderData(builderDeps(cards)).recommendationSettingsSummary.includes('≤'))
 })
 
+test('the settings summary does not imply a play style before one is chosen, and notes a skip once', () => {
+  const summary = (overrides: Record<string, unknown>) =>
+    buildBuilderData(builderDeps([], overrides)).recommendationSettingsSummary
+  assert.equal(summary({ awaitingPlayStyle: true }), 'Play style: not chosen yet')
+  assert.match(summary({ playStyleSkippedBatch: 1 }), /^Play style skipped · Balanced · /)
+  assert.doesNotMatch(summary({ playStyleSkippedBatch: 1, batchNumber: 2 }), /skipped/)
+  assert.match(summary({}), /^Balanced · /)
+})
+
 test('shows basic-land fill and scores lands when the deck has a land gap', () => {
   const land = {
     name: 'Forest',

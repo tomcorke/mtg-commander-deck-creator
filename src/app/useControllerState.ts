@@ -116,6 +116,14 @@ function useCurrentDeckState(state: Record<string, any>) {
   )
 }
 
+// A reload on the play-style step returns to it (#490).
+function usePlayStylePending(deckState: PersistedDeckState | null, pending: boolean) {
+  return useMemo(
+    () => (deckState && pending ? { ...deckState, playStylePending: true } : deckState),
+    [deckState, pending],
+  )
+}
+
 export function useControllerState(
   saved: PersistedDeckState | null,
   initialRoute: Pick<AppHistoryState, 'view' | 'modal'> | null,
@@ -144,7 +152,7 @@ export function useControllerState(
       (builder.limitGameChangers && gameChangersAtLimit(builder.deck)),
     excludeGameChangersSetting: builder.excludeGameChangers,
   }
-  const currentDeckState = useCurrentDeckState(state)
+  const currentDeckState = usePlayStylePending(useCurrentDeckState(state), state.awaitingPlayStyle)
   const activeSavedDeck = state.savedDecks.find(({ id }: any) => id === state.activeSavedDeckId)
   const savedDeckChanged = Boolean(
     activeSavedDeck &&

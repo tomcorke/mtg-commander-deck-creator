@@ -88,6 +88,14 @@ test('deck state round-trips without card text, which loading refreshes from Scr
   assert.equal(loadDeckState(storage), null)
 })
 
+test('a draft on the play-style step keeps its pending flags across a reload', () => {
+  const storage = memoryStorage()
+  saveDeckState({ ...state, firstBatchPending: true, playStylePending: true }, storage)
+  const loaded = loadDeckState(storage)
+  assert.equal(loaded?.firstBatchPending, true)
+  assert.equal(loaded?.playStylePending, true)
+})
+
 test('saved decks keep only the chosen printing and store card lists as field tables', () => {
   const storage = memoryStorage()
   const printing = (collectorNumber: string) => ({
