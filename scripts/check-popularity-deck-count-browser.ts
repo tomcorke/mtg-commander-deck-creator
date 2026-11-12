@@ -105,10 +105,11 @@ await withBrowser('POPULARITY_DECK_COUNT', 5301, async (browser, base) => {
     await page.goto(`${base}#start`)
     await heading(page, 'What do you want to play?').waitFor()
     await button(page, 'Clear filters').click()
-    await page.waitForFunction(
-      () =>
-        document.querySelectorAll('.commander-discovery > .commander-grid .commander-choose')
-          .length === 12,
+    // The seeded theme's grid shows first; wait for the cleared search's 15 results.
+    await page.waitForFunction(() =>
+      document
+        .querySelector('.commander-discovery-heading p')
+        ?.textContent?.startsWith('15 commanders'),
     )
     if (process.env.POPULARITY_DECK_COUNT_BEFORE) {
       witchMaw.open()
