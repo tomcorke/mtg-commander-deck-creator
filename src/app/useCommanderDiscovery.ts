@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
+import type { ScryfallCard } from '../domain/card-model.ts'
 import {
   discoverCommanders,
+  discoverPartners,
   type CommanderDiscovery,
+  type CommanderMatches,
   type DiscoveryFilters,
 } from '../domain/commander-discovery.ts'
 import { pageWindow } from '../shared/pagination.ts'
@@ -92,6 +95,45 @@ export function useCommanderDiscovery(filters: DiscoveryFilters, active: boolean
       page: broaderPage,
       setPage: setBroaderPage,
     },
+    status,
+    error,
+  }
+}
+
+/** Legal second commanders for `first`, paged like commander discovery; idle without a card. */
+export function usePartnerDiscovery(first: ScryfallCard | null) {
+  const [found, setFound] = useState<CommanderMatches>({ commanders: [], more: false })
+  const [page, setPage] = useState(0)
+  const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading')
+  const [error, setError] = useState('')
+  useEffect(() => {
+    if (!first) return
+    const controller = new AbortController()
+    setStatus('loading')
+    setFound({ commanders: [], more: false })
+    setPage(0)
+    setError('')
+    discoverPartners(first, controller.signal)
+      .then((partners) => {
+        if (controller.signal.aborted) return
+        setFound(partners)
+        setStatus('idle')
+      })
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return
+        setStatus('error')
+        setError(reason instanceof Error ? reason.message : 'Partner suggestions unavailable.')
+      })
+    return () => controller.abort()
+  }, [first])
+  const { start, end } = pageWindow(found.commanders.length, commanderPageSize, page)
+  return {
+    suggestions: found.commanders.slice(start, end),
+    all: found.commanders,
+    count: found.commanders.length,
+    more: found.more,
+    page,
+    setPage,
     status,
     error,
   }

@@ -8,7 +8,9 @@ import {
   type SyntheticEvent,
 } from 'react'
 import { flushSync } from 'react-dom'
-import type { ScryfallSet } from '../../domain/card-model.ts'
+import { toDeckCard, type ScryfallCard, type ScryfallSet } from '../../domain/card-model.ts'
+import { canAddPartner } from '../../domain/commander-pairing.ts'
+import { PartnerDialog } from './PartnerDialog.tsx'
 import { setPickerRows } from '../../domain/set-picker.ts'
 import { SetPicker } from '../../shared/SetPicker.tsx'
 import { colourNames, selectableThemes } from '../../domain/commander-catalog.ts'
@@ -524,6 +526,7 @@ function filterSummary(props: StartViewProps, setLabel: (code: string) => string
 // eslint-disable-next-line max-lines-per-function -- Start-screen markup stays together; search helpers and render callbacks remain checked.
 export function StartView(props: StartViewProps) {
   const [randomCommanderOpen, setRandomCommanderOpen] = useState(false)
+  const [partnerFor, setPartnerFor] = useState<ScryfallCard | null>(null)
   const [primerOpen, setPrimerOpen] = useState(false)
   const [primerDismissed, setPrimerDismissed] = useStoredOption(
     'primerDismissed',
@@ -599,7 +602,11 @@ export function StartView(props: StartViewProps) {
           className="export commander-choose"
           type="button"
           aria-label={`Choose ${card.name}`}
-          onClick={() => void props.chooseCommander(card.name)}
+          onClick={() =>
+            canAddPartner(toDeckCard(card))
+              ? setPartnerFor(card)
+              : void props.chooseCommander(card.name)
+          }
         >
           Choose
         </button>
@@ -635,6 +642,14 @@ export function StartView(props: StartViewProps) {
       {randomCommanderOpen && (
         <RandomCommanderDialog
           onClose={() => setRandomCommanderOpen(false)}
+          chooseCommander={props.chooseCommander}
+          openCard={props.openCardReference}
+        />
+      )}
+      {partnerFor && (
+        <PartnerDialog
+          first={partnerFor}
+          onClose={() => setPartnerFor(null)}
           chooseCommander={props.chooseCommander}
           openCard={props.openCardReference}
         />

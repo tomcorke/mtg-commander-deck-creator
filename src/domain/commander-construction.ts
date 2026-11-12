@@ -1,4 +1,5 @@
 import type { DeckCard } from './card-model.ts'
+import { partnerPairError } from './commander-pairing.ts'
 import { isCommanderCandidate } from './commander-promotion.ts'
 
 const basicLandColours: Record<string, string> = {
@@ -58,47 +59,4 @@ export function commanderConstructionError(commanders: DeckCard[]) {
   if (commanders.length === 1)
     return isCommanderCandidate(commanders[0]) ? '' : 'This card cannot be your commander.'
   return partnerPairError(commanders[0], commanders[1])
-}
-
-function partnerPairError(left: DeckCard, right: DeckCard) {
-  if ((left.oracleId && left.oracleId === right.oracleId) || left.name === right.name)
-    return 'Choose two different commanders.'
-  const text = (card: DeckCard) => card.faces[0]?.detail ?? card.detail
-  const type = (card: DeckCard) => card.faces[0]?.typeLine ?? card.typeLine
-  const background = (card: DeckCard) => /Legendary.*Enchantment.*\bBackground\b/.test(type(card))
-  if (
-    (isCommanderCandidate(left) && /Choose a Background/i.test(text(left)) && background(right)) ||
-    (isCommanderCandidate(right) && /Choose a Background/i.test(text(right)) && background(left))
-  )
-    return ''
-  const doctor = (card: DeckCard) =>
-    /Legendary.*Creature\s*—\s*Time Lord Doctor\s*$/.test(type(card))
-  if (
-    (doctor(left) && isCommanderCandidate(right) && /Doctor's companion/i.test(text(right))) ||
-    (doctor(right) && isCommanderCandidate(left) && /Doctor's companion/i.test(text(left)))
-  )
-    return ''
-  if (!isCommanderCandidate(left) || !isCommanderCandidate(right))
-    return 'This pair contains an ineligible commander.'
-  const partner = (card: DeckCard) => /^Partner(?:\s*\(|\s*$)/im.test(text(card))
-  if (partner(left) && partner(right)) return ''
-  const namedPartner = (card: DeckCard, other: DeckCard) =>
-    text(card)
-      .split('\n')
-      .some((line) => line.split(' (')[0].trim() === `Partner with ${other.name}`)
-  if (namedPartner(left, right) && namedPartner(right, left)) return ''
-  const variant = (card: DeckCard) =>
-    text(card)
-      .match(/^Partner\s*[—-]\s*([^\n(]+)/im)?.[1]
-      .trim()
-      .toLowerCase() ??
-    (/^Friends forever(?:\s*\(|\s*$)/im.test(text(card)) ? 'friends forever' : undefined)
-  const shared = variant(left)
-  if (
-    shared &&
-    ['character select', 'father & son', 'friends forever', 'survivors'].includes(shared) &&
-    shared === variant(right)
-  )
-    return ''
-  return 'These commanders do not share a supported partner ability.'
 }
