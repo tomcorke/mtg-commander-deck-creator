@@ -8,6 +8,7 @@ import {
   filterCommanders,
   orderCommanders,
   scryfallPageSize,
+  type CommanderSort,
 } from './commander-discovery.ts'
 import { selectableThemes, visibleThemeChoices } from './commander-catalog.ts'
 
@@ -235,4 +236,44 @@ test('theme choices search every theme and keep the selection visible', () => {
   assert.ok(visibleThemeChoices('TOK', [], '', false).includes('Tokens'))
   assert.deepEqual(visibleThemeChoices('zzz', [], second!, false), [second])
   assert.deepEqual(visibleThemeChoices('zzz', [], '', false), [])
+})
+
+test('a chosen sort orders searches on Scryfall and curated lists locally', async () => {
+  const orders: (string | undefined)[] = []
+  const cards = [
+    card('Bravo', { cmc: 3, edhrec_rank: 20, released_at: '2020-01-01' }),
+    card('Alpha', { cmc: 5, released_at: '2024-01-01' }),
+    card('Charlie', { cmc: 1, edhrec_rank: 10, released_at: '2022-01-01' }),
+  ]
+  const providers = {
+    search: async (_query: string, _fetcher?: unknown, _signal?: unknown, order?: string) => {
+      orders.push(order)
+      return cards
+    },
+    hydrate: async () => cards,
+  }
+  const names = async (sort?: CommanderSort, theme = '') =>
+    (
+      await discoverCommanders({ theme, colours: [], search: '', sort }, undefined, providers)
+    ).commanders.map(({ card: { name } }) => name)
+  assert.deepEqual(await names(), ['Bravo', 'Alpha', 'Charlie'], 'no sort keeps search order')
+  assert.deepEqual(await names('popularity'), ['Charlie', 'Bravo', 'Alpha'], 'unranked last')
+  assert.deepEqual(await names('name'), ['Alpha', 'Bravo', 'Charlie'])
+  assert.deepEqual(await names('manaValue'), ['Charlie', 'Bravo', 'Alpha'])
+  assert.deepEqual(await names('newest'), ['Alpha', 'Charlie', 'Bravo'])
+  assert.deepEqual(orders, ['edhrec', 'edhrec', 'name', 'cmc', 'released'])
+  assert.deepEqual(await names('name', 'Tokens'), ['Alpha', 'Bravo', 'Charlie'], 'curated list')
+  assert.equal(orders.length, 5, 'curated lists are not searched')
+})
+
+test('creature-type coverage still leads a chosen sort', () => {
+  const pool = [
+    { card: card('Alpha'), reason: 'Test', coverage: 1 },
+    { card: card('Bravo'), reason: 'Test', coverage: 2 },
+    { card: card('Aardvark'), reason: 'Test', coverage: 1 },
+  ]
+  assert.deepEqual(
+    orderCommanders(pool, 'name').map(({ card: { name } }) => name),
+    ['Bravo', 'Aardvark', 'Alpha'],
+  )
 })

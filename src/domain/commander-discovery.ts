@@ -16,6 +16,25 @@ export type DiscoveryFilters = {
   maxManaValue?: number | null
   /** Set codes; commanders with a printing in any of them match. */
   sets?: string[]
+  /** Result order; absent keeps search or curated order. */
+  sort?: CommanderSort
+}
+export type CommanderSort = 'popularity' | 'name' | 'manaValue' | 'newest'
+/** Scryfall's order for each sort; each sorts in that key's natural direction. */
+const scryfallOrders: Record<CommanderSort, string> = {
+  popularity: 'edhrec',
+  name: 'name',
+  manaValue: 'cmc',
+  newest: 'released',
+}
+const last = Number.MAX_SAFE_INTEGER
+const compareBy: Record<CommanderSort, (left: ScryfallCard, right: ScryfallCard) => number> = {
+  // Scryfall's EDHREC rank: lower is more popular; unranked cards go last.
+  popularity: (left, right) => (left.edhrec_rank ?? last) - (right.edhrec_rank ?? last),
+  name: (left, right) => left.name.localeCompare(right.name),
+  manaValue: (left, right) => (left.cmc ?? last) - (right.cmc ?? last),
+  // The shown printing's release date, which Scryfall also sorts by.
+  newest: (left, right) => (right.released_at ?? '').localeCompare(left.released_at ?? ''),
 }
 /** `coverage`: how many of several chosen creature types the commander is or mentions. */
 export type CommanderSuggestion = { card: ScryfallCard; reason: string; coverage?: number }
@@ -181,7 +200,7 @@ export async function discoverCommanders(
           .trim(),
         fetch,
         signal,
-        'edhrec',
+        scryfallOrders[filters.sort ?? 'popularity'],
       )
   signal?.throwIfAborted()
   const reason = discoveryReason(filters.theme, term, curatedNames.length > 0)
@@ -191,7 +210,7 @@ export async function discoverCommanders(
     // Scryfall already matched rules text, including keyword-only matches; check it locally for curated lists.
     curated ? filters : { ...filters, rulesText: '' },
   ).map((card) => (types.length < 2 ? { card, reason } : coverageSuggestion(card, types, reason)))
-  return { commanders: orderCommanders(commanders), more }
+  return { commanders: orderCommanders(commanders, filters.sort), more }
 }
 
 function coverageSuggestion(card: ScryfallCard, types: string[], reason: string) {
@@ -203,6 +222,13 @@ function coverageSuggestion(card: ScryfallCard, types: string[], reason: string)
   }
 }
 
-/** Commanders covering more of the chosen creature types first; otherwise search order is kept. */
-export const orderCommanders = (cards: CommanderSuggestion[]) =>
-  cards.toSorted((left, right) => (right.coverage ?? 0) - (left.coverage ?? 0))
+/**
+ * Commanders covering more of the chosen creature types first, then by `sort`; without a sort,
+ * search or curated order is kept.
+ */
+export const orderCommanders = (cards: CommanderSuggestion[], sort?: CommanderSort) =>
+  cards.toSorted(
+    (left, right) =>
+      (right.coverage ?? 0) - (left.coverage ?? 0) ||
+      (sort ? compareBy[sort](left.card, right.card) : 0),
+  )

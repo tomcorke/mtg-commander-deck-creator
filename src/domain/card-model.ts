@@ -54,6 +54,8 @@ export type ScryfallCard = {
   finishes?: CardFinish[]
   promo_types?: string[]
   released_at?: string
+  /** Scryfall's EDHREC popularity rank; lower is more popular. */
+  edhrec_rank?: number
   game_changer?: boolean | null
   prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null }
   image_uris?: { normal: string; art_crop?: string }
@@ -87,6 +89,7 @@ const scryfallCardSchema = z.object({
   legalities: z.object({ commander: z.string().optional() }).optional(),
   game_changer: z.boolean().nullable().optional(),
   released_at: z.iso.date().optional(),
+  edhrec_rank: z.number().optional(),
   set_name: z.string().optional(),
   scryfall_uri: z.string().optional(),
   finishes: z.array(z.enum(['nonfoil', 'foil', 'etched'])).optional(),

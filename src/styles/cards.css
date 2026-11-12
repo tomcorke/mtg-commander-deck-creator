@@ -1025,6 +1025,30 @@ button:disabled {
   font-size: var(--type-body);
 }
 
+/* Identified-theme chips: labels, not toggles, so they take the selected tint without a control border. */
+.identified-themes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.identified-themes-list > li {
+  padding: 4px 10px;
+  border: 1px solid var(--selected-border);
+  border-radius: 16px;
+  background: var(--selected-background);
+  color: var(--text-body);
+}
+.card-tile-caption > .identified-themes-list {
+  gap: 4px;
+  margin: 2px 0 0;
+  font-size: var(--type-data);
+}
+.card-tile-caption > .identified-themes-list > li {
+  padding: 1px 8px;
+}
+
 /* Keep the fan transform on the outer wrapper; reveal geometry lives inside its canvas. */
 .offered-image > .finished-card[data-card-reveal] {
   background: url('/images/mtg-card-back.png') center / 100% 100% no-repeat;
