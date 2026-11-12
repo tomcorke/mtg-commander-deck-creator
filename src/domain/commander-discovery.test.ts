@@ -81,7 +81,11 @@ test('source labels are honest and name search never bypasses theme/identity', a
     result.commanders.map(({ card: c, reason }) => [c.name, reason]),
     [['Token leader', 'Picked for Tokens decks']],
   )
-  assert.equal(queries.length, 0)
+  // The curated list is hydrated, never searched; only its separately labelled broader section is.
+  assert.equal(queries.length, 1)
+  assert.match(queries[0], /id=gw name:"Token" \(o:token\)$/)
+  assert.equal(result.broader?.heading, 'More commanders that mention Tokens')
+  queries.length = 0
   const query = await discoverCommanders(
     { theme: 'Equipment', colours: ['G', 'W'], search: 'Equipment leader' },
     undefined,
@@ -150,6 +154,7 @@ test('a search filling the Scryfall page limit reports that more commanders matc
     providers,
   )
   assert.equal(curated.more, false)
+  assert.equal(curated.broader?.more, true, 'a full broader page reports more')
 })
 
 test('rules text, Eminence, mana value and set criteria combine with existing filters', async () => {
@@ -215,7 +220,9 @@ test('rules text, Eminence, mana value and set criteria combine with existing fi
     undefined,
     providers,
   )
-  assert.equal(queries.length, 0)
+  assert.equal(queries.length, 1, 'only the broader section searches')
+  assert.match(queries[0], /\(o:"eminence" or kw:"eminence"\) \(o:token\)$/)
+  queries.length = 0
   assert.deepEqual(
     curated.commanders.map(({ card: { name } }) => name),
     ['Edgar Markov'],
@@ -253,7 +260,7 @@ test('a chosen sort orders searches on Scryfall and curated lists locally', asyn
   assert.deepEqual(await names('newest'), ['Alpha', 'Charlie', 'Bravo'])
   assert.deepEqual(orders, ['edhrec', 'edhrec', 'name', 'cmc', 'released'])
   assert.deepEqual(await names('name', 'Tokens'), ['Alpha', 'Bravo', 'Charlie'], 'curated list')
-  assert.equal(orders.length, 5, 'curated lists are not searched')
+  assert.equal(orders.length, 6, 'the curated list is not searched; its broader section is')
 })
 
 test('creature-type coverage still leads a chosen sort', () => {
@@ -266,4 +273,66 @@ test('creature-type coverage still leads a chosen sort', () => {
     orderCommanders(pool, 'name').map(({ card: { name } }) => name),
     ['Bravo', 'Aardvark', 'Alpha'],
   )
+})
+
+test('a curated theme adds broader rules-text matches in their own section, never as picks', async () => {
+  const golgari = { color_identity: ['B', 'G'] }
+  const meren = card('Meren of Clan Nel Toth', { ...golgari, oracle_id: 'meren' })
+  const mazirek = card('Mazirek, Kraul Death Priest', golgari)
+  const queries: string[] = []
+  const providers = {
+    search: async (query: string) => {
+      queries.push(query)
+      return [
+        card('Meren of Clan Nel Toth', { ...golgari, oracle_id: 'meren' }),
+        card('Savra, Queen of the Golgari', golgari),
+        card('Mazirek, Kraul Death Priest', { ...golgari, oracle_id: 'other-printing-id' }),
+        card('Korvold, Fae-Cursed King', { color_identity: ['B', 'R', 'G'] }),
+        card('Grim Flayer', golgari),
+      ]
+    },
+    hydrate: async () => [
+      meren,
+      mazirek,
+      card('Yawgmoth, Thran Physician', { color_identity: ['B'] }),
+    ],
+  }
+  const found = await discoverCommanders(
+    { theme: 'Sacrifice', colours: ['B', 'G'], search: '' },
+    undefined,
+    providers,
+  )
+  assert.deepEqual(
+    found.commanders.map(({ card: { name }, reason }) => [name, reason]),
+    [
+      ['Meren of Clan Nel Toth', 'Picked for Sacrifice decks'],
+      ['Mazirek, Kraul Death Priest', 'Picked for Sacrifice decks'],
+    ],
+  )
+  assert.equal(found.broader?.heading, 'More commanders that mention Sacrifice')
+  assert.deepEqual(
+    found.broader?.commanders.map(({ card: { name }, reason }) => [name, reason]),
+    [
+      ['Savra, Queen of the Golgari', 'More commanders that mention Sacrifice'],
+      ['Grim Flayer', 'More commanders that mention Sacrifice'],
+    ],
+    'curated picks, matched by Oracle ID or name, and other identities are left out',
+  )
+  assert.match(queries[0], /^is:commander legal:commander date<=today id=bg \(o:sacrifice\)$/)
+
+  // Creature types keep their own wording; themes without a broader term search nothing.
+  const vampires = await discoverCommanders(
+    { theme: 'Vampires', colours: [], search: '' },
+    undefined,
+    providers,
+  )
+  assert.equal(vampires.broader?.heading, 'More Vampires commanders, or ones that mention them')
+  queries.length = 0
+  const hug = await discoverCommanders(
+    { theme: 'Group hug', colours: [], search: '' },
+    undefined,
+    providers,
+  )
+  assert.equal(hug.broader, undefined)
+  assert.equal(queries.length, 0)
 })

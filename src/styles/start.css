@@ -444,3 +444,37 @@
 .start h1[tabindex='-1']:focus {
   outline: none;
 }
+/* Broader rules-text matches below a curated theme's picks (#481): a separate heading and grid. */
+.commander-broader {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+.commander-broader h3 {
+  margin: 0;
+  font-size: var(--type-section);
+}
+/* One-click widening for a near-empty result; the empty state reuses the action row. */
+.commander-widen {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px dashed var(--border-control);
+}
+.commander-widen p {
+  margin: 0;
+}
+.commander-widen .commander-widen-note {
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.commander-widen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.commander-widen .commander-widen-actions {
+  justify-content: flex-start;
+}
