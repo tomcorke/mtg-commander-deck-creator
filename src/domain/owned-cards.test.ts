@@ -15,6 +15,7 @@ import {
   readCsvRecords,
   readOwnedCardList,
   stillNeededCards,
+  stillNeededGroups,
 } from './owned-cards.ts'
 
 test('plain text lists accept quantities, printings, finishes and bare names', () => {
@@ -128,6 +129,34 @@ test('still needed subtracts each owned copy once, in deck order', () => {
   assert.deepEqual(stillNeededCards([{ name: 'Sol Ring' }], owned, covered), [])
   assert.deepEqual(stillNeededCards([{ name: 'Sol Ring' }], owned, covered), [{ name: 'Sol Ring' }])
   assert.deepEqual(stillNeededCards(deck, undefined), deck)
+})
+
+test('still-needed groups count copies per name, in deck order', () => {
+  const owned = { forest: 12, 'sol ring': 1 }
+  const deck = [
+    { name: 'Sol Ring', set: 'c21' },
+    { name: 'Forest', set: 'tst' },
+    { name: 'Sol Ring', set: 'cmm' },
+    ...Array.from({ length: 14 }, () => ({ name: 'Forest', set: 'tst' })),
+    { name: 'Mana Crypt', set: 'tst' },
+  ]
+  assert.deepEqual(
+    stillNeededGroups(deck, owned).map(({ card, needed, inDeck }) => [
+      card.name,
+      card.set,
+      needed,
+      inDeck,
+    ]),
+    [
+      ['Sol Ring', 'cmm', 1, 2],
+      ['Forest', 'tst', 3, 15],
+      ['Mana Crypt', 'tst', 1, 1],
+    ],
+  )
+  assert.deepEqual(
+    stillNeededGroups(deck, { ...owned, forest: 15, 'mana crypt': 1, 'sol ring': 2 }),
+    [],
+  )
 })
 
 test('stored owned cards read back, and damaged storage reads as none', () => {

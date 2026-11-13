@@ -121,6 +121,27 @@ export function stillNeededCards<T extends { name: string }>(
   })
 }
 
+/**
+ * Still-needed cards grouped by name in deck order: the first uncovered entry stands for its name,
+ * with how many copies are still needed of how many the deck holds.
+ */
+export function stillNeededGroups<T extends { name: string }>(
+  cards: T[],
+  owned: OwnedQuantities | undefined,
+) {
+  const groups = new Map<string, { card: T; needed: number; inDeck: number }>()
+  for (const card of stillNeededCards(cards, owned)) {
+    const group = groups.get(cardNameKey(card.name))
+    if (group) group.needed++
+    else groups.set(cardNameKey(card.name), { card, needed: 1, inDeck: 0 })
+  }
+  for (const card of cards) {
+    const group = groups.get(cardNameKey(card.name))
+    if (group) group.inDeck++
+  }
+  return [...groups.values()]
+}
+
 export function describeOwnedCards(list: OwnedCardList | null | undefined) {
   const cards = list?.cards ?? []
   const copies = cards.reduce((total, { quantity }) => total + quantity, 0)

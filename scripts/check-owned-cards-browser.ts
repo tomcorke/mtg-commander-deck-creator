@@ -1,11 +1,14 @@
-// Owned cards (#505): import a list into this browser, view it, use it in recommendations, export
-// the cards still needed, then clear it. OWNED_CARDS_SCREENSHOTS=<dir> also saves review evidence.
+// Owned cards (#505, #521): import a list into this browser, view it, use it in recommendations,
+// review and export the cards still needed, preview owned art from the local card index, then
+// clear it. OWNED_CARDS_SCREENSHOTS=<dir> also saves review evidence.
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Page } from 'playwright-core'
-import { button, openScenario, withBrowser } from './fixtures/browser-harness.ts'
-import { makeState } from './fixtures/b10-browser.ts'
+import type { Browser, Page } from 'playwright-core'
+import { buildLocalCardIndex } from './build-card-index.ts'
+import { serializeLocalCardIndex } from '../src/domain/local-card-index.ts'
+import { button, openScenario, withBrowser, withOwnedCards } from './fixtures/browser-harness.ts'
+import { baseCandidates, deckRecords, makeState } from './fixtures/b10-browser.ts'
 import { setDisplayPreferences } from './browser-display.ts'
 
 const output = process.env.OWNED_CARDS_SCREENSHOTS
@@ -101,6 +104,67 @@ async function checkStillNeeded(page: Page, label: string) {
   await page.keyboard.press('Escape')
 }
 
+async function checkDeckReview(page: Page, label: string) {
+  await button(page, 'Deck review').click()
+  const review = page.locator('#still-needed')
+  await review.getByRole('heading', { name: 'Still needed' }).waitFor()
+  assert.match(
+    await page.locator('.deck-review-overview').innerText(),
+    /64 main-deck cards still needed/,
+  )
+  assert.match(await review.innerText(), /^64 main-deck cards, commanders included/m)
+  // Owned cards cover the commander, 35 basics and the owned spare; they are not listed.
+  const names = await review.locator('.doctor-card-tile .card-reference-name').allInnerTexts()
+  assert(names.includes('B10 Existing ramp A') && !names.includes('B10 Basic'))
+  await button(page, 'See still needed').click()
+  await shoot(page, `${label}-review-still-needed`)
+  await button(review, 'Show 64 still-needed cards in the deck list').click()
+  await page
+    .locator('.deck-review-filter-status')
+    .getByText(/highlighted for Still needed/)
+    .waitFor()
+  assert.equal(
+    await page
+      .locator('[data-highlighted] .card-reference-name', { hasText: 'B10 Commander' })
+      .count(),
+    0,
+  )
+  await button(page, 'Clear highlight').click()
+}
+
+const localIndexBody = serializeLocalCardIndex(
+  buildLocalCardIndex({
+    bulkUpdatedAt: '2026-10-24T10:00:00Z',
+    sets: [{ code: 'tst', name: 'B10 Fixture Alpha', released_at: '2020-01-01', card_count: 1 }],
+    creatureTypes: ['Human'],
+    cards: [...new Map([...deckRecords, ...baseCandidates].map((c) => [c.name, c])).values()],
+  }),
+)
+
+/** Owned names the local card index knows preview their art on hover and keyboard focus. */
+async function checkOwnedPreviews(browser: Browser, base: string) {
+  const { page, context, errors } = await openScenario(
+    browser,
+    base,
+    makeState(),
+    baseCandidates,
+    (route) => route.fulfill({ contentType: 'application/json', body: localIndexBody }),
+    withOwnedCards(['B10 Ramp two', 'Unknown owned card']),
+  )
+  await openOwnedCards(page)
+  const known = owned(page).locator('.card-reference', { hasText: 'B10 Ramp two' })
+  await known.locator('.card-reference-thumbnail').waitFor()
+  await known.locator('.card-reference-name').focus()
+  await known.locator('.card-image-preview:popover-open img').waitFor()
+  await known.locator('.card-reference-name').blur()
+  await known.locator('.card-reference-name').hover()
+  await known.locator('.card-image-preview:popover-open img').waitFor()
+  const unknown = owned(page).locator('.card-reference', { hasText: 'Unknown owned card' })
+  assert.equal(await unknown.locator('.card-reference-thumbnail, .card-image-preview').count(), 0)
+  assert.deepEqual(errors, [])
+  await context.close()
+}
+
 async function clearOwnedCards(page: Page) {
   await openOwnedCards(page)
   await button(owned(page), 'Clear owned cards').click()
@@ -130,9 +194,13 @@ await withBrowser('OWNED_CARDS', 5243, async (browser, base) => {
     await button(page, 'Deck review').waitFor()
     await page.locator('.card-offer .owned-badge').first().waitFor()
     await checkStillNeeded(page, label)
+    await checkDeckReview(page, label)
     await clearOwnedCards(page)
     assert.deepEqual(errors, [])
     await context.close()
   }
-  console.log('Owned cards: import, view, Owned only, reload, still-needed export and clear pass')
+  await checkOwnedPreviews(browser, base)
+  console.log(
+    'Owned cards: import, view, Owned only, reload, still-needed review and export, previews and clear pass',
+  )
 })

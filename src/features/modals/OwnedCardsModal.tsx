@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 
+import { cardNameKey, type DeckCard } from '../../domain/card-model.ts'
 import {
   combineOwnedCards,
   describeOwnedCards,
@@ -24,6 +25,7 @@ type Props = {
   saveOwnedCards: (cards: OwnedCard[] | null) => void
   unrecognisedOwnedNames: (cards: OwnedCard[]) => Promise<string[] | null>
   openOwnedCard: (name: string) => Promise<boolean>
+  resolveOwnedCards: (cards: OwnedCard[]) => Promise<Map<string, DeckCard> | null>
   closeModal: () => void
 }
 
@@ -51,6 +53,26 @@ function useUnrecognisedNames(
     }
   }, [cards])
   return result?.cards === cards ? result.names : null
+}
+
+/** Owned cards the local card index knows, keyed by `cardNameKey`, once the index answers. */
+function useResolvedOwnedCards(
+  cards: OwnedCard[],
+  resolve: (cards: OwnedCard[]) => Promise<Map<string, DeckCard> | null>,
+) {
+  const [result, setResult] = useState<{
+    cards: OwnedCard[]
+    known: Map<string, DeckCard> | null
+  } | null>(null)
+  const run = useEffectEvent((cards: OwnedCard[]) => resolve(cards))
+  useEffect(() => {
+    let current = true
+    void run(cards).then((known) => current && setResult({ cards, known }))
+    return () => {
+      current = false
+    }
+  }, [cards])
+  return result?.cards === cards ? result.known : null
 }
 
 /** What the pasted list holds, what was skipped, and names the app does not know. */
@@ -221,7 +243,9 @@ function ImportOwnedCards({
 function OwnedCardList({
   ownedCardList,
   openOwnedCard,
-}: Pick<Props, 'openOwnedCard'> & { ownedCardList: OwnedCardList }) {
+  resolveOwnedCards,
+}: Pick<Props, 'openOwnedCard' | 'resolveOwnedCards'> & { ownedCardList: OwnedCardList }) {
+  const known = useResolvedOwnedCards(ownedCardList.cards, resolveOwnedCards)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
   const [openError, setOpenError] = useState('')
@@ -257,22 +281,27 @@ function OwnedCardList({
       )}
       {matches.length ? (
         <ul className="owned-card-grid">
-          {matches.slice(shown.start, shown.end).map(({ name, quantity }) => (
-            <li key={name}>
-              <CardReference
-                card={{ name, image: '' }}
-                preview={false}
-                onOpen={() =>
-                  void openOwnedCard(name).then((opened) =>
-                    setOpenError(opened ? '' : `Card details for ${name} are unavailable.`),
-                  )
-                }
-              />
-              <span className="owned-card-quantity" aria-label={`${quantity} owned`}>
-                ×{quantity}
-              </span>
-            </li>
-          ))}
+          {matches.slice(shown.start, shown.end).map(({ name, quantity }) => {
+            // Names the local index knows preview their art; others open details by name.
+            const card = known?.get(cardNameKey(name))
+            return (
+              <li key={name}>
+                <CardReference
+                  card={card ? { ...card, name } : { name, image: '' }}
+                  preview={Boolean(card?.image)}
+                  thumbnail
+                  onOpen={() =>
+                    void openOwnedCard(name).then((opened) =>
+                      setOpenError(opened ? '' : `Card details for ${name} are unavailable.`),
+                    )
+                  }
+                />
+                <span className="owned-card-quantity" aria-label={`${quantity} owned`}>
+                  ×{quantity}
+                </span>
+              </li>
+            )
+          })}
         </ul>
       ) : (
         <p className="saved-decks-empty">No owned card matches “{query.trim()}”.</p>
@@ -296,6 +325,7 @@ export function OwnedCardsModal({
   saveOwnedCards,
   unrecognisedOwnedNames,
   openOwnedCard,
+  resolveOwnedCards,
   closeModal,
 }: Props) {
   const dialog = useDialogFocus(show, closeModal)
@@ -335,6 +365,7 @@ export function OwnedCardsModal({
             key={ownedCardList.updatedAt}
             ownedCardList={ownedCardList}
             openOwnedCard={openOwnedCard}
+            resolveOwnedCards={resolveOwnedCards}
           />
         )}
         <div className="export-actions">

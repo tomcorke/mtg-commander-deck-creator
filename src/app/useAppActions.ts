@@ -1,4 +1,9 @@
-import { openOwnedCard, saveOwnedCards, unrecognisedOwnedNames } from './owned-card-actions.ts'
+import {
+  openOwnedCard,
+  resolveOwnedCards,
+  saveOwnedCards,
+  unrecognisedOwnedNames,
+} from './owned-card-actions.ts'
 import type { OwnedCard } from '../domain/owned-cards.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
@@ -454,6 +459,7 @@ function ownedCardActions(state: AppState, routing: RoutingActions, remote: Remo
     saveOwnedCards: (cards: OwnedCard[] | null) => saveOwnedCards(deps, cards),
     unrecognisedOwnedNames: (cards: OwnedCard[]) => unrecognisedOwnedNames(deps, cards),
     openOwnedCard: (name: string) => openOwnedCard(deps, name),
+    resolveOwnedCards: (cards: OwnedCard[]) => resolveOwnedCards(deps, cards),
   }
 }
 

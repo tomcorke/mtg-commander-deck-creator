@@ -34,6 +34,8 @@ type DeckOverviewProps = {
   selectManaValue: (value: number) => void
   selectCards: (label: string, cardNames: string[]) => void
   chooseTheme?: () => void
+  /** Main-deck copies owned cards do not cover; absent without owned cards. */
+  stillNeeded?: { count: number; show: () => void }
 }
 
 type StatusKind = 'good' | 'attention' | 'neutral'
@@ -105,6 +107,7 @@ export function DeckOverview({
   selectManaValue,
   selectCards,
   chooseTheme,
+  stillNeeded,
 }: DeckOverviewProps) {
   const mainboard = deck.slice(commanderCount)
   const early = deck.length < earlyDeckSize
@@ -250,6 +253,23 @@ export function DeckOverview({
                 </button>
               )}
             </div>
+            {stillNeeded && (
+              <div>
+                <ReviewStatus
+                  kind={stillNeeded.count ? 'neutral' : 'good'}
+                  label={stillNeeded.count ? 'Cards to get' : 'All owned'}
+                />
+                <b>
+                  {stillNeeded.count} main-deck card{stillNeeded.count === 1 ? '' : 's'} still
+                  needed
+                </b>
+                {stillNeeded.count > 0 && (
+                  <button className="export" type="button" onClick={stillNeeded.show}>
+                    See still needed
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </section>
 

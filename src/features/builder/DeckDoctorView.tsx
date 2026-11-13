@@ -42,6 +42,8 @@ import { DeckOverview, ReviewStatus } from './DeckOverview.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import type { startingDeckSummary } from '../../domain/bulk-add.ts'
 import { StartingDeckDraft } from './StartingDeckDraft.tsx'
+import { StillNeededCards } from './StillNeededCards.tsx'
+import { stillNeededGroups, type OwnedQuantities } from '../../domain/owned-cards.ts'
 
 type DoctorCard = Card | DeckCard
 
@@ -100,6 +102,8 @@ type Props = {
   /** Cards an app-built starting deck added, while any remain. */
   startingDeck: ReturnType<typeof startingDeckSummary>
   undoStartingDeck: () => void
+  /** Owned copies by name; empty without owned cards. */
+  ownedCards: OwnedQuantities
 }
 
 const findingKindLabels: Record<DeckDoctorFinding['kind'], string> = {
@@ -337,6 +341,7 @@ export function DeckDoctorView({
   closePage,
   startingDeck,
   undoStartingDeck,
+  ownedCards,
 }: Props) {
   const { commanderStyling, darkMode } = useVisualPreferences()
   const [candidateFetch, setCandidateFetch] = useState({
@@ -600,6 +605,7 @@ export function DeckDoctorView({
   }
 
   const draftNames = new Set(startingDeck?.cards.map(({ name }) => name))
+  const stillNeeded = Object.keys(ownedCards).length ? stillNeededGroups(deck, ownedCards) : null
   function cutGroupTile({ card, indexes }: { card: DeckCard; indexes: number[] }) {
     const flagged = flaggedNames.has(card.name)
     const status = `In deck${draftNames.has(card.name) ? ' · app draft' : ''}${flagged ? ' · flagged' : ''}`
@@ -1050,6 +1056,18 @@ export function DeckDoctorView({
                   requestExit(() => selectCards(label, names))
                 }}
                 chooseTheme={() => requestExit(chooseTheme)}
+                stillNeeded={
+                  stillNeeded
+                    ? {
+                        count: stillNeeded.reduce((sum, { needed }) => sum + needed, 0),
+                        show: () => {
+                          const section = document.getElementById('still-needed')
+                          section?.scrollIntoView({ block: 'start' })
+                          section?.focus({ preventScroll: true })
+                        },
+                      }
+                    : undefined
+                }
               />
             </div>
             <section
@@ -1180,6 +1198,13 @@ export function DeckDoctorView({
               )}
               {findings.length > 0 && moreCandidates}
             </section>
+            {stillNeeded && (
+              <StillNeededCards
+                groups={stillNeeded}
+                openCard={openCard}
+                selectCards={(label, names) => requestExit(() => selectCards(label, names))}
+              />
+            )}
             <button
               className="nav-forward"
               type="button"
