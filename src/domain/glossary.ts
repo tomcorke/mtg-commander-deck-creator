@@ -191,6 +191,12 @@ export const appTerms = {
       'Main-deck cards whose text or type line matches your theme. Text matching can miss or over-count cards, and the starting target is an app estimate, not a rule.',
     kind: 'heuristic',
   },
+  genericPick: {
+    term: 'Generic pick',
+    definition:
+      'In Theme first, an offer whose text and type line match none of your themes. Text matching can miss cards that do support a theme; the mark is not a quality verdict.',
+    kind: 'heuristic',
+  },
   priority: {
     term: 'Priority',
     definition:

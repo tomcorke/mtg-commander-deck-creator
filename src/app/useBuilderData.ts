@@ -281,6 +281,8 @@ export type Explanation = {
   sentence: string
   /** The reason leads with theme fit; other evidence must not replace it. */
   themeFit?: true
+  /** Theme first (#560): the card matches no selected theme tag. Never set with `themeFit`. */
+  generic?: true
 }
 
 const themeList = (themes: string[]) =>
@@ -320,11 +322,13 @@ function recommendationExplainer(
   const commanderName = commanderNames(deps.commander)
     .map((name) => name.split(',')[0])
     .join(' and ')
+  // The theme first, then extra themes, as Start and the builder order them.
+  const selectedThemes = [...new Set([theme, ...activeSubThemes])].filter(Boolean) as string[]
+  // Theme first marks offers that match no selected theme tag (#560); with no theme, every offer would.
+  const marksGeneric = deps.recommendationStyle === 'thematic' && selectedThemes.length > 0
   const deckReason = (card: Card): Explanation | null => {
-    // Theme fit leads (#501): the theme first, then extra themes, as Start and the builder order them.
-    const themes = [...new Set([theme, ...activeSubThemes])].filter(
-      (tag: string) => tag && hasTag(card, tag),
-    )
+    // Theme fit leads (#501).
+    const themes = selectedThemes.filter((tag) => hasTag(card, tag))
     if (themes.length) return themeFitReason(card, themes)
     if (collectionMode !== 'none' && card.collectionMatch)
       return {
@@ -354,7 +358,7 @@ function recommendationExplainer(
       }
     return null
   }
-  const explainRecommendation = (card: Card): Explanation => {
+  const explainCard = (card: Card): Explanation => {
     const reason = deckReason(card)
     if (!reason) return { label: card.reason, sentence: evidenceSentence(card, commanderName) }
     if (card.source !== 'edhrec' || card.inclusion === undefined) return reason
@@ -366,6 +370,10 @@ function recommendationExplainer(
         ? `${reason.sentence} In ${share}`
         : reason.sentence.replace(/\.$/, `, and appears in ${share}`),
     }
+  }
+  const explainRecommendation = (card: Card): Explanation => {
+    const explanation = explainCard(card)
+    return marksGeneric && !explanation.themeFit ? { ...explanation, generic: true } : explanation
   }
   return explainRecommendation
 }

@@ -454,3 +454,49 @@ test('theme-matching offers lead with the theme and the words that matched (#501
     'Text matches your Zombies theme: “Changeling”.',
   )
 })
+
+test('Theme first marks offers that match no selected theme as generic picks (#560)', () => {
+  const card = (name: string, extra: Record<string, unknown> = {}) => ({
+    name,
+    layout: 'normal',
+    typeLine: 'Artifact',
+    manaCost: '{2}',
+    manaValue: 2,
+    detail: '',
+    producedMana: [],
+    faces: [],
+    reason: 'Commander synergy',
+    source: 'scryfall',
+    tags: [],
+    set: 'tst',
+    ...extra,
+  })
+  const explainer = (overrides: Record<string, unknown>) => {
+    const data = buildBuilderData(
+      builderDeps([], { commander: 'Meren of Clan Nel Toth', theme: 'Sacrifice', ...overrides }),
+    )
+    return (item: unknown) => data.explainRecommendation(item as never)
+  }
+  const signet = card('Signet', { producedMana: ['B'], detail: '{T}: Add {B}.' })
+  const altar = card('Altar', { tags: ['Sacrifice'], detail: 'Sacrifice a creature: Add {B}.' })
+  // An extra theme's match is a theme match too; a changeling matches a creature-type theme.
+  const ghoul = card('Ghoul', { typeLine: 'Creature — Zombie', tags: ['Zombies'] })
+  const shifter = card('Shifter', { tags: ['Changeling'], detail: 'Changeling' })
+  const thematic = explainer({ recommendationStyle: 'thematic', activeSubThemes: ['Zombies'] })
+
+  // The mark rides alongside the role reason; it never replaces it.
+  assert.deepEqual(thematic(signet), {
+    label: 'Ramp',
+    sentence: 'Adds ramp your deck needs (0 of 10 so far).',
+    generic: true,
+  })
+  assert.equal(thematic(card('Plain')).generic, true)
+  for (const item of [altar, ghoul, shifter]) {
+    assert.equal(thematic(item).generic, undefined, item.name)
+    assert.equal(thematic(item).themeFit, true, item.name)
+  }
+  // Other priorities, and Theme first with no theme chosen, never mark.
+  for (const style of ['balanced', 'competitive', 'fun'])
+    assert.equal(explainer({ recommendationStyle: style })(signet).generic, undefined, style)
+  assert.equal(explainer({ recommendationStyle: 'thematic', theme: '' })(signet).generic, undefined)
+})
