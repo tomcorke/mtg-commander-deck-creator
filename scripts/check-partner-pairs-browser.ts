@@ -99,6 +99,8 @@ async function startAmpersandSolo(page: Page, edhrec: string[]) {
   await page.getByRole('button', { name: ampersandSolo.name, exact: true }).first().waitFor()
   await summary(page).locator('.identity[aria-label="Colour identity: Green"]').waitFor()
   await playFirstBatch(page, edhrec, 'pair-fixture-rogue-hamster')
+  // The tab title shows the name as printed, not the stored key.
+  assert.match(await page.title(), /Pair Fixture Rogue & Hamster/)
   if (output) await page.screenshot({ path: join(output, 'ampersand-solo-builder.png') })
 }
 

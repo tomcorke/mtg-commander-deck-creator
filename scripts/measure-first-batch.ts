@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { start } from '../src/app/recommendation-actions.ts'
+import { commanderKey } from '../src/domain/commander-catalog.ts'
 import { withBuilderActions } from '../src/app/builder-test-fixture.ts'
 import { rankRecommendationCards } from '../src/recommendations.ts'
 import {
@@ -100,7 +101,7 @@ for (const temperature of ['cold', 'warm']) {
         searchScryfallCached(query, fetcher, signal, order, pages),
       ),
   })
-  assert.equal(await start(host, commander.name, true), true)
+  assert.equal(await start(host, commanderKey([commander.name]), true), true)
   assert.ok(host.getBuilderState().queue.length >= 4)
   console.log(
     JSON.stringify(

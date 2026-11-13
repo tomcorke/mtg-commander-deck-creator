@@ -1,5 +1,6 @@
 import { savedDraftAge, type DeckWorkspace } from '../../autosaves.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { commanderLabel } from '../../domain/commander-catalog.ts'
 
 export function DraftSavedTime({ updatedAt }: { updatedAt: string }) {
   return (
@@ -48,7 +49,8 @@ export function WorkspaceNotice({
         <section className="workspace-notice" aria-label="Draft recovery">
           <p role="status">
             {notice.latest ? 'Automatically restored your latest draft' : 'Restored your draft'}:{' '}
-            <b>{notice.draft.state.commander}</b> ({notice.draft.state.deck.length} card
+            <b>{commanderLabel(notice.draft.state.commander)}</b> ({notice.draft.state.deck.length}{' '}
+            card
             {notice.draft.state.deck.length === 1 ? '' : 's'}, saved{' '}
             <DraftSavedTime updatedAt={notice.draft.updatedAt} />
             ).

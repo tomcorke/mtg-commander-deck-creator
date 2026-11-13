@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { deckDataStatus } from '../domain/deck-data-status.ts'
 import type { Card } from '../domain/card-model.ts'
 import { basicLandNames, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
-import { commanderNames } from '../domain/commander-catalog.ts'
+import { commanderLabel, commanderNames } from '../domain/commander-catalog.ts'
 import { printingOptions } from '../domain/printing.ts'
 import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
 import { sharePayloadFromHash } from '../domain/share-link.ts'
@@ -135,7 +135,11 @@ export function useTitleEffect(deps: AppEffectsDeps) {
   useEffect(() => {
     document.title =
       showBuilder && commander
-        ? deckPageTitle(deck.length, activeSavedDeck?.name ?? commander, savedDeckChanged)
+        ? deckPageTitle(
+            deck.length,
+            activeSavedDeck?.name ?? commanderLabel(commander),
+            savedDeckChanged,
+          )
         : 'Commander Deck Creator'
   }, [activeSavedDeck?.name, commander, deck.length, savedDeckChanged, showBuilder])
 }
