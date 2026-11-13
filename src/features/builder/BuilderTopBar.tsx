@@ -60,24 +60,31 @@ export function BuilderTopBar({
           </small>
         </div>
       </div>
+      {/* Deck actions lead with Export emphasised; Start over stands apart from routine work. */}
       <div className="header-actions">
-        <DisplaySettingsMenu />
-        <button className="export" type="button" onClick={startOver}>
-          Start over
-        </button>
-        <button className="export" type="button" onClick={onImport}>
-          Import deck
-        </button>
-        <button className="export" type="button" onClick={onSaveLoad}>
-          Saved decks
-        </button>
-        <button className="export" type="button" onClick={onExport}>
-          Export deck
-        </button>
-        <button className="export" type="button" onClick={() => setPrimerOpen(true)}>
-          Commander basics
-        </button>
-        <RequestActivityIndicator />
+        <div className="header-deck-actions" role="group" aria-label="Deck actions">
+          <button className="export" type="button" onClick={onSaveLoad}>
+            Saved decks
+          </button>
+          <button className="export" type="button" onClick={onImport}>
+            Import deck
+          </button>
+          <button className="primary" type="button" onClick={onExport}>
+            Export deck
+          </button>
+        </div>
+        <div className="header-action-group header-start-over">
+          <button className="export" type="button" onClick={startOver}>
+            Start over
+          </button>
+        </div>
+        <div className="header-action-group header-utilities">
+          <button className="export" type="button" onClick={() => setPrimerOpen(true)}>
+            Commander basics
+          </button>
+          <DisplaySettingsMenu />
+          <RequestActivityIndicator />
+        </div>
       </div>
       {primerOpen && <CommanderPrimerDialog onClose={() => setPrimerOpen(false)} />}
     </header>

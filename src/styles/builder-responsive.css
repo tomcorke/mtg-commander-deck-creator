@@ -132,6 +132,13 @@
     border-top: 1px solid #dedcea;
   }
 }
+/* Inline header: utilities cannot float right, so Start over takes a divider on both sides. */
+@media (min-width: 1451px) {
+  .header-start-over {
+    padding-right: 14px;
+    border-right: 1px solid var(--border-divider);
+  }
+}
 @media (min-width: 801px) and (max-width: 1450px) {
   .header-actions {
     flex: 1 0 100%;
