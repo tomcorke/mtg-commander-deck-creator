@@ -55,6 +55,8 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 
 **Power** — Core, Upgraded, or High power. It selects app-specific recommendation filters and pace heuristics. Core excludes a short list of fast-mana cards; Upgraded gently favours lower-cost utility, and High does so more strongly. See [power targets](docs/domain/power-targets.md) for limits and evaluation. It is not a bracket verdict, and Core is not a preconstructed-deck power claim.
 
+**Expected opponents** — opposing strategies the player expects to face: graveyard, artifact, token, combo, big-creature or spellslinger decks. Chosen in Recommendation settings and saved with the deck. Recommendations favour cards whose rules text reads as an **answer** to a selected strategy and label them "Answers … decks"; Deck review counts answers against a heuristic target of 3 per strategy. Answer detection is a text heuristic, not proof a card stops the strategy.
+
 **Exclusions** — independent recommendation filters for Game Changers, tutors, extra turns, and unreleased cards. Tutor, extra-turn, and release filters are player preferences, not bracket limits. Game Changer counts have official bracket limits; see [format policy](../mtg-knowledge-base/knowledge/topics/commander/format-policy.md). These filters do not verify a bracket.
 
 **Bracket** — one of Wizards' five Commander Brackets, describing intended game experience. The app may say which bracket guidelines a deck appears to meet. It must not assign a bracket.

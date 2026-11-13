@@ -8,7 +8,9 @@ import type { ScryfallSet } from '../../domain/card-model.ts'
 import { onlyModeMinimumPool, type SetPickerRow } from '../../domain/set-picker.ts'
 import { normalizeMaxPrice } from '../../domain/recommendation-tuning.ts'
 import {
+  appTerms,
   formatTerms,
+  opposingStrategyTerms,
   optionHelp,
   powerTerms,
   priorityLabels,
@@ -16,6 +18,7 @@ import {
 } from '../../domain/glossary.ts'
 import { priceSourceNote } from '../../domain/deck-price.ts'
 import type { CollectionMode, RecommendationStyle } from '../../recommendations.ts'
+import { opposingStrategies, type OpposingStrategy } from '../../domain/recommendation-types.ts'
 import {
   describeOwnedCards,
   ownershipModeLabels,
@@ -62,6 +65,7 @@ type RecommendationSettingsModalProps = {
   chooseMaxPrice: (value: number | null) => void
   deckBudget: number | null
   includeCreature: boolean
+  opposingStrategies: OpposingStrategy[]
   collectionSearch: string
   setCollectionSearch: Dispatch<SetStateAction<string>>
   collectionSets: string[]
@@ -105,6 +109,7 @@ export function RecommendationSettingsModal({
   chooseMaxPrice,
   deckBudget,
   includeCreature,
+  opposingStrategies: expectedOpponents,
   collectionSearch,
   setCollectionSearch,
   collectionSets,
@@ -280,6 +285,47 @@ export function RecommendationSettingsModal({
               description="Keeps a creature in each recommendation batch when one is available. Turn it off for a deck that does not need creatures."
             />
           </div>
+          <fieldset className="expected-opponents">
+            <legend>
+              <span>{appTerms.expectedOpponents.term}</span>
+              <SettingHelp
+                id="expected-opponents-help"
+                label={appTerms.expectedOpponents.term}
+                description={appTerms.expectedOpponents.definition}
+              />
+            </legend>
+            <p className="collection-picker-help">
+              A heuristic: recommendations favour cards whose rules text reads as an answer, and
+              Deck review counts them.
+            </p>
+            {opposingStrategies.map((strategy) => (
+              <div className="recommendation-setting-toggle" key={strategy}>
+                <label htmlFor={`expected-opponent-${strategy}`}>
+                  <input
+                    id={`expected-opponent-${strategy}`}
+                    type="checkbox"
+                    checked={expectedOpponents.includes(strategy)}
+                    onChange={(event) =>
+                      chooseOptions({
+                        // Canonical order, so the saved list and summaries never depend on clicks.
+                        opposingStrategies: opposingStrategies.filter((item) =>
+                          item === strategy
+                            ? event.target.checked
+                            : expectedOpponents.includes(item),
+                        ),
+                      })
+                    }
+                  />{' '}
+                  {opposingStrategyTerms[strategy].term}
+                </label>
+                <SettingHelp
+                  id={`expected-opponent-${strategy}-help`}
+                  label={opposingStrategyTerms[strategy].term}
+                  description={`Answers counted: ${opposingStrategyTerms[strategy].definition.charAt(0).toLowerCase()}${opposingStrategyTerms[strategy].definition.slice(1)} Matched from rules text, so some answers are missed.`}
+                />
+              </div>
+            ))}
+          </fieldset>
           <fieldset className="collection-picker">
             <legend>
               <span>Owned cards</span>

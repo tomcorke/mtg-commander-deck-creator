@@ -34,6 +34,7 @@ import {
   type Printing,
 } from './card-model.ts'
 import { commanderKey, commanderNames } from './commander-catalog.ts'
+import type { OpposingStrategy } from './recommendation-types.ts'
 import { gameChangersAtLimit } from './play-style.ts'
 import { commandersPromotionInfo, promoteDeckCards } from './commander-promotion.ts'
 import { applyBuilderHydration, applyBuilderPrinting, retryBuilderData } from './builder-data.ts'
@@ -102,6 +103,8 @@ export type BuilderState = {
   deckTargets: DeckTargets
   /** Main-deck cards the player wants matching the theme; display only, never scored. */
   themeTarget: number
+  /** Expected opponents (#503): strategies whose answers recommendations favour. */
+  opposingStrategies: OpposingStrategy[]
   theme: string
   activeSubThemes: string[]
   dismissedSubThemes: string[]
@@ -164,6 +167,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     preferenceScores: {},
     deckTargets: { ...defaultDeckTargets },
     themeTarget: defaultThemeTarget,
+    opposingStrategies: [],
     theme: '',
     activeSubThemes: [],
     dismissedSubThemes: [],
@@ -218,6 +222,7 @@ export type BuilderSettings = Pick<
   | 'excludeExtraTurns'
   | 'excludeUnreleased'
   | 'deckTargets'
+  | 'opposingStrategies'
 >
 
 export type BuilderProgress = Pick<

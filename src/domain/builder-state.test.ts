@@ -351,3 +351,48 @@ test('the theme target is kept with the deck and never marks recommendations sta
     25,
   )
 })
+
+test('expected opponents re-rank answers on commit, persist and reset (#503)', async () => {
+  const { restoreBuilderState } = await import('../app/builder-restore.ts')
+  const { makeState } = await import('../../scripts/fixtures/b10-browser.ts')
+  const answer = toCard(
+    {
+      name: 'Bog',
+      type_line: 'Land',
+      color_identity: [],
+      cmc: 0,
+      set: 'tst',
+      collector_number: '2',
+      oracle_text: 'When this land enters, exile target player’s graveyard.',
+      game_changer: false,
+      legalities: { commander: 'legal' },
+    },
+    'Popular inclusion',
+  )
+  const state = freeze(initial({ queue: [card('Alpha'), card('Beta'), answer] }))
+  const chosen = apply(state, {
+    type: 'settings',
+    settings: { opposingStrategies: ['graveyard'] },
+  })
+  assert.equal(chosen.recommendationOptionsChanged, true)
+  assert.equal(chosen.committedPoolKey, builderPoolKey(chosen), 'no refetch')
+  const committed = applyBuilderAction(chosen, { type: 'commitSettings' })
+  assert.deepEqual(committed.fetchRequests, [])
+  assert.equal(committed.state.queue[0].name, 'Bog')
+  assert.equal(buildRecommendationContext(committed.state, []).opposingAnswerCounts?.graveyard, 0)
+  // Saves from before #503 restore none; unknown names are dropped.
+  assert.deepEqual(restoreBuilderState(makeState(), '2026-11-13', 'old').opposingStrategies, [])
+  assert.deepEqual(
+    restoreBuilderState(
+      makeState({ opposingStrategies: ['combo', 'later-strategy', 'graveyard'] }),
+      '2026-11-13',
+      'new',
+    ).opposingStrategies,
+    ['graveyard', 'combo'],
+  )
+  assert.deepEqual(
+    apply(committed.state, { type: 'startOver', today: '2026-11-13', signatureDeckKey: 'x' })
+      .opposingStrategies,
+    [],
+  )
+})

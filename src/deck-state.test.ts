@@ -332,3 +332,8 @@ test('a save from before the theme target is unchanged once loaded with the defa
   assert.equal(deckStateChanged(state, loaded), false)
   assert.equal(deckStateChanged(state, { ...loaded, themeTarget: 20 }), true)
 })
+
+test('a save from before expected opponents is unchanged once loaded with none (#503)', () => {
+  assert.equal(deckStateChanged(state, { ...state, opposingStrategies: [] }), false)
+  assert.equal(deckStateChanged(state, { ...state, opposingStrategies: ['combo'] }), true)
+})

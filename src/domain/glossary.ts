@@ -1,4 +1,4 @@
-import type { PowerTarget, RecommendationStyle } from './recommendation-types.ts'
+import type { OpposingStrategy, PowerTarget, RecommendationStyle } from './recommendation-types.ts'
 
 /**
  * The one source for the app's player-facing terms: role labels, Priority and Power options,
@@ -123,6 +123,56 @@ export const roleTerms = {
   },
 } satisfies Record<string, GlossaryEntry>
 
+/**
+ * Expected opponents (#503). Each definition says which answers the rules-text heuristic looks
+ * for; see docs/domain/heuristics.md. `answers` completes "Answers …" in offer labels.
+ */
+export const opposingStrategyTerms: Record<OpposingStrategy, GlossaryEntry & { answers: string }> =
+  {
+    graveyard: {
+      term: 'Graveyard decks',
+      answers: 'graveyard decks',
+      definition:
+        'Cards that exile graveyards or stop cards being cast or put into play from them.',
+      kind: 'heuristic',
+    },
+    artifacts: {
+      term: 'Artifact decks',
+      answers: 'artifact decks',
+      definition:
+        'Cards that destroy or exile artifacts or any nonland permanent, or stop artifact abilities.',
+      kind: 'heuristic',
+    },
+    tokens: {
+      term: 'Token decks',
+      answers: 'token decks',
+      definition:
+        'Board wipes, and cards that shrink or remove every creature or token an opponent controls.',
+      kind: 'heuristic',
+    },
+    combo: {
+      term: 'Combo decks',
+      answers: 'combo decks',
+      definition:
+        'Counterspells, and cards that stop searches, triggers, activated abilities or a second spell each turn.',
+      kind: 'heuristic',
+    },
+    'big-creatures': {
+      term: 'Big creatures',
+      answers: 'big creatures',
+      definition:
+        'Cards that destroy, exile, steal or pacify a creature whatever its size, or make a player sacrifice one.',
+      kind: 'heuristic',
+    },
+    spellslinger: {
+      term: 'Spellslinger decks',
+      answers: 'spellslinger decks',
+      definition:
+        'Counterspells for instants and sorceries, taxes on noncreature spells, and limits on spells each turn.',
+      kind: 'heuristic',
+    },
+  }
+
 export const priorityTerms: Record<RecommendationStyle, GlossaryEntry> = {
   thematic: {
     term: 'Theme first',
@@ -208,6 +258,12 @@ export const appTerms = {
     definition:
       'Which strength filters and pace preferences recommendations use. It is not a bracket verdict.',
     kind: 'app',
+  },
+  expectedOpponents: {
+    term: 'Expected opponents',
+    definition:
+      'Strategies you expect to face. Recommendations favour cards whose rules text reads as an answer to them, and Deck review counts those answers. Text matching can miss answers or count weak ones, and the target is an app estimate.',
+    kind: 'heuristic',
   },
 } satisfies Record<string, GlossaryEntry>
 

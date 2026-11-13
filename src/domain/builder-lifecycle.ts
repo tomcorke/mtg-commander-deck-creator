@@ -35,6 +35,7 @@ export function resetBuilder(
     preferredPrintSet: '',
     deckTargets: { ...defaultDeckTargets },
     themeTarget: defaultThemeTarget,
+    opposingStrategies: [],
     signatureQuota: { pages: 0, cards: 0 },
     fetchBoundary: null,
     fetchSequence: 0,
@@ -57,6 +58,7 @@ export function beginBuilderRecommendations(
         theme: state.theme,
         deckTargets: state.deckTargets,
         themeTarget: state.themeTarget,
+        opposingStrategies: state.opposingStrategies,
         // Extra creature types picked on the start screen carry over as sub-themes.
         activeSubThemes: action.extraCreatureTypes.slice(0, 2),
         recommendationOptionsChanged: state.recommendationOptionsChanged,

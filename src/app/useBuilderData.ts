@@ -38,6 +38,15 @@ import { activeOwnershipMode, allowedByOwnership, ownedCardReason } from '../dom
 import type { DeckDoctorFinding } from '../deck-doctor.ts'
 import { suggestDeckDoctorChanges } from '../deck-doctor-suggestions.ts'
 import { deckDataStatus, recommendationDataError } from '../domain/deck-data-status.ts'
+import {
+  normalizeOpposingStrategies,
+  opposingAnswerEvidence,
+  opposingAnswerLabel,
+  opposingAnswers,
+  opposingStrategyLabel,
+} from '../domain/opposing-strategies.ts'
+import { opposingStrategyTerms } from '../domain/glossary.ts'
+import type { OpposingStrategy } from '../domain/recommendation-types.ts'
 
 export type BuilderDataDeps = Record<string, any>
 
@@ -283,6 +292,8 @@ export type Explanation = {
   themeFit?: true
   /** Theme first (#560): the card matches no selected theme tag. Never set with `themeFit`. */
   generic?: true
+  /** The reason leads with an answer to an expected opponent (#503); it ends in a quote. */
+  answers?: true
 }
 
 const themeList = (themes: string[]) =>
@@ -312,6 +323,25 @@ function themeFitReason(card: Card, themes: string[]): Explanation {
   return { label: `${themes.join(' + ')} theme`, sentence, themeFit: true }
 }
 
+function answerList(strategies: OpposingStrategy[]) {
+  return strategies.map((strategy) => opposingStrategyTerms[strategy].answers).join(' and ')
+}
+
+/**
+ * Expected-opponent answers (#503) with the rules text that matched. Detection is a text heuristic,
+ * so the copy says so rather than claiming the card stops the strategy.
+ */
+function answerReason(card: Card, strategies: OpposingStrategy[]): Explanation {
+  const [first, ...others] = strategies
+  const quote = opposingAnswerEvidence(card, first)!
+  const also = others.length ? ` Also matches ${answerList(others)}.` : ''
+  return {
+    label: opposingAnswerLabel(first),
+    sentence: `Heuristic text match for ${opposingStrategyTerms[first].answers}: “${quote}”${/[.!?…]$/.test(quote) ? '' : '.'}${also}`,
+    answers: true,
+  }
+}
+
 function recommendationExplainer(
   deps: BuilderDataDeps,
   deckData: ReturnType<typeof buildDeckData>,
@@ -326,10 +356,22 @@ function recommendationExplainer(
   const selectedThemes = [...new Set([theme, ...activeSubThemes])].filter(Boolean) as string[]
   // Theme first marks offers that match no selected theme tag (#560); with no theme, every offer would.
   const marksGeneric = deps.recommendationStyle === 'thematic' && selectedThemes.length > 0
+  const expected = normalizeOpposingStrategies(deps.opposingStrategies)
   const deckReason = (card: Card): Explanation | null => {
     // Theme fit leads (#501).
     const themes = selectedThemes.filter((tag) => hasTag(card, tag))
-    if (themes.length) return themeFitReason(card, themes)
+    const answered = opposingAnswers(card, expected)
+    if (themes.length) {
+      const reason = themeFitReason(card, themes)
+      return answered.length
+        ? {
+            ...reason,
+            sentence: `${reason.sentence} Text also reads as an answer to ${answerList(answered)}.`,
+          }
+        : reason
+    }
+    // An answer to an expected opponent is the player's own choice, so it leads next (#503).
+    if (answered.length) return answerReason(card, answered)
     if (collectionMode !== 'none' && card.collectionMatch)
       return {
         label: 'From your chosen sets',
@@ -366,9 +408,10 @@ function recommendationExplainer(
     // A quoted theme match ends in a closing quote, so the share follows as its own sentence.
     return {
       ...reason,
-      sentence: reason.themeFit
-        ? `${reason.sentence} In ${share}`
-        : reason.sentence.replace(/\.$/, `, and appears in ${share}`),
+      sentence:
+        reason.themeFit || reason.answers
+          ? `${reason.sentence} In ${share}`
+          : reason.sentence.replace(/\.$/, `, and appears in ${share}`),
     }
   }
   const explainRecommendation = (card: Card): Explanation => {
@@ -468,6 +511,11 @@ function playStyleSummary(deps: BuilderDataDeps, settingsSummary: string) {
     : settingsSummary
 }
 
+function expectedOpponentsSummary(value: unknown) {
+  const expected = normalizeOpposingStrategies(value)
+  return expected.length ? [`Expecting ${expected.map(opposingStrategyLabel).join(', ')}`] : []
+}
+
 function buildSettingsSummary(deps: BuilderDataDeps) {
   const {
     recommendationStyle,
@@ -509,6 +557,7 @@ function buildSettingsSummary(deps: BuilderDataDeps) {
         ]),
     includeCreature ? 'Creatures included' : 'Creatures optional',
     collectionSummary,
+    ...expectedOpponentsSummary(deps.opposingStrategies),
     ...(ownership === 'ignore' ? [] : [ownership === 'only' ? 'Owned only' : 'Prefer owned']),
     excludedRecommendations.length
       ? `${excludedRecommendations.length} exclusions`

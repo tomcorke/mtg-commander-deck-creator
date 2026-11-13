@@ -1,5 +1,6 @@
 import { hasTag } from './creature-types.ts'
 import { packageScore } from './strategy-packages.ts'
+import { opposingAnswerScore } from './opposing-strategies.ts'
 import { activeOwnershipMode, isOwned } from './owned-cards.ts'
 import type { PrintingLike, ScryfallCard } from './card-model.ts'
 import { cheapestNonfoilIndex, nonfoilFirstIndex } from './printing.ts'
@@ -267,6 +268,8 @@ export function recommendationScoreBreakdown(
   const manaFit = manaFitPenalty(card, manaSupport)
   const powerFit = powerFitPenalty(card, cardRoles, powerTarget)
   const pkg = Math.round(packageScore(card.detail, packageCounts) * goalThemeWeight)
+  // Without expected opponents this is 0, so existing orders are unchanged (#503).
+  const opposingAnswers = opposingAnswerScore(card, context)
   const popularityPenalty =
     recommendationStyle === 'thematic' &&
     (card.reason === 'Commander favourite' || card.reason === 'Popular inclusion')
@@ -284,6 +287,7 @@ export function recommendationScoreBreakdown(
       manaFit +
       powerFit +
       pkg +
+      opposingAnswers +
       popularityPenalty,
   )
   return {
@@ -299,6 +303,7 @@ export function recommendationScoreBreakdown(
     popularityPenalty,
     powerFitPenalty: powerFit,
     package: pkg,
+    opposingAnswers,
   }
 }
 
