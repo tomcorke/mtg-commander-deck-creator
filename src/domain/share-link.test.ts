@@ -110,6 +110,20 @@ test('cards without a printing keep their name and finish', async () => {
   assert.deepEqual(await decode(await encodeSharedDeck(shared)), shared)
 })
 
+test('a long or multi-line saved deck name still makes a valid link', async () => {
+  const name = `${'Long name '.repeat(20)}${String.fromCharCode(10)}second line`
+  const shared = sharedDeckFromCards(1, deck.slice(1, 3), [], name)
+  assert.equal(shared.name, 'Long name '.repeat(10).trim())
+  assert.deepEqual(await decode(await encodeSharedDeck(shared)), shared)
+  const tabbed = sharedDeckFromCards(
+    1,
+    deck.slice(1, 3),
+    [],
+    `Tabs${String.fromCharCode(9)}and${String.fromCharCode(10)}breaks`,
+  )
+  assert.equal(tabbed.name, 'Tabs and breaks')
+})
+
 test('only #share= fragments carry a payload', () => {
   assert.equal(sharePayloadFromHash('#share=1.abc'), '1.abc')
   assert.equal(sharePayloadFromHash('#build/export'), null)

@@ -29,6 +29,18 @@ type Payload = { n?: string; c: Entry[] }
 
 export class SharedDeckError extends Error {}
 const invalid = () => new SharedDeckError('This share link is damaged or incomplete.')
+const isControl = (character: string) => {
+  const code = character.codePointAt(0)!
+  return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029
+}
+/** Fits a saved deck name, which has no length limit, to what decoding accepts. */
+const shareableName = (name: string) =>
+  [...name]
+    .map((character) => (isControl(character) ? ' ' : character))
+    .join('')
+    .trim()
+    .slice(0, shareLimits.deckNameLength)
+    .trim()
 
 /** The deck as a share-link list: commanders first, identical printings grouped. */
 export function sharedDeckFromCards(
@@ -56,7 +68,8 @@ export function sharedDeckFromCards(
   }
   deck.forEach((card, index) => add(card, index < commanderCount ? 'commander' : 'mainboard'))
   sideboard.forEach((card) => add(card, 'sideboard'))
-  return { ...(name.trim() ? { name: name.trim() } : {}), cards: [...grouped.values()] }
+  const sharedName = shareableName(name)
+  return { ...(sharedName ? { name: sharedName } : {}), cards: [...grouped.values()] }
 }
 
 const toBase64Url = (bytes: Uint8Array) => {
@@ -142,10 +155,7 @@ const safeText = (value: unknown, max: number): value is string =>
   typeof value === 'string' &&
   value.length <= max &&
   value.trim().length > 0 &&
-  ![...value].some((character) => {
-    const code = character.codePointAt(0)!
-    return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029
-  })
+  ![...value].some(isControl)
 
 function parseEntry(raw: unknown): ImportedCard {
   if (!Array.isArray(raw) || raw.length < 3 || raw.length > 6) throw invalid()
