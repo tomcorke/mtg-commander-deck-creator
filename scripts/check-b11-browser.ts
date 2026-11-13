@@ -172,6 +172,8 @@ try {
   const base = process.env.B11_URL ?? 'http://127.0.0.1:5231/'
   await page.goto(`${base}#build`)
   await page.getByRole('heading', { name: 'Deck overview', exact: true }).waitFor()
+  // Sections regroup once card types load, so positional locators are unsafe before then.
+  await page.getByText('Checking card types…').waitFor({ state: 'detached' })
   const sections = page.locator('.deck-group-details')
   assert.ok((await sections.count()) >= 2, 'type sections render as native details')
   const commanderGroup = page.locator('.deck-list .deck-group').first()
@@ -201,7 +203,10 @@ try {
   )
 
   const foilReference = page.getByRole('button', { name: 'Show details for Foil Artifact' })
-  const artifactDetails = sections.nth(1)
+  const artifactDetails = sections.filter({
+    has: page.locator('summary h3', { hasText: /^Artifacts/ }),
+  })
+  assert.equal(await artifactDetails.count(), 1, 'one Artifacts section')
   const disclosureGeometry = await artifactDetails.locator('summary').evaluate((summary) => {
     const summaryBox = summary.getBoundingClientRect()
     const headingBox = summary.querySelector('h3')!.getBoundingClientRect()
@@ -402,26 +407,38 @@ try {
   await setDisplayPreferences(page, { 'Motion and finishes': true })
 
   await page.setViewportSize({ width: 390, height: 844 })
+  // Since #48 the condensed text row keeps the finish inline, right of the name.
   const mobileNameLayout = await foilReference.evaluate((button) => {
+    const row = button.closest('li')!
     const reference = button.closest('.deck-card-reference')!
-    const metadata = button.closest('li')!.querySelector('.deck-card-meta')!
+    const metadata = row.querySelector('.deck-card-meta')!
     const finish = metadata.querySelector('.deck-mana .finish-label')!
-    const nameBox = button.getBoundingClientRect()
+    const nameRowBox = reference.getBoundingClientRect()
     const finishBox = finish.getBoundingClientRect()
     return {
       overflowWrap: getComputedStyle(button).overflowWrap,
-      nameBottom: nameBox.bottom,
-      finishTop: finishBox.top,
       finishInManaRow: finish.parentElement === metadata.querySelector('.deck-mana'),
-      nameRowBottom: reference.getBoundingClientRect().bottom,
+      nameRowTop: nameRowBox.top,
+      nameRowBottom: nameRowBox.bottom,
+      nameRowRight: nameRowBox.right,
+      finishTop: finishBox.top,
+      finishBottom: finishBox.bottom,
+      finishLeft: finishBox.left,
+      rowOverflow: row.scrollWidth - row.clientWidth,
     }
   })
-  assert.equal(mobileNameLayout.overflowWrap, 'break-word')
+  assert.equal(mobileNameLayout.overflowWrap, 'anywhere', 'long names wrap inside the row')
   assert.equal(mobileNameLayout.finishInManaRow, true)
   assert.ok(
-    mobileNameLayout.finishTop >= mobileNameLayout.nameRowBottom - 1,
-    'finish is in lower metadata row',
+    mobileNameLayout.finishTop < mobileNameLayout.nameRowBottom &&
+      mobileNameLayout.finishBottom > mobileNameLayout.nameRowTop,
+    'finish shares the name row',
   )
+  assert.ok(
+    mobileNameLayout.finishLeft >= mobileNameLayout.nameRowRight - 1,
+    'finish sits right of the name without overlap',
+  )
+  assert.ok(mobileNameLayout.rowOverflow <= 0, 'row does not overflow at 390px')
   await page.getByRole('button', { name: 'Show details for Browser DFC' }).click()
   const details = page.getByRole('dialog')
   const flip = details.getByRole('button', { name: 'Show back of Browser DFC' })
