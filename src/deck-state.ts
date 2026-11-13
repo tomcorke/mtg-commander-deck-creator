@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { appStorage } from './app-storage.ts'
 import { commanderLabel } from './domain/commander-catalog.ts'
 import { ignoreReasons } from './domain/recommendation-tuning.ts'
+import { defaultThemeTarget } from './deck-analysis.ts'
 import { normalizeRecommendationStyle } from './domain/recommendation-types.ts'
 
 export const deckStateKey = 'commander-deck-state'
@@ -145,6 +146,8 @@ export const persistedDeckStateSchema = z.object({
     removal: z.number().nonnegative(),
     wipes: z.number().nonnegative(),
   }),
+  // Older saves have none; restore uses the default (#501).
+  themeTarget: z.number().nonnegative().optional(),
 })
 
 // Full-object card lists and compact field tables are both valid on disk.
@@ -260,6 +263,7 @@ export function comparableDeckState(state: PersistedDeckState) {
     maxPrice: state.maxPrice ?? null,
     deckBudget: state.deckBudget ?? null,
     ignoredDetails: state.ignoredDetails ?? [],
+    themeTarget: state.themeTarget ?? defaultThemeTarget,
   }
   return JSON.stringify(deckStateForStorage(withDefaults), sortKeys)
 }

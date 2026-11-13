@@ -330,3 +330,24 @@ test('a restored queue drops unowned cards under Owned only and rebuilds its poo
   assert.equal(kept.queue, owned.queue)
   assert.equal(reconcileOwnership(initial({ queue: [card('Theirs')] })).queue.length, 1)
 })
+
+test('the theme target is kept with the deck and never marks recommendations stale (#501)', async () => {
+  const { restoreBuilderState } = await import('../app/builder-restore.ts')
+  const { makeState } = await import('../../scripts/fixtures/b10-browser.ts')
+  const state = freeze(initial())
+  assert.equal(state.themeTarget, 25)
+  const edited = apply(state, { type: 'data', changes: { themeTarget: 18 } })
+  assert.equal(edited.themeTarget, 18)
+  assert.equal(edited.recommendationOptionsChanged, false)
+  assert.equal(edited.committedPoolKey, state.committedPoolKey)
+  // Saves from before #501 have no theme target and restore the default.
+  assert.equal(restoreBuilderState(makeState(), '2026-11-13', 'old').themeTarget, 25)
+  assert.equal(
+    restoreBuilderState(makeState({ themeTarget: 12 }), '2026-11-13', 'new').themeTarget,
+    12,
+  )
+  assert.equal(
+    apply(edited, { type: 'startOver', today: '2026-11-13', signatureDeckKey: 'x' }).themeTarget,
+    25,
+  )
+})

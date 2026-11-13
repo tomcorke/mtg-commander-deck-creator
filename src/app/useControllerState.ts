@@ -124,6 +124,14 @@ function useIgnoredDetails(deckState: PersistedDeckState | null, ignoredDetails:
   )
 }
 
+// The theme cards target rides with the deck (#501).
+function useThemeTarget(deckState: PersistedDeckState | null, themeTarget: number) {
+  return useMemo(
+    () => (deckState ? { ...deckState, themeTarget } : deckState),
+    [deckState, themeTarget],
+  )
+}
+
 // A reload on the play-style step returns to it (#490).
 function usePlayStylePending(deckState: PersistedDeckState | null, pending: boolean) {
   return useMemo(
@@ -161,7 +169,10 @@ export function useControllerState(
     excludeGameChangersSetting: builder.excludeGameChangers,
   }
   const currentDeckState = usePlayStylePending(
-    useIgnoredDetails(useCurrentDeckState(state), state.ignoredDetails),
+    useThemeTarget(
+      useIgnoredDetails(useCurrentDeckState(state), state.ignoredDetails),
+      state.themeTarget,
+    ),
     state.awaitingPlayStyle,
   )
   const activeSavedDeck = state.savedDecks.find(({ id }: any) => id === state.activeSavedDeckId)

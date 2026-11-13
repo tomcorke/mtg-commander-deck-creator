@@ -376,9 +376,70 @@ test('explains each recommendation in a plain sentence', () => {
     sentence:
       'Adds ramp your deck needs (0 of 10 so far), and appears in 27% of Meren of Clan Nel Toth decks on EDHREC.',
   })
-  assert.deepEqual(explain(tokens), { label: 'Tokens theme', sentence: 'Fits your Tokens theme.' })
+  assert.deepEqual(explain(tokens), {
+    label: 'Tokens theme',
+    sentence: 'Fits your Tokens theme.',
+    themeFit: true,
+  })
   assert.equal(
     explain(card('Fallback', { reason: 'Popular inclusion', source: 'scryfall' })).sentence,
     'A popular Commander card in your colours.',
+  )
+})
+
+test('theme-matching offers lead with the theme and the words that matched (#501)', () => {
+  const card = (name: string, extra: Record<string, unknown> = {}) => ({
+    name,
+    layout: 'normal',
+    typeLine: 'Artifact',
+    manaCost: '{2}',
+    manaValue: 2,
+    detail: '',
+    producedMana: [],
+    faces: [],
+    reason: 'Commander synergy',
+    source: 'scryfall',
+    tags: [],
+    set: 'tst',
+    ...extra,
+  })
+  const data = buildBuilderData(
+    builderDeps([], {
+      commander: 'Meren of Clan Nel Toth',
+      theme: 'Sacrifice',
+      activeSubThemes: ['Zombies'],
+    }),
+  )
+  const explain = (item: unknown) => data.explainRecommendation(item as never)
+  // Ramp the deck needs, but theme fit still leads; EDHREC share follows as its own sentence.
+  const altar = card('Altar', {
+    source: 'edhrec',
+    inclusion: 25,
+    producedMana: ['B'],
+    tags: ['Sacrifice'],
+    detail: 'Sacrifice a creature: Add {B}{B}. (Reminder text.)\nWhenever a creature dies, scry 1.',
+  })
+  assert.deepEqual(explain(altar), {
+    label: 'Sacrifice theme',
+    sentence:
+      'Text matches your Sacrifice theme: “Sacrifice a creature: Add {B}{B}.” In 25% of Meren of Clan Nel Toth decks on EDHREC.',
+    themeFit: true,
+  })
+  // The theme comes before extra themes; a type-line match is named as such.
+  const zombie = card('Zombie', {
+    typeLine: 'Creature — Zombie',
+    tags: ['Sacrifice', 'Zombies'],
+    detail: 'Sacrifice another creature: Draw a card.',
+  })
+  assert.deepEqual(explain(zombie), {
+    label: 'Sacrifice + Zombies theme',
+    sentence:
+      'Text matches your Sacrifice theme: “Sacrifice another creature: Draw a card.” Also fits your Zombies theme.',
+    themeFit: true,
+  })
+  assert.equal(
+    explain(card('Ghoul', { typeLine: 'Creature — Zombie', tags: ['Zombies'], detail: 'Menace' }))
+      .sentence,
+    'Type line matches your Zombies theme: Creature — Zombie.',
   )
 })

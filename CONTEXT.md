@@ -62,7 +62,7 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 
 **Role** — a deck function detected by heuristics: land, ramp, card draw, targeted removal, or board wipe. **Role targets** are the player's editable counts for each role.
 
-**Theme and extra theme** — up to three declared deck strategies. The first chosen is the **theme**; up to two more are **extra themes**. Start, the builder and Deck review use these names; code calls extra themes sub-themes. A **suggested theme** is one that several recently added cards share; the player chooses **Use** or **Dismiss**. **Tags** are regex-detected card traits used to match them.
+**Theme and extra theme** — up to three declared deck strategies. The first chosen is the **theme**; up to two more are **extra themes**. Start, the builder and Deck review use these names; code calls extra themes sub-themes. A **suggested theme** is one that several recently added cards share; the player chooses **Use** or **Dismiss**. **Tags** are regex-detected card traits used to match them. **Theme cards** are main-deck cards tagged for the theme; the builder tracks them against an editable, heuristic target.
 
 **Recommendation batch** — a group of up to four candidate cards. The player chooses **Add**, **Later**, **Ignore**, or **More like this** for each. **Undo** reverses the most recent Add, Later or Ignore, even after **Next recommendations**.
 

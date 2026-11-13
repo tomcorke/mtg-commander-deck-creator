@@ -11,6 +11,7 @@ import {
   deferBatch,
   edhrecSlug,
   findSynergyPair,
+  themeEvidence,
   formatUsdPrice,
   freshRecommendationCycle,
   orderedPrintings,
@@ -1311,4 +1312,27 @@ test('skipped cards rank lower unless they fill the most urgent role', () => {
     rankRecommendationCards(cards, { ...context, roleBoosts: { ramp: 1 } }, false, roles)[0].name,
     'Skipped',
   )
+})
+
+test('theme evidence quotes the sentence or type line that matched (#501)', () => {
+  const card = (detail: string, typeLine = 'Creature — Elf Druid') => ({ detail, typeLine })
+  assert.deepEqual(
+    themeEvidence(card('Flying\nWhen this enters, create a 1/1 Elf token. Draw a card.'), 'Tokens'),
+    { theme: 'Tokens', source: 'text', quote: 'When this enters, create a 1/1 Elf token.' },
+  )
+  // Reminder text is dropped from the quote; a type-line-only match names the type line.
+  assert.deepEqual(themeEvidence(card('{T}: Add {G}. (Mana ability.)'), 'Elves'), {
+    theme: 'Elves',
+    source: 'type',
+    quote: 'Creature — Elf Druid',
+  })
+  assert.deepEqual(themeEvidence(card('Changeling (This card is every creature type.)'), 'Cats'), {
+    theme: 'Cats',
+    source: 'text',
+    quote: 'Changeling',
+  })
+  const long = `Whenever another creature you control dies, ${'each opponent loses 1 life and '.repeat(5)}you gain 1 life.`
+  const quote = themeEvidence(card(long), 'Sacrifice')!.quote
+  assert.ok(quote.length <= 120 && quote.endsWith('…'), quote)
+  assert.equal(themeEvidence(card('Trample'), 'Sacrifice'), undefined)
 })
