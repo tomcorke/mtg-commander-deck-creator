@@ -61,11 +61,17 @@
   margin: 16px 0 24px;
 }
 /* DeckBoardLayout sets --deck-tracks from the board's width and marks where each balanced
-   column starts (#499); one flat list of slots keeps groups mounted when they move. */
+   column starts (#499); one flat list of slots keeps groups mounted when they move. The empty
+   sizer gives the list's width to measure; inline-size containment stops a stale track count
+   widening the board it is measured from (#549). */
+.deck-board .deck-list-sizer,
+.deck-board .deck-list {
+  contain: inline-size;
+  max-width: 1940px;
+}
 .deck-board .deck-list {
   column-count: var(--deck-tracks, 1);
   column-gap: 32px;
-  max-width: 1940px;
 }
 .deck-board .deck-board-slot {
   min-width: 0;

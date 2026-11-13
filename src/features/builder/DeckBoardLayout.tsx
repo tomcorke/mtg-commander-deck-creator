@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { flushSync } from 'react-dom'
 import {
   balanceColumns,
   listColumn,
@@ -25,14 +26,19 @@ export function DeckBoardLayout({
   tiles: boolean
   busy: boolean
 }) {
-  const list = useRef<HTMLDivElement>(null)
+  const sizer = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
-  // Measure before paint, then follow resizes, so columns never flash at the wrong count.
+  // Measure before paint, then follow resizes, so columns never flash at the wrong count (#549).
+  // The observer runs before paint and re-renders synchronously, so a stale count is never drawn.
+  // It watches an empty sizer rather than the list, whose height that render changes; the list's
+  // inline-size containment keeps a stale count from widening the board the sizer measures.
   useLayoutEffect(() => {
-    const element = list.current
+    const element = sizer.current
     if (!element) return
     setWidth(element.clientWidth)
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    const observer = new ResizeObserver(([entry]) =>
+      flushSync(() => setWidth(entry.contentRect.width)),
+    )
     observer.observe(element)
     return () => observer.disconnect()
   }, [])
@@ -42,22 +48,24 @@ export function DeckBoardLayout({
   const columnStarts = new Set(columns.slice(1).map((column) => column[0]))
   const spans = tiles ? tileSpans(entries, tracks) : []
   return (
-    <div
-      ref={list}
-      className={`deck-list${tiles ? ' deck-list--tiles' : ''}`}
-      aria-busy={busy}
-      style={{ '--deck-tracks': tiles ? tracks : columns.length || 1 } as CSSProperties}
-    >
-      {groups.map((group, index) => (
-        <div
-          className="deck-board-slot"
-          key={group.key}
-          data-column-start={columnStarts.has(index) || undefined}
-          style={tiles ? ({ '--tile-span': spans[index] } as CSSProperties) : undefined}
-        >
-          {group.node}
-        </div>
-      ))}
-    </div>
+    <>
+      <div ref={sizer} className="deck-list-sizer" aria-hidden="true" />
+      <div
+        className={`deck-list${tiles ? ' deck-list--tiles' : ''}`}
+        aria-busy={busy}
+        style={{ '--deck-tracks': tiles ? tracks : columns.length || 1 } as CSSProperties}
+      >
+        {groups.map((group, index) => (
+          <div
+            className="deck-board-slot"
+            key={group.key}
+            data-column-start={columnStarts.has(index) || undefined}
+            style={tiles ? ({ '--tile-span': spans[index] } as CSSProperties) : undefined}
+          >
+            {group.node}
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
