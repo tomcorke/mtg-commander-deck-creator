@@ -455,6 +455,22 @@ function ReviewExitConfirmation({ state, actions }: Pick<AppViewProps, 'state' |
   )
 }
 
+// Review rows highlight matching cards in the builder's deck list, then leave Deck review.
+function reviewFilters(state: AppViewProps['state'], closePage: () => void) {
+  return {
+    selectManaValue: (value: number) => {
+      state.setDeckReviewFilter(null)
+      state.setHighlightedManaValue(value)
+      closePage()
+    },
+    selectCards: (label: string, cardNames: string[]) => {
+      state.setHighlightedManaValue(null)
+      state.setDeckReviewFilter({ label, cardNames })
+      closePage()
+    },
+  }
+}
+
 function DeckReviewScreen({
   state,
   actions,
@@ -507,16 +523,7 @@ function DeckReviewScreen({
         chooseDeckTarget={(key, value) => actions.chooseDeckTarget(key, value)}
         analysis={builderData.analysis}
         displayedTypeCounts={builderData.displayedTypeCounts}
-        selectManaValue={(value) => {
-          state.setDeckReviewFilter(null)
-          state.setHighlightedManaValue(value)
-          closePage()
-        }}
-        selectCards={(label, cardNames) => {
-          state.setHighlightedManaValue(null)
-          state.setDeckReviewFilter({ label, cardNames })
-          closePage()
-        }}
+        {...reviewFilters(state, closePage)}
         recommendationSettingsSummary={builderData.recommendationSettingsSummary}
         recommendationQueryKey={builderData.recommendationQueryKey}
         recommendationOptionsChanged={state.recommendationOptionsChanged}
@@ -543,6 +550,8 @@ function DeckReviewScreen({
         startingDeck={startingDeckSummary(state.bulkAdd, boards)}
         undoStartingDeck={actions.undoBulkAdd}
         ownedCards={state.ownedCards}
+        powerTarget={state.powerTarget}
+        openCardByName={(name) => void actions.openCardByName(name)}
       />
       {modals.importModal}
       {modals.savedDecksModal}

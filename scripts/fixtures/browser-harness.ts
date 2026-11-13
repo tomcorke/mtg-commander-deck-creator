@@ -159,6 +159,9 @@ async function mockRequest(route: Route, scenario: Scenario, base: string) {
     return scenario.provider.localIndex
       ? scenario.provider.localIndex(route)
       : route.fulfill({ status: 404, body: 'No local index in this fixture' })
+  // Combo data is opt-in (`withComboIndex`), so a locally generated real index never mixes in.
+  if (url.origin === new URL(base).origin && url.pathname === '/combo-index.json')
+    return route.fulfill({ status: 404, body: 'No combo index in this fixture' })
   if (url.origin === new URL(base).origin) return route.continue()
   if (url.hostname === 'cards.scryfall.io' || url.hostname === 'svgs.scryfall.io')
     return route.fulfill({ contentType: 'image/svg+xml', body: imageBody })

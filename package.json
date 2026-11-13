@@ -9,8 +9,9 @@
     "dev:record": "vite --mode record",
     "dev:replay": "vite --mode replay",
     "check:dev-replay": "node --experimental-strip-types scripts/check-dev-replay.ts",
-    "build": "tsc -b && pnpm build:card-index && vite build",
+    "build": "tsc -b && pnpm build:card-index && pnpm build:combo-index && vite build",
     "build:card-index": "node --experimental-strip-types scripts/build-card-index.ts",
+    "build:combo-index": "node --experimental-strip-types scripts/build-combo-index.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"*.{json,md,ts}\" \"docs/**/*.md\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"*.{json,md,ts}\" \"docs/**/*.md\"",
     "lint": "pnpm format:check && oxlint && eslint src scripts --max-warnings=0",
@@ -50,7 +51,8 @@
     "check:set-browser:browser": "node --experimental-strip-types scripts/check-set-browser-browser.ts",
     "check:early-sidebar:browser": "node --experimental-strip-types scripts/check-early-sidebar-browser.ts",
     "check:print-checklist:browser": "node --experimental-strip-types scripts/check-print-checklist-browser.ts",
-    "check:theme-fit:browser": "node --experimental-strip-types scripts/check-theme-fit-browser.ts"
+    "check:theme-fit:browser": "node --experimental-strip-types scripts/check-theme-fit-browser.ts",
+    "check:deck-combos:browser": "node --experimental-strip-types scripts/check-deck-combos-browser.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

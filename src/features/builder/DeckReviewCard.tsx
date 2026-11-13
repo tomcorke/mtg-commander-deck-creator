@@ -4,7 +4,7 @@ import type { RecommendationScoreRating } from '../../domain/recommendation-scor
 import { CardReference } from '../../shared/CardReference.tsx'
 import { CardTile } from '../../shared/CardTile.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
-import { ReviewStatus } from './DeckOverview.tsx'
+import { ReviewStatus } from './ReviewStatus.tsx'
 
 type DoctorCard = Card | DeckCard
 

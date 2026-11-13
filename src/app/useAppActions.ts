@@ -460,6 +460,7 @@ function ownedCardActions(state: AppState, routing: RoutingActions, remote: Remo
     saveOwnedCards: (cards: OwnedCard[] | null) => saveOwnedCards(deps, cards),
     unrecognisedOwnedNames: (cards: OwnedCard[]) => unrecognisedOwnedNames(deps, cards),
     openOwnedCard: (name: string) => openOwnedCard(deps, name),
+    openCardByName: (name: string) => openOwnedCard(deps, name),
     resolveOwnedCards: (cards: OwnedCard[]) => resolveOwnedCards(deps, cards),
   }
 }

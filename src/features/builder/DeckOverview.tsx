@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 import type { TargetKey } from '../../deck-analysis.ts'
 
 import { colourNames } from '../../domain/commander-catalog.ts'
-import type { DeckCard } from '../../domain/card-model.ts'
-import { deckRiskIndicators, deckTagCoverage } from '../../deck-review.ts'
+import { cardNameKey, type DeckCard } from '../../domain/card-model.ts'
+import { deckRiskIndicators, deckTagCoverage, winConditionCards } from '../../deck-review.ts'
 import {
   analyseDeck,
   curveBucket,
@@ -18,7 +18,11 @@ import {
 } from '../../deck-analysis.ts'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { appTerms } from '../../domain/glossary.ts'
+import type { PowerTarget } from '../../domain/recommendation-types.ts'
+import { DeckCombos } from './DeckCombos.tsx'
+import { useDeckCombos } from './useDeckCombos.ts'
 import { ManaCurve } from './ManaCurve.tsx'
+import { ReviewStatus } from './ReviewStatus.tsx'
 
 type DeckOverviewProps = {
   deck: DeckCard[]
@@ -36,30 +40,13 @@ type DeckOverviewProps = {
   chooseTheme?: () => void
   /** Main-deck copies owned cards do not cover; absent without owned cards. */
   stillNeeded?: { count: number; show: () => void }
+  powerTarget: PowerTarget
+  openCard: (card: DeckCard) => void
+  openCardByName: (name: string) => void
 }
-
-type StatusKind = 'good' | 'attention' | 'neutral'
 
 // Below this size a passing check says little, so success shows as neutral.
 const earlyDeckSize = 60
-
-export function ReviewStatus({
-  kind: rawKind,
-  label,
-  early = false,
-}: {
-  kind: StatusKind
-  label: string
-  early?: boolean
-}) {
-  const kind = early && rawKind === 'good' ? 'neutral' : rawKind
-  return (
-    <span className={`deck-review-status ${kind}`}>
-      <b aria-hidden="true">{kind === 'good' ? '✓' : kind === 'attention' ? '!' : '·'}</b>
-      {label}
-    </span>
-  )
-}
 
 function FilterButton({
   label,
@@ -89,6 +76,13 @@ function FilterButton({
 }
 
 const cardNames = (cards: DeckCard[]) => [...new Set(cards.map((card) => card.name))]
+const comboDeckCards = (deck: DeckCard[], cards: { name: string; oracleId?: string }[]) => {
+  const oracles = new Set(cards.map(({ oracleId }) => oracleId).filter(Boolean))
+  const names = new Set(cards.map(({ name }) => cardNameKey(name)))
+  return deck.filter(
+    (card) => (card.oracleId && oracles.has(card.oracleId)) || names.has(cardNameKey(card.name)),
+  )
+}
 const manaGuidanceName = (symbol: ManaGuidanceSymbol) =>
   symbol === 'C' ? 'Colourless' : symbol === 'S' ? 'Snow' : colourNames[symbol]
 
@@ -108,6 +102,9 @@ export function DeckOverview({
   selectCards,
   chooseTheme,
   stillNeeded,
+  powerTarget,
+  openCard,
+  openCardByName,
 }: DeckOverviewProps) {
   const mainboard = deck.slice(commanderCount)
   const early = deck.length < earlyDeckSize
@@ -169,7 +166,27 @@ export function DeckOverview({
   ).length
   const hasColourSignal = colourStats.some(({ pips, sourceCards }) => pips || sourceCards.length)
   const selectedTagsFound = selectedCoverage.filter(({ cards }) => cards.length > 0).length
-  const riskIndicators = deckRiskIndicators(deck)
+  const combos = useDeckCombos(deck, commanderCount, commanderColours)
+  const twoCardCombos =
+    combos.status === 'ready'
+      ? combos.matches.included.filter(({ cards }) => cards.length === 2)
+      : undefined
+  const riskIndicators: { label: string; cards: DeckCard[]; count?: number }[] = [
+    ...deckRiskIndicators(deck),
+    ...(twoCardCombos
+      ? [
+          {
+            label: 'Two-card combos',
+            count: twoCardCombos.length,
+            cards: comboDeckCards(
+              deck,
+              twoCardCombos.flatMap(({ cards }) => cards),
+            ),
+          },
+        ]
+      : []),
+    { label: 'Win-the-game text', cards: winConditionCards(deck) },
+  ]
   const maxTypeCount = Math.max(1, ...typeStats.map(({ count }) => count))
 
   return (
@@ -488,12 +505,19 @@ export function DeckOverview({
         <section className="deck-review-section">
           <h3>Play experience signals</h3>
           <p>
-            Bracket guidance names these as signals for table talk, not a power rating. Detection
-            uses printed text and Wizards&apos; examples, so it can miss cards. Two-card combos are
-            not checked.
+            Bracket guidance names mass land denial, extra turns and two-card infinite combos as
+            signals for table talk, not a power rating. Detection uses printed text and
+            Wizards&apos; examples, so it can miss cards. Two-card combos come from Commander
+            Spellbook and can include combos that are not infinite
+            {twoCardCombos
+              ? ''
+              : combos.status === 'loading'
+                ? '; they are loading'
+                : '; they are unavailable'}
+            . Win-the-game text finds cards that say you win or an opponent loses.
           </p>
           <div className="deck-review-types">
-            {riskIndicators.map(({ label, cards }) => (
+            {riskIndicators.map(({ label, cards, count = cards.length }) => (
               <FilterButton
                 key={label}
                 label={label}
@@ -503,13 +527,21 @@ export function DeckOverview({
               >
                 <span className="deck-review-row-heading">
                   <b>{label}</b>
-                  <strong>{cards.length}</strong>
+                  <strong>{count}</strong>
                 </span>
               </FilterButton>
             ))}
           </div>
         </section>
       </div>
+      <DeckCombos
+        state={combos}
+        deck={deck}
+        powerTarget={powerTarget}
+        selectCards={selectCards}
+        openCard={openCard}
+        openCardByName={openCardByName}
+      />
     </section>
   )
 }

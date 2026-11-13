@@ -20,6 +20,10 @@ App pacing and per-client session caching live in `src/adapters/scryfall.ts`. Th
 
 Pacing and cache settings in `src/adapters/edhrec.ts` are local safeguards, not an EDHREC service contract.
 
+## Commander Spellbook
+
+Deck review's Known combos section uses a build-time copy of Commander Spellbook's bulk export, because Spellbook's live API accepts browser requests only from its own site. See [combo data](combo-data.md) for access, filters, matching and limits.
+
 ## EDHREC adaptation
 
 The app consumes `https://json.edhrec.com/pages/{kind}/{slug}.json` through `src/adapters/edhrec.ts`. Successful access is not a stability guarantee or a published rate allowance.

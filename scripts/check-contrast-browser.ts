@@ -15,6 +15,7 @@ import {
   withOwnedCards,
 } from './fixtures/browser-harness.ts'
 import { baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
+import { withComboIndex } from './fixtures/combo-index.ts'
 import { colourThemes } from '../src/domain/commander-catalog.ts'
 
 // These run in the page: self-contained, installed by `lowContrast` through a script tag.
@@ -212,6 +213,12 @@ const themes = [
   { name: 'dark themed', values: { 'Dark mode': true, 'Commander art and colours': true } },
 ] as const
 
+// Owned badges and the Known combos section both render, so the gate checks their colours.
+const ownedCardsAndCombos = async (page: Page) => {
+  await withOwnedCards(baseCandidates.map(({ name }) => name))(page)
+  await withComboIndex()(page)
+}
+
 await withBrowser('CONTRAST', 5243, async (browser, base) => {
   const failures: string[] = []
   for (const theme of themes) {
@@ -222,7 +229,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
       themeFirstState(),
       undefined,
       undefined,
-      withOwnedCards(baseCandidates.map(({ name }) => name)),
+      ownedCardsAndCombos,
     )
     const { page } = scenario
     const check = async (screen: string) =>
@@ -281,6 +288,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
       await button(page, 'Back to builder').click()
       await button(page, 'Deck review').click()
       await heading(page, 'Diagnose').waitFor()
+      await page.locator('.deck-review-combo').first().waitFor()
       await check('Deck review: Diagnose')
       await checkDialogs('Deck review')
       await button(page, '2 Choose changes').click()

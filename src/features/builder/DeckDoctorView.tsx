@@ -8,7 +8,10 @@ import {
   compareRecommendationScores,
   recommendationScoreRating,
 } from '../../domain/recommendation-scoring.ts'
-import type { RecommendationScoreBreakdown } from '../../domain/recommendation-types.ts'
+import type {
+  PowerTarget,
+  RecommendationScoreBreakdown,
+} from '../../domain/recommendation-types.ts'
 import {
   analyseDeck,
   cardTypes,
@@ -39,7 +42,8 @@ import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
 import { reviewSteps, type DeckReviewStep } from '../../app/routes.ts'
 import { CommanderSummary } from './CommanderSummary.tsx'
-import { DeckOverview, ReviewStatus } from './DeckOverview.tsx'
+import { DeckOverview } from './DeckOverview.tsx'
+import { ReviewStatus } from './ReviewStatus.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import type { startingDeckSummary } from '../../domain/bulk-add.ts'
 import { StartingDeckDraft } from './StartingDeckDraft.tsx'
@@ -105,6 +109,9 @@ type Props = {
   undoStartingDeck: () => void
   /** Owned copies by name; empty without owned cards. */
   ownedCards: OwnedQuantities
+  powerTarget: PowerTarget
+  /** Read-only details for a card outside the deck, such as a missing combo piece. */
+  openCardByName: (name: string) => void
 }
 
 const findingKindLabels: Record<DeckDoctorFinding['kind'], string> = {
@@ -343,6 +350,8 @@ export function DeckDoctorView({
   startingDeck,
   undoStartingDeck,
   ownedCards,
+  powerTarget,
+  openCardByName,
 }: Props) {
   const { commanderStyling, darkMode } = useVisualPreferences()
   const [candidateFetch, setCandidateFetch] = useState({
@@ -1041,6 +1050,9 @@ export function DeckDoctorView({
           <>
             <div id="deck-review-overview" tabIndex={-1}>
               <DeckOverview
+                powerTarget={powerTarget}
+                openCard={openCard}
+                openCardByName={openCardByName}
                 deck={deck}
                 sideboardCount={sideboard.length}
                 commanderCount={commanderCount}

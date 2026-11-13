@@ -1,3 +1,4 @@
+import { cardFeatures, type AnalysisCard } from './deck-analysis.ts'
 import { hasTag } from './domain/creature-types.ts'
 import { supportedThemes } from './domain/recommendation-themes.ts'
 
@@ -24,8 +25,8 @@ export function deckTagCoverage<T extends TaggedCard>(cards: T[], selectedTags: 
 }
 
 // Wizards' bracket barometers (mtg-knowledge-base format-policy.md). Names are Wizards'
-// mass land denial examples; text checks catch printed wording only.
-// ponytail: no combo data source yet; add Commander Spellbook lookups if combos need flagging.
+// mass land denial examples; text checks catch printed wording only. Two-card combos come from
+// Commander Spellbook data instead (src/domain/combo-index.ts).
 const massLandDenialExamples = new Set([
   'Armageddon',
   'Ruination',
@@ -48,3 +49,7 @@ export function deckRiskIndicators<T extends { name: string; detail: string }>(c
     { label: 'Extra turns', cards: cards.filter((card) => extraTurnText.test(card.detail)) },
   ]
 }
+
+/** Cards whose printed text wins the game or makes opponents lose it: a heuristic text clue. */
+export const winConditionCards = <T extends AnalysisCard>(cards: T[]) =>
+  cards.filter((card) => cardFeatures(card).strategy.includes('finisher'))
