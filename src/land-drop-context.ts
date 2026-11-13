@@ -40,7 +40,7 @@ export function landLikelihood(probability: number) {
 export function landDropContext(deck: AnalysisCard[], commanderCount: number) {
   const library = deck.slice(commanderCount)
   if (deck.length !== 100 || ![1, 2].includes(commanderCount))
-    return { message: 'Provisional: complete the 100-card deck to calculate land-drop context.' }
+    return { message: 'Land-drop context: provisional until 100 cards.' }
   if (
     library.some(
       (card) =>
@@ -50,7 +50,7 @@ export function landDropContext(deck: AnalysisCard[], commanderCount: number) {
           (card.faces.length !== 2 || card.faces.some((face) => !face.typeLine))),
     )
   )
-    return { message: 'Land-drop context is unavailable until library card data is complete.' }
+    return { message: 'Land-drop context: waiting for card data.' }
   const lands = library.filter((card) => rolesForCard(card).includes('lands')).length
   const optionalLands = library.filter(
     (card) =>

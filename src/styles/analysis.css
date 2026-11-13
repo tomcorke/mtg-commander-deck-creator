@@ -278,6 +278,15 @@
 .curve-legend b {
   margin-left: auto;
 }
+.curve-commander-note,
+.land-drop-note {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.land-drop-note {
+  margin-top: 12px;
+}
 .mana-balance-row {
   display: grid;
   grid-template-columns: 48px 1fr;
@@ -307,6 +316,10 @@
 }
 .colour-segment b {
   font-size: var(--type-data);
+}
+/* Stands in for an empty colour bar at the same height (#508). */
+.colour-bar-note {
+  line-height: 24px;
 }
 .colour-empty {
   display: grid;
@@ -498,7 +511,11 @@
 .basic-land-balance .colour-bar {
   height: 28px;
 }
-.basic-land-balance .colour-empty {
+.basic-land-balance /* Stands in for an empty colour bar at the same height (#508). */
+.colour-bar-note {
+  line-height: 24px;
+}
+.colour-empty {
   width: auto;
 }
 .basic-land-balance p {

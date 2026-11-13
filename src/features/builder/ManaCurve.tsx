@@ -1,15 +1,20 @@
-import type { analyseDeck } from '../../deck-analysis.ts'
+import type { AnalysisCard, analyseDeck } from '../../deck-analysis.ts'
+import { commanderCurveNote } from './curve-note.ts'
 
 /** Fixed 0–7+ mana-value curve shared by the builder sidebar and deck review. */
 export function ManaCurve({
   analysis,
+  commanders,
   selected,
   onSelect,
 }: {
   analysis: ReturnType<typeof analyseDeck>
+  /** The commanders counted in `analysis`, which the note under the legend names. */
+  commanders: AnalysisCard[]
   selected: number | null
   onSelect: (manaValue: number) => void
 }) {
+  const commanderNote = commanderCurveNote(commanders)
   // The two bars sit side by side, so the tallest single bar sets the scale.
   const maxCurveCount = Math.max(
     1,
@@ -57,6 +62,7 @@ export function ManaCurve({
         </span>
         <b>Avg {analysis.curvePending ? '…' : analysis.averageManaValue.toFixed(1)}</b>
       </div>
+      {commanderNote && <p className="curve-commander-note">{commanderNote}</p>}
     </>
   )
 }

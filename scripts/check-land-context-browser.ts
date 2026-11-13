@@ -54,7 +54,7 @@ await withBrowser('LAND_CONTEXT', 5187, async (browser, base) => {
   ])
   assert.match(
     await partial.page.getByRole('region', { name: 'Land-drop context', exact: true }).innerText(),
-    /Provisional/,
+    /provisional until 100 cards/,
   )
   await partial.context.close()
 })
