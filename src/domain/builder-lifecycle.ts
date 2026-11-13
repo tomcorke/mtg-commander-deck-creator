@@ -1,4 +1,4 @@
-import { defaultDeckTargets } from '../deck-analysis.ts'
+import { defaultDeckTargets, defaultThemeTarget } from '../deck-analysis.ts'
 import { builderPoolKey } from './builder-settings.ts'
 import type { BuilderAction, BuilderState } from './builder-state.ts'
 
@@ -34,6 +34,7 @@ export function resetBuilder(
     batchNumber: 1,
     preferredPrintSet: '',
     deckTargets: { ...defaultDeckTargets },
+    themeTarget: defaultThemeTarget,
     signatureQuota: { pages: 0, cards: 0 },
     fetchBoundary: null,
     fetchSequence: 0,
@@ -55,6 +56,7 @@ export function beginBuilderRecommendations(
         ...resetBuilder(state, action),
         theme: state.theme,
         deckTargets: state.deckTargets,
+        themeTarget: state.themeTarget,
         // Extra creature types picked on the start screen carry over as sub-themes.
         activeSubThemes: action.extraCreatureTypes.slice(0, 2),
         recommendationOptionsChanged: state.recommendationOptionsChanged,

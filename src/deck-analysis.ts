@@ -50,6 +50,11 @@ export const defaultDeckTargets: Readonly<DeckTargets> = Object.freeze({
   removal: 8,
   wipes: 3,
 })
+/**
+ * Heuristic (#501): an app estimate of how many main-deck cards should match the theme, about a
+ * quarter of the deck. Not a rule or a community standard; the player edits it beside role targets.
+ */
+export const defaultThemeTarget = 25
 export const targetLabels: Record<TargetKey, string> = roleLabels
 export const cardTypes = [
   'Creature',

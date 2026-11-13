@@ -23,7 +23,9 @@ import {
   recommendationScoreBreakdown,
   sharedThemes,
   supportedThemes,
+  themeEvidence,
   themeMatchesSearch,
+  type ThemeEvidence,
 } from '../recommendations.ts'
 
 import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
@@ -274,6 +276,40 @@ function evidenceSentence(card: Card, commander: string) {
   return sentences[card.reason] ?? `${card.reason}.`
 }
 
+export type Explanation = {
+  label: string
+  sentence: string
+  /** The reason leads with theme fit; other evidence must not replace it. */
+  themeFit?: true
+}
+
+const themeList = (themes: string[]) =>
+  `${themes.join(' and ')} theme${themes.length > 1 ? 's' : ''}`
+
+function themeMatchSentence({ theme, source, quote }: ThemeEvidence) {
+  if (source === 'type') return `Type line matches your ${theme} theme: ${quote}.`
+  // Keyword lines such as "Changeling" have no closing punctuation of their own.
+  return `Text matches your ${theme} theme: “${quote}”${/[.!?…]$/.test(quote) ? '' : '.'}`
+}
+
+/**
+ * Theme fit with the words that matched (#501). Matching is a text heuristic, so the copy says the
+ * text matches rather than claiming the card is good in the theme.
+ */
+function themeFitReason(card: Card, themes: string[]): Explanation {
+  const [first, ...extras] = themes
+  const lead = themeEvidence(card, first)
+  // The theme leads even without a quote; an extra theme's quote then follows it.
+  const extra = lead ? undefined : extras.map((tag) => themeEvidence(card, tag)).find(Boolean)
+  const others = extras.filter((tag) => tag !== extra?.theme)
+  const sentence = [
+    lead ? themeMatchSentence(lead) : `Fits your ${first} theme.`,
+    ...(extra ? [themeMatchSentence(extra)] : []),
+    ...(others.length ? [`Also fits your ${themeList(others)}.`] : []),
+  ].join(' ')
+  return { label: `${themes.join(' + ')} theme`, sentence, themeFit: true }
+}
+
 function recommendationExplainer(
   deps: BuilderDataDeps,
   deckData: ReturnType<typeof buildDeckData>,
@@ -284,15 +320,12 @@ function recommendationExplainer(
   const commanderName = commanderNames(deps.commander)
     .map((name) => name.split(',')[0])
     .join(' and ')
-  const deckReason = (card: Card) => {
-    const subThemes = activeSubThemes.filter((tag: string) => hasTag(card, tag))
-    if (subThemes.length)
-      return {
-        label: `${subThemes.join(' + ')} theme`,
-        sentence: `Supports your ${subThemes.join(' and ')} theme${subThemes.length > 1 ? 's' : ''}.`,
-      }
-    if (theme && hasTag(card, theme))
-      return { label: `${theme} theme`, sentence: `Fits your ${theme} theme.` }
+  const deckReason = (card: Card): Explanation | null => {
+    // Theme fit leads (#501): the theme first, then extra themes, as Start and the builder order them.
+    const themes = [...new Set([theme, ...activeSubThemes])].filter(
+      (tag: string) => tag && hasTag(card, tag),
+    )
+    if (themes.length) return themeFitReason(card, themes)
     if (collectionMode !== 'none' && card.collectionMatch)
       return {
         label: 'From your chosen sets',
@@ -321,12 +354,18 @@ function recommendationExplainer(
       }
     return null
   }
-  const explainRecommendation = (card: Card) => {
+  const explainRecommendation = (card: Card): Explanation => {
     const reason = deckReason(card)
     if (!reason) return { label: card.reason, sentence: evidenceSentence(card, commanderName) }
     if (card.source !== 'edhrec' || card.inclusion === undefined) return reason
-    const share = `, and appears in ${deckShare(card.inclusion)} of ${commanderName} decks on EDHREC.`
-    return { ...reason, sentence: reason.sentence.replace(/\.$/, share) }
+    const share = `${deckShare(card.inclusion)} of ${commanderName} decks on EDHREC.`
+    // A quoted theme match ends in a closing quote, so the share follows as its own sentence.
+    return {
+      ...reason,
+      sentence: reason.themeFit
+        ? `${reason.sentence} In ${share}`
+        : reason.sentence.replace(/\.$/, `, and appears in ${share}`),
+    }
   }
   return explainRecommendation
 }

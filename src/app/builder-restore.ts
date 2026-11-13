@@ -1,4 +1,5 @@
 import { restoredRecommendationDecisions, type PersistedDeckState } from '../deck-state.ts'
+import { defaultThemeTarget } from '../deck-analysis.ts'
 import { builderPoolKey } from '../domain/builder-settings.ts'
 import { createBuilderState, type BuilderState } from '../domain/builder-state.ts'
 import { migrateRecommendationPriority } from '../domain/recommendation-tuning.ts'
@@ -46,6 +47,7 @@ export function restoreBuilderState(
     liked: saved.liked,
     preferenceScores: saved.preferenceScores,
     deckTargets: saved.deckTargets,
+    themeTarget: saved.themeTarget ?? defaultThemeTarget,
     theme: saved.theme,
     activeSubThemes: saved.activeSubThemes,
     dismissedSubThemes: saved.dismissedSubThemes,

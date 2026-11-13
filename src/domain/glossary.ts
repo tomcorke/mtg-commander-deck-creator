@@ -171,6 +171,12 @@ export const appTerms = {
       'A theme that several recently added cards share. Use adds it as a theme; Dismiss hides it until more cards match.',
     kind: 'heuristic',
   },
+  themeCards: {
+    term: 'Theme cards',
+    definition:
+      'Main-deck cards whose text or type line matches your theme. Text matching can miss or over-count cards, and the starting target is an app estimate, not a rule.',
+    kind: 'heuristic',
+  },
   priority: {
     term: 'Priority',
     definition:

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { isScryfallCard, type ScryfallCard } from '../../src/domain/card-model.ts'
 import { ignoreReasons } from '../../src/domain/recommendation-tuning.ts'
-import { targetKeys } from '../../src/deck-analysis.ts'
+import { defaultThemeTarget, targetKeys } from '../../src/deck-analysis.ts'
 import { cardSchema, deckCardSchema, stateSchema } from './rank-bench.ts'
 
 const name = z.string().trim().min(1)
@@ -64,6 +64,8 @@ export const initialStateSchema = stateSchema
     ownershipMode: z.literal('ignore').default('ignore'),
     ownedCards: z.strictObject({}).default({}),
     ownedRevision: z.literal('').default(''),
+    // Display-only theme target (#501); recipes predate it.
+    themeTarget: count.default(defaultThemeTarget),
     today: z.iso.date(),
     signatureDeckKey: name,
     commanderDetails: details.nullable(),

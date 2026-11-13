@@ -1,6 +1,7 @@
 import {
   chosenCreatureTypePattern,
   chosenCreatureTypeTag,
+  creatureTypeForTheme,
   creatureTypeTags,
   everyCreatureTypePattern,
   everyCreatureTypeTag,
@@ -212,6 +213,55 @@ export function tagsFor(source: string, typeLine: string) {
   for (const type of ['Creature', 'Artifact', 'Enchantment', 'Land'])
     if (typeLine.includes(type) && !tags.includes(`${type}s`)) tags.push(`${type}s`)
   return tags
+}
+
+/** Where a card's theme match was found, and the words that matched. */
+export type ThemeEvidence = { theme: string; source: 'text' | 'type'; quote: string }
+
+const maxQuoteLength = 120
+
+function shortQuote(text: string) {
+  const quote = text.trim()
+  if (quote.length <= maxQuoteLength) return quote
+  const cut = quote.slice(0, maxQuoteLength - 1)
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 60)).replace(/[\s,;:—-]+$/, '')}…`
+}
+
+function themePatterns(theme: string) {
+  const type = creatureTypeForTheme(theme)
+  const curated = themeMatchers.find(([name]) => name === theme)?.[1]
+  return [
+    ...(curated ? [curated] : []),
+    // Theme names hold only letters, spaces, hyphens and apostrophes (creature-types.ts).
+    ...(type
+      ? [
+          new RegExp(`\\b(?:${type}|${theme})\\b`),
+          everyCreatureTypePattern,
+          chosenCreatureTypePattern,
+        ]
+      : []),
+  ]
+}
+
+/**
+ * The sentence of a card's rules text, or its type line, that tagged it for a theme. Tags are
+ * regex heuristics (docs/domain/heuristics.md), so this shows the words that matched, not proof
+ * that the card plays well in the theme.
+ */
+export function themeEvidence(
+  card: { typeLine: string; detail: string },
+  theme: string,
+): ThemeEvidence | undefined {
+  const patterns = themePatterns(theme)
+  const matches = (text: string) => patterns.some((pattern) => pattern.test(text))
+  const lines = card.detail.split('\n').filter((line) => line.trim() && line !== card.typeLine)
+  for (const line of lines) {
+    const sentences = line.replace(/\s*\([^)]*\)/g, '').split(/(?<=[.!?])\s+/)
+    const sentence = sentences.find(matches) ?? (matches(line) ? line : undefined)
+    if (sentence) return { theme, source: 'text', quote: shortQuote(sentence) }
+  }
+  if (matches(card.typeLine)) return { theme, source: 'type', quote: card.typeLine }
+  return undefined
 }
 
 const synergyRules: { left: RegExp; right: RegExp; explanation: string }[] = [

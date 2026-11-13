@@ -14,6 +14,7 @@ import {
   type AddZone,
   type AddZoneChoice,
   defaultDeckTargets,
+  defaultThemeTarget,
   rolesForCard,
   type DeckTargets,
   type TargetKey,
@@ -99,6 +100,8 @@ export type BuilderState = {
   liked: string[]
   preferenceScores: Record<string, number>
   deckTargets: DeckTargets
+  /** Main-deck cards the player wants matching the theme; display only, never scored. */
+  themeTarget: number
   theme: string
   activeSubThemes: string[]
   dismissedSubThemes: string[]
@@ -160,6 +163,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     liked: [],
     preferenceScores: {},
     deckTargets: { ...defaultDeckTargets },
+    themeTarget: defaultThemeTarget,
     theme: '',
     activeSubThemes: [],
     dismissedSubThemes: [],

@@ -411,6 +411,11 @@
   color: inherit;
   font-weight: 600;
 }
+.theme-target-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
 .deck-target-check {
   margin-right: 4px;
   color: var(--text-success);

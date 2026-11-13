@@ -74,6 +74,7 @@ import { CommanderSummary } from './CommanderSummary.tsx'
 import { BasicLandDialog } from './BasicLandDialog.tsx'
 import { CollectionBrowserDialog } from './CollectionBrowserDialog.tsx'
 import { HealthLane } from './HealthLane.tsx'
+import { TargetCount, ThemeTargetRow } from './ThemeTargetRow.tsx'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { openSectionsWithHighlights } from './deck-section-highlight.ts'
@@ -195,7 +196,7 @@ function neediestTarget(counts: DeckTargets, targets: DeckTargets) {
 
 function recommendationReason(
   card: Card,
-  explanation: { label: string; sentence: string },
+  explanation: { label: string; sentence: string; themeFit?: true },
   selected: DeckCard[],
   onOpen: (card: DeckCard) => void,
 ) {
@@ -205,17 +206,25 @@ function recommendationReason(
   const decks = evidence.decks
     ? ` in ${evidence.decks.toLocaleString('en')} deck${evidence.decks === 1 ? '' : 's'} on EDHREC`
     : ''
-  return {
-    label: 'Deck engine',
-    sentence: seed ? (
-      <>
-        Played with <CardReference card={seed} onOpen={() => onOpen(seed)} />
-        {decks}, which is in your deck.
-      </>
-    ) : (
-      'Often played with a card you picked earlier.'
-    ),
-  }
+  const engine = seed ? (
+    <>
+      Played with <CardReference card={seed} onOpen={() => onOpen(seed)} />
+      {decks}, which is in your deck.
+    </>
+  ) : (
+    'Often played with a card you picked earlier.'
+  )
+  // Theme fit stays first (#501); the engine evidence follows it.
+  if (explanation.themeFit)
+    return {
+      label: explanation.label,
+      sentence: (
+        <>
+          <OracleText text={explanation.sentence} /> {engine}
+        </>
+      ),
+    }
+  return { label: 'Deck engine', sentence: engine }
 }
 
 // eslint-disable-next-line max-lines-per-function, sonarjs/cognitive-complexity -- Keep the established builder composition intact; extracted dialogs own their interactions, and callback rules stay active.
@@ -1026,7 +1035,13 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             }
                           />
                         </h3>
-                        <p className="offer-reason">{reason.sentence}</p>
+                        <p className="offer-reason">
+                          {typeof reason.sentence === 'string' ? (
+                            <OracleText text={reason.sentence} />
+                          ) : (
+                            reason.sentence
+                          )}
+                        </p>
                         {card.price && (
                           <p className="offer-price">
                             <CardPriceLink card={card} />
@@ -1380,32 +1395,28 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       </span>
                     </span>
                   )}
-                  <b>
-                    {!analysis.curvePending && analysis.counts[key] >= deckTargets[key] && (
-                      <>
-                        <span className="deck-target-check" aria-hidden="true">
-                          ✓
-                        </span>
-                        <span className="sr-only">Target met: </span>
-                      </>
-                    )}
-                    {analysis.curvePending ? '…' : analysis.counts[key]} /{' '}
-                    <input
-                      type="number"
-                      min="0"
-                      max="99"
-                      value={deckTargets[key]}
-                      onChange={(event) =>
-                        dispatchBuilder({
-                          type: 'targets',
-                          targets: { [key]: Math.max(0, Number(event.target.value)) },
-                        })
-                      }
-                      aria-label={`${targetLabels[key]} target`}
-                    />
-                  </b>
+                  <TargetCount
+                    label={targetLabels[key]}
+                    count={analysis.counts[key]}
+                    target={deckTargets[key]}
+                    pending={analysis.curvePending}
+                    onTarget={(target) =>
+                      dispatchBuilder({ type: 'targets', targets: { [key]: target } })
+                    }
+                  />
                 </div>
               ))}
+              {theme && (
+                <ThemeTargetRow
+                  theme={theme}
+                  cards={deckCards}
+                  target={model.themeTarget}
+                  pending={analysis.curvePending}
+                  onTarget={(target) =>
+                    dispatchBuilder({ type: 'data', changes: { themeTarget: target } })
+                  }
+                />
+              )}
             </div>
             {displayedTypeCounts.some(([, count]) => count > 0) && (
               <>

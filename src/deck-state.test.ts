@@ -326,3 +326,9 @@ test('storage failures do not break deck building', () => {
   assert.doesNotThrow(() => saveDeckState(state, storage))
   assert.doesNotThrow(() => clearDeckState(storage))
 })
+
+test('a save from before the theme target is unchanged once loaded with the default (#501)', () => {
+  const loaded = { ...state, themeTarget: 25 }
+  assert.equal(deckStateChanged(state, loaded), false)
+  assert.equal(deckStateChanged(state, { ...loaded, themeTarget: 20 }), true)
+})

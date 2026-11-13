@@ -37,3 +37,15 @@ test('flags mass land denial and extra turns from names and printed text', () =>
     ['Time Warp'],
   )
 })
+
+test('selected creature-type themes count changelings, as offers do (#501)', () => {
+  const cards = [
+    { name: 'Cat', tags: ['Cats'], typeLine: 'Creature — Cat' },
+    { name: 'Shapeshifter', tags: ['Changeling'], typeLine: 'Creature — Shapeshifter' },
+    { name: 'Mutavault', tags: ['Changeling'], typeLine: 'Land' },
+  ]
+  assert.deepEqual(
+    deckTagCoverage(cards, ['Cats'])[0].cards.map(({ name }) => name),
+    ['Cat', 'Shapeshifter'],
+  )
+})
