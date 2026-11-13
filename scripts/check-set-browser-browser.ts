@@ -52,7 +52,7 @@ const scryfallBacklog = (page: Page) =>
       getRequestActivity: () => { providers: { name: string; active: number; queued: number }[] }
     }
     const scryfall = getRequestActivity().providers.find(({ name }) => name === 'Scryfall')!
-    return scryfall.active + scryfall.queued
+    return { active: scryfall.active, queued: scryfall.queued }
   })
 
 const rowsNearViewport = (page: Page) =>
@@ -87,15 +87,20 @@ await withBrowser('SET_BROWSER', 5312, async (browser, base) => {
     await findSet(page).fill('Fixture')
     await page.locator('.set-picker-row').nth(39).waitFor()
     // Let Start's own searches finish so the backlog below is the browser's alone.
-    for (let tries = 0; (await scryfallBacklog(page)) > 0; tries++) {
+    for (let tries = 0; ; tries++) {
+      const { active, queued } = await scryfallBacklog(page)
+      if (active + queued === 0) break
       assert.ok(tries < 100, 'Start settles before the browser opens')
       await page.waitForTimeout(100)
     }
     await button(page, 'Browse sets').click()
     await page.locator('.set-picker-rows.browsing').waitFor()
     await rows(page).first().scrollIntoViewIfNeeded()
+    // Wait for the first row's legends so the observer has reported every row in view.
+    await rows(page).first().getByText('Legends lean').waitFor()
 
-    const backlog = await scryfallBacklog(page)
+    const { active, queued } = await scryfallBacklog(page)
+    const backlog = active + queued
     const near = await rowsNearViewport(page)
     console.log(`Opening the browser: ${backlog} Scryfall searches pending, ${near} rows in view.`)
     if (process.env.SET_BROWSER_BEFORE) {
@@ -106,7 +111,9 @@ await withBrowser('SET_BROWSER', 5312, async (browser, base) => {
     }
 
     assert.ok(near < 40, 'the fixture leaves rows out of view')
-    assert.ok(backlog <= near, `pending searches (${backlog}) cover only rows in view (${near})`)
+    // Sent searches (each in `requested` once dispatched) plus queued ones cover only rows in view.
+    const searched = new Set(requested).size + queued
+    assert.ok(searched <= near, `searches (${searched}) cover only rows in view (${near})`)
 
     // Rows in view still show art and colour leanings.
     const first = rows(page).first()

@@ -43,7 +43,11 @@ function SetMeta({ set }: { set: ScryfallSet }) {
   )
 }
 
-/** True while `ref`'s element is within 200px of the viewport; always true without the observer API. */
+/**
+ * True while `ref`'s element is within 200px of the viewport; always true without the observer API.
+ * A scrolling ancestor such as the Recommendation settings modal still clips, so rows there load
+ * once actually visible.
+ */
 function useNearViewport(ref: RefObject<Element | null>) {
   const [near, setNear] = useState(typeof IntersectionObserver === 'undefined')
   useEffect(() => {
