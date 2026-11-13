@@ -106,9 +106,9 @@ function CreatureTypeChips({
 import type { AppModal, AppView } from '../../app/routes.ts'
 import type { CommanderDetails, DeckCard } from '../../domain/card-model.ts'
 import type { DeckWorkspace } from '../../autosaves.ts'
-import { commanderPageSize, useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
+import { useCommanderDiscovery } from '../../app/useCommanderDiscovery.ts'
 import type { CommanderSort } from '../../domain/commander-discovery.ts'
-import { Pagination } from '../../shared/Pagination.tsx'
+import { CommanderPagination } from '../../shared/CommanderPagination.tsx'
 import { CommanderChoiceTile, CommanderTilePlaceholders } from '../../shared/CommanderChoice.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import { DisplaySettingsMenu } from '../../shared/DisplaySettingsMenu.tsx'
@@ -357,14 +357,19 @@ type Discovery = ReturnType<typeof useCommanderDiscovery>
  * list has loaded (#514). Until then, and for commanders those lists omit, it falls back to
  * Scryfall's EDHREC rank, which also counts decks using a card in the 99.
  */
-const sortOrder = (sort: CommanderSort, discovery: Discovery) =>
+const sortOrder = (sort: CommanderSort, discovery: Discovery, pages: number) =>
   sort === 'popularity' && discovery.popularity === 'rank'
     ? 'EDHREC rank until deck counts load'
-    : commanderSorts[sort].order
+    : // Each fetched Scryfall page reorders on its own (#485).
+      `${commanderSorts[sort].order}${sort === 'popularity' && pages > 1 ? ', within each batch of 175 by EDHREC rank' : ''}`
 type BroaderDiscovery = NonNullable<Discovery['broader']>
 
-const countLabel = ({ count, more }: { count: number; more: boolean }) =>
-  `${count}${more ? ' loaded' : ''} ${count === 1 ? 'commander' : 'commanders'}`
+/** Scryfall's match count while more pages remain, otherwise the commanders found. */
+const matchCount = ({ count, more, total }: { count: number; more: boolean; total?: number }) =>
+  total !== undefined ? total.toLocaleString() : `${count}${more ? '+' : ''}`
+
+const countLabel = (matches: { count: number; more: boolean; total?: number }) =>
+  `${matchCount(matches)} ${matches.count === 1 && !matches.more ? 'commander' : 'commanders'}`
 
 /** The grid's heading: count, shared reason and order, the sort control and the insight note. */
 function DiscoveryHeading({
@@ -380,8 +385,8 @@ function DiscoveryHeading({
   // Several creature types rank commanders covering more of them first.
   const order =
     discovery.suggestions[0]?.coverage === undefined
-      ? `Sorted by ${sortOrder(sort, discovery)}`
-      : `Most chosen creature types first, then by ${sortOrder(sort, discovery)}`
+      ? `Sorted by ${sortOrder(sort, discovery, discovery.pages)}`
+      : `Most chosen creature types first, then by ${sortOrder(sort, discovery, discovery.pages)}`
   return (
     <>
       <div className="commander-discovery-heading">
@@ -417,7 +422,7 @@ function DiscoveryHeading({
       <p id="commander-result-count" className="sr-only" role="status">
         {discovery.status === 'loading' && 'Finding legal commanders…'}
         {discovery.status === 'idle' &&
-          `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length ? ` of ${discovery.count}${discovery.more ? ' loaded' : ''}` : ''} ${discovery.count === 1 ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}${discovery.count > 1 ? `. ${order}` : ''}${discovery.broader?.count ? `. ${discovery.broader.heading}: ${countLabel(discovery.broader)}` : ''}. Press Down to move through them.`}
+          `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length || discovery.more ? ` of ${matchCount(discovery)}` : ''} ${discovery.count === 1 && !discovery.more ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}${discovery.count > 1 ? `. ${order}` : ''}${discovery.broader?.count ? `. ${discovery.broader.heading}: ${countLabel(discovery.broader)}` : ''}. Press Down to move through them.`}
       </p>
     </>
   )
@@ -525,17 +530,7 @@ function BroaderCommanders({
         </div>
       </div>
       <div className="commander-grid">{broader.suggestions.map(renderTile)}</div>
-      <Pagination
-        label="More commander result pages"
-        noun="commanders"
-        count={broader.count}
-        pageSize={commanderPageSize}
-        page={broader.page}
-        onPage={broader.setPage}
-        partial={broader.more}
-      >
-        {broader.more && <span>Narrow the filters to reach more commanders.</span>}
-      </Pagination>
+      <CommanderPagination label="More commander result pages" matches={broader} />
     </section>
   )
 }
@@ -925,22 +920,12 @@ export function StartView(props: StartViewProps) {
             </div>
           )}
           {discovery.status === 'idle' && (
-            <Pagination
-              label="Commander result pages"
-              noun="commanders"
-              count={discovery.count}
-              pageSize={commanderPageSize}
-              page={discovery.page}
-              onPage={discovery.setPage}
-              partial={discovery.more}
-            >
-              {discovery.more && <span>Narrow the filters to reach more commanders.</span>}
-            </Pagination>
+            <CommanderPagination label="Commander result pages" matches={discovery} />
           )}
           {discovery.status === 'idle' && discovery.broader && (
             <BroaderCommanders
               broader={discovery.broader}
-              order={sortOrder(sort, discovery)}
+              order={sortOrder(sort, discovery, discovery.broader.pages)}
               renderTile={renderTile}
             />
           )}

@@ -12,6 +12,8 @@ type Props = {
   onPage: (page: number) => void
   /** The count is only what has loaded so far; more results exist. */
   partial?: boolean
+  /** The provider's result count while `partial`, shown in place of the loaded count. */
+  total?: number
   /** Fetches more results; given, Next stays enabled at the end of a partial count. */
   onMore?: () => void
   children?: ReactNode
@@ -26,6 +28,7 @@ export function Pagination({
   page,
   onPage,
   partial,
+  total,
   onMore,
   children,
 }: Props) {
@@ -36,8 +39,11 @@ export function Pagination({
     <nav className="pagination" aria-label={label}>
       {count > 0 && (
         <p>
-          Showing {window.start + 1}–{window.end} of {count}
-          {partial ? ' loaded' : ''} {noun}
+          Showing {window.start + 1}–{window.end} of{' '}
+          {partial && total !== undefined
+            ? total.toLocaleString()
+            : `${count}${partial ? ' loaded' : ''}`}{' '}
+          {noun}
           {window.pages > 1 && ` · Page ${window.page + 1}${partial ? '' : ` of ${window.pages}`}`}
         </p>
       )}
@@ -56,6 +62,9 @@ export function Pagination({
             type="button"
             disabled={last && !fetchable}
             onClick={() => {
+              // A partly filled last page fills in place first, such as after a failed fetch,
+              // so no newly fetched result is skipped.
+              if (fetchable && last && window.end - window.start < pageSize) return onMore()
               // A page that reaches past the loaded results needs the next batch.
               if (fetchable && (window.page + 2) * pageSize > count) onMore()
               onPage(window.page + 1)

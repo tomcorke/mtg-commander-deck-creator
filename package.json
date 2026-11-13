@@ -45,7 +45,8 @@
     "check:owned-cards:browser": "node --experimental-strip-types scripts/check-owned-cards-browser.ts",
     "check:land-fill-budget:browser": "node --experimental-strip-types scripts/check-land-fill-budget-browser.ts",
     "check:deck-board-layout:browser": "node --experimental-strip-types scripts/check-deck-board-layout-browser.ts",
-    "check:share-link:browser": "node --experimental-strip-types scripts/check-share-link-browser.ts"
+    "check:share-link:browser": "node --experimental-strip-types scripts/check-share-link-browser.ts",
+    "check:start-paging:browser": "node --experimental-strip-types scripts/check-start-paging-browser.ts"
   },
   "dependencies": {
     "react": "^19.2.8",
