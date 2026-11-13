@@ -61,12 +61,12 @@ An offer that would complete a combo carries a **Completes a combo** note at eve
 
 Ranking runs in the builder reducer, which must replay the same actions to the same queue, so it never reads the lazily loaded index. Builder state instead holds `comboLinks`: up to 300 combos (fewest cards, then most popular) whose pieces are all among the main deck, queue, Later cards and buffered local candidates, with any must-be-commander piece a commander (`reachableComboLinks`). Links use the app's card names, matched by Oracle ID then name as above.
 
-- **Pool load:** `start` loads the index alongside the pool and waits up to 2 seconds for it once the pool is ready, so the first batch can rank with links. Slower or failed loads rank without them.
+- **Pool load:** at High power, `start` loads the index alongside the pool and waits up to 2 seconds for it once the pool is ready, so the first batch can rank with links. Slower or failed loads rank without them. Other Powers do not wait; their notes appear once the effect stores links.
 - **Afterwards:** `useComboLinksEffect` recomputes links when the set of deck and pool card names, or the commanders, changes, and stores them with a `data` action only when they differ. Storing links never re-ranks, so the visible batch never shuffles; the next ranking (Next recommendations, a settings commit) uses them.
-- **Scoring:** `buildRecommendationContext` counts, for each card, the links it alone would complete with the current main deck (`comboCompletions`). Only High power scores them: 4 + 3 per combo, capped at 10, shown as **Combo completion** in "Why this card" at High only. Each ranking re-counts as the deck grows.
+- **Scoring:** `buildRecommendationContext` counts, for each card, the links it alone would complete with the current main deck and commanders (`comboCompletions`). Deck doctor's replacement scores share that context, so High power favours combo-completing replacements too. Only High power scores them: 4 + 3 per combo, capped at 10, shown as **Combo completion** in "Why this card" at High only. Each ranking re-counts as the deck grows.
 - **Notes:** `ComboOfferNote` names the deck pieces of the first combo with card references and links it on Spellbook.
 
-Limits: the boost counts combos, not their results, so a loop that does not win counts the same as one that does. Links are not saved with a deck; they return once combo data loads after a restore. The deckbuild CLI has no combo data, so its rankings never include the combo factor.
+Limits: the 300-link cap is chosen without regard to the deck, so with a large pool, short pool-only combos can crowd out a longer combo the deck is one card from completing. The boost counts combos, not their results, so a loop that does not win counts the same as one that does. Links are not saved with a deck; they return once combo data loads after a restore. The deckbuild CLI has no combo data, so its rankings never include the combo factor.
 
 ## Play experience signals
 

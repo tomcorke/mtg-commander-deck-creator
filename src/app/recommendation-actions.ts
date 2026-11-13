@@ -969,10 +969,10 @@ export async function start(
     }
   const pendingLocal: PendingLocalQuery[] = []
   deps = { ...deps, pendingLocal }
-  // Load combo data alongside the pool; a failure only means no combo ranking or notes.
-  const comboIndex: Promise<ComboIndex | null> | undefined = deps
-    .loadComboIndex?.()
-    .catch(() => null)
+  // Only High power ranks with combo data, so only High waits for it alongside the pool. Notes at
+  // other Powers come from useComboLinksEffect once the data loads.
+  const comboIndex: Promise<ComboIndex | null> | undefined =
+    deps.powerTarget === 'high' ? deps.loadComboIndex?.().catch(() => null) : undefined
   const reset = resetRecommendationState(deps, preserveDeck, progress, chosen)
   try {
     const loaded = await loadCommanderCards(deps, chosen)

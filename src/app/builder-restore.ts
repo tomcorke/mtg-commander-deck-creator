@@ -23,6 +23,8 @@ export function restoreBuilderState(
         deckDoctorHistory: [],
         bulkAdd: null,
         lastDecision: null,
+        // Another deck's combos; useComboLinksEffect recomputes them for this one.
+        comboLinks: [],
       }
     : createBuilderState(today, id)
   if (!saved) return initial

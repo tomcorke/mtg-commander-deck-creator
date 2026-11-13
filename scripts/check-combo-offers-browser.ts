@@ -97,7 +97,7 @@ async function checkHigh(browser: Browser, base: string) {
     await shown.waitFor()
     assert.match(
       await text(page, spares[0].name),
-      /Completes a combo ?with Combo check altar\. High power ranks it higher\./,
+      /Completes a combo ?With Combo check altar\. High power ranks it higher\./,
     )
     assert.equal(await shown.locator('.deck-review-status.good').count(), 1)
     assert.equal(
@@ -148,7 +148,7 @@ async function checkCore(browser: Browser, base: string) {
     await shown.waitFor()
     assert.match(
       await text(page, spares[0].name),
-      /Completes a combo ?with Combo check altar\. Core power: add it only on purpose, and tell your table\./,
+      /Completes a combo ?With Combo check altar\. Core power: add it only on purpose, and tell your table\./,
     )
     assert.equal(await shown.locator('.deck-review-status.attention').count(), 1)
     assert.doesNotMatch(await shown.innerText(), /Bracket/)

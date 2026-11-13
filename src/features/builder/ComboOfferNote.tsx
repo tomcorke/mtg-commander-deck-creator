@@ -40,14 +40,19 @@ export function ComboOfferNote({
         label={combos.length === 1 ? 'Completes a combo' : `Completes ${combos.length} combos`}
       />
       <span>
-        with{' '}
-        {pieces.map((piece, position) => (
-          <span key={piece.name}>
-            {position > 0 && ' + '}
-            <CardReference card={piece} onOpen={() => openCard(piece)} />
-          </span>
-        ))}
-        . {note}{' '}
+        {pieces.length > 0 && (
+          <>
+            {combos.length > 1 ? 'One with ' : 'With '}
+            {pieces.map((piece, position) => (
+              <span key={piece.name}>
+                {position > 0 && ' + '}
+                <CardReference card={piece} onOpen={() => openCard(piece)} />
+              </span>
+            ))}
+            .{' '}
+          </>
+        )}
+        {note}{' '}
         <a href={comboPageUrl(combo.id)} target="_blank" rel="noreferrer">
           View on {comboSourceName}
         </a>

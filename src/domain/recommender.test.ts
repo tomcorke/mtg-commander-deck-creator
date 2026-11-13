@@ -98,6 +98,15 @@ test('High power ranks a card that completes a known combo higher; other powers 
     recommend({ ...input, powerTarget: 'high', comboLinks: [] }).queue,
     results[0].queue,
   )
+  // A fresh build ranks its first batch before the commander joins the deck.
+  const fresh = recommend(
+    state({
+      comboLinks: [{ id: 'commander-foxtrot', cards: ['Commander', 'Foxtrot'] }],
+      powerTarget: 'high',
+    }),
+  )
+  assert.equal(combo(fresh, 'Foxtrot'), 7)
+  assert.equal(fresh.batch[0].name, 'Foxtrot')
 })
 
 test('power targets change utility ranking independently of priority without removing functional options', () => {

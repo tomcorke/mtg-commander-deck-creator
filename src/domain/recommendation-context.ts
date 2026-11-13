@@ -88,17 +88,18 @@ export function buildRecommendationContext(
     opposingAnswerTargets: normalizeOpposingAnswerTargets(settings.opposingAnswerTargets),
     ...(settings.powerTarget === 'high' &&
       settings.comboLinks?.length && {
-        comboCompletions: comboCounts(settings.comboLinks, deck),
+        comboCompletions: comboCounts(settings.comboLinks, [
+          ...deck.map(({ name }) => name),
+          // A fresh build ranks its first batch before the commanders join the deck.
+          ...commanderNames(settings.commander ?? ''),
+        ]),
       }),
   }
 }
 
-function comboCounts(links: ComboLink[], deck: DeckCard[]) {
+function comboCounts(links: ComboLink[], deckNames: string[]) {
   const counts = new Map<string, number>()
-  for (const [name, completed] of comboCompletions(
-    links,
-    deck.map(({ name }) => name),
-  ))
+  for (const [name, completed] of comboCompletions(links, deckNames))
     counts.set(name, completed.length)
   return counts
 }

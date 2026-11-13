@@ -220,6 +220,12 @@ const ownedCardsAndCombos = async (page: Page) => {
   await withComboIndex(offerFixtureComboIndex)(page)
 }
 
+// Hydrated card references, and the combo offer note once combo data loads.
+const builderReady = async (page: Page) => {
+  await page.locator('.health-lane .card-reference').first().waitFor()
+  await page.locator('.card-offer .combo-offer').waitFor()
+}
+
 await withBrowser('CONTRAST', 5243, async (browser, base) => {
   const failures: string[] = []
   for (const theme of themes) {
@@ -264,8 +270,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
     }
     try {
       await setDisplayPreferences(page, theme.values)
-      await page.locator('.health-lane .card-reference').first().waitFor()
-      await page.locator('.card-offer .combo-offer').waitFor()
+      await builderReady(page)
       await check('Builder')
       failures.push(...(await lowContrastStates(page, `${theme.name} Builder`)))
       // The undo status line stays on the builder for the colour checks below.
