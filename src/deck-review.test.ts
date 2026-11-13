@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { deckRiskIndicators, deckTagCoverage } from './deck-review.ts'
+import { deckRiskIndicators, deckTagCoverage, winConditionCards } from './deck-review.ts'
 
 test('reports selected tags and detected supported mechanics', () => {
   const cards = [
@@ -47,5 +47,30 @@ test('selected creature-type themes count changelings, as offers do (#501)', () 
   assert.deepEqual(
     deckTagCoverage(cards, ['Cats'])[0].cards.map(({ name }) => name),
     ['Cat', 'Shapeshifter'],
+  )
+})
+
+test('finds win-the-game cards from printed text', () => {
+  const card = (name: string, detail: string) => ({
+    name,
+    layout: 'normal',
+    typeLine: 'Enchantment',
+    manaCost: '{3}',
+    manaValue: 3,
+    detail,
+    producedMana: [],
+    faces: [],
+  })
+  const cards = [
+    card(
+      'Alt win',
+      'At the beginning of your upkeep, if you control 20 creatures, you win the game.',
+    ),
+    card('Lose', 'Each opponent loses the game.'),
+    card('Drain', 'Each opponent loses 1 life.'),
+  ]
+  assert.deepEqual(
+    winConditionCards(cards).map(({ name }) => name),
+    ['Alt win', 'Lose'],
   )
 })

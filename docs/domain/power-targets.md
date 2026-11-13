@@ -14,6 +14,10 @@ The deduction is a separate `powerFitPenalty` in score explanations. It applies 
 
 These thresholds are uncalibrated app heuristics. Mana value is not efficiency, consistency, quality, casting probability or a win-turn prediction. Alternate costs, modal faces, conditional effects, repeatable engines and thematic expensive utility can be misranked. This is deliberately a small preference, not a cutoff: expensive functional cards remain eligible, and role deficits retain their existing weighting. Keeping every candidate eligible does not prove Core decks are functional. No target automatically excludes tutors, extra turns or Game Changers; explicit exclusions still apply in preparation. Existing Core fast-mana filtering remains unchanged.
 
+## Combo treatment
+
+Power also changes how Deck review frames Commander Spellbook combos: Core treats them as a caution, Upgraded lists them for table talk, and High lists cards that complete one as additions to consider. Recommendation ranking ignores combos for now. See [combo data](combo-data.md#power).
+
 ## Policy recheck
 
 Read the sibling knowledge base's `knowledge/topics/commander/format-policy.md`, then reopened the [current Wizards format page](https://magic.wizards.com/en/formats/commander) and [October 21, 2025 update](https://magic.wizards.com/en/news/announcements/commander-brackets-beta-update-october-21-2025) on 2026-10-27. The format page still describes optional brackets through intended game experience; the update explicitly removes tutor restrictions and the Core/precon equivalence. These policy sources support keeping app targets and tutor preferences separate from bracket verdicts. They do not supply the scoring thresholds above. This narrow recheck does not revalidate the entire ban list or Game Changers list.

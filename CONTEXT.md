@@ -14,6 +14,7 @@ Commander rules and policy changed often in 2024–2026. Model training data is 
 | Can this card be a commander?                                                                                   | [Commander eligibility](../mtg-knowledge-base/knowledge/topics/commander/eligibility.md)                                                                                                                          |
 | What is banned? What do brackets and Game Changers mean?                                                        | [Format policy](../mtg-knowledge-base/knowledge/topics/commander/format-policy.md)                                                                                                                                |
 | What do Scryfall and EDHREC fields mean, and how far can they be trusted?                                       | [Card data sources](../mtg-knowledge-base/knowledge/topics/providers/card-data.md); [app integration](docs/domain/data-sources.md)                                                                                |
+| Where do known combos come from, and what do they prove?                                                        | [Combo data](docs/domain/combo-data.md)                                                                                                                                                                           |
 | Which app numbers and classifiers are heuristics, and what are their limits?                                    | [docs/domain/heuristics.md](docs/domain/heuristics.md)                                                                                                                                                            |
 | Where does the code encode an MTG assumption, and is it right?                                                  | [docs/domain/assumption-audit-2026-10-03.md](docs/domain/assumption-audit-2026-10-03.md), a dated snapshot whose line numbers drift; its fixes were tracked as B12, B13 (see `COMPLETED.md`), and A15 (issue #12) |
 
@@ -73,6 +74,8 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 **Signature seed** — a selected main-deck card whose engine is used to find more candidates from EDHREC. Its results show `Seen with <seed>`.
 
 **Deck review** and **Deck Doctor** — analysis of the current deck, and an optional flow that proposes equal-count swaps for the player to approve.
+
+**Known combo** — a combo Commander Spellbook lists whose pieces are all in the main deck; a card **one away** would complete one. Provider data from a community database, never a bracket verdict. Power changes how Deck review frames them.
 
 **Set selection** — set codes the player prefers or restricts to, shown as "Sets to build from". It is not an inventory of owned cards. Older code and documents call this "collection".
 

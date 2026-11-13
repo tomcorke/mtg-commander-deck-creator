@@ -11,6 +11,7 @@ import {
   withOwnedCards,
 } from './fixtures/browser-harness.ts'
 import { allRecords, baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
+import { withComboIndex } from './fixtures/combo-index.ts'
 
 const allowed = [
   '.card-reference',
@@ -64,7 +65,10 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
     themeFirstState(),
     undefined,
     undefined,
-    withOwnedCards(baseCandidates.map(({ name }) => name)),
+    async (page) => {
+      await withOwnedCards(baseCandidates.map(({ name }) => name))(page)
+      await withComboIndex()(page)
+    },
   )
   const { page } = scenario
   const failures: string[] = []
@@ -90,6 +94,7 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
     await button(page, 'Back to builder').click()
     await button(page, 'Deck review').click()
     await heading(page, 'Diagnose').waitFor()
+    await page.locator('.deck-review-combo').first().waitFor()
     await check('Deck review: Diagnose')
     await button(page, '2 Choose changes').click()
     await check('Deck review: Choose changes')

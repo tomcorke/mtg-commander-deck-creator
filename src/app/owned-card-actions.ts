@@ -45,7 +45,8 @@ export async function resolveOwnedCards(deps: AppActionContext, cards: OwnedCard
   return known && new Map([...known].map(([key, card]) => [key, toDeckCard(card)]))
 }
 
-/** Card details for an owned name: the local index when it knows the card, else Scryfall. */
+/** Read-only card details by name, such as an owned card or a missing combo piece: the local
+ * index when it knows the card, else Scryfall. */
 export async function openOwnedCard(deps: AppActionContext, name: string) {
   try {
     const local: ScryfallCard[] =

@@ -1086,9 +1086,82 @@
 .deck-review-type-filter {
   gap: 5px;
 }
+/* Known combos sit below the column grid at full width: rows hold card references and links. */
+.deck-review-combos-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+}
+.deck-review-combos-heading h3 {
+  margin: 0;
+}
+.deck-review-combos h4 {
+  margin: 16px 0 8px;
+  font-size: var(--type-body);
+}
+.deck-review-section > p.deck-review-combos-power {
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: var(--surface-tinted);
+  color: var(--text-body);
+}
+.deck-review-combo-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.deck-review-combo {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--border-divider);
+  border-radius: 7px;
+  background: var(--input-background);
+}
+.deck-review-combo-cards,
+.deck-review-combo-with,
+.deck-review-combo-missing,
+.deck-review-combo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+}
+.deck-review-combo-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.deck-review-combo-missing {
+  font-weight: 700;
+}
+.deck-review-combo-missing > span:last-child,
+.deck-review-combo-with,
+.deck-review-combo-results {
+  color: var(--text-muted);
+  font-size: var(--type-data);
+  line-height: 1.4;
+}
+.deck-review-combo-actions {
+  gap: 6px 14px;
+  font-size: var(--type-data);
+}
+.deck-review-combo-more {
+  margin-top: 8px;
+}
 /* Dark filters need a control-strength edge to read as buttons. */
 .dark .deck-review-filter,
-.dark .deck-review-role {
+.dark .deck-review-role,
+.dark .deck-review-combo {
   border-color: var(--border-control);
 }
 .dark .deck-review-early {

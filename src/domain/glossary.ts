@@ -78,6 +78,20 @@ export const formatTerms = {
     citation: policyCitation,
     source: policy,
   },
+  twoCardCombos: {
+    term: 'Two-card combos',
+    definition:
+      'Bracket guidance asks for no intentional two-card infinite combos in Brackets 1–2, and in Bracket 3 none that can happen cheaply in about the first six turns.',
+    kind: 'policy',
+    citation: policyCitation,
+    source: policy,
+  },
+  knownCombos: {
+    term: 'Known combos',
+    definition:
+      'Combos from Commander Spellbook, a community database. A listed combo is not a bracket rating, and a deck can hold combos it does not list.',
+    kind: 'app',
+  },
 } satisfies Record<string, GlossaryEntry>
 
 /** Deck roles. Detection and default counts are heuristics; see docs/domain/heuristics.md. */
