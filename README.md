@@ -54,7 +54,7 @@ Shared rules, format policy, commander eligibility, and provider references live
 - Game Changers, tutors, and extra-turn cards are excluded by default. Users can disable each bracket-safety filter.
 - Add, later, ignore, and more-like-this choices stay visible until the user requests the next batch. Deferred cards can return. Accepted and ignored cards do not.
 - Alternate art uses Scryfall printings and appears only when more than one image exists. Selected set and collector number carry into exports.
-- Export opens an in-app modal with Moxfield, plain-text, and CSV formats plus clipboard copy and file download. Moxfield has no documented public URL for a prefilled import, so the app links to its deck importer.
+- Export opens an in-app modal with Moxfield, plain-text, and CSV formats plus clipboard copy and file download. Print checklist opens the browser's print dialog with a black-on-white checklist of the whole deck or the cards still needed, grouped by type, with quantity, set, collector number and a tick box per line. Moxfield has no documented public URL for a prefilled import, so the app links to its deck importer.
 - Copy share link puts the whole deck, printings and sideboard included, in the link's `#share=` fragment, so no server stores it. Opening the link shows a read-only preview; Copy to my decks asks before it replaces a deck in progress. The app validates and size-limits the fragment before it looks up any card.
 - Commander previews use native CSS Anchor Positioning so the full card stays attached to its thumbnail and flips when space is limited.
 - Dark mode is the default, with a user-controlled light mode. Headings use Spectral and body copy uses DM Sans.

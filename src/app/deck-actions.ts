@@ -1,4 +1,5 @@
 import { stillNeededCards } from '../domain/owned-cards.ts'
+import { printingGroups } from './print-checklist.ts'
 import { builderAction } from './builder-action.ts'
 import { restoreBuilderState } from './builder-restore.ts'
 import { withBuilderPrinting } from '../domain/builder-data.ts'
@@ -277,14 +278,7 @@ export function deckList(deps: AppActionContext, format: ExportFormat) {
   const { commander, deck, sideboard } = deps
   const commanderCount = commanderNames(commander).length
   const section = (cards: DeckCard[], board: string) => {
-    const grouped = new Map<string, { card: DeckCard; quantity: number }>()
-    for (const card of cards) {
-      const key = JSON.stringify([card.name, card.set, card.collectorNumber, card.finish])
-      const existing = grouped.get(key)
-      if (existing) existing.quantity++
-      else grouped.set(key, { card, quantity: 1 })
-    }
-    return [...grouped.values()]
+    return printingGroups(cards)
       .map(({ card, quantity }) => {
         const finish = card.finish === 'foil' ? ' *F*' : card.finish === 'etched' ? ' *E*' : ''
         return format === 'plain'

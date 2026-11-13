@@ -224,6 +224,7 @@ function renderModals(props: AppViewProps) {
       <ExportDeckModal
         show={props.state.showExport}
         commander={props.state.commander}
+        deckName={props.state.deckName}
         deck={props.state.deck}
         sideboard={props.state.sideboard}
         exportFormat={props.state.exportFormat}
