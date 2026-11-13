@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { searchScryfallCached } from '../adapters/scryfall.ts'
 import { toCard, type ScryfallCard, type ScryfallSet } from '../domain/card-model.ts'
 import { setGuides } from '../domain/set-guides.ts'
@@ -43,9 +43,31 @@ function SetMeta({ set }: { set: ScryfallSet }) {
   )
 }
 
-function useSetLegends(code: string) {
-  const [legends, setLegends] = useState<ScryfallCard[] | null>()
+/** True while `ref`'s element is within 200px of the viewport; always true without the observer API. */
+function useNearViewport(ref: RefObject<Element | null>) {
+  const [near, setNear] = useState(typeof IntersectionObserver === 'undefined')
   useEffect(() => {
+    const element = ref.current
+    if (!element || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+      rootMargin: '200px 0px',
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [ref])
+  return near
+}
+
+/**
+ * Searches a set's legends only while its row is near the viewport, so opening the browser does not
+ * queue one search per row (#424). Leaving view cancels a queued search; the session cache keeps
+ * loaded results across scrolling and search changes.
+ */
+function useSetLegends(code: string, near: boolean) {
+  const [legends, setLegends] = useState<ScryfallCard[] | null>()
+  const loaded = legends !== undefined
+  useEffect(() => {
+    if (!near || loaded) return
     const controller = new AbortController()
     searchScryfallCached(
       `e:${code} is:legendary t:creature not:reprint`,
@@ -56,13 +78,14 @@ function useSetLegends(code: string) {
       .then(setLegends)
       .catch(() => controller.signal.aborted || setLegends(null))
     return () => controller.abort()
-  }, [code])
+  }, [code, near, loaded])
   return legends
 }
 
 /** Browse view: key art banner above the row's header, then description and legends. */
 function SetGuide({ set, children }: { set: ScryfallSet; children: ReactNode }) {
-  const legends = useSetLegends(set.code)
+  const guideRef = useRef<HTMLDivElement>(null)
+  const legends = useSetLegends(set.code, useNearViewport(guideRef))
   const guide = setGuides[set.code]
   const artUri = legends
     ?.map((card) => card.image_uris?.art_crop ?? card.card_faces?.[0]?.image_uris?.art_crop)
@@ -76,7 +99,7 @@ function SetGuide({ set, children }: { set: ScryfallSet; children: ReactNode }) 
         <span className="set-guide-art" aria-hidden="true" />
       )}
       {children}
-      <div className="set-guide">
+      <div className="set-guide" ref={guideRef}>
         {guide ? (
           <p>
             {guide.description}{' '}
