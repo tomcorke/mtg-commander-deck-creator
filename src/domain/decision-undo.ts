@@ -126,10 +126,24 @@ export function commitDecisionRecord<S extends DecisionState>(
   }
 }
 
+/** Each of the batch's decisions still matches the boards and the ignore list. */
+function decisionsStillHold(
+  decisions: Record<string, RecommendationDecision>,
+  state: DecisionState,
+) {
+  const onBoard = new Set(names([...state.deck, ...state.sideboard]))
+  return Object.entries(decisions).every(
+    ([name, decision]) =>
+      (decision !== 'add' || onBoard.has(name)) &&
+      (decision !== 'ignore' || state.ignoredCards.includes(name)),
+  )
+}
+
 /**
  * Put the committed batch back when nothing has happened since: same queue, waiting cards and
- * batch, and no new decisions. Current card objects win, so hydrated data and printings survive;
- * cards fetched for the new batch stay queued after the restored ones.
+ * batch, no new decisions, and the batch's other decisions still hold (an added card wasn't
+ * removed, an ignored one wasn't restored). Current card objects win, so hydrated data and
+ * printings survive; cards fetched for the new batch stay queued after the restored ones.
  */
 export function restoreCommittedBatch<S extends DecisionState>(
   record: DecisionUndoRecord,
@@ -141,7 +155,8 @@ export function restoreCommittedBatch<S extends DecisionState>(
     Object.keys(state.decisions).length ||
     state.batchNumber !== committed.after.batchNumber ||
     !sameNames(names(state.queue), committed.after.queue) ||
-    !sameNames(names(state.deferredCards.map(({ card }) => card)), committed.after.deferredCards)
+    !sameNames(names(state.deferredCards.map(({ card }) => card)), committed.after.deferredCards) ||
+    !decisionsStillHold(committed.before.decisions, state)
   )
     return null
   const { before } = committed

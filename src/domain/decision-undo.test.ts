@@ -258,3 +258,27 @@ test('saves keep ignored card data and the Later mark; restore drops stale detai
   assert.deepEqual(names(restored.ignoredDetails), ['Card 0'])
   assert.equal(restored.lastDecision, null)
 })
+
+test('undo after moving on never restores an Add the player has since removed', () => {
+  const queue = pool()
+  const added = decide(builder({ queue }), queue[2], 'add')
+  const advanced = apply(decide(added, queue[0], 'ignore'), { type: 'nextBatch' }).state
+  const removed = apply(advanced, { type: 'removeCard', board: 'deck', index: 1 }).state
+  const undone = apply(removed, { type: 'undoDecision' }).state
+  assert.equal(undone.batchNumber, advanced.batchNumber, 'the batch is not put back')
+  assert.equal(undone.decisions['Card 2'], undefined)
+  assert.deepEqual(names(undone.deck), ['Leader'])
+  assert.deepEqual(undone.ignoredCards, [])
+  assert.ok(names(undone.queue).includes('Card 0'))
+})
+
+test('undo after moving on never re-ignores a card restored from Later & ignored', () => {
+  const queue = pool()
+  const ignored = decide(decide(builder({ queue }), queue[1], 'ignore'), queue[0], 'later')
+  const advanced = apply(ignored, { type: 'nextBatch' }).state
+  const restored = apply(advanced, { type: 'setAside', name: 'Card 1', to: 'add' }).state
+  const undone = apply(restored, { type: 'undoDecision' }).state
+  assert.equal(undone.batchNumber, advanced.batchNumber)
+  assert.equal(undone.decisions['Card 1'], undefined)
+  assert.deepEqual(names(undone.deck), ['Leader', 'Card 1'])
+})

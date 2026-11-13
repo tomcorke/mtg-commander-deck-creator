@@ -463,6 +463,23 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
         Later & ignored ({setAside.count})
       </button>
     )
+  const undoStatusLine = (
+    <UndoStatusLine
+      status={bulkAddStatus(model.bulkAdd, { deck, sideboard })}
+      decision={decisionUndoStatus(model.lastDecision, model)}
+      onUndo={model.undoBulkAdd}
+      onUndoDecision={() => {
+        model.undoDecision()
+        // The Undo button leaves the status line; land on the batch it restored.
+        batchHeading.current?.focus({ preventScroll: true })
+      }}
+      onOpenCard={model.openCardReference}
+      onReview={() => {
+        setDeckDoctorError('')
+        openModal('review')
+      }}
+    />
+  )
   const zoneToggle = (
     <AddZoneToggle zone={toSideboard ? 'sideboard' : 'deck'} onChange={model.chooseAddZone} />
   )
@@ -906,23 +923,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 }
                 note={undecidedNote}
                 setAside={setAsideButton('compact-action')}
-                statusLine={
-                  <UndoStatusLine
-                    status={bulkAddStatus(model.bulkAdd, { deck, sideboard })}
-                    decision={decisionUndoStatus(model.lastDecision, model)}
-                    onUndo={model.undoBulkAdd}
-                    onUndoDecision={() => {
-                      model.undoDecision()
-                      // The Undo button leaves the status line; land on the batch it restored.
-                      batchHeading.current?.focus({ preventScroll: true })
-                    }}
-                    onOpenCard={model.openCardReference}
-                    onReview={() => {
-                      setDeckDoctorError('')
-                      openModal('review')
-                    }}
-                  />
-                }
+                statusLine={undoStatusLine}
                 onAddAll={model.addAllInBatch}
                 onBuild={model.buildStartingDeck}
               />
@@ -1167,6 +1168,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       : 'Review your deck or choose another commander.'}
               </p>
               {setAsideButton('export')}
+              {/* Advancing the last batch must not strand the undo for its last decision. */}
+              {undoStatusLine}
               {focusedRole && (
                 <button
                   type="button"
