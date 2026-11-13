@@ -1,17 +1,24 @@
+import { hasTag } from './domain/creature-types.ts'
 import { supportedThemes } from './domain/recommendation-themes.ts'
 
-type TaggedCard = { tags: string[] }
+type TaggedCard = { tags: string[]; typeLine?: string }
 export type DeckReviewFilter = { label: string; cardNames: string[] }
 
 const supportedThemeSet = new Set(supportedThemes)
 
+/**
+ * Cards per theme: selected themes first, matched as offers match them (`hasTag`, so changelings
+ * count for creature-type themes, #501), then other supported tags found in the deck.
+ */
 export function deckTagCoverage<T extends TaggedCard>(cards: T[], selectedTags: string[]) {
-  const coverage = new Map<string, T[]>(selectedTags.filter(Boolean).map((tag) => [tag, []]))
+  const selected = [...new Set(selectedTags.filter(Boolean))]
+  const coverage = new Map<string, T[]>(
+    selected.map((tag) => [tag, cards.filter((card) => hasTag(card, tag))]),
+  )
   for (const card of cards)
     for (const tag of new Set(card.tags)) {
-      const matchingCards = coverage.get(tag)
-      if (matchingCards) matchingCards.push(card)
-      else if (supportedThemeSet.has(tag)) coverage.set(tag, [card])
+      if (selected.includes(tag) || !supportedThemeSet.has(tag)) continue
+      coverage.set(tag, [...(coverage.get(tag) ?? []), card])
     }
   return [...coverage].map(([tag, matchingCards]) => ({ tag, cards: matchingCards }))
 }

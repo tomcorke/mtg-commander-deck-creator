@@ -442,4 +442,15 @@ test('theme-matching offers lead with the theme and the words that matched (#501
       .sentence,
     'Type line matches your Zombies theme: Creature — Zombie.',
   )
+  // Without a quote for the theme it still leads; the extra theme's quote follows.
+  assert.equal(
+    explain(card('Tagged', { typeLine: 'Creature — Zombie', tags: ['Sacrifice', 'Zombies'] }))
+      .sentence,
+    'Fits your Sacrifice theme. Type line matches your Zombies theme: Creature — Zombie.',
+  )
+  // A keyword quote gets closing punctuation before the next sentence.
+  assert.equal(
+    explain(card('Shifter', { tags: ['Changeling', 'Zombies'], detail: 'Changeling' })).sentence,
+    'Text matches your Zombies theme: “Changeling”.',
+  )
 })

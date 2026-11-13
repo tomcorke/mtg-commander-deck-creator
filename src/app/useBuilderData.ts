@@ -25,6 +25,7 @@ import {
   supportedThemes,
   themeEvidence,
   themeMatchesSearch,
+  type ThemeEvidence,
 } from '../recommendations.ts'
 
 import { focusedRecommendations, withinPriceCap } from '../domain/recommendation-tuning.ts'
@@ -289,15 +290,23 @@ const themeList = (themes: string[]) =>
  * Theme fit with the words that matched (#501). Matching is a text heuristic, so the copy says the
  * text matches rather than claiming the card is good in the theme.
  */
+function themeMatchSentence({ theme, source, quote }: ThemeEvidence) {
+  if (source === 'type') return `Type line matches your ${theme} theme: ${quote}.`
+  // Keyword lines such as "Changeling" have no closing punctuation of their own.
+  return `Text matches your ${theme} theme: “${quote}”${/[.!?…]$/.test(quote) ? '' : '.'}`
+}
+
 function themeFitReason(card: Card, themes: string[]): Explanation {
-  const evidence = themes.map((tag) => themeEvidence(card, tag)).find(Boolean)
-  const others = themes.filter((tag) => tag !== evidence?.theme)
-  const also = evidence && others.length ? ` Also fits your ${themeList(others)}.` : ''
-  const sentence = !evidence
-    ? `Fits your ${themeList(themes)}.`
-    : evidence.source === 'text'
-      ? `Text matches your ${evidence.theme} theme: “${evidence.quote}”${also}`
-      : `Type line matches your ${evidence.theme} theme: ${evidence.quote}.${also}`
+  const [first, ...extras] = themes
+  const lead = themeEvidence(card, first)
+  // The theme leads even without a quote; an extra theme's quote then follows it.
+  const extra = lead ? undefined : extras.map((tag) => themeEvidence(card, tag)).find(Boolean)
+  const others = extras.filter((tag) => tag !== extra?.theme)
+  const sentence = [
+    lead ? themeMatchSentence(lead) : `Fits your ${first} theme.`,
+    ...(extra ? [themeMatchSentence(extra)] : []),
+    ...(others.length ? [`Also fits your ${themeList(others)}.`] : []),
+  ].join(' ')
   return { label: `${themes.join(' + ')} theme`, sentence, themeFit: true }
 }
 

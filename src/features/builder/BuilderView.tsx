@@ -74,7 +74,7 @@ import { CommanderSummary } from './CommanderSummary.tsx'
 import { BasicLandDialog } from './BasicLandDialog.tsx'
 import { CollectionBrowserDialog } from './CollectionBrowserDialog.tsx'
 import { HealthLane } from './HealthLane.tsx'
-import { ThemeTargetRow } from './ThemeTargetRow.tsx'
+import { TargetCount, ThemeTargetRow } from './ThemeTargetRow.tsx'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { openSectionsWithHighlights } from './deck-section-highlight.ts'
@@ -220,7 +220,7 @@ function recommendationReason(
       label: explanation.label,
       sentence: (
         <>
-          {explanation.sentence} {engine}
+          <OracleText text={explanation.sentence} /> {engine}
         </>
       ),
     }
@@ -1035,7 +1035,13 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             }
                           />
                         </h3>
-                        <p className="offer-reason">{reason.sentence}</p>
+                        <p className="offer-reason">
+                          {typeof reason.sentence === 'string' ? (
+                            <OracleText text={reason.sentence} />
+                          ) : (
+                            reason.sentence
+                          )}
+                        </p>
                         {card.price && (
                           <p className="offer-price">
                             <CardPriceLink card={card} />
@@ -1389,30 +1395,15 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       </span>
                     </span>
                   )}
-                  <b>
-                    {!analysis.curvePending && analysis.counts[key] >= deckTargets[key] && (
-                      <>
-                        <span className="deck-target-check" aria-hidden="true">
-                          ✓
-                        </span>
-                        <span className="sr-only">Target met: </span>
-                      </>
-                    )}
-                    {analysis.curvePending ? '…' : analysis.counts[key]} /{' '}
-                    <input
-                      type="number"
-                      min="0"
-                      max="99"
-                      value={deckTargets[key]}
-                      onChange={(event) =>
-                        dispatchBuilder({
-                          type: 'targets',
-                          targets: { [key]: Math.max(0, Number(event.target.value)) },
-                        })
-                      }
-                      aria-label={`${targetLabels[key]} target`}
-                    />
-                  </b>
+                  <TargetCount
+                    label={targetLabels[key]}
+                    count={analysis.counts[key]}
+                    target={deckTargets[key]}
+                    pending={analysis.curvePending}
+                    onTarget={(target) =>
+                      dispatchBuilder({ type: 'targets', targets: { [key]: target } })
+                    }
+                  />
                 </div>
               ))}
               {theme && (
