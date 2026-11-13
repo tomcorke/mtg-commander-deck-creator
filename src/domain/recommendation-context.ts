@@ -13,7 +13,11 @@ import { manaSupportFromAnalysis } from './recommendation-scoring.ts'
 import { packageCounts } from './strategy-packages.ts'
 import type { RecommendationScoreContext } from './recommendation-types.ts'
 import { remainingDeckBudget } from './deck-price.ts'
-import { normalizeOpposingStrategies, opposingAnswerCounts } from './opposing-strategies.ts'
+import {
+  normalizeOpposingAnswerTargets,
+  normalizeOpposingStrategies,
+  opposingAnswerCounts,
+} from './opposing-strategies.ts'
 
 // All recommendation surfaces use the same deck, preference, and candidate-supply signals.
 export function buildRecommendationContext(
@@ -36,6 +40,7 @@ export function buildRecommendationContext(
       | 'ownedCards'
       | 'ownershipMode'
       | 'opposingStrategies'
+      | 'opposingAnswerTargets'
     >
   > & { prioritizeDeckHealth?: boolean } & Record<string, unknown>,
   candidates: Card[],
@@ -78,5 +83,6 @@ export function buildRecommendationContext(
     ownershipMode: settings.ownershipMode,
     opposingStrategies,
     opposingAnswerCounts: opposingAnswerCounts(deck, opposingStrategies),
+    opposingAnswerTargets: normalizeOpposingAnswerTargets(settings.opposingAnswerTargets),
   }
 }

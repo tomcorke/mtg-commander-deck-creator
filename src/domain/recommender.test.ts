@@ -365,4 +365,10 @@ test('a fresh pool ranks answers to expected opponents from the first batch (#50
   assert.ok(result.scores[0].codes.includes('opposingAnswers'))
   const explained = explainCard({ ...input, opposingStrategies: ['graveyard'] }, 'Zulu Crypt')
   assert.equal(explained.status === 'ranked' && explained.breakdown.opposingAnswers, 6)
+  // An edited target of 0 is already met, so the boost eases (#565).
+  const eased = explainCard(
+    { ...input, opposingStrategies: ['graveyard'], opposingAnswerTargets: { graveyard: 0 } },
+    'Zulu Crypt',
+  )
+  assert.equal(eased.status === 'ranked' && eased.breakdown.opposingAnswers, 2)
 })

@@ -34,7 +34,7 @@ import {
   type Printing,
 } from './card-model.ts'
 import { commanderKey, commanderNames } from './commander-catalog.ts'
-import type { OpposingStrategy } from './recommendation-types.ts'
+import type { OpposingAnswerTargets, OpposingStrategy } from './recommendation-types.ts'
 import { gameChangersAtLimit } from './play-style.ts'
 import { commandersPromotionInfo, promoteDeckCards } from './commander-promotion.ts'
 import { applyBuilderHydration, applyBuilderPrinting, retryBuilderData } from './builder-data.ts'
@@ -105,6 +105,8 @@ export type BuilderState = {
   themeTarget: number
   /** Expected opponents (#503): strategies whose answers recommendations favour. */
   opposingStrategies: OpposingStrategy[]
+  /** Edited answer targets per strategy (#565); missing ones use the default. */
+  opposingAnswerTargets: OpposingAnswerTargets
   theme: string
   activeSubThemes: string[]
   dismissedSubThemes: string[]
@@ -168,6 +170,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     deckTargets: { ...defaultDeckTargets },
     themeTarget: defaultThemeTarget,
     opposingStrategies: [],
+    opposingAnswerTargets: {},
     theme: '',
     activeSubThemes: [],
     dismissedSubThemes: [],
@@ -223,6 +226,7 @@ export type BuilderSettings = Pick<
   | 'excludeUnreleased'
   | 'deckTargets'
   | 'opposingStrategies'
+  | 'opposingAnswerTargets'
 >
 
 export type BuilderProgress = Pick<

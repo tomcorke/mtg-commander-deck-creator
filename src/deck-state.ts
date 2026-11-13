@@ -150,6 +150,8 @@ export const persistedDeckStateSchema = z.object({
   themeTarget: z.number().nonnegative().optional(),
   // Expected opponents (#503). Older saves have none; unknown names are dropped on restore.
   opposingStrategies: z.array(z.string()).optional(),
+  // Edited answer targets (#565). Older saves have none; restore keeps known strategies only.
+  opposingAnswerTargets: z.record(z.string(), z.number()).optional(),
 })
 
 // Full-object card lists and compact field tables are both valid on disk.
@@ -267,6 +269,7 @@ export function comparableDeckState(state: PersistedDeckState) {
     ignoredDetails: state.ignoredDetails ?? [],
     themeTarget: state.themeTarget ?? defaultThemeTarget,
     opposingStrategies: state.opposingStrategies ?? [],
+    opposingAnswerTargets: state.opposingAnswerTargets ?? {},
   }
   return JSON.stringify(deckStateForStorage(withDefaults), sortKeys)
 }

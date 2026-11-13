@@ -337,3 +337,8 @@ test('a save from before expected opponents is unchanged once loaded with none (
   assert.equal(deckStateChanged(state, { ...state, opposingStrategies: [] }), false)
   assert.equal(deckStateChanged(state, { ...state, opposingStrategies: ['combo'] }), true)
 })
+
+test('a save from before answer targets is unchanged once loaded with none (#565)', () => {
+  assert.equal(deckStateChanged(state, { ...state, opposingAnswerTargets: {} }), false)
+  assert.equal(deckStateChanged(state, { ...state, opposingAnswerTargets: { combo: 5 } }), true)
+})

@@ -1,6 +1,9 @@
 import { restoredRecommendationDecisions, type PersistedDeckState } from '../deck-state.ts'
 import { defaultThemeTarget } from '../deck-analysis.ts'
-import { normalizeOpposingStrategies } from '../domain/opposing-strategies.ts'
+import {
+  normalizeOpposingAnswerTargets,
+  normalizeOpposingStrategies,
+} from '../domain/opposing-strategies.ts'
 import { builderPoolKey } from '../domain/builder-settings.ts'
 import { createBuilderState, type BuilderState } from '../domain/builder-state.ts'
 import { migrateRecommendationPriority } from '../domain/recommendation-tuning.ts'
@@ -50,6 +53,7 @@ export function restoreBuilderState(
     deckTargets: saved.deckTargets,
     themeTarget: saved.themeTarget ?? defaultThemeTarget,
     opposingStrategies: normalizeOpposingStrategies(saved.opposingStrategies),
+    opposingAnswerTargets: normalizeOpposingAnswerTargets(saved.opposingAnswerTargets),
     theme: saved.theme,
     activeSubThemes: saved.activeSubThemes,
     dismissedSubThemes: saved.dismissedSubThemes,

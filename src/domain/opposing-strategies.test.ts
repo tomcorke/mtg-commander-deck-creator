@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  normalizeOpposingAnswerTargets,
   normalizeOpposingStrategies,
   opposingAnswerCounts,
   opposingAnswerEvidence,
@@ -179,6 +180,38 @@ test('answer score eases once a strategy meets its target and halves under Theme
     opposingAnswerScore(cards['Lightning Bolt'], { opposingStrategies: ['artifacts', 'combo'] }),
     0,
   )
+})
+
+test('each strategy eases at its own edited target (#565)', () => {
+  const beast = cards['Beast Within']
+  const score = (opposingAnswerTargets: Partial<Record<OpposingStrategy, number>>) =>
+    opposingAnswerScore(beast, {
+      opposingStrategies: ['artifacts', 'big-creatures'],
+      opposingAnswerCounts: { artifacts: 3, 'big-creatures': 3 },
+      opposingAnswerTargets,
+    })
+  // Both at the default target of 3: met, 2 each.
+  assert.equal(score({}), 4)
+  // Artifacts raised to 5: still below, so 6 + 2.
+  assert.equal(score({ artifacts: 5 }), 8)
+  // Both lowered to 0: met with no answers needed.
+  assert.equal(score({ artifacts: 0, 'big-creatures': 0 }), 4)
+})
+
+test('saved answer targets keep known strategies as whole numbers from 0 to 99 (#565)', () => {
+  assert.deepEqual(
+    normalizeOpposingAnswerTargets({
+      combo: 5.4,
+      graveyard: -2,
+      tokens: 400,
+      artifacts: 3,
+      spellslinger: 'six',
+      'future-thing': 4,
+    }),
+    { graveyard: 0, tokens: 99, combo: 5 },
+  )
+  assert.deepEqual(normalizeOpposingAnswerTargets(undefined), {})
+  assert.deepEqual(normalizeOpposingAnswerTargets([4]), {})
 })
 
 test('scores are unchanged without expected opponents and rise for answers with them', () => {

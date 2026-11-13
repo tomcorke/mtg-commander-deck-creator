@@ -69,6 +69,8 @@ export const initialStateSchema = stateSchema
     themeTarget: count.default(defaultThemeTarget),
     // Expected opponents (#503); recipes predate them.
     opposingStrategies: z.array(z.enum(opposingStrategies)).default([]),
+    // Edited answer targets (#565); recipes predate them.
+    opposingAnswerTargets: z.partialRecord(z.enum(opposingStrategies), count).default({}),
     today: z.iso.date(),
     signatureDeckKey: name,
     commanderDetails: details.nullable(),

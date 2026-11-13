@@ -19,11 +19,17 @@ import {
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { appTerms, opposingStrategyTerms } from '../../domain/glossary.ts'
 import {
+  defaultOpposingAnswerTarget,
+  maxOpposingAnswerTarget,
   opposingAnswerCoverage,
-  opposingAnswerTarget,
+  opposingAnswerTargetFor,
   normalizeOpposingStrategies,
 } from '../../domain/opposing-strategies.ts'
-import type { OpposingStrategy, PowerTarget } from '../../domain/recommendation-types.ts'
+import type {
+  OpposingAnswerTargets,
+  OpposingStrategy,
+  PowerTarget,
+} from '../../domain/recommendation-types.ts'
 import { DeckCombos } from './DeckCombos.tsx'
 import { useDeckCombos } from './useDeckCombos.ts'
 import { ManaCurve } from './ManaCurve.tsx'
@@ -45,6 +51,9 @@ type DeckOverviewProps = {
   chooseTheme?: () => void
   /** Expected opponents (#503); Deck review counts answers to each. */
   opposingStrategies?: OpposingStrategy[]
+  /** Edited answer targets (#565); missing strategies use the default. */
+  opposingAnswerTargets?: OpposingAnswerTargets
+  chooseOpposingAnswerTarget: (strategy: OpposingStrategy, value: number) => void
   chooseOpponents?: () => void
   /** Main-deck copies owned cards do not cover; absent without owned cards. */
   stillNeeded?: { count: number; show: () => void }
@@ -83,6 +92,53 @@ function FilterButton({
   )
 }
 
+/** The −/+ target control under a coverage row; `label` names what the target counts. */
+function TargetStepper({
+  label,
+  value,
+  max = 99,
+  choose,
+}: {
+  label: string
+  value: number
+  max?: number
+  choose: (value: number) => void
+}) {
+  return (
+    <div className="deck-review-target">
+      <span aria-hidden="true">Target</span>
+      <span className="target-stepper">
+        <button
+          type="button"
+          className="deck-add"
+          aria-label={`One fewer ${label} target`}
+          disabled={value <= 0}
+          onClick={() => choose(value - 1)}
+        >
+          −
+        </button>
+        <input
+          type="number"
+          min="0"
+          max={max}
+          aria-label={`${label} target`}
+          value={value}
+          onChange={(event) => choose(Math.max(0, Number(event.target.value)))}
+        />
+        <button
+          type="button"
+          className="deck-add"
+          aria-label={`One more ${label} target`}
+          disabled={value >= max}
+          onClick={() => choose(value + 1)}
+        >
+          +
+        </button>
+      </span>
+    </div>
+  )
+}
+
 const cardNames = (cards: DeckCard[]) => [...new Set(cards.map((card) => card.name))]
 const comboDeckCards = (deck: DeckCard[], cards: { name: string; oracleId?: string }[]) => {
   const oracles = new Set(cards.map(({ oracleId }) => oracleId).filter(Boolean))
@@ -110,6 +166,8 @@ export function DeckOverview({
   selectCards,
   chooseTheme,
   opposingStrategies = [],
+  opposingAnswerTargets = {},
+  chooseOpposingAnswerTarget,
   chooseOpponents,
   stillNeeded,
   powerTarget,
@@ -353,39 +411,11 @@ export function DeckOverview({
                       label={gap ? `${gap} below target` : 'Target met'}
                     />
                   </FilterButton>
-                  <div className="deck-review-target">
-                    <span aria-hidden="true">Target</span>
-                    <span className="target-stepper">
-                      <button
-                        type="button"
-                        className="deck-add"
-                        aria-label={`One fewer ${targetLabels[key]} target`}
-                        disabled={target <= 0}
-                        onClick={() => chooseDeckTarget(key, target - 1)}
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        min="0"
-                        max="99"
-                        aria-label={`${targetLabels[key]} target`}
-                        value={target}
-                        onChange={(event) =>
-                          chooseDeckTarget(key, Math.max(0, Number(event.target.value)))
-                        }
-                      />
-                      <button
-                        type="button"
-                        className="deck-add"
-                        aria-label={`One more ${targetLabels[key]} target`}
-                        disabled={target >= 99}
-                        onClick={() => chooseDeckTarget(key, target + 1)}
-                      >
-                        +
-                      </button>
-                    </span>
-                  </div>
+                  <TargetStepper
+                    label={targetLabels[key]}
+                    value={target}
+                    choose={(value) => chooseDeckTarget(key, value)}
+                  />
                 </div>
               )
             })}
@@ -396,41 +426,50 @@ export function DeckOverview({
           <h3>{appTerms.expectedOpponents.term}</h3>
           <p>
             A heuristic: cards whose rules text reads as an answer to each strategy you expect to
-            face, against an app target of {opposingAnswerTarget}. Text matching can miss answers or
-            count weak ones. Select a row to highlight matching cards.
+            face. Targets start at an app estimate of {defaultOpposingAnswerTarget}; adjust them for
+            the decks you meet most. Text matching can miss answers or count weak ones. Select a row
+            to highlight matching cards.
           </p>
           {answerCoverage.length ? (
-            <div className="deck-review-types">
+            <div className="deck-review-role-list">
               {answerCoverage.map(({ strategy, cards }) => {
                 const { term, answers } = opposingStrategyTerms[strategy]
-                const gap = Math.max(0, opposingAnswerTarget - cards.length)
+                const target = opposingAnswerTargetFor(opposingAnswerTargets, strategy)
+                const gap = Math.max(0, target - cards.length)
                 return (
-                  <FilterButton
-                    key={strategy}
-                    label={`Answers to ${answers}`}
-                    count={cards.length}
-                    className="deck-review-type-filter deck-review-opponent-filter"
-                    onClick={() => selectCards(`Answers to ${answers}`, cardNames(cards))}
-                  >
-                    <span className="deck-review-row-heading">
-                      <b>{term}</b>
-                      <strong>
-                        {cards.length} / {opposingAnswerTarget}
-                      </strong>
-                    </span>
-                    <span className="deck-review-ratio">
-                      <i
-                        style={{
-                          width: `${Math.min(100, (cards.length / opposingAnswerTarget) * 100)}%`,
-                        }}
+                  <div className="deck-review-role" key={strategy}>
+                    <FilterButton
+                      label={`Answers to ${answers}`}
+                      count={cards.length}
+                      className="deck-review-role-filter deck-review-opponent-filter"
+                      onClick={() => selectCards(`Answers to ${answers}`, cardNames(cards))}
+                    >
+                      <span className="deck-review-row-heading">
+                        <b>{term}</b>
+                        <strong>
+                          {cards.length} / {target}
+                        </strong>
+                      </span>
+                      <span className="deck-review-ratio">
+                        <i
+                          style={{
+                            width: `${Math.min(100, (cards.length / Math.max(1, target)) * 100)}%`,
+                          }}
+                        />
+                      </span>
+                      <ReviewStatus
+                        early={early}
+                        kind={gap ? 'attention' : 'good'}
+                        label={gap ? `${gap} below target` : 'Target met'}
                       />
-                    </span>
-                    <ReviewStatus
-                      early={early}
-                      kind={gap ? 'attention' : 'good'}
-                      label={gap ? `${gap} below target` : 'Target met'}
+                    </FilterButton>
+                    <TargetStepper
+                      label={`${term} answer`}
+                      value={target}
+                      max={maxOpposingAnswerTarget}
+                      choose={(value) => chooseOpposingAnswerTarget(strategy, value)}
                     />
-                  </FilterButton>
+                  </div>
                 )
               })}
             </div>

@@ -396,3 +396,31 @@ test('expected opponents re-rank answers on commit, persist and reset (#503)', a
     [],
   )
 })
+
+test('edited answer targets re-rank without a refetch, persist and reset (#565)', async () => {
+  const { restoreBuilderState } = await import('../app/builder-restore.ts')
+  const { makeState } = await import('../../scripts/fixtures/b10-browser.ts')
+  const state = freeze(initial({ opposingStrategies: ['graveyard'] }))
+  const edited = apply(state, {
+    type: 'settings',
+    settings: { opposingAnswerTargets: { graveyard: 6 } },
+  })
+  assert.equal(edited.recommendationOptionsChanged, true)
+  assert.equal(edited.committedPoolKey, builderPoolKey(edited), 'no refetch')
+  assert.deepEqual(buildRecommendationContext(edited, []).opposingAnswerTargets, { graveyard: 6 })
+  // Saves from before #565 restore none; unknown strategies and defaults are dropped.
+  assert.deepEqual(restoreBuilderState(makeState(), '2026-11-13', 'old').opposingAnswerTargets, {})
+  assert.deepEqual(
+    restoreBuilderState(
+      makeState({ opposingAnswerTargets: { combo: 1, later: 4, graveyard: 3 } }),
+      '2026-11-13',
+      'new',
+    ).opposingAnswerTargets,
+    { combo: 1 },
+  )
+  assert.deepEqual(
+    apply(edited, { type: 'startOver', today: '2026-11-13', signatureDeckKey: 'x' })
+      .opposingAnswerTargets,
+    {},
+  )
+})

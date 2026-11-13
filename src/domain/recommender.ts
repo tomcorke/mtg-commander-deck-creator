@@ -16,6 +16,7 @@ import type { OwnedQuantities, OwnershipMode } from './owned-cards.ts'
 import type {
   CollectionMode,
   DeferredCard,
+  OpposingAnswerTargets,
   OpposingStrategy,
   RecommendationScoreBreakdown,
   RecommendationStyle,
@@ -266,6 +267,8 @@ export type RecommendState = {
   focusedRole?: string | null
   /** Expected opponents (#503); answers to them rank higher. */
   opposingStrategies?: OpposingStrategy[]
+  /** Edited answer targets for expected opponents (#565). */
+  opposingAnswerTargets?: OpposingAnswerTargets
 }
 
 export type ExclusionReason =

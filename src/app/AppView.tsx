@@ -549,6 +549,10 @@ function DeckReviewScreen({
         undoSwap={actions.undoDeckDoctorSwap}
         chooseTheme={() => void (state.setShowSubThemePicker(true), closePage())}
         opposingStrategies={state.opposingStrategies}
+        opposingAnswerTargets={state.opposingAnswerTargets}
+        chooseOpposingAnswerTarget={(strategy, value) =>
+          actions.chooseOpposingAnswerTarget(strategy, value)
+        }
         startingDeck={startingDeckSummary(state.bulkAdd, boards)}
         undoStartingDeck={actions.undoBulkAdd}
         ownedCards={state.ownedCards}
