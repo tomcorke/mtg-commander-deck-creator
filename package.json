@@ -48,7 +48,8 @@
     "check:share-link:browser": "node --experimental-strip-types scripts/check-share-link-browser.ts",
     "check:start-paging:browser": "node --experimental-strip-types scripts/check-start-paging-browser.ts",
     "check:set-browser:browser": "node --experimental-strip-types scripts/check-set-browser-browser.ts",
-    "check:early-sidebar:browser": "node --experimental-strip-types scripts/check-early-sidebar-browser.ts"
+    "check:early-sidebar:browser": "node --experimental-strip-types scripts/check-early-sidebar-browser.ts",
+    "check:print-checklist:browser": "node --experimental-strip-types scripts/check-print-checklist-browser.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

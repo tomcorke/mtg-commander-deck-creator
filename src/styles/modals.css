@@ -1948,3 +1948,99 @@ main > .commander-header {
   /* Inherit the dialog surface, which commander styling tints in dark mode. */
   background: inherit;
 }
+/* Export's printable checklist (#547). Hidden on screen; in print it replaces the app. Paper stays
+   black on white whatever the app theme, so these colours are fixed rather than theme tokens. */
+.print-checklist {
+  display: none;
+}
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  :root:has(> body > .print-checklist),
+  body:has(> .print-checklist) {
+    background: #fff;
+  }
+  body:has(> .print-checklist) > :not(.print-checklist) {
+    display: none !important;
+  }
+  .print-checklist {
+    display: block;
+    color: #000;
+    background: #fff;
+    color-scheme: light;
+    font:
+      9.5pt/1.3 'DM Sans',
+      sans-serif;
+  }
+  /* Override the app's header, heading and list-row element rules. */
+  .print-checklist header {
+    display: block;
+    height: auto;
+    min-height: 0;
+    margin-bottom: 4mm;
+    padding: 0;
+    border-bottom: 0.3mm solid #000;
+    background: none;
+  }
+  .print-checklist h1,
+  .print-checklist h2 {
+    color: inherit;
+  }
+  .print-checklist h1 {
+    margin: 0;
+    font-size: 15pt;
+  }
+  .print-checklist header p {
+    margin: 1mm 0 2mm;
+  }
+  .print-checklist-groups {
+    columns: 2;
+    column-gap: 8mm;
+  }
+  .print-checklist-group {
+    margin-bottom: 3mm;
+  }
+  .print-checklist h2 {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 0 1mm;
+    border-bottom: 0.2mm solid #000;
+    font-size: 10.5pt;
+    break-after: avoid;
+  }
+  .print-checklist ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .print-checklist li {
+    display: grid;
+    grid-template-columns: 3.4mm 6mm minmax(0, 1fr) auto;
+    gap: 1.5mm;
+    align-items: baseline;
+    padding: 0.6mm 0;
+    border-bottom: 0.2mm solid #c8c8c8;
+    font-size: inherit;
+    break-inside: avoid;
+  }
+  .print-checklist-box {
+    width: 3.2mm;
+    height: 3.2mm;
+    border: 0.3mm solid #000;
+    border-radius: 0.5mm;
+    align-self: start;
+    margin-top: 0.4mm;
+  }
+  .print-checklist-quantity {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .print-checklist-name {
+    overflow-wrap: anywhere;
+  }
+  .print-checklist-printing {
+    font-size: 8.5pt;
+    white-space: nowrap;
+  }
+}

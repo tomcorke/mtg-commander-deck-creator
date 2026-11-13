@@ -6,9 +6,11 @@ import { useDialogFocus } from '../../shared/hooks.ts'
 import { stillNeededCards, type OwnedQuantities } from '../../domain/owned-cards.ts'
 import type { ShareLinkState } from '../../app/share-actions.ts'
 import { useEffect } from 'react'
+import { PrintChecklist } from './PrintChecklist.tsx'
 
 type Props = {
   commander: string
+  deckName: string
   copied: boolean | 'failed'
   deck: DeckCard[]
   sideboard: DeckCard[]
@@ -108,6 +110,10 @@ function ExportActions({
       <button className="export" type="button" disabled={!canExport} onClick={downloadDeckList}>
         Download .{exportFormat === 'csv' ? 'csv' : 'txt'}
       </button>
+      {/* Prints the checklist that PrintChecklist renders for this list. */}
+      <button className="export" type="button" disabled={!canExport} onClick={() => window.print()}>
+        Print checklist
+      </button>
       <button className="primary" type="button" disabled={!canExport} onClick={copyDeck}>
         {copied === true ? 'Copied' : 'Copy to clipboard'}
       </button>
@@ -146,6 +152,7 @@ function FormatChoice({
 
 export function ExportDeckModal({
   commander,
+  deckName,
   copied,
   deck,
   sideboard,
@@ -237,6 +244,9 @@ export function ExportDeckModal({
         />
         <ShareLinkStatus shareLinkState={shareLinkState} />
       </section>
+      {deckCount > 0 && (
+        <PrintChecklist {...{ commander, deckName, deck, sideboard, ownedCards, neededOnly }} />
+      )}
     </div>
   )
 }

@@ -54,6 +54,7 @@ Each entry names the place and why it stays, or the issue that owns the fix.
 
 - Six `color: #hex` declarations stay, each deliberate: dark text on colour-segment fills (`.colour-segment`, the selected basic-land badge), white text on filled controls, the gold etched-foil name (`.etched-card-name`) and a decorative loader separator. About 210 lines in `src/styles/` still contain `.dark`, nearly all surface or border swaps, and tinted surfaces (health lane, card search panel, basic-land gallery) stay hex. #311.
 - Commander colours never reach `.primary`, `.export` or the selection border; themed modes render the indigo default. #312.
+- Export's printable checklist (`PrintChecklist`, #547) prints in fixed black on white, not theme tokens: paper stays light whatever the app theme. Its card names are plain text, not `CardReference`, because paper has nothing to preview or open. It renders beside the app root and shows only in print.
 
 **Card tiles and grids**
 
@@ -126,6 +127,7 @@ States the snippets don't reach directly:
 - **Change commander on a full deck**: import the complete list, then pick. Search "Golgari" is recorded.
 - **Saved decks Delete hints**: save two manual decks, then **Start over**; the first draft goes inactive and its Delete enables. A second tab on `#build` shows `WorkspaceNotice`.
 - **Shared deck preview and Export downloads** (#504): run `pnpm check:share-link:browser` with `SHARE_LINK_SCREENSHOTS=<dir>`. It saves Export after Copy share link, the preview, and the replace confirmation in light, dark and 390px layouts. The preview's footer is sticky so Copy stays in reach below a 100-card list.
+- **Printable checklist** (#547): run `pnpm check:print-checklist:browser` with `PRINT_CHECKLIST_SCREENSHOTS=<dir>`. It saves Export with Print checklist for the whole deck and Still needed, the checklist under print media at A4 and Letter widths (light, and dark at A4), and A4 and Letter PDFs. In a live browser, open Export and press Print checklist; the print preview shows the selected list.
 - **Import missing cards**: answer `cards/collection` with the fake name in `not_found` (fill `data` from cached card records) and 404 `cards/named`. Hold `cards/collection` (`block(…, () => {})`) for import loading. Grant `clipboard-read` and `clipboard-write` to see Export's Copy confirmation in headless Playwright.
 - **Collection browser loading and error**: hold or fail `https://api.scryfall.com/cards/search` after ticking a set, then press "Browse these cards". A held request keeps "Loading cards…" on the button, so reload before the next state. Replay keys the collection search by date (#345); seed today's flow with `pnpm dev:record`.
 - **429 chrome**: answer every `https://api.scryfall.com/` request with 429 (`retry-after: 30`) and reload `#build`. The card-data banner, header icon and activity panel appear.

@@ -7,6 +7,7 @@ import {
   cardTypes,
   deckGuidance,
   deckSection,
+  displayDeckSection,
   isBasicLandName,
   rolesForCard,
   targetKeys,
@@ -38,19 +39,7 @@ import { deckDataStatus, recommendationDataError } from '../domain/deck-data-sta
 
 export type BuilderDataDeps = Record<string, any>
 
-const planeswalkerType = /\bPlaneswalker\b/
-const otherPermanentTypes = /\b(?:Artifact|Battle|Creature|Enchantment|Land|Planeswalker)\b/
-const otherNonPermanentTypes = /\b(?:Instant|Sorcery)\b/
-
-export function displayDeckSection(card: Pick<DeckCard, 'typeLine' | 'faces'>) {
-  const typeLines = [card.typeLine, ...card.faces.map((face) => face.typeLine)].join(' ')
-  if (planeswalkerType.test(typeLines)) return 'Planeswalkers'
-  const section = deckSection(card.typeLine)
-  if (section !== 'Other') return section
-  if (otherPermanentTypes.test(typeLines)) return 'Other Permanents'
-  if (otherNonPermanentTypes.test(typeLines)) return 'Other Non-permanents'
-  return 'Other'
-}
+export { displayDeckSection } from '../deck-analysis.ts'
 
 function buildThemeData(deps: BuilderDataDeps) {
   const { commanderDetails, deck, activeSubThemes, theme, dismissedSubThemes, subThemeSearch } =
