@@ -396,24 +396,26 @@ main > .workspace-alert .modal-close {
 .dark :is(.nav-back, .nav-forward, .card-reference-name, .commander-name, .deck-target-focus) {
   --commander-text: color-mix(in srgb, var(--commander-accent, #7650ae) 45%, white);
 }
-/* Navigation, not actions: a full button with a filled arrow segment on the side it travels to. */
+/* Navigation, not actions: a raised button with a filled arrow segment on the side it travels
+   to. The segment uses the same fill as .primary so enabled navigation never reads as inactive. */
 .nav-back,
 .nav-forward {
-  --nav-accent: var(--commander-accent, #36327f);
+  --nav-accent: var(--commander-accent, var(--action-fill));
   display: inline-flex;
   align-items: center;
   overflow: hidden;
   padding: 0;
   border: 1.5px solid var(--nav-accent);
   border-radius: 7px;
-  background: color-mix(in srgb, var(--nav-accent) 10%, transparent);
+  background: var(--surface-raised);
   color: var(--commander-text);
   font-weight: 600;
   cursor: pointer;
 }
+/* The accent fill is too dark to mark the edge on a dark page; the lighter text mix does. */
 .dark .nav-back,
 .dark .nav-forward {
-  --nav-accent: var(--commander-text);
+  border-color: var(--commander-text);
 }
 .nav-back {
   padding-right: 16px;
@@ -429,13 +431,9 @@ main > .workspace-alert .modal-close {
   align-items: center;
   padding: 0 12px;
   background: var(--nav-accent);
-  color: var(--nav-arrow, #fff);
+  color: #fff;
   font-size: 1.15em;
   transition: padding 0.15s;
-}
-.dark .nav-back::before,
-.dark .nav-forward::after {
-  --nav-arrow: #1b1930;
 }
 .nav-back::before {
   content: '←' / '';
@@ -452,7 +450,7 @@ main > .workspace-alert .modal-close {
 }
 .nav-back:not(:disabled):hover,
 .nav-forward:not(:disabled):hover {
-  background: color-mix(in srgb, var(--nav-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--nav-accent) 12%, var(--surface-raised));
 }
 .nav-back:not(:disabled):hover::before {
   padding: 0 16px 0 8px;

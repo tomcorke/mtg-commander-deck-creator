@@ -375,6 +375,17 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     recommendationState === 'loading' ||
     batchRevealState === 'preparing'
   const batchBusy = preparingBatch || batchRevealState === 'flipping'
+  const showBatchControls =
+    (queue.length > 0 || deferredCards.length > 0 || batchBusy) && recommendationState !== 'error'
+  // Before any decision every card is undecided, so the return note would read as a warning.
+  const undecidedNote = showBatchControls &&
+    undecidedCount > 0 &&
+    undecidedCount < scoredBatch.length && (
+      <span className="batch-undecided">
+        {undecidedCount} {undecidedCount === 1 ? 'card' : 'cards'} left undecided may come back
+        later
+      </span>
+    )
   const nextBatchLabel = batchBusy
     ? preparingBatch
       ? 'Preparing recommendations...'
@@ -482,7 +493,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           onOpenCommander={() => openCommanderCard(0)}
           changeCommander={changeCommander}
         />
-        <div className="recommendation-setup">
+        <div className="recommendation-setup" data-batch-number={batchNumber}>
           <div className="section-title">
             <div>
               <p className="eyebrow">{model.playStyleStep ? 'Setup' : 'Next pick'}</p>
@@ -494,7 +505,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     : 'Add to your deck'}
               </h2>
             </div>
-            {!model.awaitingPlayStyle && <span>Batch {batchNumber}</span>}
           </div>
           {focusedRole && (
             <div className="builder-set-chips role-focus" role="status">
@@ -684,51 +694,44 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               >
                 + Search & add cards
               </button>
-              {(queue.length > 0 || deferredCards.length > 0 || batchBusy) &&
-                recommendationState !== 'error' && (
-                  <div className="batch-controls">
-                    <button
-                      className="nav-forward"
-                      type="button"
-                      disabled={batchBusy}
-                      aria-busy={batchBusy}
-                      onClick={() => void advanceBatch()}
-                    >
-                      <span>
-                        <span className="batch-button-label">
-                          <span className="batch-button-size" aria-hidden="true">
-                            Next recommendations
-                          </span>
-                          <span>
-                            {batchBusy
-                              ? preparingBatch
-                                ? 'Preparing...'
-                                : 'Revealing...'
-                              : nextBatchLabel}
-                          </span>
+              {showBatchControls && (
+                <div className="batch-controls">
+                  <button
+                    className="nav-forward"
+                    type="button"
+                    disabled={batchBusy}
+                    aria-busy={batchBusy}
+                    onClick={() => void advanceBatch()}
+                  >
+                    <span>
+                      <span className="batch-button-label">
+                        <span className="batch-button-size" aria-hidden="true">
+                          Next recommendations
                         </span>
-                        {pendingSubThemes.some((name) => activeSubThemes.includes(name)) && (
-                          <small className="batch-rebuild">
-                            {' '}
-                            rebuilding for{' '}
-                            {pendingSubThemes
-                              .filter((name) => activeSubThemes.includes(name))
-                              .join(' & ')}
-                          </small>
-                        )}
+                        <span>
+                          {batchBusy
+                            ? preparingBatch
+                              ? 'Preparing...'
+                              : 'Revealing...'
+                            : nextBatchLabel}
+                        </span>
                       </span>
-                    </button>
-                    <span className="sr-only" role="status">
-                      {batchBusy ? nextBatchLabel : ''}
+                      {pendingSubThemes.some((name) => activeSubThemes.includes(name)) && (
+                        <small className="batch-rebuild">
+                          {' '}
+                          rebuilding for{' '}
+                          {pendingSubThemes
+                            .filter((name) => activeSubThemes.includes(name))
+                            .join(' & ')}
+                        </small>
+                      )}
                     </span>
-                    {undecidedCount > 0 && (
-                      <span className="batch-undecided">
-                        {undecidedCount} undecided {undecidedCount === 1 ? 'card' : 'cards'} may
-                        come back later
-                      </span>
-                    )}
-                  </div>
-                )}
+                  </button>
+                  <span className="sr-only" role="status">
+                    {batchBusy ? nextBatchLabel : ''}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           {showSubThemePicker && (
@@ -847,6 +850,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       ? 'Show the next recommendations to apply your new settings first.'
                       : ''
                 }
+                note={undecidedNote}
                 status={bulkAddStatus(model.bulkAdd, { deck, sideboard })}
                 onAddAll={model.addAllInBatch}
                 onBuild={model.buildStartingDeck}

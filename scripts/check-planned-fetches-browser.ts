@@ -58,7 +58,7 @@ await withBrowser('PLANNED_FETCHES', 5248, async (browser, base) => {
       lookups++
   })
   try {
-    await page.getByText('Batch 1', { exact: true }).waitFor()
+    await page.locator('[data-batch-number="1"]').waitFor()
     const before = await page.locator('.card-offer .card-reference-name').allTextContents()
     assert.equal(before.length, 4)
     // Idle time cannot send signature work.
@@ -66,7 +66,7 @@ await withBrowser('PLANNED_FETCHES', 5248, async (browser, base) => {
     assert.equal(pages, 0)
     await button(page, 'Next recommendations').click()
     await page.waitForRequest('https://json.edhrec.com/**').catch(() => undefined)
-    assert.equal(await page.getByText('Batch 1', { exact: true }).count(), 1)
+    assert.equal(await page.locator('[data-batch-number="1"]').count(), 1)
     assert.deepEqual(
       await page.locator('.card-offer .card-reference-name').allTextContents(),
       before,
@@ -78,14 +78,14 @@ await withBrowser('PLANNED_FETCHES', 5248, async (browser, base) => {
     assert.equal(await next.getAttribute('aria-busy'), 'true')
     await next.evaluate((element) => (element as HTMLButtonElement).click())
     release.resolve()
-    await page.getByText('Batch 2', { exact: true }).waitFor()
+    await page.locator('[data-batch-number="2"]').waitFor()
     await page
       .locator('.card-offer')
       .getByRole('button', { name: `Show details for ${incoming.name}`, exact: true })
       .waitFor()
     assert.equal(pages, 2)
     assert.equal(lookups, 1)
-    assert.equal(await page.getByText('Batch 3', { exact: true }).count(), 0)
+    assert.equal(await page.locator('[data-batch-number="3"]').count(), 0)
     assert.deepEqual(scenario.errors, [])
     console.log(
       'PASS: idle sends no signatures; missing responses hold batch; all pages and lookup settle before one advancement',
