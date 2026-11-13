@@ -345,6 +345,29 @@ main > .workspace-alert .modal-close {
 .header-actions button {
   white-space: nowrap;
 }
+/* Deck actions flow in the shared row so Start over can share a wrapped line with Export. */
+.header-deck-actions {
+  display: contents;
+}
+.header-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: inherit;
+  align-items: center;
+  min-width: 0;
+}
+/* A divider keeps Start over from reading as one of the routine deck actions. */
+.header-start-over {
+  padding-left: 14px;
+  border-left: 1px solid var(--border-divider);
+}
+.header-utilities {
+  margin-left: auto;
+}
+.header-utilities .display-settings-panel {
+  right: 0;
+  left: auto;
+}
 .theme-option {
   display: flex;
   gap: 7px;

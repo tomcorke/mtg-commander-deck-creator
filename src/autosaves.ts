@@ -52,6 +52,12 @@ function stateForComparison(state: PersistedDeckState) {
   )
 }
 
+// Card-data hydration rewrites restored state on load; only a changed card list is a deck edit.
+function deckContents({ commander, deck, sideboard }: PersistedDeckState) {
+  const names = (cards: PersistedDeckState['deck']) => cards.map(({ name }) => name).sort()
+  return JSON.stringify([commander, names(deck), names(sideboard)])
+}
+
 function isQuotaError(error: unknown) {
   return (
     error instanceof Error &&
@@ -438,7 +444,13 @@ class Workspace {
           this.sessionError =
             'This tab cannot remember its workspace. Export your deck before reloading.'
         }
-        this.publish({ error: this.sessionError })
+        const { notice } = this.snapshot
+        this.publish({
+          error: this.sessionError,
+          // The first deck edit answers the restore notice.
+          notice:
+            notice && deckContents(notice.draft.state) !== deckContents(state) ? null : notice,
+        })
         this.notify()
         await this.prune()
       } catch {

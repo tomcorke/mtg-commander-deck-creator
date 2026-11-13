@@ -755,6 +755,22 @@ test('the restored notice is shown once per tab session, including when not dism
   reload.close()
 })
 
+test('the restored notice stays through non-deck saves and collapses after the first deck edit', async () => {
+  const env = environment()
+  seed(env, 'restore', env.options.now().toISOString())
+  const workspace = await env.tab()
+  const restored = workspace.initialState!
+  assert.ok(workspace.getSnapshot().notice)
+  await workspace.save(restored, workspace.initialName)
+  assert.ok(workspace.getSnapshot().notice, 'an unchanged save is not an edit')
+  await workspace.save({ ...restored, theme: 'Edited theme' }, workspace.initialName)
+  assert.ok(workspace.getSnapshot().notice, 'hydration-style state changes are not deck edits')
+  const added = { ...restored.deck[0], name: 'Added card' }
+  await workspace.save({ ...restored, deck: [...restored.deck, added] }, workspace.initialName)
+  assert.equal(workspace.getSnapshot().notice, null)
+  workspace.close()
+})
+
 test('storage pressure keeps inactive drafts within retention, including after a failed cleanup retry', async () => {
   const env = environment()
   const workspace = await env.tab()

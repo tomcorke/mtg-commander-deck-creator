@@ -33,6 +33,7 @@
     "check:contrast:browser": "node --experimental-strip-types scripts/check-contrast-browser.ts",
     "check:random-commander:browser": "node --experimental-strip-types scripts/check-random-commander-browser.ts",
     "check:primer:browser": "node --experimental-strip-types scripts/check-primer-browser.ts",
+    "check:builder-chrome:browser": "node --experimental-strip-types scripts/check-builder-chrome-browser.ts",
     "check:broader-commanders:browser": "node --experimental-strip-types scripts/check-broader-commanders-browser.ts",
     "check:partner-pairs:browser": "node --experimental-strip-types scripts/check-partner-pairs-browser.ts",
     "check:colour-identity-mode:browser": "node --experimental-strip-types scripts/check-colour-identity-mode-browser.ts",
