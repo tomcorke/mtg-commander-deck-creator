@@ -121,6 +121,14 @@
   line-height: 1.6;
   white-space: pre-line;
 }
+/* Power/toughness follows the rules text at the right, where a printed card puts it. */
+.card-power-toughness {
+  margin-top: 8px;
+  color: var(--text-body);
+  font-size: var(--type-card-name);
+  font-weight: 600;
+  text-align: right;
+}
 .oracle-line {
   display: block;
 }
@@ -1880,4 +1888,12 @@ main > .commander-header {
   color: var(--text-muted);
   font-size: var(--type-data);
   white-space: nowrap;
+}
+/* The empty draw sits inside the dialog, so it keeps the dashed frame with modal-sized padding. */
+.random-commander-empty {
+  margin-top: 12px;
+  padding: 24px;
+}
+.random-commander-modal .add-zone-toggle {
+  margin: 8px 0 4px;
 }

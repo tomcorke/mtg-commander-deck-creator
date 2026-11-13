@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ScryfallCard } from '../domain/card-model.ts'
 import {
   discoverCommanders,
+  discoveredCards,
   discoverPartners,
   orderByDeckCount,
   type CommanderDiscovery,
@@ -94,6 +95,7 @@ export function useCommanderDiscovery(
     sort,
   ])
   const broader = found.broader
+  const loaded = useMemo(() => discoveredCards(found), [found])
   const shown = useShownCommanders(deckCounts ? (sort ?? null) : undefined, found, status, [
     page,
     broaderPage,
@@ -102,6 +104,8 @@ export function useCommanderDiscovery(
     suggestions: shown.suggestions,
     count: found.commanders.length,
     more: found.more,
+    /** Every loaded commander in both sections, once each; random commander can draw from it. */
+    loaded,
     page,
     setPage,
     /** A curated theme's separately labelled rules-text matches, paged on their own. */
