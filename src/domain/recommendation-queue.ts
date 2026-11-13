@@ -477,6 +477,7 @@ type QueueScoreSettings = Pick<
   | 'ownershipMode'
   | 'opposingStrategies'
   | 'opposingAnswerCounts'
+  | 'opposingAnswerTargets'
 >
 
 const queueScoreSettings = ({
@@ -489,6 +490,7 @@ const queueScoreSettings = ({
   ownershipMode,
   opposingStrategies,
   opposingAnswerCounts,
+  opposingAnswerTargets,
 }: QueueScoreSettings): QueueScoreSettings => ({
   tagCounts,
   packageCounts,
@@ -499,6 +501,7 @@ const queueScoreSettings = ({
   ownershipMode,
   opposingStrategies,
   opposingAnswerCounts,
+  opposingAnswerTargets,
 })
 
 export function advanceRecommendationQueue<

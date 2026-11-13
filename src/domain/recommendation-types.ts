@@ -32,6 +32,8 @@ export const opposingStrategies = [
   'spellslinger',
 ] as const
 export type OpposingStrategy = (typeof opposingStrategies)[number]
+/** Player-edited answer targets per strategy (#565); a missing strategy uses the default. */
+export type OpposingAnswerTargets = Partial<Record<OpposingStrategy, number>>
 export type CollectionMode = 'none' | 'prefer' | 'only'
 export type RecommendationSource = 'edhrec' | 'scryfall'
 export type BatchPlacementReason =
@@ -180,6 +182,8 @@ export type RecommendationScoreContext = {
   opposingStrategies?: OpposingStrategy[]
   /** Main-deck answers already counted for each selected strategy. */
   opposingAnswerCounts?: Partial<Record<OpposingStrategy, number>>
+  /** Edited answer targets (#565); each strategy's boost eases at its own target. */
+  opposingAnswerTargets?: OpposingAnswerTargets
 }
 export type RecommendationScoreBreakdown = {
   total: number

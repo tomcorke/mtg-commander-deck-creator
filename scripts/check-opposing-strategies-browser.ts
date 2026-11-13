@@ -1,6 +1,6 @@
 // Expected opponents (#503): the player picks opposing strategies in Recommendation settings, the
 // choice persists with the deck, offers that answer one lead with a heuristic "Answers …" reason,
-// and Deck review shows answer coverage for each selected strategy.
+// and Deck review shows answer coverage for each selected strategy against an editable target (#565).
 // OPPOSING_SCREENSHOTS=<dir> saves settings, offers and Deck review in light, dark and 390px
 // layouts. OPPOSING_CAPTURE_ONLY=1 captures the same states without assertions (before evidence).
 import assert from 'node:assert/strict'
@@ -177,6 +177,26 @@ await withBrowser('OPPOSING', 5283, async (browser, base) => {
   )
   assert.match(await rows.first().innerText(), /1 \/ 3/)
   assert.match(await rows.nth(1).innerText(), /0 \/ 3/)
+
+  // Each strategy's answer target is editable (#565) and persists with the deck.
+  const moreGraveyard = button(review, 'One more Graveyard decks answer target')
+  await moreGraveyard.click()
+  await moreGraveyard.click()
+  assert.match(await rows.first().innerText(), /1 \/ 5/)
+  assert.match(await rows.first().innerText(), /4 below target/)
+  await review.getByRole('spinbutton', { name: 'Artifact decks answer target' }).fill('0')
+  assert.match(await rows.nth(1).innerText(), /0 \/ 0/)
+  assert.match(await rows.nth(1).innerText(), /Target met/)
+  assert.match(await review.locator('p').first().innerText(), /app estimate of 3/)
+  await page.reload()
+  // The reload stays on Deck review; answers count once current card data loads.
+  await heading(page, 'Diagnose').waitFor()
+  await rows.first().filter({ hasText: '1 / 5' }).waitFor()
+  assert.match(await rows.nth(1).innerText(), /0 \/ 0/)
+  assert.equal(
+    await review.getByRole('spinbutton', { name: 'Graveyard decks answer target' }).inputValue(),
+    '5',
+  )
   await captureReview(page)
 
   // A phone-width review never scrolls the page sideways.

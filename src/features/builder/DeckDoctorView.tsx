@@ -1,4 +1,4 @@
-import type { OpposingStrategy } from '../../domain/recommendation-types.ts'
+import type { OpposingAnswerTargets, OpposingStrategy } from '../../domain/recommendation-types.ts'
 import { hasTag } from '../../domain/creature-types.ts'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
@@ -107,6 +107,9 @@ type Props = {
   chooseTheme: () => void
   /** Expected opponents (#503), counted in the overview. */
   opposingStrategies: OpposingStrategy[]
+  /** Edited answer targets (#565); missing strategies use the default. */
+  opposingAnswerTargets: OpposingAnswerTargets
+  chooseOpposingAnswerTarget: (strategy: OpposingStrategy, value: number) => void
   /** Cards an app-built starting deck added, while any remain. */
   startingDeck: ReturnType<typeof startingDeckSummary>
   undoStartingDeck: () => void
@@ -350,6 +353,8 @@ export function DeckDoctorView({
   undoSwap,
   chooseTheme,
   opposingStrategies,
+  opposingAnswerTargets,
+  chooseOpposingAnswerTarget,
   closePage,
   startingDeck,
   undoStartingDeck,
@@ -1075,6 +1080,8 @@ export function DeckDoctorView({
                 }}
                 chooseTheme={() => requestExit(chooseTheme)}
                 opposingStrategies={opposingStrategies}
+                opposingAnswerTargets={opposingAnswerTargets}
+                chooseOpposingAnswerTarget={chooseOpposingAnswerTarget}
                 chooseOpponents={openRecommendationSettings}
                 stillNeeded={
                   stillNeeded

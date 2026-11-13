@@ -132,11 +132,15 @@ function useThemeTarget(deckState: PersistedDeckState | null, themeTarget: numbe
   )
 }
 
-// Expected opponents ride with the deck (#503).
-function useOpposingStrategies(deckState: PersistedDeckState | null, opposingStrategies: string[]) {
+// Expected opponents (#503) and their edited answer targets (#565) ride with the deck.
+function useOpposingStrategies(
+  deckState: PersistedDeckState | null,
+  opposingStrategies: string[],
+  opposingAnswerTargets: Record<string, number>,
+) {
   return useMemo(
-    () => (deckState ? { ...deckState, opposingStrategies } : deckState),
-    [deckState, opposingStrategies],
+    () => (deckState ? { ...deckState, opposingStrategies, opposingAnswerTargets } : deckState),
+    [deckState, opposingStrategies, opposingAnswerTargets],
   )
 }
 
@@ -183,6 +187,7 @@ export function useControllerState(
         state.themeTarget,
       ),
       state.opposingStrategies,
+      state.opposingAnswerTargets,
     ),
     state.awaitingPlayStyle,
   )

@@ -9,6 +9,8 @@ import { rolesForCard } from '../deck-analysis.ts'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import { builderAction } from './builder-action.ts'
 import type { BuilderSettings } from '../domain/builder-state.ts'
+import { normalizeOpposingAnswerTargets } from '../domain/opposing-strategies.ts'
+import type { OpposingStrategy } from '../domain/recommendation-types.ts'
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef } from 'react'
 import {
   fetchLocalCards,
@@ -465,6 +467,29 @@ function ownedCardActions(state: AppState, routing: RoutingActions, remote: Remo
   }
 }
 
+// Role targets and expected-opponent answer targets (#565) re-rank recommendations like settings.
+function targetActions(state: AppState) {
+  return {
+    chooseDeckTarget: (key: TargetKey, value: number) =>
+      builderAction(state, (builder) => ({
+        type: 'settings',
+        settings: {
+          deckTargets: { ...builder.deckTargets, [key]: value },
+        },
+      })),
+    chooseOpposingAnswerTarget: (strategy: OpposingStrategy, value: number) =>
+      builderAction(state, (builder) => ({
+        type: 'settings',
+        settings: {
+          opposingAnswerTargets: normalizeOpposingAnswerTargets({
+            ...builder.opposingAnswerTargets,
+            [strategy]: value,
+          }),
+        },
+      })),
+  }
+}
+
 function useBuilderActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
   const chooseSubTheme = (name: string) => {
     const selection = selectBuilderTheme(state, name)
@@ -540,13 +565,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
     chooseSubTheme,
     chooseRecommendationStyle,
     chooseOptions,
-    chooseDeckTarget: (key: TargetKey, value: number) =>
-      builderAction(state, (builder) => ({
-        type: 'settings',
-        settings: {
-          deckTargets: { ...builder.deckTargets, [key]: value },
-        },
-      })),
+    ...targetActions(state),
     chooseMaxPrice: (price: number | null) => {
       interactionDeps.announcePriceCap(price)
       chooseOptions({ maxPrice: price })

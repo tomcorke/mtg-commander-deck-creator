@@ -4,6 +4,7 @@ import { shortQuote } from './recommendation-themes.ts'
 import {
   opposingStrategies,
   recommendationScoreFactorMaximums,
+  type OpposingAnswerTargets,
   type OpposingStrategy,
   type RecommendationScoreContext,
 } from './recommendation-types.ts'
@@ -17,10 +18,34 @@ import {
  */
 
 /**
- * Heuristic (#503): answers per selected strategy before its scoring boost eases. An app estimate,
- * not a community standard; Deck review shows it beside each strategy's count.
+ * Heuristic (#503): default answers per selected strategy before its scoring boost eases. An app
+ * estimate, not a community standard; Deck review shows each strategy's target and lets the player
+ * edit it (#565).
  */
-export const opposingAnswerTarget = 3
+export const defaultOpposingAnswerTarget = 3
+export const maxOpposingAnswerTarget = 99
+
+/** The strategy's edited target, or the default. */
+export const opposingAnswerTargetFor = (
+  targets: OpposingAnswerTargets | undefined,
+  strategy: OpposingStrategy,
+) => targets?.[strategy] ?? defaultOpposingAnswerTarget
+
+/**
+ * Saved targets, keeping known strategies with whole numbers from 0 to 99. Default targets are
+ * dropped, so a target edited back to the default compares equal to an unedited deck.
+ */
+export function normalizeOpposingAnswerTargets(value: unknown): OpposingAnswerTargets {
+  const saved = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+  return Object.fromEntries(
+    opposingStrategies.flatMap((strategy) => {
+      const target = saved[strategy]
+      if (typeof target !== 'number' || !Number.isFinite(target)) return []
+      const whole = Math.min(maxOpposingAnswerTarget, Math.max(0, Math.round(target)))
+      return whole === defaultOpposingAnswerTarget ? [] : [[strategy, whole]]
+    }),
+  )
+}
 
 // Oracle text uses typographic apostrophes; fixtures and older data may use straight ones.
 const pattern = (source: string) => new RegExp(source.replaceAll("'", "[’']"), 'i')
@@ -175,24 +200,27 @@ export const opposingAnswerCounts = (
   )
 
 /**
- * Score for answering selected strategies: 6 for each one still below its target, 2 once met,
- * capped. Theme first halves it, so expected opponents never outrank the theme there.
+ * Score for answering selected strategies: 6 for each one still below its target (#565: the
+ * player's edited target, else the default), 2 once met, capped. Theme first halves it, so expected
+ * opponents never outrank the theme there.
  */
 export function opposingAnswerScore(
   card: { detail?: string },
   {
     opposingStrategies: strategies = [],
     opposingAnswerCounts: counts = {},
+    opposingAnswerTargets: targets,
     recommendationStyle: style = 'balanced',
   }: Pick<
     RecommendationScoreContext,
-    'opposingStrategies' | 'opposingAnswerCounts' | 'recommendationStyle'
+    'opposingStrategies' | 'opposingAnswerCounts' | 'opposingAnswerTargets' | 'recommendationStyle'
   >,
 ) {
   const answered = opposingAnswers(card, strategies)
   if (!answered.length) return 0
   const base = answered.reduce(
-    (sum, strategy) => sum + ((counts[strategy] ?? 0) < opposingAnswerTarget ? 6 : 2),
+    (sum, strategy) =>
+      sum + ((counts[strategy] ?? 0) < opposingAnswerTargetFor(targets, strategy) ? 6 : 2),
     0,
   )
   return Math.min(
