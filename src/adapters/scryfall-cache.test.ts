@@ -10,6 +10,7 @@ import {
   scryfallCacheLifetime,
   searchScryfall,
   searchScryfallCached,
+  searchScryfallPageCached,
   type ScryfallIdentifier,
 } from './scryfall.ts'
 
@@ -419,4 +420,28 @@ test('one-page discovery searches share/cache requests, warm printing records, a
     'Commander',
   )
   assert.equal(calls, 1)
+})
+
+test('cached search pages keep the total and next-page flag, one request per page', async () => {
+  const pages: string[] = []
+  const fetcher: typeof fetch = async (input) => {
+    const page = new URL(String(input)).searchParams.get('page')!
+    pages.push(page)
+    return response({ data: [card(`P${page}`)], has_more: page === '1', total_cards: 2 })
+  }
+  const first = await searchScryfallPageCached('is:commander', fetcher, undefined, 'edhrec', 1)
+  assert.equal(first.total_cards, 2)
+  assert.equal(first.has_more, true)
+  first.data[0].name = 'Changed'
+  const again = await searchScryfallPageCached('is:commander', fetcher, undefined, 'edhrec', 1)
+  assert.equal(again.data[0].name, 'P1', 'callers get their own copy')
+  const second = await searchScryfallPageCached('is:commander', fetcher, undefined, 'edhrec', 2)
+  assert.equal(second.has_more, false)
+  assert.deepEqual(pages, ['1', '2'])
+  const warmed = await fetchScryfallCardsByIdentifiers(
+    [{ set: 'new', collector_number: 'P2' }],
+    fetcher,
+  )
+  assert.equal(warmed[0].name, 'P2')
+  assert.deepEqual(pages, ['1', '2'], 'page cards warm the printing cache')
 })

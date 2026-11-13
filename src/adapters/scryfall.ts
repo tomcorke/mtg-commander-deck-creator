@@ -143,7 +143,8 @@ async function requestScryfall(
   )
 }
 
-type CacheValue = ScryfallCard | ScryfallCard[]
+/** A card, a card list, or one search page with Scryfall's match count. */
+type CacheValue = ScryfallCard | ScryfallCard[] | CardListResponse
 type RequestJob = {
   controller: AbortController
   users: number
@@ -212,10 +213,11 @@ function rememberPrintings(cache: SessionCache, cards: ScryfallCard[]) {
 }
 
 function rememberResult(cache: SessionCache, key: string, value: CacheValue) {
-  if (Array.isArray(value) ? !value.every(isScryfallCard) : !isScryfallCard(value)) return
+  const cards = Array.isArray(value) ? value : 'data' in value ? value.data : [value]
+  if (!cards.every(isScryfallCard)) return
   rememberValue(cache, key, value)
-  rememberPrintings(cache, Array.isArray(value) ? value : [value])
-  if (key.startsWith('name:') && !Array.isArray(value))
+  rememberPrintings(cache, cards)
+  if (key.startsWith('name:') && !Array.isArray(value) && !('data' in value))
     rememberValue(cache, identifierKey({ name: value.name }), value)
 }
 
@@ -552,6 +554,27 @@ export async function searchScryfallCached(
   )
   signal?.throwIfAborted()
   return (cards ?? []) as ScryfallCard[]
+}
+
+/**
+ * One search page with Scryfall's match count and whether more pages follow; it shares the card
+ * cache, pending jobs, and scheduler with `searchScryfallCached`.
+ */
+export async function searchScryfallPageCached(
+  query: string,
+  fetcher: ScryfallFetcher = fetch,
+  signal?: AbortSignal,
+  order = 'name',
+  page = 1,
+): Promise<CardListResponse> {
+  const result = await cachedRequest(
+    sessionCache(fetcher),
+    `searchpage:${order}:${page}:${query}`,
+    async (sharedSignal) => searchScryfallPage(query, fetcher, sharedSignal, order, page),
+    signal,
+  )
+  signal?.throwIfAborted()
+  return (result as CardListResponse | undefined) ?? { data: [], total_cards: 0, has_more: false }
 }
 
 export async function searchScryfallPage(

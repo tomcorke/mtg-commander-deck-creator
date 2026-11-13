@@ -15,6 +15,11 @@ import {
 } from './commander-discovery.ts'
 import { selectableThemes } from './commander-catalog.ts'
 
+/** A search provider answering with `cards` as one complete Scryfall page. */
+const onePage =
+  <Args extends unknown[]>(search: (...args: Args) => Promise<ScryfallCard[]>) =>
+  async (...args: Args) => ({ data: await search(...args), has_more: false })
+
 const card = (name: string, changes: Partial<ScryfallCard> = {}): ScryfallCard => ({
   name,
   oracle_id: name,
@@ -72,7 +77,7 @@ test('Within and Including match colour identity by subset and superset (#482)',
   assert.deepEqual(names('including'), ['Golgari', 'Sultai'])
 
   const queries: string[] = []
-  const search = async (query: string) => (queries.push(query), cards)
+  const search = onePage(async (query: string) => (queries.push(query), cards))
   for (const colourMatch of ['within', 'including'] as const)
     await discoverCommanders(
       { theme: '', colours: ['G', 'B'], colourMatch, search: '' },
@@ -97,10 +102,10 @@ test('every start theme has a bounded query or an expanded curated fallback', ()
 test('source labels are honest and name search never bypasses theme/identity', async () => {
   const queries: string[] = []
   const providers = {
-    search: async (query: string) => {
+    search: onePage(async (query: string) => {
       queries.push(query)
       return [card('Equipment leader')]
-    },
+    }),
     hydrate: async (identifiers: { name?: string }[]) => {
       assert.ok(identifiers.length <= 12)
       return [card('Token leader'), card('Other colour', { color_identity: ['B'] })]
@@ -142,7 +147,7 @@ test('source labels are honest and name search never bypasses theme/identity', a
 test('several creature types find commanders for any of them, covering more types first', async () => {
   const queries: string[] = []
   const providers = {
-    search: async (query: string) => {
+    search: onePage(async (query: string) => {
       queries.push(query)
       return [
         card('Cat leader', { type_line: 'Legendary Creature — Cat', oracle_text: '' }),
@@ -151,7 +156,7 @@ test('several creature types find commanders for any of them, covering more type
           oracle_text: 'Dogs you control get +1/+1.',
         }),
       ]
-    },
+    }),
     hydrate: async () => [],
   }
   const found = await discoverCommanders(
@@ -169,26 +174,62 @@ test('several creature types find commanders for any of them, covering more type
   )
 })
 
-test('a search filling the Scryfall page limit reports that more commanders match', async () => {
-  const full = Array.from({ length: scryfallPageSize }, (_, n) => card(`Leader ${n}`))
-  const providers = { search: async () => full, hydrate: async () => full }
+test('a search with more Scryfall pages fetches the next one on demand, appending its commanders', async () => {
+  const first = Array.from({ length: scryfallPageSize }, (_, n) => card(`Leader ${n}`))
+  const second = [card('Leader 0'), card('Late leader', { edhrec_rank: 1 })]
+  const requests: [string, number][] = []
+  const providers = {
+    search: async (query: string, _f?: unknown, _s?: unknown, _o?: string, page = 1) => {
+      requests.push([query, page])
+      return page === 1
+        ? { data: first, has_more: true, total_cards: 177 }
+        : { data: second, has_more: false, total_cards: 177 }
+    },
+    hydrate: async () => first,
+  }
   const searched = await discoverCommanders(
-    { theme: '', colours: [], search: '' },
+    { theme: '', colours: [], search: '', sort: 'popularity' },
     undefined,
     providers,
   )
   assert.equal(searched.more, true)
+  assert.equal(searched.total, 177)
+  assert.deepEqual(searched.batches, [scryfallPageSize])
   assert.deepEqual(
     searched.commanders.map(({ card: { name } }) => name),
-    full.map(({ name }) => name),
+    first.map(({ name }) => name),
   )
+  assert.equal(requests.length, 1, 'the first view fetches one page')
+
+  const next = await searched.next!()
+  assert.deepEqual(
+    requests.map(([, page]) => page),
+    [1, 2],
+    'one request per further page',
+  )
+  assert.equal(requests[1][0], requests[0][0])
+  assert.equal(next.more, false)
+  assert.equal(next.next, undefined)
+  assert.deepEqual(next.batches, [scryfallPageSize, 1], 'a repeated commander is not added twice')
+  // The new page is ordered on its own and follows earlier commanders, so none of them move.
+  assert.deepEqual(
+    next.commanders.map(({ card: { name } }) => name),
+    [...first.map(({ name }) => name), 'Late leader'],
+  )
+
+  const aborted = new AbortController()
+  aborted.abort()
+  await assert.rejects(searched.next!(aborted.signal), { name: 'AbortError' })
+
   const curated = await discoverCommanders(
     { theme: 'Tokens', colours: [], search: '' },
     undefined,
     providers,
   )
   assert.equal(curated.more, false)
-  assert.equal(curated.broader?.more, true, 'a full broader page reports more')
+  assert.equal(curated.next, undefined)
+  assert.equal(curated.broader?.more, true, 'a broader search with more pages reports more')
+  assert.ok(curated.broader?.next, 'and fetches its next page on demand')
 })
 
 test('rules text, Eminence, mana value and set criteria combine with existing filters', async () => {
@@ -199,7 +240,7 @@ test('rules text, Eminence, mana value and set criteria combine with existing fi
     oracle_text: 'Eminence — Whenever you cast another Vampire spell, create a token.',
   })
   const providers = {
-    search: async (query: string) => {
+    search: onePage(async (query: string) => {
       queries.push(query)
       return [
         edgar,
@@ -209,7 +250,7 @@ test('rules text, Eminence, mana value and set criteria combine with existing fi
           oracle_text: 'Draw a card.',
         }),
       ]
-    },
+    }),
     hydrate: async () => [edgar, card('Plain', { color_identity: ['W', 'B', 'R'], cmc: 3 })],
   }
   const found = await discoverCommanders(
@@ -277,10 +318,12 @@ test('a chosen sort orders searches on Scryfall and curated lists locally', asyn
     card('Charlie', { cmc: 1, edhrec_rank: 10, released_at: '2022-01-01' }),
   ]
   const providers = {
-    search: async (_query: string, _fetcher?: unknown, _signal?: unknown, order?: string) => {
-      orders.push(order)
-      return cards
-    },
+    search: onePage(
+      async (_query: string, _fetcher?: unknown, _signal?: unknown, order?: string) => {
+        orders.push(order)
+        return cards
+      },
+    ),
     hydrate: async () => cards,
   }
   const names = async (sort?: CommanderSort, theme = '') =>
@@ -339,7 +382,7 @@ test('a curated theme adds broader rules-text matches in their own section, neve
   const mazirek = card('Mazirek, Kraul Death Priest', golgari)
   const queries: string[] = []
   const providers = {
-    search: async (query: string) => {
+    search: onePage(async (query: string) => {
       queries.push(query)
       return [
         card('Meren of Clan Nel Toth', { ...golgari, oracle_id: 'meren' }),
@@ -348,7 +391,7 @@ test('a curated theme adds broader rules-text matches in their own section, neve
         card('Korvold, Fae-Cursed King', { color_identity: ['B', 'R', 'G'] }),
         card('Grim Flayer', golgari),
       ]
-    },
+    }),
     hydrate: async () => [
       meren,
       mazirek,

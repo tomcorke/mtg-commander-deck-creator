@@ -39,5 +39,10 @@ export function useEdhrecDeckCounts(cards: readonly ScryfallCard[], fetcher: typ
       return slug ? deckCountFor(pages.get(slug) ?? undefined, card) : undefined
     },
     pending: slugs.filter((slug) => !pages.has(slug)).length,
+    /** Whether `card`'s identity page has settled, or it has none to wait for. */
+    settled: (card: ScryfallCard) => {
+      const slug = edhrecIdentitySlug(card.color_identity)
+      return !slug || pages.has(slug)
+    },
   }
 }

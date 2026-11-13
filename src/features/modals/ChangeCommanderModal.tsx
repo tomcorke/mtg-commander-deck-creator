@@ -1,11 +1,7 @@
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 
-import {
-  commanderPageSize,
-  useCommanderDiscovery,
-  usePartnerDiscovery,
-} from '../../app/useCommanderDiscovery.ts'
-import { Pagination } from '../../shared/Pagination.tsx'
+import { useCommanderDiscovery, usePartnerDiscovery } from '../../app/useCommanderDiscovery.ts'
+import { CommanderPagination } from '../../shared/CommanderPagination.tsx'
 import { commanderNames } from '../../domain/commander-catalog.ts'
 import { toDeckCard, type DeckCard, type ScryfallCard } from '../../domain/card-model.ts'
 import { canAddPartner, pairingLabel } from '../../domain/commander-pairing.ts'
@@ -483,7 +479,7 @@ function CommanderStep({
         {/* The empty state names the zero itself. */}
         {discovery.status === 'idle' &&
           discovery.count > 0 &&
-          `${discovery.count}${discovery.more ? ' loaded' : ''} ${discovery.count === 1 ? 'commander' : 'commanders'}`}
+          `${discovery.total?.toLocaleString() ?? discovery.count} ${discovery.count === 1 && !discovery.more ? 'commander' : 'commanders'}`}
       </p>
       <CommanderResultTiles
         discovery={discovery}
@@ -504,17 +500,7 @@ function CommanderStep({
         </p>
       )}
       {discovery.status === 'idle' && (
-        <Pagination
-          label="Commander result pages"
-          noun="commanders"
-          count={discovery.count}
-          pageSize={commanderPageSize}
-          page={discovery.page}
-          onPage={discovery.setPage}
-          partial={discovery.more}
-        >
-          {discovery.more && <span>Narrow the filters to reach more commanders.</span>}
-        </Pagination>
+        <CommanderPagination label="Commander result pages" matches={discovery} />
       )}
     </>
   )

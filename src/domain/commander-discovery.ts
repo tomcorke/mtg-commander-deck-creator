@@ -1,4 +1,9 @@
-import { fetchScryfallCardsByIdentifiers, searchScryfallCached } from '../adapters/scryfall.ts'
+import {
+  fetchScryfallCardsByIdentifiers,
+  searchScryfallCached,
+  searchScryfallPageCached,
+  type CardListResponse,
+} from '../adapters/scryfall.ts'
 import { themeCommanders, themeSearchTerm } from './commander-catalog.ts'
 import { creatureTypeForTheme, creatureTypeTags } from './creature-types.ts'
 import { commanderConstructionError } from './commander-construction.ts'
@@ -42,8 +47,19 @@ const compareBy: Record<CommanderSort, (left: ScryfallCard, right: ScryfallCard)
 }
 /** `coverage`: how many of several chosen creature types the commander is or mentions. */
 export type CommanderSuggestion = { card: ScryfallCard; reason: string; coverage?: number }
-/** `more`: the search filled Scryfall's one-page limit, so further matches were not loaded. */
-export type CommanderMatches = { commanders: CommanderSuggestion[]; more: boolean }
+/**
+ * `more`: Scryfall has matches past the fetched pages. `total`: Scryfall's match count for a search,
+ * before local legality checks. `batches`: commanders from each fetched page, in order; each is
+ * ordered on its own, so fetching another never moves earlier tiles. `next` fetches the next page
+ * and returns the matches with its commanders appended (#485).
+ */
+export type CommanderMatches = {
+  commanders: CommanderSuggestion[]
+  more: boolean
+  total?: number
+  batches?: number[]
+  next?: (signal?: AbortSignal) => Promise<CommanderMatches>
+}
 /**
  * `broader`: for a curated theme, commanders the rules-text search finds beyond the curated picks,
  * with the heading that names their weaker claim (#481).
@@ -52,7 +68,7 @@ export type CommanderDiscovery = CommanderMatches & {
   broader?: CommanderMatches & { heading: string }
 }
 
-/** Cards in one Scryfall search page; discovery loads only the first. */
+/** Cards in one Scryfall search page; discovery fetches further pages on demand. */
 export const scryfallPageSize = 175
 
 const coveredTypes = (card: ScryfallCard, types: string[]) => {
@@ -210,10 +226,22 @@ function discoveryReason(theme: string, term: string | undefined, curated: boole
         : ''
 }
 
+/** One Scryfall search page, 1-based, in `order`. */
+type PageSearch = (
+  query: string,
+  fetcher: typeof fetch,
+  signal: AbortSignal | undefined,
+  order: string,
+  page: number,
+) => Promise<CardListResponse>
+
 export async function discoverCommanders(
   filters: DiscoveryFilters,
   signal?: AbortSignal,
-  providers = { search: searchScryfallCached, hydrate: fetchScryfallCardsByIdentifiers },
+  providers: {
+    search: PageSearch
+    hydrate: typeof fetchScryfallCardsByIdentifiers
+  } = { search: searchScryfallPageCached, hydrate: fetchScryfallCardsByIdentifiers },
 ): Promise<CommanderDiscovery> {
   const types = creatureTypeForTheme(filters.theme)
     ? [filters.theme, ...(filters.creatureTypes ?? [])]
@@ -226,28 +254,53 @@ export async function discoverCommanders(
   const scope = curatedNames.map((name) => `!${JSON.stringify(name)}`).join(' or ') || term
   const order = scryfallOrders[filters.sort ?? 'popularity']
   const wider = curatedNames.length ? broaderTerm(filters.theme) : undefined
-  const [cards, widerCards] = await Promise.all([
+  const query = searchQuery(criteria, scope)
+  const widerQuery = wider && searchQuery(criteria, wider)
+  const [found, widerFound] = await Promise.all([
     curated
-      ? providers.hydrate(
-          curatedNames.map((name) => ({ name })),
-          fetch,
-          signal,
-        )
-      : providers.search(searchQuery(criteria, scope), fetch, signal, order),
-    wider ? providers.search(searchQuery(criteria, wider), fetch, signal, order) : undefined,
+      ? providers
+          .hydrate(
+            curatedNames.map((name) => ({ name })),
+            fetch,
+            signal,
+          )
+          .then((data): CardListResponse => ({ data }))
+      : providers.search(query, fetch, signal, order, 1),
+    widerQuery ? providers.search(widerQuery, fetch, signal, order, 1) : undefined,
   ])
   signal?.throwIfAborted()
   const reason = discoveryReason(filters.theme, term, curatedNames.length > 0)
-  const more = !curated && cards.length >= scryfallPageSize
-  const commanders = filterCommanders(
-    cards,
-    // Scryfall already matched rules text, including keyword-only matches; check it locally for curated lists.
-    curated ? filters : { ...filters, rulesText: '' },
-  ).map((card) => (types.length < 2 ? { card, reason } : coverageSuggestion(card, types, reason)))
+  const suggest = (card: ScryfallCard) =>
+    types.length < 2 ? { card, reason } : coverageSuggestion(card, types, reason)
+  const matches: CommanderMatches = curated
+    ? {
+        commanders: orderCommanders(
+          filterCommanders(found.data, filters).map(suggest),
+          filters.sort,
+        ),
+        more: false,
+      }
+    : pagedMatches(
+        found,
+        (page, pageSignal) => providers.search(query, fetch, pageSignal, order, page),
+        // Scryfall already matched rules text, including keyword-only matches; curated lists check it locally.
+        (cards) => filterCommanders(cards, { ...filters, rulesText: '' }).map(suggest),
+        filters.sort,
+      )
   return {
-    commanders: orderCommanders(commanders, filters.sort),
-    more,
-    ...(widerCards && { broader: broaderMatches(widerCards, cards, curatedNames, filters) }),
+    ...matches,
+    ...(widerQuery &&
+      widerFound && {
+        broader: {
+          ...pagedMatches(
+            widerFound,
+            (page, pageSignal) => providers.search(widerQuery, fetch, pageSignal, order, page),
+            broaderSuggestions(found.data, curatedNames, filters),
+            filters.sort,
+          ),
+          heading: broaderHeading(filters.theme),
+        },
+      }),
   }
 }
 
@@ -256,26 +309,56 @@ const searchQuery = (criteria: string, scope: string | undefined) =>
     .replace(/\s+/g, ' ')
     .trim()
 
-/** Broader matches minus every curated pick, whether or not that pick passed the filters. */
-function broaderMatches(
-  found: ScryfallCard[],
-  picks: ScryfallCard[],
-  pickNames: string[],
-  filters: DiscoveryFilters,
+/**
+ * A search's commanders from its first page. While Scryfall has more, `next` fetches one more page
+ * per call and appends its new commanders, ordered among themselves (#485).
+ */
+function pagedMatches(
+  first: CardListResponse,
+  fetchPage: (page: number, signal?: AbortSignal) => Promise<CardListResponse>,
+  suggest: (cards: ScryfallCard[]) => CommanderSuggestion[],
+  sort: CommanderSort | undefined,
 ) {
+  const append = (
+    result: CardListResponse,
+    page: number,
+    earlier?: CommanderMatches,
+  ): CommanderMatches => {
+    const known = new Set(earlier?.commanders.map(({ card }) => card.oracle_id ?? card.name))
+    const added = orderCommanders(
+      suggest(result.data).filter(({ card }) => !known.has(card.oracle_id ?? card.name)),
+      sort,
+    )
+    const matches = {
+      commanders: [...(earlier?.commanders ?? []), ...added],
+      more: Boolean(result.has_more),
+      total: result.total_cards,
+      batches: [...(earlier?.batches ?? []), added.length],
+    }
+    if (!result.has_more) return matches
+    return {
+      ...matches,
+      next: async (signal?: AbortSignal) => {
+        const following = await fetchPage(page + 1, signal)
+        signal?.throwIfAborted()
+        return append(following, page + 1, matches)
+      },
+    }
+  }
+  return append(first, 1)
+}
+
+/** Broader matches minus every curated pick, whether or not that pick passed the filters. */
+function broaderSuggestions(picks: ScryfallCard[], pickNames: string[], filters: DiscoveryFilters) {
   const picked = new Set([
     ...picks.flatMap((card) => card.oracle_id ?? []),
     ...[...picks.map(({ name }) => name), ...pickNames].map(cardNameKey),
   ])
   const reason = broaderHeading(filters.theme)
-  const commanders = filterCommanders(found, { ...filters, rulesText: '' })
-    .filter((card) => !picked.has(card.oracle_id ?? '') && !picked.has(cardNameKey(card.name)))
-    .map((card) => ({ card, reason }))
-  return {
-    commanders: orderCommanders(commanders, filters.sort),
-    more: found.length >= scryfallPageSize,
-    heading: reason,
-  }
+  return (found: ScryfallCard[]) =>
+    filterCommanders(found, { ...filters, rulesText: '' })
+      .filter((card) => !picked.has(card.oracle_id ?? '') && !picked.has(cardNameKey(card.name)))
+      .map((card) => ({ card, reason }))
 }
 
 function coverageSuggestion(card: ScryfallCard, types: string[], reason: string) {
@@ -336,7 +419,7 @@ export async function discoverPartners(
   return { commanders, more: cards.length >= scryfallPageSize }
 }
 
-/** Every loaded commander in `found`, curated picks then broader matches, once per Oracle card. */
+/** Every fetched commander in `found`, curated picks then broader matches, once per Oracle card. */
 export function discoveredCards(found: CommanderDiscovery) {
   const seen = new Set<string>()
   return [...found.commanders, ...(found.broader?.commanders ?? [])]

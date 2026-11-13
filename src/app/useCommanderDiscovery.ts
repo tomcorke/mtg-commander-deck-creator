@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { ScryfallCard } from '../domain/card-model.ts'
 import {
   discoverCommanders,
@@ -16,12 +16,15 @@ import { useEdhrecDeckCounts } from './useEdhrecDeckCounts.ts'
 
 export const commanderPageSize = 12
 
+type Section = 'main' | 'broader'
+
 const emptyDiscovery: CommanderDiscovery = { commanders: [], more: false }
 
 /**
- * Commander suggestions for `filters`, paged. With `deckCounts`, tiles get EDHREC deck counts, and
- * the popularity sort orders by them (#514): it reads every loaded commander's identity page, then
- * reorders once when all have settled, so tiles move at most once.
+ * Commander suggestions for `filters`, paged. Paging past the fetched commanders fetches the next
+ * Scryfall page, one request at a time (#485). With `deckCounts`, tiles get EDHREC deck counts, and
+ * the popularity sort orders by them (#514): it reads every fetched commander's identity page, then
+ * reorders each Scryfall page's commanders once their identities settle, so tiles move at most once.
  */
 export function useCommanderDiscovery(
   filters: DiscoveryFilters,
@@ -33,6 +36,7 @@ export function useCommanderDiscovery(
   const [broaderPage, setBroaderPage] = useState(0)
   const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading')
   const [error, setError] = useState('')
+  const nextPages = useNextPages(found, setFound)
   const identity = [...filters.colours].sort().join('')
   const colourMatch = filters.colourMatch ?? 'exactly'
   const search = filters.search.trim().length >= 2 ? filters.search.trim() : ''
@@ -44,6 +48,7 @@ export function useCommanderDiscovery(
   useEffect(() => {
     if (!active) return
     const controller = new AbortController()
+    nextPages.start(controller.signal)
     setStatus('loading')
     setFound(emptyDiscovery)
     setPage(0)
@@ -102,8 +107,7 @@ export function useCommanderDiscovery(
   ])
   return {
     suggestions: shown.suggestions,
-    count: found.commanders.length,
-    more: found.more,
+    ...nextPages.paging('main', found),
     /** Every loaded commander in both sections, once each; random commander can draw from it. */
     loaded,
     page,
@@ -112,8 +116,7 @@ export function useCommanderDiscovery(
     broader: broader && {
       heading: broader.heading,
       suggestions: shown.broader,
-      count: broader.commanders.length,
-      more: broader.more,
+      ...nextPages.paging('broader', broader),
       page: broaderPage,
       setPage: setBroaderPage,
     },
@@ -125,6 +128,68 @@ export function useCommanderDiscovery(
      * then `decks` once suggestions follow deck counts.
      */
     popularity: shown.ranked ? ('decks' as const) : ('rank' as const),
+  }
+}
+
+/**
+ * Fetching each section's next Scryfall page (#485), one request at a time. `start` binds a new
+ * search's signal, which also aborts its page fetches, and clears the fetch state.
+ */
+function useNextPages(
+  found: CommanderDiscovery,
+  setFound: Dispatch<SetStateAction<CommanderDiscovery>>,
+) {
+  /** The section fetching its next page, if any. */
+  const [fetching, setFetching] = useState<Section | null>(null)
+  const [failure, setFailure] = useState<{ section: Section; message: string } | null>(null)
+  const search = useRef<AbortSignal | null>(null)
+  const fetchMore = (section: Section) => {
+    const next = (section === 'main' ? found : found.broader)?.next
+    const signal = search.current
+    if (!next || !signal || fetching) return
+    setFetching(section)
+    setFailure(null)
+    next(signal)
+      .then((matches) => {
+        if (signal.aborted) return
+        setFound((current) =>
+          section === 'main'
+            ? { ...matches, broader: current.broader }
+            : {
+                ...current,
+                broader: current.broader && { ...matches, heading: current.broader.heading },
+              },
+        )
+        setFetching(null)
+      })
+      .catch((reason: unknown) => {
+        if (signal.aborted) return
+        setFetching(null)
+        setFailure({
+          section,
+          message: reason instanceof Error ? reason.message : 'More commanders unavailable.',
+        })
+      })
+  }
+  return {
+    start: (signal: AbortSignal) => {
+      search.current = signal
+      setFetching(null)
+      setFailure(null)
+    },
+    paging: (section: Section, matches: CommanderMatches) => ({
+      count: matches.commanders.length,
+      more: matches.more,
+      /** Scryfall's match count while more pages remain; it can include a few failing legality checks. */
+      total: matches.more ? matches.total : undefined,
+      /** Fetches the next Scryfall page; undefined while one is fetching or none remains. */
+      fetchMore: matches.next && !fetching ? () => fetchMore(section) : undefined,
+      fetching: fetching === section,
+      /** Why this section's last page fetch failed; paging on retries it. */
+      moreError: failure?.section === section ? failure.message : '',
+      /** Scryfall pages fetched. */
+      pages: matches.batches?.length ?? 0,
+    }),
   }
 }
 
@@ -151,13 +216,23 @@ function useShownCommanders(
       : byDeckCount
         ? [...found.commanders, ...broader]
         : [...pageOf(found.commanders, page), ...pageOf(broader, broaderPage)]
-  const { deckCount, pending } = useEdhrecDeckCounts(counted.map(({ card }) => card))
+  const { deckCount, pending, settled } = useEdhrecDeckCounts(counted.map(({ card }) => card))
   const ranked = byDeckCount && status === 'idle' && !pending
-  const order = (commanders: CommanderSuggestion[]) =>
-    ranked ? orderByDeckCount(commanders, deckCount) : commanders
+  // Each Scryfall page reorders on its own once its identities settle, so a fetched page never
+  // moves tiles from earlier pages (#485).
+  const order = ({ commanders, batches = [commanders.length] }: CommanderMatches) =>
+    !byDeckCount || status !== 'idle'
+      ? commanders
+      : batches.flatMap((size, index) => {
+          const start = batches.slice(0, index).reduce((sum, count) => sum + count, 0)
+          const batch = commanders.slice(start, start + size)
+          return batch.every(({ card }) => settled(card))
+            ? orderByDeckCount(batch, deckCount)
+            : batch
+        })
   return {
-    suggestions: pageOf(order(found.commanders), page),
-    broader: pageOf(order(broader), broaderPage),
+    suggestions: pageOf(order(found), page),
+    broader: pageOf(order(found.broader ?? emptyDiscovery), broaderPage),
     deckCount,
     ranked,
   }
