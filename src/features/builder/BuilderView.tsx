@@ -2,8 +2,14 @@ import { LandDropContext } from './LandDropContext.tsx'
 import { finishLabel } from '../../domain/printing.ts'
 import type { BatchRevealState } from './reveal-batch.ts'
 import { RecommendationBatch } from './RecommendationBatch.tsx'
-import { BulkActions } from './BulkActions.tsx'
+import { BulkActions, UndoStatusLine } from './BulkActions.tsx'
 import { bulkAddStatus } from '../../domain/bulk-add.ts'
+import {
+  decisionUndoStatus,
+  setAsideCards,
+  type DecisionUndoRecord,
+} from '../../domain/decision-undo.ts'
+import { SetAsideDialog } from './SetAsideDialog.tsx'
 import { FinishFilters } from '../../shared/FinishFilters.tsx'
 import type { BuilderAction } from '../../domain/builder-state.ts'
 import { creatureTypeForTheme, hasTag } from '../../domain/creature-types.ts'
@@ -115,6 +121,10 @@ type BuilderViewModel = {
   deckReviewFilter: DeckReviewFilter | null
   decisions: Record<string, 'add' | 'later' | 'ignore'>
   ignoreReasons: Record<string, IgnoreReason>
+  ignoredCards: string[]
+  ignoredDetails: Card[]
+  preferenceScores: Record<string, number>
+  lastDecision: DecisionUndoRecord | null
   focusedRole: TargetKey | null
   chooseRoleFocus: (role: TargetKey | null) => Promise<void>
   chooseMaxPrice: (price: number | null) => void
@@ -440,6 +450,39 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   )
   const toSideboard = addsToSideboard(model)
   const recommendationBoard = toSideboard ? sideboard : deck
+  const setAside = setAsideCards(model)
+  const [showSetAside, setShowSetAside] = useState(false)
+  const setAsideButton = (className: string) =>
+    setAside.count > 0 && (
+      <button
+        className={className}
+        type="button"
+        aria-haspopup="dialog"
+        onClick={() => setShowSetAside(true)}
+      >
+        Later & ignored ({setAside.count})
+      </button>
+    )
+  const undoStatusLine = (
+    <UndoStatusLine
+      status={bulkAddStatus(model.bulkAdd, { deck, sideboard })}
+      decision={decisionUndoStatus(model.lastDecision, model)}
+      onUndo={model.undoBulkAdd}
+      onUndoDecision={() => {
+        model.undoDecision()
+        // The Undo button leaves the status line; land on the batch it restored.
+        batchHeading.current?.focus({ preventScroll: true })
+      }}
+      onOpenCard={model.openCardReference}
+      onReview={() => {
+        setDeckDoctorError('')
+        openModal('review')
+      }}
+    />
+  )
+  const zoneToggle = (
+    <AddZoneToggle zone={toSideboard ? 'sideboard' : 'deck'} onChange={model.chooseAddZone} />
+  )
   const unrepresentedBasicNames = legalBasicNames.filter(
     (name) => !groupedBasics.some((group) => group.name === name),
   )
@@ -548,6 +591,24 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           </div>
         </div>
       </section>
+      {showSetAside && (
+        <SetAsideDialog
+          cards={setAside}
+          addBlocked={(card) =>
+            recommendationDataError(
+              card,
+              recommendationBoard,
+              commanderDetails?.colours ?? [],
+              model.excludeGameChangers,
+            )
+          }
+          toSideboard={toSideboard}
+          zoneToggle={zoneToggle}
+          onAction={model.setAside}
+          onOpenCard={model.openCardReference}
+          onClose={() => setShowSetAside(false)}
+        />
+      )}
       {showCollectionBrowser && (
         <CollectionBrowserDialog
           cards={collectionBrowserCards}
@@ -566,12 +627,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           onOpenCard={openCollectionCard}
           onAddCard={addCollectionCard}
           toSideboard={toSideboard}
-          zoneToggle={
-            <AddZoneToggle
-              zone={toSideboard ? 'sideboard' : 'deck'}
-              onChange={model.chooseAddZone}
-            />
-          }
+          zoneToggle={zoneToggle}
         />
       )}
       {deckCardModal}
@@ -843,12 +899,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           ) : scoredBatch.length ? (
             <>
               <BulkActions
-                zoneToggle={
-                  <AddZoneToggle
-                    zone={toSideboard ? 'sideboard' : 'deck'}
-                    onChange={model.chooseAddZone}
-                  />
-                }
+                zoneToggle={zoneToggle}
                 addableCount={
                   scoredBatch.filter(
                     ({ card }) =>
@@ -871,14 +922,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       : ''
                 }
                 note={undecidedNote}
-                status={bulkAddStatus(model.bulkAdd, { deck, sideboard })}
+                setAside={setAsideButton('compact-action')}
+                statusLine={undoStatusLine}
                 onAddAll={model.addAllInBatch}
                 onBuild={model.buildStartingDeck}
-                onUndo={model.undoBulkAdd}
-                onReview={() => {
-                  setDeckDoctorError('')
-                  openModal('review')
-                }}
               />
               <RecommendationBatch
                 batchNumber={batchNumber}
@@ -1120,6 +1167,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                       ? 'Raise or clear your price limit in Recommendation settings.'
                       : 'Review your deck or choose another commander.'}
               </p>
+              {setAsideButton('export')}
+              {/* Advancing the last batch must not strand the undo for its last decision. */}
+              {undoStatusLine}
               {focusedRole && (
                 <button
                   type="button"

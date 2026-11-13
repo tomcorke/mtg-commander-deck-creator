@@ -10,6 +10,7 @@ export function useCurrentCardData(state: ControllerState) {
     ...state.queue.slice(0, 4),
     ...state.deferredCards.map(({ card }) => card),
     ...state.queue.slice(4),
+    ...state.ignoredDetails,
   ].filter((card) => card.dataStatus === 'pending')
   const boundary = state.hydrationBoundary
   const epoch = state.signatureEpoch

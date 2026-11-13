@@ -36,6 +36,9 @@ export function createActionHandlers(deps: AppActionContext) {
     addAllInBatch: () => deckActions.addAllInBatch(deps),
     buildStartingDeck: () => deckActions.buildStartingDeck(deps),
     undoBulkAdd: () => deckActions.undoBulkAdd(deps),
+    undoDecision: () => deckActions.undoDecision(deps),
+    setAside: (name: string, to: 'add' | 'later' | 'return') =>
+      deckActions.setAside(deps, name, to),
     decide: (card: Card, action: 'add' | 'later' | 'ignore') =>
       deckActions.decide(deps, card, action),
     promoteToCommander: (

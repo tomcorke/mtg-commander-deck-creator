@@ -376,7 +376,7 @@ export function deferBatch<T>(
   return batch.flatMap((card): DeferredCard<T>[] => {
     const decision = decisions[name(card)]
     if (decision === 'add' || decision === 'ignore') return []
-    if (decision === 'later') return [{ card, eligibleBatch: batchNumber + 4 }]
+    if (decision === 'later') return [{ card, eligibleBatch: batchNumber + 4, later: true }]
     // Each pass doubles the wait (3, 6, 12, 24 batches), so a card skipped a few times stops returning.
     const undecidedSkips = (undecidedSkipsOf(card) ?? 0) + 1
     return [

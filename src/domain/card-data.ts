@@ -16,6 +16,7 @@ export function pendingDeckData(state: PersistedDeckState): PersistedDeckState {
     sideboard: state.sideboard.map(pending),
     queue: state.queue.map(pending),
     deferredCards: state.deferredCards.map((entry) => ({ ...entry, card: pending(entry.card) })),
+    ...(state.ignoredDetails && { ignoredDetails: state.ignoredDetails.map(pending) }),
   }
 }
 

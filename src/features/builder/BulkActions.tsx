@@ -1,6 +1,14 @@
 import { useState, type ReactNode } from 'react'
+import type { Card } from '../../domain/card-model.ts'
+import { CardReference } from '../../shared/CardReference.tsx'
 
 export type BulkAddStatus = { kind: 'batch' | 'draft'; count: number } | null
+/** The last Add, Later or Ignore, which the status line offers to undo. */
+export type DecisionStatus = {
+  card: Card
+  decision: 'add' | 'later' | 'ignore'
+  board: 'deck' | 'sideboard'
+} | null
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
 
@@ -15,11 +23,10 @@ export function BulkActions({
   busy,
   blockedReason,
   note,
-  status,
+  setAside,
+  statusLine,
   onAddAll,
   onBuild,
-  onUndo,
-  onReview,
 }: {
   zoneToggle: ReactNode
   /** Undecided cards in the batch that can be added now. */
@@ -32,11 +39,12 @@ export function BulkActions({
   blockedReason: string
   /** Batch context shown before the shortcuts, such as the undecided-cards note. */
   note?: ReactNode
-  status: BulkAddStatus
+  /** The Later & ignored button, when cards are set aside. */
+  setAside?: ReactNode
+  /** The undo status line for the last decision or bulk add. */
+  statusLine: ReactNode
   onAddAll: () => void
   onBuild: () => Promise<string>
-  onUndo: () => void
-  onReview: () => void
 }) {
   const [building, setBuilding] = useState(false)
   const [error, setError] = useState('')
@@ -88,6 +96,7 @@ export function BulkActions({
               </span>
             </span>
           )}
+          {setAside}
         </div>
       </div>
       {error && (
@@ -95,39 +104,67 @@ export function BulkActions({
           {error}
         </p>
       )}
-      <BulkAddStatusLine status={status} onUndo={onUndo} onReview={onReview} />
+      {statusLine}
     </div>
   )
 }
 
-/** The last bulk add, with its undo. Always mounted, so screen readers hear the change. */
-function BulkAddStatusLine({
+/** The last decision or bulk add, with its undo. Always mounted, so screen readers hear changes. */
+export function UndoStatusLine({
   status,
+  decision,
   onUndo,
+  onUndoDecision,
+  onOpenCard,
   onReview,
 }: {
   status: BulkAddStatus
+  decision: DecisionStatus
   onUndo: () => void
+  onUndoDecision: () => void
+  onOpenCard: (card: Card) => void
   onReview: () => void
 }) {
+  const name = decision && (
+    <CardReference card={decision.card} onOpen={() => onOpenCard(decision.card)} />
+  )
   return (
     <div className="bulk-actions-status" role="status">
-      {status && (
+      {decision ? (
         <>
           <span>
-            {status.kind === 'draft'
-              ? `Starting deck: the app added ${plural(status.count, 'card')}. It’s an app draft, not a tuned list.`
-              : `Added ${plural(status.count, 'card')} with Add all.`}
+            {decision.decision === 'add' ? (
+              <>
+                Added {name} to the {decision.board}.
+              </>
+            ) : decision.decision === 'later' ? (
+              <>Set {name} aside for later.</>
+            ) : (
+              <>Ignored {name}.</>
+            )}
           </span>
-          <button className="compact-action" type="button" onClick={onUndo}>
-            {status.kind === 'draft' ? 'Undo starting deck' : 'Undo'}
+          <button className="compact-action" type="button" onClick={onUndoDecision}>
+            Undo
           </button>
-          {status.kind === 'draft' && (
-            <button className="compact-action" type="button" onClick={onReview}>
-              Deck review
-            </button>
-          )}
         </>
+      ) : (
+        status && (
+          <>
+            <span>
+              {status.kind === 'draft'
+                ? `Starting deck: the app added ${plural(status.count, 'card')}. It’s an app draft, not a tuned list.`
+                : `Added ${plural(status.count, 'card')} with Add all.`}
+            </span>
+            <button className="compact-action" type="button" onClick={onUndo}>
+              {status.kind === 'draft' ? 'Undo starting deck' : 'Undo'}
+            </button>
+            {status.kind === 'draft' && (
+              <button className="compact-action" type="button" onClick={onReview}>
+                Deck review
+              </button>
+            )}
+          </>
+        )
       )}
     </div>
   )

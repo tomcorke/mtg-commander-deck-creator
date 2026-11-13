@@ -187,6 +187,8 @@ export function planStartingDeck(input: StartingDeckInput, basics: DeckCard[]): 
 }
 
 type Boards = { deck: DeckCard[]; sideboard: DeckCard[] }
+/** The copy accounting an undo needs; a single Add's undo record reuses it. */
+export type AddedCopies = Pick<BulkAddRecord, 'added' | 'baseline'>
 
 const copiesOf = (name: string, boards: Boards) =>
   boards.deck.filter((card) => card.name === name).length +
@@ -198,7 +200,7 @@ export function boardCounts(names: Iterable<string>, boards: Boards) {
 }
 
 /** Copies of each added name still on either board, never counting the player's own copies. */
-export function remainingBulkAdded(record: BulkAddRecord | null, boards: Boards) {
+export function remainingBulkAdded(record: AddedCopies | null, boards: Boards) {
   const remaining = new Map<string, number>()
   if (!record) return remaining
   for (const [name, added] of Object.entries(record.added)) {
@@ -218,7 +220,7 @@ export function bulkAddedNames(record: BulkAddRecord | null, boards: Boards) {
 }
 
 /** Remove the add's surviving copies, newest first: main deck (never commanders), then sideboard. */
-export function removeBulkAdded(record: BulkAddRecord, boards: Boards, commanderCount: number) {
+export function removeBulkAdded(record: AddedCopies, boards: Boards, commanderCount: number) {
   const next = { deck: [...boards.deck], sideboard: [...boards.sideboard] }
   for (const [name, count] of remainingBulkAdded(record, boards))
     for (let copy = 0; copy < count; copy += 1) {

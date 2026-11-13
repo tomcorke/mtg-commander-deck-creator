@@ -17,6 +17,7 @@ export function restoreBuilderState(
         focusedRole: null,
         deckDoctorHistory: [],
         bulkAdd: null,
+        lastDecision: null,
       }
     : createBuilderState(today, id)
   if (!saved) return initial
@@ -39,6 +40,9 @@ export function restoreBuilderState(
     decisions: restoredRecommendationDecisions(saved),
     ignoreReasons: saved.ignoreReasons ?? {},
     ignoredCards: saved.ignoredCards,
+    ignoredDetails: (saved.ignoredDetails ?? []).filter(({ name }) =>
+      saved.ignoredCards.includes(name),
+    ),
     liked: saved.liked,
     preferenceScores: saved.preferenceScores,
     deckTargets: saved.deckTargets,
