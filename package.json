@@ -52,6 +52,7 @@
     "check:early-sidebar:browser": "node --experimental-strip-types scripts/check-early-sidebar-browser.ts",
     "check:print-checklist:browser": "node --experimental-strip-types scripts/check-print-checklist-browser.ts",
     "check:theme-fit:browser": "node --experimental-strip-types scripts/check-theme-fit-browser.ts",
+    "check:generic-pick:browser": "node --experimental-strip-types scripts/check-generic-pick-browser.ts",
     "check:deck-combos:browser": "node --experimental-strip-types scripts/check-deck-combos-browser.ts"
   },
   "dependencies": {

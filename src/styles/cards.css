@@ -1154,6 +1154,26 @@ button:disabled {
   margin: 0;
   pointer-events: none;
 }
+/* Theme first's heuristic mark for an offer matching no theme tag (#560). Neutral tokens: a prompt, not a warning. */
+.card-copy > .generic-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  white-space: normal;
+}
+.generic-pick-label {
+  padding: 0 8px;
+  border: 1px solid var(--border-control);
+  border-radius: 999px;
+  background: var(--surface-inset);
+  color: var(--text-strong);
+  font-size: var(--type-caption);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
 /* A card the player owns, by name. Success tokens theme it in light and dark. */
 .owned-badge {
   align-self: flex-start;

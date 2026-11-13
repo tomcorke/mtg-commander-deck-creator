@@ -74,6 +74,7 @@ import { CommanderSummary } from './CommanderSummary.tsx'
 import { BasicLandDialog } from './BasicLandDialog.tsx'
 import { CollectionBrowserDialog } from './CollectionBrowserDialog.tsx'
 import { HealthLane } from './HealthLane.tsx'
+import { GenericPickNote } from './GenericPickNote.tsx'
 import { TargetCount, ThemeTargetRow } from './ThemeTargetRow.tsx'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
@@ -946,9 +947,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               >
                 {/* eslint-disable-next-line max-lines-per-function -- The offer card remains inline; extracting its established markup has no useful seam. */}
                 {scoredBatch.map(({ card, score }, index) => {
+                  const explanation = explainRecommendation(card)
                   const reason = recommendationReason(
                     card,
-                    explainRecommendation(card),
+                    explanation,
                     [...deck, ...sideboard],
                     model.openCardReference,
                   )
@@ -1042,6 +1044,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             reason.sentence
                           )}
                         </p>
+                        {explanation.generic && <GenericPickNote />}
                         {card.price && (
                           <p className="offer-price">
                             <CardPriceLink card={card} />
