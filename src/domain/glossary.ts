@@ -159,10 +159,17 @@ export const appTerms = {
       'Your deck’s main plan, such as Tokens or Dragons. Recommendations favour cards that fit it.',
     kind: 'app',
   },
-  subTheme: {
-    term: 'Sub-theme',
-    definition: 'Up to two narrower focuses within the theme, such as a creature type or mechanic.',
+  extraTheme: {
+    term: 'Extra theme',
+    definition:
+      'Up to two more themes after the first, such as a creature type or mechanic. Recommendations mix them in.',
     kind: 'app',
+  },
+  suggestedTheme: {
+    term: 'Suggested theme',
+    definition:
+      'A theme that several recently added cards share. Use adds it as a theme; Dismiss hides it until more cards match.',
+    kind: 'heuristic',
   },
   priority: {
     term: 'Priority',

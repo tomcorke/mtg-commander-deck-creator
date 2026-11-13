@@ -299,8 +299,8 @@ function recommendationExplainer(
     const subThemes = activeSubThemes.filter((tag: string) => hasTag(card, tag))
     if (subThemes.length)
       return {
-        label: `${subThemes.join(' + ')} sub-theme`,
-        sentence: `Supports your ${subThemes.join(' and ')} sub-theme${subThemes.length > 1 ? 's' : ''}.`,
+        label: `${subThemes.join(' + ')} theme`,
+        sentence: `Supports your ${subThemes.join(' and ')} theme${subThemes.length > 1 ? 's' : ''}.`,
       }
     if (theme && hasTag(card, theme))
       return { label: `${theme} theme`, sentence: `Fits your ${theme} theme.` }

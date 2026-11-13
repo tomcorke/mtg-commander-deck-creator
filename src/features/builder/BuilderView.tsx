@@ -61,6 +61,7 @@ import { useStoredOption } from '../../shared/hooks.ts'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
 import { CommanderPromotion } from '../../shared/CommanderPromotion.tsx'
 import { ScoreBreakdown } from '../score/ScoreBreakdown.tsx'
+import { appTerms } from '../../domain/glossary.ts'
 import { CommanderCardArt } from './CommanderCardArt.tsx'
 import { ManaCurve } from './ManaCurve.tsx'
 import { CommanderSummary } from './CommanderSummary.tsx'
@@ -404,7 +405,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   const landFillTrigger = useRef<HTMLButtonElement>(null)
   const inPlayStyleStep = Boolean(model.playStyleStep)
   const wasInPlayStyleStep = useRef(inPlayStyleStep)
-  // "+ Creature type" narrows the sub-theme search to creature types until the picker reopens.
+  // "+ Creature type" narrows the theme search to creature types until the picker reopens.
   const [creatureTypesOnly, setCreatureTypesOnly] = useState(false)
   const subThemeInput = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -631,7 +632,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 <button
                   type="button"
                   onClick={() => dispatchBuilder({ type: 'theme', theme: '' })}
-                  title="Remove declared theme"
+                  title={`Remove ${theme} ${appTerms.theme.term.toLowerCase()}`}
                 >
                   {theme} <span>×</span>
                 </button>
@@ -640,38 +641,55 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 <button
                   type="button"
                   onClick={() => dispatchBuilder({ type: 'removeSubTheme', name })}
-                  title={`Remove ${name} sub-theme`}
+                  title={`Remove ${name} ${appTerms.theme.term.toLowerCase()}`}
                   key={name}
                 >
                   {name} <span>×</span>
                 </button>
               ))}
-              {inferredSubThemes.map((inferredSubTheme) => (
-                <span className="suggested-subtheme" key={inferredSubTheme}>
-                  <span>{inferredSubTheme}?</span>
-                  <button
-                    type="button"
-                    onClick={() => chooseSubTheme(inferredSubTheme)}
-                    aria-label={`Accept ${inferredSubTheme} sub-theme`}
+              {inferredSubThemes.map((suggestion) => {
+                const matches = deckCards.filter((card) => hasTag(card, suggestion)).length
+                return (
+                  <span
+                    className="suggested-theme"
+                    role="group"
+                    aria-label={`${appTerms.suggestedTheme.term}: ${suggestion}`}
+                    key={suggestion}
                   >
-                    ✓
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      dispatchBuilder({
-                        type: 'dismissSubTheme',
-                        name: inferredSubTheme,
-                        evidenceCount: deckCards.filter((card) => hasTag(card, inferredSubTheme))
-                          .length,
-                      })
-                    }
-                    aria-label={`Dismiss ${inferredSubTheme} sub-theme`}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+                    <span className="suggested-theme-text">
+                      <span>
+                        {appTerms.suggestedTheme.term}: <b>{suggestion}</b>
+                      </span>
+                      <small>
+                        {matches} {matches === 1 ? 'card' : 'cards'} in your deck{' '}
+                        {matches === 1 ? 'matches' : 'match'}
+                      </small>
+                    </span>
+                    <span className="suggested-theme-actions">
+                      <button
+                        type="button"
+                        onClick={() => chooseSubTheme(suggestion)}
+                        aria-label={`Use ${suggestion} as a theme`}
+                      >
+                        Use
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          dispatchBuilder({
+                            type: 'dismissSubTheme',
+                            name: suggestion,
+                            evidenceCount: matches,
+                          })
+                        }
+                        aria-label={`Dismiss ${suggestion} suggestion`}
+                      >
+                        Dismiss
+                      </button>
+                    </span>
+                  </span>
+                )
+              })}
               {activeSubThemes.length < 2 && (
                 <button
                   className="add-subtheme"
@@ -681,7 +699,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     setShowSubThemePicker((current) => !current)
                   }}
                 >
-                  + Choose sub-theme
+                  {theme || activeSubThemes.length
+                    ? `+ Add ${appTerms.extraTheme.term.toLowerCase()}`
+                    : `+ Choose ${appTerms.theme.term.toLowerCase()}`}
                 </button>
               )}
             </div>
@@ -740,8 +760,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 ref={subThemeInput}
                 value={subThemeSearch}
                 onChange={(event) => setSubThemeSearch(event.target.value)}
-                placeholder={creatureTypesOnly ? 'Search creature types…' : 'Search sub-themes…'}
-                aria-label={creatureTypesOnly ? 'Search creature types' : 'Search sub-themes'}
+                placeholder={creatureTypesOnly ? 'Search creature types…' : 'Search themes…'}
+                aria-label={creatureTypesOnly ? 'Search creature types' : 'Search themes'}
               />
               <div>
                 {filteredSubThemes
