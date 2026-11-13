@@ -1226,6 +1226,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             </p>
             <ManaCurve
               analysis={analysis}
+              commanders={deck.slice(0, commanderNames(commander).length)}
               selected={highlightedManaValue}
               onSelect={(manaValue) => {
                 setDeckReviewFilter(null)
@@ -1236,15 +1237,15 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <h4>Colour balance</h4>
               {(
                 [
-                  ['Cost symbols', analysis.required],
-                  ['Sources', analysis.produced],
+                  ['Cost symbols', analysis.required, 'No cost symbols yet'],
+                  ['Sources', analysis.produced, 'No mana sources yet'],
                 ] as const
-              ).map(([label, values]) => (
+              ).map(([label, values, empty]) => (
                 <div className="mana-balance-row" key={label}>
                   <span>{label}</span>
-                  <div className="colour-bar">
-                    {manaSymbols.some((colour) => values[colour] > 0) ? (
-                      manaSymbols
+                  {manaSymbols.some((colour) => values[colour] > 0) ? (
+                    <div className="colour-bar">
+                      {manaSymbols
                         .filter((colour) => values[colour] > 0)
                         .map((colour) => (
                           <span
@@ -1259,11 +1260,12 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                               {values[colour]}
                             </b>
                           </span>
-                        ))
-                    ) : (
-                      <span className="colour-empty">None</span>
-                    )}
-                  </div>
+                        ))}
+                    </div>
+                  ) : (
+                    // An empty row is normal early on, so it reads as a note, not a gap (#508).
+                    <span className="colour-bar-note">{empty}</span>
+                  )}
                 </div>
               ))}
             </div>

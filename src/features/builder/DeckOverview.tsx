@@ -280,7 +280,12 @@ export function DeckOverview({
             {' · '}
             {expensiveCount} cost 5 or more. Select a bar to highlight those cards in the deck list.
           </p>
-          <ManaCurve analysis={analysis} selected={null} onSelect={selectManaValue} />
+          <ManaCurve
+            analysis={analysis}
+            commanders={deck.slice(0, commanderCount)}
+            selected={null}
+            onSelect={selectManaValue}
+          />
         </section>
 
         <section className="deck-review-section">
