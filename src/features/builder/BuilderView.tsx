@@ -1237,10 +1237,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               <h4>Colour balance</h4>
               {(
                 [
-                  ['Cost symbols', analysis.required],
-                  ['Sources', analysis.produced],
+                  ['Cost symbols', analysis.required, 'No cost symbols yet'],
+                  ['Sources', analysis.produced, 'No mana sources yet'],
                 ] as const
-              ).map(([label, values]) => (
+              ).map(([label, values, empty]) => (
                 <div className="mana-balance-row" key={label}>
                   <span>{label}</span>
                   {manaSymbols.some((colour) => values[colour] > 0) ? (
@@ -1264,9 +1264,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                     </div>
                   ) : (
                     // An empty row is normal early on, so it reads as a note, not a gap (#508).
-                    <span className="colour-bar-note">
-                      {label === 'Sources' ? 'No mana sources yet' : 'No cost symbols yet'}
-                    </span>
+                    <span className="colour-bar-note">{empty}</span>
                   )}
                 </div>
               ))}

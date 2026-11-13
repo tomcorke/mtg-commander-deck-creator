@@ -511,11 +511,7 @@
 .basic-land-balance .colour-bar {
   height: 28px;
 }
-.basic-land-balance /* Stands in for an empty colour bar at the same height (#508). */
-.colour-bar-note {
-  line-height: 24px;
-}
-.colour-empty {
+.basic-land-balance .colour-empty {
   width: auto;
 }
 .basic-land-balance p {
