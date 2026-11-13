@@ -73,6 +73,7 @@ export function parseComboIndex(value: unknown): ComboIndex {
   if (
     !metadata ||
     !isString(metadata.exportedAt) ||
+    Number.isNaN(Date.parse(metadata.exportedAt)) ||
     !isString(metadata.exportVersion) ||
     !isString(metadata.generatedAt)
   )
@@ -200,8 +201,11 @@ export function findDeckCombos(
   for (const row of index.combos) {
     const missing = missingCard(row[1], present, commanders)
     if (missing === complete) included.push(decodeCombo(index, row))
-    else if (missing >= 0 && [...row[3]].every((colour) => identity.has(colour)))
-      nearMisses.set(missing, [...(nearMisses.get(missing) ?? []), decodeCombo(index, row)])
+    else if (missing >= 0 && [...row[3]].every((colour) => identity.has(colour))) {
+      const combos = nearMisses.get(missing) ?? []
+      combos.push(decodeCombo(index, row))
+      nearMisses.set(missing, combos)
+    }
   }
   return {
     included: included.sort(byPopularity),

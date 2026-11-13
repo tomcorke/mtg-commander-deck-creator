@@ -92,6 +92,10 @@ test('builds Scryfall image URLs only from stored id keys', () => {
 
 test('rejects malformed artifacts', () => {
   assert.throws(() => parseComboIndex({ ...index, version: 2 }), /version/)
+  assert.throws(
+    () => parseComboIndex({ ...index, metadata: { ...index.metadata, exportedAt: 'soon' } }),
+    /metadata/,
+  )
   assert.throws(() => parseComboIndex({ ...index, combos: [['x', [99], [], 'B', 1]] }), /combos/)
   assert.throws(() => parseComboIndex({ ...index, cards: [['', null, null]] }), /cards/)
 })

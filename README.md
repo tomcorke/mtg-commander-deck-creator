@@ -11,7 +11,7 @@ pnpm install
 pnpm dev
 ```
 
-Vite prints the local URL and reloads the page after source changes. Live fetching works without generated data. Run `pnpm build:card-index` to enable the optional local card pool during development, and `pnpm build:combo-index` for Deck review's known combos ([combo data](docs/domain/combo-data.md)); `pnpm build` generates it automatically using a daily bulk-data cache and a validated previous-index fallback. See [local card index](docs/domain/local-card-index.md) for coverage, freshness and measured sizes.
+Vite prints the local URL and reloads the page after source changes. Live fetching works without generated data. Run `pnpm build:card-index` to enable the optional local card pool during development, and `pnpm build:combo-index` for Deck review's known combos ([combo data](docs/domain/combo-data.md)); `pnpm build` generates both automatically using daily bulk-data caches and a validated previous-index fallback. See [local card index](docs/domain/local-card-index.md) for coverage, freshness and measured sizes.
 
 ## Checks
 

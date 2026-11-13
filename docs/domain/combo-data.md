@@ -36,7 +36,7 @@ Measured on 2026-11-13 from the 2026-11-13T14:13 export: 113,628 combos over 7,3
 `findDeckCombos` (`src/domain/combo-index.ts`) applies the find-my-combos rules a client can check, on the main deck only (sideboard excluded). Cards match by Oracle ID, then by name for legacy saved cards.
 
 - **In this deck:** every piece is present, and any piece Spellbook says must be the commander is a commander.
-- **One card away:** exactly one piece is missing, it need not be the commander, and the combo's colour identity fits the commander's. Results are grouped by the missing card, most combos first.
+- **One card away:** exactly one piece is missing, it is not one that must be the commander, and the combo's colour identity fits the commander's. Results are grouped by the missing card, most combos first.
 - Combos that need a different commander are skipped.
 
 On the Meren audit list from `docs/agents/design-conventions.md`, these rules returned the same included combo and the same 24 one-away combos as Spellbook's `find-my-combos` on 2026-11-13.
