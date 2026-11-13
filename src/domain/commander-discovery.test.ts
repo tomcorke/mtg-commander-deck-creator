@@ -3,11 +3,13 @@ import test from 'node:test'
 import type { ScryfallCard } from './card-model.ts'
 import {
   discoverCommanders,
+  discoveredCards,
   discoveryNames,
   discoveryQueries,
   filterCommanders,
   orderByDeckCount,
   orderCommanders,
+  pickRandomCommander,
   scryfallPageSize,
   type CommanderSort,
 } from './commander-discovery.ts'
@@ -391,4 +393,33 @@ test('a curated theme adds broader rules-text matches in their own section, neve
   )
   assert.equal(hug.broader, undefined)
   assert.equal(queries.length, 0)
+})
+
+test('random commander draws from loaded results, once per Oracle card, avoiding the last pick', () => {
+  const first = card('First')
+  const second = card('Second')
+  const found = {
+    commanders: [{ card: first, reason: '' }],
+    more: false,
+    broader: {
+      heading: '',
+      more: false,
+      commanders: [
+        { card: second, reason: '' },
+        { card: first, reason: '' },
+      ],
+    },
+  }
+  const cards = discoveredCards(found)
+  assert.deepEqual(
+    cards.map(({ name }) => name),
+    ['First', 'Second'],
+  )
+  assert.equal(pickRandomCommander(cards, undefined, () => 0.99)?.name, 'Second')
+  assert.equal(pickRandomCommander(cards, 'Second', () => 0.99)?.name, 'First')
+  assert.equal(pickRandomCommander([first], 'First', () => 0)?.name, 'First')
+  assert.equal(
+    pickRandomCommander([], undefined, () => 0),
+    undefined,
+  )
 })

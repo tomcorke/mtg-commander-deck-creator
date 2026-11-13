@@ -76,6 +76,13 @@ await withBrowser('RANDOM_COMMANDER', 5294, async (browser, base) => {
     await open()
     assert.equal(queries[0], 'is:commander legal:commander date<=today')
     assert.equal(await dialog.locator('.deck-card-description').innerText(), commander.oracle_text)
+    // #486: the type line comes first; power/toughness follows the rules text on its own.
+    assert.equal(await dialog.locator('.card-type-line').first().innerText(), commander.type_line)
+    assert.equal(
+      await dialog.locator('.card-power-toughness').textContent(),
+      `Power and toughness ${commander.power}/${commander.toughness}`,
+    )
+    assert(await pressed('All commanders'), 'draws ignore filters by default')
     assert(await dialog.getByRole('listitem').filter({ hasText: 'Tokens' }).count())
     assert(
       await button(dialog, 'Cancel random commander').evaluate(
@@ -142,6 +149,7 @@ await withBrowser('RANDOM_COMMANDER', 5294, async (browser, base) => {
     assert((await dialog.innerText()).includes('No themes identified'))
     await button(dialog, 'Cancel').click()
     draws.shift()
+    await checkFilteredDraws()
     await renderLayouts()
     await button(dialog, 'Select and continue').click()
     await page.getByRole('heading', { name: 'How do you want to play?', exact: true }).waitFor()
@@ -150,6 +158,52 @@ await withBrowser('RANDOM_COMMANDER', 5294, async (browser, base) => {
   } finally {
     release?.()
     await scenario.context.close()
+  }
+  async function pressed(label: string) {
+    return (await button(dialog, label).getAttribute('aria-pressed')) === 'true'
+  }
+  async function search(text: string) {
+    await page.getByRole('textbox', { name: 'Search commanders', exact: true }).fill(text)
+  }
+  /** #486: "My filters" draws from the Start results, with an empty state when there are none. */
+  async function checkFilteredDraws() {
+    const output = process.env.RANDOM_COMMANDER_SCREENSHOTS
+    await button(page, 'Clear filters').click()
+    await open()
+    assert.equal(await dialog.getByRole('group', { name: 'Draw from' }).count(), 0)
+    await button(dialog, 'Cancel').click()
+    await search('Unmatched filter')
+    await open()
+    let drawn = queries.length
+    await button(dialog, 'My filters').click()
+    await dialog.getByRole('heading', { name: 'No commanders match your filters' }).waitFor()
+    assert(await pressed('My filters'))
+    assert(await button(dialog, 'Re-roll').isDisabled())
+    assert(await button(dialog, 'Select and continue').isDisabled())
+    assert.equal(queries.length, drawn, 'filtered draws make no random request')
+    if (output) await page.screenshot({ path: join(output, 'random-filters-empty.png') })
+    await button(dialog, 'Draw from all commanders').click()
+    await dialog.locator('.card-reference-name').waitFor()
+    assert(await pressed('All commanders'))
+    assert.equal(queries.length, drawn + 1)
+    await button(dialog, 'Cancel').click()
+    await search('Random')
+    await page.locator('.commander-choose').first().waitFor()
+    await open()
+    drawn = queries.length
+    await button(dialog, 'My filters').click()
+    await dialog.locator('.card-reference-name').waitFor()
+    const pool = [second.name, blank.name]
+    const first = await dialog.locator('.card-reference-name').innerText()
+    assert(pool.includes(first), `filtered draw ${first}`)
+    assert((await dialog.innerText()).includes('from your 2 filtered results: Name: Random.'))
+    if (output) await page.screenshot({ path: join(output, 'random-filters.png') })
+    await button(dialog, 'Re-roll').click()
+    await dialog.locator('.card-reference-name').waitFor()
+    const next = await dialog.locator('.card-reference-name').innerText()
+    assert(pool.includes(next) && next !== first, `re-roll changes ${first} to ${next}`)
+    assert.equal(queries.length, drawn, 'filtered draws make no random request')
+    await button(dialog, 'Cancel').click()
   }
   async function renderLayouts() {
     const output = process.env.RANDOM_COMMANDER_SCREENSHOTS

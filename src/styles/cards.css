@@ -1071,28 +1071,30 @@ button:disabled {
   font-size: var(--type-body);
 }
 
-/* Identified-theme chips: labels, not toggles, so they take the selected tint without a control border. */
+/* Identified themes are labels, not controls: plain dot-separated text, never a pill or tint (#486). */
 .identified-themes-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 2px 0;
   padding: 0;
   list-style: none;
 }
 .identified-themes-list > li {
-  padding: 4px 10px;
-  border: 1px solid var(--selected-border);
-  border-radius: 16px;
-  background: var(--selected-background);
+  display: block;
+  padding: 0;
+  border: 0;
   color: var(--text-body);
+  font-weight: 600;
+}
+.identified-themes-list > li + li::before {
+  margin: 0 8px;
+  color: var(--text-muted);
+  font-weight: 400;
+  content: '·' / '';
 }
 .card-tile-caption > .identified-themes-list {
-  gap: 4px;
   margin: 2px 0 0;
   font-size: var(--type-data);
-}
-.card-tile-caption > .identified-themes-list > li {
-  padding: 1px 8px;
 }
 
 /* Keep the fan transform on the outer wrapper; reveal geometry lives inside its canvas. */

@@ -675,6 +675,16 @@ export function StartView(props: StartViewProps) {
           onClose={() => setRandomCommanderOpen(false)}
           chooseCommander={props.chooseCommander}
           openCard={props.openCardReference}
+          filtered={
+            summary === 'All commanders'
+              ? undefined
+              : {
+                  summary,
+                  status: discovery.status,
+                  cards: discovery.loaded,
+                  more: discovery.more || Boolean(discovery.broader?.more),
+                }
+          }
         />
       )}
       {partnerFor && (

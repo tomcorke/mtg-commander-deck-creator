@@ -335,3 +335,30 @@ export async function discoverPartners(
     .map((card) => ({ card, reason: `Partners with ${first.name}` }))
   return { commanders, more: cards.length >= scryfallPageSize }
 }
+
+/** Every loaded commander in `found`, curated picks then broader matches, once per Oracle card. */
+export function discoveredCards(found: CommanderDiscovery) {
+  const seen = new Set<string>()
+  return [...found.commanders, ...(found.broader?.commanders ?? [])]
+    .map(({ card }) => card)
+    .filter((card) => {
+      const key = card.oracle_id ?? card.name
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
+/**
+ * A uniform random pick from `cards`, avoiding `previous` (an Oracle ID) while another card is
+ * available, so a re-roll changes the commander (#486). Undefined when `cards` is empty.
+ */
+export function pickRandomCommander(
+  cards: readonly ScryfallCard[],
+  previous?: string,
+  random = Math.random,
+) {
+  const fresh = cards.filter((card) => (card.oracle_id ?? card.name) !== previous)
+  const pool = fresh.length ? fresh : cards
+  return pool[Math.floor(random() * pool.length)]
+}

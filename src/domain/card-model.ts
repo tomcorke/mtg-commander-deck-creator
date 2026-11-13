@@ -251,8 +251,9 @@ export const toDeckCard = (card: ScryfallCard): DeckCard => ({
   printing: 0,
 })
 
-export const cardTypeLine = (card: Pick<DeckCard, 'typeLine' | 'power' | 'toughness'>) =>
-  card.power && card.toughness ? `${card.power}/${card.toughness} ${card.typeLine}` : card.typeLine
+/** "2/3" for a creature card, shown after its rules text as printed cards do (#486). */
+export const cardPowerToughness = (card: Pick<DeckCard, 'power' | 'toughness'>) =>
+  card.power && card.toughness ? `${card.power}/${card.toughness}` : undefined
 
 export const cardScryfallUri = (card: Pick<DeckCard, 'scryfallUri' | 'set' | 'collectorNumber'>) =>
   card.scryfallUri ??

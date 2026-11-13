@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react'
 
-import { cardSourceLink, cardTypeLine, type DeckCard } from '../domain/card-model.ts'
+import { cardPowerToughness, cardSourceLink, type DeckCard } from '../domain/card-model.ts'
 import { ArtLoading, FinishedCardImage } from './CardArt.tsx'
 import { CardDetails } from './CardDetails.tsx'
 import { OracleText } from './ManaSymbols.tsx'
@@ -25,6 +25,7 @@ export function CardDetailContent({
   collectionSelected?: boolean
   children?: ReactNode
 }) {
+  const powerToughness = cardPowerToughness(card)
   return (
     <div className="deck-card-modal-content">
       <figure className="deck-card-modal-art">
@@ -50,10 +51,16 @@ export function CardDetailContent({
             <OracleText text={card.manaCost} />
           </span>
         </div>
-        <p className="card-type-line">{cardTypeLine(card)}</p>
+        <p className="card-type-line">{card.typeLine}</p>
         <p className="deck-card-description">
           <OracleText text={card.detail} />
         </p>
+        {powerToughness && (
+          <p className="card-power-toughness">
+            <span className="sr-only">Power and toughness </span>
+            {powerToughness}
+          </p>
+        )}
         {children}
         <CardDetails
           card={card}
