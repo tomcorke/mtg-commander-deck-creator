@@ -18,8 +18,8 @@ export function saveOwnedCards(deps: AppActionContext, cards: OwnedCard[] | null
   builderAction(deps, { type: 'ownedCards', list })
 }
 
-/** Names the local card index does not know as Commander-legal cards; null without the index. */
-export async function unrecognisedOwnedNames(deps: AppActionContext, cards: OwnedCard[]) {
+/** Local-index cards for these owned cards, keyed by `cardNameKey`; null without the index. */
+async function indexedOwnedCards(deps: AppActionContext, cards: OwnedCard[]) {
   if (!deps.fetchLocalCards || !cards.length) return null
   try {
     const found: ScryfallCard[] = await deps.fetchLocalCards({
@@ -27,11 +27,22 @@ export async function unrecognisedOwnedNames(deps: AppActionContext, cards: Owne
       names: cards.map(({ name }) => cardNameKey(name)),
     })
     if (deps.localCardIndexStatus?.().state === 'unavailable') return null
-    const known = new Set(found.map(({ name }) => cardNameKey(name)))
-    return cards.filter(({ name }) => !known.has(cardNameKey(name))).map(({ name }) => name)
+    return new Map(found.map((card) => [cardNameKey(card.name), card]))
   } catch {
     return null
   }
+}
+
+/** Names the local card index does not know as Commander-legal cards; null without the index. */
+export async function unrecognisedOwnedNames(deps: AppActionContext, cards: OwnedCard[]) {
+  const known = await indexedOwnedCards(deps, cards)
+  return known && cards.filter(({ name }) => !known.has(cardNameKey(name))).map(({ name }) => name)
+}
+
+/** Owned cards the local index knows, as cards with art for previews; null without the index. */
+export async function resolveOwnedCards(deps: AppActionContext, cards: OwnedCard[]) {
+  const known = await indexedOwnedCards(deps, cards)
+  return known && new Map([...known].map(([key, card]) => [key, toDeckCard(card)]))
 }
 
 /** Card details for an owned name: the local index when it knows the card, else Scryfall. */

@@ -248,6 +248,7 @@ function renderModals(props: AppViewProps) {
           saveOwnedCards={props.actions.saveOwnedCards}
           unrecognisedOwnedNames={props.actions.unrecognisedOwnedNames}
           openOwnedCard={props.actions.openOwnedCard}
+          resolveOwnedCards={props.actions.resolveOwnedCards}
           closeModal={() => props.actions.closeModal()}
         />
       </>
@@ -535,6 +536,7 @@ function DeckReviewScreen({
         chooseTheme={() => void (state.setShowSubThemePicker(true), closePage())}
         startingDeck={startingDeckSummary(state.bulkAdd, boards)}
         undoStartingDeck={actions.undoBulkAdd}
+        ownedCards={state.ownedCards}
       />
       {modals.importModal}
       {modals.savedDecksModal}
