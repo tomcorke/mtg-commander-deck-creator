@@ -109,7 +109,8 @@ const effectClauses = (text: string) =>
       .replace(/^[^:]*:\s*/, '')
       .replace(/^(?:when(?:ever)?|at the beginning)[^,]*,\s*/i, ''),
   )
-const isWipe = (text: string) =>
+/** Mass-removal wording; see `rolesForCard` for its limits. */
+export const isWipe = (text: string) =>
   effectClauses(text).some(
     (effect) =>
       !/from [^.]*graveyard|(?:destroy|exile|return) (?:all|each) [^,.]*you control|damage to each (?:\w+ )?creature you control/i.test(

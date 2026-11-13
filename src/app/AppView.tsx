@@ -187,6 +187,7 @@ function RecommendationSettingsView({ state, actions, builderData }: AppViewProp
       chooseMaxPrice={actions.chooseMaxPrice}
       deckBudget={state.deckBudget}
       includeCreature={state.includeCreature}
+      opposingStrategies={state.opposingStrategies}
       collectionSearch={state.collectionSearch}
       setCollectionSearch={state.setCollectionSearch}
       collectionSets={state.collectionSets}
@@ -547,6 +548,7 @@ function DeckReviewScreen({
         closePage={closePage}
         undoSwap={actions.undoDeckDoctorSwap}
         chooseTheme={() => void (state.setShowSubThemePicker(true), closePage())}
+        opposingStrategies={state.opposingStrategies}
         startingDeck={startingDeckSummary(state.bulkAdd, boards)}
         undoStartingDeck={actions.undoBulkAdd}
         ownedCards={state.ownedCards}

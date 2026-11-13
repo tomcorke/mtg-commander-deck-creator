@@ -17,8 +17,13 @@ import {
   type ManaGuidanceSymbol,
 } from '../../deck-analysis.ts'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
-import { appTerms } from '../../domain/glossary.ts'
-import type { PowerTarget } from '../../domain/recommendation-types.ts'
+import { appTerms, opposingStrategyTerms } from '../../domain/glossary.ts'
+import {
+  opposingAnswerCoverage,
+  opposingAnswerTarget,
+  normalizeOpposingStrategies,
+} from '../../domain/opposing-strategies.ts'
+import type { OpposingStrategy, PowerTarget } from '../../domain/recommendation-types.ts'
 import { DeckCombos } from './DeckCombos.tsx'
 import { useDeckCombos } from './useDeckCombos.ts'
 import { ManaCurve } from './ManaCurve.tsx'
@@ -38,6 +43,9 @@ type DeckOverviewProps = {
   selectManaValue: (value: number) => void
   selectCards: (label: string, cardNames: string[]) => void
   chooseTheme?: () => void
+  /** Expected opponents (#503); Deck review counts answers to each. */
+  opposingStrategies?: OpposingStrategy[]
+  chooseOpponents?: () => void
   /** Main-deck copies owned cards do not cover; absent without owned cards. */
   stillNeeded?: { count: number; show: () => void }
   powerTarget: PowerTarget
@@ -101,6 +109,8 @@ export function DeckOverview({
   selectManaValue,
   selectCards,
   chooseTheme,
+  opposingStrategies = [],
+  chooseOpponents,
   stillNeeded,
   powerTarget,
   openCard,
@@ -166,6 +176,11 @@ export function DeckOverview({
   ).length
   const hasColourSignal = colourStats.some(({ pips, sourceCards }) => pips || sourceCards.length)
   const selectedTagsFound = selectedCoverage.filter(({ cards }) => cards.length > 0).length
+  // Commanders count, as they do for roles.
+  const answerCoverage = opposingAnswerCoverage(
+    deck,
+    normalizeOpposingStrategies(opposingStrategies),
+  )
   const combos = useDeckCombos(deck, commanderCount, commanderColours)
   const twoCardCombos =
     combos.status === 'ready'
@@ -375,6 +390,60 @@ export function DeckOverview({
               )
             })}
           </div>
+        </section>
+
+        <section className="deck-review-section expected-opponents-review">
+          <h3>{appTerms.expectedOpponents.term}</h3>
+          <p>
+            A heuristic: cards whose rules text reads as an answer to each strategy you expect to
+            face, against an app target of {opposingAnswerTarget}. Text matching can miss answers or
+            count weak ones. Select a row to highlight matching cards.
+          </p>
+          {answerCoverage.length ? (
+            <div className="deck-review-types">
+              {answerCoverage.map(({ strategy, cards }) => {
+                const { term, answers } = opposingStrategyTerms[strategy]
+                const gap = Math.max(0, opposingAnswerTarget - cards.length)
+                return (
+                  <FilterButton
+                    key={strategy}
+                    label={`Answers to ${answers}`}
+                    count={cards.length}
+                    className="deck-review-type-filter deck-review-opponent-filter"
+                    onClick={() => selectCards(`Answers to ${answers}`, cardNames(cards))}
+                  >
+                    <span className="deck-review-row-heading">
+                      <b>{term}</b>
+                      <strong>
+                        {cards.length} / {opposingAnswerTarget}
+                      </strong>
+                    </span>
+                    <span className="deck-review-ratio">
+                      <i
+                        style={{
+                          width: `${Math.min(100, (cards.length / opposingAnswerTarget) * 100)}%`,
+                        }}
+                      />
+                    </span>
+                    <ReviewStatus
+                      early={early}
+                      kind={gap ? 'attention' : 'good'}
+                      label={gap ? `${gap} below target` : 'Target met'}
+                    />
+                  </FilterButton>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="deck-review-empty-action">
+              <p className="deck-review-empty">No expected opponents chosen.</p>
+              {chooseOpponents && (
+                <button className="export" type="button" onClick={chooseOpponents}>
+                  Choose expected opponents
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="deck-review-section">

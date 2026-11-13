@@ -475,6 +475,8 @@ type QueueScoreSettings = Pick<
   | 'remainingBudget'
   | 'ownedCards'
   | 'ownershipMode'
+  | 'opposingStrategies'
+  | 'opposingAnswerCounts'
 >
 
 const queueScoreSettings = ({
@@ -485,6 +487,8 @@ const queueScoreSettings = ({
   remainingBudget,
   ownedCards,
   ownershipMode,
+  opposingStrategies,
+  opposingAnswerCounts,
 }: QueueScoreSettings): QueueScoreSettings => ({
   tagCounts,
   packageCounts,
@@ -493,6 +497,8 @@ const queueScoreSettings = ({
   remainingBudget,
   ownedCards,
   ownershipMode,
+  opposingStrategies,
+  opposingAnswerCounts,
 })
 
 export function advanceRecommendationQueue<

@@ -148,6 +148,8 @@ export const persistedDeckStateSchema = z.object({
   }),
   // Older saves have none; restore uses the default (#501).
   themeTarget: z.number().nonnegative().optional(),
+  // Expected opponents (#503). Older saves have none; unknown names are dropped on restore.
+  opposingStrategies: z.array(z.string()).optional(),
 })
 
 // Full-object card lists and compact field tables are both valid on disk.
@@ -264,6 +266,7 @@ export function comparableDeckState(state: PersistedDeckState) {
     deckBudget: state.deckBudget ?? null,
     ignoredDetails: state.ignoredDetails ?? [],
     themeTarget: state.themeTarget ?? defaultThemeTarget,
+    opposingStrategies: state.opposingStrategies ?? [],
   }
   return JSON.stringify(deckStateForStorage(withDefaults), sortKeys)
 }

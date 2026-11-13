@@ -500,3 +500,56 @@ test('Theme first marks offers that match no selected theme as generic picks (#5
     assert.equal(explainer({ recommendationStyle: style })(signet).generic, undefined, style)
   assert.equal(explainer({ recommendationStyle: 'thematic', theme: '' })(signet).generic, undefined)
 })
+
+test('answers to expected opponents lead offers as labelled heuristics (#503)', () => {
+  const card = (name: string, extra: Record<string, unknown> = {}) => ({
+    name,
+    layout: 'normal',
+    typeLine: 'Instant',
+    manaCost: '{1}{G}',
+    manaValue: 2,
+    detail: '',
+    producedMana: [],
+    faces: [],
+    reason: 'Commander synergy',
+    source: 'scryfall',
+    tags: [],
+    set: 'tst',
+    ...extra,
+  })
+  const deps = builderDeps([], {
+    commander: 'Test Commander',
+    theme: 'Tokens',
+    opposingStrategies: ['graveyard', 'artifacts', 'big-creatures'],
+  })
+  const data = buildBuilderData(deps)
+  const explain = (item: unknown) => data.explainRecommendation(item as never)
+  const beast = card('Beast Within', {
+    source: 'edhrec',
+    inclusion: 40,
+    detail: 'Destroy target permanent. Its controller creates a 3/3 green Beast creature token.',
+  })
+  assert.deepEqual(explain(beast), {
+    label: 'Answers artifact decks',
+    sentence:
+      'Heuristic text match for artifact decks: “Destroy target permanent.” Also matches big creatures. In 40% of Test Commander decks on EDHREC.',
+    answers: true,
+  })
+  // Theme fit still leads; the answer follows it.
+  const maker = card('Token Hate', {
+    tags: ['Tokens'],
+    detail: 'Create a 1/1 green Saproling creature token.\nExile target player’s graveyard.',
+  })
+  assert.match(
+    explain(maker).sentence,
+    /^Text matches your Tokens theme: .* Text also reads as an answer to graveyard decks\.$/,
+  )
+  // Unselected strategies give no answer reason.
+  const counter = card('Counterspell', { detail: 'Counter target spell.' })
+  assert.equal(explain(counter).label, 'Targeted removal')
+  assert.match(
+    data.recommendationSettingsSummary,
+    /Expecting Graveyard decks, Artifact decks, Big creatures/,
+  )
+  assert.doesNotMatch(buildBuilderData(builderDeps([])).recommendationSettingsSummary, /Expecting/)
+})

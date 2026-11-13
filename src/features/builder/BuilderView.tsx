@@ -197,7 +197,7 @@ function neediestTarget(counts: DeckTargets, targets: DeckTargets) {
 
 function recommendationReason(
   card: Card,
-  explanation: { label: string; sentence: string; themeFit?: true },
+  explanation: { label: string; sentence: string; themeFit?: true; answers?: true },
   selected: DeckCard[],
   onOpen: (card: DeckCard) => void,
 ) {
@@ -215,8 +215,8 @@ function recommendationReason(
   ) : (
     'Often played with a card you picked earlier.'
   )
-  // Theme fit stays first (#501); the engine evidence follows it.
-  if (explanation.themeFit)
+  // Theme fit (#501) and expected-opponent answers (#503) stay first; the engine evidence follows.
+  if (explanation.themeFit || explanation.answers)
     return {
       label: explanation.label,
       sentence: (

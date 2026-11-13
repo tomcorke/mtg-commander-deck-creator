@@ -22,6 +22,16 @@ export function normalizeRecommendationStyle(value: unknown): RecommendationStyl
   if (value === 'competitive' || value === 'optimized') return 'competitive'
   return 'balanced'
 }
+/** Opposing strategies the player expects to face (#503); see `opposing-strategies.ts`. */
+export const opposingStrategies = [
+  'graveyard',
+  'artifacts',
+  'tokens',
+  'combo',
+  'big-creatures',
+  'spellslinger',
+] as const
+export type OpposingStrategy = (typeof opposingStrategies)[number]
 export type CollectionMode = 'none' | 'prefer' | 'only'
 export type RecommendationSource = 'edhrec' | 'scryfall'
 export type BatchPlacementReason =
@@ -114,6 +124,7 @@ export const recommendationScoreFactorMaximums = Object.freeze({
   popularityPenalty: 15,
   powerFitPenalty: 8,
   package: 8,
+  opposingAnswers: 10,
 } as const)
 export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> &
   Partial<
@@ -165,6 +176,10 @@ export type RecommendationScoreContext = {
   remainingBudget?: number | null
   ownedCards?: OwnedQuantities
   ownershipMode?: OwnershipMode
+  /** Strategies the player expects to face; cards that answer them score higher (#503). */
+  opposingStrategies?: OpposingStrategy[]
+  /** Main-deck answers already counted for each selected strategy. */
+  opposingAnswerCounts?: Partial<Record<OpposingStrategy, number>>
 }
 export type RecommendationScoreBreakdown = {
   total: number
@@ -179,4 +194,5 @@ export type RecommendationScoreBreakdown = {
   popularityPenalty: number
   powerFitPenalty: number
   package: number
+  opposingAnswers: number
 }

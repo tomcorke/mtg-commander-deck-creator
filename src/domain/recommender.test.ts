@@ -343,3 +343,26 @@ test('recommendations price their default finish', () => {
   )
   assert.deepEqual([both.finish, both.price], ['nonfoil', '1.50'])
 })
+
+test('a fresh pool ranks answers to expected opponents from the first batch (#503)', () => {
+  const answer = toCard(
+    {
+      name: 'Zulu Crypt',
+      type_line: 'Artifact',
+      color_identity: [],
+      set: 'tst',
+      collector_number: '2',
+      oracle_text: 'When this artifact enters, exile target player’s graveyard.',
+      cmc: 2,
+      legalities: { commander: 'legal' },
+    },
+    'Commander synergy',
+  )
+  const input = state({ pool: [...pool, answer] })
+  assert.notEqual(recommend(input).queue[0].name, 'Zulu Crypt')
+  const result = recommend({ ...input, opposingStrategies: ['graveyard'] })
+  assert.equal(result.queue[0].name, 'Zulu Crypt')
+  assert.ok(result.scores[0].codes.includes('opposingAnswers'))
+  const explained = explainCard({ ...input, opposingStrategies: ['graveyard'] }, 'Zulu Crypt')
+  assert.equal(explained.status === 'ranked' && explained.breakdown.opposingAnswers, 6)
+})

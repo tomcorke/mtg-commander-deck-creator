@@ -220,7 +220,7 @@ export type ThemeEvidence = { theme: string; source: 'text' | 'type'; quote: str
 
 const maxQuoteLength = 120
 
-function shortQuote(text: string) {
+export function shortQuote(text: string) {
   const quote = text.trim()
   if (quote.length <= maxQuoteLength) return quote
   const cut = quote.slice(0, maxQuoteLength - 1)

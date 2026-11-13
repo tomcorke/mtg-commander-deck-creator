@@ -823,6 +823,8 @@ export function rankInitialRecommendations(
       ownedCards: deps.ownedCards,
       deckTargets: deps.deckTargets,
       focusedRole: deps.focusedRole,
+      // A setting, like the theme: a fresh pool ranks with it from the first batch (#503).
+      opposingStrategies: deps.opposingStrategies,
       identity: deps.commanderDetails?.colours ?? [],
       pool: offeredCards,
       deck: preserveDeck ? deps.deck : [],

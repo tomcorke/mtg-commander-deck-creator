@@ -132,6 +132,14 @@ function useThemeTarget(deckState: PersistedDeckState | null, themeTarget: numbe
   )
 }
 
+// Expected opponents ride with the deck (#503).
+function useOpposingStrategies(deckState: PersistedDeckState | null, opposingStrategies: string[]) {
+  return useMemo(
+    () => (deckState ? { ...deckState, opposingStrategies } : deckState),
+    [deckState, opposingStrategies],
+  )
+}
+
 // A reload on the play-style step returns to it (#490).
 function usePlayStylePending(deckState: PersistedDeckState | null, pending: boolean) {
   return useMemo(
@@ -169,9 +177,12 @@ export function useControllerState(
     excludeGameChangersSetting: builder.excludeGameChangers,
   }
   const currentDeckState = usePlayStylePending(
-    useThemeTarget(
-      useIgnoredDetails(useCurrentDeckState(state), state.ignoredDetails),
-      state.themeTarget,
+    useOpposingStrategies(
+      useThemeTarget(
+        useIgnoredDetails(useCurrentDeckState(state), state.ignoredDetails),
+        state.themeTarget,
+      ),
+      state.opposingStrategies,
     ),
     state.awaitingPlayStyle,
   )
