@@ -662,6 +662,44 @@
   align-items: center;
   gap: 10px 14px;
 }
+/* Later & ignored reuses the collection browser's tiles; each card has up to three actions. */
+.set-aside-intro {
+  max-width: 62ch;
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.set-aside-modal h3 {
+  margin: 18px 0 10px;
+}
+.set-aside-status:empty,
+.set-aside-modal .form-error:empty {
+  display: none;
+}
+.set-aside-status {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
+.card-tile-actions > .set-aside-actions {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+.set-aside-actions > button {
+  padding: 7px 8px;
+  font-size: var(--type-data);
+}
+.card-tile.set-aside-name-only {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-color: var(--border-subtle);
+  background: var(--surface-page);
+}
 /* Optional Theme first guidance: a tinted inset under the batch, tiles smaller than the offers. */
 /* The list's basis fits three tiles; below that it wraps under the heading. */
 .health-lane {

@@ -72,7 +72,12 @@ export const initialStateSchema = stateSchema
     deck: z.array(deckCard),
     sideboard: z.array(deckCard),
     deferredCards: z.array(
-      z.strictObject({ card, eligibleBatch: count, available: z.boolean().optional() }),
+      z.strictObject({
+        card,
+        eligibleBatch: count,
+        available: z.boolean().optional(),
+        later: z.boolean().optional(),
+      }),
     ),
     focusedRole: role,
     batchNumber: count.min(1),
@@ -87,6 +92,8 @@ export const initialStateSchema = stateSchema
     committedPoolKey: z.string(),
     deckDoctorHistory: z.array(z.never()).length(0),
     bulkAdd: z.null().default(null),
+    lastDecision: z.null().default(null),
+    ignoredDetails: z.array(card).default([]),
     signatureQuota: z.strictObject({ pages: count, cards: count }),
     fetchEpoch: count,
     hydrationBoundary: count,

@@ -24,6 +24,7 @@ export function resetBuilder(
     ignoreReasons: {},
     focusedRole: null,
     ignoredCards: [],
+    ignoredDetails: [],
     liked: [],
     activeSubThemes: [],
     dismissedSubThemes: [],

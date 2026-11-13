@@ -10,6 +10,7 @@ import {
   button,
   heading,
   openScenario,
+  openSetAside,
   withBrowser,
   withOwnedCards,
 } from './fixtures/browser-harness.ts'
@@ -188,6 +189,22 @@ async function closeOwnedCards(page: Page) {
   await page.keyboard.press('Escape')
 }
 
+/** Later & ignored at full and narrow width, after leaving an undo on the builder (#493). */
+async function setAsideContrast(page: Page, themeName: string) {
+  await openSetAside(page)
+  const failures = [
+    ...(await lowContrast(page, `${themeName} Later & ignored`)),
+    ...(await lowContrastStates(page, `${themeName} Later & ignored`)),
+  ]
+  await page.keyboard.press('Escape')
+  await page.setViewportSize({ width: 390, height: 900 })
+  await page.getByRole('button', { name: 'Later & ignored (2)', exact: true }).click()
+  failures.push(...(await lowContrast(page, `${themeName} Narrow Later & ignored`)))
+  await page.keyboard.press('Escape')
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  return failures
+}
+
 const themes = [
   { name: 'light', values: { 'Dark mode': false, 'Commander art and colours': false } },
   { name: 'dark', values: { 'Dark mode': true, 'Commander art and colours': false } },
@@ -242,6 +259,8 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
       await page.locator('.health-lane .card-reference').first().waitFor()
       await check('Builder')
       failures.push(...(await lowContrastStates(page, `${theme.name} Builder`)))
+      // The undo status line stays on the builder for the colour checks below.
+      failures.push(...(await setAsideContrast(page, theme.name)))
       // Accents only show with commander colours on; check the builder in every colour.
       if (theme.values['Commander art and colours']) await checkCommanderColours(theme.name)
       // A manual save adds the second row type next to the current autosaved draft.

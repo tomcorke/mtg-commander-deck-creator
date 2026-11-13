@@ -6,6 +6,7 @@ import {
   button,
   heading,
   openScenario,
+  openSetAside,
   withBrowser,
   withOwnedCards,
 } from './fixtures/browser-harness.ts'
@@ -71,6 +72,10 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
   try {
     await page.locator('.health-lane .card-reference').first().waitFor()
     await check('Builder')
+    await openSetAside(page)
+    await check('Later & ignored')
+    await page.keyboard.press('Escape')
+    await check('Builder with an undo')
     await button(page, 'Recommendation settings').click()
     await button(page, 'View or import owned cards').click()
     await page.locator('.owned-card-grid .card-reference').first().waitFor()

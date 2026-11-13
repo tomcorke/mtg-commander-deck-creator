@@ -244,6 +244,20 @@ export async function openScenario(
   return scenario
 }
 
+/**
+ * Ignore the first offer and choose Later for the second (the undo status line shows), move to the
+ * next batch, then open Later & ignored (#493). Close it with Escape.
+ */
+export async function openSetAside(page: Page) {
+  const offers = page.locator('.card-offer')
+  await button(offers.nth(0), 'Ignore').click()
+  await button(offers.nth(1), 'Later').click()
+  await button(page.locator('.bulk-actions-status'), 'Undo').waitFor()
+  await button(page, 'Next recommendations').click()
+  await page.getByRole('button', { name: 'Later & ignored (2)', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Later & ignored', exact: true }).waitFor()
+}
+
 /** An `openScenario` hook that stores these owned cards before the app starts (#505). */
 export const withOwnedCards = (names: string[]) => (page: Page) =>
   page.addInitScript(

@@ -64,7 +64,9 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 
 **Theme and extra theme** — up to three declared deck strategies. The first chosen is the **theme**; up to two more are **extra themes**. Start, the builder and Deck review use these names; code calls extra themes sub-themes. A **suggested theme** is one that several recently added cards share; the player chooses **Use** or **Dismiss**. **Tags** are regex-detected card traits used to match them.
 
-**Recommendation batch** — a group of up to four candidate cards. The player chooses **Add**, **Later**, **Ignore**, or **More like this** for each.
+**Recommendation batch** — a group of up to four candidate cards. The player chooses **Add**, **Later**, **Ignore**, or **More like this** for each. **Undo** reverses the most recent Add, Later or Ignore, even after **Next recommendations**.
+
+**Later & ignored** — the cards the player set aside in earlier batches. **Later** cards return after a few batches; **ignored** cards never return unless restored. From the list the player can add a card, bring a Later card back now, move an ignored card to Later, or un-ignore it.
 
 **Starting deck** — an app-built draft that fills the main deck to 100 from the ranked recommendations, role targets and basic lands. It is a heuristic draft for the player to edit, never a tuned list. **Add all** adds every undecided card in the visible batch. One undo removes either.
 

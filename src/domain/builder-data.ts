@@ -116,6 +116,7 @@ export function applyBuilderHydration(
     sideboard: state.sideboard.map(update),
     queue: state.queue.map(update),
     deferredCards: state.deferredCards.map((entry) => ({ ...entry, card: update(entry.card) })),
+    ignoredDetails: state.ignoredDetails.map(update),
   }
 }
 

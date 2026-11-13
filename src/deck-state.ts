@@ -128,8 +128,11 @@ export const persistedDeckStateSchema = z.object({
       card: cardSchema,
       eligibleBatch: z.number().int().positive(),
       available: z.boolean().optional(),
+      later: z.boolean().optional(),
     }),
   ),
+  // Ignored cards' data, so Later & ignored can show and restore them. Older saves have names only.
+  ignoredDetails: z.array(cardSchema).optional(),
   batchNumber: z.number().int().positive(),
   deck: z.array(deckCardSchema).min(1).max(100),
   sideboard: z.array(deckCardSchema).default([]),
@@ -199,6 +202,7 @@ export function deckStateForStorage(state: PersistedDeckState): PersistedDeckSta
       ...entry,
       card: compactCard(entry.card),
     })),
+    ...(state.ignoredDetails && { ignoredDetails: state.ignoredDetails.map(compactCard) }),
   }
 }
 
@@ -254,6 +258,7 @@ export function comparableDeckState(state: PersistedDeckState) {
     ignoreReasons: state.ignoreReasons ?? {},
     maxPrice: state.maxPrice ?? null,
     deckBudget: state.deckBudget ?? null,
+    ignoredDetails: state.ignoredDetails ?? [],
   }
   return JSON.stringify(deckStateForStorage(withDefaults), sortKeys)
 }

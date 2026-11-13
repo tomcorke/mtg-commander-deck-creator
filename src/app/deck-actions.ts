@@ -431,6 +431,19 @@ export function undoBulkAdd(deps: AppActionContext) {
   return result.error ?? ''
 }
 
+export function undoDecision(deps: AppActionContext) {
+  const result = builderAction(deps, { type: 'undoDecision' })
+  deps.setBatchAnnouncement(result.error ?? result.notice ?? '')
+  return result.error ?? ''
+}
+
+/** Act on a card from Later & ignored; the dialog shows the outcome. */
+export function setAside(deps: AppActionContext, name: string, to: 'add' | 'later' | 'return') {
+  const result = builderAction(deps, { type: 'setAside', name, to })
+  deps.setBatchAnnouncement(result.error ?? result.notice ?? '')
+  return { error: result.error ?? '', notice: result.notice ?? '' }
+}
+
 export async function selectManualCard(deps: AppActionContext, card: ScryfallCard) {
   deps.manualPrintingRequest.current?.abort()
   const controller = new AbortController()

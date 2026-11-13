@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 
 import { deckDelta, deckStateChanged, type PersistedDeckState } from '../deck-state.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
-import { toDeckCardFromRecommendation } from '../domain/card-model.ts'
+import { toDeckCardFromRecommendation, type Card } from '../domain/card-model.ts'
 import { useCollectionState } from './useCollectionState.ts'
 import { useCommanderState } from './useCommanderState.ts'
 import { useDeckState } from './useDeckState.ts'
@@ -116,6 +116,14 @@ function useCurrentDeckState(state: Record<string, any>) {
   )
 }
 
+// Ignored cards' data rides with the deck so Later & ignored survives a reload (#493).
+function useIgnoredDetails(deckState: PersistedDeckState | null, ignoredDetails: Card[]) {
+  return useMemo(
+    () => (deckState && ignoredDetails.length ? { ...deckState, ignoredDetails } : deckState),
+    [deckState, ignoredDetails],
+  )
+}
+
 // A reload on the play-style step returns to it (#490).
 function usePlayStylePending(deckState: PersistedDeckState | null, pending: boolean) {
   return useMemo(
@@ -152,7 +160,10 @@ export function useControllerState(
       (builder.limitGameChangers && gameChangersAtLimit(builder.deck)),
     excludeGameChangersSetting: builder.excludeGameChangers,
   }
-  const currentDeckState = usePlayStylePending(useCurrentDeckState(state), state.awaitingPlayStyle)
+  const currentDeckState = usePlayStylePending(
+    useIgnoredDetails(useCurrentDeckState(state), state.ignoredDetails),
+    state.awaitingPlayStyle,
+  )
   const activeSavedDeck = state.savedDecks.find(({ id }: any) => id === state.activeSavedDeckId)
   const savedDeckChanged = Boolean(
     activeSavedDeck &&

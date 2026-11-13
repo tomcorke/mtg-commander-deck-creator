@@ -47,6 +47,13 @@ import { remainingDeckBudget } from './deck-price.ts'
 import { boardCounts, planStartingDeck, removeBulkAdded, type BulkAddRecord } from './bulk-add.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
 import {
+  commitDecisionRecord,
+  decisionUndoAvailable,
+  restoreCommittedBatch,
+  reverseCommittedDecision,
+  type DecisionUndoRecord,
+} from './decision-undo.ts'
+import {
   advanceRecommendationQueue,
   deferBatch,
   rankRecommendationCards,
@@ -87,6 +94,8 @@ export type BuilderState = {
   decisions: Record<string, 'add' | 'later' | 'ignore'>
   ignoreReasons: Record<string, IgnoreReason>
   ignoredCards: string[]
+  /** Card data for ignored names, so Later & ignored can show and restore them. */
+  ignoredDetails: Card[]
   liked: string[]
   preferenceScores: Record<string, number>
   deckTargets: DeckTargets
@@ -119,6 +128,8 @@ export type BuilderState = {
   deckDoctorHistory: DeckDoctorSwapRecord[]
   /** The last "Add all" or starting deck, undoable in one step. Session-only. */
   bulkAdd: BulkAddRecord | null
+  /** The last Add, Later or Ignore, undoable in one step. Session-only. */
+  lastDecision: DecisionUndoRecord | null
   /** Per-build logical quota; transport caches and wall clocks never replenish it. */
   signatureQuota: { pages: number; cards: number }
   fetchEpoch: number
@@ -145,6 +156,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     decisions: {},
     ignoreReasons: {},
     ignoredCards: [],
+    ignoredDetails: [],
     liked: [],
     preferenceScores: {},
     deckTargets: { ...defaultDeckTargets },
@@ -174,6 +186,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     committedPoolKey: '',
     deckDoctorHistory: [],
     bulkAdd: null,
+    lastDecision: null,
     pendingFetches: [],
     completedFetches: [],
     localCandidateBuffer: [],
@@ -280,6 +293,9 @@ export type BuilderAction =
   | { type: 'addBatch' }
   | { type: 'buildStartingDeck'; basics: DeckCard[] }
   | { type: 'undoBulkAdd' }
+  | { type: 'undoDecision' }
+  /** Act on a Later or ignored card from an earlier batch: add it, move it to Later, or requeue it. */
+  | { type: 'setAside'; name: string; to: 'add' | 'later' | 'return' }
 
 /** Phase 3 adds reservations, quotas and settlement to these boundary descriptions. */
 export type BuilderFetchRequest =
@@ -361,6 +377,17 @@ function commitSettings(state: BuilderState): BuilderActionResult {
   }
 }
 
+/** Any decision but a new Ignore lifts the card's ignore; the data travels with the name. */
+function ignoredLists(state: BuilderState, card: Card, ignoring: boolean) {
+  const ignoredDetails = state.ignoredDetails.filter(({ name }) => name !== card.name)
+  return ignoring
+    ? {
+        ignoredCards: [...new Set([...state.ignoredCards, card.name])],
+        ignoredDetails: [...ignoredDetails, card],
+      }
+    : { ignoredCards: state.ignoredCards.filter((name) => name !== card.name), ignoredDetails }
+}
+
 function decision(
   state: BuilderState,
   action: Extract<BuilderAction, { type: 'decide' }>,
@@ -401,9 +428,7 @@ function decision(
       sideboard,
       decisions,
       ignoreReasons,
-      ignoredCards: ignoring
-        ? [...new Set([...state.ignoredCards, card.name])]
-        : state.ignoredCards.filter((name) => name !== card.name),
+      ...ignoredLists(state, card, ignoring),
       liked: ignoring ? state.liked.filter((name) => name !== card.name) : state.liked,
     },
     fetchRequests: [],
@@ -420,7 +445,137 @@ function applyDecide(
   state: BuilderState,
   action: Extract<BuilderAction, { type: 'decide' }>,
 ): BuilderActionResult {
-  return decision(state, action)
+  const { name } = action.card
+  const previous = state.decisions[name]
+  const result = decision(state, action)
+  if (result.error) return result
+  // Pressing the chosen button again clears the decision, which needs no undo of its own.
+  const lastDecision: DecisionUndoRecord | null =
+    previous === action.decision
+      ? state.lastDecision?.card.name === name
+        ? null
+        : state.lastDecision
+      : {
+          card: action.card,
+          decision: action.decision,
+          ...(previous && { previous }),
+          liked: state.liked.includes(name),
+          ...(state.ignoreReasons[name] && { reason: state.ignoreReasons[name] }),
+          added: action.decision === 'add' ? { [name]: 1 } : {},
+          baseline: boardCounts([name], state),
+        }
+  return { ...result, state: { ...result.state, lastDecision } }
+}
+
+const decisionVerbs = { add: 'Add', later: 'Later', ignore: 'Ignore' } as const
+
+/**
+ * Undo the last decision. In its own batch, the card returns to its previous decision. After Next
+ * recommendations, the committed batch comes back when nothing has changed since; otherwise the
+ * card is queued again and the affinity its decision taught is taken back.
+ */
+function applyUndoDecision(state: BuilderState): BuilderActionResult {
+  const record = state.lastDecision
+  if (!record || !decisionUndoAvailable(record, state)) return invalid(state, 'Nothing to undo.')
+  const { name } = record.card
+  let base = state
+  if (record.committed) {
+    const restored = restoreCommittedBatch(record, state)
+    if (!restored)
+      return {
+        ...done({
+          ...reverseCommittedDecision(record, state, commanderNames(state.commander).length),
+          lastDecision: null,
+        }),
+        notice: `Undid ${decisionVerbs[record.decision]} for ${name}. It’s back in the recommendations.`,
+      }
+    base = restored
+  }
+  const card = base.queue.find((item) => item.name === name) ?? record.card
+  const result = decision(base, {
+    type: 'decide',
+    card,
+    decision: record.previous ?? record.decision,
+  })
+  if (result.error) return invalid(state, result.error)
+  const next = result.state
+  return {
+    ...done({
+      ...next,
+      liked: record.liked && !next.liked.includes(name) ? [...next.liked, name] : next.liked,
+      ignoreReasons:
+        record.previous === 'ignore' && record.reason
+          ? { ...next.ignoreReasons, [name]: record.reason }
+          : next.ignoreReasons,
+      lastDecision: null,
+    }),
+    notice: `Undid ${decisionVerbs[record.decision]} for ${name}.${
+      record.committed ? ' Your previous batch is back.' : ''
+    }`,
+  }
+}
+
+/** Add a set-aside card with the same checks as the batch's Add button. */
+function addSetAside(state: BuilderState, lifted: BuilderState, card: Card): BuilderActionResult {
+  const board = addsToSideboard(state) ? 'sideboard' : 'deck'
+  const error = recommendationDataError(
+    card,
+    state[board],
+    state.commanderDetails?.colours ?? [],
+    excludesGameChangers(state),
+  )
+  if (error) return invalid(state, `${card.name}: ${error}`)
+  return {
+    ...done({
+      ...lifted,
+      [board]: [...state[board], toDeckCardFromRecommendation(card)],
+      queue: state.queue.filter((item) => item.name !== card.name),
+    }),
+    notice: `Added ${card.name} to the ${board === 'deck' ? 'deck' : 'sideboard'}.`,
+  }
+}
+
+/** Add, re-defer or requeue a card set aside in an earlier batch. Learned affinity is unchanged. */
+function applySetAside(
+  state: BuilderState,
+  action: Extract<BuilderAction, { type: 'setAside' }>,
+): BuilderActionResult {
+  const { name } = action
+  const waiting = state.deferredCards.find(({ card }) => card.name === name)
+  const card = state.ignoredDetails.find((item) => item.name === name) ?? waiting?.card
+  if (state.decisions[name]) return invalid(state, `${name} is in this batch; decide on it there.`)
+  if (!state.ignoredCards.includes(name) && !waiting)
+    return invalid(state, `${name} is no longer set aside.`)
+  const lifted: BuilderState = {
+    ...state,
+    ignoredCards: state.ignoredCards.filter((item) => item !== name),
+    ignoredDetails: state.ignoredDetails.filter((item) => item.name !== name),
+    deferredCards: state.deferredCards.filter((entry) => entry !== waiting),
+    lastDecision: state.lastDecision?.card.name === name ? null : state.lastDecision,
+  }
+  if (!card)
+    return action.to === 'return'
+      ? { ...done(lifted), notice: `${name} is no longer ignored.` }
+      : invalid(state, `${name}: card data is unavailable. Un-ignore it instead.`)
+  if (action.to === 'add') return addSetAside(state, lifted, card)
+  if (action.to === 'later')
+    return {
+      ...done({
+        ...lifted,
+        deferredCards: [
+          ...lifted.deferredCards,
+          { card, eligibleBatch: state.batchNumber + 4, later: true },
+        ],
+      }),
+      notice: `${name} moved to Later. It may return in a later batch.`,
+    }
+  return {
+    ...done({
+      ...lifted,
+      queue: state.queue.some((item) => item.name === name) ? state.queue : [...state.queue, card],
+    }),
+    notice: `${name} is back in the recommendations.`,
+  }
 }
 
 function applyIgnoreReason(
@@ -839,7 +994,7 @@ function applyAddBatch(state: BuilderState): BuilderActionResult {
     after: { queue: next.queue, deferredCards: next.deferredCards },
   }
   return {
-    ...done({ ...next, bulkAdd: record }),
+    ...done({ ...next, bulkAdd: record, lastDecision: null }),
     notice: `Added ${plural(added.length, 'card')} from this batch.${skipped.length ? ` Skipped ${skipped.join(' ')}` : ''}`,
   }
 }
@@ -885,7 +1040,7 @@ function applyBuildStartingDeck(
     after: { queue, deferredCards },
   }
   return {
-    ...done({ ...state, deck, queue, deferredCards, bulkAdd: record }),
+    ...done({ ...state, deck, queue, deferredCards, bulkAdd: record, lastDecision: null }),
     notice: `Starting deck built: added ${plural(plan.additions.length, 'card')}.${plan.extraBasics ? ` Ran short of suggestions, so ${plural(plan.extraBasics, 'extra basic land')} filled the gap.` : ''}`,
   }
 }
@@ -1057,19 +1212,53 @@ function reduceBuilderAction(state: BuilderState, action: BuilderAction): Builde
     case 'doctorUndo':
       return applyDoctorUndo(state, action)
     case 'addBatch':
-      return applyAddBatch(state)
     case 'buildStartingDeck':
-      return applyBuildStartingDeck(state, action)
     case 'undoBulkAdd':
-      return applyUndoBulkAdd(state)
+      return reduceBulkAdd(state, action)
+    case 'undoDecision':
+    case 'setAside':
+      return action.type === 'setAside' ? applySetAside(state, action) : applyUndoDecision(state)
   }
 }
+
+function reduceBulkAdd(
+  state: BuilderState,
+  action: Extract<BuilderAction, { type: 'addBatch' | 'buildStartingDeck' | 'undoBulkAdd' }>,
+): BuilderActionResult {
+  if (action.type === 'addBatch') return applyAddBatch(state)
+  if (action.type === 'buildStartingDeck') return applyBuildStartingDeck(state, action)
+  return applyUndoBulkAdd(state)
+}
+
+const commitsBatch = new Set<BuilderAction['type']>([
+  'nextBatch',
+  'settleFetch',
+  'commitSettings',
+  'focus',
+  'completeFocus',
+])
 
 /** Reserve before transport and commit only a fully settled boundary. */
 export function applyBuilderAction(
   state: BuilderState,
   action: BuilderAction,
 ): BuilderActionResult {
+  const result = reduceWithFetches(state, action)
+  if (!state.lastDecision || result.error || !commitsBatch.has(action.type)) return result
+  // Advancing ranks with the extra theme too, so an Off-theme ignore reinforced it as well.
+  const extra =
+    action.type === 'nextBatch' ? action.extraSubTheme : state.fetchBoundary?.extraSubTheme
+  const lastDecision = commitDecisionRecord(state.lastDecision, state, result.state, [
+    state.theme,
+    ...state.activeSubThemes,
+    ...(extra ? [extra] : []),
+  ])
+  return lastDecision === result.state.lastDecision
+    ? result
+    : { ...result, state: { ...result.state, lastDecision } }
+}
+
+function reduceWithFetches(state: BuilderState, action: BuilderAction): BuilderActionResult {
   // A reserved boundary owns hydration; an older initialisation response must not cancel it.
   if (action.type === 'hydrate' && state.fetchBoundary) return done(state)
   if (action.type === 'settleFetch') {
@@ -1089,7 +1278,7 @@ export function applyBuilderAction(
     !result.error &&
     ['startOver', 'beginRecommendations', 'commanders', 'promote'].includes(action.type)
   )
-    result.state = { ...result.state, bulkAdd: null }
+    result.state = { ...result.state, bulkAdd: null, lastDecision: null }
   if (['startOver', 'restore', 'beginRecommendations', 'poolLoaded'].includes(action.type))
     result.state = {
       ...result.state,
