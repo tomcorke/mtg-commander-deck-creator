@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { RequestActivitySummary } from './RequestActivityIndicator.tsx'
 import { useVisualPreferences } from './VisualPreferencesContext.tsx'
 
 export function DisplaySettingsMenu() {
@@ -73,7 +72,6 @@ export function DisplaySettingsMenu() {
               <option value={1.8}>Extra large</option>
             </select>
           </label>
-          <RequestActivitySummary />
         </div>
       )}
     </div>

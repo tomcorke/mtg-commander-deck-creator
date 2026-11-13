@@ -179,6 +179,11 @@ async function discoveryAndDisplay(page: Page, label: string) {
     'Display panel must not shift content',
   )
   const panel = await page.getByRole('group', { name: 'Display settings' }).boundingBox()
+  assert.doesNotMatch(
+    await page.getByRole('group', { name: 'Display settings' }).innerText(),
+    /API requests/,
+    'Display holds only display preferences',
+  )
   assert.ok(panel && panel.x >= 0 && panel.x + panel.width <= (page.viewportSize()?.width ?? 0))
   await page.keyboard.press('Escape')
   assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Display')
@@ -420,6 +425,13 @@ try {
       await skipAndReload(context)
     }
     assert.deepEqual(errors, [], label)
+    const diagnostics = await context.newPage()
+    await diagnostics.goto('http://127.0.0.1:5282/?diagnostics')
+    await diagnostics
+      .getByRole('button', { name: /^API requests: / })
+      .first()
+      .waitFor()
+    await diagnostics.close()
     console.log(
       process.argv.includes('--discovery-only')
         ? `${label}: discovery, keyboard/hover previews, DFC/details and display passed`
