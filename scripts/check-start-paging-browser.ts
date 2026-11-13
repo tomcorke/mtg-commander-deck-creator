@@ -38,6 +38,9 @@ async function mockProviders(page: Page, pages: string[], second: Promise<void>)
     const at = url.searchParams.get('page') ?? '1'
     pages.push(at)
     if (at === '2') await second
+    // The first attempt at page 2 fails, so the check covers retrying it.
+    if (at === '2' && pages.filter((page) => page === '2').length === 1)
+      return route.fulfill({ status: 503, body: 'unavailable' })
     return route.fulfill({
       json: {
         object: 'list',
@@ -115,9 +118,17 @@ await withBrowser('START_PAGING', 5311, async (browser, base) => {
     )
     if (output) await capture(page, output, 'fetching')
     second.open()
+
+    // A failed fetch keeps the page; Next retries it in place, so no fetched commander is skipped.
+    await page.getByText('Choose Next page to try again.').waitFor()
+    assert.match(await pagerLine(page), /Showing 169–175 of 195 commanders · Page 15$/m)
+    await button(page, 'Next page').click()
     await page.waitForFunction(
-      () => !document.body.textContent?.includes('Loading more commanders…'),
+      () =>
+        !document.body.textContent?.includes('Loading more commanders…') &&
+        !document.body.textContent?.includes('try again'),
     )
+    assert.deepEqual(pages, ['1', '2', '2'], 'the retry sends one request')
     const all = [...firstPage, ...secondPage].map(({ name }) => name)
     assert.deepEqual(await tileNames(page), all.slice(168, 180))
     assert.match(await pagerLine(page), /Showing 169–180 of 195 commanders · Page 15 of 17/)
@@ -133,7 +144,7 @@ await withBrowser('START_PAGING', 5311, async (browser, base) => {
     await page.getByText(/· Page 17 of 17$/).waitFor()
     assert.deepEqual(await tileNames(page), all.slice(192))
     assert.ok(await button(page, 'Next page').isDisabled(), 'the last Scryfall page ends paging')
-    assert.deepEqual(pages, ['1', '2'], 'paging within fetched results sends no request')
+    assert.deepEqual(pages, ['1', '2', '2'], 'paging within fetched results sends no request')
     assert.deepEqual(errors, [], 'no browser exceptions')
   } finally {
     await context.close()

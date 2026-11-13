@@ -62,6 +62,9 @@ export function Pagination({
             type="button"
             disabled={last && !fetchable}
             onClick={() => {
+              // A partly filled last page fills in place first, such as after a failed fetch,
+              // so no newly fetched result is skipped.
+              if (fetchable && last && window.end - window.start < pageSize) return onMore()
               // A page that reaches past the loaded results needs the next batch.
               if (fetchable && (window.page + 2) * pageSize > count) onMore()
               onPage(window.page + 1)
