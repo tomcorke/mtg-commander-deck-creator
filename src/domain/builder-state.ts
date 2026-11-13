@@ -32,9 +32,8 @@ import {
   type ScryfallCard,
   type Printing,
 } from './card-model.ts'
-import { commanderNames } from './commander-catalog.ts'
+import { commanderKey, commanderNames } from './commander-catalog.ts'
 import { gameChangersAtLimit } from './play-style.ts'
-import { pairName } from './commander-pairing.ts'
 import { commandersPromotionInfo, promoteDeckCards } from './commander-promotion.ts'
 import { applyBuilderHydration, applyBuilderPrinting, retryBuilderData } from './builder-data.ts'
 import { beginBuilderRecommendations, resetBuilder } from './builder-lifecycle.ts'
@@ -871,7 +870,7 @@ function applyCommanders(
   if (error) return invalid(state, error)
   return done({
     ...state,
-    commander: action.cards.map((card) => card.name).join(' & '),
+    commander: commanderKey(action.cards.map((card) => card.name)),
     commanderDetails: {
       ...action.details,
       colours: [...new Set(action.cards.flatMap((card) => card.colorIdentity ?? []))],
@@ -955,8 +954,7 @@ function applyPromotion(
   const error = commanderConstructionError(candidates)
   if (error) return invalid(state, error)
   const names = candidates.map(({ name }) => name)
-  const commander = action.partner ? pairName(action.candidate, action.partner) : names[0]
-  if (!commander) return invalid(state, 'This pair cannot be saved: a name contains " & ".')
+  const commander = commanderKey(names)
   const next = promoteDeckCards(deck, state.sideboard, candidates)
   return done({
     ...state,

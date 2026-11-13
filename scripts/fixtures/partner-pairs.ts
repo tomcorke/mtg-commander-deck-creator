@@ -45,6 +45,21 @@ export const background = enchantment(
 )
 /** Found by the type search's neighbours, but not a Background. */
 export const notBackground = enchantment('Pair Fixture Relic', 'Legendary Enchantment')
+/** One commander whose own name contains " & ", stored unsplit (#517). */
+export const ampersandSolo = legend('Pair Fixture Rogue & Hamster', ['G'], 'Haste', '{1}{G}{G}')
+/** A Partner with pair where one name contains " & ", like Bebop and Rocksteady (#517). */
+export const ampersandPartner = legend(
+  'Pair Fixture Skull & Crossbones',
+  ['G'],
+  'Partner with Pair Fixture Rhino',
+  '{2}{G}',
+)
+export const ampersandPartnerMate = legend(
+  'Pair Fixture Rhino',
+  ['R'],
+  'Partner with Pair Fixture Skull & Crossbones',
+  '{2}{R}',
+)
 export const pairRecords = [
   partnerLeader,
   partnerMage,
@@ -52,6 +67,9 @@ export const pairRecords = [
   backgroundChooser,
   background,
   notBackground,
+  ampersandSolo,
+  ampersandPartner,
+  ampersandPartnerMate,
 ]
 
 const list = (data: ScryfallCard[]) => ({
@@ -68,6 +86,10 @@ export async function mockPartnerSearches(page: Page, queries: string[]) {
     if (query.includes('(keyword:partner)')) {
       queries.push(query)
       return route.fulfill({ json: list([partnerLeader, partnerMage, friendsForever]) })
+    }
+    if (query.includes(`(!"${ampersandPartnerMate.name}")`)) {
+      queries.push(query)
+      return route.fulfill({ json: list([ampersandPartnerMate]) })
     }
     if (query.includes('(t:background)')) {
       queries.push(query)

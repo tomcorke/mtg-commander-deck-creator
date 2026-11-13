@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { colourNames } from '../../domain/commander-catalog.ts'
+import { colourNames, commanderLabel } from '../../domain/commander-catalog.ts'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 
 type Props = {
@@ -36,7 +36,7 @@ export function CommanderSummary({
       <p className="eyebrow">{eyebrow}</p>
       <Heading className="commander-summary-title">
         <button type="button" className="commander-name" onClick={onOpenCommander}>
-          {commander}
+          {commanderLabel(commander)}
         </button>
       </Heading>
       <div className="identity" aria-label={`Colour identity: ${identityLabel}`}>

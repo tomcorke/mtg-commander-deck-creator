@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { appStorage } from './app-storage.ts'
+import { commanderLabel } from './domain/commander-catalog.ts'
 import { ignoreReasons } from './domain/recommendation-tuning.ts'
 import { normalizeRecommendationStyle } from './domain/recommendation-types.ts'
 
@@ -270,7 +271,7 @@ export function deckStateChanged(saved: PersistedDeckState, current: PersistedDe
 }
 
 export const suggestedDeckName = (commander: string, theme: string, subThemes: string[]) =>
-  [commander, theme, ...subThemes]
+  [commanderLabel(commander), theme, ...subThemes]
     .filter((name, index, names) => name && names.indexOf(name) === index)
     .join(' - ')
 export const duplicateDeckName = (decks: SavedDeck[], name: string, currentId = '') =>

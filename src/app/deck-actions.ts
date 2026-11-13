@@ -9,7 +9,7 @@ import {
   ScryfallRateLimitError,
 } from '../adapters/scryfall.ts'
 import { basicLandNames, type AddZone } from '../deck-analysis.ts'
-import { commanderNames } from '../domain/commander-catalog.ts'
+import { commanderKey, commanderLabel, commanderNames } from '../domain/commander-catalog.ts'
 import { defaultFinish, finishPrice, foilTypeFor, printingOptions } from '../domain/printing.ts'
 import type {
   Card,
@@ -49,7 +49,6 @@ import {
   type ImportedCard,
   type ImportedDeck,
 } from '../deck-import.ts'
-import { pairName } from '../domain/commander-pairing.ts'
 import { sharePayloadFromLink } from '../domain/share-link.ts'
 import { commandersPromotionInfo } from '../domain/commander-promotion.ts'
 import { start as startRecommendations, type AppActionContext } from './recommendation-actions.ts'
@@ -127,10 +126,8 @@ export async function promoteToCommander(
     keepOutgoing ? (commanderDetails?.colours ?? []) : [],
   )
   if (!promotion.canPromote) return
-  const commanderName = partner ? pairName(candidate, partner) : candidate.name
-  const error =
-    commanderConstructionError(candidates) ||
-    (commanderName ? '' : 'This pair cannot be saved: a name contains " & ".')
+  const commanderName = commanderKey(names)
+  const error = commanderConstructionError(candidates)
   if (error) {
     setBatchAnnouncement(error)
     return
@@ -878,7 +875,7 @@ export async function importDeck(
       await import('../shared/ConfirmDialog.tsx')
     ).confirmDialog({
       title: 'Replace the current deck?',
-      message: `"${deps.deckName || deps.commander}" (${deps.deck.length} cards) stays in Saved decks under Autosaved drafts. Manual saves are unchanged.`,
+      message: `"${deps.deckName || commanderLabel(deps.commander)}" (${deps.deck.length} cards) stays in Saved decks under Autosaved drafts. Manual saves are unchanged.`,
       confirmLabel: 'Import and replace',
     }))
   )
@@ -1070,7 +1067,7 @@ export async function applyImportedDeck(
   const signal = AbortSignal.timeout(30_000)
   const { expanded, commanderCards } = await resolveImportedCards(imported, signal, skipMissing)
   if (!job.isCurrent()) throw new Error('The workspace changed; import was not applied.')
-  const name = commanderCards.map(({ card }: any) => card.name).join(' & ')
+  const name = commanderKey(commanderCards.map(({ card }: any) => card.name))
   const prepared = await importedRecommendationState(deps, name)
   if (!job.isCurrent()) throw new Error('The workspace changed; import was not applied.')
   const importedMain = expanded

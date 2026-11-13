@@ -17,6 +17,7 @@ import {
   suggestedDeckName,
   type PersistedDeckState,
 } from './deck-state.ts'
+import { commanderKey, commanderNames } from './domain/commander-catalog.ts'
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial))
@@ -174,6 +175,18 @@ test('suggests names and detects duplicates except current deck id', () => {
   const decks = [{ id: 'deck-1', name: 'Anikthea', updatedAt: '', state }]
   assert.equal(duplicateDeckName(decks, ' anikthea '), true)
   assert.equal(duplicateDeckName(decks, 'Anikthea', 'deck-1'), false)
+})
+
+test('a commander whose name contains " & " saves, reloads and names the deck unsplit', () => {
+  const storage = memoryStorage()
+  const commander = commanderKey(['Minsc & Boo, Timeless Heroes'])
+  saveDeckState({ ...state, commander }, storage)
+  const loaded = loadDeckState(storage)!
+  assert.deepEqual(commanderNames(loaded.commander), ['Minsc & Boo, Timeless Heroes'])
+  assert.equal(
+    suggestedDeckName(loaded.commander, 'Hamsters', []),
+    'Minsc & Boo, Timeless Heroes - Hamsters',
+  )
 })
 
 test('counts cards added and removed since save', () => {

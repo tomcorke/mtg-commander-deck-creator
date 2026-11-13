@@ -3,7 +3,7 @@ import { withBuilderActions } from '../app/builder-test-fixture.ts'
 import test from 'node:test'
 import { toCard, toDeckCard, type ScryfallCard } from './card-model.ts'
 import { cardConstructionError, commanderConstructionError } from './commander-construction.ts'
-import { commanderNames } from './commander-catalog.ts'
+import { commanderKey, commanderLabel, commanderNames } from './commander-catalog.ts'
 import { commanderPromotionInfo, isCommanderCandidate } from './commander-promotion.ts'
 import { addCardSearchCards } from './card-search.ts'
 import { applyDeckDoctorSwap } from '../deck-doctor.ts'
@@ -159,6 +159,19 @@ test('all five partner abilities are checked, including mismatches and unknown v
     'Thrasios, Triton Hero',
     'Tymna the Weaver',
   ])
+})
+
+test('commander keys keep names containing " & " whole, alone or in a pair (#517)', () => {
+  const minsc = 'Minsc & Boo, Timeless Heroes'
+  const bebop = 'Bebop, Skull & Crossbones'
+  const rocksteady = 'Rocksteady, Mutant Marauder'
+  for (const names of [[minsc], [bebop, rocksteady], [rocksteady, bebop], ['A', 'B'], ['A']])
+    assert.deepEqual(commanderNames(commanderKey(names)), names)
+  // Keys without " & " in a name are unchanged, so saves from before #517 read the same.
+  assert.equal(commanderKey(['A', 'B']), 'A & B')
+  assert.equal(commanderKey(['Thrasios, Triton Hero']), 'Thrasios, Triton Hero')
+  assert.equal(commanderLabel(commanderKey([minsc])), minsc)
+  assert.equal(commanderLabel(commanderKey([bebop, rocksteady])), `${bebop} & ${rocksteady}`)
 })
 
 test('search, guidance, batch decisions, sideboard moves and swaps reject the same illegal card', () => {

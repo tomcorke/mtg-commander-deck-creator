@@ -4,6 +4,7 @@ import { fetchRandomScryfallCommander } from '../../adapters/scryfall.ts'
 import { toDeckCard, type DeckCard, type ScryfallCard } from '../../domain/card-model.ts'
 import { pickRandomCommander } from '../../domain/commander-discovery.ts'
 import { commanderConstructionError } from '../../domain/commander-construction.ts'
+import { commanderKey } from '../../domain/commander-catalog.ts'
 import { CardDetailContent } from '../../shared/CardDetailContent.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
@@ -163,7 +164,7 @@ function useSelectCommander(
     setSelecting(true)
     setSelectionError('')
     try {
-      if (await chooseCommander(card.name)) onClose()
+      if (await chooseCommander(commanderKey([card.name]))) onClose()
       else setSelectionError('Could not select this commander. Please try again.')
     } catch {
       setSelectionError('Could not select this commander. Please try again.')

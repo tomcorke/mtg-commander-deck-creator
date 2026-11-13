@@ -29,6 +29,7 @@ import {
 const loadSavedDeck = withBuilderFixture(loadSavedDeckAction)
 const storeDeck = withBuilderFixture(storeDeckAction)
 import type { AppActionContext } from './app/recommendation-actions.ts'
+import { commanderNames } from './domain/commander-catalog.ts'
 import { pendingDeckData } from './domain/current-card-data.ts'
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -886,6 +887,26 @@ test('older full-object and compact queues keep their printing lists when loaded
     assert.deepEqual(listAutosaves(env.storage)[0].state, expected)
     assert.deepEqual(loadSavedDecks(env.storage)[0].state, expected)
   }
+})
+
+test('pair drafts and saves from before #517 still load both commanders', () => {
+  const env = environment()
+  // Written before #517: a pair stored as its names joined by " & ".
+  const commander = 'Thrasios, Triton Hero & Tymna the Weaver'
+  const draft = {
+    version: 1,
+    id: 'pair',
+    name: 'Pair',
+    updatedAt: env.options.now().toISOString(),
+    state: { ...persistedDeckStateSchema.parse(state), commander },
+  }
+  env.storage.setItem(autosavePrefix + draft.id, JSON.stringify(draft))
+  env.storage.setItem(savedDecksKey, JSON.stringify({ version: 1, decks: [draft] }))
+  for (const loaded of [listAutosaves(env.storage)[0], loadSavedDecks(env.storage)[0]])
+    assert.deepEqual(commanderNames(loaded.state.commander), [
+      'Thrasios, Triton Hero',
+      'Tymna the Weaver',
+    ])
 })
 
 test('relative age handles fresh, future, minute, hour and day timestamps', () => {

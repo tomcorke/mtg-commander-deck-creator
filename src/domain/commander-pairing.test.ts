@@ -4,7 +4,7 @@ import { fetchEdhrecPage } from '../adapters/edhrec.ts'
 import { toDeckCard, type ScryfallCard } from './card-model.ts'
 import { commanderConstructionError } from './commander-construction.ts'
 import { discoverPartners } from './commander-discovery.ts'
-import { pairName, pairingAbilities, partnerSearchScope } from './commander-pairing.ts'
+import { partnerPairError, pairingAbilities, partnerSearchScope } from './commander-pairing.ts'
 
 // Synthetic records; the pairing rules they exercise are CR 702.124h–m.
 const raw = (name: string, changes: Partial<ScryfallCard> = {}): ScryfallCard => ({
@@ -111,9 +111,17 @@ test('partner search scopes cover each ability, and Partner with names its card'
   assert.equal(partnerSearchScope(card('A', { oracle_text: 'Flying' })), '')
 })
 
-test('pair names round-trip or are refused', () => {
-  assert.equal(pairName(card('A'), card('B')), 'A & B')
-  assert.equal(pairName(card('Bebop, Skull & Crossbones'), card('Rocksteady')), '')
+test('a Partner with pair may have " & " in a name (#517)', () => {
+  // Oracle text from Scryfall, checked 2026-11-13; reminder text trimmed.
+  const bebop = card('Bebop, Skull & Crossbones', {
+    oracle_text: 'Partner with Rocksteady, Mutant Marauder\nDeathtouch',
+  })
+  const rocksteady = card('Rocksteady, Mutant Marauder', {
+    oracle_text: 'Partner with Bebop, Skull & Crossbones\nTrample',
+    color_identity: ['G'],
+  })
+  assert.equal(partnerPairError(bebop, rocksteady), '')
+  assert.equal(partnerSearchScope(bebop), '!"Rocksteady, Mutant Marauder"')
 })
 
 test('partner discovery keeps only legal second commanders, most popular first', async () => {
@@ -136,7 +144,7 @@ test('partner discovery keeps only legal second commanders, most popular first',
   assert.deepEqual(queries, ['legal:commander date<=today (keyword:partner)'])
   assert.deepEqual(
     found.commanders.map(({ card }) => card.name),
-    ['Friend'],
+    ['Friend', 'Ampersand & Co'],
   )
   const plain = await discoverPartners(raw('Plain'), undefined, async () =>
     assert.fail('no search'),

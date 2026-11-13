@@ -15,7 +15,7 @@ import { ColourIdentityFilter } from './ColourIdentityFilter.tsx'
 import { identitySummary, type ColourMatch } from '../../domain/colour-identity.ts'
 import { setPickerRows } from '../../domain/set-picker.ts'
 import { SetPicker } from '../../shared/SetPicker.tsx'
-import { colourNames, selectableThemes } from '../../domain/commander-catalog.ts'
+import { colourNames, commanderKey, selectableThemes } from '../../domain/commander-catalog.ts'
 import {
   collapsedThemeCount,
   themeChoiceGroups,
@@ -631,7 +631,7 @@ export function StartView(props: StartViewProps) {
           onClick={() =>
             canAddPartner(toDeckCard(card))
               ? setPartnerFor(card)
-              : void props.chooseCommander(card.name)
+              : void props.chooseCommander(commanderKey([card.name]))
           }
         >
           Choose
