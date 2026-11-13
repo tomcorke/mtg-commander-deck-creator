@@ -516,6 +516,21 @@ export function deckSection(typeLine: string) {
   return 'Other'
 }
 
+const planeswalkerType = /\bPlaneswalker\b/
+const otherPermanentTypes = /\b(?:Artifact|Battle|Creature|Enchantment|Land|Planeswalker)\b/
+const otherNonPermanentTypes = /\b(?:Instant|Sorcery)\b/
+
+/** The deck board group: planeswalkers, then `deckSection`, then other (non-)permanents. */
+export function displayDeckSection(card: { typeLine: string; faces: { typeLine: string }[] }) {
+  const typeLines = [card.typeLine, ...card.faces.map((face) => face.typeLine)].join(' ')
+  if (planeswalkerType.test(typeLines)) return 'Planeswalkers'
+  const section = deckSection(card.typeLine)
+  if (section !== 'Other') return section
+  if (otherPermanentTypes.test(typeLines)) return 'Other Permanents'
+  if (otherNonPermanentTypes.test(typeLines)) return 'Other Non-permanents'
+  return 'Other'
+}
+
 export function basicLandPlan(
   identity: string[],
   demand: Record<ManaColour, number>,

@@ -20,7 +20,7 @@ export function PrintChecklist({
   return createPortal(
     <div className="print-checklist">
       <header>
-        <h1>{deckName || commanderLabel(commander)}</h1>
+        <h1>{deckName || commanderLabel(commander) || 'Deck'}</h1>
         <p>
           {neededOnly ? 'Still needed' : 'Whole deck'}: {total} {total === 1 ? 'card' : 'cards'}
           {neededOnly ? ', commanders included, that your owned cards do not cover' : ''}. Tick each

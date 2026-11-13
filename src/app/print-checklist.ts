@@ -1,7 +1,7 @@
 import { commanderNames, deckSections } from '../domain/commander-catalog.ts'
 import type { DeckCard } from '../domain/card-model.ts'
 import { stillNeededCards, type OwnedQuantities } from '../domain/owned-cards.ts'
-import { displayDeckSection } from './useBuilderData.ts'
+import { displayDeckSection } from '../deck-analysis.ts'
 
 export type PrintingGroup = { card: DeckCard; quantity: number }
 export type ChecklistGroup = { section: string; count: number; lines: PrintingGroup[] }

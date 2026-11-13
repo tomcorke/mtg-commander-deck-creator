@@ -1977,6 +1977,7 @@ main > .commander-header {
   .print-checklist header {
     display: block;
     height: auto;
+    min-height: 0;
     margin-bottom: 4mm;
     padding: 0;
     border-bottom: 0.3mm solid #000;
