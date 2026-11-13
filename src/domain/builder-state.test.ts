@@ -9,6 +9,7 @@ import {
 } from './builder-state.ts'
 import { builderPoolKey } from './builder-settings.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
+import { cardScoreBreakdown } from './recommendation-queue.ts'
 import { toCard, type Card } from './card-model.ts'
 
 const card = (name: string): Card =>
@@ -110,6 +111,68 @@ test('sub-theme removal is not dismissal, and dismissal preserves its evidence c
   assert.deepEqual(state.dismissedSubThemes, [])
   state = apply(state, { type: 'dismissSubTheme', name: 'Artifacts', evidenceCount: 3 })
   assert.deepEqual(state.dismissedSubThemes, ['Artifacts:3'])
+})
+
+test('with no theme, the first builder choice becomes the theme and rebuilds on Next', () => {
+  const queue = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo'].map(card)
+  const start = initial({ commander: 'Leader', queue })
+  const chosen = apply(start, { type: 'selectSubTheme', name: 'Artifacts' })
+  assert.equal(chosen.theme, 'Artifacts')
+  assert.deepEqual(chosen.activeSubThemes, [])
+  // The current batch stays on screen; the changed pool key rebuilds on Next recommendations.
+  assert.equal(chosen.recommendationOptionsChanged, false)
+  assert.notEqual(builderPoolKey(chosen), start.committedPoolKey)
+  const next = applyBuilderAction(chosen, { type: 'nextBatch' })
+  assert.deepEqual(next.fetchRequests, [{ kind: 'pool', boundary: 'commitSettings' }])
+  assert.equal(next.state.batchNumber, 1)
+  const loaded = apply(next.state, {
+    type: 'poolLoaded',
+    queue,
+    deferredCards: next.state.deferredCards,
+    poolKey: builderPoolKey(chosen),
+  })
+  assert.equal(apply(loaded, { type: 'nextBatch' }).batchNumber, 2)
+  // Scored under the Theme factor, not Extra themes.
+  const score = cardScoreBreakdown(
+    { ...card('Golem Foundry'), tags: ['Artifacts'] },
+    buildRecommendationContext(loaded, []),
+  )
+  assert.ok(score.theme > 0)
+  assert.equal(score.subThemes, 0)
+})
+
+test('later builder choices are extra themes, capped at two', () => {
+  let state = apply(initial(), { type: 'selectSubTheme', name: 'Artifacts' })
+  state = apply(state, { type: 'selectSubTheme', name: 'Tokens' })
+  state = apply(state, { type: 'selectSubTheme', name: 'Artifacts' })
+  state = apply(state, { type: 'selectSubTheme', name: 'Sacrifice' })
+  state = apply(state, { type: 'selectSubTheme', name: 'Lifegain' })
+  assert.equal(state.theme, 'Artifacts')
+  assert.deepEqual(state.activeSubThemes, ['Tokens', 'Sacrifice'])
+  const declared = apply(initial({ theme: 'Zombies' }), { type: 'selectSubTheme', name: 'Tokens' })
+  assert.equal(declared.theme, 'Zombies')
+  assert.deepEqual(declared.activeSubThemes, ['Tokens'])
+  // A deck saved with extra themes but no theme promotes its first extra theme on the next choice.
+  const legacy = apply(initial({ activeSubThemes: ['Tokens'] }), {
+    type: 'selectSubTheme',
+    name: 'Sacrifice',
+  })
+  assert.equal(legacy.theme, 'Tokens')
+  assert.deepEqual(legacy.activeSubThemes, ['Sacrifice'])
+})
+
+test('removing the theme promotes the first extra theme and refreshes', () => {
+  const state = initial({ theme: 'Artifacts', activeSubThemes: ['Tokens', 'Sacrifice'] })
+  const removed = apply(state, { type: 'removeSubTheme', name: 'Artifacts' })
+  assert.equal(removed.theme, 'Tokens')
+  assert.deepEqual(removed.activeSubThemes, ['Sacrifice'])
+  assert.equal(removed.recommendationOptionsChanged, true)
+  const extra = apply(state, { type: 'removeSubTheme', name: 'Tokens' })
+  assert.equal(extra.theme, 'Artifacts')
+  assert.deepEqual(extra.activeSubThemes, ['Sacrifice'])
+  const last = apply(initial({ theme: 'Artifacts' }), { type: 'removeSubTheme', name: 'Artifacts' })
+  assert.equal(last.theme, '')
+  assert.deepEqual(last.activeSubThemes, [])
 })
 
 test('settings commits feedback without advancing cooldowns; next with dirty settings only refreshes', () => {

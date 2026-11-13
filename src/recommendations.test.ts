@@ -23,7 +23,7 @@ import {
   recommendedScoreThreshold,
   releaseDeferred,
   releaseNextDeferred,
-  selectSubTheme,
+  selectBuilderTheme,
   spreadRoles,
   sharedThemes,
   supportedThemes,
@@ -782,11 +782,21 @@ test('batches vary reasons, and fun allows two new picks', () => {
   )
 })
 
-test('accepting a sub-theme requests fresh recommendations', () => {
-  assert.deepEqual(selectSubTheme(['Tokens'], '+1/+1 counters'), {
-    activeSubThemes: ['Tokens', '+1/+1 counters'],
+test('accepting a theme requests fresh recommendations', () => {
+  assert.deepEqual(selectBuilderTheme({ theme: '', activeSubThemes: [] }, 'Tokens'), {
+    theme: 'Tokens',
+    activeSubThemes: [],
     refreshRecommendations: true,
   })
+  assert.deepEqual(selectBuilderTheme({ theme: 'Tokens', activeSubThemes: [] }, '+1/+1 counters'), {
+    theme: 'Tokens',
+    activeSubThemes: ['+1/+1 counters'],
+    refreshRecommendations: true,
+  })
+  assert.equal(
+    selectBuilderTheme({ theme: 'Tokens', activeSubThemes: [] }, 'Tokens').refreshRecommendations,
+    false,
+  )
 })
 
 test('each selected sub-theme appears when matching candidates exist', () => {
