@@ -1897,3 +1897,54 @@ main > .commander-header {
 .random-commander-modal .add-zone-toggle {
   margin: 8px 0 4px;
 }
+/* Export and the shared-deck preview (#504) wrap their footers like Import: the first item keeps
+   the left edge and the actions, ending with the .primary, keep the right. */
+.export-deck-modal .export-actions,
+.shared-deck-modal .export-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.export-deck-modal .export-actions > :first-child,
+.shared-deck-modal .export-actions > :first-child {
+  margin-right: auto;
+}
+.share-link-status > :first-child {
+  margin: 12px 0 0;
+}
+.share-link-status input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: var(--type-data);
+}
+/* A share link's read-only preview reuses the deck board's list inside a wide dialog. */
+.export-modal.shared-deck-modal {
+  width: min(980px, 100%);
+}
+.shared-deck-status {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+  line-height: 1.45;
+}
+.shared-deck-modal .form-error {
+  margin: 8px 0 0;
+}
+.export-modal.shared-deck-modal .deck-board.shared-deck-board {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+/* A 100-card list scrolls under the footer, so Copy stays in reach. */
+.shared-deck-modal .export-actions {
+  position: sticky;
+  bottom: -28px;
+  margin: 16px -28px -28px;
+  padding: 12px 28px 28px;
+  border-top: 1px solid var(--border-subtle);
+  /* Inherit the dialog surface, which commander styling tints in dark mode. */
+  background: inherit;
+}

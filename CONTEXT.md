@@ -77,3 +77,5 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 **Owned cards** — a list of cards the player owns, imported from a text list or a collection CSV and stored only in this browser. Ownership is by card name; each owned copy covers one card of that name in any printing. It belongs to the player, not to a deck.
 
 **Ownership mode** — Ignore owned cards, Prefer owned cards, or Owned cards only. Prefer ranks owned cards higher; Owned only offers nothing else. Export's **Still needed** list holds the main-deck cards, commanders included, that owned cards do not cover.
+
+**Share link** — a link to this app whose `#share=` fragment holds the whole deck: commanders, main deck and sideboard, with each printing and finish. Opening it shows a read-only **shared deck** preview; **Copy to my decks** makes it the current deck after confirming any replacement.

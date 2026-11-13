@@ -139,3 +139,11 @@
     align-self: start;
   }
 }
+/* Narrow dialogs pad 20px, so the shared-deck preview's sticky footer spans that padding. */
+@media (max-width: 520px) {
+  .shared-deck-modal .export-actions {
+    bottom: -20px;
+    margin: 16px -20px -20px;
+    padding: 12px 20px 20px;
+  }
+}

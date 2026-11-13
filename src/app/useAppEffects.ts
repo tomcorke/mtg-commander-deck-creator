@@ -7,6 +7,7 @@ import { basicLandNames, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
 import { commanderNames } from '../domain/commander-catalog.ts'
 import { printingOptions } from '../domain/printing.ts'
 import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
+import { sharePayloadFromHash } from '../domain/share-link.ts'
 
 export type AppEffectsDeps = Record<string, any> & BuilderActionHost
 
@@ -27,6 +28,7 @@ export function useRouteEffects(deps: AppEffectsDeps) {
     setShowReviewExitPrompt,
     showBuilder,
     activeModal,
+    setPendingSharePayload,
   } = deps
   useEffect(() => {
     const route = initialRoute ?? {
@@ -45,6 +47,13 @@ export function useRouteEffects(deps: AppEffectsDeps) {
       setActiveModal(next.modal)
     }
     const handleRoute = (direction: 'back' | 'hash') => {
+      // A share link pasted into an open tab previews that deck over the current screen.
+      const sharePayload = sharePayloadFromHash(window.location.hash)
+      if (sharePayload !== null) {
+        if (currentRoute.current) writeRoute(currentRoute.current, true)
+        setPendingSharePayload(sharePayload)
+        return
+      }
       const next = readRoute() ?? { app: appHistoryKey, view: 'start', modal: null, entry: false }
       if (reviewNavigationAllowed.current) {
         reviewNavigationAllowed.current = false
