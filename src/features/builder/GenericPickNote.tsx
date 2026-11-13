@@ -5,9 +5,9 @@ import { appTerms, claimKindLabels } from '../../domain/glossary.ts'
  * heuristic, so the copy names the claim kind and never calls the card good or bad.
  */
 export function GenericPickNote() {
-  const { term, definition, kind } = appTerms.genericPick
+  const { term, kind } = appTerms.genericPick
   return (
-    <p className="generic-pick" title={definition}>
+    <p className="generic-pick">
       <span className="generic-pick-label">{term}</span> {claimKindLabels[kind]}: matches no theme
       tag
     </p>
