@@ -29,6 +29,7 @@ import { randomItems } from '../domain/commander-catalog.ts'
 import { playStyleSettings, type PlayStyle } from '../domain/play-style.ts'
 import { scryfallImage, type Card, type ScryfallCard } from '../domain/card-model.ts'
 import { fetchEdhrecCommander } from '../adapters/edhrec.ts'
+import { loadComboIndex } from '../adapters/combo-index.ts'
 import { deckPageTitle, type SavedDeck } from '../deck-state.ts'
 import type { AutosavedDraft } from '../autosaves.ts'
 import {
@@ -289,6 +290,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     fetchLocalCards,
     localCardsIfReady,
     localCardIndexStatus,
+    loadComboIndex,
     fetchCollection: fetchScryfallCollectionCards,
     fetchEdhrec: fetchEdhrecCommander,
     fetchCard: fetchScryfallCard,

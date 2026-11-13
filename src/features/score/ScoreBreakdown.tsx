@@ -55,6 +55,13 @@ const recommendationScoreFactors = [
       'Fills the side of a sacrifice or tokens plan your deck lacks: an enabler when payoffs outnumber enablers, a payoff when enablers outnumber payoffs, or the first protection. A heuristic, not a measure of card quality.',
   },
   {
+    key: 'combo',
+    label: 'Combo completion',
+    max: recommendationScoreFactorMaximums.combo,
+    description:
+      'High power only: completes a Commander Spellbook combo with cards already in your deck. Spellbook is a community database; a listed combo is not a bracket rating.',
+  },
+  {
     key: 'manaFitPenalty',
     label: 'Mana-fit penalty',
     max: recommendationScoreFactorMaximums.manaFitPenalty,
@@ -84,20 +91,24 @@ export function ScoreBreakdown({
   showCollection,
   showTheme,
   showSubThemes,
+  showCombo = false,
 }: {
   score: RecommendationScoreBreakdown
   showPopularityPenalty: boolean
   showCollection: boolean
   showTheme: boolean
   showSubThemes: boolean
+  showCombo?: boolean
 }) {
   const visibleFactors = recommendationScoreFactors.filter(
     ({ key }) =>
       (showPopularityPenalty || key !== 'popularityPenalty') &&
       (showCollection || key !== 'collection') &&
       (showTheme || key !== 'theme') &&
-      (showSubThemes || key !== 'subThemes'),
+      (showSubThemes || key !== 'subThemes') &&
+      (showCombo || key !== 'combo'),
   )
+  const positiveTotal = 108 + (showCombo ? recommendationScoreFactorMaximums.combo : 0)
   return (
     <details className="score-breakdown">
       <summary className="score-breakdown-heading">Why this card</summary>
@@ -124,8 +135,8 @@ export function ScoreBreakdown({
         ))}
       </dl>
       <p className="score-note">
-        Positive factors total 108 points. Mana-fit, power-target and popularity penalties reduce
-        the total.
+        Positive factors total {positiveTotal} points. Mana-fit, power-target and popularity
+        penalties reduce the total.
       </p>
     </details>
   )

@@ -15,7 +15,7 @@ import {
   withOwnedCards,
 } from './fixtures/browser-harness.ts'
 import { baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
-import { withComboIndex } from './fixtures/combo-index.ts'
+import { offerFixtureComboIndex, withComboIndex } from './fixtures/combo-index.ts'
 import { colourThemes } from '../src/domain/commander-catalog.ts'
 
 // These run in the page: self-contained, installed by `lowContrast` through a script tag.
@@ -213,10 +213,11 @@ const themes = [
   { name: 'dark themed', values: { 'Dark mode': true, 'Commander art and colours': true } },
 ] as const
 
-// Owned badges and the Known combos section both render, so the gate checks their colours.
+// Owned badges, the Known combos section and a combo offer note all render, so the gate checks
+// their colours.
 const ownedCardsAndCombos = async (page: Page) => {
   await withOwnedCards(baseCandidates.map(({ name }) => name))(page)
-  await withComboIndex()(page)
+  await withComboIndex(offerFixtureComboIndex)(page)
 }
 
 await withBrowser('CONTRAST', 5243, async (browser, base) => {
@@ -264,6 +265,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
     try {
       await setDisplayPreferences(page, theme.values)
       await page.locator('.health-lane .card-reference').first().waitFor()
+      await page.locator('.card-offer .combo-offer').waitFor()
       await check('Builder')
       failures.push(...(await lowContrastStates(page, `${theme.name} Builder`)))
       // The undo status line stays on the builder for the colour checks below.

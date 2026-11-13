@@ -127,6 +127,7 @@ export const recommendationScoreFactorMaximums = Object.freeze({
   powerFitPenalty: 8,
   package: 8,
   opposingAnswers: 10,
+  combo: 10,
 } as const)
 export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'> &
   Partial<
@@ -184,6 +185,8 @@ export type RecommendationScoreContext = {
   opposingAnswerCounts?: Partial<Record<OpposingStrategy, number>>
   /** Edited answer targets (#565); each strategy's boost eases at its own target. */
   opposingAnswerTargets?: OpposingAnswerTargets
+  /** Known combos each card would complete on its own; only High power scores them (#502). */
+  comboCompletions?: ReadonlyMap<string, number>
 }
 export type RecommendationScoreBreakdown = {
   total: number
@@ -199,4 +202,5 @@ export type RecommendationScoreBreakdown = {
   powerFitPenalty: number
   package: number
   opposingAnswers: number
+  combo: number
 }

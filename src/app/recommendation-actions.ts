@@ -57,6 +57,7 @@ import {
 export type RecommendationProgress = BuilderProgress
 
 import { builderPoolKey as recommendationPoolKey } from '../domain/builder-settings.ts'
+import { reachableComboLinks, type ComboIndex, type ComboLink } from '../domain/combo-index.ts'
 export { builderPoolKey as recommendationPoolKey } from '../domain/builder-settings.ts'
 
 export type { AppActionContext } from './builder-action.ts'
@@ -799,6 +800,33 @@ async function collectOfferedCards(
   )
 }
 
+// The first batch waits this long for combo data; later rankings pick it up once it loads.
+const comboIndexWait = 2_000
+
+/** Known combos among the deck and the new pool, when combo data arrives in time (#502). */
+async function initialComboLinks(
+  pending: Promise<ComboIndex | null> | undefined,
+  deck: DeckCard[],
+  commanderCount: number,
+  pool: Card[],
+): Promise<ComboLink[]> {
+  if (!pending) return []
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const index = await Promise.race([
+    pending,
+    new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), comboIndexWait)
+    }),
+  ])
+  clearTimeout(timer)
+  return index
+    ? reachableComboLinks(index, {
+        commanders: deck.slice(0, commanderCount),
+        cards: [...deck.slice(commanderCount), ...pool],
+      })
+    : []
+}
+
 export function rankInitialRecommendations(
   deps: AppActionContext,
   offeredCards: Card[],
@@ -807,6 +835,7 @@ export function rankInitialRecommendations(
   activeCollectionSets: string[],
   activeCollectionMode: CollectionMode,
   progress?: RecommendationProgress,
+  comboLinks: ComboLink[] = [],
 ) {
   const { setRecommendationState, loadPrintings, preferredPrintSet } = deps
   const result = recommend(
@@ -837,10 +866,12 @@ export function rankInitialRecommendations(
       activeSubThemes: preserveDeck ? deps.activeSubThemes : [],
       collectionSets: activeCollectionSets,
       collectionMode: activeCollectionMode,
+      comboLinks,
     },
     deps.rankRecommendationCards,
   )
   if (result.error) throw new Error(result.error)
+  builderAction(deps, { type: 'data', changes: { comboLinks } })
   builderAction(deps, {
     type: 'poolLoaded',
     queue: result.queue,
@@ -938,6 +969,10 @@ export async function start(
     }
   const pendingLocal: PendingLocalQuery[] = []
   deps = { ...deps, pendingLocal }
+  // Load combo data alongside the pool; a failure only means no combo ranking or notes.
+  const comboIndex: Promise<ComboIndex | null> | undefined = deps
+    .loadComboIndex?.()
+    .catch(() => null)
   const reset = resetRecommendationState(deps, preserveDeck, progress, chosen)
   try {
     const loaded = await loadCommanderCards(deps, chosen)
@@ -954,6 +989,13 @@ export async function start(
       preserveDeck,
       reset.activeCollectionSets,
       reset.activeCollectionMode,
+    )
+    if (!job.isCurrent()) return false
+    const comboLinks = await initialComboLinks(
+      comboIndex,
+      deps.getBuilderState().deck,
+      loaded.commanders.length,
+      offeredCards,
     )
     if (!job.isCurrent()) return false
     rankInitialRecommendations(
@@ -973,6 +1015,7 @@ export async function start(
       reset.activeCollectionSets,
       reset.activeCollectionMode,
       progress,
+      comboLinks,
     )
     deps.setFirstBatchPending?.(false)
     void bufferLocalCandidates(deps, pendingLocal, loaded.identityColours, job.isCurrent)

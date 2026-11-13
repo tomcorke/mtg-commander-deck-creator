@@ -11,7 +11,7 @@ import {
   withOwnedCards,
 } from './fixtures/browser-harness.ts'
 import { allRecords, baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
-import { withComboIndex } from './fixtures/combo-index.ts'
+import { offerFixtureComboIndex, withComboIndex } from './fixtures/combo-index.ts'
 
 const allowed = [
   '.card-reference',
@@ -67,7 +67,7 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
     undefined,
     async (page) => {
       await withOwnedCards(baseCandidates.map(({ name }) => name))(page)
-      await withComboIndex()(page)
+      await withComboIndex(offerFixtureComboIndex)(page)
     },
   )
   const { page } = scenario
@@ -75,6 +75,8 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
   const check = async (screen: string) => failures.push(...(await bareNames(page, screen)))
   try {
     await page.locator('.health-lane .card-reference').first().waitFor()
+    // A combo offer note names its deck pieces (#502).
+    await page.locator('.card-offer .combo-offer').waitFor()
     await check('Builder')
     await openSetAside(page)
     await check('Later & ignored')

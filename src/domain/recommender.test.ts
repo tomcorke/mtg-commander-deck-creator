@@ -64,6 +64,42 @@ const deepFreeze = <T>(value: T): T => {
   return value
 }
 
+test('High power ranks a card that completes a known combo higher; other powers ignore combos', () => {
+  const deck = [card('Commander'), card('Altar')]
+  const comboLinks = [
+    { id: 'altar-foxtrot', cards: ['Altar', 'Foxtrot'] },
+    { id: 'altar-echo-foxtrot', cards: ['Altar', 'Echo', 'Foxtrot'] },
+  ]
+  const input = state({ deck, comboLinks })
+  const results = (['precon', 'upgraded', 'high'] as const).map((powerTarget) =>
+    recommend(deepFreeze(structuredClone({ ...input, powerTarget }))),
+  )
+  const combo = (result: (typeof results)[number], name: string) =>
+    result.scores.find((score) => score.name === name)!.breakdown.combo
+  assert.deepEqual(
+    results.map((result) => combo(result, 'Foxtrot')),
+    [0, 0, 7],
+  )
+  // Echo needs Foxtrot too, so it completes nothing yet.
+  assert.equal(combo(results[2], 'Echo'), 0)
+  assert.notEqual(results[0].batch[0].name, 'Foxtrot')
+  assert.equal(results[2].batch[0].name, 'Foxtrot')
+  assert(results[2].scores.find(({ name }) => name === 'Foxtrot')!.codes.includes('combo'))
+  // Two combos at once reach the cap; replay gives the same queue.
+  const both = state({
+    deck: [...deck, card('Echo')],
+    pool: pool.filter(({ name }) => name !== 'Echo'),
+    comboLinks,
+    powerTarget: 'high',
+  })
+  assert.equal(combo(recommend(both), 'Foxtrot'), 10)
+  assert.deepEqual(recommend(both), recommend(structuredClone(both)))
+  assert.deepEqual(
+    recommend({ ...input, powerTarget: 'high', comboLinks: [] }).queue,
+    results[0].queue,
+  )
+})
+
 test('power targets change utility ranking independently of priority without removing functional options', () => {
   const slow = {
     ...card('Slow draw', { reason: 'Creature synergy' }),
@@ -266,7 +302,7 @@ test('recommend is deterministic, leaves frozen input untouched and supports eve
     assert.deepEqual(recommend(input), first)
     assert.equal(first.queue.length, 6)
     assert.equal(first.batch.length, 4)
-    assert.equal(first.scores[0].scoringVersion, 5)
+    assert.equal(first.scores[0].scoringVersion, 6)
   }
 })
 

@@ -207,6 +207,16 @@ function powerFitPenalty(
   return penalty ? -penalty : 0
 }
 
+// High power treats combos as a way to win (#502): a card that alone completes a known Spellbook
+// combo with the deck gains 7 points, 10 for two or more. Provider data, not a bracket verdict.
+function comboScore(
+  card: RecommendationScoreCard,
+  { powerTarget, comboCompletions }: RecommendationScoreContext,
+) {
+  const completed = (powerTarget === 'high' && card.name && comboCompletions?.get(card.name)) || 0
+  return completed ? Math.min(recommendationScoreFactorMaximums.combo, 4 + 3 * completed) : 0
+}
+
 export function recommendationScoreBreakdown(
   card: RecommendationScoreCard,
   context: RecommendationScoreContext,
@@ -270,6 +280,7 @@ export function recommendationScoreBreakdown(
   const pkg = Math.round(packageScore(card.detail, packageCounts) * goalThemeWeight)
   // Without expected opponents this is 0, so existing orders are unchanged (#503).
   const opposingAnswers = opposingAnswerScore(card, context)
+  const combo = comboScore(card, context)
   const popularityPenalty =
     recommendationStyle === 'thematic' &&
     (card.reason === 'Commander favourite' || card.reason === 'Popular inclusion')
@@ -288,6 +299,7 @@ export function recommendationScoreBreakdown(
       powerFit +
       pkg +
       opposingAnswers +
+      combo +
       popularityPenalty,
   )
   return {
@@ -304,6 +316,7 @@ export function recommendationScoreBreakdown(
     powerFitPenalty: powerFit,
     package: pkg,
     opposingAnswers,
+    combo,
   }
 }
 

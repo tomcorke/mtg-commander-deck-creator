@@ -77,7 +77,7 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 
 **Deck review** and **Deck Doctor** — analysis of the current deck, and an optional flow that proposes equal-count swaps for the player to approve.
 
-**Known combo** — a combo Commander Spellbook lists whose pieces are all in the main deck; a card **one away** would complete one. Provider data from a community database, never a bracket verdict. Power changes how Deck review frames them.
+**Known combo** — a combo Commander Spellbook lists whose pieces are all in the main deck; a card **one away** would complete one. Provider data from a community database, never a bracket verdict. Power changes how Deck review frames them and how recommendations treat an offer that would complete one: a note at every Power, a ranking boost only at High.
 
 **Set selection** — set codes the player prefers or restricts to, shown as "Sets to build from". It is not an inventory of owned cards. Older code and documents call this "collection".
 

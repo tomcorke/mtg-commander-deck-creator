@@ -75,6 +75,7 @@ import { BasicLandDialog } from './BasicLandDialog.tsx'
 import { CollectionBrowserDialog } from './CollectionBrowserDialog.tsx'
 import { HealthLane } from './HealthLane.tsx'
 import { GenericPickNote } from './GenericPickNote.tsx'
+import { ComboOfferNote } from './ComboOfferNote.tsx'
 import { TargetCount, ThemeTargetRow } from './ThemeTargetRow.tsx'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
@@ -1045,6 +1046,13 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                           )}
                         </p>
                         {explanation.generic && <GenericPickNote />}
+                        <ComboOfferNote
+                          card={card.name}
+                          combos={model.offerCombos(card)}
+                          deck={deck}
+                          powerTarget={model.powerTarget}
+                          openCard={model.openCardReference}
+                        />
                         {card.price && (
                           <p className="offer-price">
                             <CardPriceLink card={card} />
@@ -1147,6 +1155,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                         }
                         showTheme={Boolean(theme)}
                         showSubThemes={activeSubThemes.length > 0}
+                        showCombo={model.powerTarget === 'high'}
                       />
                       {commanderPromotionInfo(card, deck, commanderDetails?.colours ?? [])
                         ?.canPromote && (

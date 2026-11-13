@@ -877,12 +877,14 @@ button:disabled {
 .card-copy > .offer-price {
   white-space: nowrap;
 }
-.card-copy > .offer-price a {
+.card-copy > .offer-price a,
+.card-copy > .combo-offer a {
   color: var(--text-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.card-copy > .offer-price a:hover {
+.card-copy > .offer-price a:hover,
+.card-copy > .combo-offer a:hover {
   color: var(--text-strong);
 }
 .card-details {
@@ -1173,6 +1175,17 @@ button:disabled {
   letter-spacing: 0.4px;
   line-height: 1.5;
   white-space: nowrap;
+}
+/* An offer that completes a known combo (#502). The status pill carries Power's framing. */
+.card-copy > .combo-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  white-space: normal;
+}
+.combo-offer > .deck-review-status {
+  align-self: center;
 }
 /* A card the player owns, by name. Success tokens theme it in light and dark. */
 .owned-badge {
