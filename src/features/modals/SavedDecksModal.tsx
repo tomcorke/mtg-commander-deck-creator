@@ -7,6 +7,7 @@ import { CardReference } from '../../shared/CardReference.tsx'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
 import type { DeckCard } from '../../domain/card-model.ts'
+import { commanderLabel } from '../../domain/commander-catalog.ts'
 import type { AutosavedDraft, DeckWorkspace } from '../../autosaves.ts'
 import { confirmDialog } from '../../shared/ConfirmDialog.tsx'
 import { DraftSavedTime } from './WorkspaceNotice.tsx'
@@ -147,7 +148,9 @@ export function SavedDecksModal({
                   <SmallCardImage image={draft.state.deck[0].image} placement="reference" />
                 </button>
                 <div className="saved-deck-details">
-                  {draft.name && draft.name !== draft.state.commander && <b>{draft.name}</b>}
+                  {draft.name && draft.name !== commanderLabel(draft.state.commander) && (
+                    <b>{draft.name}</b>
+                  )}
                   <CommanderLine card={draft.state.deck[0]} openCard={openCard} />
                   <p className="saved-deck-meta">
                     {draft.id === autosave.id ? (
@@ -200,7 +203,7 @@ export function SavedDecksModal({
                       dialog.ref.current?.querySelector<HTMLButtonElement>('.modal-close')?.focus()
                       void workspace.deleteDraft(draft)
                     }}
-                    aria-label={`${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm deletion of' : 'Delete'} draft ${draft.name || draft.state.commander}`}
+                    aria-label={`${pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm deletion of' : 'Delete'} draft ${draft.name || commanderLabel(draft.state.commander)}`}
                   >
                     {pendingSavedDeckRemoval === `draft:${draft.id}` ? 'Confirm' : 'Delete'}
                   </button>
@@ -301,7 +304,7 @@ export function SavedDecksModal({
                 <SmallCardImage image={saved.state.deck[0].image} placement="reference" />
               </button>
               <div className="saved-deck-details">
-                {saved.name !== saved.state.commander && <b>{saved.name}</b>}
+                {saved.name !== commanderLabel(saved.state.commander) && <b>{saved.name}</b>}
                 <CommanderLine card={saved.state.deck[0]} openCard={openCard} />
                 <small>
                   {saved.state.deck.length}/100 cards · Updated{' '}

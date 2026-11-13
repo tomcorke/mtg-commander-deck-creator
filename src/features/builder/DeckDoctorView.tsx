@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 
 import type { Card, CommanderDetails, DeckCard } from '../../domain/card-model.ts'
 import { cardConstructionError } from '../../domain/commander-construction.ts'
+import { commanderLabel } from '../../domain/commander-catalog.ts'
 import {
   compareRecommendationScores,
   recommendationScoreRating,
@@ -475,7 +476,8 @@ export function DeckDoctorView({
   const projectedSize = deck.length - selectedCuts.length + selectedAdditions.length
   const commanderCards = deck.slice(0, commanderCount)
   const currentCommander = commanderCards[0]
-  const commanderTitle = commanderCards.map(({ name }) => name).join(' // ') || commander
+  const commanderTitle =
+    commanderCards.map(({ name }) => name).join(' // ') || commanderLabel(commander)
   const planReady =
     !settingsRefreshPending &&
     !recommendationOptionsChanged &&

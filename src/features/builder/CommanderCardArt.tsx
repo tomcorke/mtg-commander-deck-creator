@@ -1,4 +1,4 @@
-import { commanderNames } from '../../domain/commander-catalog.ts'
+import { commanderLabel, commanderNames } from '../../domain/commander-catalog.ts'
 import type { CommanderDetails } from '../../domain/card-model.ts'
 import { FinishedCardImage } from '../../shared/CardArt.tsx'
 
@@ -27,7 +27,7 @@ export function CommanderCardArt({
     <figure
       className={`commander-card ${commanderDetails.images.length > 1 ? 'pair' : ''}`}
       tabIndex={0}
-      aria-label={`View ${commander} card${commanderDetails.images.length > 1 ? 's' : ''}`}
+      aria-label={`View ${commanderLabel(commander)} card${commanderDetails.images.length > 1 ? 's' : ''}`}
     >
       {commanderDetails.images.map((image, index) => (
         <img

@@ -7,7 +7,7 @@ import {
 import { themeCommanders, themeSearchTerm } from './commander-catalog.ts'
 import { creatureTypeForTheme, creatureTypeTags } from './creature-types.ts'
 import { commanderConstructionError } from './commander-construction.ts'
-import { pairName, partnerSearchScope } from './commander-pairing.ts'
+import { partnerSearchScope } from './commander-pairing.ts'
 import { cardNameKey, toDeckCard, type ScryfallCard } from './card-model.ts'
 import { identityTerm, matchesIdentity, type ColourMatch } from './colour-identity.ts'
 
@@ -413,7 +413,7 @@ export async function discoverPartners(
   const commanders = cards
     .filter((card) => {
       const partner = toDeckCard(card)
-      return pairName(leader, partner) && !commanderConstructionError([leader, partner])
+      return !commanderConstructionError([leader, partner])
     })
     .map((card) => ({ card, reason: `Partners with ${first.name}` }))
   return { commanders, more: cards.length >= scryfallPageSize }

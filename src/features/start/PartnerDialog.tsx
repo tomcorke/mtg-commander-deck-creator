@@ -2,7 +2,8 @@ import { useState } from 'react'
 
 import { usePartnerDiscovery } from '../../app/useCommanderDiscovery.ts'
 import { toDeckCard, type DeckCard, type ScryfallCard } from '../../domain/card-model.ts'
-import { pairName, pairingLabel } from '../../domain/commander-pairing.ts'
+import { commanderKey } from '../../domain/commander-catalog.ts'
+import { pairingLabel } from '../../domain/commander-pairing.ts'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { CardReference } from '../../shared/CardReference.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
@@ -78,7 +79,7 @@ export function PartnerDialog({
               type="button"
               aria-label={`Choose ${card.name} as partner`}
               disabled={choosing}
-              onClick={() => void choose(pairName(leader, toDeckCard(card)))}
+              onClick={() => void choose(commanderKey([leader.name, card.name]))}
             >
               Choose
             </button>
@@ -94,7 +95,7 @@ export function PartnerDialog({
             className="nav-forward"
             type="button"
             disabled={choosing}
-            onClick={() => void choose(first.name)}
+            onClick={() => void choose(commanderKey([first.name]))}
           >
             Skip
           </button>

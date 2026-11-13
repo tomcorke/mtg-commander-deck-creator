@@ -1,5 +1,4 @@
 import type { DeckCard } from './card-model.ts'
-import { commanderNames } from './commander-catalog.ts'
 import { isCommanderCandidate } from './commander-promotion.ts'
 
 /**
@@ -121,16 +120,6 @@ export function partnerSearchScope(card: DeckCard) {
     }
   })
   return [...new Set(terms)].join(' or ')
-}
-
-/**
- * The stored commander name for a pair. Names containing " & " cannot be split back apart, so
- * such a pair returns '' instead of a name that would load the wrong cards.
- */
-export function pairName(first: Pick<DeckCard, 'name'>, second: Pick<DeckCard, 'name'>) {
-  const name = `${first.name} & ${second.name}`
-  const names = commanderNames(name)
-  return names.length === 2 && names[0] === first.name && names[1] === second.name ? name : ''
 }
 
 function abilityName(ability: PairingAbility) {

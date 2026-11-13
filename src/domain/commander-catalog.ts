@@ -310,7 +310,26 @@ export const dualCommanders: Record<string, string[]> = {
   'Ishai & Jeska': ['Ishai, Ojutai Dragonspeaker', 'Jeska, Thrice Reborn'],
   'Kodama & Sakashima': ['Kodama of the East Tree', 'Sakashima of a Thousand Faces'],
 }
-export const commanderNames = (name: string) => dualCommanders[name] ?? name.split(' & ')
+
+/*
+ * The stored commander is one string, the key: a name, or a partner pair's names joined by " & ".
+ * Some cards' own names contain " & " (Minsc & Boo, Timeless Heroes), so a key stores that text in
+ * each name as `escapedAmpersand` (a fullwidth ampersand) instead (#517). Before #517 such names
+ * could neither start a deck nor join a pair, so older saves need no migration.
+ */
+const pairSeparator = ' & '
+const escapedAmpersand = ' ＆ '
+/** The stored commander for one name or a pair's names. Never join names any other way. */
+export const commanderKey = (names: readonly string[]) =>
+  names.map((name) => name.replaceAll(pairSeparator, escapedAmpersand)).join(pairSeparator)
+/** The card names in a stored commander key. */
+export const commanderNames = (key: string) =>
+  dualCommanders[key] ?? key.split(pairSeparator).map(unescapeAmpersand)
+/** A stored commander key as the player reads it. */
+export const commanderLabel = unescapeAmpersand
+function unescapeAmpersand(text: string) {
+  return text.replaceAll(escapedAmpersand, pairSeparator)
+}
 /** Deck board group order; the board places groups by its width (#499). */
 export const deckSections = [
   'Commander',

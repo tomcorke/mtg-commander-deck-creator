@@ -1,4 +1,4 @@
-import { commanderNames } from '../domain/commander-catalog.ts'
+import { commanderLabel, commanderNames } from '../domain/commander-catalog.ts'
 import type { DeckCard } from '../domain/card-model.ts'
 import type { ImportBoard, ImportedCard, ImportedDeck } from '../deck-import.ts'
 import {
@@ -139,7 +139,7 @@ export async function copySharedDeck(deps: AppActionContext) {
       await import('../shared/ConfirmDialog.tsx')
     ).confirmDialog({
       title: 'Replace the current deck?',
-      message: `"${deps.deckName || deps.commander}" (${deps.deck.length} cards) stays in Saved decks under Autosaved drafts. Manual saves are unchanged.`,
+      message: `"${deps.deckName || commanderLabel(deps.commander)}" (${deps.deck.length} cards) stays in Saved decks under Autosaved drafts. Manual saves are unchanged.`,
       confirmLabel: 'Copy and replace',
     })
     if (!confirmed) {

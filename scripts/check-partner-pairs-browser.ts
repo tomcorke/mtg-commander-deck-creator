@@ -1,5 +1,6 @@
 // Partner pairs (#487): Start's Choose offers legal partners, then Skip or a pair; Change commander
 // offers the same step. Covers one Partner pair (702.124h) and one Background pair (702.124k).
+// Names containing " & " (#517): one alone, and one in a Partner with pair (702.124j).
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -7,6 +8,9 @@ import type { Locator, Page } from 'playwright-core'
 import { button, heading, openScenario, withBrowser } from './fixtures/browser-harness.ts'
 import { baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
 import {
+  ampersandPartner,
+  ampersandPartnerMate,
+  ampersandSolo,
   background,
   backgroundChooser,
   friendsForever,
@@ -60,12 +64,7 @@ async function startPartnerPair(page: Page, edhrec: string[]) {
     .waitFor()
   await summary(page).locator('.identity[aria-label="Colour identity: Green, Blue"]').waitFor()
   // The first batch loads after the play-style step, from the pair's EDHREC page.
-  await page.getByRole('button', { name: /^Keep current settings/ }).click()
-  await page.locator('.play-style-step').waitFor({ state: 'detached' })
-  assert(
-    edhrec.some((url) => url.endsWith('/pair-fixture-elf-pair-fixture-mage.json')),
-    'recommendations come from the pair page',
-  )
+  await playFirstBatch(page, edhrec, 'pair-fixture-elf-pair-fixture-mage')
 }
 
 async function startWithSkip(page: Page) {
@@ -79,6 +78,46 @@ async function startWithSkip(page: Page) {
   assert(!(await dialog.innerText()).includes(notBackground.name))
   await button(dialog, 'Skip').click()
   await page.getByRole('button', { name: backgroundChooser.name, exact: true }).first().waitFor()
+}
+
+/** Plays the first batch, which needs every commander card loaded, from the expected page. */
+async function playFirstBatch(page: Page, edhrec: string[], slug: string) {
+  await page.getByRole('button', { name: /^Keep current settings/ }).click()
+  await page.locator('.play-style-step').waitFor({ state: 'detached' })
+  await page.locator('.card-offer').first().waitFor()
+  assert(
+    edhrec.some((url) => url.endsWith(`/${slug}.json`)),
+    `recommendations come from ${slug}`,
+  )
+}
+
+async function startAmpersandSolo(page: Page, edhrec: string[]) {
+  await page.goto(`${page.url().split('#')[0]}#start`)
+  await heading(page, 'What do you want to play?').waitFor()
+  await showFixtureCommanders(page)
+  await choose(page, ampersandSolo.name).click()
+  await page.getByRole('button', { name: ampersandSolo.name, exact: true }).first().waitFor()
+  await summary(page).locator('.identity[aria-label="Colour identity: Green"]').waitFor()
+  await playFirstBatch(page, edhrec, 'pair-fixture-rogue-hamster')
+  // The tab title shows the name as printed, not the stored key.
+  assert.match(await page.title(), /Pair Fixture Rogue & Hamster/)
+  if (output) await page.screenshot({ path: join(output, 'ampersand-solo-builder.png') })
+}
+
+async function startAmpersandPair(page: Page, edhrec: string[]) {
+  await page.goto(`${page.url().split('#')[0]}#start`)
+  await heading(page, 'What do you want to play?').waitFor()
+  await showFixtureCommanders(page)
+  await choose(page, ampersandPartner.name).click()
+  const dialog = page.getByRole('dialog', { name: 'Add a partner', exact: true })
+  await choose(dialog, `${ampersandPartnerMate.name} as partner`).click()
+  await page
+    .getByRole('button', { name: `${ampersandPartner.name} & ${ampersandPartnerMate.name}` })
+    .first()
+    .waitFor()
+  await summary(page).locator('.identity[aria-label="Colour identity: Green, Red"]').waitFor()
+  await playFirstBatch(page, edhrec, 'pair-fixture-skull-crossbones-pair-fixture-rhino')
+  if (output) await page.screenshot({ path: join(output, 'ampersand-pair-builder.png') })
 }
 
 async function openChangePartner(page: Page) {
@@ -132,13 +171,15 @@ await withBrowser('PARTNER_PAIRS', 5298, async (browser, base) => {
     await changeToBackgroundPair(page)
     await startPartnerPair(page, edhrec)
     await startWithSkip(page)
+    await startAmpersandSolo(page, edhrec)
+    await startAmpersandPair(page, edhrec)
     assert(queries.every((query) => query.startsWith('legal:commander date<=today (')))
     assert.deepEqual(errors, [], 'no browser exceptions')
   } finally {
     await context.close()
   }
   console.log(
-    'Partner pairs browser check passed: Start Partner pair, Start Skip, Change commander Background pair.',
+    'Partner pairs browser check passed: Start Partner pair, Start Skip, Change commander Background pair, " & " names alone and paired.',
   )
 })
 
