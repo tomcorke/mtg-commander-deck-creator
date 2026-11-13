@@ -20,7 +20,7 @@ import { type TargetKey } from '../deck-analysis.ts'
 import {
   cardText,
   rankRecommendationCards,
-  selectSubTheme,
+  selectBuilderTheme,
   type RecommendationStyle,
 } from '../recommendations.ts'
 import { randomItems } from '../domain/commander-catalog.ts'
@@ -440,13 +440,13 @@ function queueSubTheme(
   state: AppState,
   remote: RemoteActions,
   name: string,
-  { activeSubThemes }: { activeSubThemes: string[] },
+  { theme, activeSubThemes }: { theme: string; activeSubThemes: string[] },
 ) {
   state.setPendingSubThemes((t: string[]) => [...t, name])
   void themeRecommendations(
-    { ...remote.recommendationDeps, activeSubThemes, pendingLocal: [] },
+    { ...remote.recommendationDeps, theme, activeSubThemes, pendingLocal: [] },
     state.commanderDetails?.colours ?? [],
-    [state.theme, ...activeSubThemes],
+    [theme, ...activeSubThemes],
   ).catch(() => {})
 }
 
@@ -466,7 +466,7 @@ function ownedCardActions(state: AppState, routing: RoutingActions, remote: Remo
 
 function useBuilderActions(state: AppState, routing: RoutingActions, remote: RemoteActions) {
   const chooseSubTheme = (name: string) => {
-    const selection = selectSubTheme(state.activeSubThemes, name)
+    const selection = selectBuilderTheme(state, name)
     builderAction(state, { type: 'selectSubTheme', name })
     if (selection.refreshRecommendations) queueSubTheme(state, remote, name, selection)
     state.setShowSubThemePicker(false)

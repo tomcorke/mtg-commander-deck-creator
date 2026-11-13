@@ -277,11 +277,25 @@ export function spreadRoles<T extends { reason: string; typeLine: string; tags: 
   return ordered
 }
 
-export function selectSubTheme(activeSubThemes: string[], name: string) {
-  const next = activeSubThemes.includes(name)
-    ? activeSubThemes
-    : [...activeSubThemes, name].slice(0, 2)
-  return { activeSubThemes: next, refreshRecommendations: next.length !== activeSubThemes.length }
+type ChosenThemes = { theme: string; activeSubThemes: string[] }
+
+/** As on Start, the first chosen theme is the theme and later ones are extra themes (at most two). */
+function orderThemes(chosen: string[]): ChosenThemes {
+  const [theme = '', ...extra] = [...new Set(chosen.filter(Boolean))]
+  return { theme, activeSubThemes: extra.slice(0, 2) }
+}
+
+/** Adds a builder theme choice: the theme when none is declared, otherwise an extra theme. */
+export function selectBuilderTheme(current: ChosenThemes, name: string) {
+  const chosen = [current.theme, ...current.activeSubThemes].filter(Boolean)
+  if (!name || chosen.includes(name) || chosen.length >= 3)
+    return { ...current, refreshRecommendations: false }
+  return { ...orderThemes([...chosen, name]), refreshRecommendations: true }
+}
+
+/** Removes a chosen theme; removing the theme promotes the first extra theme, as on Start. */
+export function removeBuilderTheme(current: ChosenThemes, name: string) {
+  return orderThemes([current.theme, ...current.activeSubThemes].filter((item) => item !== name))
 }
 
 export function balanceThemeCoverage<T extends { tags: string[]; reason: string }>(

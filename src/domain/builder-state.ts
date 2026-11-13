@@ -56,7 +56,8 @@ import {
   advanceRecommendationQueue,
   deferBatch,
   rankRecommendationCards,
-  selectSubTheme,
+  removeBuilderTheme,
+  selectBuilderTheme,
   updatePreferenceScores,
 } from './recommendation-queue.ts'
 import {
@@ -250,7 +251,9 @@ export type BuilderAction =
   | { type: 'ignoreReason'; name: string; reason: IgnoreReason | null }
   | { type: 'like'; name: string }
   | { type: 'theme'; theme: string }
+  /** A builder theme choice: the theme when none is declared, otherwise an extra theme. */
   | { type: 'selectSubTheme'; name: string }
+  /** Removes the theme or an extra theme; the first extra theme replaces a removed theme. */
   | { type: 'removeSubTheme'; name: string }
   | { type: 'dismissSubTheme'; name: string; evidenceCount: number }
   | { type: 'settings'; settings: Partial<BuilderSettings> }
@@ -610,11 +613,10 @@ function applySelectSubTheme(
   state: BuilderState,
   action: Extract<BuilderAction, { type: 'selectSubTheme' }>,
 ): BuilderActionResult {
-  const selected = selectSubTheme(state.activeSubThemes, action.name)
-  return done({
-    ...state,
-    activeSubThemes: selected.activeSubThemes,
-  })
+  const { theme, activeSubThemes } = selectBuilderTheme(state, action.name)
+  // No recommendationOptionsChanged: the changed pool key rebuilds on Next recommendations,
+  // so the current batch stays on screen.
+  return done({ ...state, theme, activeSubThemes })
 }
 
 function applyRemoveSubTheme(
@@ -623,7 +625,7 @@ function applyRemoveSubTheme(
 ): BuilderActionResult {
   return done({
     ...state,
-    activeSubThemes: state.activeSubThemes.filter((name) => name !== action.name),
+    ...removeBuilderTheme(state, action.name),
     recommendationOptionsChanged: true,
   })
 }

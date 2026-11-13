@@ -388,6 +388,9 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   const batchBusy = preparingBatch || batchRevealState === 'flipping'
   const showBatchControls =
     (queue.length > 0 || deferredCards.length > 0 || batchBusy) && recommendationState !== 'error'
+  const rebuildingThemes = pendingSubThemes.filter(
+    (name) => name === theme || activeSubThemes.includes(name),
+  )
   // Before any decision every card is undecided, so the return note would read as a warning.
   const undecidedNote = showBatchControls &&
     undecidedCount > 0 &&
@@ -687,7 +690,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
               {theme && (
                 <button
                   type="button"
-                  onClick={() => dispatchBuilder({ type: 'theme', theme: '' })}
+                  onClick={() => dispatchBuilder({ type: 'removeSubTheme', name: theme })}
                   title={`Remove ${theme} ${appTerms.theme.term.toLowerCase()}`}
                 >
                   {theme} <span>×</span>
@@ -792,13 +795,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             : nextBatchLabel}
                         </span>
                       </span>
-                      {pendingSubThemes.some((name) => activeSubThemes.includes(name)) && (
+                      {rebuildingThemes.length > 0 && (
                         <small className="batch-rebuild">
                           {' '}
-                          rebuilding for{' '}
-                          {pendingSubThemes
-                            .filter((name) => activeSubThemes.includes(name))
-                            .join(' & ')}
+                          rebuilding for {rebuildingThemes.join(' & ')}
                         </small>
                       )}
                     </span>
