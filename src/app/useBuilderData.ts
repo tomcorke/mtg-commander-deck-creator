@@ -286,16 +286,16 @@ export type Explanation = {
 const themeList = (themes: string[]) =>
   `${themes.join(' and ')} theme${themes.length > 1 ? 's' : ''}`
 
-/**
- * Theme fit with the words that matched (#501). Matching is a text heuristic, so the copy says the
- * text matches rather than claiming the card is good in the theme.
- */
 function themeMatchSentence({ theme, source, quote }: ThemeEvidence) {
   if (source === 'type') return `Type line matches your ${theme} theme: ${quote}.`
   // Keyword lines such as "Changeling" have no closing punctuation of their own.
   return `Text matches your ${theme} theme: “${quote}”${/[.!?…]$/.test(quote) ? '' : '.'}`
 }
 
+/**
+ * Theme fit with the words that matched (#501). Matching is a text heuristic, so the copy says the
+ * text matches rather than claiming the card is good in the theme.
+ */
 function themeFitReason(card: Card, themes: string[]): Explanation {
   const [first, ...extras] = themes
   const lead = themeEvidence(card, first)
