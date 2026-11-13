@@ -17,6 +17,7 @@ import {
   type ManaGuidanceSymbol,
 } from '../../deck-analysis.ts'
 import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
+import { appTerms } from '../../domain/glossary.ts'
 import { ManaCurve } from './ManaCurve.tsx'
 
 type DeckOverviewProps = {
@@ -397,12 +398,12 @@ export function DeckOverview({
               {[...selectedCoverage, ...inferredCoverage].map(({ tag, cards }) => {
                 const selected = selectedTags.includes(tag)
                 const kind = selected ? (cards.length ? 'good' : 'attention') : 'neutral'
-                const label =
-                  tag === theme
-                    ? 'Selected theme'
-                    : activeSubThemes.includes(tag)
-                      ? 'Active sub-theme'
-                      : 'Also found in deck'
+                // The first selected theme leads, as on Start; later ones are extra themes.
+                const label = !selected
+                  ? 'Also found in deck'
+                  : tag === selectedTags[0]
+                    ? appTerms.theme.term
+                    : appTerms.extraTheme.term
                 return (
                   <FilterButton
                     key={tag}

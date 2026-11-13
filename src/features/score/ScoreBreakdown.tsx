@@ -14,13 +14,13 @@ const recommendationScoreFactors = [
     key: 'theme',
     label: 'Theme',
     max: recommendationScoreFactorMaximums.theme,
-    description: 'Whether the card directly matches your primary theme.',
+    description: 'Whether the card directly matches your theme.',
   },
   {
     key: 'subThemes',
-    label: 'Sub-themes',
+    label: 'Extra themes',
     max: recommendationScoreFactorMaximums.subThemes,
-    description: 'Support for the sub-themes you selected or the app inferred from your deck.',
+    description: 'Support for the extra themes you added.',
   },
   {
     key: 'collection',

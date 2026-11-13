@@ -1503,7 +1503,7 @@ export function DeckDoctorView({
               </p>
             ) : !theme && !activeSubThemes.length ? (
               <div className="doctor-commander-empty">
-                <p>Choose a theme or sub-theme in the builder to compare commander options.</p>
+                <p>Choose a theme in the builder to compare commander options.</p>
                 <button
                   className="export"
                   type="button"

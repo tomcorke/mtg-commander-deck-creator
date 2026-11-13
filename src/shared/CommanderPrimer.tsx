@@ -106,7 +106,7 @@ export function CommanderPrimerDialog({ onClose }: { onClose: () => void }) {
           Choose a commander and theme, then build in batches. The sidebar tracks your role targets,
           and Deck review looks for possible gaps.
         </p>
-        <GlossaryList entries={[appTerms.theme, appTerms.subTheme, appTerms.batch]} />
+        <GlossaryList entries={[appTerms.theme, appTerms.extraTheme, appTerms.batch]} />
         <div className="export-actions">
           <span />
           <button className="primary" type="button" onClick={onClose}>
