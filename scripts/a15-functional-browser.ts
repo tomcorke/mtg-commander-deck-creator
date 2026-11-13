@@ -94,13 +94,33 @@ try {
   await page.goto(`${process.env.A15_URL ?? 'http://127.0.0.1:5235/'}#build`)
   await page.getByRole('heading', { name: 'Deck overview', exact: true }).waitFor()
   const opener = page.getByRole('button', { name: 'Recommendation settings', exact: true })
+  const expectedHelpLabels = [
+    'Priority',
+    'Power',
+    'Max price per card',
+    'Deck budget',
+    'Include a creature when possible',
+    'Owned cards',
+    'Owned card matching',
+    'Sets to build from',
+    'Set matching',
+    'Exclude Game Changers',
+    'Limit to 3 Game Changers',
+    'Exclude tutors (preference)',
+    'Exclude extra turns (preference)',
+    'Exclude unreleased cards (preference)',
+  ]
   const checkHelpGeometry = async (width: number, dark: boolean) => {
     await page.setViewportSize({ width, height: 950 })
     await setDisplayPreferences(page, { 'Dark mode': dark })
     await opener.click()
     const settings = page.getByRole('dialog', { name: 'Recommendation settings' })
     const triggers = settings.locator('.setting-help-button')
-    assert.equal(await triggers.count(), 11, 'all eleven setting help triggers render')
+    assert.deepEqual(
+      await triggers.evaluateAll((els) => els.map((el) => el.getAttribute('aria-label'))),
+      expectedHelpLabels.map((label) => `Explain ${label}`),
+      'every setting help trigger renders, in order',
+    )
     const focusable = settings.locator(
       'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary',
     )
@@ -259,7 +279,7 @@ try {
   assert.doesNotMatch(await exportDialog.innerText(), /Moxfield cannot import/i)
   assert.deepEqual(errors, [])
   console.log(
-    `A15 browser gate passed: Chrome ${browser.version()}, sandbox enabled; all 11 help triggers keyboard-checked at 1440/1024/768/390px in light/dark, plus preference/export copy and dialog focus behavior.`,
+    `A15 browser gate passed: Chrome ${browser.version()}, sandbox enabled; all ${expectedHelpLabels.length} help triggers keyboard-checked at 1440/1024/768/390px in light/dark, plus preference/export copy and dialog focus behavior.`,
   )
   await context.close()
 } finally {
