@@ -91,13 +91,11 @@ function ActivityDetails({ activity, now }: { activity: RequestActivity; now: nu
   )
 }
 
-export function RequestActivitySummary() {
-  const activity = useSyncExternalStore(observeRequestActivity, getRequestActivity)
-  return <ActivityDetails activity={activity} now={useActivityClock(activity)} />
-}
+// Opening the app with `?diagnostics` keeps the header sign visible for troubleshooting.
+const diagnostics =
+  typeof location !== 'undefined' && new URLSearchParams(location.search).has('diagnostics')
 
-// Header sign only while a provider is cooling down or enrichment waits; full details live in Display.
-
+// Header sign only while a provider is cooling down or enrichment waits, unless diagnostics is on.
 export function RequestActivityIndicator() {
   const activity = useSyncExternalStore(observeRequestActivity, getRequestActivity)
   const now = useActivityClock(activity)
@@ -133,7 +131,7 @@ export function RequestActivityIndicator() {
       window.removeEventListener('scroll', position, true)
     }
   }, [open, activity, now])
-  if (!waiting) return null
+  if (!waiting && !diagnostics) return null
   return (
     <span className="action-help-wrap request-activity" onMouseEnter={show} onMouseLeave={hide}>
       <button

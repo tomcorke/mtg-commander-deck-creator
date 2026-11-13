@@ -22,6 +22,10 @@ pnpm typecheck
 pnpm build
 ```
 
+## Troubleshooting
+
+The header shows an API request sign only while EDHREC or Scryfall is cooling down or background enrichment is waiting. Add `?diagnostics` to the app URL, for example `https://commander-creator.corke.dev/?diagnostics`, to keep it visible; hover, focus or click it for this tab's active and queued requests.
+
 ## Recommendation audit
 
 Run all three headless policies against four reference precons:
