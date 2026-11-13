@@ -8,6 +8,7 @@ import type {
 import type { AddZone } from '../deck-analysis.ts'
 import type { SavedDeck } from '../deck-state.ts'
 import * as deckActions from './deck-actions.ts'
+import * as shareActions from './share-actions.ts'
 import type { AppActionContext } from './recommendation-actions.ts'
 
 export function createActionHandlers(deps: AppActionContext) {
@@ -48,6 +49,12 @@ export function createActionHandlers(deps: AppActionContext) {
     cycleSelectedDeckCardPrinting: () => deckActions.cycleSelectedDeckCardPrinting(deps),
     deckList: (format: ExportFormat) => deckActions.deckList(deps, format),
     copyDeck: () => deckActions.copyDeck(deps),
+    downloadDeckList: () => shareActions.downloadDeckList(deps),
+    copyShareLink: () => shareActions.copyShareLink(deps),
+    openSharedDeck: (payload: string) => shareActions.openSharedDeck(deps, payload),
+    closeSharedDeck: () => shareActions.closeSharedDeck(deps),
+    copySharedDeck: () => shareActions.copySharedDeck(withBuildIdentity()),
+    openSharedCard: (card: DeckCard) => shareActions.openSharedCard(deps, card),
     openCollectionCard: (card: ScryfallCard) => deckActions.openCollectionCard(deps, card),
     openCardReference: (card: Card | DeckCard) => deckActions.openCardReference(deps, card),
     openGuidanceCard: (card: Card) => deckActions.openGuidanceCard(deps, card),

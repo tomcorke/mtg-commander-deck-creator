@@ -4,6 +4,8 @@ import { DeckPrice } from '../../shared/DeckPrice.tsx'
 import { ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
 import { stillNeededCards, type OwnedQuantities } from '../../domain/owned-cards.ts'
+import type { ShareLinkState } from '../../app/share-actions.ts'
+import { useEffect } from 'react'
 
 type Props = {
   commander: string
@@ -17,6 +19,10 @@ type Props = {
   setExportNeededOnly: (neededOnly: boolean) => void
   show: boolean
   copyDeck: () => void
+  downloadDeckList: () => void
+  shareLinkState: ShareLinkState
+  setShareLinkState: (state: ShareLinkState) => void
+  copyShareLink: () => void
   closeModal: () => void
   setExportFormat: (format: ExportFormat) => void
 }
@@ -49,6 +55,67 @@ function NeededChoice({
         </p>
       )}
     </>
+  )
+}
+
+/** A share link always carries the whole deck, whichever list the dialog shows. */
+function ShareLinkStatus({ shareLinkState }: { shareLinkState: ShareLinkState }) {
+  return (
+    <div className="share-link-status" role="status">
+      {shareLinkState.status === 'copied' && (
+        <p className="moxfield-instructions">
+          Share link copied. It holds the whole deck, sideboard included, so anyone who opens it
+          sees a read-only copy they can add to their own decks.
+        </p>
+      )}
+      {shareLinkState.status === 'failed' && (
+        <>
+          <p className="form-error">
+            Copy failed. Select the share link below and copy it by hand.
+          </p>
+          <input
+            readOnly
+            value={shareLinkState.link}
+            aria-label="Share link"
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </>
+      )}
+    </div>
+  )
+}
+
+function ExportActions({
+  copied,
+  exportFormat,
+  canShare,
+  canExport,
+  copyDeck,
+  downloadDeckList,
+  copyShareLink,
+}: Pick<Props, 'copied' | 'exportFormat' | 'copyDeck' | 'downloadDeckList' | 'copyShareLink'> & {
+  canShare: boolean
+  canExport: boolean
+}) {
+  return (
+    <div className="export-actions">
+      <a href="https://www.moxfield.com/decks/personal" target="_blank" rel="noreferrer">
+        Open Moxfield decks ↗
+      </a>
+      <button className="export" type="button" disabled={!canShare} onClick={copyShareLink}>
+        Copy share link
+      </button>
+      <button className="export" type="button" disabled={!canExport} onClick={downloadDeckList}>
+        Download .{exportFormat === 'csv' ? 'csv' : 'txt'}
+      </button>
+      <button className="primary" type="button" disabled={!canExport} onClick={copyDeck}>
+        {copied === true ? 'Copied' : 'Copy to clipboard'}
+      </button>
+      <span className={copied === 'failed' ? undefined : 'sr-only'} role="status">
+        {copied === true && 'Deck list copied to clipboard'}
+        {copied === 'failed' && 'Copy failed. Select the list above and copy it by hand.'}
+      </span>
+    </div>
   )
 }
 
@@ -89,10 +156,18 @@ export function ExportDeckModal({
   setExportNeededOnly,
   show,
   copyDeck,
+  downloadDeckList,
+  shareLinkState,
+  setShareLinkState,
+  copyShareLink,
   closeModal,
   setExportFormat,
 }: Props) {
   const dialog = useDialogFocus(show, closeModal)
+  // Each visit starts without an earlier link's status.
+  useEffect(() => {
+    if (!show) setShareLinkState({ status: 'idle' })
+  }, [show, setShareLinkState])
   if (!show) return null
 
   const names = commanderNames(commander)
@@ -110,7 +185,7 @@ export function ExportDeckModal({
     >
       <section
         {...dialog}
-        className="export-modal"
+        className="export-modal export-deck-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="export-title"
@@ -151,18 +226,16 @@ export function ExportDeckModal({
           onFocus={(event) => event.currentTarget.select()}
           aria-label={`${exportFormat} ${neededOnly ? 'still needed' : 'deck'} list`}
         />
-        <div className="export-actions">
-          <a href="https://www.moxfield.com/decks/personal" target="_blank" rel="noreferrer">
-            Open Moxfield decks ↗
-          </a>
-          <button className="primary" type="button" disabled={!deckCount} onClick={copyDeck}>
-            {copied === true ? 'Copied' : 'Copy to clipboard'}
-          </button>
-          <span className={copied === 'failed' ? undefined : 'sr-only'} role="status">
-            {copied === true && 'Deck list copied to clipboard'}
-            {copied === 'failed' && 'Copy failed. Select the list above and copy it by hand.'}
-          </span>
-        </div>
+        <ExportActions
+          copied={copied}
+          exportFormat={exportFormat}
+          canShare={deck.length > 0}
+          canExport={deckCount > 0}
+          copyDeck={copyDeck}
+          downloadDeckList={downloadDeckList}
+          copyShareLink={copyShareLink}
+        />
+        <ShareLinkStatus shareLinkState={shareLinkState} />
       </section>
     </div>
   )

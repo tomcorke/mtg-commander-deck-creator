@@ -80,9 +80,10 @@ export function ImportDeckModal({
           when included. Other sites’ CSV and custom categories are not supported.
         </p>
         <p className="import-note">
-          Deck URLs are not supported. In Moxfield, use Download → Copy for Moxfield to keep
-          printings. Arena exports can omit cards that Arena does not support. Archidekt exports
-          with custom categories need conversion to the heading format shown below.
+          Other sites’ deck URLs are not supported; a share link from this app opens a preview of
+          its deck. In Moxfield, use Download → Copy for Moxfield to keep printings. Arena exports
+          can omit cards that Arena does not support. Archidekt exports with custom categories need
+          conversion to the heading format shown below.
         </p>
         <textarea
           value={importSource}

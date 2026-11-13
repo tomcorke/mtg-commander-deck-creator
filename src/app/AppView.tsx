@@ -31,6 +31,7 @@ import { ImportDeckModal } from '../features/modals/ImportDeckModal.tsx'
 import { RecommendationSettingsModal } from '../features/modals/RecommendationSettingsModal.tsx'
 import { OwnedCardsModal } from '../features/modals/OwnedCardsModal.tsx'
 import { SavedDecksModal } from '../features/modals/SavedDecksModal.tsx'
+import { SharedDeckModal } from '../features/modals/SharedDeckModal.tsx'
 import { WorkspaceNotice } from '../features/modals/WorkspaceNotice.tsx'
 import { StartView } from '../features/start/StartView.tsx'
 import { PlayStyleStep } from '../features/builder/PlayStyleStep.tsx'
@@ -233,6 +234,10 @@ function renderModals(props: AppViewProps) {
         copied={props.state.copied}
         deckList={props.actions.deckList}
         copyDeck={props.actions.copyDeck}
+        downloadDeckList={props.actions.downloadDeckList}
+        shareLinkState={props.state.shareLinkState}
+        setShareLinkState={props.state.setShareLinkState}
+        copyShareLink={() => void props.actions.copyShareLink()}
         closeModal={() => props.actions.closeModal()}
       />
     ),
@@ -636,8 +641,27 @@ function renderPlayStyleStep({ state, actions }: Pick<AppViewProps, 'state' | 'a
   )
 }
 
+/** A share link's preview sits over whichever screen is open, so it renders at the root. */
+export function AppView(props: AppViewProps) {
+  const { state, actions } = props
+  return (
+    <>
+      <AppScreens {...props} />
+      <SharedDeckModal
+        sharedDeck={state.sharedDeck}
+        hidden={state.activeModal === 'card'}
+        hasCurrentDeck={Boolean(state.commander && state.deck.length)}
+        openCard={actions.openSharedCard}
+        copySharedDeck={() => void actions.copySharedDeck()}
+        retry={(payload) => void actions.openSharedDeck(payload)}
+        closeModal={actions.closeSharedDeck}
+      />
+    </>
+  )
+}
+
 // eslint-disable-next-line max-lines-per-function -- Root route composition keeps each screen beside its modal outlets; callbacks remain checked.
-export function AppView({ state, actions, builderData }: AppViewProps) {
+function AppScreens({ state, actions, builderData }: AppViewProps) {
   const { modeReturn, rememberMode } = useBuilderMode(state)
   const modals = renderModals({ state, actions, builderData })
   const workspaceNotice = (

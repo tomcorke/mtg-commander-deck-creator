@@ -50,6 +50,7 @@ import {
   type ImportedDeck,
 } from '../deck-import.ts'
 import { pairName } from '../domain/commander-pairing.ts'
+import { sharePayloadFromLink } from '../domain/share-link.ts'
 import { commandersPromotionInfo } from '../domain/commander-promotion.ts'
 import { start as startRecommendations, type AppActionContext } from './recommendation-actions.ts'
 import { resetSignatureContext } from './signature-actions.ts'
@@ -846,6 +847,14 @@ export async function importDeck(
 ) {
   const job = deckJob(deps)
   const { importSource, setImportError, setImportSource, setImportState } = deps
+  // A pasted share link opens its read-only preview, which asks before replacing anything.
+  const sharePayload = sharePayloadFromLink(importSource)
+  if (sharePayload !== null) {
+    setImportSource('')
+    deps.closeModal(true)
+    deps.setPendingSharePayload(sharePayload)
+    return
+  }
   if (
     // A retry with skipMissing follows a replacement the player already confirmed.
     !skipMissing &&
@@ -937,7 +946,7 @@ async function fetchImportedCards(cards: ImportedDeck['cards'], signal: AbortSig
   return fetched
 }
 
-async function resolveImportedCards(
+export async function resolveImportedCards(
   source: ImportedDeck,
   signal: AbortSignal,
   skipMissing: boolean,
@@ -997,7 +1006,7 @@ async function resolveImportedCards(
 }
 
 // Keep an imported finish when the printing has it; otherwise use the printing's default.
-function importedDeckCard({ card, entry }: { card: ScryfallCard; entry: ImportedCard }) {
+export function importedDeckCard({ card, entry }: { card: ScryfallCard; entry: ImportedCard }) {
   const finish =
     entry.finish && card.finishes?.includes(entry.finish)
       ? entry.finish

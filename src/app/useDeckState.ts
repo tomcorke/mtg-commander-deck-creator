@@ -4,6 +4,12 @@ import type { DeckReviewFilter } from '../deck-review.ts'
 import type { Card, DeckCard, DeckCardLocation, ScryfallCard } from '../domain/card-model.ts'
 import type { ExportFormat } from '../domain/card-model.ts'
 import { usePendingConfirmation, useStoredOption } from '../shared/hooks.ts'
+import type { SharedDeckView, ShareLinkState } from './share-actions.ts'
+import { sharePayloadFromHash } from '../domain/share-link.ts'
+
+// Read before the first route write replaces a share link's fragment with the app route.
+const initialSharePayload =
+  typeof window === 'undefined' ? null : sharePayloadFromHash(window.location.hash)
 
 type BuilderModeReturn =
   'review' | 'review-changes' | 'review-confirm' | 'doctor' | 'doctor-history' | 'search' | null
@@ -32,6 +38,9 @@ export function useDeckState() {
   )
   const [exportNeededOnly, setExportNeededOnly] = useState(false)
   const [copied, setCopied] = useState<boolean | 'failed'>(false)
+  const [shareLinkState, setShareLinkState] = useState<ShareLinkState>({ status: 'idle' })
+  const [sharedDeck, setSharedDeck] = useState<SharedDeckView | null>(null)
+  const [pendingSharePayload, setPendingSharePayload] = useState(initialSharePayload)
   const [loadingArt, setLoadingArt] = useState('')
   const [highlightedManaValue, setHighlightedManaValue] = useState<number | null>(null)
   const [deckReviewFilter, setDeckReviewFilter] = useState<DeckReviewFilter | null>(null)
@@ -70,6 +79,12 @@ export function useDeckState() {
     setExportNeededOnly,
     copied,
     setCopied,
+    shareLinkState,
+    setShareLinkState,
+    sharedDeck,
+    setSharedDeck,
+    pendingSharePayload,
+    setPendingSharePayload,
     loadingArt,
     setLoadingArt,
     highlightedManaValue,

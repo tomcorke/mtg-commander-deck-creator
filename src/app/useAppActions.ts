@@ -247,6 +247,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     workspace: state.workspace,
     deckName: state.deckName,
     showBuilder: state.showBuilder,
+    setPendingSharePayload: state.setPendingSharePayload,
     openModal: routing.openModal,
     commander: state.commander,
     deck: state.deck,
@@ -621,8 +622,15 @@ export function useAppActions(state: AppState) {
     state.setShowIntroGuide,
   ])
 
-  return {
-    ...useStartActions(appState, routing, remote),
-    ...useBuilderActions(appState, routing, remote),
-  }
+  const startActions = useStartActions(appState, routing, remote)
+  const builderActions = useBuilderActions(appState, routing, remote)
+  const openSharedDeck = useEffectEvent((payload: string) => builderActions.openSharedDeck(payload))
+  const { pendingSharePayload, setPendingSharePayload } = state
+  useEffect(() => {
+    if (pendingSharePayload === null) return
+    setPendingSharePayload(null)
+    void openSharedDeck(pendingSharePayload)
+  }, [pendingSharePayload, setPendingSharePayload])
+
+  return { ...startActions, ...builderActions }
 }
