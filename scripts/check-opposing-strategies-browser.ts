@@ -191,7 +191,10 @@ await withBrowser('OPPOSING', 5283, async (browser, base) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await rows.first().click()
   await page.locator('.deck-review-filter-status').waitFor()
-  assert.match(await page.locator('.deck-review-filter-status').innerText(), /Graveyard decks/)
+  assert.match(
+    await page.locator('.deck-review-filter-status').innerText(),
+    /Answers to graveyard decks/,
+  )
   assert.deepEqual(errors, [])
   await context.close()
 })

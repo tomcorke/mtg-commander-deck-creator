@@ -402,15 +402,15 @@ export function DeckOverview({
           {answerCoverage.length ? (
             <div className="deck-review-types">
               {answerCoverage.map(({ strategy, cards }) => {
-                const { term } = opposingStrategyTerms[strategy]
+                const { term, answers } = opposingStrategyTerms[strategy]
                 const gap = Math.max(0, opposingAnswerTarget - cards.length)
                 return (
                   <FilterButton
                     key={strategy}
-                    label={`${term} answers`}
+                    label={`Answers to ${answers}`}
                     count={cards.length}
                     className="deck-review-type-filter deck-review-opponent-filter"
-                    onClick={() => selectCards(`${term} answers`, cardNames(cards))}
+                    onClick={() => selectCards(`Answers to ${answers}`, cardNames(cards))}
                   >
                     <span className="deck-review-row-heading">
                       <b>{term}</b>

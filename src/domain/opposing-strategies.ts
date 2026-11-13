@@ -90,7 +90,7 @@ const clues: Record<OpposingStrategy, Clue> = {
   },
   'big-creatures': {
     matches: any(
-      String.raw`\b(?:destroy|exile)\b[^.]*\btarget\b[^.]*\b(?:creatures?|permanents?)\b(?! cards?)`,
+      String.raw`\b(?:destroy|exile)\b[^.]*\btarget\b[^.]*\b(?:creatures?|(?<!noncreature )permanents?)\b(?! cards?)`,
       String.raw`\b(?:player|opponent)s? sacrifices? (?:an?|one|two|three|that many) (?:[\w-]+ )?(?:creatures?|permanents?)\b`,
       String.raw`\benchanted creature can't attack\b`,
       String.raw`^(?!.*\buntil end of turn\b).*\bgain control of target creature\b`,
@@ -112,8 +112,13 @@ const clues: Record<OpposingStrategy, Clue> = {
   },
 }
 
+// The effect after any cost ("…:") or trigger ("Whenever …,"), so a condition naming your own
+// creatures does not veto the removal that follows it.
+const effectOf = (sentence: string) =>
+  sentence.replace(/^[^:]*:\s*/, '').replace(/^(?:when(?:ever)?|at the beginning)[^,]*,\s*/i, '')
+
 const answersIn = (sentence: string, { matches, excludes = [], wipe }: Clue) =>
-  !excludes.some((exclude) => exclude.test(sentence)) &&
+  !excludes.some((exclude) => exclude.test(effectOf(sentence))) &&
   (matches.some((match) => match.test(sentence)) ||
     (wipe !== undefined &&
       isWipe(sentence) &&

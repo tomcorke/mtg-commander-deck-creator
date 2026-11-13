@@ -242,3 +242,31 @@ test('typed spell taxes and power-only shrinking are not answers', () => {
     [],
   )
 })
+
+test('noncreature removal is no big-creature answer; your-own trigger conditions do not veto (#503 review)', () => {
+  assert.deepEqual(
+    opposingAnswers({ detail: 'Destroy target noncreature permanent.' }, ['big-creatures']),
+    [],
+  )
+  assert.deepEqual(
+    opposingAnswers(
+      {
+        detail:
+          'Whenever a creature you control dies, destroy target creature an opponent controls.',
+      },
+      ['big-creatures'],
+    ),
+    ['big-creatures'],
+  )
+  // A cost naming your own permanents does not veto either; the effect itself still does.
+  assert.deepEqual(
+    opposingAnswers({ detail: 'Sacrifice a creature you control: Exile target creature.' }, [
+      'big-creatures',
+    ]),
+    ['big-creatures'],
+  )
+  assert.deepEqual(
+    opposingAnswers({ detail: 'Exile target creature you control.' }, ['big-creatures']),
+    [],
+  )
+})
