@@ -1303,8 +1303,7 @@
   }
   /* Row actions wrap to the left edge, so their hints open rightward to stay on screen. */
   .saved-deck-delete-wrap .action-help.end {
-    left: 0;
-    right: auto;
+    --action-help-align: start;
   }
 }
 .save-deck-form {

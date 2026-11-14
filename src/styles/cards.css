@@ -172,13 +172,10 @@
   backdrop-filter: blur(4px);
 }
 .synergy-popover {
-  z-index: 8;
-  left: 0;
-  top: calc(100% + 7px);
-  bottom: auto;
+  --action-help-side: below;
+  --action-help-align: start;
   display: grid;
   width: 250px;
-  translate: none;
 }
 .synergy-popover span {
   margin-top: 5px;

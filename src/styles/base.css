@@ -625,9 +625,6 @@ main > header:has(.display-settings-panel) {
   justify-content: space-between;
   column-gap: 16px;
 }
-.bulk-actions-help {
-  width: 280px;
-}
 .bulk-actions-status:not(:empty) {
   margin-top: 8px;
   color: var(--text-muted);
@@ -650,16 +647,18 @@ main > header:has(.display-settings-panel) {
 .action-help-wrap {
   position: relative;
 }
-/* The one tooltip surface. Its positioned parent shows it on hover; the trigger, on keyboard focus.
-   Placement classes (.end, or a component class) set position and width only. */
+/* The one tooltip surface. src/shared/action-help.ts shows it in the top layer while its parent
+   is hovered or its trigger has keyboard focus, so no header, sticky bar or scroll container covers
+   or clips it. It places the tooltip beside the nearest positioned ancestor, above unless the
+   viewport lacks room. Placement classes set width, --action-help-side and --action-help-align. */
 .action-help {
-  position: absolute;
-  z-index: 5;
-  left: 50%;
-  bottom: calc(100% + 8px);
+  position: fixed;
+  inset: auto;
   width: 180px;
   max-width: calc(100vw - 32px);
+  margin: 0;
   padding: 8px 10px;
+  overflow: visible;
   border: 1px solid var(--border-control);
   border-radius: 6px;
   background: #201c3c;
@@ -673,26 +672,25 @@ main > header:has(.display-settings-panel) {
   white-space: normal;
   opacity: 0;
   pointer-events: none;
-  translate: -50% 0;
-  transform: translateY(4px);
-  visibility: hidden;
   transition:
     opacity 0.15s,
-    transform 0.15s,
-    visibility 0s 0.15s;
+    display 0.15s allow-discrete,
+    overlay 0.15s allow-discrete;
 }
-:hover > .action-help,
-:focus-visible + .action-help,
-:focus-visible > .action-help,
-/* Synergy also opens on click or tap, as before #282. */
-.synergy-info:focus-within > .action-help {
+.action-help:not(:popover-open) {
+  display: none;
+}
+.action-help:popover-open {
   opacity: 1;
-  transform: none;
-  visibility: visible;
-  transition-delay: 0s;
+}
+@starting-style {
+  .action-help:popover-open {
+    opacity: 0;
+  }
 }
 .action-help.end {
-  left: auto;
-  right: 0;
-  translate: none;
+  --action-help-align: end;
+}
+.bulk-actions-help {
+  width: 280px;
 }

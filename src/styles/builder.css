@@ -342,12 +342,8 @@
   grid-column: 2;
 }
 .setting-help-popover {
-  z-index: 10;
-  top: 50%;
-  left: calc(100% + 8px);
-  bottom: auto;
+  --action-help-side: inline-end;
   width: 280px;
-  translate: 0 -50%;
 }
 .collection-picker {
   flex-basis: 100%;
