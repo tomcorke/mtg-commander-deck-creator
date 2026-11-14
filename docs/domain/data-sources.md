@@ -31,3 +31,80 @@ The app consumes `https://json.edhrec.com/pages/{kind}/{slug}.json` through `src
 Lists overlap, and first-list deduplication affects the app's explanation. `tag_counts` are EDHREC classifications, not official mechanics or this app's theme tags.
 
 The adapter currently retains `num_decks`, `synergy`, and `lift`, not the `potential_decks` denominator. App sample-size and association cutoffs are [heuristics](heuristics.md), not provider guarantees.
+
+## Live EDHREC recordings
+
+Synthetic EDHREC is the default for development, tests and rendered reviews. Live recording is opt-in, under the policy [decided in #309](https://github.com/tomcorke/mtg-commander-deck-creator/issues/309#issuecomment-6881275269) on 2026-11-14. Production app EDHREC use is unchanged.
+
+### Terms status
+
+EDHREC's [Terms of Use](https://edhrec.com/terms) (effective 2024-08-06, checked 2026-11-14) license "personal, noncommercial use". They prohibit automated scripts that send requests to the site, and copying or downloading any part of it. Live recording knowingly does not comply with those terms. The owner accepts the risk, mainly an IP block or a takedown request, and is not seeking permission. robots.txt does not override the terms. EDHREC has no public API.
+
+### Scope
+
+- Only `https://json.edhrec.com/pages/{commanders|cards}/{slug}.json` GETs, made through the app's adapters.
+- Only on demand for an investigation. Never scheduled. No crawling, sitemap or identity-list sweeps.
+- Agents may record, or make a one-off research fetch, when their issue needs it. They stay within the cap and log every run.
+
+### Opt-in
+
+| Surface                                                                                               | Opt-in                   | Without it                                                   |
+| ----------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------ |
+| `pnpm dev:record`                                                                                     | `DEV_REPLAY_EDHREC=live` | Serves the synthetic fixture                                 |
+| `scripts/deckbuild/recommend.ts` `record` or `extend`; `scripts/deckbuild/prepare-provider.ts record` | `--live-edhrec`          | The first EDHREC request stops the run: `Live EDHREC is off` |
+| `pnpm dev:replay`, `pnpm check:dev-replay`, tests, rendered reviews                                   | None                     | Always synthetic; never fetch EDHREC                         |
+
+```powershell
+$env:DEV_REPLAY_EDHREC = 'live'; pnpm dev:record; Remove-Item Env:DEV_REPLAY_EDHREC
+node --experimental-strip-types scripts/deckbuild/recommend.ts record --live-edhrec <store-dir> inputs.json commands.jsonl
+```
+
+`DEV_REPLAY_EDHREC` accepts only `synthetic` or `live`. `check:dev-replay` ignores it. The supervisor (`supervise.ts`) never passes `--live-edhrec`, so EDHREC work stops a supervised run.
+
+These scripts still call EDHREC without this guard: `evaluate:local-retrieval --record`, `audit:recommendations` and `scripts/measure-first-batch.ts`. [#583](https://github.com/tomcorke/mtg-commander-deck-creator/issues/583) tracks routing them through it. Until then, treat each run as a live run under this policy and log it.
+
+### Rate
+
+`scripts/live-edhrec.ts` enforces these limits for each run, meaning one `dev:record` server or one CLI invocation:
+
+- Requests are serial and at least 1 s apart.
+- Retry-After is honoured.
+- Requests carry a descriptive User-Agent and refuse redirects.
+- A run makes at most 50 EDHREC page requests. `dev:record` cache hits do not count.
+- The run stops at the first 403, 429 or 5xx response, or at the cap. A stopped run refuses every later EDHREC request.
+- A Vite restart of `dev:record` (the `r` shortcut or a config change) starts a new run with its own log row. Never restart to get past a stop.
+
+There is no daily ledger. A one-off research fetch made without these tools follows the same limits by hand.
+
+### Storage
+
+Live responses stay in the machine-local cache until someone deletes them by hand. Nothing refreshes or expires them.
+
+- `dev:record` writes them to its replay cache, `commander-creator/dev-replay-v1` under `LOCALAPPDATA`, `XDG_CACHE_HOME` or `~/.cache`. In live mode it refuses a `DEV_REPLAY_CACHE_DIR` inside the checkout.
+- The deckbuild CLI writes them to its store directory, which must already be outside the checkout.
+- To purge, delete that directory.
+
+Never commit a response body. `scripts/edhrec-bodies.test.ts` runs in `pnpm test` and fails when a tracked file contains an EDHREC page body (a quoted `json_dict` key, raw or escaped) or a dev-replay EDHREC entry. A hand-authored fixture passes only when its file contains the phrase `synthetic EDHREC fixture`.
+
+### Run log
+
+Every live run prints one Markdown row: on stderr for the CLI, and on server close, interrupt or stop for `dev:record`.
+
+```text
+EDHREC run log: | 2026-11-14 | deckbuild recommend record | 12/50 | completed |
+```
+
+Paste the rows into the PR or evidence doc under this header:
+
+| Date (UTC) | Mode | EDHREC pages | Stop reason |
+| ---------- | ---- | ------------ | ----------- |
+
+Stop reasons are `completed`, `interrupted`, `error`, `page-cap` and `http-<status>`. Log a one-off manual fetch with mode `manual`.
+
+### Attribution
+
+Committed docs and PRs may quote derived values, such as an inclusion count, a rank or a few card names. Give the source URL and fetch date, and label the value as provider data:
+
+> Provider data: EDHREC, `https://json.edhrec.com/pages/commanders/<slug>.json`, fetched 2026-11-14.
+
+Never commit response bodies or full lists.

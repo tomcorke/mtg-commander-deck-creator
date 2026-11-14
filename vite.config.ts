@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import { generatedCreatureCatalog } from './scripts/generated-creature-catalog.ts'
 import { devReplay, devReplayFonts } from './scripts/dev-replay/plugin.ts'
+import { edhrecSourceSetting } from './scripts/live-edhrec.ts'
 
 const publishCount = Number(
   execFileSync('git', ['rev-list', '--count', 'origin/publish'], {
@@ -57,7 +58,10 @@ export default defineConfig(({ command, mode }) => ({
   define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [
     ...(command === 'serve' && (mode === 'record' || mode === 'replay')
-      ? [devReplay(mode), devReplayFonts()]
+      ? [
+          devReplay(mode, { edhrec: edhrecSourceSetting(process.env.DEV_REPLAY_EDHREC) }),
+          devReplayFonts(),
+        ]
       : []),
     react(),
     devFeedback,

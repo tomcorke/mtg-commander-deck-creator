@@ -11,7 +11,7 @@ Same spec (Ayula, Queen Among Bears, bracket 1), settings, date `2026-10-28`, se
 - before: `id<=g legal:commander (t:bear or t:basic)`
 - after: `id<=g legal:commander (t:bear or t:instant or t:sorcery or t:basic)`, name order, max 20 pages, 120 s, zero retries
 
-Instants and sorceries supply the declared ramp, draw, removal and wipe targets while keeping the Bear creature theme. The query was chosen before execution, not tuned on outcomes. No EDHREC requests (permission for live EDHREC recordings is pending in #309). It omits non-Bear creatures, artifacts, enchantments and nonbasic lands, so it is a sufficient pool, not a complete one.
+Instants and sorceries supply the declared ramp, draw, removal and wipe targets while keeping the Bear creature theme. The query was chosen before execution, not tuned on outcomes. No EDHREC requests; live recording was unsupported at the time. It is now opt-in under the [live EDHREC policy](../../domain/data-sources.md#live-edhrec-recordings). It omits non-Bear creatures, artifacts, enchantments and nonbasic lands, so it is a sufficient pool, not a complete one.
 
 ## Result
 

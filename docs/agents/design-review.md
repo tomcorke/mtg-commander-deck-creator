@@ -11,7 +11,10 @@ In this repo, `docs/agents/ui.md` holds the house rules and the review gate. Thi
 Use `pnpm dev:replay` for rendered reviews. It serves recorded Scryfall responses,
 synthetic EDHREC lists and generated SVG card placeholders. Plain `pnpm dev` stays
 live for art-sensitive reviews; placeholders cannot verify actual art, crop,
-palette or foil appearance. Live EDHREC recording is deferred to #309.
+palette or foil appearance. Rendered reviews stay synthetic, and
+`check:dev-replay` ignores `DEV_REPLAY_EDHREC`. Opt-in live EDHREC recording for
+investigations follows the
+[live EDHREC policy](../domain/data-sources.md#live-edhrec-recordings).
 
 Before the first review, run `pnpm check:dev-replay record`. It records the
 start-screen discovery and both Meren imports from

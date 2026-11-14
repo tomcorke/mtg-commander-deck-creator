@@ -11,6 +11,11 @@ import { recordBuild, replayBuild } from './recommend.ts'
 import { recordPreparation, replayPreparation } from './prepare-provider.ts'
 import { retrieveStoredPool } from './pool.ts'
 import { initialStateSchema } from './builder-contract.ts'
+import { liveEdhrecSession } from '../live-edhrec.ts'
+
+/** Synthetic EDHREC through the opt-in session; spacing waits are skipped in tests. */
+const liveEdhrec = (fetcher: typeof fetch) =>
+  liveEdhrecSession({ mode: 'test', fetcher, sleep: async () => {} })
 
 const raw: ScryfallCard = {
   name: 'Synthetic Commander',
@@ -159,7 +164,19 @@ test('app pool prepares multiple shared sources, refreshes changed settings, and
       total_cards: 1,
     })
   }
-  const prepared = await recordPreparation(root, { ...input, appPool: true }, provider)
+  await assert.rejects(
+    recordPreparation(root, { ...input, appPool: true }, provider),
+    /Live EDHREC is off: the deckbuild CLI \(pass --live-edhrec\)/,
+  )
+  // The refusal stops the loader: no fallback or theme searches follow it.
+  assert.deepEqual(urls, Array(urls.length).fill('https://api.scryfall.com/cards/collection'))
+  urls.length = 0
+  const prepared = await recordPreparation(
+    root,
+    { ...input, appPool: true },
+    provider,
+    liveEdhrec(provider),
+  )
   assert.equal(prepared.status, 'ready', JSON.stringify(prepared))
   if (prepared.status !== 'ready') throw new Error('Expected ready')
   const state = prepared.pins.initialState as { queue: { name: string }[] }
@@ -176,7 +193,9 @@ test('app pool prepares multiple shared sources, refreshes changed settings, and
     { reason: 'Refresh the multi-source pool', action: { type: 'commitSettings' } },
     { reason: 'Inspect refreshed recommendations', action: { type: 'view' } },
   ]
-  const built = await recordBuild(root, prepared.pins, commands, undefined, provider)
+  const built = await recordBuild(root, prepared.pins, commands, undefined, provider, {
+    edhrec: liveEdhrec(provider),
+  })
   assert.equal(built.status, 'complete', JSON.stringify(built))
   assert.equal(built.state.deck.length, 2)
   assert.equal(built.state.recommendationOptionsChanged, false)
@@ -234,7 +253,7 @@ test('app pool retains EDHREC failure fallback and commander-mechanic discovery'
   const root = await directory(t)
   const { pool: _, ...input } = recipe()
   const queries: string[] = []
-  const result = await recordPreparation(root, { ...input, appPool: true }, async (url, init) => {
+  const provider: typeof fetch = async (url, init) => {
     if (init?.body)
       return response([{ ...raw, oracle_text: 'Whenever you gain life, draw a card.' }])(url, init)
     if (String(url).includes('edhrec.com')) return new Response('{}', { status: 400 })
@@ -255,7 +274,13 @@ test('app pool retains EDHREC failure fallback and commander-mechanic discovery'
       has_more: false,
       total_cards: 1,
     })
-  })
+  }
+  const result = await recordPreparation(
+    root,
+    { ...input, appPool: true },
+    provider,
+    liveEdhrec(provider),
+  )
   assert.equal(result.status, 'ready', JSON.stringify(result))
   if (result.status !== 'ready') throw new Error('Expected ready')
   const names = (result.pins.initialState as { queue: { name: string }[] }).queue.map(
