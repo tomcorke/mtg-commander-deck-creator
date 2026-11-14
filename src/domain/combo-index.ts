@@ -217,3 +217,63 @@ export function findDeckCombos(
       .sort(nearMissOrder),
   }
 }
+
+/**
+ * A Spellbook combo whose pieces are all in the deck or the recommendation pool, named as the app
+ * names those cards. Builder state keeps these so ranking can see combos without the index (#502).
+ */
+export type ComboLink = { id: string; cards: string[] }
+/** Bounds the builder state: the smallest, most popular combos first. */
+export const comboLinkLimit = 300
+
+/**
+ * Combos every piece of which is among `cards` (deck and pool), with any must-be-commander piece
+ * a commander. Matching follows `findDeckCombos`: Oracle ID, then name.
+ */
+export function reachableComboLinks(
+  index: ComboIndex,
+  deck: { commanders: ComboDeckCard[]; cards: ComboDeckCard[] },
+  limit = comboLinkLimit,
+): ComboLink[] {
+  const lookup = lookupFor(index)
+  const names = new Map<number, string>()
+  const commanders = new Set<number>()
+  for (const card of [...deck.commanders, ...deck.cards]) {
+    const position = cardPosition(lookup, card)
+    if (position === undefined) continue
+    if (!names.has(position)) names.set(position, card.name)
+    if (deck.commanders.includes(card)) commanders.add(position)
+  }
+  const rows = index.combos.filter(([, refs]) =>
+    refs.every((ref) => (ref < 0 ? commanders.has(~ref) : names.has(ref))),
+  )
+  return rows
+    .sort(
+      (left, right) =>
+        left[1].length - right[1].length || right[4] - left[4] || left[0].localeCompare(right[0]),
+    )
+    .slice(0, limit)
+    .map(([id, refs]) => ({
+      id,
+      cards: [...new Set(refs.map((ref) => names.get(ref < 0 ? ~ref : ref)!))],
+    }))
+}
+
+/** The links each card would complete on its own: every other piece is in the main deck. */
+export function comboCompletions(links: readonly ComboLink[], deckNames: Iterable<string>) {
+  const deck = new Set(deckNames)
+  const completions = new Map<string, ComboLink[]>()
+  for (const link of links) {
+    const missing = link.cards.filter((name) => !deck.has(name))
+    if (missing.length !== 1) continue
+    completions.set(missing[0], [...(completions.get(missing[0]) ?? []), link])
+  }
+  return completions
+}
+
+export const sameComboLinks = (left: readonly ComboLink[], right: readonly ComboLink[]) =>
+  left.length === right.length &&
+  left.every(
+    (link, position) =>
+      link.id === right[position].id && link.cards.join('\n') === right[position].cards.join('\n'),
+  )

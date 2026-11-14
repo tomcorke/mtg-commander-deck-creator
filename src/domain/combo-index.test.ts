@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { comboCardImage, findDeckCombos, parseComboIndex, type ComboIndex } from './combo-index.ts'
+import {
+  comboCardImage,
+  comboCompletions,
+  findDeckCombos,
+  parseComboIndex,
+  reachableComboLinks,
+  sameComboLinks,
+  type ComboIndex,
+} from './combo-index.ts'
 
 // Synthetic rows: they test matching rules, not real Spellbook combos.
 const index: ComboIndex = parseComboIndex({
@@ -79,6 +87,52 @@ test('matches legacy cards by name, including the front face of a double-faced n
     result.included.map(({ id }) => id),
     ['h'],
   )
+})
+
+test('links combos whose pieces are all in the deck or pool, named as the app names them', () => {
+  const leader = card('Leader', 'oracle-leader')
+  const links = reachableComboLinks(index, {
+    commanders: [leader],
+    // Pool and deck cards together; the legacy name still matches Witness.
+    cards: [card('Altar', 'oracle-altar'), card('witness'), card('Engine', 'oracle-engine')],
+  })
+  // Fewer cards first, then popularity; a and g need Reanimate All, f needs Off Colour.
+  assert.deepEqual(links, [
+    { id: 'b', cards: ['Altar', 'witness'] },
+    { id: 'e', cards: ['witness', 'Engine'] },
+    { id: 'c', cards: ['Leader', 'Altar'] },
+    { id: 'd', cards: ['Altar', 'Engine'] },
+  ])
+  assert.deepEqual(
+    reachableComboLinks(index, { commanders: [], cards: [leader, card('Altar', 'oracle-altar')] }),
+    [],
+    'Leader in the deck but not the command zone completes nothing',
+  )
+  assert.equal(
+    reachableComboLinks(index, { commanders: [leader], cards: [card('Altar', 'oracle-altar')] }, 0)
+      .length,
+    0,
+  )
+})
+
+test('finds the cards that alone complete a linked combo', () => {
+  const links = [
+    { id: 'b', cards: ['Altar', 'Witness'] },
+    { id: 'd', cards: ['Altar', 'Engine'] },
+    { id: 'g', cards: ['Altar', 'Engine', 'Reanimate All'] },
+  ]
+  const completions = comboCompletions(links, ['Leader', 'Altar'])
+  assert.deepEqual(
+    [...completions].map(([name, found]) => [name, found.map(({ id }) => id)]),
+    [
+      ['Witness', ['b']],
+      ['Engine', ['d']],
+    ],
+  )
+  // A complete combo needs nothing; g still misses two cards.
+  assert.equal(comboCompletions(links, ['Altar', 'Witness']).has('Witness'), false)
+  assert(sameComboLinks(links, structuredClone(links)))
+  assert(!sameComboLinks(links, links.slice(1)))
 })
 
 test('builds Scryfall image URLs only from stored id keys', () => {

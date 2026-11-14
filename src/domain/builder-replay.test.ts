@@ -352,3 +352,24 @@ test('promotion to a partner pair needs their combined colours and keeps a stayi
   assert.equal(paired.sideboard.length, 1)
   assert.ok(paired.deck.some(({ name }) => name === 'Blue spell'))
 })
+
+test('combo links wait for the next ranking, then High power lifts a card that completes one', () => {
+  const queue = Array.from({ length: 12 }, (_, i) => card(`Card ${i}`))
+  const comboLinks = [{ id: 'combo', cards: ['Commander', 'Card 11'] }]
+  const pending = state({
+    commander: 'Commander',
+    deck: [toDeckCard(raw('Commander'))],
+    queue,
+    powerTarget: 'high',
+  })
+  const initial = { ...pending, committedPoolKey: builderPoolKey(pending) }
+  const linked = run(initial, { type: 'data', changes: { comboLinks } })
+  // Storing links never reorders the visible batch.
+  assert.deepEqual(linked.queue, initial.queue)
+  const log: BuilderAction[] = [{ type: 'nextBatch' }]
+  const next = log.reduce(run, linked)
+  assert.equal(next.queue[0].name, 'Card 11')
+  assert.deepEqual(log.reduce(run, structuredClone(linked)), next)
+  const core = log.reduce(run, { ...linked, powerTarget: 'precon' })
+  assert.notEqual(core.queue[0].name, 'Card 11')
+})

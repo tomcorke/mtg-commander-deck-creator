@@ -12,6 +12,7 @@ import {
   releaseDeferred,
 } from './recommendation-queue.ts'
 import { focusedRecommendations, withinPriceCap } from './recommendation-tuning.ts'
+import type { ComboLink } from './combo-index.ts'
 import type { OwnedQuantities, OwnershipMode } from './owned-cards.ts'
 import type {
   CollectionMode,
@@ -24,7 +25,7 @@ import type {
 } from './recommendation-types.ts'
 
 /** Bumped whenever scoring or ranking changes the order produced from the same inputs. */
-export const recommendationScoringVersion = 5
+export const recommendationScoringVersion = 6
 
 /** FNV-1a hash of a seed string, as an unsigned 32-bit integer. */
 const hashSeed = (seed: string) => {
@@ -269,6 +270,8 @@ export type RecommendState = {
   opposingStrategies?: OpposingStrategy[]
   /** Edited answer targets for expected opponents (#565). */
   opposingAnswerTargets?: OpposingAnswerTargets
+  /** Known combos among the deck and pool; High power ranks cards that complete one higher. */
+  comboLinks?: ComboLink[]
 }
 
 export type ExclusionReason =

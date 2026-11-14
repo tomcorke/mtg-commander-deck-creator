@@ -366,6 +366,7 @@ test('score breakdown exposes every contribution used by total score', () => {
       powerFitPenalty: 0,
       package: 0,
       opposingAnswers: 0,
+      combo: 0,
     },
   )
   assert.equal(recommendationScore({ reason: 'Commander synergy', tags: ['Tokens'] }, context), 49)
@@ -398,6 +399,7 @@ test('score factors sum to a normalized total', () => {
     powerFitPenalty: 0,
     package: 0,
     opposingAnswers: 0,
+    combo: 0,
   })
 })
 

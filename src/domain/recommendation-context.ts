@@ -18,6 +18,7 @@ import {
   normalizeOpposingStrategies,
   opposingAnswerCounts,
 } from './opposing-strategies.ts'
+import { comboCompletions, type ComboLink } from './combo-index.ts'
 
 // All recommendation surfaces use the same deck, preference, and candidate-supply signals.
 export function buildRecommendationContext(
@@ -41,6 +42,7 @@ export function buildRecommendationContext(
       | 'ownershipMode'
       | 'opposingStrategies'
       | 'opposingAnswerTargets'
+      | 'comboLinks'
     >
   > & { prioritizeDeckHealth?: boolean } & Record<string, unknown>,
   candidates: Card[],
@@ -84,5 +86,20 @@ export function buildRecommendationContext(
     opposingStrategies,
     opposingAnswerCounts: opposingAnswerCounts(deck, opposingStrategies),
     opposingAnswerTargets: normalizeOpposingAnswerTargets(settings.opposingAnswerTargets),
+    ...(settings.powerTarget === 'high' &&
+      settings.comboLinks?.length && {
+        comboCompletions: comboCounts(settings.comboLinks, [
+          ...deck.map(({ name }) => name),
+          // A fresh build ranks its first batch before the commanders join the deck.
+          ...commanderNames(settings.commander ?? ''),
+        ]),
+      }),
   }
+}
+
+function comboCounts(links: ComboLink[], deckNames: string[]) {
+  const counts = new Map<string, number>()
+  for (const [name, completed] of comboCompletions(links, deckNames))
+    counts.set(name, completed.length)
+  return counts
 }

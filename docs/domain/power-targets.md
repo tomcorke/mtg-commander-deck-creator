@@ -16,7 +16,7 @@ These thresholds are uncalibrated app heuristics. Mana value is not efficiency, 
 
 ## Combo treatment
 
-Power also changes how Deck review frames Commander Spellbook combos: Core treats them as a caution, Upgraded lists them for table talk, and High lists cards that complete one as additions to consider. Recommendation ranking ignores combos for now. See [combo data](combo-data.md#power).
+Power also changes how Deck review and recommendations treat Commander Spellbook combos: Core treats them as a caution, Upgraded lists them for table talk, and High lists cards that complete one as additions to consider. Offers that complete a combo carry a note at every Power; only High adds a **Combo completion** score (7, or 10 for two or more combos), which raises the positive total to 118. Scoring version 6 also passes Power to Next recommendations ranking, which had dropped it, so the power-target deduction now applies after the first batch too. See [combo data](combo-data.md#power).
 
 ## Policy recheck
 

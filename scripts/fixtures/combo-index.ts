@@ -34,6 +34,16 @@ export const fixtureComboIndex: ComboIndex = {
   ],
 }
 
+/**
+ * The same rows plus a combo that the restored batch's B10 Spare 0 completes with a deck card, so
+ * gates also render the builder's combo offer note (#502).
+ */
+export const offerFixtureComboIndex: ComboIndex = {
+  ...fixtureComboIndex,
+  cards: [...fixtureComboIndex.cards, ['B10 Spare 0', 'b10:B10 Spare 0', null]],
+  combos: [...fixtureComboIndex.combos, ['fixture-offer', [1, 8], [0], 'G', 1]],
+}
+
 /** An `openScenario` hook that serves this combo index instead of the harness's 404. */
 export const withComboIndex =
   (index: ComboIndex = fixtureComboIndex) =>

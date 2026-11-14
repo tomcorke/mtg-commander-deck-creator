@@ -1,13 +1,15 @@
 import { builderAction, type BuilderActionHost } from './builder-action.ts'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { deckDataStatus } from '../domain/deck-data-status.ts'
-import type { Card } from '../domain/card-model.ts'
+import type { Card, DeckCard } from '../domain/card-model.ts'
 import { basicLandNames, shouldAutoOpenDeckReview } from '../deck-analysis.ts'
 import { commanderLabel, commanderNames } from '../domain/commander-catalog.ts'
 import { printingOptions } from '../domain/printing.ts'
 import { shouldConfirmReviewNavigation, type AppHistoryState } from './routes.ts'
 import { sharePayloadFromHash } from '../domain/share-link.ts'
+import { loadComboIndex } from '../adapters/combo-index.ts'
+import { reachableComboLinks, sameComboLinks, type ComboIndex } from '../domain/combo-index.ts'
 
 export type AppEffectsDeps = Record<string, any> & BuilderActionHost
 
@@ -296,6 +298,52 @@ export function useCollectionCountEffect(deps: AppEffectsDeps) {
   ])
 }
 
+/**
+ * Keeps the builder's combo links in step with the deck and pool once combo data loads (#502).
+ * Links change only when the set of reachable cards does, so a pick that moves a card from the
+ * queue to the deck dispatches nothing. The reducer stores them without re-ranking.
+ */
+export function useComboLinksEffect(deps: AppEffectsDeps) {
+  const { builderState } = deps
+  const { commander, deck, queue, deferredCards, localCandidateBuffer } = builderState
+  const [index, setIndex] = useState<ComboIndex | null>(null)
+  const active = Boolean(commander && deck.length)
+  useEffect(() => {
+    if (!active || index) return
+    let current = true
+    loadComboIndex().then(
+      (loaded) => current && setIndex(loaded),
+      () => undefined,
+    )
+    return () => {
+      current = false
+    }
+  }, [active, index])
+  const commanderCount = commanderNames(commander).length
+  const pool: Card[] = useMemo(
+    () => [
+      ...queue,
+      ...deferredCards.map(({ card }: { card: Card }) => card),
+      ...localCandidateBuffer,
+    ],
+    [queue, deferredCards, localCandidateBuffer],
+  )
+  const reachable = JSON.stringify([
+    commanderCount,
+    deck.slice(0, commanderCount).map(({ name }: DeckCard) => name),
+    [...new Set([...deck, ...pool].map(({ name }) => name))].sort(),
+  ])
+  useEffect(() => {
+    if (!index || !active) return
+    const links = reachableComboLinks(index, {
+      commanders: deck.slice(0, commanderCount),
+      cards: [...deck.slice(commanderCount), ...pool],
+    })
+    if (!sameComboLinks(links, deps.getBuilderState().comboLinks))
+      builderAction(deps, { type: 'data', changes: { comboLinks: links } })
+  }, [index, active, reachable])
+}
+
 export function useAppEffects(deps: AppEffectsDeps) {
   useRouteEffects(deps)
   useCompletionReviewEffect(deps)
@@ -305,4 +353,5 @@ export function useAppEffects(deps: AppEffectsDeps) {
   useBasicCardPrefetchEffect(deps)
   useSetCatalogEffect(deps)
   useCollectionCountEffect(deps)
+  useComboLinksEffect(deps)
 }

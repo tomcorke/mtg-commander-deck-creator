@@ -109,6 +109,8 @@ export const initialStateSchema = stateSchema
     pendingFetches: z.array(z.never()).length(0),
     completedFetches: z.array(z.never()).length(0),
     localCandidateBuffer: z.array(z.never()).length(0),
+    // The CLI has no combo data, so High power never scores combos here (#502).
+    comboLinks: z.array(z.never()).length(0).default([]),
   })
 
 const rawCard = z.custom<ScryfallCard>(isScryfallCard, 'Expected a validated Scryfall card')

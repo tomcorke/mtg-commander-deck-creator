@@ -33,6 +33,7 @@ import { powerLabels, priorityLabels } from '../domain/glossary.ts'
 import type { PowerTarget } from '../domain/recommendation-types.ts'
 import { setPickerRows } from '../domain/set-picker.ts'
 import { buildRecommendationContext } from '../domain/recommendation-context.ts'
+import { comboCompletions, type ComboLink } from '../domain/combo-index.ts'
 import { describeRemainingBudget, remainingDeckBudget } from '../domain/deck-price.ts'
 import { activeOwnershipMode, allowedByOwnership, ownedCardReason } from '../domain/owned-cards.ts'
 import type { DeckDoctorFinding } from '../deck-doctor.ts'
@@ -487,6 +488,12 @@ function buildRecommendationData(
       })),
     })
   const scoredBatch = visibleBatch.map((card: Card) => ({ card, score: scoreCandidate(card) }))
+  // Known combos an offer alone would complete; Power decides how the offer frames them (#502).
+  const completions = comboCompletions(
+    deps.comboLinks ?? [],
+    deps.deck.map(({ name }: DeckCard) => name),
+  )
+  const offerCombos = (card: Card): ComboLink[] => completions.get(card.name) ?? []
   return {
     rawBatch,
     synergyPair,
@@ -500,6 +507,7 @@ function buildRecommendationData(
     scoreReplacements,
     suggestFindingChanges,
     scoredBatch,
+    offerCombos,
   }
 }
 

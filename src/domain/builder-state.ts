@@ -47,6 +47,7 @@ import { addCardSearchCards } from './card-search.ts'
 import { remainingDeckBudget } from './deck-price.ts'
 import { boardCounts, planStartingDeck, removeBulkAdded, type BulkAddRecord } from './bulk-add.ts'
 import { buildRecommendationContext } from './recommendation-context.ts'
+import type { ComboLink } from './combo-index.ts'
 import {
   commitDecisionRecord,
   decisionUndoAvailable,
@@ -147,6 +148,11 @@ export type BuilderState = {
   pendingFetches: BuilderFetchWork[]
   completedFetches: BuilderFetchWork[]
   localCandidateBuffer: Card[]
+  /**
+   * Known combos among the deck and pool, set by the app when combo data loads or the pool
+   * changes. Never re-ranks on its own; High power scores the next ranking with it (#502).
+   */
+  comboLinks: ComboLink[]
 }
 
 export function createBuilderState(today: string, signatureDeckKey: string): BuilderState {
@@ -201,6 +207,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     pendingFetches: [],
     completedFetches: [],
     localCandidateBuffer: [],
+    comboLinks: [],
     signatureQuota: { pages: 0, cards: 0 },
     fetchEpoch: 0,
     hydrationBoundary: 0,

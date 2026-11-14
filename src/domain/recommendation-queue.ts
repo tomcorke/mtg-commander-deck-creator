@@ -478,6 +478,8 @@ type QueueScoreSettings = Pick<
   | 'opposingStrategies'
   | 'opposingAnswerCounts'
   | 'opposingAnswerTargets'
+  | 'powerTarget'
+  | 'comboCompletions'
 >
 
 const queueScoreSettings = ({
@@ -491,6 +493,8 @@ const queueScoreSettings = ({
   opposingStrategies,
   opposingAnswerCounts,
   opposingAnswerTargets,
+  powerTarget,
+  comboCompletions,
 }: QueueScoreSettings): QueueScoreSettings => ({
   tagCounts,
   packageCounts,
@@ -502,6 +506,8 @@ const queueScoreSettings = ({
   opposingStrategies,
   opposingAnswerCounts,
   opposingAnswerTargets,
+  powerTarget,
+  comboCompletions,
 })
 
 export function advanceRecommendationQueue<
