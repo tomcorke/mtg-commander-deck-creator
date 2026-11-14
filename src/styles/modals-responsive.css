@@ -52,10 +52,13 @@
   accent-color: var(--commander-accent);
 }
 @media (max-width: 620px) {
-  .collection-picker {
+  /* Legend help popovers align to their fieldset's right edge, not the legend's. */
+  .collection-picker,
+  .recommendation-options fieldset {
     position: relative;
   }
-  .collection-picker > legend {
+  .collection-picker > legend,
+  .recommendation-options fieldset > legend {
     position: static;
   }
   .setting-help-wrap {
