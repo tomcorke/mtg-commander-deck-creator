@@ -166,6 +166,9 @@ async function seed(page: Page, state: PersistedDeckState, dark: boolean) {
     updatedAt: draft.updatedAt,
     state: encodeDeckState(snapshot(false)),
   }
+  // B12 covers card-data refresh on the localStorage backend the app keeps when IndexedDB is
+  // unavailable; check:b18:browser covers the IndexedDB backend, migration and sync.
+  await page.addInitScript(() => Object.defineProperty(window, 'indexedDB', { value: undefined }))
   await page.addInitScript(
     ({ prefix, key, draft, manual, version, dark }) => {
       if (localStorage.getItem(prefix + 'seed')) return
@@ -183,15 +186,18 @@ async function current(page: Page) {
     ({ prefix, key }) => {
       const id = sessionStorage.getItem(key)!
       const stored = JSON.parse(localStorage.getItem(prefix + id)!)
-      const queue = stored.state.queue
-      if (!Array.isArray(queue))
-        stored.state.queue = queue.rows.map((row: unknown[]) =>
-          Object.fromEntries(
-            queue.fields.flatMap((field: string, index: number) =>
-              row[index] === null ? [] : [[field, row[index]]],
+      // Card lists persist as { fields, rows } tables.
+      for (const list of ['deck', 'sideboard', 'queue']) {
+        const table = stored.state[list]
+        if (!Array.isArray(table))
+          stored.state[list] = table.rows.map((row: unknown[]) =>
+            Object.fromEntries(
+              table.fields.flatMap((field: string, index: number) =>
+                row[index] === null ? [] : [[field, row[index]]],
+              ),
             ),
-          ),
-        )
+          )
+      }
       return stored
     },
     { prefix: autosavePrefix, key: workspaceSessionKey },
@@ -213,10 +219,10 @@ async function reviewLayout(page: Page, path: string) {
   assert.equal(await page.getByText('Main deck complete', { exact: true }).count(), 0)
   assert.ok(await page.getByText('Main deck needs validation', { exact: true }).isVisible())
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
-  const reference = page
-    .getByRole('alert', { name: 'Current card data' })
-    .locator('.card-reference-name')
-    .first()
+  const notice = page.getByRole('alert', { name: 'Current card data' })
+  // The notice lists affected cards in a collapsed section.
+  await notice.getByText('Show cards', { exact: true }).click()
+  const reference = notice.locator('.card-reference-name').first()
   const name = (await reference.innerText()).trim()
   assert.ok(name)
   assert.ok(await page.getByRole('button', { name: 'Review deck', exact: true }).isVisible())
@@ -278,13 +284,15 @@ async function checkBrowser(context: BrowserContext, url: string, mode: string, 
   )
   await reviewLayout(page, join(artifacts, `b12-${mode}.png`))
   if (mode === 'offline') {
-    assert.equal(stored.state.deck[0].dataStatus, 'unavailable')
-    await page.getByRole('button', { name: 'Retry current card data', exact: true }).click()
+    // Every load re-checks card data, so the unavailable status is shown, not saved (#522).
+    const retry = page.getByRole('button', { name: 'Retry current card data', exact: true })
+    await retry.click()
     await settled(page)
+    assert.ok(await retry.isVisible())
     assert.equal((await current(page)).state.deck.length, 100)
-    assert.equal((await current(page)).state.deck[0].dataStatus, 'unavailable')
     await page.reload()
     await settled(page)
+    assert.ok(await retry.isVisible())
     assert.equal((await current(page)).state.deck.length, 100)
   } else {
     assert.equal(
