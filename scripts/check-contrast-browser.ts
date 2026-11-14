@@ -214,7 +214,8 @@ async function setAsideContrast(page: Page, themeName: string) {
     ...(await lowContrast(page, `${themeName} Later & ignored`)),
     ...(await lowContrastStates(page, `${themeName} Later & ignored`)),
   ]
-  await page.keyboard.press('Escape')
+  // The state sweep ends with focus on the page, where Escape never reaches the dialog.
+  await button(page, 'Close Later and ignored').click()
   await page.setViewportSize({ width: 390, height: 900 })
   await page.getByRole('button', { name: 'Later & ignored (2)', exact: true }).click()
   failures.push(...(await lowContrast(page, `${themeName} Narrow Later & ignored`)))

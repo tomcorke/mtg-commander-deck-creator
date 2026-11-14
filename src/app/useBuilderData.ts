@@ -374,7 +374,10 @@ function themeAlternativeFinder(deps: BuilderDataDeps, batch: Card[]) {
       deps.excludeGameChangers || (deps.limitGameChangers && gameChangersAtLimit(deps.deck)),
     )
   const later = setAsideCards({
-    deferredCards: deps.deferredCards ?? [],
+    // Entries the current pool or price cap left out stay off, as they do for the queue.
+    deferredCards: (deps.deferredCards ?? []).filter(
+      (entry: { available?: boolean }) => entry.available !== false,
+    ),
     ignoredCards: [],
     ignoredDetails: [],
     decisions: deps.decisions ?? {},

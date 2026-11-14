@@ -115,3 +115,27 @@ test('no alternative without a role, a pool match or a theme, or for a theme mat
   assert.equal(findThemeAlternative(signet, [], everything), null)
   assert.equal(findThemeAlternative(tokenDraw, ['Tokens'], everything), null)
 })
+
+test('land cards never take part, even when they also read as ramp (#563 review)', () => {
+  // Myriad Landscape's oracle id carries a land-ramp override, so it reads as land and ramp.
+  const landRamp = (name: string, tags: string[] = []) => ({
+    ...card(name, { type_line: 'Land', produced_mana: ['G'], oracle_text: '{T}: Add {G}.' }),
+    oracleId: '2549bc57-9ffb-4053-9f10-f2a5f792b845',
+    tags,
+  })
+  const generic = landRamp('Generic land ramp')
+  const onTheme = landRamp('On-theme land ramp', ['Tokens'])
+  assert.equal(findThemeAlternative(generic, ['Tokens'], pool([[tokenRock, 'queue']])), null)
+  assert.equal(findThemeAlternative(signet, ['Tokens'], pool([[onTheme, 'queue']])), null)
+  assert.equal(
+    findThemeAlternative(
+      signet,
+      ['Tokens'],
+      pool([
+        [onTheme, 'queue'],
+        [tokenRock, 'later'],
+      ]),
+    )?.card,
+    tokenRock,
+  )
+})

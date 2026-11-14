@@ -33,7 +33,9 @@ export function ThemeAlternativeNote({
 }) {
   // The board is kept from the moment of adding, so a later zone switch cannot relabel it.
   const [added, setAdded] = useState<{ card: Card; board: string } | null>(null)
-  const [error, setError] = useState('')
+  // An error belongs to the card it came from; it clears once the pool moves on to another.
+  const [failure, setFailure] = useState({ name: '', error: '' })
+  const error = failure.name === alternative?.card.name ? failure.error : ''
   const outcome = useRef<HTMLParagraphElement>(null)
   // The Add button leaves with the suggestion; keep focus in the offer, on the outcome.
   useEffect(() => {
@@ -53,8 +55,8 @@ export function ThemeAlternativeNote({
   const { card, role, themes, source } = alternative
   const [label, basis] = roleLabels[role]
   const add = () => {
-    const failure = onAdd(alternative)
-    if (failure) setError(failure)
+    const error = onAdd(alternative)
+    if (error) setFailure({ name: card.name, error })
     else setAdded({ card, board })
   }
   return (

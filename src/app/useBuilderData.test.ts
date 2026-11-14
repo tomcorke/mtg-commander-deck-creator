@@ -632,6 +632,13 @@ test('generic picks in Theme first get an addable on-theme alternative from the 
     })(offeredDraw),
     null,
   )
+  // A Later entry the current pool or price cap left out is skipped, as the queue skips it.
+  assert.equal(
+    alternatives({
+      deferredCards: [{ card: laterTokenDraw, eligibleBatch: 4, later: true, available: false }],
+    })(offeredDraw),
+    null,
+  )
   // No role, or a theme match: none.
   assert.equal(find(offeredPlain), null)
   assert.equal(find(batchTokenRamp), null)
