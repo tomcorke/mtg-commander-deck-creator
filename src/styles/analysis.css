@@ -380,7 +380,7 @@
   align-items: center;
   min-width: 0;
 }
-/* Met and short rows share one box, outset by its padding so labels align with the sidebar's. */
+/* Met, short and static rows share one box, outset by its padding so labels align with the sidebar's. */
 .deck-target-focus,
 .deck-target-met,
 .deck-target-static {

@@ -97,25 +97,34 @@ await withBrowser('PLAY_STYLE_SIDEBAR', 5190, async (browser, base) => {
   const partial = await openScenario(
     browser,
     base,
-    makeState({ deck: [toDeckCard(commander), ...spells.map(toDeckCard)], deckTargets, queue }),
+    // A 40-land target sits outside the range, so Use N renders once guidance shows.
+    makeState({
+      deck: [toDeckCard(commander), ...spells.map(toDeckCard)],
+      deckTargets: { ...deckTargets, lands: 40 },
+      queue,
+    }),
     records,
   )
   {
     const { page } = partial
     const side = await sidebar(page)
+    const useLands = side.panel.getByRole('button', { name: /^Use \d+$/ })
     await side.focus.first().waitFor()
     assert.equal(await side.guidance.count(), 0, 'No land range below 10 spells')
     assert.equal(await side.fillNow.count(), 0, 'No Fill now below 10 spells')
+    assert.equal(await useLands.count(), 0, 'No Use N below 10 spells')
     assert.equal(await side.later.textContent(), note(9))
     await capture(page, 'nine-spells')
     await button(page.locator('.card-offer').first(), 'Add').click()
     await side.guidance.waitFor()
     await side.fillNow.waitFor()
+    await useLands.waitFor()
     assert.equal(await side.later.filter({ hasText: 'Land guidance starts' }).count(), 0)
     await capture(page, 'ten-spells')
     await button(page.locator('.bulk-actions-status'), 'Undo').click()
     await side.guidance.waitFor({ state: 'detached' })
     assert.equal(await side.fillNow.count(), 0, 'Fill now hides again below 10 spells')
+    assert.equal(await useLands.count(), 0, 'Use N hides again below 10 spells')
     assert.equal(await side.later.textContent(), note(9))
     assert.deepEqual(partial.errors, [])
     await partial.context.close()
