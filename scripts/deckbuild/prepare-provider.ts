@@ -22,6 +22,7 @@ import {
 import { checkStoreDirectory, checkVersion } from './recommend.ts'
 import { retrieveStoredPool } from './pool.ts'
 import { initialStateSchema } from './builder-contract.ts'
+import { formatRunLog, liveEdhrecSession, type LiveEdhrecSession } from '../live-edhrec.ts'
 
 export const providerPreparationSchema = preparationSchema
   .omit({ commanders: true, pool: true })
@@ -188,6 +189,8 @@ export async function recordPreparation(
   root: string,
   input: unknown,
   fetcher: typeof fetch = fetch,
+  /** The run's opt-in live EDHREC session; without it EDHREC requests stop the run. */
+  edhrec?: LiveEdhrecSession,
 ) {
   checkStoreDirectory(root)
   const recipe = providerPreparationSchema.parse(input)
@@ -208,7 +211,7 @@ export async function recordPreparation(
     initialState: json(recipe),
   }
   const store = recordStore(root, pins)
-  const provider = liveProvider(fetcher)
+  const provider = liveProvider(fetcher, edhrec)
   const output = await prepare(pins, async (request, signal) => ({
     status: 'complete',
     outcome: await store.request(request, (descriptor) => provider(descriptor, signal)),
@@ -228,20 +231,34 @@ export async function replayPreparation(root: string, manifest: string) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const argv = process.argv.slice(2)
+  const args = argv.filter((arg) => arg !== '--live-edhrec')
+  const [mode, root, source] = args
+  const edhrec =
+    args.length < argv.length && mode === 'record'
+      ? liveEdhrecSession({ mode: 'deckbuild prepare-provider record' })
+      : undefined
+  let stopReason = 'error'
   try {
-    const [mode, root, source] = process.argv.slice(2)
-    if (process.argv.length !== 5 || !['record', 'replay'].includes(mode))
+    if (
+      args.length !== 3 ||
+      !['record', 'replay'].includes(mode) ||
+      (args.length < argv.length && !edhrec)
+    )
       throw new Error(
-        'Usage: prepare-provider.ts record <store-dir> <recipe.json> | replay <store-dir> <manifest>',
+        'Usage: prepare-provider.ts record [--live-edhrec] <store-dir> <recipe.json> | replay <store-dir> <manifest>',
       )
     const result =
       mode === 'record'
-        ? await recordPreparation(root, JSON.parse(await readFile(source, 'utf8')))
+        ? await recordPreparation(root, JSON.parse(await readFile(source, 'utf8')), fetch, edhrec)
         : await replayPreparation(root, source)
+    stopReason = 'completed'
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
     if (result.status !== 'ready') process.exitCode = 1
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
     process.exitCode = 1
+  } finally {
+    if (edhrec) process.stderr.write(`EDHREC run log: ${formatRunLog(edhrec.finish(stopReason))}\n`)
   }
 }

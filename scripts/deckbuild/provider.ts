@@ -6,6 +6,7 @@ import { isScryfallCard, type ScryfallCard } from '../../src/domain/card-model.t
 import { fetchScryfallCardsByIdentifiers, searchScryfallPage } from '../../src/adapters/scryfall.ts'
 import { ProviderRequestError } from '../../src/adapters/request-scheduler.ts'
 import type { Outcome, Pins, ReplayResult, Request } from './data.ts'
+import { edhrecRefused, LiveEdhrecError, type LiveEdhrecSession } from '../live-edhrec.ts'
 
 const responseSchema = z.strictObject({
   status: z.number().int().min(200).max(599),
@@ -57,11 +58,25 @@ export function transportRequest(
   }
 }
 
-/** One serial request per occurrence; pacing is shared across fresh per-work adapter clients. */
-export function liveProvider(fetcher: typeof fetch = fetch) {
+/** Retry-After seconds or date; a 429 without usable advice waits 30 s. */
+function cooldownUntil(response: Response) {
+  const retry = response.headers.get('retry-after')
+  if (response.status !== 429 && !retry) return 0
+  const seconds = retry === null ? NaN : Number(retry)
+  const until = Number.isFinite(seconds) ? Date.now() + seconds * 1000 : Date.parse(retry ?? '')
+  return Number.isFinite(until) ? until : Date.now() + 30000
+}
+
+/**
+ * One serial request per occurrence; pacing is shared across fresh per-work adapter clients.
+ * EDHREC requests need the run's opt-in live session (#309); without one they stop the run.
+ */
+export function liveProvider(fetcher: typeof fetch = fetch, edhrec?: LiveEdhrecSession) {
   let lastDispatch = 0
   let cooldown = 0
   return async (request: Request, signal: AbortSignal): Promise<Outcome> => {
+    const live = request.provider === 'json.edhrec.com'
+    if (live && !edhrec) throw edhrecRefused('the deckbuild CLI (pass --live-edhrec)')
     try {
       await delay(Math.max(0, lastDispatch + 1000 - Date.now(), cooldown - Date.now()), undefined, {
         signal,
@@ -70,7 +85,7 @@ export function liveProvider(fetcher: typeof fetch = fetch) {
       const query = request.query as { parameters: [string, string][]; headers: [string, string][] }
       const url = new URL(request.endpoint)
       for (const [key, value] of query.parameters) url.searchParams.append(key, value)
-      const response = await fetcher(url, {
+      const response = await (live ? edhrec!.fetch : fetcher)(url, {
         method: request.method,
         headers: query.headers,
         body: request.body as string | null,
@@ -78,19 +93,13 @@ export function liveProvider(fetcher: typeof fetch = fetch) {
         signal,
       })
       const body = await response.text()
-      const retry = response.headers.get('retry-after')
-      if (response.status === 429 || retry) {
-        const seconds = retry === null ? NaN : Number(retry)
-        const until = Number.isFinite(seconds)
-          ? Date.now() + seconds * 1000
-          : Date.parse(retry ?? '')
-        cooldown = Math.max(cooldown, Number.isFinite(until) ? until : Date.now() + 30000)
-      }
+      cooldown = Math.max(cooldown, cooldownUntil(response))
       return {
         status: 'success',
         value: { status: response.status, headers: [...response.headers], body },
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof LiveEdhrecError) throw error
       return {
         status: 'failure',
         kind: signal.aborted ? 'cancelled' : 'network',

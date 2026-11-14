@@ -19,6 +19,12 @@ import { recommend } from '../../src/domain/recommender.ts'
 import { defaultLimits, settingsSchema, type Command } from './builder-contract.ts'
 import { digest, replayStore, recordStore, type Json, type Pins } from './data.ts'
 import { extendBuild, parseCommands, recordBuild, replayBuild, runCommands } from './recommend.ts'
+import { liveEdhrecSession } from '../live-edhrec.ts'
+
+/** Synthetic EDHREC through the opt-in session; spacing waits are skipped in tests. */
+const liveEdhrec = (fetcher: typeof fetch) => ({
+  edhrec: liveEdhrecSession({ mode: 'test', fetcher, sleep: async () => {} }),
+})
 
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
@@ -295,9 +301,19 @@ test('CLI emits matching JSON for record/replay and nonzero for incomplete or ma
   const recorded = cli('record', root, input, log)
   assert.equal(recorded.status, 0, recorded.stderr)
   const result = JSON.parse(recorded.stdout)
+  assert.doesNotMatch(recorded.stderr, /EDHREC run log/)
   const replayed = cli('replay', root, result.manifest, log)
   assert.equal(replayed.status, 0, replayed.stderr)
   assert.deepEqual(JSON.parse(replayed.stdout), result)
+  const optedIn = cli('record', '--live-edhrec', root, input, log)
+  assert.equal(optedIn.status, 0, optedIn.stderr)
+  assert.match(
+    optedIn.stderr,
+    /^EDHREC run log: \| \d{4}-\d{2}-\d{2} \| deckbuild recommend record \| 0\/50 \| completed \|$/m,
+  )
+  const liveReplay = cli('replay', '--live-edhrec', root, result.manifest, log)
+  assert.equal(liveReplay.status, 1)
+  assert.match(liveReplay.stderr, /Usage/)
   await writeFile(log, JSON.stringify(command({ type: 'discoverDoctor' })))
   const incomplete = cli('record', root, input, log)
   assert.equal(incomplete.status, 1)
@@ -555,7 +571,20 @@ test('nextBatch records hydration, signature pages and lookups, settles the shar
     return Response.json({ data: body.identifiers.map((item: { name: string }) => raw(item.name)) })
   }
   const commands = [command({ type: 'nextBatch' }), command({ type: 'view' })]
-  const result = await recordBuild(root, pins(providerState()), commands, defaultLimits, fetcher)
+  await assert.rejects(
+    recordBuild(root, pins(providerState()), commands, defaultLimits, fetcher),
+    /Live EDHREC is off/,
+  )
+  assert.equal(urls.filter((url) => url.includes('edhrec')).length, 0)
+  urls.length = 0
+  const result = await recordBuild(
+    root,
+    pins(providerState()),
+    commands,
+    defaultLimits,
+    fetcher,
+    liveEdhrec(fetcher),
+  )
   assert.equal(result.status, 'complete', JSON.stringify(result.detail))
   assert.equal(result.state.batchNumber, 2)
   assert.equal(result.state.fetchBoundary, null)
@@ -634,7 +663,23 @@ test('recorded network/HTTP/invalid/partial outcomes replay and repeated attempt
       })
     }
     const commands = [command({ type: 'nextBatch' }), command({ type: 'nextBatch' })]
-    const result = await recordBuild(root, pins(initial), commands, defaultLimits, fetcher)
+    if (kind === 'http') {
+      // Live EDHREC policy (#309): a 5xx stops the run instead of recording a retryable failure.
+      await assert.rejects(
+        recordBuild(root, pins(initial), commands, defaultLimits, fetcher, liveEdhrec(fetcher)),
+        /Live EDHREC stopped \(http-503\)/,
+      )
+      assert.equal(attempts, 1)
+      continue
+    }
+    const result = await recordBuild(
+      root,
+      pins(initial),
+      commands,
+      defaultLimits,
+      fetcher,
+      liveEdhrec(fetcher),
+    )
     assert.equal(result.status, 'complete', kind)
     assert.deepEqual(await replayBuild(root, result.manifest, commands), result)
     const outcomes = result.state.completedFetches.map((work) => work.response?.outcome)
@@ -644,7 +689,7 @@ test('recorded network/HTTP/invalid/partial outcomes replay and repeated attempt
       ),
       JSON.stringify(outcomes),
     )
-    if (kind === 'network' || kind === 'http') assert.equal(attempts, 2)
+    if (kind === 'network') assert.equal(attempts, 2)
   }
 })
 
@@ -681,13 +726,15 @@ test('provider work obeys batch/runtime bounds and corrupt stored data is not a 
   assert.equal(runtime.status, 'limit')
   assert.equal(runtime.detail, 'runtime')
   assert.equal(runtime.log.length, 1)
+  const synthetic: typeof fetch = async (input) =>
+    String(input).includes('edhrec') ? Response.json(page) : Response.json({ data: [] })
   const recorded = await recordBuild(
     root,
     pins(providerState()),
     commands,
     defaultLimits,
-    async (input) =>
-      String(input).includes('edhrec') ? Response.json(page) : Response.json({ data: [] }),
+    synthetic,
+    liveEdhrec(synthetic),
   )
   const manifest = JSON.parse(
     await readFile(join(root, 'manifests', `${recorded.manifest}.json`), 'utf8'),

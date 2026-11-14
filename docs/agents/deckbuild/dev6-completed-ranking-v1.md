@@ -37,4 +37,4 @@ No case errors. Dev1/dev2 metrics and batches match the prior human-reviewed rep
 
 Independent repeat builds now exist across dev1/dev2/dev6 on one fixed builder model, and the three-spec ranking results exist. The real-suite evidence remains qualified: one roughly 71-card state per spec, no early/late or deliberate missing-role/misleading-match cases, and no dev6 human spot-check. Leave that acceptance box unchecked. Full baseline remains unchecked pending dev6 blind reviews. Specs/holdout acceptance stays unchecked for the owner decision about eight development plus six holdout briefs. No holdout directory or contents were accessed.
 
-Remaining work stays in #98; runtime sandboxing is tracked separately in #267 and live EDHREC permission in #309. No challenger, tuning, new shared KB findings or provider-policy freshness claim.
+Remaining work stays in #98; runtime sandboxing is tracked separately in #267. Live EDHREC recording is now opt-in under the [live EDHREC policy](../../domain/data-sources.md#live-edhrec-recordings). No challenger, tuning, new shared KB findings or provider-policy freshness claim.

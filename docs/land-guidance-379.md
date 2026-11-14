@@ -21,5 +21,5 @@ Everything above is a heuristic estimate. No play data or simulation was used to
 
 ## Not covered
 
-- The original deck, offer history and Sol Ring path need a live EDHREC recording, blocked on #309.
+- The original deck, offer history and Sol Ring path need a live EDHREC recording. None has been made yet; one would follow the [live EDHREC policy](domain/data-sources.md#live-edhrec-recordings).
 - Calibration against real decks belongs to #98's evaluation infrastructure.

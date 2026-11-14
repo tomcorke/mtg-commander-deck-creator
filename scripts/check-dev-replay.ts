@@ -143,6 +143,11 @@ async function drive(page: Page, base: string) {
   assert.deepEqual(errors, [], 'no browser exceptions, CSP escapes, or external requests')
 }
 
+// Rendered reviews stay synthetic (#309): never let a shell's live opt-in reach this drive.
+if (process.env.DEV_REPLAY_EDHREC) {
+  console.warn('Ignoring DEV_REPLAY_EDHREC: rendered reviews use synthetic EDHREC')
+  delete process.env.DEV_REPLAY_EDHREC
+}
 const external = process.env.DEV_REPLAY_URL
 const server = external
   ? undefined

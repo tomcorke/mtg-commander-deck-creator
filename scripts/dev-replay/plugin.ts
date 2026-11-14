@@ -1,13 +1,14 @@
 import { mkdir, open, readFile, unlink, writeFile } from 'node:fs/promises'
 import { unlinkSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { isAbsolute, join, relative, resolve } from 'node:path'
 import type { IncomingMessage } from 'node:http'
 import type { Plugin } from 'vite'
 import { edhrecFixture } from './edhrec-fixture.ts'
 import { imageCatalog } from './images.ts'
 import { createReplayStore, readBounded, ReplayError } from './store.ts'
 import { replayTransform } from './transform.ts'
+import { formatRunLog, liveEdhrecSession, type LiveEdhrecSession } from '../live-edhrec.ts'
 
 const cacheHome =
   process.env.LOCALAPPDATA || process.env.XDG_CACHE_HOME || join(homedir(), '.cache')
@@ -50,9 +51,64 @@ async function pinnedIndex(directory: string, root: string, mode: string) {
   return index
 }
 
-export function devReplay(mode: 'record' | 'replay'): Plugin {
+async function recorderLock(directory: string) {
+  const file = join(directory, 'recorder.lock')
+  const lock = await open(file, 'wx').catch(() => {
+    throw new Error(
+      `Recorder already owns ${file}. Verify its process stopped before removing a stale lock.`,
+    )
+  })
+  await lock.writeFile(String(process.pid))
+  await lock.close()
+  return file
+}
+
+const inside = (root: string, path: string) => {
+  const local = relative(resolve(root), path)
+  return !local || (!local.startsWith('..') && !isAbsolute(local))
+}
+
+/** The opt-in live EDHREC session for `dev:record` (#309), logged once when its run ends. */
+function liveEdhrecRun() {
+  let session: LiveEdhrecSession | undefined
+  let logged = false
+  const log = (reason: string) => {
+    if (!session || logged) return
+    logged = true
+    console.info(`[dev-replay] EDHREC run log: ${formatRunLog(session.finish(reason))}`)
+  }
+  return {
+    start(mode: 'record' | 'replay', root: string, directory: string) {
+      if (mode === 'replay')
+        return console.warn('[dev-replay] DEV_REPLAY_EDHREC=live applies to dev:record only')
+      if (inside(root, directory))
+        throw new Error(
+          `Live EDHREC recordings must stay outside the checkout; ${directory} is inside it. Unset DEV_REPLAY_CACHE_DIR or choose a machine-local directory.`,
+        )
+      session = liveEdhrecSession({ mode: 'dev:record DEV_REPLAY_EDHREC=live' })
+    },
+    get session() {
+      return session
+    },
+    status: () => ({
+      edhrec: session ? 'live' : 'synthetic',
+      edhrecPages: session?.pages ?? 0,
+      edhrecStopped: session?.stopped ?? null,
+    }),
+    log,
+    logIfStopped: () => session?.stopped && log(session.stopped),
+  }
+}
+
+/** `edhrec: 'live'` opts `dev:record` into live EDHREC pages (#309); replay stays synthetic. */
+export function devReplay(
+  mode: 'record' | 'replay',
+  { edhrec: source = 'synthetic' }: { edhrec?: 'synthetic' | 'live' } = {},
+): Plugin {
   let lockFile: string | undefined
+  const edhrec = liveEdhrecRun()
   const interrupt = () => {
+    edhrec.log('interrupted')
     if (lockFile) unlinkSync(lockFile)
     process.exit(130)
   }
@@ -61,6 +117,7 @@ export function devReplay(mode: 'record' | 'replay'): Plugin {
     apply: 'serve',
     enforce: 'pre',
     async closeBundle() {
+      edhrec.log('completed')
       process.off('SIGINT', interrupt)
       if (lockFile) await unlink(lockFile)
       lockFile = undefined
@@ -72,25 +129,21 @@ export function devReplay(mode: 'record' | 'replay'): Plugin {
     },
     async configureServer(server) {
       const directory = replayCacheDirectory()
+      if (source === 'live') edhrec.start(mode, server.config.root, directory)
       await mkdir(directory, { recursive: true })
       if (mode === 'record') {
-        const file = join(directory, 'recorder.lock')
-        const lock = await open(file, 'wx').catch(() => {
-          throw new Error(
-            `Recorder already owns ${file}. Verify its process stopped before removing a stale lock.`,
-          )
-        })
-        await lock.writeFile(String(process.pid))
-        await lock.close()
-        lockFile = file
+        lockFile = await recorderLock(directory)
         process.once('SIGINT', interrupt)
       }
       const catalog = imageCatalog()
       const index = await pinnedIndex(directory, server.config.root, mode)
       catalog.remember(index)
-      const store = createReplayStore(join(directory, 'requests'), mode)
+      const live = edhrec.session
+      const store = createReplayStore(join(directory, 'requests'), mode, fetch, live)
       const stats = { placeholders: 0, fixtures: 0, failures: 0 }
-      console.info(`[dev-replay] ${mode} ${directory}; EDHREC synthetic; no card scans`)
+      console.info(
+        `[dev-replay] ${mode} ${directory}; EDHREC ${live ? 'live (opt-in, cached locally)' : 'synthetic'}; no card scans`,
+      )
       server.middlewares.use(async (request, response, next) => {
         response.setHeader('Content-Security-Policy', policy)
         const incoming = new URL(request.url ?? '/', 'http://localhost')
@@ -107,7 +160,9 @@ export function devReplay(mode: 'record' | 'replay'): Plugin {
           if (!['GET', 'POST'].includes(method)) throw new ReplayError('Unsupported method', 405)
           if (incoming.pathname === '/__dev-replay/status') {
             response.setHeader('Content-Type', 'application/json')
-            return response.end(JSON.stringify({ mode, ...store.stats, ...stats }))
+            return response.end(
+              JSON.stringify({ mode, ...store.stats, ...stats, ...edhrec.status() }),
+            )
           }
           if (incoming.pathname === '/local-card-index.json') {
             response.statusCode = index ? 200 : 404
@@ -119,6 +174,7 @@ export function devReplay(mode: 'record' | 'replay'): Plugin {
             catalog,
             store,
             stats,
+            liveEdhrec: Boolean(live),
           })
           response.statusCode = result.status
           response.setHeader('Content-Type', result.headers.get('content-type') ?? 'text/plain')
@@ -132,6 +188,7 @@ export function devReplay(mode: 'record' | 'replay'): Plugin {
         } catch (error) {
           stats.failures++
           console.error('[dev-replay]', String(error))
+          edhrec.logIfStopped()
           response.statusCode = error instanceof ReplayError ? error.status : 502
           response.setHeader('Content-Type', 'application/json')
           response.end(JSON.stringify({ error: String(error) }))
@@ -158,6 +215,7 @@ type ProviderContext = {
   catalog: ReturnType<typeof imageCatalog>
   store: ReturnType<typeof createReplayStore>
   stats: { placeholders: number; fixtures: number }
+  liveEdhrec: boolean
 }
 async function providerResponse(url: URL, method: string, body: string, context: ProviderContext) {
   if (url.protocol !== 'https:' || url.username || url.password || url.port)
@@ -175,7 +233,9 @@ async function providerResponse(url: URL, method: string, body: string, context:
     })
   }
   const fixture =
-    method === 'GET' && url.hostname === 'json.edhrec.com' ? edhrecFixture(url.pathname) : undefined
+    !context.liveEdhrec && method === 'GET' && url.hostname === 'json.edhrec.com'
+      ? edhrecFixture(url.pathname)
+      : undefined
   if (fixture) {
     context.stats.fixtures++
     return Response.json(fixture, { headers: { 'X-Dev-Replay': 'fixture' } })

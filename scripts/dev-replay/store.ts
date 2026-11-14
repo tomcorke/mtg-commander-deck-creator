@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { z } from 'zod'
 import { canonical } from '../deckbuild/data.ts'
 import { retryTime } from '../../src/adapters/request-scheduler.ts'
+import { isEdhrecPage, type LiveEdhrecSession } from '../live-edhrec.ts'
 
 const hash = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex')
 const entrySchema = z.object({
@@ -26,10 +27,12 @@ export class ReplayError extends Error {
   }
 }
 
-export function approvedRequest(url: URL, method: string, body: string) {
+/** `edhrec` approves EDHREC pages; only an opted-in live EDHREC store passes it. */
+export function approvedRequest(url: URL, method: string, body: string, edhrec = false) {
   if (url.protocol !== 'https:' || url.username || url.password || url.port || url.hash)
     throw new ReplayError('Unsupported provider URL', 400)
   if (url.hostname === 'api.scryfall.com') return approvedApi(url, method, body)
+  if (edhrec && !body && isEdhrecPage(url, method)) return 'application/json'
   if (method === 'GET' && !body) {
     if (
       url.hostname === 'svgs.scryfall.io' &&
@@ -79,7 +82,11 @@ function approvedApi(url: URL, method: string, body: string) {
   throw new ReplayError('Unsupported API endpoint or method', 400)
 }
 
-function liveDownload(stats: { upstream: number }, upstream: typeof fetch) {
+function liveDownload(
+  stats: { upstream: number },
+  upstream: typeof fetch,
+  edhrec?: LiveEdhrecSession,
+) {
   let tail = Promise.resolve(),
     lastDispatch = 0,
     cooldownUntil = 0
@@ -96,7 +103,9 @@ function liveDownload(stats: { upstream: number }, upstream: typeof fetch) {
       await delay(Math.max(0, lastDispatch + 500 - Date.now()))
       lastDispatch = Date.now()
       stats.upstream++
-      const response = await upstream(url, {
+      const response = await (
+        url.hostname === 'json.edhrec.com' && edhrec ? edhrec.fetch : upstream
+      )(url, {
         method,
         body: body || undefined,
         redirect: 'error',
@@ -131,10 +140,17 @@ export function replayKeyUrl(url: URL) {
   return keyed.href
 }
 
-export function createReplayStore(directory: string, mode: 'record' | 'replay', upstream = fetch) {
+/** `edhrec` opts a recorder into live EDHREC pages (#309); without it EDHREC is unsupported. */
+export function createReplayStore(
+  directory: string,
+  mode: 'record' | 'replay',
+  upstream = fetch,
+  edhrec?: LiveEdhrecSession,
+) {
+  if (edhrec && mode !== 'record') throw new Error('Live EDHREC needs a recorder')
   const pending = new Map<string, Promise<Response>>()
   const stats = { hits: 0, misses: 0, upstream: 0 }
-  const download = liveDownload(stats, upstream)
+  const download = liveDownload(stats, upstream, edhrec)
 
   async function load(
     url: URL,
@@ -196,7 +212,7 @@ export function createReplayStore(directory: string, mode: 'record' | 'replay', 
   return {
     stats,
     async request(url: URL, method = 'GET', body = '') {
-      const type = approvedRequest(url, method, body)
+      const type = approvedRequest(url, method, body, Boolean(edhrec))
       const normalized = body ? canonical(JSON.parse(body)) : ''
       const keyUrl = replayKeyUrl(url)
       const key = hash(JSON.stringify([1, method, keyUrl, normalized]))

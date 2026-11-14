@@ -38,6 +38,7 @@ import {
 } from './provider.ts'
 import { digest, recordStore, replayStore, type Json, type Pins } from './data.ts'
 import { retrieveStoredPool } from './pool.ts'
+import { formatRunLog, liveEdhrecSession, type LiveEdhrecSession } from '../live-edhrec.ts'
 
 const json = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
 const hash = (value: unknown) => digest(json(value))
@@ -368,13 +369,19 @@ export function checkVersion(pins: Pins) {
     throw new Error('Pinned recommenderVersion must match this checkout HEAD')
 }
 
+type RecordOptions = {
+  /** The run's opt-in live EDHREC session; without it EDHREC requests stop the run. */
+  edhrec?: LiveEdhrecSession
+  prefix?: Awaited<ReturnType<typeof replayStore>>
+}
+
 export async function recordBuild(
   root: string,
   input: Pins,
   inputCommands: unknown[],
   limits: unknown = defaultLimits,
   fetcher: typeof fetch = fetch,
-  prefix?: Awaited<ReturnType<typeof replayStore>>,
+  { edhrec, prefix }: RecordOptions = {},
 ) {
   checkStoreDirectory(root)
   checkVersion(input)
@@ -391,7 +398,7 @@ export async function recordBuild(
   }
   initialState(pins, cliPinsSchema.parse(pins.resolvedOptions).builder)
   const store = recordStore(root, pins)
-  const provider = liveProvider(fetcher)
+  const provider = liveProvider(fetcher, edhrec)
   const output = await runCommands(pins, commands, undefined, async (request, signal) => ({
     status: 'complete',
     outcome: await store.request(request, async (descriptor) => {
@@ -429,6 +436,7 @@ export async function extendBuild(
   priorCommands: unknown[],
   appendedCommands: unknown[],
   fetcher: typeof fetch = fetch,
+  edhrec?: LiveEdhrecSession,
 ) {
   const appended = appendedCommands.map((command) => commandSchema.parse(command))
   if (!appended.length) throw new Error('Extension requires at least one command')
@@ -446,36 +454,55 @@ export async function extendBuild(
     commands,
     config.limits,
     fetcher,
-    prefix,
+    { edhrec, prefix },
   )
 }
 
-async function main(args: string[]) {
+async function main(argv: string[]) {
+  const args = argv.filter((arg) => arg !== '--live-edhrec')
   const [mode, root, source, log, limits] = args
+  const live = args.length < argv.length
   if (
     !['record', 'replay', 'extend'].includes(mode) ||
+    (mode === 'replay' && live) ||
     args.length < 4 ||
     args.length > 5 ||
     (mode === 'replay' && limits) ||
     (mode === 'extend' && !limits)
   )
     throw new Error(
-      'Usage: recommend.ts record <store-dir> <pins.json> <commands.jsonl> [limits.json] | replay <store-dir> <manifest> <commands.jsonl> | extend <store-dir> <manifest> <prior.jsonl> <append.jsonl>',
+      'Usage: recommend.ts record [--live-edhrec] <store-dir> <pins.json> <commands.jsonl> [limits.json] | replay <store-dir> <manifest> <commands.jsonl> | extend [--live-edhrec] <store-dir> <manifest> <prior.jsonl> <append.jsonl>',
     )
   const commands = parseCommands(await readFile(log, 'utf8'))
-  const output =
-    mode === 'record'
-      ? await recordBuild(
-          root,
-          JSON.parse(await readFile(source, 'utf8')),
-          commands,
-          limits ? JSON.parse(await readFile(limits, 'utf8')) : defaultLimits,
-        )
-      : mode === 'extend'
-        ? await extendBuild(root, source, commands, parseCommands(await readFile(limits, 'utf8')))
-        : await replayBuild(root, source, commands)
-  process.stdout.write(`${JSON.stringify(output, null, 2)}\n`)
-  if (output.status !== 'complete') process.exitCode = 1
+  const edhrec = live ? liveEdhrecSession({ mode: `deckbuild recommend ${mode}` }) : undefined
+  let stopReason = 'error'
+  try {
+    const output =
+      mode === 'record'
+        ? await recordBuild(
+            root,
+            JSON.parse(await readFile(source, 'utf8')),
+            commands,
+            limits ? JSON.parse(await readFile(limits, 'utf8')) : defaultLimits,
+            fetch,
+            { edhrec },
+          )
+        : mode === 'extend'
+          ? await extendBuild(
+              root,
+              source,
+              commands,
+              parseCommands(await readFile(limits, 'utf8')),
+              fetch,
+              edhrec,
+            )
+          : await replayBuild(root, source, commands)
+    stopReason = 'completed'
+    process.stdout.write(`${JSON.stringify(output, null, 2)}\n`)
+    if (output.status !== 'complete') process.exitCode = 1
+  } finally {
+    if (edhrec) process.stderr.write(`EDHREC run log: ${formatRunLog(edhrec.finish(stopReason))}\n`)
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
