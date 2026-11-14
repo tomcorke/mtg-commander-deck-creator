@@ -1206,6 +1206,11 @@ li b {
   top: calc(50% - var(--deck-thumbnail-width) * 680 / 488 / 2 - 2px);
   left: -2px;
 }
+/* A card without art has no thumbnail, so the badge centres on the name's leading edge. */
+.deck-board .deck-card-reference:not(:has(.card-reference-thumbnail)) > .alternate-printing {
+  top: 50%;
+  translate: 0 -50%;
+}
 /* Tiles carry no thumbnail in the name, so the badge pins to the tile art's corner instead. */
 .deck-board .deck-tile {
   position: relative;
@@ -1215,6 +1220,7 @@ li b {
   position: static;
 }
 .deck-board .deck-list--tiles .deck-card-reference > .alternate-printing {
+  translate: none;
   top: 6px;
   left: 6px;
   width: 10px;

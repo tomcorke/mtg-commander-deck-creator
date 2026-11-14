@@ -87,17 +87,23 @@ const readMisalignedRows = (page: Page) =>
     }
     return misaligned
   })
+// Visible markers by row name, each pinned within 6px of its art's top-left corner (#581).
 const readMarkers = (page: Page) =>
-  page
-    .locator('.deck-board [aria-label="Alternate printing selected"]')
-    .evaluateAll((markers) =>
-      markers
-        .filter((marker) => marker.checkVisibility())
-        .map(
-          (marker) =>
-            marker.closest('li')?.querySelector('.card-reference-name')?.textContent?.trim() ?? '',
-        ),
-    )
+  page.locator('.deck-board [aria-label="Alternate printing selected"]').evaluateAll((markers) =>
+    markers
+      .filter((marker) => marker.checkVisibility())
+      .map((marker) => {
+        const row = marker.closest('li')!
+        const art = row.querySelector('.card-reference-thumbnail, .deck-tile-art')!
+        const dot = marker.getBoundingClientRect()
+        const corner = art.getBoundingClientRect()
+        const name = row.querySelector('.card-reference-name')?.textContent?.trim() ?? ''
+        const pinned =
+          Math.abs(dot.left + dot.width / 2 - corner.left) <= 6 &&
+          Math.abs(dot.top + dot.height / 2 - corner.top) <= 6
+        return pinned ? name : `${name} (off its art corner)`
+      }),
+  )
 
 type Layout = {
   columnCount: number
