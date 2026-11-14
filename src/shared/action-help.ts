@@ -99,7 +99,6 @@ function position(tooltip: HTMLElement) {
   )
   tooltip.style.top = `${placed.top}px`
   tooltip.style.left = `${placed.left}px`
-  tooltip.dataset.side = placed.side
 }
 
 /** Shows, hides and places tooltips to match hover and focus; call once per document. */
@@ -127,7 +126,17 @@ export function installActionHelp() {
       syncActionHelp()
     })
   }
-  for (const name of ['pointerover', 'pointerout', 'focusin', 'focusout', 'scroll'])
+  // Mouse events also cover touch compat hover, which can land after the pointer events.
+  const events = [
+    'pointerover',
+    'pointerout',
+    'mouseover',
+    'mouseout',
+    'focusin',
+    'focusout',
+    'scroll',
+  ]
+  for (const name of events)
     document.addEventListener(name, schedule, { capture: true, passive: true })
   window.addEventListener('resize', schedule)
   // Inline confirmations render under a pointer that has not moved.

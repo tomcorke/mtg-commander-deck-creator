@@ -655,7 +655,8 @@ main > header:has(.display-settings-panel) {
   position: fixed;
   inset: auto;
   width: 180px;
-  max-width: calc(100vw - 32px);
+  /* The top layer resolves % against the viewport without its scrollbar. */
+  max-width: calc(100% - 32px);
   margin: 0;
   padding: 8px 10px;
   overflow: visible;
@@ -672,10 +673,7 @@ main > header:has(.display-settings-panel) {
   white-space: normal;
   opacity: 0;
   pointer-events: none;
-  transition:
-    opacity 0.15s,
-    display 0.15s allow-discrete,
-    overlay 0.15s allow-discrete;
+  transition: opacity 0.15s;
 }
 .action-help:not(:popover-open) {
   display: none;

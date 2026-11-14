@@ -1144,7 +1144,9 @@ button:disabled {
 .card-offer[data-batch-changing] > .actions,
 .card-offer[data-batch-changing] > .score-breakdown,
 .card-offer[data-batch-changing] .card-image-actions,
-.card-offer[data-batch-changing] .synergy-info {
+.card-offer[data-batch-changing] .synergy-info,
+/* Tooltips sit in the top layer, so ancestor opacity no longer reaches them. */
+.card-offer[data-batch-changing] .action-help {
   opacity: var(--batch-copy-opacity, 0);
 }
 .card-copy > .batch-old-copy {
