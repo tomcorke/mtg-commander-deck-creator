@@ -80,7 +80,7 @@ The offer batches, counts and inclusion means are measured: they are outputs of 
 
 ## Not covered
 
-- Land guidance and land offers are unchanged. The land baseline, clamp and land fill are being decided separately, so the land-guidance acceptance item stays open.
-- Krenko and Tatyova still don't offer Sol Ring once on-theme ramp meets the ramp target.
-- Treasure makers count as ramp, which fills the ramp target early in Goblin decks.
+- Land guidance and land offers are unchanged. The land-guidance acceptance item moves to [#587](https://github.com/tomcorke/mtg-commander-deck-creator/issues/587) (baseline and clamps) and [#589](https://github.com/tomcorke/mtg-commander-deck-creator/issues/589) (role-aware land fill).
+- Krenko and Tatyova still don't offer Sol Ring once on-theme ramp meets the ramp target: [#591](https://github.com/tomcorke/mtg-commander-deck-creator/issues/591).
+- Treasure makers count as ramp, which fills the ramp target early in Goblin decks: [#592](https://github.com/tomcorke/mtg-commander-deck-creator/issues/592).
 - The user's own deck and offer history remain unknown.
