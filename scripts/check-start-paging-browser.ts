@@ -61,7 +61,10 @@ const tileNames = (page: Page) =>
     .locator('.commander-discovery > .commander-grid .card-tile-title > :first-child')
     .allInnerTexts()
 const headingLine = (page: Page) =>
-  page.locator('.commander-discovery-heading p').first().innerText()
+  page
+    .locator('.commander-discovery-heading > div > p')
+    .allInnerTexts()
+    .then((lines) => lines.filter(Boolean).join(' · '))
 const pagerLine = (page: Page) =>
   page.getByRole('navigation', { name: 'Commander result pages' }).innerText()
 

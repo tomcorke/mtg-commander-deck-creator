@@ -197,18 +197,12 @@
 .commander-set-filter > .collection-set-controls {
   margin-top: 12px;
 }
-.filter-summary {
+.filter-panel-actions {
   /* Holds the row's height while Clear filters is hidden for the empty grid's own. */
   min-height: 44px;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   margin-top: 16px;
-}
-.filter-summary p {
-  margin: 0;
 }
 .commander-grid {
   display: grid;
@@ -234,8 +228,9 @@
   aspect-ratio: 488 / 680;
   border-radius: 4.75%;
 }
-/* Count header: heading, then one muted line with the count, the batch's shared reason and its
-   order; the sort control sits on the right and the insight note spans below. */
+/* Count header: heading, a line with the count and active filters, then a muted line with the
+   batch's shared reason and order. Random commander and the sort control sit on the right; the
+   builder-guide option and the insight note span below (#488). */
 .commander-discovery-heading {
   display: flex;
   flex-wrap: wrap;
@@ -243,6 +238,12 @@
   justify-content: space-between;
   gap: 8px 16px;
   margin-bottom: 16px;
+}
+.commander-discovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
 }
 .commander-sort {
   display: flex;
@@ -266,12 +267,23 @@
 .commander-discovery-heading h2 {
   margin: 0;
 }
+.commander-discovery-heading > .intro-guide-option {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 .commander-discovery-heading p {
   min-height: 1.5em;
   margin: 4px 0 0;
   color: var(--text-muted);
   font-size: var(--type-data);
   line-height: 1.5;
+}
+/* Count and active filters describe the grid, so they read stronger than its order line. */
+.commander-discovery-heading > div > .commander-discovery-summary {
+  color: var(--text-body);
+  font-weight: 600;
 }
 .commander-tile-placeholder .commander-placeholder {
   display: block;
@@ -375,7 +387,7 @@
   .commander-filters.collapsed .commander-filter-controls {
     display: none;
   }
-  .commander-filters.collapsed .filter-summary {
+  .commander-filters.collapsed .filter-panel-actions {
     margin-top: 8px;
   }
 }

@@ -102,7 +102,11 @@ await withBrowser('COLOUR_IDENTITY_MODE', 5298, async (browser, base) => {
     const filters = page.locator('#commander-filter-controls')
     assert.match(await filters.innerText(), /Exactly, the default/)
     assert.equal(await page.locator('#colour-identity-name').innerText(), 'Golgari · Black, Green')
-    const summary = page.locator('.filter-summary [role="status"]')
+    // The grid header names the count, then the active filters (#488).
+    const summaryLine = page.locator('.commander-discovery-summary')
+    const summary = {
+      innerText: async () => (await summaryLine.innerText()).replace(/^.*?commanders?…? · /, ''),
+    }
     assert.equal(await summary.innerText(), 'Colour identity exactly Golgari (Black, Green)')
     assert(queries.at(-1)!.endsWith('id=bg'), 'exact query')
 
