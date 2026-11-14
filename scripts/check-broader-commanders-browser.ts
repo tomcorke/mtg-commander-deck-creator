@@ -71,8 +71,11 @@ await withBrowser('BROADER_COMMANDERS', 5297, async (browser, base) => {
     const broaderTiles = more.locator('.commander-choose')
     assert.equal(await curatedTiles.count(), 2, 'the curated two stay first')
     assert.match(
-      await discovery.locator('.commander-discovery-heading p').first().innerText(),
-      /^2 commanders · Picked for Sacrifice decks/,
+      await discovery
+        .locator(':scope > .commander-discovery-heading > div > p')
+        .allInnerTexts()
+        .then((lines) => lines.filter(Boolean).join(' · ')),
+      /^2 commanders · Sacrifice · Colour identity exactly Golgari \(Black, Green\) · Picked for Sacrifice decks/,
     )
     assert.match(
       await more.innerText(),

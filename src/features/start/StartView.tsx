@@ -371,15 +371,25 @@ const matchCount = ({ count, more, total }: { count: number; more: boolean; tota
 const countLabel = (matches: { count: number; more: boolean; total?: number }) =>
   `${matchCount(matches)} ${matches.count === 1 && !matches.more ? 'commander' : 'commanders'}`
 
-/** The grid's heading: count, shared reason and order, the sort control and the insight note. */
+/**
+ * The grid's heading: count and active filters, shared reason and order, Random commander and the
+ * sort control, the builder-guide option and the insight note.
+ */
 function DiscoveryHeading({
   discovery,
   sort,
   setSort,
+  filters,
+  random,
+  guide,
 }: {
   discovery: Discovery
   sort: CommanderSort
   setSort: (sort: CommanderSort) => void
+  /** Active filter summary, or '' when nothing is filtered. */
+  filters: string
+  random: ReactNode
+  guide: ReactNode
 }) {
   const reason = discovery.status === 'idle' ? discovery.suggestions[0]?.reason : undefined
   // Several creature types rank commanders covering more of them first.
@@ -394,25 +404,38 @@ function DiscoveryHeading({
           <h2 id="commander-discovery-title" tabIndex={-1}>
             Choose a commander
           </h2>
+          {/* The status line below speaks for both lines. */}
+          <p className="commander-discovery-summary" aria-hidden="true">
+            {[
+              discovery.status === 'loading' && 'Finding legal commanders…',
+              // The empty state names the zero itself.
+              discovery.status === 'idle' && discovery.count > 0 && countLabel(discovery),
+              filters,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
           {/* Every suggestion in a batch shares one reason, so it is shown once. */}
           <p aria-hidden="true">
-            {discovery.status === 'loading' && 'Finding legal commanders…'}
-            {/* The empty state names the zero itself. */}
             {discovery.status === 'idle' &&
               discovery.count > 0 &&
-              [countLabel(discovery), reason, order].filter(Boolean).join(' · ')}
+              [reason, order].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <label className="commander-sort">
-          <span>Sort by</span>
-          <select value={sort} onChange={(event) => setSort(event.target.value as CommanderSort)}>
-            {Object.entries(commanderSorts).map(([value, { label }]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="commander-discovery-actions">
+          {random}
+          <label className="commander-sort">
+            <span>Sort by</span>
+            <select value={sort} onChange={(event) => setSort(event.target.value as CommanderSort)}>
+              {Object.entries(commanderSorts).map(([value, { label }]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {guide}
         <p className="commander-insight-note">
           Themes are app estimates from card type and rules text; other strategies may fit. Deck
           counts are EDHREC decks led by that commander, shown for the most-built commanders in each
@@ -422,7 +445,7 @@ function DiscoveryHeading({
       <p id="commander-result-count" className="sr-only" role="status">
         {discovery.status === 'loading' && 'Finding legal commanders…'}
         {discovery.status === 'idle' &&
-          `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length || discovery.more ? ` of ${matchCount(discovery)}` : ''} ${discovery.count === 1 && !discovery.more ? 'commander' : 'commanders'} shown${reason ? `. ${reason}` : ''}${discovery.count > 1 ? `. ${order}` : ''}${discovery.broader?.count ? `. ${discovery.broader.heading}: ${countLabel(discovery.broader)}` : ''}. Press Down to move through them.`}
+          `${discovery.suggestions.length}${discovery.count > discovery.suggestions.length || discovery.more ? ` of ${matchCount(discovery)}` : ''} ${discovery.count === 1 && !discovery.more ? 'commander' : 'commanders'} shown${filters ? `. Filters: ${filters}` : ''}${reason ? `. ${reason}` : ''}${discovery.count > 1 ? `. ${order}` : ''}${discovery.broader?.count ? `. ${discovery.broader.heading}: ${countLabel(discovery.broader)}` : ''}. Press Down to move through them.`}
       </p>
     </>
   )
@@ -613,6 +636,10 @@ export function StartView(props: StartViewProps) {
     )
   const summary = filterSummary(props, setLabel)
   const filtered = summary !== 'All commanders' || Boolean(props.search || props.rulesText)
+  const headerFilters =
+    summary === 'All commanders'
+      ? ''
+      : `${summary}${props.theme && props.search.trim().length >= 2 ? ' · Searching within this theme' : ''}`
   const total = discovery.count + (discovery.broader?.count ?? 0)
   // The empty grid carries its own Clear filters, so the panel's steps aside to keep one on screen.
   const noMatches = discovery.status === 'idle' && !total
@@ -751,11 +778,6 @@ export function StartView(props: StartViewProps) {
           Combine a theme and colour identity, or search for a commander.
           {resume && ' Choosing a new commander keeps this deck in Autosaved drafts.'}
         </p>
-        <div className="export-actions">
-          <button className="export" type="button" onClick={() => setRandomCommanderOpen(true)}>
-            Random commander
-          </button>
-        </div>
         <section
           className={`start-panel commander-filters${filtersOpen ? '' : ' collapsed'}`}
           aria-label="Commander filters"
@@ -831,7 +853,8 @@ export function StartView(props: StartViewProps) {
                 }
               >
                 <option value="">Any</option>
-                {Array.from({ length: 11 }, (_, value) => (
+                {/* 1–7 covers nearly every commander; Any lifts the limit (#488). */}
+                {Array.from({ length: 7 }, (_, index) => index + 1).map((value) => (
                   <option key={value} value={value}>
                     {value} or less
                   </option>
@@ -862,25 +885,13 @@ export function StartView(props: StartViewProps) {
               </div>
             </details>
           </div>
-          <div className="filter-summary">
-            <p role="status">
-              {summary}
-              {props.theme && props.search.trim().length >= 2 && ' · Searching within this theme'}
-            </p>
+          <div className="filter-panel-actions">
             {!noMatches && (
               <button className="export" type="button" disabled={!filtered} onClick={clearFilters}>
                 Clear filters
               </button>
             )}
           </div>
-          <label className="intro-guide-option">
-            <input
-              type="checkbox"
-              checked={props.introGuideRequested}
-              onChange={(event) => props.setIntroGuideRequested(event.target.checked)}
-            />{' '}
-            Walk me through the builder for this deck
-          </label>
         </section>
         {/* Arrow keys move through the Choose buttons of both grids. */}
         <section
@@ -889,7 +900,27 @@ export function StartView(props: StartViewProps) {
           aria-busy={discovery.status === 'loading'}
           onKeyDown={moveBetweenChoices}
         >
-          <DiscoveryHeading discovery={discovery} sort={sort} setSort={setSort} />
+          <DiscoveryHeading
+            discovery={discovery}
+            sort={sort}
+            setSort={setSort}
+            filters={headerFilters}
+            random={
+              <button className="export" type="button" onClick={() => setRandomCommanderOpen(true)}>
+                Random commander
+              </button>
+            }
+            guide={
+              <label className="intro-guide-option">
+                <input
+                  type="checkbox"
+                  checked={props.introGuideRequested}
+                  onChange={(event) => props.setIntroGuideRequested(event.target.checked)}
+                />{' '}
+                Walk me through the builder for this deck
+              </label>
+            }
+          />
           {discovery.status === 'idle' && !discovery.count && total > 0 && (
             <p className="discovery-status">
               None of the commanders picked for {props.theme} decks match these filters.

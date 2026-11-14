@@ -87,7 +87,11 @@ const tileNames = (page: Page) =>
   page
     .locator('.commander-discovery > .commander-grid .card-tile-title > :first-child')
     .allInnerTexts()
-const orderLine = (page: Page) => page.locator('.commander-discovery-heading p').first().innerText()
+const orderLine = (page: Page) =>
+  page
+    .locator('.commander-discovery-heading > div > p')
+    .allInnerTexts()
+    .then((lines) => lines.filter(Boolean).join(' · '))
 
 await withBrowser('POPULARITY_DECK_COUNT', 5301, async (browser, base) => {
   const edhrec: string[] = []
@@ -107,9 +111,11 @@ await withBrowser('POPULARITY_DECK_COUNT', 5301, async (browser, base) => {
     await button(page, 'Clear filters').click()
     // The seeded theme's grid shows first; wait for the cleared search's 15 results.
     await page.waitForFunction(() =>
-      document
-        .querySelector('.commander-discovery-heading p')
-        ?.textContent?.startsWith('15 commanders'),
+      [...document.querySelectorAll('.commander-discovery-heading > div > p')]
+        .map((line) => line.textContent)
+        .filter(Boolean)
+        .join(' · ')
+        .startsWith('15 commanders'),
     )
     if (process.env.POPULARITY_DECK_COUNT_BEFORE) {
       witchMaw.open()
@@ -132,9 +138,11 @@ await withBrowser('POPULARITY_DECK_COUNT', 5301, async (browser, base) => {
     // Once every identity has settled, known counts lead and the rest keep rank order.
     witchMaw.open()
     await page.waitForFunction(() =>
-      document
-        .querySelector('.commander-discovery-heading p')
-        ?.textContent?.endsWith('commanders without a count'),
+      [...document.querySelectorAll('.commander-discovery-heading > div > p')]
+        .map((line) => line.textContent)
+        .filter(Boolean)
+        .join(' · ')
+        .endsWith('commanders without a count'),
     )
     assert.match(
       await orderLine(page),
@@ -173,7 +181,11 @@ await withBrowser('POPULARITY_DECK_COUNT', 5301, async (browser, base) => {
     // Other sorts keep their own order and wording.
     await page.getByRole('combobox', { name: 'Sort by' }).selectOption('name')
     await page.waitForFunction(() =>
-      document.querySelector('.commander-discovery-heading p')?.textContent?.endsWith('A to Z'),
+      [...document.querySelectorAll('.commander-discovery-heading > div > p')]
+        .map((line) => line.textContent)
+        .filter(Boolean)
+        .join(' · ')
+        .endsWith('A to Z'),
     )
     assert.equal(
       (await tileNames(page))[0],
