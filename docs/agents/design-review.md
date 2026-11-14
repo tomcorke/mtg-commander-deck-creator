@@ -20,6 +20,16 @@ card-details drive. Then run `pnpm check:dev-replay` to repeat the drives in a
 fresh browser and assert zero upstream requests, zero misses and decoded images.
 The command also captures light, dark and narrow evidence locally.
 
+The synthetic EDHREC pages live in `scripts/dev-replay/edhrec-fixture.ts`. Every
+commander page carries `newcards`, `topcards`, `highliftcards`, type lists,
+`manaartifacts`, `utilitylands` and `lands`. Every card page carries
+`newcommanders`, `topcommanders` and type lists; all its lists carry `lift`. The
+pair slug `pair-fixture-elf-pair-fixture-mage` answers with a redirect body. List
+membership and every `num_decks`, `potential_decks`, `synergy` and `lift` value
+are invented, not copied from EDHREC. **The fixtures prove code paths only, not
+recommendation quality.** Card names come from the Meren review deck. A fixture
+change alters the Scryfall requests, so re-run `pnpm check:dev-replay record`.
+
 The shared cache defaults to `commander-creator/dev-replay-v1` under
 `LOCALAPPDATA`, `XDG_CACHE_HOME` or `~/.cache`. `DEV_REPLAY_CACHE_DIR` overrides it;
 use `.dev-replay/` for an ignored checkout-local cache. Only one recorder may own
