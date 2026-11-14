@@ -1,3 +1,9 @@
+import {
+  chosenCreatureTypeTag,
+  creatureTypeForTheme,
+  everyCreatureTypeTag,
+} from './creature-types.ts'
+
 // Heuristic strategy packages: a plan is a set of enablers, payoffs that reward them, and
 // protection or recovery that keeps the engine running. Regex detection, like theme tags.
 // shortcut: two families only; add more once #98's rank bench can measure them.
@@ -70,6 +76,66 @@ export function packageScore(detail: string | undefined, counts: PackageCounts =
       if (part === 'payoff') score += 2 * Math.max(0, parts.enabler - parts.payoff)
       if (part === 'protection' && parts.enabler && parts.payoff && !parts.protection) score += 4
     }
+  }
+  return Math.min(8, score)
+}
+
+/**
+ * Creature-type plan for each creature-type theme (#379): members are creatures of the type;
+ * payoffs reward the type (Patchwork Banner, Herald's Horn, "other Rabbits you control").
+ */
+export type TypalCounts = { theme: string; members: number; payoffs: number }[]
+type TypalCard = { detail?: string; tags?: string[]; typeLine?: string }
+
+const typalPayoffPattern = (type: string, plural: string) =>
+  new RegExp(
+    String.raw`\b(?:${plural}|${type} creatures) you control\b|\b${type} spells?\b|\bwhenever (?:a|an|another|one or more)(?: other)?(?: nontoken)? (?:${type}|${plural})\b`,
+    'i',
+  )
+
+export function typalParts(theme: string, card: TypalCard) {
+  const type = creatureTypeForTheme(theme)
+  if (!type) return { member: false, payoff: false }
+  const front = (card.typeLine ?? '').split('//')[0]
+  const creature = /\bCreature\b/.test(front)
+  return {
+    member:
+      creature &&
+      (new RegExp(String.raw`\b${type}\b`).test(front) ||
+        (card.tags ?? []).includes(everyCreatureTypeTag)),
+    payoff:
+      !/\bLand\b/.test(front) &&
+      ((card.tags ?? []).includes(chosenCreatureTypeTag) ||
+        typalPayoffPattern(type, theme).test(card.detail ?? '')),
+  }
+}
+
+/** Members and payoffs of each creature-type theme across the deck, commanders included. */
+export function typalCounts(deck: TypalCard[], themes: string[] = []): TypalCounts {
+  return [...new Set(themes.filter((theme) => creatureTypeForTheme(theme)))].map((theme) => {
+    const parts = deck.map((card) => typalParts(theme, card))
+    return {
+      theme,
+      members: parts.filter(({ member }) => member).length,
+      payoffs: parts.filter(({ payoff }) => payoff).length,
+    }
+  })
+}
+
+/** Payoffs a typal deck wants per member: about one for every three creatures of the type. */
+export const typalMembersPerPayoff = 3
+
+/**
+ * Marginal typal value: a payoff scores while the deck has fewer than one per three members, and
+ * a member scores while payoffs outnumber that share. A heuristic ratio, not a measured optimum.
+ */
+export function typalScore(card: TypalCard, counts: TypalCounts = []) {
+  let score = 0
+  for (const { theme, members, payoffs } of counts) {
+    const parts = typalParts(theme, card)
+    const wanted = Math.ceil(members / typalMembersPerPayoff)
+    if (parts.payoff) score += 2 * Math.max(0, wanted - payoffs)
+    else if (parts.member) score += 2 * Math.max(0, payoffs - wanted)
   }
   return Math.min(8, score)
 }

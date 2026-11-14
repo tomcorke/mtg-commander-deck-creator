@@ -1,5 +1,5 @@
 import type { OwnedQuantities, OwnershipMode } from './owned-cards.ts'
-import type { PackageCounts } from './strategy-packages.ts'
+import type { PackageCounts, TypalCounts } from './strategy-packages.ts'
 import type { CardFinish } from './card-model.ts'
 
 export type { CardFinish, PrintingLike, ScryfallCard, ScryfallCardFace } from './card-model.ts'
@@ -141,6 +141,7 @@ export type RecommendationScoreCard = Pick<RecommendationCard, 'reason' | 'tags'
       | 'manaValue'
       | 'manaValueKnown'
       | 'synergy'
+      | 'inclusion'
       | 'detail'
       | 'localIndexSnapshot'
     >
@@ -161,6 +162,8 @@ export type RecommendationScoreContext = {
   tagCounts?: Record<string, number>
   /** Enabler, payoff and protection counts for each active strategy package. */
   packageCounts?: PackageCounts
+  /** Members and payoffs of each creature-type theme in the deck (#379). */
+  typalCounts?: TypalCounts
   preferenceScores: Record<string, number>
   neededRoles: Set<string>
   cardRoles: string[]

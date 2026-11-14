@@ -1,4 +1,5 @@
 import { buildEdhrecRecommendations, excludedByOptions } from './recommendation-sources.ts'
+import { slotReason } from './recommendation-scoring.ts'
 import type { EdhrecEntry, RecommendationOptions } from './recommendation-types.ts'
 import { defaultDeckTargets, rolesForCard, type DeckTargets } from '../deck-analysis.ts'
 import { toCard, type ScryfallCard, type Card, type DeckCard } from './card-model.ts'
@@ -25,7 +26,7 @@ import type {
 } from './recommendation-types.ts'
 
 /** Bumped whenever scoring or ranking changes the order produced from the same inputs. */
-export const recommendationScoringVersion = 7
+export const recommendationScoringVersion = 8
 
 /** FNV-1a hash of a seed string, as an unsigned 32-bit integer. */
 const hashSeed = (seed: string) => {
@@ -88,7 +89,10 @@ export function fallbackPool(main: Card[], mana: Card[], includeCreature: boolea
   return batchRecommendations(
     mergeRecommendationCandidates(
       seededShuffle(main, `${seed}:main`),
-      seededShuffle(mana, `${seed}:mana`),
+      seededShuffle(mana, `${seed}:mana`).map((card) => ({
+        ...card,
+        reason: slotReason(card.typeLine, card.reason),
+      })),
     ),
     includeCreature,
   )

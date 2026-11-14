@@ -45,14 +45,15 @@ const recommendationScoreFactors = [
     key: 'deckNeeds',
     label: 'Deck needs',
     max: recommendationScoreFactorMaximums.deckNeeds,
-    description: 'Urgency of roles your deck is missing, such as ramp, draw, lands, or removal.',
+    description:
+      'Urgency of roles your deck is missing, such as ramp, draw, lands, or removal. Off-theme ramp, draw and interaction that few of this commander’s EDHREC decks play earn less, so staples lead.',
   },
   {
     key: 'package',
     label: 'Strategy package',
     max: recommendationScoreFactorMaximums.package,
     description:
-      'Fills the side of a sacrifice or tokens plan your deck lacks: an enabler when payoffs outnumber enablers, a payoff when enablers outnumber payoffs, or the first protection. A heuristic, not a measure of card quality.',
+      'Fills the side of a sacrifice, tokens or creature-type plan your deck lacks: an enabler when payoffs outnumber enablers, a payoff when enablers outnumber payoffs, or the first protection. A creature-type deck wants about one payoff, such as a banner, per three creatures of the type. A heuristic, not a measure of card quality.',
   },
   {
     key: 'combo',
