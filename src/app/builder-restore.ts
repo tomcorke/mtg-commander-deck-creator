@@ -7,6 +7,7 @@ import {
 import { builderPoolKey } from '../domain/builder-settings.ts'
 import { createBuilderState, type BuilderState } from '../domain/builder-state.ts'
 import { migrateRecommendationPriority } from '../domain/recommendation-tuning.ts'
+import { outOfLandSlot } from '../domain/recommendation-scoring.ts'
 
 export function restoreBuilderState(
   saved: PersistedDeckState | null,
@@ -35,14 +36,18 @@ export function restoreBuilderState(
     fetchSequence: 0,
     pendingFetches: [],
     completedFetches: [],
-    localCandidateBuffer: saved.localCandidateBuffer ?? [],
+    localCandidateBuffer: (saved.localCandidateBuffer ?? []).map(outOfLandSlot),
     recommendationOptionsChanged: false,
     commander: saved.commander,
     commanderDetails: saved.commanderDetails,
     deck: saved.deck,
     sideboard: saved.sideboard,
-    queue: saved.queue,
-    deferredCards: saved.deferredCards,
+    // Saves from before #379 labelled nonland mana sources as lands; the next batch re-ranks them.
+    queue: saved.queue.map(outOfLandSlot),
+    deferredCards: saved.deferredCards.map((entry) => ({
+      ...entry,
+      card: outOfLandSlot(entry.card),
+    })),
     batchNumber: saved.batchNumber,
     decisions: restoredRecommendationDecisions(saved),
     ignoreReasons: saved.ignoreReasons ?? {},

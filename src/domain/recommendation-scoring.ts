@@ -191,15 +191,21 @@ const inclusionWeightedRoles = new Set(['ramp', 'draw', 'removal', 'wipes'])
 /** Inclusion at which a role card earns full credit; below it, credit falls to `roleQualityFloor`. */
 export const roleQualityFullInclusion = 40
 const roleQualityFloor = 0.6
+/** Credit for a generic search result without commander data: the credit at 20% inclusion. */
+const roleQualityUnknown = 0.8
 
 /**
  * Among off-theme cards that fill the same short role, prefer those more of this commander's
  * decks play: Sol Ring (about 80%) over Commander's Sphere (about 6%). A heuristic over provider data, not a
  * card-power rating; it only lowers deck-need credit, so a met role gives no lift.
  */
-export function roleQuality(card: Pick<RecommendationScoreCard, 'inclusion'>) {
-  // Without commander data (Scryfall role-gap results, the fallback pool) credit is unchanged.
-  if (card.inclusion === undefined || !Number.isFinite(card.inclusion)) return 1
+export function roleQuality(
+  card: Pick<RecommendationScoreCard, 'inclusion' | 'reason' | 'localIndexSnapshot'>,
+) {
+  if (card.inclusion === undefined || !Number.isFinite(card.inclusion))
+    // Generic role-gap and local-index cards rank like a card a fifth of the commander's decks
+    // play. Other cards without commander data (the fallback pool, theme searches) are unchanged.
+    return card.localIndexSnapshot || card.reason === 'Fills a role gap' ? roleQualityUnknown : 1
   const share = Math.min(1, Math.max(0, card.inclusion) / roleQualityFullInclusion)
   return roleQualityFloor + (1 - roleQualityFloor) * share
 }
@@ -451,6 +457,11 @@ export const isReleased = (
 export const landSlotReason = 'Land or mana'
 /** Reason for a nonland mana source that a land or mana list found, outside the land slot. */
 export const manaSupportReason = 'Mana support'
+/** Moves a nonland card a saved queue still labels `Land or mana` out of the land slot. */
+export const outOfLandSlot = <T extends { typeLine: string; reason: string }>(card: T): T =>
+  card.reason === landSlotReason && !card.typeLine.includes('Land')
+    ? { ...card, reason: manaSupportReason }
+    : card
 export const slotReason = (typeLine: string, reason: string) =>
   typeLine.includes('Land')
     ? landSlotReason

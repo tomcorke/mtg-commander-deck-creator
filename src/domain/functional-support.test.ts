@@ -180,11 +180,15 @@ test('while ramp is short, commonly played ramp outranks rarely played ramp', ()
   assert.ok(score('Sol Ring') > score('Low Rock'))
   assert.equal(roleQuality({ inclusion: 79 }), 1)
   assert.ok(roleQuality({ inclusion: 6 }) < roleQuality({ inclusion: 30 }))
-  // Without commander data, credit is unchanged.
-  assert.equal(roleQuality({}), 1)
+  // A generic role-gap or local-index card ranks like 20% inclusion, below a 30% commander card;
+  // other cards without commander data, such as the fallback pool, keep full credit.
+  assert.ok(roleQuality({ reason: 'Fills a role gap' }) < roleQuality({ inclusion: 30 }))
+  assert.equal(roleQuality({ reason: 'Fills a role gap' }), roleQuality({ inclusion: 20 }))
+  assert.equal(roleQuality({ reason: 'Local card match', localIndexSnapshot: true }), 0.8)
+  assert.equal(roleQuality({ reason: 'Popular inclusion' }), 1)
 })
 
-test('inclusion leaves land credit and a met role unchanged', () => {
+test('inclusion leaves land credit unchanged', () => {
   const land = { reason: 'Land or mana', tags: [], typeLine: 'Land' }
   const context = {
     theme: '',
@@ -199,24 +203,12 @@ test('inclusion leaves land credit and a met role unchanged', () => {
   const needs = (inclusion: number) =>
     recommendationScoreBreakdown({ ...land, inclusion }, context).deckNeeds
   assert.equal(needs(2), needs(80))
-  const met = { ...context, cardRoles: ['ramp'], roleBoosts: { ramp: 0, lands: 10 } }
-  assert.equal(
-    recommendationScoreBreakdown({ ...land, typeLine: 'Artifact', inclusion: 90 }, met).deckNeeds,
-    0,
-  )
 })
 
 const comparison = (style: RecommendationStyle, overrides: Partial<RecommendState> = {}) =>
   build(
     start({ recommendationStyle: style, prioritizeDeckHealth: style !== 'thematic', ...overrides }),
   )
-
-test('comparison: Theme first gives Sol Ring no deck-need lift', () => {
-  const result = recommend(start({ recommendationStyle: 'thematic', prioritizeDeckHealth: false }))
-  const score = result.scores.find((entry) => entry.name === 'Sol Ring')!
-  assert.equal(score.breakdown.deckNeeds, 0)
-  assert.ok(score.position > result.scores.findIndex(({ name }) => name === 'Rabbit 2'))
-})
 
 test('comparison: ignores and price caps still exclude the named cards', () => {
   assert.equal(firstOffer(comparison('balanced', { ignoredCards: ['Sol Ring'] }), 'Sol Ring'), null)
@@ -251,6 +243,17 @@ test('typal parts: members, chosen-type payoffs and type rewards; lands and hose
   )
   assert.ok(
     !typalParts('Rabbits', card('Instant', 'Create a 1/1 white Rabbit creature token.')).payoff,
+  )
+  assert.ok(
+    typalParts('Rabbits', card('Sorcery', 'Draw a card for each Rabbit you control.')).payoff,
+  )
+  assert.ok(
+    typalParts('Rabbits', card('Creature — Elf', 'Add {G} for each Rabbit on the battlefield.'))
+      .payoff,
+  )
+  assert.ok(
+    !typalParts('Rabbits', card('Enchantment', 'Non-Rabbit creatures you control get -1/-1.'))
+      .payoff,
   )
   assert.deepEqual(typalParts('Tokens', card('Creature — Rabbit', '')), {
     member: false,

@@ -87,26 +87,37 @@ export function packageScore(detail: string | undefined, counts: PackageCounts =
 export type TypalCounts = { theme: string; members: number; payoffs: number }[]
 type TypalCard = { detail?: string; tags?: string[]; typeLine?: string }
 
-const typalPayoffPattern = (type: string, plural: string) =>
-  new RegExp(
-    String.raw`\b(?:${plural}|${type} creatures) you control\b|\b${type} spells?\b|\bwhenever (?:a|an|another|one or more)(?: other)?(?: nontoken)? (?:${type}|${plural})\b`,
-    'i',
-  )
+// "non-Elf creatures you control" names the opposite set, so a `non-` prefix never matches.
+const typalPatterns = new Map<string, { member: RegExp; payoff: RegExp }>()
+function typalPatternsFor(type: string, plural: string) {
+  let patterns = typalPatterns.get(plural)
+  if (!patterns) {
+    const name = String.raw`(?<!non-)(?:${plural}|${type}(?: creatures?)?)`
+    patterns = {
+      member: new RegExp(String.raw`\b${type}\b`),
+      payoff: new RegExp(
+        String.raw`\b${name} (?:you control|on the battlefield)\b|\b(?<!non-)${type} spells?\b|\bwhenever (?:a|an|another|one or more)(?: other)?(?: nontoken)? (?:${type}|${plural})\b`,
+        'i',
+      ),
+    }
+    typalPatterns.set(plural, patterns)
+  }
+  return patterns
+}
 
 export function typalParts(theme: string, card: TypalCard) {
   const type = creatureTypeForTheme(theme)
   if (!type) return { member: false, payoff: false }
+  const patterns = typalPatternsFor(type, theme)
   const front = (card.typeLine ?? '').split('//')[0]
   const creature = /\bCreature\b/.test(front)
   return {
     member:
-      creature &&
-      (new RegExp(String.raw`\b${type}\b`).test(front) ||
-        (card.tags ?? []).includes(everyCreatureTypeTag)),
+      creature && (patterns.member.test(front) || (card.tags ?? []).includes(everyCreatureTypeTag)),
     payoff:
       !/\bLand\b/.test(front) &&
       ((card.tags ?? []).includes(chosenCreatureTypeTag) ||
-        typalPayoffPattern(type, theme).test(card.detail ?? '')),
+        patterns.payoff.test(card.detail ?? '')),
   }
 }
 
