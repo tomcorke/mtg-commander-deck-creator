@@ -81,7 +81,7 @@ test('only EDHREC page paths get a fixture', () => {
     assert.equal(edhrecFixture(path), undefined, path)
 })
 
-test('every fixture card is in the review corpus, so replay holds its Scryfall data', async () => {
+test('every fixture card is in the review corpus, so recording can fetch its Scryfall data', async () => {
   const convention = await readFile(
     resolve(import.meta.dirname, '../../docs/agents/design-conventions.md'),
     'utf8',

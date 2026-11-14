@@ -4,8 +4,9 @@
 // shape the app's adapter validates (`src/adapters/edhrec.ts`) and the list tags the provider
 // note observes. They prove code paths, not recommendation quality.
 //
-// Card names come from the Meren review deck in docs/agents/design-conventions.md, so a recorded
-// review corpus already holds their Scryfall data. A test keeps the two in step.
+// Card names come from the Meren review deck in docs/agents/design-conventions.md, so the review
+// recording can fetch their Scryfall data. A fixture change alters those Scryfall requests:
+// re-record after editing. A test keeps the names in step with the deck.
 
 type Card = { name: string; num_decks: number; potential_decks: number } & (
   { synergy: number } | { lift: number }
@@ -21,7 +22,13 @@ const syntheticPotentialDecks = 5000
  * first card with the drop per position. Values fall down the list, so ordering, the 100-deck
  * signature floor and metric thresholds are easy to read off.
  */
-type Spec = [tag: string, header: string, names: string, decks: number[], metric: number[]]
+type Spec = [
+  tag: string,
+  header: string,
+  names: string,
+  decks: [number, number],
+  metric: [number, number],
+]
 const build =
   (metric: Metric) =>
   ([tag, header, names, [decks, step], [value, metricStep]]: Spec): List => ({
@@ -36,9 +43,9 @@ const build =
   })
 
 /**
- * Land and mana-artifact case for #379's suspected shared land/mana batch slot: Sol Ring and the
- * other rocks lead `manaartifacts` and recur in `topcards`, while `lands` and `utilitylands` carry
- * comparable counts, so mana rocks and lands compete for the same offers.
+ * Land and mana-artifact case for #379's suspected shared land/mana batch slot: the rocks lead
+ * `manaartifacts`, Sol Ring and Arcane Signet recur in `topcards`, and `lands` and
+ * `utilitylands` carry comparable counts, so mana rocks and lands compete for the same offers.
  */
 export const manaRocks = 'Sol Ring; Arcane Signet; Golgari Signet; Mind Stone; Fellwar Stone'
 const lands =
