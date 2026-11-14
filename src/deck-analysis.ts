@@ -401,6 +401,8 @@ export const manaGuidanceSymbols = (identity: string[]): ManaGuidanceSymbol[] =>
 export const landGuidanceBaseline = 35
 /** Nonland spells at which a partial deck's curve and role counts take full weight. */
 export const landGuidanceFullWeightSpells = 40
+/** Lowest and highest land-guidance centre. */
+export const landGuidanceCentreLimits = [32, 40] as const
 
 export type LandGuidance = {
   baseline: number
@@ -433,7 +435,7 @@ export function estimateLandGuidance(
   // A few early picks should not swing a partial deck's curve reasons to the clamp (#576).
   const partial =
     weight < 1
-      ? `, weighted ${Math.round(weight * 100)}% until ${landGuidanceFullWeightSpells} spells`
+      ? ` (${Math.round(weight * 100)}% weight until ${landGuidanceFullWeightSpells} spells)`
       : ''
   const reasons = [
     {
@@ -452,10 +454,11 @@ export function estimateLandGuidance(
   ]
     .map((reason) => ({ ...reason, lands: round1(reason.lands) }))
     .filter((reason) => Math.abs(reason.lands) >= 0.3)
+  const [minCentre, maxCentre] = landGuidanceCentreLimits
   const centre = Math.max(
-    32,
+    minCentre,
     Math.min(
-      40,
+      maxCentre,
       Math.round(landGuidanceBaseline + reasons.reduce((sum, reason) => sum + reason.lands, 0)),
     ),
   )

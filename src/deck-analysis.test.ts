@@ -19,6 +19,7 @@ import {
   cardFeatures,
   manaGuidanceSymbols,
   landGuidanceBaseline,
+  landGuidanceCentreLimits,
   type AnalysisCard,
   type LandGuidance,
 } from './deck-analysis.ts'
@@ -518,9 +519,9 @@ const curveReason = (guidance: LandGuidance, text: string) =>
   guidance.reasons.find((reason) => reason.label.includes(text))
 const sumsToCentre = (guidance: LandGuidance) =>
   Math.max(
-    32,
+    landGuidanceCentreLimits[0],
     Math.min(
-      40,
+      landGuidanceCentreLimits[1],
       Math.round(guidance.baseline + guidance.reasons.reduce((sum, { lands }) => sum + lands, 0)),
     ),
   )
@@ -542,12 +543,12 @@ test('land guidance scales the average and 5+ reasons with spell count below 40'
     assert.equal(averageReason?.lands, average, `average at ${n}`)
     assert.equal(heavyReason?.lands, heavy, `5+ share at ${n}`)
     if (averageReason)
-      assert.equal(averageReason.label.includes('weighted'), weighted, averageReason.label)
+      assert.equal(averageReason.label.includes('weight'), weighted, averageReason.label)
     // The sidebar lists baseline and reasons; together they must give the shown centre.
     assert.equal(guidance.baseline, landGuidanceBaseline)
     assert.equal(guidance.centre, sumsToCentre(guidance), `centre at ${n}`)
   }
-  assert.match(curveReason(at(10), 'Average')?.label ?? '', /weighted 25% until 40 spells$/)
+  assert.match(curveReason(at(10), 'Average')?.label ?? '', /\(25% weight until 40 spells\)$/)
 })
 
 test('land guidance: one expensive early pick no longer pushes the centre to the clamp', () => {
