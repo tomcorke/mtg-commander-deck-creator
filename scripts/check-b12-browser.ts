@@ -264,7 +264,7 @@ async function checkBrowser(context: BrowserContext, url: string, mode: string, 
   const page = await context.newPage()
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await providers(context, mode === 'offline')
+  const requests = await providers(context, mode === 'offline')
   await seed(page, snapshot(), mode !== 'light')
   await page.goto(url)
   await settled(page)
@@ -284,15 +284,22 @@ async function checkBrowser(context: BrowserContext, url: string, mode: string, 
   )
   await reviewLayout(page, join(artifacts, `b12-${mode}.png`))
   if (mode === 'offline') {
-    // Every load re-checks card data, so the unavailable status is shown, not saved (#522).
+    // Every load re-checks card data; a load-time check alone does not save it (#522).
     const retry = page.getByRole('button', { name: 'Retry current card data', exact: true })
+    const unavailable = async () => {
+      assert.ok(await retry.isVisible())
+      const notice = page.getByRole('alert', { name: 'Current card data' })
+      assert.ok((await notice.textContent())?.includes('Current card data is unavailable.'))
+    }
+    const before = requests.length
     await retry.click()
     await settled(page)
-    assert.ok(await retry.isVisible())
+    assert.ok(requests.length > before, 'Retry requests current card data again')
+    await unavailable()
     assert.equal((await current(page)).state.deck.length, 100)
     await page.reload()
     await settled(page)
-    assert.ok(await retry.isVisible())
+    await unavailable()
     assert.equal((await current(page)).state.deck.length, 100)
   } else {
     assert.equal(
