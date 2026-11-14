@@ -59,7 +59,7 @@ const recommendationScoreFactors = [
     label: 'Combo completion',
     max: recommendationScoreFactorMaximums.combo,
     description:
-      'High power only: completes a Commander Spellbook combo with cards already in your deck. Spellbook is a community database; a listed combo is not a bracket rating.',
+      'High power only: completes a Commander Spellbook combo with cards already in your deck. A combo whose listed results end the game, such as a win or unbounded damage, counts more than one that does not. Spellbook is a community database; a listed combo is not a bracket rating.',
   },
   {
     key: 'manaFitPenalty',

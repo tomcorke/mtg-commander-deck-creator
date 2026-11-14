@@ -67,8 +67,8 @@ const deepFreeze = <T>(value: T): T => {
 test('High power ranks a card that completes a known combo higher; other powers ignore combos', () => {
   const deck = [card('Commander'), card('Altar')]
   const comboLinks = [
-    { id: 'altar-foxtrot', cards: ['Altar', 'Foxtrot'] },
-    { id: 'altar-echo-foxtrot', cards: ['Altar', 'Echo', 'Foxtrot'] },
+    { id: 'altar-foxtrot', cards: ['Altar', 'Foxtrot'], wins: true },
+    { id: 'altar-echo-foxtrot', cards: ['Altar', 'Echo', 'Foxtrot'], wins: false },
   ]
   const input = state({ deck, comboLinks })
   const results = (['precon', 'upgraded', 'high'] as const).map((powerTarget) =>
@@ -101,12 +101,51 @@ test('High power ranks a card that completes a known combo higher; other powers 
   // A fresh build ranks its first batch before the commander joins the deck.
   const fresh = recommend(
     state({
-      comboLinks: [{ id: 'commander-foxtrot', cards: ['Commander', 'Foxtrot'] }],
+      comboLinks: [{ id: 'commander-foxtrot', cards: ['Commander', 'Foxtrot'], wins: true }],
       powerTarget: 'high',
     }),
   )
   assert.equal(combo(fresh, 'Foxtrot'), 7)
   assert.equal(fresh.batch[0].name, 'Foxtrot')
+})
+
+test('High power ranks a combo that wins the game above combos that do not (#569)', () => {
+  const deck = [card('Commander'), card('Altar'), card('Bravo')]
+  const link = (id: string, cards: string[], wins: boolean) => ({ id, cards, wins })
+  const result = recommend(
+    state({
+      deck,
+      pool: pool.filter(({ name }) => name !== 'Bravo'),
+      powerTarget: 'high',
+      comboLinks: [
+        // Delta completes two combos that do not end the game; Foxtrot completes one that does.
+        link('altar-delta', ['Altar', 'Delta'], false),
+        link('bravo-delta', ['Bravo', 'Delta'], false),
+        link('altar-echo', ['Altar', 'Echo'], false),
+        link('altar-foxtrot', ['Altar', 'Foxtrot'], true),
+      ],
+    }),
+  )
+  const combo = (name: string) =>
+    result.scores.find((score) => score.name === name)!.breakdown.combo
+  assert.deepEqual(['Echo', 'Delta', 'Foxtrot'].map(combo), [3, 6, 7])
+  assert.deepEqual(
+    result.batch.slice(0, 3).map(({ name }) => name),
+    ['Foxtrot', 'Delta', 'Echo'],
+  )
+  // A winning combo plus any other reaches the cap.
+  const both = recommend(
+    state({
+      deck,
+      pool: pool.filter(({ name }) => name !== 'Bravo'),
+      powerTarget: 'high',
+      comboLinks: [
+        link('altar-foxtrot', ['Altar', 'Foxtrot'], true),
+        link('bravo-foxtrot', ['Bravo', 'Foxtrot'], false),
+      ],
+    }),
+  )
+  assert.equal(both.scores.find(({ name }) => name === 'Foxtrot')!.breakdown.combo, 10)
 })
 
 test('power targets change utility ranking independently of priority without removing functional options', () => {
@@ -311,7 +350,7 @@ test('recommend is deterministic, leaves frozen input untouched and supports eve
     assert.deepEqual(recommend(input), first)
     assert.equal(first.queue.length, 6)
     assert.equal(first.batch.length, 4)
-    assert.equal(first.scores[0].scoringVersion, 6)
+    assert.equal(first.scores[0].scoringVersion, 7)
   }
 })
 

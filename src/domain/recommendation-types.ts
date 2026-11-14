@@ -186,8 +186,10 @@ export type RecommendationScoreContext = {
   /** Edited answer targets (#565); each strategy's boost eases at its own target. */
   opposingAnswerTargets?: OpposingAnswerTargets
   /** Known combos each card would complete on its own; only High power scores them (#502). */
-  comboCompletions?: ReadonlyMap<string, number>
+  comboCompletions?: ReadonlyMap<string, ComboCompletionCount>
 }
+/** How many combos a card would complete, and how many of those end the game (#569). */
+export type ComboCompletionCount = { total: number; wins: number }
 export type RecommendationScoreBreakdown = {
   total: number
   evidence: number

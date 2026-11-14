@@ -355,7 +355,7 @@ test('promotion to a partner pair needs their combined colours and keeps a stayi
 
 test('combo links wait for the next ranking, then High power lifts a card that completes one', () => {
   const queue = Array.from({ length: 12 }, (_, i) => card(`Card ${i}`))
-  const comboLinks = [{ id: 'combo', cards: ['Commander', 'Card 11'] }]
+  const comboLinks = [{ id: 'combo', cards: ['Commander', 'Card 11'], wins: true }]
   const pending = state({
     commander: 'Commander',
     deck: [toDeckCard(raw('Commander'))],

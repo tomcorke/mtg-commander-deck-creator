@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   comboCardImage,
   comboCompletions,
+  comboWins,
   findDeckCombos,
   parseComboIndex,
   reachableComboLinks,
@@ -98,10 +99,10 @@ test('links combos whose pieces are all in the deck or pool, named as the app na
   })
   // Fewer cards first, then popularity; a and g need Reanimate All, f needs Off Colour.
   assert.deepEqual(links, [
-    { id: 'b', cards: ['Altar', 'witness'] },
-    { id: 'e', cards: ['witness', 'Engine'] },
-    { id: 'c', cards: ['Leader', 'Altar'] },
-    { id: 'd', cards: ['Altar', 'Engine'] },
+    { id: 'b', cards: ['Altar', 'witness'], wins: false },
+    { id: 'e', cards: ['witness', 'Engine'], wins: false },
+    { id: 'c', cards: ['Leader', 'Altar'], wins: true },
+    { id: 'd', cards: ['Altar', 'Engine'], wins: false },
   ])
   assert.deepEqual(
     reachableComboLinks(index, { commanders: [], cards: [leader, card('Altar', 'oracle-altar')] }),
@@ -117,9 +118,9 @@ test('links combos whose pieces are all in the deck or pool, named as the app na
 
 test('finds the cards that alone complete a linked combo', () => {
   const links = [
-    { id: 'b', cards: ['Altar', 'Witness'] },
-    { id: 'd', cards: ['Altar', 'Engine'] },
-    { id: 'g', cards: ['Altar', 'Engine', 'Reanimate All'] },
+    { id: 'b', cards: ['Altar', 'Witness'], wins: false },
+    { id: 'd', cards: ['Altar', 'Engine'], wins: true },
+    { id: 'g', cards: ['Altar', 'Engine', 'Reanimate All'], wins: false },
   ]
   const completions = comboCompletions(links, ['Leader', 'Altar'])
   assert.deepEqual(
@@ -133,6 +134,45 @@ test('finds the cards that alone complete a linked combo', () => {
   assert.equal(comboCompletions(links, ['Altar', 'Witness']).has('Witness'), false)
   assert(sameComboLinks(links, structuredClone(links)))
   assert(!sameComboLinks(links, links.slice(1)))
+  assert(!sameComboLinks(links, [{ ...links[0], wins: true }, ...links.slice(1)]))
+})
+
+// Real Spellbook result names from the 2026-11-13 export (#569).
+test('reads game-ending results from Spellbook result names', () => {
+  for (const result of [
+    'Win the game',
+    'Win the game at the beginning of your next upkeep',
+    'Each opponent loses the game',
+    'Target opponent loses the game at the beginning of their next upkeep',
+    'Up to three target opponents lose the game',
+    'Infinite damage',
+    'Near-infinite damage to one opponent',
+    'Infinite combat damage',
+    'Infinite lifeloss',
+    'Near-infinite lifeloss for up to two target opponents',
+    'Infinite mill',
+    'Infinite mill for up to two target players',
+    'Infinite turns',
+    'Infinite turns after one turn cycle',
+  ])
+    assert(comboWins([result]), result)
+  for (const result of [
+    'Infinite colored mana',
+    'Infinite lifegain',
+    'Infinite creature ETB',
+    'Lock',
+    'Infinite self-mill',
+    'Infinite damage to creatures',
+    'Near-infinite damage to all players',
+    'Near-infinite lifeloss for all players',
+    'Infinite turns for each opponent',
+    'Each opponent with an even life total loses the game',
+    "You can't lose the game due to having 0 or less life",
+    'Infinitely large creature until end of turn',
+  ])
+    assert(!comboWins([result]), result)
+  assert(comboWins(['Infinite creature ETB', 'Infinite damage']))
+  assert(!comboWins([]))
 })
 
 test('builds Scryfall image URLs only from stored id keys', () => {
