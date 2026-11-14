@@ -1187,6 +1187,38 @@ button:disabled {
 .combo-offer > .deck-review-status {
   align-self: center;
 }
+/* An on-theme card beside a generic pick (#563). An inset panel ties the suggestion to its basis. */
+.card-copy > .theme-alternative {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-divider);
+  border-radius: 7px;
+  background: var(--surface-inset);
+  font-size: var(--type-data);
+  line-height: 1.45;
+}
+.theme-alternative > p {
+  margin: 0;
+  color: var(--text-muted);
+}
+.theme-alternative > .theme-alternative-pick,
+.theme-alternative > [role='status'] {
+  color: var(--text-strong);
+}
+.theme-alternative-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+.theme-alternative-label {
+  font-weight: 700;
+}
+.theme-alternative > .compact-action {
+  justify-self: start;
+}
 /* A card the player owns, by name. Success tokens theme it in light and dark. */
 .owned-badge {
   align-self: flex-start;

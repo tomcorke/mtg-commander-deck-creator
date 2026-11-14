@@ -53,6 +53,7 @@
     "check:print-checklist:browser": "node --experimental-strip-types scripts/check-print-checklist-browser.ts",
     "check:theme-fit:browser": "node --experimental-strip-types scripts/check-theme-fit-browser.ts",
     "check:generic-pick:browser": "node --experimental-strip-types scripts/check-generic-pick-browser.ts",
+    "check:theme-alternative:browser": "node --experimental-strip-types scripts/check-theme-alternative-browser.ts",
     "check:deck-combos:browser": "node --experimental-strip-types scripts/check-deck-combos-browser.ts",
     "check:opposing-strategies:browser": "node --experimental-strip-types scripts/check-opposing-strategies-browser.ts",
     "check:combo-offers:browser": "node --experimental-strip-types scripts/check-combo-offers-browser.ts"

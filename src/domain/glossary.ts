@@ -247,6 +247,12 @@ export const appTerms = {
       'In Theme first, an offer whose text and type line match none of your themes. Text matching can miss cards that do support a theme; the mark is not a quality verdict.',
     kind: 'heuristic',
   },
+  themeAlternative: {
+    term: 'On-theme alternative',
+    definition:
+      'A queued or Later card shown beside a generic pick because it has the same detected role and matches one of your themes. Both checks read card text, so it may not do the job as well.',
+    kind: 'heuristic',
+  },
   priority: {
     term: 'Priority',
     definition:

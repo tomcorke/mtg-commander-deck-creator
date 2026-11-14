@@ -4,7 +4,12 @@ import test from 'node:test'
 import { defaultDeckTargets } from '../deck-analysis.ts'
 import { analyzeDeckDoctor } from '../deck-doctor.ts'
 import { buildEdhrecRecommendations } from '../domain/recommendation-sources.ts'
-import { toDeckCard, type ScryfallCard } from '../domain/card-model.ts'
+import {
+  toCard,
+  toDeckCard,
+  toDeckCardFromRecommendation,
+  type ScryfallCard,
+} from '../domain/card-model.ts'
 import { buildBuilderData, displayDeckSection } from './useBuilderData.ts'
 
 function builderDeps(queue: unknown[], overrides: Record<string, unknown> = {}) {
@@ -552,4 +557,99 @@ test('answers to expected opponents lead offers as labelled heuristics (#503)', 
     /Expecting Graveyard decks, Artifact decks, Big creatures/,
   )
   assert.doesNotMatch(buildBuilderData(builderDeps([])).recommendationSettingsSummary, /Expecting/)
+})
+
+test('generic picks in Theme first get an addable on-theme alternative from the pool (#563)', () => {
+  const tokens = 'create a 1/1 green Saproling creature token.'
+  const card = (name: string, overrides: Partial<ScryfallCard> = {}) =>
+    toCard(
+      {
+        name,
+        oracle_id: `oracle-${name}`,
+        type_line: 'Artifact',
+        color_identity: ['G'],
+        cmc: 2,
+        mana_cost: '{2}',
+        set: 'tst',
+        collector_number: '1',
+        oracle_text: '',
+        game_changer: false,
+        legalities: { commander: 'legal' },
+        prints_search_uri: `https://api.scryfall.com/cards/search?q=${name}`,
+        ...overrides,
+      },
+      'Commander synergy',
+    )
+  const ramp = (name: string, extra = '', overrides: Partial<ScryfallCard> = {}) =>
+    card(name, { produced_mana: ['G'], oracle_text: `{T}: Add {G}.${extra}`, ...overrides })
+  const signet = ramp('Signet')
+  const batchTokenRamp = ramp('Batch token ramp', `\nWhenever you cast a creature spell, ${tokens}`)
+  const offeredDraw = card('Offered draw', { type_line: 'Sorcery', oracle_text: 'Draw two cards.' })
+  const offeredPlain = card('Offered plain')
+  const offTheme = ramp('Off-theme ramp')
+  const offColour = ramp('Off-colour token ramp', `\n${tokens}`, { color_identity: ['B'] })
+  const gameChanger = ramp('Game Changer token ramp', `\n${tokens}`, { game_changer: true })
+  const queuedTokenRamp = ramp('Queued token ramp', `\n${tokens}`)
+  const laterTokenDraw = card('Later token draw', {
+    type_line: 'Sorcery',
+    oracle_text: `Draw two cards, then ${tokens}`,
+  })
+  const queue = [
+    signet,
+    batchTokenRamp,
+    offeredDraw,
+    offeredPlain,
+    offTheme,
+    offColour,
+    gameChanger,
+    queuedTokenRamp,
+  ]
+  const alternatives = (overrides: Record<string, unknown> = {}) =>
+    buildBuilderData(
+      builderDeps(queue, {
+        theme: 'Tokens',
+        recommendationStyle: 'thematic',
+        prioritizeDeckHealth: false,
+        deferredCards: [{ card: laterTokenDraw, eligibleBatch: 4, later: true }],
+        ...overrides,
+      }),
+    ).themeAlternative
+  const find = alternatives()
+  // The batch's own theme match is skipped; blocked and off-theme pool cards are passed over.
+  assert.deepEqual(find(signet), {
+    card: queuedTokenRamp,
+    role: 'ramp',
+    themes: ['Tokens'],
+    source: 'queue',
+  })
+  // The Later list counts too; undecided skips waiting for return are not the Later list.
+  assert.equal(find(offeredDraw)?.source, 'later')
+  assert.equal(
+    alternatives({
+      deferredCards: [
+        { card: { ...laterTokenDraw, undecidedSkips: 1 }, eligibleBatch: 4, later: false },
+      ],
+    })(offeredDraw),
+    null,
+  )
+  // A Later entry the current pool or price cap left out is skipped, as the queue skips it.
+  assert.equal(
+    alternatives({
+      deferredCards: [{ card: laterTokenDraw, eligibleBatch: 4, later: true, available: false }],
+    })(offeredDraw),
+    null,
+  )
+  // No role, or a theme match: none.
+  assert.equal(find(offeredPlain), null)
+  assert.equal(find(batchTokenRamp), null)
+  // A card already in the deck is not offered again.
+  assert.equal(
+    alternatives({
+      deck: [...builderDeps([]).deck, toDeckCardFromRecommendation(queuedTokenRamp)],
+    })(signet),
+    null,
+  )
+  // Other priorities, or no theme, never look.
+  assert.equal(alternatives({ recommendationStyle: 'balanced' })(signet), null)
+  assert.equal(alternatives({ theme: '' })(signet), null)
 })

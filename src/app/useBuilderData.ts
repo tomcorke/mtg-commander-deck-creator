@@ -8,6 +8,7 @@ import {
   deckGuidance,
   deckSection,
   displayDeckSection,
+  addsToSideboard,
   isBasicLandName,
   rolesForCard,
   targetKeys,
@@ -47,6 +48,9 @@ import {
   opposingStrategyLabel,
 } from '../domain/opposing-strategies.ts'
 import { opposingStrategyTerms } from '../domain/glossary.ts'
+import { setAsideCards } from '../domain/decision-undo.ts'
+import { gameChangersAtLimit } from '../domain/play-style.ts'
+import { findThemeAlternative, type AlternativeSource } from '../domain/theme-alternative.ts'
 import type { OpposingStrategy } from '../domain/recommendation-types.ts'
 
 export type BuilderDataDeps = Record<string, any>
@@ -343,20 +347,60 @@ function answerReason(card: Card, strategies: OpposingStrategy[]): Explanation {
   }
 }
 
+/** The theme first, then extra themes, as Start and the builder order them. */
+const selectedThemeNames = (deps: BuilderDataDeps) =>
+  [...new Set([deps.theme, ...deps.activeSubThemes])].filter(Boolean) as string[]
+
+/** Theme first marks offers that match no selected theme tag (#560); with no theme, every offer would. */
+const marksGenericPicks = (deps: BuilderDataDeps) =>
+  deps.recommendationStyle === 'thematic' && selectedThemeNames(deps).length > 0
+
+/**
+ * On-theme alternatives for generic picks (#563): queued cards past the batch, then the Later list,
+ * kept only when Add could take them now. Display only; ranking never sees it.
+ */
+function themeAlternativeFinder(deps: BuilderDataDeps, batch: Card[]) {
+  if (!marksGenericPicks(deps)) return () => null
+  const themes = selectedThemeNames(deps)
+  const shown = new Set(batch.map(({ name }) => name))
+  const board: DeckCard[] = addsToSideboard(deps) ? deps.sideboard : deps.deck
+  const addable = (card: Card) =>
+    !shown.has(card.name) &&
+    !recommendationDataError(
+      card,
+      board,
+      deps.commanderDetails?.colours ?? [],
+      // The same Game Changer test the builder's Add applies.
+      deps.excludeGameChangers || (deps.limitGameChangers && gameChangersAtLimit(deps.deck)),
+    )
+  const later = setAsideCards({
+    // Entries the current pool or price cap left out stay off, as they do for the queue.
+    deferredCards: (deps.deferredCards ?? []).filter(
+      (entry: { available?: boolean }) => entry.available !== false,
+    ),
+    ignoredCards: [],
+    ignoredDetails: [],
+    decisions: deps.decisions ?? {},
+    batchNumber: deps.batchNumber,
+  }).later.map(({ card }) => card)
+  const pool = [
+    ...deps.queue.filter(addable).map((card: Card) => ({ card, source: 'queue' as const })),
+    ...later.filter(addable).map((card) => ({ card, source: 'later' as const })),
+  ] satisfies { card: Card; source: AlternativeSource }[]
+  return (card: Card) => findThemeAlternative(card, themes, pool)
+}
+
 function recommendationExplainer(
   deps: BuilderDataDeps,
   deckData: ReturnType<typeof buildDeckData>,
   pickedTags: Set<string>,
 ) {
-  const { theme, activeSubThemes, collectionMode, collectionSets, preferenceScores, deckTargets } =
-    deps
+  const { collectionMode, collectionSets, preferenceScores, deckTargets } = deps
   const commanderName = commanderNames(deps.commander)
     .map((name) => name.split(',')[0])
     .join(' and ')
-  // The theme first, then extra themes, as Start and the builder order them.
-  const selectedThemes = [...new Set([theme, ...activeSubThemes])].filter(Boolean) as string[]
-  // Theme first marks offers that match no selected theme tag (#560); with no theme, every offer would.
-  const marksGeneric = deps.recommendationStyle === 'thematic' && selectedThemes.length > 0
+  const selectedThemes = selectedThemeNames(deps)
+  const marksGeneric = marksGenericPicks(deps)
   const expected = normalizeOpposingStrategies(deps.opposingStrategies)
   const deckReason = (card: Card): Explanation | null => {
     // Theme fit leads (#501).
@@ -494,6 +538,7 @@ function buildRecommendationData(
     deps.deck.map(({ name }: DeckCard) => name),
   )
   const offerCombos = (card: Card): ComboLink[] => completions.get(card.name) ?? []
+  const themeAlternative = themeAlternativeFinder(deps, visibleBatch)
   return {
     rawBatch,
     synergyPair,
@@ -501,6 +546,7 @@ function buildRecommendationData(
     visibleBatch,
     pickedTags,
     explainRecommendation,
+    themeAlternative,
     neededRoles,
     recommendationRoleSupply,
     scoreCandidate,

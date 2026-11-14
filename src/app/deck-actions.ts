@@ -87,6 +87,18 @@ export function addRecommendationCard(deps: AppActionContext, card: Card) {
   deps.setBatchAnnouncement(result.error ?? `${card.name} added from deck-health guidance.`)
 }
 
+/**
+ * Add an on-theme alternative (#563) beside the batch. A Later card goes through Later & ignored's
+ * Add so it leaves the list; a queued card through the guidance add. The note shows the outcome.
+ */
+export function addThemeAlternative(deps: AppActionContext, card: Card, source: 'queue' | 'later') {
+  const result =
+    source === 'later'
+      ? builderAction(deps, { type: 'setAside', name: card.name, to: 'add' })
+      : builderAction(deps, { type: 'addGuidance', card })
+  return result.error ?? ''
+}
+
 export function addCollectionCard(deps: AppActionContext, card: ScryfallCard) {
   const result = builderAction(deps, {
     type: 'addCollection',
