@@ -18,7 +18,10 @@ import {
   rolesForCard,
   cardFeatures,
   manaGuidanceSymbols,
+  landGuidanceBaseline,
+  landGuidanceCentreLimits,
   type AnalysisCard,
+  type LandGuidance,
 } from './deck-analysis.ts'
 
 const card = (overrides: Partial<AnalysisCard> = {}): AnalysisCard => ({
@@ -484,7 +487,7 @@ test('Rabbit/Upgraded regression: a 3.1 average with a heavy top and light ramp 
     ...repeat(6, 3),
   ]
   const guidance = analyseDeck(spellsAt(costs, 6, 6)).landGuidance
-  assert.ok(guidance.centre >= 37, `centre ${guidance.centre}`)
+  assert.ok(guidance.centre >= landGuidanceBaseline + 2, `centre ${guidance.centre}`)
   assert.deepEqual(guidance.range, [guidance.centre - 1, guidance.centre + 1])
   assert.ok(guidance.reasons.some((reason) => reason.label.includes('cost 5 or more')))
 })
@@ -493,14 +496,66 @@ test('land guidance comparisons: low curve with ramp asks for fewer; same averag
   const lowCurve = analyseDeck(
     spellsAt([...repeat(1, 14), ...repeat(2, 30), ...repeat(3, 20)], 14, 12),
   )
-  assert.ok(lowCurve.landGuidance.centre <= 33, `low ${lowCurve.landGuidance.centre}`)
+  assert.ok(
+    lowCurve.landGuidance.centre <= landGuidanceBaseline - 2,
+    `low ${lowCurve.landGuidance.centre}`,
+  )
   const flat = analyseDeck(spellsAt([...repeat(3, 58), ...repeat(4, 6)], 10, 10))
-  assert.ok(Math.abs(flat.landGuidance.centre - 35) <= 1, `flat ${flat.landGuidance.centre}`)
+  assert.ok(
+    Math.abs(flat.landGuidance.centre - landGuidanceBaseline) <= 1,
+    `flat ${flat.landGuidance.centre}`,
+  )
 })
 
 test('land guidance widens for a partial deck and does not overreact to its few role cards', () => {
   const partial = analyseDeck(spellsAt(repeat(3, 10))).landGuidance
   assert.equal(partial.spellCount, 10)
   assert.equal(partial.range[1] - partial.range[0], 6)
-  assert.ok(partial.centre <= 38, `partial ${partial.centre}`)
+  assert.ok(partial.centre <= landGuidanceBaseline + 3, `partial ${partial.centre}`)
+})
+
+// #576: average mana value and the 5+ share scale by min(1, n / 40), like projected ramp and draw.
+const curveReason = (guidance: LandGuidance, text: string) =>
+  guidance.reasons.find((reason) => reason.label.includes(text))
+const sumsToCentre = (guidance: LandGuidance) =>
+  Math.max(
+    landGuidanceCentreLimits[0],
+    Math.min(
+      landGuidanceCentreLimits[1],
+      Math.round(guidance.baseline + guidance.reasons.reduce((sum, { lands }) => sum + lands, 0)),
+    ),
+  )
+
+test('land guidance scales the average and 5+ reasons with spell count below 40', () => {
+  // All 5-drops: full weight is +4 lands for the average and +8.5 for the 5+ share.
+  const at = (n: number) => analyseDeck(spellsAt(repeat(5, n))).landGuidance
+  const cases = [
+    { n: 1, average: undefined, heavy: undefined, weighted: true },
+    { n: 10, average: 1, heavy: 2.1, weighted: true },
+    { n: 20, average: 2, heavy: 4.3, weighted: true },
+    { n: 40, average: 4, heavy: 8.5, weighted: false },
+    { n: 64, average: 4, heavy: 8.5, weighted: false },
+  ]
+  for (const { n, average, heavy, weighted } of cases) {
+    const guidance = at(n)
+    const averageReason = curveReason(guidance, 'Average spell mana value 5.0')
+    const heavyReason = curveReason(guidance, '100% of spells cost 5 or more')
+    assert.equal(averageReason?.lands, average, `average at ${n}`)
+    assert.equal(heavyReason?.lands, heavy, `5+ share at ${n}`)
+    if (averageReason)
+      assert.equal(averageReason.label.includes('weight'), weighted, averageReason.label)
+    // The sidebar lists baseline and reasons; together they must give the shown centre.
+    assert.equal(guidance.baseline, landGuidanceBaseline)
+    assert.equal(guidance.centre, sumsToCentre(guidance), `centre at ${n}`)
+  }
+  assert.match(curveReason(at(10), 'Average')?.label ?? '', /\(25% weight until 40 spells\)$/)
+})
+
+test('land guidance: one expensive early pick no longer pushes the centre to the clamp', () => {
+  const single = analyseDeck(spellsAt([5])).landGuidance
+  assert.equal(single.centre, landGuidanceBaseline)
+  assert.deepEqual(single.reasons, [])
+  // A few early 5-drops among 3-drops move the centre by a land or two, not to 40.
+  const early = analyseDeck(spellsAt([...repeat(3, 16), ...repeat(5, 4)], 3, 3)).landGuidance
+  assert.ok(Math.abs(early.centre - landGuidanceBaseline) <= 2, `early ${early.centre}`)
 })

@@ -397,10 +397,18 @@ export const manaGuidanceSymbols = (identity: string[]): ManaGuidanceSymbol[] =>
   'S',
 ]
 
+/** Land count the guidance heuristic starts from before adjusting for the deck. */
+export const landGuidanceBaseline = 35
+/** Nonland spells at which a partial deck's curve and role counts take full weight. */
+export const landGuidanceFullWeightSpells = 40
+/** Lowest and highest land-guidance centre. */
+export const landGuidanceCentreLimits = [32, 40] as const
+
 export type LandGuidance = {
+  baseline: number
   centre: number
   range: [number, number]
-  /** Each adjustment from the 35-land baseline, signed in lands. */
+  /** Each adjustment from `baseline`, signed in lands. */
   reasons: { label: string; lands: number }[]
   spellCount: number
 }
@@ -409,8 +417,9 @@ const round1 = (value: number) => Math.round(value * 10) / 10
 
 /**
  * Rough land-count heuristic from the developing deck. Partial decks project role counts to a
- * 64-spell deck, blended toward the 10-card defaults until 40 spells, and widen the range.
- * shortcut: ignores fixing, reducers, land strategies and MDFC value; calibrate with #98 evals.
+ * 64-spell deck, blended toward the 10-card defaults, and scale the curve adjustments toward the
+ * baseline, both by `n / 40` (checked against #98 eval decks, #576); they also widen the range.
+ * shortcut: ignores fixing, reducers, land strategies and MDFC value.
  */
 export function estimateLandGuidance(
   spells: AnalysisCard[],
@@ -418,19 +427,24 @@ export function estimateLandGuidance(
   averageManaValue: number,
 ): LandGuidance {
   const n = spells.length
-  const weight = Math.min(1, n / 40)
+  const weight = Math.min(1, n / landGuidanceFullWeightSpells)
   const project = (count: number) => (n ? 10 + (count * (64 / n) - 10) * weight : 10)
   const ramp = project(counts.ramp)
   const draw = project(counts.draw)
   const heavyShare = n ? spells.filter((card) => card.manaValue >= 5).length / n : 0.15
+  // A few early picks should not swing a partial deck's curve reasons to the clamp (#576).
+  const partial =
+    weight < 1
+      ? ` (${Math.round(weight * 100)}% weight until ${landGuidanceFullWeightSpells} spells)`
+      : ''
   const reasons = [
     {
-      label: `Average spell mana value ${averageManaValue.toFixed(1)}`,
-      lands: n ? (averageManaValue - 3) * 2 : 0,
+      label: `Average spell mana value ${averageManaValue.toFixed(1)}${partial}`,
+      lands: n ? (averageManaValue - 3) * 2 * weight : 0,
     },
     {
-      label: `${Math.round(heavyShare * 100)}% of spells cost 5 or more`,
-      lands: n ? (heavyShare - 0.15) * 10 : 0,
+      label: `${Math.round(heavyShare * 100)}% of spells cost 5 or more${partial}`,
+      lands: n ? (heavyShare - 0.15) * 10 * weight : 0,
     },
     { label: `About ${Math.round(ramp)} ramp cards projected`, lands: -(ramp - 10) / 3 },
     {
@@ -440,12 +454,17 @@ export function estimateLandGuidance(
   ]
     .map((reason) => ({ ...reason, lands: round1(reason.lands) }))
     .filter((reason) => Math.abs(reason.lands) >= 0.3)
+  const [minCentre, maxCentre] = landGuidanceCentreLimits
   const centre = Math.max(
-    32,
-    Math.min(40, Math.round(35 + reasons.reduce((sum, reason) => sum + reason.lands, 0))),
+    minCentre,
+    Math.min(
+      maxCentre,
+      Math.round(landGuidanceBaseline + reasons.reduce((sum, reason) => sum + reason.lands, 0)),
+    ),
   )
   const spread = n >= 50 ? 1 : n >= 20 ? 2 : 3
   return {
+    baseline: landGuidanceBaseline,
     centre,
     range: [Math.max(30, centre - spread), Math.min(42, centre + spread)],
     reasons,
