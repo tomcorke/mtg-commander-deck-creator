@@ -118,7 +118,8 @@
   color: var(--text-body);
 }
 .dark.commander-themed .deck-board {
-  background: color-mix(in srgb, var(--commander-accent) 12%, #101318);
+  --alternate-printing-ring: color-mix(in srgb, var(--commander-accent) 12%, #101318);
+  background: var(--alternate-printing-ring);
 }
 .dark.commander-themed .deck-board,
 .dark.commander-themed .recommendation-setup {

@@ -1075,10 +1075,11 @@ button:focus-visible .card-image-preview,
   font-weight: 600;
   text-transform: none;
 }
+/* A badge pinned to the card's art corner, out of the row's flow, so marked rows never shift (#581).
+   The ring separates it from the art; its colour matches the surface the badge sits on. */
 .alternate-printing {
   position: absolute;
-  top: 50%;
-  left: -12px;
+  z-index: 1;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -1089,8 +1090,9 @@ button:focus-visible .card-image-preview,
     170% 170%,
     190% 190%,
     100% 100%;
-  box-shadow: 0 0 7px #b967ff;
-  transform: translateY(-50%);
+  box-shadow:
+    0 0 0 1.5px var(--alternate-printing-ring, var(--surface-inset)),
+    0 0 7px #b967ff;
 }
 @media (prefers-reduced-motion: reduce) {
   .alternate-printing {
@@ -1188,17 +1190,41 @@ li b {
 .deck-board .deck-group ol > li {
   padding: 4px 0;
 }
+.deck-board {
+  --deck-thumbnail-width: 22px;
+}
 .deck-board .deck-card-reference {
+  position: relative;
   display: flex;
   flex: 1;
   min-width: 0;
   align-items: center;
   gap: 6px;
 }
+/* The thumbnail is vertically centred, so its top edge sits half its height above the row's middle. */
 .deck-board .deck-card-reference > .alternate-printing {
+  top: calc(50% - var(--deck-thumbnail-width) * 680 / 488 / 2 - 2px);
+  left: -2px;
+}
+/* A card without art has no thumbnail, so the badge centres on the name's leading edge. */
+.deck-board .deck-card-reference:not(:has(.card-reference-thumbnail)) > .alternate-printing {
+  top: 50%;
+  translate: 0 -50%;
+}
+/* Tiles carry no thumbnail in the name, so the badge pins to the tile art's corner instead. */
+.deck-board .deck-tile {
+  position: relative;
+  --alternate-printing-ring: var(--surface-page);
+}
+.deck-board .deck-list--tiles .deck-card-reference {
   position: static;
-  flex: none;
-  transform: none;
+}
+.deck-board .deck-list--tiles .deck-card-reference > .alternate-printing {
+  translate: none;
+  top: 6px;
+  left: 6px;
+  width: 10px;
+  height: 10px;
 }
 .deck-board .deck-mana > .finish-label {
   flex: none;
@@ -1209,7 +1235,7 @@ li b {
   gap: 8px;
 }
 .deck-board .card-reference-thumbnail {
-  width: 22px;
+  width: var(--deck-thumbnail-width);
 }
 /* Every row has a x, so the danger outline stays faint until the row's x is hovered, focused or armed. */
 .deck-board .deck-remove:not(:hover, :focus-visible, .confirm) {
