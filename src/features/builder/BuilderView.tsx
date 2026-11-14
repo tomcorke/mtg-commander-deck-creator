@@ -1583,6 +1583,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                               {(card.printing ?? 0) > 0 && (
                                 <span
                                   className="alternate-printing"
+                                  role="img"
                                   title="Alternate printing selected"
                                   aria-label="Alternate printing selected"
                                 />

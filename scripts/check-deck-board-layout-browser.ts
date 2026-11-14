@@ -1,5 +1,6 @@
 // Deck board layout (#499): List view leaves no column empty, and Tiles view never gives a
-// one-card group a full-width row. DECK_BOARD_SCREENSHOTS=<dir> also saves review evidence.
+// one-card group a full-width row. Alternate-printing markers never shift a row (#581).
+// DECK_BOARD_SCREENSHOTS=<dir> also saves review evidence.
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -43,6 +44,13 @@ const fullDeck = deckFor([
   Array.from({ length: 32 }, () => forest),
 ])
 const sideboard = typed('Side', 'Artifact', 2)
+// Three Creatures, one leading its group, and an Artifact have an alternate printing (#581).
+const alternatePrintings = new Set([
+  'Board Creature 0',
+  'Board Creature 3',
+  'Board Creature 4',
+  'Board Artifact 1',
+])
 const decks = [
   ['commander-only', [commander]],
   ['issue-17', issueDeck],
@@ -55,6 +63,41 @@ const records = [
     [...baseCandidates, ...fullDeck, ...issueDeck, ...sideboard].map((card) => [card.name, card]),
   ).values(),
 ]
+
+// Rows in one group share a left edge for the thumbnail (List) or name (Tiles), measured from
+// each row's own box so Tiles columns compare like with like (#581).
+const readMisalignedRows = (page: Page) =>
+  page.locator('.deck-board .deck-list').evaluate((list) => {
+    const misaligned: string[] = []
+    for (const group of list.querySelectorAll('.deck-group')) {
+      const offsets = [...group.querySelectorAll('ol > li:not(.basic-land-row)')].map((row) => {
+        const target =
+          row.querySelector('.card-reference-thumbnail') ??
+          row.querySelector('.card-reference-name')
+        const anchor = row.querySelector('.card-tile') ?? row
+        return {
+          name: row.querySelector('.card-reference-name')?.textContent?.trim() ?? '',
+          offset: Math.round(
+            target!.getBoundingClientRect().left - anchor.getBoundingClientRect().left,
+          ),
+        }
+      })
+      for (const { name, offset } of offsets)
+        if (offset !== offsets[0]?.offset) misaligned.push(`${name} at ${offset}px`)
+    }
+    return misaligned
+  })
+const readMarkers = (page: Page) =>
+  page
+    .locator('.deck-board [aria-label="Alternate printing selected"]')
+    .evaluateAll((markers) =>
+      markers
+        .filter((marker) => marker.checkVisibility())
+        .map(
+          (marker) =>
+            marker.closest('li')?.querySelector('.card-reference-name')?.textContent?.trim() ?? '',
+        ),
+    )
 
 type Layout = {
   columnCount: number
@@ -157,7 +200,9 @@ async function checkDeck(
     browser,
     base,
     makeState({
-      deck: deck.map(toDeckCard),
+      deck: deck
+        .map(toDeckCard)
+        .map((card) => (alternatePrintings.has(card.name) ? { ...card, printing: 1 } : card)),
       sideboard: label === 'full-100' ? sideboard.map(toDeckCard) : [],
     }),
     records,
@@ -168,6 +213,16 @@ async function checkDeck(
     await showView(page, view)
     const state = `${label} ${view} ${width}${dark ? ' dark' : ''}`
     checkLayout(await readLayout(page), state, view === 'Tiles', width)
+    const misaligned = await readMisalignedRows(page)
+    check(
+      !misaligned.length,
+      `${state}: rows off their group's left edge: ${misaligned.join(', ')}`,
+    )
+    if (label === 'full-100')
+      check(
+        (await readMarkers(page)).sort().join() === [...alternatePrintings].sort().join(),
+        `${state}: alternate printings not all marked`,
+      )
     if (output)
       await page.locator('.deck-board').screenshot({
         path: join(output, `${label}-${view.toLowerCase()}-${width}${dark ? '-dark' : ''}.png`),
@@ -186,8 +241,11 @@ await withBrowser('DECK_BOARD', 5247, async (browser, base) => {
       [1024, false],
       [390, false],
       [1366, true],
+      [390, true],
     ] as const)
       if (output || !dark) await checkDeck(browser, base, deck, width, dark)
 })
 assert.deepEqual(failures, [], failures.join('\n'))
-console.log('Deck board layout: no empty List column, one-card Tile groups share their row')
+console.log(
+  'Deck board layout: no empty List column, one-card Tile groups share their row, rows align',
+)
