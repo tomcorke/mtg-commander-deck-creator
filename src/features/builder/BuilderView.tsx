@@ -78,6 +78,7 @@ import { GenericPickNote } from './GenericPickNote.tsx'
 import { ComboOfferNote } from './ComboOfferNote.tsx'
 import { ThemeAlternativeNote } from './ThemeAlternativeNote.tsx'
 import { TargetCount, ThemeTargetRow } from './ThemeTargetRow.tsx'
+import { deckTargetActions, landGuidanceLaterNote } from './deck-target-actions.ts'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
 import { openSectionsWithHighlights } from './deck-section-highlight.ts'
@@ -444,6 +445,11 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
   const manaSymbols = manaGuidanceSymbols(commanderDetails?.colours ?? [...manaColours])
   const [landLow, landHigh] = analysis.landRange
   const suggestedLands = analysis.landGuidance.centre
+  const targetActions = deckTargetActions({
+    awaitingPlayStyle: Boolean(model.awaitingPlayStyle),
+    deck,
+    commanderCount: commanderNames(commander).length,
+  })
   const reviewFilterNames = new Set(deckReviewFilter?.cardNames ?? [])
   const activeHighlightLabel =
     deckReviewFilter?.label ??
@@ -1314,7 +1320,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
             <div className="target-heading">
               <h4>Deck targets</h4>
             </div>
-            {!analysis.curvePending && (
+            {!analysis.curvePending && targetActions.landGuidance && (
               <details className="land-guidance">
                 <summary className="land-fill-later">
                   <span>
@@ -1354,84 +1360,100 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 <span>Land fill waits for card data.</span>
               </p>
             ) : (
-              basicLands.length > 0 &&
-              (showLandFill ? (
-                <button
-                  ref={landFillTrigger}
-                  className="basic-land-button"
-                  type="button"
-                  onClick={() => {
-                    setBasicLandState('idle')
-                    openModal('basics')
-                  }}
-                >
-                  <span>Fill to land target</span>
-                  <b>
-                    {landGap} land{landGap === 1 ? '' : 's'} left
-                  </b>
-                </button>
-              ) : (
-                <p className="land-fill-later">
-                  <span>Fill lands once most spells are in.</span>
-                  <button
-                    type="button"
-                    className="compact-action"
-                    ref={landFillTrigger}
-                    onClick={() => {
-                      setBasicLandState('idle')
-                      openModal('basics')
-                    }}
-                  >
-                    Fill now
-                  </button>
-                </p>
-              ))
+              <>
+                {!targetActions.landGuidance && (
+                  <p className="land-fill-later">
+                    <span>{landGuidanceLaterNote(targetActions.spellCount)}</span>
+                  </p>
+                )}
+                {basicLands.length > 0 &&
+                  (showLandFill ? (
+                    <button
+                      ref={landFillTrigger}
+                      className="basic-land-button"
+                      type="button"
+                      onClick={() => {
+                        setBasicLandState('idle')
+                        openModal('basics')
+                      }}
+                    >
+                      <span>Fill to land target</span>
+                      <b>
+                        {landGap} land{landGap === 1 ? '' : 's'} left
+                      </b>
+                    </button>
+                  ) : (
+                    targetActions.landGuidance && (
+                      <p className="land-fill-later">
+                        <span>Fill lands once most spells are in.</span>
+                        <button
+                          type="button"
+                          className="compact-action"
+                          ref={landFillTrigger}
+                          onClick={() => {
+                            setBasicLandState('idle')
+                            openModal('basics')
+                          }}
+                        >
+                          Fill now
+                        </button>
+                      </p>
+                    )
+                  ))}
+              </>
             )}
             <div
               data-guide="targets"
               className={`deck-targets${analysis.curvePending ? ' curve-pending' : ''}`}
               aria-busy={analysis.curvePending}
             >
-              {targetKeys.map((key) => (
-                <div className="bar-label deck-target-row" key={key}>
-                  {analysis.curvePending || analysis.counts[key] < deckTargets[key] ? (
-                    <button
-                      type="button"
-                      id={`deck-target-${key}`}
-                      className="deck-target-focus"
-                      aria-label={`Focus recommendations on ${targetLabels[key]}: ${analysis.curvePending ? 'checking' : analysis.counts[key]} of ${deckTargets[key]}`}
-                      aria-pressed={focusedRole === key}
-                      disabled={recommendationState !== 'idle' || analysis.curvePending}
-                      onClick={() => void chooseRoleFocus(key)}
-                    >
-                      <span>{targetLabels[key]}</span>
-                      <span className="ratio-bar">
-                        <i
-                          style={{
-                            width: `${analysis.curvePending ? 0 : Math.min(100, (analysis.counts[key] / Math.max(1, deckTargets[key])) * 100)}%`,
-                          }}
-                        />
+              {targetKeys.map((key) => {
+                const progress = `${analysis.curvePending ? 0 : Math.min(100, (analysis.counts[key] / Math.max(1, deckTargets[key])) * 100)}%`
+                return (
+                  <div className="bar-label deck-target-row" key={key}>
+                    {!targetActions.roleFocus ? (
+                      // The play-style step has no batch to focus yet, so the row only shows progress.
+                      <span className="deck-target-static">
+                        <span>{targetLabels[key]}</span>
+                        <span className="ratio-bar">
+                          <i style={{ width: progress }} />
+                        </span>
                       </span>
-                    </button>
-                  ) : (
-                    <span className="deck-target-met">
-                      <span>{targetLabels[key]}</span>
-                      <span className="ratio-bar">
-                        <i style={{ width: '100%' }} />
+                    ) : analysis.curvePending || analysis.counts[key] < deckTargets[key] ? (
+                      <button
+                        type="button"
+                        id={`deck-target-${key}`}
+                        className="deck-target-focus"
+                        aria-label={`Focus recommendations on ${targetLabels[key]}: ${analysis.curvePending ? 'checking' : analysis.counts[key]} of ${deckTargets[key]}`}
+                        aria-pressed={focusedRole === key}
+                        disabled={recommendationState !== 'idle' || analysis.curvePending}
+                        onClick={() => void chooseRoleFocus(key)}
+                      >
+                        <span>{targetLabels[key]}</span>
+                        <span className="ratio-bar">
+                          <i style={{ width: progress }} />
+                        </span>
+                      </button>
+                    ) : (
+                      <span className="deck-target-met">
+                        <span>{targetLabels[key]}</span>
+                        <span className="ratio-bar">
+                          <i style={{ width: '100%' }} />
+                        </span>
                       </span>
-                    </span>
-                  )}
-                  <TargetCount
-                    label={targetLabels[key]}
-                    count={analysis.counts[key]}
-                    target={deckTargets[key]}
-                    pending={analysis.curvePending}
-                    onTarget={(target) =>
-                      dispatchBuilder({ type: 'targets', targets: { [key]: target } })
-                    }
-                  />
-                </div>
-              ))}
+                    )}
+                    <TargetCount
+                      label={targetLabels[key]}
+                      count={analysis.counts[key]}
+                      target={deckTargets[key]}
+                      pending={analysis.curvePending}
+                      onTarget={(target) =>
+                        dispatchBuilder({ type: 'targets', targets: { [key]: target } })
+                      }
+                    />
+                  </div>
+                )
+              })}
               {theme && (
                 <ThemeTargetRow
                   theme={theme}
