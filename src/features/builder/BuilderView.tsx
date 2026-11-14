@@ -76,6 +76,7 @@ import { CollectionBrowserDialog } from './CollectionBrowserDialog.tsx'
 import { HealthLane } from './HealthLane.tsx'
 import { GenericPickNote } from './GenericPickNote.tsx'
 import { ComboOfferNote } from './ComboOfferNote.tsx'
+import { ThemeAlternativeNote } from './ThemeAlternativeNote.tsx'
 import { TargetCount, ThemeTargetRow } from './ThemeTargetRow.tsx'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
 import { useVisualPreferences } from '../../shared/VisualPreferencesContext.tsx'
@@ -289,6 +290,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     batchNumber,
     calculatedLandTarget,
     explainRecommendation,
+    themeAlternative,
     cardSearchButton,
     chooseSubTheme,
     clickCardImage,
@@ -1045,7 +1047,19 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                             reason.sentence
                           )}
                         </p>
-                        {explanation.generic && <GenericPickNote />}
+                        {explanation.generic && (
+                          <>
+                            <GenericPickNote />
+                            <ThemeAlternativeNote
+                              alternative={themeAlternative(card)}
+                              toSideboard={toSideboard}
+                              onOpenCard={model.openCardReference}
+                              onAdd={({ card: alternative, source }) =>
+                                model.addThemeAlternative(alternative, source)
+                              }
+                            />
+                          </>
+                        )}
                         <ComboOfferNote
                           card={card.name}
                           combos={model.offerCombos(card)}

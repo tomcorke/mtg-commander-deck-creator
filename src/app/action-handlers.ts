@@ -19,6 +19,8 @@ export function createActionHandlers(deps: AppActionContext) {
   return {
     retryCurrentCardData: () => deckActions.retryCurrentCardData(deps),
     addRecommendationCard: (card: Card) => deckActions.addRecommendationCard(deps, card),
+    addThemeAlternative: (card: Card, source: 'queue' | 'later') =>
+      deckActions.addThemeAlternative(deps, card, source),
     applyDeckDoctorSwapPlan: (
       cuts: { cutIndex: number; cutCard: DeckCard }[],
       additions: Card[],

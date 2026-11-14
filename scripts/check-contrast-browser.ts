@@ -14,9 +14,10 @@ import {
   withBrowser,
   withOwnedCards,
 } from './fixtures/browser-harness.ts'
-import { baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
+import { baseCandidates, goalCandidates, themeFirstState } from './fixtures/b10-browser.ts'
 import { offerFixtureComboIndex, withComboIndex } from './fixtures/combo-index.ts'
 import { colourThemes } from '../src/domain/commander-catalog.ts'
+import { toCard } from '../src/domain/card-model.ts'
 
 // These run in the page: self-contained, installed by `lowContrast` through a script tag.
 // Paint layers in order so alpha and color-mix() resolve exactly as the browser composites.
@@ -178,6 +179,22 @@ async function setCommanderColours(page: Page, colours: string[]) {
   }, colours)
 }
 
+/** The builder in every commander colour, at rest and with each control hovered or focused. */
+async function commanderColourContrast(page: Page, screen: string) {
+  const failures: string[] = []
+  let fixture: string[] | undefined
+  for (const [colour, colours] of Object.entries(colourThemes)) {
+    fixture ??= await setCommanderColours(page, colours)
+    await setCommanderColours(page, colours)
+    failures.push(
+      ...(await lowContrast(page, `${screen} ${colour}`)),
+      ...(await lowContrastStates(page, `${screen} ${colour}`)),
+    )
+  }
+  await setCommanderColours(page, fixture!)
+  return failures
+}
+
 /** Opens Owned cards over Recommendation settings and returns the screen name. */
 async function openOwnedCards(page: Page) {
   await button(page, 'Recommendation settings').click()
@@ -220,10 +237,28 @@ const ownedCardsAndCombos = async (page: Page) => {
   await withComboIndex(offerFixtureComboIndex)(page)
 }
 
-// Hydrated card references, and the combo offer note once combo data loads.
+// Hydrated card references, the combo offer note once combo data loads, and the on-theme
+// alternative (#563).
 const builderReady = async (page: Page) => {
   await page.locator('.health-lane .card-reference').first().waitFor()
   await page.locator('.card-offer .combo-offer').waitFor()
+  await page.locator('.card-offer .theme-alternative').waitFor()
+}
+
+/**
+ * Theme first with a generic ramp in the first batch and on-theme ramp queued behind it, so the
+ * batch shows an on-theme alternative (#563) for the gate to check.
+ */
+function contrastState() {
+  const state = themeFirstState()
+  const queue = [...state.queue]
+  const [generic] = queue.splice(
+    queue.findIndex(({ name }) => name === 'B10 Ramp two'),
+    1,
+  )
+  queue.splice(3, 0, generic)
+  const onTheme = goalCandidates.find(({ name }) => name === 'B10 Theme ramp')!
+  return { ...state, queue: [...queue, toCard(onTheme, 'Commander synergy')] }
 }
 
 await withBrowser('CONTRAST', 5243, async (browser, base) => {
@@ -233,7 +268,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
     const scenario = await openScenario(
       browser,
       base,
-      themeFirstState(),
+      contrastState(),
       undefined,
       undefined,
       ownedCardsAndCombos,
@@ -258,25 +293,19 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
       await check(`${screen} > Commander basics`)
       await page.keyboard.press('Escape')
     }
-    const checkCommanderColours = async (themeName: string) => {
-      let fixture: string[] | undefined
-      for (const [colour, colours] of Object.entries(colourThemes)) {
-        fixture ??= await setCommanderColours(page, colours)
-        await setCommanderColours(page, colours)
-        await check(`Builder ${colour}`)
-        failures.push(...(await lowContrastStates(page, `${themeName} Builder ${colour}`)))
-      }
-      await setCommanderColours(page, fixture!)
-    }
+    const checkCommanderColours = async (screen: string) =>
+      failures.push(...(await commanderColourContrast(page, `${theme.name} ${screen}`)))
     try {
       await setDisplayPreferences(page, theme.values)
       await builderReady(page)
       await check('Builder')
       failures.push(...(await lowContrastStates(page, `${theme.name} Builder`)))
+      // The first batch's on-theme alternative (#563) sits on an inset panel; check its accents too.
+      if (theme.values['Commander art and colours']) await checkCommanderColours('Alternative')
       // The undo status line stays on the builder for the colour checks below.
       failures.push(...(await setAsideContrast(page, theme.name)))
       // Accents only show with commander colours on; check the builder in every colour.
-      if (theme.values['Commander art and colours']) await checkCommanderColours(theme.name)
+      if (theme.values['Commander art and colours']) await checkCommanderColours('Builder')
       // A manual save adds the second row type next to the current autosaved draft.
       await button(page, 'Saved decks').click()
       await page.getByRole('textbox', { name: 'Deck name' }).fill('Contrast check')
