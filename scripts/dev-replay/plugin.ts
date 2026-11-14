@@ -1,7 +1,7 @@
 import { mkdir, open, readFile, unlink, writeFile } from 'node:fs/promises'
-import { unlinkSync } from 'node:fs'
+import { realpathSync, unlinkSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { IncomingMessage } from 'node:http'
 import type { Plugin } from 'vite'
 import { edhrecFixture } from './edhrec-fixture.ts'
@@ -63,9 +63,18 @@ async function recorderLock(directory: string) {
   return file
 }
 
-const inside = (root: string, path: string) => {
-  const local = relative(resolve(root), path)
-  return !local || (!local.startsWith('..') && !isAbsolute(local))
+/** Real path of `path`, or of its nearest existing ancestor plus the missing tail. */
+function realPath(path: string): string {
+  try {
+    return realpathSync(path)
+  } catch {
+    const parent = dirname(path)
+    return parent === path ? path : join(realPath(parent), basename(path))
+  }
+}
+export const inside = (root: string, path: string) => {
+  const local = relative(realPath(resolve(root)), realPath(resolve(path)))
+  return local !== '..' && !local.startsWith(`..${sep}`) && !isAbsolute(local)
 }
 
 /** The opt-in live EDHREC session for `dev:record` (#309), logged once when its run ends. */

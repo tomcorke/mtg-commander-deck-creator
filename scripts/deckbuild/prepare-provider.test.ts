@@ -168,6 +168,8 @@ test('app pool prepares multiple shared sources, refreshes changed settings, and
     recordPreparation(root, { ...input, appPool: true }, provider),
     /Live EDHREC is off: the deckbuild CLI \(pass --live-edhrec\)/,
   )
+  // The refusal stops the loader: no fallback or theme searches follow it.
+  assert.deepEqual(urls, Array(urls.length).fill('https://api.scryfall.com/cards/collection'))
   urls.length = 0
   const prepared = await recordPreparation(
     root,

@@ -160,6 +160,8 @@ try {
   await server?.listen()
   const base = external ?? server!.resolvedUrls!.local[0]
   process.env.DEV_REPLAY_URL = base
+  const before = await (await fetch(new URL('/__dev-replay/status', base))).json()
+  assert.equal(before.edhrec, 'synthetic', 'rendered reviews need a synthetic EDHREC server')
   await withBrowser('DEV_REPLAY', 5293, async (browser) => {
     const context = await browser.newContext({ viewport: { width: 1366, height: 900 } })
     try {

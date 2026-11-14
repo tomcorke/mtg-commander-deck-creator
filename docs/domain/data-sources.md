@@ -72,6 +72,7 @@ These scripts still call EDHREC without this guard: `evaluate:local-retrieval --
 - Requests carry a descriptive User-Agent and refuse redirects.
 - A run makes at most 50 EDHREC page requests. `dev:record` cache hits do not count.
 - The run stops at the first 403, 429 or 5xx response, or at the cap. A stopped run refuses every later EDHREC request.
+- A Vite restart of `dev:record` (the `r` shortcut or a config change) starts a new run with its own log row. Never restart to get past a stop.
 
 There is no daily ledger. A one-off research fetch made without these tools follows the same limits by hand.
 

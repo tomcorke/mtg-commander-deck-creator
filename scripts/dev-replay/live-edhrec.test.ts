@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path'
 import test, { type TestContext } from 'node:test'
 import { createServer } from 'vite'
 import { liveEdhrecSession } from '../live-edhrec.ts'
-import { devReplay } from './plugin.ts'
+import { devReplay, inside } from './plugin.ts'
 import { createReplayStore } from './store.ts'
 
 const commander = new URL('https://json.edhrec.com/pages/commanders/synthetic-commander.json')
@@ -139,4 +139,12 @@ test('live recording refuses a cache inside the checkout', async (t) => {
   assert.equal(child.status, 3, child.stderr?.toString())
   assert.match(child.stderr.toString(), /must stay outside the checkout/)
   assert.equal(existsSync(inside), false)
+})
+
+test('the checkout check treats dot-prefixed children as inside and siblings as outside', () => {
+  const root = resolve('.')
+  assert.equal(inside(root, root), true)
+  assert.equal(inside(root, join(root, '..cache', 'missing')), true)
+  assert.equal(inside(root, join(root, '..', 'sibling-cache')), false)
+  assert.equal(inside(root, tmpdir()), false)
 })

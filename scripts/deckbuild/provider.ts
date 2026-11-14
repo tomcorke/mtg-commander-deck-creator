@@ -189,6 +189,7 @@ export async function executeStoredOperation<T extends FetchResponse>(
   let tail = Promise.resolve()
   const fetcher: typeof fetch = async (input, init) => {
     let result: ReplayResult
+    if (storeError) throw storeError
     try {
       const descriptor = transportRequest(input, init, pins)
       const requestSignal = AbortSignal.any([signal, ...(init?.signal ? [init.signal] : [])])
