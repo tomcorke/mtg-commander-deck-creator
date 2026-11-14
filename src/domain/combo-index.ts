@@ -218,11 +218,26 @@ export function findDeckCombos(
   }
 }
 
+// Heuristic (#569): Spellbook result names that end the game for opponents: winning, opponents
+// losing, or unbounded damage, life loss, mill or extra turns. Results for all players, for
+// yourself (self-mill) or against creatures do not count, nor do conditional losses. The names are
+// Spellbook's free text, so a new wording can be missed; see docs/domain/combo-data.md.
+const winningResults = [
+  /^win the game\b/i,
+  /^(?:each|target|up to \w+ target) (?:opponent|player)s? loses? the game\b/i,
+  /^(?:near-)?infinite (?:(?:combat )?damage|lifeloss|mill)(?: (?:to|for) (?:one|target|each|most|any number of|up to \w+ target) (?:opponents?|players?)| to any target)?$/i,
+  /^(?:near-)?infinite turns(?: after one turn cycle)?$/i,
+]
+/** Whether any of a combo's Spellbook results ends the game for opponents (a heuristic). */
+export const comboWins = (results: readonly string[]) =>
+  results.some((result) => winningResults.some((pattern) => pattern.test(result)))
+
 /**
  * A Spellbook combo whose pieces are all in the deck or the recommendation pool, named as the app
  * names those cards. Builder state keeps these so ranking can see combos without the index (#502).
+ * `wins` marks a combo whose results end the game (`comboWins`); High power weights it (#569).
  */
-export type ComboLink = { id: string; cards: string[] }
+export type ComboLink = { id: string; cards: string[]; wins: boolean }
 /** Bounds the builder state: the smallest, most popular combos first. */
 export const comboLinkLimit = 300
 
@@ -253,9 +268,10 @@ export function reachableComboLinks(
         left[1].length - right[1].length || right[4] - left[4] || left[0].localeCompare(right[0]),
     )
     .slice(0, limit)
-    .map(([id, refs]) => ({
+    .map(([id, refs, results]) => ({
       id,
       cards: [...new Set(refs.map((ref) => names.get(ref < 0 ? ~ref : ref)!))],
+      wins: comboWins(results.map((result) => index.results[result])),
     }))
 }
 
@@ -275,5 +291,7 @@ export const sameComboLinks = (left: readonly ComboLink[], right: readonly Combo
   left.length === right.length &&
   left.every(
     (link, position) =>
-      link.id === right[position].id && link.cards.join('\n') === right[position].cards.join('\n'),
+      link.id === right[position].id &&
+      link.wins === right[position].wins &&
+      link.cards.join('\n') === right[position].cards.join('\n'),
   )

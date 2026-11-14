@@ -11,7 +11,7 @@ import { commanderNames } from './commander-catalog.ts'
 import { countRoleSupply } from './recommendation-queue.ts'
 import { manaSupportFromAnalysis } from './recommendation-scoring.ts'
 import { packageCounts } from './strategy-packages.ts'
-import type { RecommendationScoreContext } from './recommendation-types.ts'
+import type { ComboCompletionCount, RecommendationScoreContext } from './recommendation-types.ts'
 import { remainingDeckBudget } from './deck-price.ts'
 import {
   normalizeOpposingAnswerTargets,
@@ -98,8 +98,11 @@ export function buildRecommendationContext(
 }
 
 function comboCounts(links: ComboLink[], deckNames: string[]) {
-  const counts = new Map<string, number>()
+  const counts = new Map<string, ComboCompletionCount>()
   for (const [name, completed] of comboCompletions(links, deckNames))
-    counts.set(name, completed.length)
+    counts.set(name, {
+      total: completed.length,
+      wins: completed.filter(({ wins }) => wins).length,
+    })
   return counts
 }

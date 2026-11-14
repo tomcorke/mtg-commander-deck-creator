@@ -1,13 +1,14 @@
 // Combo offers (#502): an offer that alone completes a known Commander Spellbook combo with deck
 // cards carries a note framed by Power (Core: caution; Upgraded: neutral; High: ranks it higher),
 // names the deck pieces as card references and links the combo. At High, the next batch ranks a
-// combo-completing card first and "Why this card" shows the combo factor; Core leaves order alone.
+// combo-completing card first and "Why this card" shows the combo factor, which a game-ending
+// combo raises (#569); Core leaves order alone.
 // COMBO_OFFERS_SCREENSHOTS=<dir> saves the first batch at Core and High in light, dark and 390px;
 // COMBO_OFFERS_PREFIX (default "after") names the files. Capture runs before the assertions.
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Browser, Page } from 'playwright-core'
+import type { Browser, Locator, Page } from 'playwright-core'
 import { toCard, toDeckCard } from '../src/domain/card-model.ts'
 import type { ComboIndex } from '../src/domain/combo-index.ts'
 import { button, openScenario, withBrowser } from './fixtures/browser-harness.ts'
@@ -37,10 +38,11 @@ const index: ComboIndex = {
     [spares[0].name, id(spares[0].name), null],
     [piece.name, id(piece.name), null],
   ],
-  results: ['Infinite mana'],
+  results: ['Infinite mana', 'Win the game'],
   combos: [
     ['combo-check-visible', [0, 1], [0], 'C', 20],
-    ['combo-check-piece', [0, 2], [0], 'C', 10],
+    // Its result ends the game, so High ranks the piece ahead of the visible combo (#569).
+    ['combo-check-piece', [0, 2], [1], 'C', 10],
   ],
 }
 const state = makeState({
@@ -84,6 +86,29 @@ async function capture(page: Page, power: string) {
   await page.setViewportSize({ width: 1440, height: 1000 })
 }
 
+// The High "Why this card" panel, hovering its combo row so the row's description shows.
+async function captureWhy(page: Page, why: Locator) {
+  if (!output) return
+  const row = why.locator('.score-factor-row').filter({ hasText: 'Combo completion' })
+  for (const dark of [false, true]) {
+    await setDisplayPreferences(page, { 'Dark mode': dark })
+    await row.scrollIntoViewIfNeeded()
+    await row.hover()
+    await page.waitForTimeout(200)
+    const box = (await why.boundingBox())!
+    await page.screenshot({
+      path: join(output, `${prefix}-high-why-${dark ? 'dark' : 'light'}-1440.png`),
+      clip: {
+        x: Math.max(0, box.x - 280),
+        y: Math.max(0, box.y - 160),
+        width: box.width + 560,
+        height: box.height + 200,
+      },
+    })
+  }
+  await setDisplayPreferences(page, { 'Dark mode': false })
+}
+
 const firstOffer = async (page: Page) =>
   ((await page.locator('.card-offer').first().textContent()) ?? '').includes(piece.name)
 
@@ -115,7 +140,9 @@ async function checkHigh(browser: Browser, base: string) {
     // "Why this card" scores the combo at High power.
     const why = offer(page, spares[0].name).locator('.score-breakdown')
     await why.locator('summary').click()
-    assert.match(await why.innerText(), /Combo completion\s*7 \/ 10/)
+    await captureWhy(page, why)
+    // The visible combo does not end the game, so it scores 3 rather than a winning combo's 7.
+    assert.match(await why.innerText(), /Combo completion\s*3 \/ 10/)
     assert.match(await why.innerText(), /Positive factors total 118 points/)
     // A phone-width batch never scrolls the page sideways.
     await page.setViewportSize({ width: 390, height: 1000 })
@@ -132,6 +159,9 @@ async function checkHigh(browser: Browser, base: string) {
     await offer(page, piece.name).waitFor()
     assert(await firstOffer(page), 'combo piece leads the next batch at High power')
     await note(page, piece.name).getByText('Completes a combo').waitFor()
+    const pieceWhy = offer(page, piece.name).locator('.score-breakdown')
+    await pieceWhy.locator('summary').click()
+    assert.match(await pieceWhy.innerText(), /Combo completion\s*7 \/ 10/)
     assert.deepEqual(errors, [])
   } finally {
     await context.close()

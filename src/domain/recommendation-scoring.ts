@@ -207,14 +207,23 @@ function powerFitPenalty(
   return penalty ? -penalty : 0
 }
 
-// High power treats combos as a way to win (#502): a card that alone completes a known Spellbook
-// combo with the deck gains 7 points, 10 for two or more. Provider data, not a bracket verdict.
+// High power treats combos as a way to win (#502). A card that alone completes a known Spellbook
+// combo with the deck gains 7 points for each combo whose results end the game and 3 for any
+// other, capped at 10 (#569). Without a game-ending combo it stops at 6, below any that wins.
+// Provider data and a heuristic result reading, not a bracket verdict.
+const comboPoints = { win: 7, other: 3, otherCap: 6 } as const
 function comboScore(
   card: RecommendationScoreCard,
   { powerTarget, comboCompletions }: RecommendationScoreContext,
 ) {
-  const completed = (powerTarget === 'high' && card.name && comboCompletions?.get(card.name)) || 0
-  return completed ? Math.min(recommendationScoreFactorMaximums.combo, 4 + 3 * completed) : 0
+  const completed = powerTarget === 'high' && card.name && comboCompletions?.get(card.name)
+  if (!completed || !completed.total) return 0
+  const points =
+    completed.wins * comboPoints.win + (completed.total - completed.wins) * comboPoints.other
+  return Math.min(
+    completed.wins ? recommendationScoreFactorMaximums.combo : comboPoints.otherCap,
+    points,
+  )
 }
 
 export function recommendationScoreBreakdown(
