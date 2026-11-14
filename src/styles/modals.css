@@ -1777,7 +1777,7 @@ main > .commander-header {
   border: 0;
 }
 
-/* Count header: one muted line above the grid, like the Start grid's. */
+/* Count header: one muted line above the grid; Start adds a filter line it does not need. */
 .change-commander-count {
   min-height: 1.5em;
   margin: 16px 0 8px;
