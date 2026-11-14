@@ -4,6 +4,9 @@ import './index.css'
 import App from './App.tsx'
 import { openAppStorage } from './app-storage.ts'
 import { createWorkspace } from './autosaves.ts'
+import { installActionHelp } from './shared/action-help.ts'
+
+installActionHelp()
 
 const root = createRoot(document.getElementById('root')!)
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('flip-preview'))

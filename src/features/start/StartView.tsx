@@ -5,7 +5,6 @@ import {
   type KeyboardEvent,
   type ReactNode,
   type SetStateAction,
-  type SyntheticEvent,
 } from 'react'
 import { flushSync } from 'react-dom'
 import { toDeckCard, type ScryfallCard, type ScryfallSet } from '../../domain/card-model.ts'
@@ -121,16 +120,6 @@ import { CommanderPrimerDialog, NewToCommanderCard } from '../../shared/Commande
 import { useStoredOption } from '../../shared/hooks.ts'
 
 /** Moves a theme chip's popover sideways so it stays inside the theme groups. */
-function placeThemeHelp(event: SyntheticEvent<HTMLElement>) {
-  const chip = event.currentTarget
-  const help = chip.querySelector<HTMLElement>('.theme-help')
-  const bounds = chip.closest('.theme-groups')?.getBoundingClientRect()
-  if (!help || !bounds) return
-  const box = chip.getBoundingClientRect()
-  const left = Math.max(bounds.left, Math.min(box.left, bounds.right - help.offsetWidth))
-  help.style.setProperty('--theme-help-left', `${left - box.left}px`)
-}
-
 const themeId = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
 /**
@@ -150,7 +139,7 @@ function ThemeChip({
 }) {
   const help = `theme-help-${remove ? 'remove-' : ''}${themeId(name)}`
   return (
-    <span className="theme-chip" onPointerEnter={placeThemeHelp} onFocus={placeThemeHelp}>
+    <span className="theme-chip">
       <button
         className={selected ? 'selected' : ''}
         aria-pressed={remove ? undefined : selected}

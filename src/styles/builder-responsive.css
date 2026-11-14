@@ -314,10 +314,4 @@
   .header-actions button {
     padding: 8px 12px;
   }
-  /* The last offer action's tooltip would overflow the right edge. */
-  .action-help-wrap:last-child .action-help {
-    left: auto;
-    right: 0;
-    translate: none;
-  }
 }

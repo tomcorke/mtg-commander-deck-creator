@@ -915,7 +915,6 @@ li.deck-highlight-dimmed {
 /* Inline-confirmation hints: .action-help.end, sized to their one line. */
 .remove-confirm,
 .saved-delete-confirm {
-  z-index: 30;
   width: max-content;
 }
 .deck-group ol > .basic-land-row {

@@ -172,13 +172,10 @@
   backdrop-filter: blur(4px);
 }
 .synergy-popover {
-  z-index: 8;
-  left: 0;
-  top: calc(100% + 7px);
-  bottom: auto;
+  --action-help-side: below;
+  --action-help-align: start;
   display: grid;
   width: 250px;
-  translate: none;
 }
 .synergy-popover span {
   margin-top: 5px;
@@ -1147,7 +1144,9 @@ button:disabled {
 .card-offer[data-batch-changing] > .actions,
 .card-offer[data-batch-changing] > .score-breakdown,
 .card-offer[data-batch-changing] .card-image-actions,
-.card-offer[data-batch-changing] .synergy-info {
+.card-offer[data-batch-changing] .synergy-info,
+/* Tooltips sit in the top layer, so ancestor opacity no longer reaches them. */
+.card-offer[data-batch-changing] .action-help {
   opacity: var(--batch-copy-opacity, 0);
 }
 .card-copy > .batch-old-copy {

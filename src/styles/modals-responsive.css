@@ -64,14 +64,11 @@
   .setting-help-wrap {
     position: static;
   }
+  /* The static wrap anchors the help to its row, so it opens above the row's end. */
   .setting-help-popover {
-    top: auto;
-    right: 0;
-    left: auto;
-    bottom: calc(100% + 8px);
-    translate: none;
+    --action-help-side: above;
+    --action-help-align: end;
     width: min(240px, calc(100vw - 48px));
-    transform: none;
   }
   .deck-card-modal-content {
     grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);

@@ -47,9 +47,9 @@ Read this before changing UI, buttons, dialogs, forms, or CSS.
 
 ## Popovers
 
-- Render every tooltip and inline-confirmation hint as `.action-help`; a component class sets only its position and width.
-- Keep each trigger and popover in a real `position: relative` wrapper or its local positioned setting row. Position the popover with `position: absolute` so showing it never changes layout or pushes nearby content.
-- Show popovers on wrapper hover and trigger `:focus-visible`; use `role="tooltip"` and `aria-describedby` for keyboard and screen-reader users.
+- Render every tooltip and inline-confirmation hint as `.action-help`. `src/shared/action-help.ts` opens it in the top layer, above headers, sticky bars and modals and outside scroll containers, and places it beside its anchor inside the viewport, flipping to the other side when the preferred one lacks room.
+- Place the `.action-help` inside its trigger, or beside it in a `position: relative` wrapper or positioned setting row. That nearest positioned ancestor is the anchor. The tooltip shows while its parent is hovered or the trigger has `:focus-visible`. Use `role="tooltip"` and `aria-describedby` for keyboard and screen-reader users.
+- A component class sets the tooltip's width plus `--action-help-side` (`above` by default, `below`, `inline-end`) and `--action-help-align` (`center` by default, `start`, `end`). Leave offsets and `z-index` to the shared layer.
 - Match existing flat surfaces, borders, colors, and motion. Add no gradients or entrance animation unless the design explicitly calls for them.
 - Check placement against nearby labels in light, dark, and narrow layouts. Anchor the popover away from the setting text and keep it inside the modal viewport.
 

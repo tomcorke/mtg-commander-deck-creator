@@ -428,10 +428,9 @@
   position: relative;
 }
 .theme-help {
-  left: var(--theme-help-left, 0);
+  --action-help-align: start;
   width: max-content;
   max-width: min(260px, calc(100vw - 64px));
-  translate: none;
 }
 .theme-description {
   max-width: 60ch;
