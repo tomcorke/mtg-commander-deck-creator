@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import type { IncomingMessage } from 'node:http'
 import type { Plugin } from 'vite'
+import { edhrecFixture } from './edhrec-fixture.ts'
 import { imageCatalog } from './images.ts'
 import { createReplayStore, readBounded, ReplayError } from './store.ts'
 import { replayTransform } from './transform.ts'
@@ -89,7 +90,6 @@ export function devReplay(mode: 'record' | 'replay'): Plugin {
       catalog.remember(index)
       const store = createReplayStore(join(directory, 'requests'), mode)
       const stats = { placeholders: 0, fixtures: 0, failures: 0 }
-      const fixture = await edhrecFixture(server.config.root)
       console.info(`[dev-replay] ${mode} ${directory}; EDHREC synthetic; no card scans`)
       server.middlewares.use(async (request, response, next) => {
         response.setHeader('Content-Security-Policy', policy)
@@ -119,7 +119,6 @@ export function devReplay(mode: 'record' | 'replay'): Plugin {
             catalog,
             store,
             stats,
-            fixture,
           })
           response.statusCode = result.status
           response.setHeader('Content-Type', result.headers.get('content-type') ?? 'text/plain')
@@ -159,7 +158,6 @@ type ProviderContext = {
   catalog: ReturnType<typeof imageCatalog>
   store: ReturnType<typeof createReplayStore>
   stats: { placeholders: number; fixtures: number }
-  fixture: object
 }
 async function providerResponse(url: URL, method: string, body: string, context: ProviderContext) {
   if (url.protocol !== 'https:' || url.username || url.password || url.port)
@@ -176,13 +174,11 @@ async function providerResponse(url: URL, method: string, body: string, context:
       headers: { 'Content-Type': 'image/svg+xml', 'X-Dev-Replay': 'placeholder' },
     })
   }
-  if (
-    method === 'GET' &&
-    url.hostname === 'json.edhrec.com' &&
-    /^\/pages\/(cards|commanders)\/[a-z0-9-]+\.json$/.test(url.pathname)
-  ) {
+  const fixture =
+    method === 'GET' && url.hostname === 'json.edhrec.com' ? edhrecFixture(url.pathname) : undefined
+  if (fixture) {
     context.stats.fixtures++
-    return Response.json(context.fixture, { headers: { 'X-Dev-Replay': 'fixture' } })
+    return Response.json(fixture, { headers: { 'X-Dev-Replay': 'fixture' } })
   }
   const result = await context.store.request(url, method, body)
   const type = result.headers.get('content-type') ?? ''
@@ -194,24 +190,4 @@ async function providerResponse(url: URL, method: string, body: string, context:
     })
   }
   return result
-}
-
-async function edhrecFixture(root: string) {
-  const convention = await readFile(join(root, 'docs/agents/design-conventions.md'), 'utf8')
-  const names = [
-    ...new Set([...convention.matchAll(/^\d+ (.+)$/gm)].map((match) => match[1].trim())),
-  ]
-  return {
-    container: {
-      json_dict: {
-        cardlists: [
-          {
-            header: 'Development fixture',
-            tag: 'highsynergycards',
-            cardviews: names.map((name) => ({ name })),
-          },
-        ],
-      },
-    },
-  }
 }
