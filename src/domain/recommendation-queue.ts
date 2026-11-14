@@ -470,6 +470,7 @@ type QueueScoreSettings = Pick<
   RecommendationScoreContext,
   | 'tagCounts'
   | 'packageCounts'
+  | 'typalCounts'
   | 'manaSupport'
   | 'maxPrice'
   | 'remainingBudget'
@@ -485,6 +486,7 @@ type QueueScoreSettings = Pick<
 const queueScoreSettings = ({
   tagCounts,
   packageCounts,
+  typalCounts,
   manaSupport,
   maxPrice,
   remainingBudget,
@@ -498,6 +500,7 @@ const queueScoreSettings = ({
 }: QueueScoreSettings): QueueScoreSettings => ({
   tagCounts,
   packageCounts,
+  typalCounts,
   manaSupport,
   maxPrice,
   remainingBudget,

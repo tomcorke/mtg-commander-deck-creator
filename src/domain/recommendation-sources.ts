@@ -3,10 +3,10 @@ import { hasBackFace } from './card-layout.ts'
 import { defaultFinish, finishPrice, foilTypeFor } from './printing.ts'
 import {
   cardText,
-  isManaCard,
   isReleased,
   preconFastMana,
   recommendationReasons,
+  slotReason,
 } from './recommendation-scoring.ts'
 import { batchRecommendations } from './recommendation-queue.ts'
 import { tagsFor } from './recommendation-themes.ts'
@@ -157,9 +157,10 @@ export function buildEdhrecRecommendations(
       return {
         ...toRecommendationCard(
           card,
-          isManaCard(card)
-            ? 'Land or mana'
-            : (recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, '')),
+          slotReason(
+            card.type_line,
+            recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''),
+          ),
         ),
         source: 'edhrec' as const,
         ...(entry.inclusion !== undefined ? { inclusion: entry.inclusion } : {}),

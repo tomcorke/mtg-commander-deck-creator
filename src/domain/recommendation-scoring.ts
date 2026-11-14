@@ -1,5 +1,5 @@
 import { hasTag } from './creature-types.ts'
-import { packageScore } from './strategy-packages.ts'
+import { packageScore, typalScore } from './strategy-packages.ts'
 import { opposingAnswerScore } from './opposing-strategies.ts'
 import { activeOwnershipMode, isOwned } from './owned-cards.ts'
 import type { PrintingLike, ScryfallCard } from './card-model.ts'
@@ -47,7 +47,9 @@ function evidenceScore(
         ? 20
         : card.reason === 'Commander favourite'
           ? 15
-          : card.reason === 'Popular inclusion' || card.reason === 'Land or mana'
+          : card.reason === 'Popular inclusion' ||
+              card.reason === landSlotReason ||
+              card.reason === manaSupportReason
             ? 8
             : 12),
   )
@@ -181,6 +183,49 @@ function deckNeedsScore(
   return Math.min(recommendationScoreFactorMaximums.deckNeeds, Math.floor(base * styleMultiplier))
 }
 
+/**
+ * Functional roles whose deck-need credit follows the commander's EDHREC inclusion (#379). Lands keep
+ * flat credit while land offers and the land fill are reviewed separately.
+ */
+const inclusionWeightedRoles = new Set(['ramp', 'draw', 'removal', 'wipes'])
+/** Inclusion at which a role card earns full credit; below it, credit falls to `roleQualityFloor`. */
+export const roleQualityFullInclusion = 40
+const roleQualityFloor = 0.6
+/** Credit for a generic search result without commander data: the credit at 20% inclusion. */
+const roleQualityUnknown = 0.8
+
+/**
+ * Among off-theme cards that fill the same short role, prefer those more of this commander's
+ * decks play: Sol Ring (about 80%) over Commander's Sphere (about 6%). A heuristic over provider data, not a
+ * card-power rating; it only lowers deck-need credit, so a met role gives no lift.
+ */
+export function roleQuality(
+  card: Pick<RecommendationScoreCard, 'inclusion' | 'reason' | 'localIndexSnapshot'>,
+) {
+  if (card.inclusion === undefined || !Number.isFinite(card.inclusion))
+    // Generic role-gap and local-index cards rank like a card a fifth of the commander's decks
+    // play. Other cards without commander data (the fallback pool, theme searches) are unchanged.
+    return card.localIndexSnapshot || card.reason === 'Fills a role gap' ? roleQualityUnknown : 1
+  const share = Math.min(1, Math.max(0, card.inclusion) / roleQualityFullInclusion)
+  return roleQualityFloor + (1 - roleQualityFloor) * share
+}
+
+function weightedRoleCredit(
+  card: RecommendationScoreCard,
+  cardRoles: string[],
+  credit: Partial<Record<string, number>>,
+  themes: string[],
+) {
+  // On-theme cards earn their place through the theme; inclusion separates generic role filler.
+  const quality = themes.some((theme) => theme && hasTag(card, theme)) ? 1 : roleQuality(card)
+  return Object.fromEntries(
+    cardRoles.map((role) => [
+      role,
+      (credit[role] ?? 1) * (inclusionWeightedRoles.has(role) ? quality : 1),
+    ]),
+  )
+}
+
 // App heuristic, not a bracket or a predicted win turn. Core keeps the existing role ranking.
 // ponytail: mana value is only a pace proxy; blind builds in #98 must calibrate card-specific value.
 function powerFitPenalty(
@@ -226,6 +271,18 @@ function comboScore(
   )
 }
 
+/** Strategy-package and creature-type package credit, sharing the package cap. */
+function packagePoints(
+  card: RecommendationScoreCard,
+  packageCounts: RecommendationScoreContext['packageCounts'],
+  typalCounts: RecommendationScoreContext['typalCounts'],
+) {
+  return Math.min(
+    recommendationScoreFactorMaximums.package,
+    packageScore(card.detail, packageCounts) + typalScore(card, typalCounts),
+  )
+}
+
 export function recommendationScoreBreakdown(
   card: RecommendationScoreCard,
   context: RecommendationScoreContext,
@@ -236,6 +293,7 @@ export function recommendationScoreBreakdown(
     pickedTags,
     tagCounts = {},
     packageCounts,
+    typalCounts,
     preferenceScores,
     neededRoles,
     cardRoles,
@@ -277,7 +335,7 @@ export function recommendationScoreBreakdown(
   )
   const deckNeeds = deckNeedsScore(
     cardRoles,
-    cardRoleCredit,
+    weightedRoleCredit(card, cardRoles, cardRoleCredit, [declaredTheme, ...activeSubThemes]),
     neededRoles,
     roleBoosts,
     roleSupply,
@@ -286,7 +344,7 @@ export function recommendationScoreBreakdown(
   )
   const manaFit = manaFitPenalty(card, manaSupport)
   const powerFit = powerFitPenalty(card, cardRoles, powerTarget)
-  const pkg = Math.round(packageScore(card.detail, packageCounts) * goalThemeWeight)
+  const pkg = Math.round(packagePoints(card, packageCounts, typalCounts) * goalThemeWeight)
   // Without expected opponents this is 0, so existing orders are unchanged (#503).
   const opposingAnswers = opposingAnswerScore(card, context)
   const combo = comboScore(card, context)
@@ -392,8 +450,24 @@ export const isReleased = (
   card: Pick<ScryfallCard, 'released_at'>,
   today = new Date().toISOString().slice(0, 10),
 ) => !card.released_at || card.released_at <= today
-export const isManaCard = (card: ScryfallCard) =>
-  card.type_line.includes('Land') || /add \{/i.test(cardText(card))
+/**
+ * The batch's mana slot holds lands only (#379). A nonland mana source such as Sol Ring keeps its
+ * list's reason and competes with other spells, where ramp need can rank it.
+ */
+export const landSlotReason = 'Land or mana'
+/** Reason for a nonland mana source that a land or mana list found, outside the land slot. */
+export const manaSupportReason = 'Mana support'
+/** Moves a nonland card a saved queue still labels `Land or mana` out of the land slot. */
+export const outOfLandSlot = <T extends { typeLine: string; reason: string }>(card: T): T =>
+  card.reason === landSlotReason && !card.typeLine.includes('Land')
+    ? { ...card, reason: manaSupportReason }
+    : card
+export const slotReason = (typeLine: string, reason: string) =>
+  typeLine.includes('Land')
+    ? landSlotReason
+    : reason === landSlotReason
+      ? manaSupportReason
+      : reason
 
 export function orderedPrintings<T extends PrintingLike>(original: PrintingLike, printings: T[]) {
   const unique = printings.filter(

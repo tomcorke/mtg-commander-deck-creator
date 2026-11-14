@@ -312,7 +312,8 @@ test('production EDHREC builder applies safety filters and batches every card on
   assert.equal(result[0].reason, 'Commander synergy')
   assert.equal(result[0].inclusion, 12)
   assert.equal(result[1].inclusion, undefined)
-  assert.equal(result[2].reason, 'Land or mana')
+  // A nonland mana source keeps its list's reason; the mana slot holds lands only (#379).
+  assert.equal(result[2].reason, 'Commander favourite')
 })
 
 test('recommendation score rewards evidence and leaves weak picks below badge threshold', () => {

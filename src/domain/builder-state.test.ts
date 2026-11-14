@@ -242,6 +242,29 @@ test('late local candidates enter only at a settled batch boundary and cannot re
   assert.ok(next.deferredCards.some(({ card }) => card.name === 'A'))
 })
 
+test('restore moves saved nonland mana sources out of the land slot (#379)', async () => {
+  const { restoreBuilderState } = await import('../app/builder-restore.ts')
+  const { makeState, fixtureCard } = await import('../../scripts/fixtures/b10-browser.ts')
+  const rock = { ...toCard(fixtureCard('Saved rock'), 'Land or mana'), typeLine: 'Artifact' }
+  const land = { ...toCard(fixtureCard('Saved land'), 'Land or mana'), typeLine: 'Land' }
+  const restored = restoreBuilderState(
+    makeState({
+      queue: [rock, land],
+      deferredCards: [{ card: rock, eligibleBatch: 3 }],
+      localCandidateBuffer: [rock],
+    }),
+    '2026-11-14',
+    'restored-379',
+  )
+  assert.deepEqual(
+    restored.queue.map(({ reason }) => reason),
+    ['Mana support', 'Land or mana'],
+  )
+  assert.equal(restored.deferredCards[0].card.reason, 'Mana support')
+  assert.equal(restored.deferredCards[0].eligibleBatch, 3)
+  assert.equal(restored.localCandidateBuffer[0].reason, 'Mana support')
+})
+
 test('saved local enrichment survives restore until its next batch boundary', async () => {
   const { restoreBuilderState } = await import('../app/builder-restore.ts')
   const { makeState, fixtureCard } = await import('../../scripts/fixtures/b10-browser.ts')
