@@ -1334,7 +1334,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                   )}
                 </summary>
                 <ul>
-                  <li>Starts from 35 lands.</li>
+                  <li>Starts from {analysis.landGuidance.baseline} lands.</li>
                   {analysis.landGuidance.reasons.map((reason) => (
                     <li key={reason.label}>
                       {reason.label}: {reason.lands > 0 ? '+' : ''}
