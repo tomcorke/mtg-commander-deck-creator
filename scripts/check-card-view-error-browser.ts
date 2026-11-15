@@ -10,7 +10,9 @@ await mkdir(output, { recursive: true })
 await withBrowser('CARD_VIEW_ERROR', 5298, async (browser, base) => {
   const { page, context, errors } = await openScenario(browser, base, makeState())
   const diagnostics: string[] = []
+  const messages: string[] = []
   page.on('console', (message) => {
+    messages.push(message.text())
     if (message.text().startsWith('Card view render failed')) diagnostics.push(message.text())
   })
   const saved = await page.evaluate(() => localStorage.getItem('commander-deck-state'))
@@ -33,12 +35,14 @@ await withBrowser('CARD_VIEW_ERROR', 5298, async (browser, base) => {
             const reactPath = '/node_modules/.vite/deps/react.js'
             const domPath = '/node_modules/.vite/deps/react-dom_client.js'
             const viewPath = '/src/app/AppView.tsx'
+            const optionsPath = '/src/app/root-options.ts'
+            const { rootOptions } = await import(optionsPath)
             const { createElement: h } = (await import(reactPath)).default
             const { createRoot } = (await import(domPath)).default
             const { DeckCardModalView } = await import(viewPath)
             const host = document.createElement('div')
             document.querySelector('#root > div')!.append(host)
-            const root = createRoot(host)
+            const root = createRoot(host, rootOptions)
             const broken = { ...raw }
             Object.defineProperty(broken, 'type_line', {
               get() {
@@ -94,7 +98,7 @@ await withBrowser('CARD_VIEW_ERROR', 5298, async (browser, base) => {
   }
   assert.equal(await page.evaluate(() => localStorage.getItem('commander-deck-state')), saved)
   assert.equal(diagnostics.length, 8)
-  assert(diagnostics.every((message) => !message.includes('PRIVATE DECK CONTENT')))
+  assert(messages.every((message) => !message.includes('PRIVATE DECK CONTENT')))
   assert.deepEqual(errors, [])
   await context.close()
   console.log(
