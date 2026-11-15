@@ -137,7 +137,7 @@ States the snippets don't reach directly:
 
 Never reached so far: a card with no image ("No card art"), the commander promotion row and flip button in card details (the audit decks have neither), "To sideboard" in Change history, a flagged multi-copy cut, the outgoing commander leaving on Change commander, and the "Find more legal replacements" error (the local card index still answers).
 
-Gates that don't exercise a surface: the contrast and card-reference fixtures use Balanced, so they never render the health lane, never open `BasicLandDialog`, never press a deck-target row and never arm the deck board ×. Check those by hand.
+Gates that don't exercise a surface: the contrast and card-reference gates never press a deck-target row and never arm the deck board ×. Check those by hand.
 
 ```js
 window.dr = {

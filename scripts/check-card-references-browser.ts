@@ -5,6 +5,7 @@ import type { Page } from 'playwright-core'
 import {
   button,
   heading,
+  openLandFill,
   openScenario,
   openSetAside,
   withBrowser,
@@ -12,6 +13,7 @@ import {
 } from './fixtures/browser-harness.ts'
 import { allRecords, baseCandidates, themeFirstState } from './fixtures/b10-browser.ts'
 import { offerFixtureComboIndex, withComboIndex } from './fixtures/combo-index.ts'
+import { landPlanGateRecords, landPlanGateState, upgraded } from './fixtures/land-plan.ts'
 
 const allowed = [
   '.card-reference',
@@ -26,9 +28,16 @@ const allowed = [
   // Saved deck names often contain the commander's name.
   '.saved-deck-details > b',
 ]
-const names = allRecords.map(({ name }) => name).sort((a, b) => b.length - a.length)
+const byLength = (records: { name: string }[]) =>
+  records.map(({ name }) => name).sort((a, b) => b.length - a.length)
+const names = byLength(allRecords)
+// Basic land types also appear inside type lines ("Land — Forest Island"), so Choose lands looks
+// for its nonbasic and spell names only.
+const landPlanNames = byLength(
+  landPlanGateRecords.filter(({ type_line }) => !type_line.startsWith('Basic Land')),
+)
 
-async function bareNames(page: Page, screen: string) {
+async function bareNames(page: Page, screen: string, names: string[]) {
   const found = await page.evaluate(
     ({ names, allowed }) => {
       const pathOf = (element: Element) => {
@@ -72,7 +81,7 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
   )
   const { page } = scenario
   const failures: string[] = []
-  const check = async (screen: string) => failures.push(...(await bareNames(page, screen)))
+  const check = async (screen: string) => failures.push(...(await bareNames(page, screen, names)))
   try {
     await page.locator('.health-lane .card-reference').first().waitFor()
     // A combo offer note names its deck pieces (#502).
@@ -111,6 +120,24 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
     assert.deepEqual(scenario.errors, [], 'no page errors or unexpected dialogs')
   } finally {
     await scenario.context.close()
+  }
+  // Choose lands (#589, #601) with picks, a held alternative and an over-budget land.
+  const lands = await openScenario(
+    browser,
+    base,
+    landPlanGateState,
+    landPlanGateRecords,
+    undefined,
+    upgraded,
+  )
+  try {
+    const dialog = await openLandFill(lands.page)
+    await dialog.locator('.land-plan .doctor-card-status').waitFor()
+    await dialog.locator('.land-price strong').waitFor()
+    failures.push(...(await bareNames(lands.page, 'Choose lands', landPlanNames)))
+    assert.deepEqual(lands.errors, [], 'no page errors or unexpected dialogs')
+  } finally {
+    await lands.context.close()
   }
   assert.deepEqual(failures, [], `card names outside CardReference:\n${failures.join('\n')}`)
   console.log('Card reference gate passed.')
