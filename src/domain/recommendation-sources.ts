@@ -1,4 +1,4 @@
-import type { ScryfallCard } from './card-model.ts'
+import { normalizeScryfallGameplay, type ScryfallCard } from './card-model.ts'
 import { hasBackFace } from './card-layout.ts'
 import { scryfallTypeLine } from './scryfall-type-line.ts'
 import { defaultFinish, finishPrice, foilTypeFor } from './printing.ts'
@@ -63,6 +63,7 @@ export function parseEdhrecEntries(
 }
 
 export function toRecommendationCard(card: ScryfallCard, reason: string): RecommendationCard {
+  card = normalizeScryfallGameplay(card)
   const typeLine = scryfallTypeLine(card)
   return {
     name: card.name,

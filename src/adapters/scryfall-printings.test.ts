@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   isScryfallCard,
+  normalizeScryfallGameplay,
   parseScryfallCard,
   toCard,
   toDeckCard,
@@ -30,11 +31,19 @@ const reversiblePrinting = {
     {
       type_line: 'Legendary Creature — Human Druid',
       mana_cost: '{2}{G}{W}{U}',
+      oracle_id: 'ebf7ce9b-9e5e-4557-9e28-76556997f0ee',
+      cmc: 5,
+      colors: ['G', 'W', 'U'],
+      oracle_text: 'Whenever you cast a creature spell, draw a card.',
       image_uris: { normal: 'https://example.test/front.jpg' },
     },
     {
       type_line: 'Legendary Creature — Human Druid',
       mana_cost: '{2}{G}{W}{U}',
+      oracle_id: 'ebf7ce9b-9e5e-4557-9e28-76556997f0ee',
+      cmc: 5,
+      colors: ['G', 'W', 'U'],
+      oracle_text: 'Whenever you cast a creature spell, draw a card.',
       image_uris: { normal: 'https://example.test/back.jpg' },
     },
   ],
@@ -70,7 +79,11 @@ test('normalisation preserves root types, combines distinct face types and rejec
   assert.equal('type_line' in reversiblePrinting, false, 'never mutates the provider response')
   assert.equal(card.type_line, 'Legendary Creature — Human Druid')
   const root = { ...reversiblePrinting, type_line: 'Root type', lang: 'en', digital: false }
-  assert.deepEqual(parseScryfallCard(root), root, 'preserves printing metadata')
+  assert.deepEqual(
+    parseScryfallCard(root),
+    normalizeScryfallGameplay(root),
+    'preserves printing metadata',
+  )
   assert.equal(
     parseScryfallCard({
       ...reversiblePrinting,
@@ -177,4 +190,57 @@ test('malformed named cards, list entries and envelopes are rejected', async () 
     [],
     'identifier collections retain their partial-result policy',
   )
+})
+
+test('reversible identity and mana survive conversion and oracle identifier lookup', async () => {
+  const raw = reversiblePrinting as ScryfallCard
+  for (const card of [toDeckCard(raw), toCard(raw, 'Fixture')]) {
+    assert.equal(card.oracleId, raw.card_faces![0].oracle_id)
+    assert.equal(card.manaValue, 5)
+    assert.equal(card.manaValueKnown, true)
+    assert.equal(card.detail, raw.card_faces![0].oracle_text)
+  }
+  const parsed = parseScryfallCard(raw)!
+  assert.deepEqual(parsed.colors, ['G', 'W', 'U'])
+  const cards = await fetchScryfallCardsByIdentifiers(
+    [{ oracle_id: raw.card_faces![0].oracle_id! }],
+    async () => response({ data: [raw] }),
+  )
+  assert.equal(cards.length, 1)
+  assert.equal(cards[0].oracle_id, parsed.oracle_id)
+})
+
+test('Omen halves retain primary mana value and distinct rules text without summing', () => {
+  const raw = {
+    ...reversiblePrinting,
+    card_faces: [
+      {
+        type_line: 'Creature',
+        oracle_id: 'omen',
+        cmc: 5,
+        colors: ['G'],
+        mana_cost: '{3}{G}{G}',
+        oracle_text: 'Creature text',
+      },
+      {
+        type_line: 'Creature',
+        oracle_id: 'omen',
+        cmc: 3,
+        colors: ['G'],
+        mana_cost: '{2}{G}',
+        oracle_text: 'Omen text',
+      },
+    ],
+  }
+  const parsed = parseScryfallCard(raw)!
+  assert.equal(parsed.cmc, 5)
+  assert.equal(parsed.oracle_id, 'omen')
+  assert.deepEqual(parsed.colors, ['G'])
+  assert.equal(toDeckCard(parsed).detail, 'Creature text\nOmen text')
+  for (const cmc of [0, undefined]) {
+    const card = toDeckCard({ ...parsed, cmc, card_faces: [{ cmc }, { cmc }] })
+    assert.equal(card.manaValue, 0)
+    assert.equal(card.manaValueKnown, cmc === 0)
+  }
+  assert.equal(parseScryfallCard({ ...raw, cmc: 7 })!.cmc, 7)
 })
