@@ -1,5 +1,6 @@
 // Bounded #154 evaluation: live-only vs local-plus-live retrieval on fixed partial decks.
 // Record once with `--record`, then replay offline from the same provider fixture file.
+import { scriptEdhrecFetch } from './script-edhrec.ts'
 import { createHash } from 'node:crypto'
 import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -13,7 +14,7 @@ import {
 } from '../src/adapters/scryfall.ts'
 import { fetchEdhrecCommander } from '../src/adapters/edhrec.ts'
 import {
-  appendBackgroundCandidates,
+  mergeRecommendationCandidates,
   fetchDeckDoctorCandidates,
   rankInitialRecommendations,
 } from '../src/app/recommendation-actions.ts'
@@ -199,6 +200,9 @@ const arg = (name: string) => {
   return at >= 0 ? process.argv[at + 1] : undefined
 }
 const record = process.argv.includes('--record')
+const guardedFetch = record
+  ? scriptEdhrecFetch('evaluate:local-retrieval record', process.argv.includes('--live-edhrec'))
+  : undefined
 const fixturePath = arg('--fixtures') ?? 'provider-fixtures.json'
 const indexPath = arg('--local-index') ?? 'public/local-card-index.json'
 const outputDir = arg('--output') ?? 'local-retrieval-eval'
@@ -209,7 +213,7 @@ const fixtures: Record<string, Stored> = existsSync(fixturePath)
   ? JSON.parse(await readFile(fixturePath, 'utf8'))
   : {}
 const used = new Set<string>()
-const liveFetch = globalThis.fetch
+const liveFetch = guardedFetch!
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
   const key = `${init?.method ?? 'GET'} ${url} ${typeof init?.body === 'string' ? init.body : ''}`
@@ -327,12 +331,12 @@ for (const [deckIndex, spec] of specs.entries()) {
   const has = (cards: Card[], name: string) => cards.some((card) => card.name === name)
   const top4 = (cards: Card[]) => cards.slice(0, 4).map(({ name }) => name)
   const ranks = additional.map((card) => both.queue.indexOf(card) + 1)
-  // #151 ceiling: with each role focused, which local additions would the background merge drop?
+  // With each role focused, which local additions does the current candidate merge retain?
   const ceiling = targetKeys
     .filter((role) => role !== 'lands')
     .map((role) => {
       const visible = focusedRecommendations(live.queue, role, rolesForCard).slice(0, 4).length
-      const merged = appendBackgroundCandidates(live.queue, additional, [], role)
+      const merged = mergeRecommendationCandidates(live.queue, additional)
       const dropped = additional.filter(
         (card) => rolesForCard(card).includes(role) && !merged.includes(card),
       )

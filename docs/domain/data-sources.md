@@ -61,7 +61,7 @@ node --experimental-strip-types scripts/deckbuild/recommend.ts record --live-edh
 
 `DEV_REPLAY_EDHREC` accepts only `synthetic` or `live`. `check:dev-replay` ignores it. The supervisor (`supervise.ts`) never passes `--live-edhrec`, so EDHREC work stops a supervised run.
 
-These scripts still call EDHREC without this guard: `evaluate:local-retrieval --record`, `audit:recommendations` and `scripts/measure-first-batch.ts`. [#583](https://github.com/tomcorke/mtg-commander-deck-creator/issues/583) tracks routing them through it. Until then, treat each run as a live run under this policy and log it.
+`evaluate:local-retrieval --record` and `audit:recommendations` require `--live-edhrec` before any network work and route EDHREC through the same run guard. Evaluation replay remains offline. `scripts/measure-first-batch.ts` uses only synthetic responses (including EDHREC), with no live mode or network fallback.
 
 ### Rate
 
