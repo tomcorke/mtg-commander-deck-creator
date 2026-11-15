@@ -5,10 +5,11 @@ import App from './App.tsx'
 import { openAppStorage } from './app-storage.ts'
 import { createWorkspace } from './autosaves.ts'
 import { installActionHelp } from './shared/action-help.ts'
+import { rootOptions } from './app/root-options.ts'
 
 installActionHelp()
 
-const root = createRoot(document.getElementById('root')!)
+const root = createRoot(document.getElementById('root')!, rootOptions)
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('flip-preview'))
   void import('./dev/FlipPreview.tsx').then(({ FlipPreview }) => root.render(<FlipPreview />))
 else if (import.meta.env.DEV && new URLSearchParams(location.search).has('foil-sheet'))
