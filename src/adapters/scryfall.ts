@@ -52,11 +52,14 @@ const cardListSchema = z.object({
   warnings: z.array(z.string()).optional(),
 })
 
-function parseCardList(value: unknown): CardListResponse {
+function parseCardList(value: unknown, { omitInvalidCards = false } = {}): CardListResponse {
   const result = cardListSchema.parse(value)
+  const cards = result.data.map(parseScryfallCard)
+  if (!omitInvalidCards && cards.some((card) => card === undefined))
+    throw new Error('Invalid Scryfall card list')
   return {
     ...result,
-    data: result.data.map(parseScryfallCard).filter((card) => card !== undefined),
+    data: cards.filter((card) => card !== undefined),
   }
 }
 
@@ -474,7 +477,7 @@ export async function resolveScryfallIdentifiers(
         policy,
       )
       if (!response.ok) throw new ProviderRequestError('Scryfall unavailable', response.status)
-      return parseCardList(await response.json()).data
+      return parseCardList(await response.json(), { omitInvalidCards: true }).data
     })
     previous = result
     for (const [key, identifier] of batch)

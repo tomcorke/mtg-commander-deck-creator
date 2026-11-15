@@ -19,10 +19,11 @@ face type lines in face order. Conversion uses the same fallback for older unche
 It preserves supplied root fields and printing metadata; it does not infer missing Oracle
 identity or mana value from a face.
 
-Malformed list entries are omitted, matching identifier-collection behaviour; malformed list
-envelopes and malformed individual named/random cards fail the request. Printing progress
-callbacks receive validated cards too. The low-level `fetchScryfallCollection` returns a raw
-HTTP response; its card consumer, `resolveScryfallIdentifiers`, performs validation.
+Malformed list entries, envelopes and individual named/random cards fail the request.
+Identifier collections retain their partial-result policy: malformed entries are omitted
+and unresolved identifiers are reported as not found. Printing progress callbacks receive
+validated cards too. The low-level `fetchScryfallCollection` returns a raw HTTP response;
+its card consumer, `resolveScryfallIdentifiers`, performs validation.
 
 The other card ingress paths already require `isScryfallCard`: the local card-index schema,
 build-time index generation, builder-fetch snapshots and deckbuild contracts/provider data.

@@ -91,7 +91,7 @@ test('normalisation preserves root types, combines distinct face types and rejec
 })
 
 test('all live card sources normalise face-only types before returning cards', async () => {
-  const list = async () => response({ data: [reversiblePrinting, { name: 'Malformed' }] })
+  const list = async () => response({ data: [reversiblePrinting] })
   const cards = [
     await fetchScryfallCard('Chulane', async () => response(reversiblePrinting)),
     await fetchRandomScryfallCommander(undefined, undefined, async () =>
@@ -124,7 +124,7 @@ test('printing pages, progress and cached results expose only validated cards', 
     requests++
     return requests === 1
       ? response({
-          data: [{ name: 'Malformed' }],
+          data: [],
           has_more: true,
           next_page: 'https://example.test/2',
           total_cards: 2,
@@ -154,13 +154,26 @@ test('printing pages, progress and cached results expose only validated cards', 
   assert.equal(requests, 2, 'normalised printing also warms the exact-print cache')
 })
 
-test('malformed named cards and printing envelopes are rejected', async () => {
+test('malformed named cards, list entries and envelopes are rejected', async () => {
   await assert.rejects(
     fetchScryfallCard('Bad', async () => response({ name: 'Bad' })),
     /incomplete/,
   )
-  for (const body of [null, {}, { data: null }, { data: [], next_page: 42 }])
+  for (const body of [
+    null,
+    {},
+    { data: null },
+    { data: [], next_page: 42 },
+    { data: [reversiblePrinting, { name: 'Malformed' }] },
+  ])
     await assert.rejects(
       fetchScryfallPrintings('https://example.test/prints', async () => response(body)),
     )
+  const malformedList = async () => response({ data: [{ name: 'Malformed' }] })
+  await assert.rejects(searchScryfallPage('fixture', malformedList), /Invalid Scryfall card list/)
+  assert.deepEqual(
+    await fetchScryfallCardsByIdentifiers([{ name: 'Malformed' }], malformedList),
+    [],
+    'identifier collections retain their partial-result policy',
+  )
 })
