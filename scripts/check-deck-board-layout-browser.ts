@@ -1,5 +1,6 @@
 // Deck board layout (#499): List view leaves no column empty, and Tiles view never gives a
-// one-card group a full-width row. Alternate-printing markers never shift a row (#581).
+// one-card group a full-width row. Alternate-printing markers and grouped basic-land counts
+// never shift a row (#581, #593).
 // DECK_BOARD_SCREENSHOTS=<dir> also saves review evidence.
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
@@ -64,24 +65,27 @@ const records = [
   ).values(),
 ]
 
-// Rows in one group share a left edge for the thumbnail (List) or name (Tiles), measured from
-// each row's own box so Tiles columns compare like with like (#581).
+// Rows in one group, grouped basic lands included, share a left edge for the thumbnail (List)
+// or name (Tiles), measured from each row's own box so Tiles columns compare like with like
+// (#581, #593).
 const readMisalignedRows = (page: Page) =>
   page.locator('.deck-board .deck-list').evaluate((list) => {
     const misaligned: string[] = []
     for (const group of list.querySelectorAll('.deck-group')) {
-      const offsets = [...group.querySelectorAll('ol > li:not(.basic-land-row)')].map((row) => {
-        const target =
-          row.querySelector('.card-reference-thumbnail') ??
-          row.querySelector('.card-reference-name')
-        const anchor = row.querySelector('.card-tile') ?? row
-        return {
-          name: row.querySelector('.card-reference-name')?.textContent?.trim() ?? '',
-          offset: Math.round(
-            target!.getBoundingClientRect().left - anchor.getBoundingClientRect().left,
-          ),
-        }
-      })
+      const offsets = [...group.querySelectorAll('ol > li:has(.card-reference-name)')].map(
+        (row) => {
+          const target =
+            row.querySelector('.card-reference-thumbnail') ??
+            row.querySelector('.card-reference-name')
+          const anchor = row.querySelector('.card-tile') ?? row
+          return {
+            name: row.querySelector('.card-reference-name')?.textContent?.trim() ?? '',
+            offset: Math.round(
+              target!.getBoundingClientRect().left - anchor.getBoundingClientRect().left,
+            ),
+          }
+        },
+      )
       for (const { name, offset } of offsets)
         if (offset !== offsets[0]?.offset) misaligned.push(`${name} at ${offset}px`)
     }
@@ -195,6 +199,15 @@ async function checkGroupsStayMounted(page: Page) {
   assert.equal(await isOpen(creatures), true)
 }
 
+// The board, plus a close-up of the Lands group, whose grouped basic-land row is #593's subject.
+async function saveEvidence(page: Page, directory: string, name: string) {
+  await page.locator('.deck-board').screenshot({ path: join(directory, `${name}.png`) })
+  const lands = page
+    .locator('.deck-board .deck-group')
+    .filter({ has: page.locator('.basic-land-row') })
+  if (await lands.count()) await lands.screenshot({ path: join(directory, `${name}-lands.png`) })
+}
+
 async function checkDeck(
   browser: Browser,
   base: string,
@@ -230,9 +243,11 @@ async function checkDeck(
         `${state}: alternate printings not all marked`,
       )
     if (output)
-      await page.locator('.deck-board').screenshot({
-        path: join(output, `${label}-${view.toLowerCase()}-${width}${dark ? '-dark' : ''}.png`),
-      })
+      await saveEvidence(
+        page,
+        output,
+        `${label}-${view.toLowerCase()}-${width}${dark ? '-dark' : ''}`,
+      )
   }
   if (label === 'issue-17' && width === 1366 && !dark) await checkGroupsStayMounted(page)
   assert.deepEqual(errors, [])
