@@ -3,6 +3,7 @@ import { hasBackFace } from './card-layout.ts'
 import { cardText } from './recommendation-scoring.ts'
 import { tagsFor } from './recommendation-themes.ts'
 import { toRecommendationCard } from './recommendation-sources.ts'
+import { scryfallTypeLine } from './scryfall-type-line.ts'
 import type { RecommendationCard, RecommendationSource } from './recommendation-types.ts'
 
 export type CardFinish = 'nonfoil' | 'foil' | 'etched'
@@ -120,6 +121,18 @@ const scryfallCardSchema = z.object({
 export const isScryfallCard = (value: unknown): value is ScryfallCard =>
   scryfallCardSchema.safeParse(value).success
 
+/** Validate external data and give face-only layouts the root type expected by app consumers. */
+export function parseScryfallCard(value: unknown): ScryfallCard | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const raw = value as Record<string, unknown>
+  const faces = z.array(faceSchema).optional().safeParse(raw.card_faces)
+  if (!faces.success) return undefined
+  const typeLine =
+    raw.type_line === undefined ? scryfallTypeLine({ card_faces: faces.data }) : raw.type_line
+  const card = { ...raw, type_line: typeLine || raw.type_line }
+  return isScryfallCard(card) ? card : undefined
+}
+
 export type CommanderCard = ScryfallCard & {
   related_uris?: { edhrec?: string }
 }
@@ -174,7 +187,7 @@ export const scryfallBackImage = (card: ScryfallCard) =>
   hasBackFace(card.layout) ? card.card_faces?.[1]?.image_uris?.normal : undefined
 
 export const cardTags = (card: ScryfallCard) =>
-  tagsFor(`${card.type_line}\n${cardText(card)}`, card.type_line)
+  tagsFor(`${scryfallTypeLine(card)}\n${cardText(card)}`, scryfallTypeLine(card))
 
 export const toCard = (card: ScryfallCard, reason: string): Card => ({
   ...toRecommendationCard(card, reason),
@@ -220,7 +233,7 @@ export const toDeckCardFromRecommendation = (card: Card): DeckCard => ({
 export const toDeckCard = (card: ScryfallCard): DeckCard => ({
   name: card.name,
   layout: card.layout ?? 'normal',
-  typeLine: card.type_line,
+  typeLine: scryfallTypeLine(card),
   colorIdentity: card.color_identity,
   oracleId: card.oracle_id,
   commanderLegality: card.legalities?.commander,
