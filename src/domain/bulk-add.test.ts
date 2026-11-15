@@ -205,6 +205,80 @@ test('a new commander or start over clears the undo record', () => {
   assert.equal(reset.state.bulkAdd, null)
 })
 
+// #589: the starting deck plans nonbasics with the same planner as Choose lands.
+const synergyLand = (name: string) =>
+  card(name, {
+    type_line: 'Land',
+    color_identity: ['G'],
+    cmc: 0,
+    mana_cost: '',
+    oracle_text:
+      '{T}: Add {G}.\n{2}{G}, {T}: Return target land card from your graveyard to your hand.',
+    produced_mana: ['G'],
+  })
+const utilityLand = (name: string) =>
+  card(name, {
+    type_line: 'Land',
+    color_identity: ['G'],
+    cmc: 0,
+    mana_cost: '',
+    oracle_text: '{T}: Add {G}.\n{3}{G}, {T}: Draw a card.',
+    produced_mana: ['G'],
+  })
+
+test('a landfall starting deck receives land-synergy lands; other decks do not', () => {
+  const recursion = [synergyLand('Recursion Grove'), synergyLand('Recursion Glade')]
+  const queue = [...draftPool(), ...recursion]
+  const landfall = toDeckCard(
+    scryfall('Leader', {
+      type_line: 'Legendary Creature — Elf',
+      color_identity: ['G'],
+      mana_cost: '{2}{G}',
+      cmc: 3,
+      oracle_text: 'Landfall — Whenever a land you control enters, draw a card.',
+    }),
+  )
+  const drafted = apply(builder({ queue, deck: [landfall] }), {
+    type: 'buildStartingDeck',
+    basics: [forest],
+  }).state.deck
+  assert.equal(drafted.length, 100)
+  assert.deepEqual(
+    names(drafted).filter((name) => name.startsWith('Recursion')),
+    ['Recursion Glade', 'Recursion Grove'],
+  )
+  const plain = apply(builder({ queue }), { type: 'buildStartingDeck', basics: [forest] }).state
+    .deck
+  assert.ok(!plain.some(({ name }) => name.startsWith('Recursion')))
+})
+
+test('a mono starting deck keeps two basics per basic-fetching card', () => {
+  const fetchers = Array.from({ length: 4 }, (_, index) =>
+    card(`Rampant ${index}`, {
+      type_line: 'Sorcery',
+      color_identity: ['G'],
+      mana_cost: '{1}{G}',
+      oracle_text:
+        'Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.',
+    }),
+  )
+  const utilities = Array.from({ length: 8 }, (_, index) => utilityLand(`Utility ${index}`))
+  const queue = [...fetchers, ...draftPool(), ...utilities]
+  const state = builder({ queue, deckTargets: { ...builder().deckTargets, lands: 10 } })
+  const deck = apply(state, { type: 'buildStartingDeck', basics: [forest] }).state.deck
+  assert.equal(deck.length, 100)
+  assert.equal(deck.filter(({ name }) => name.startsWith('Rampant')).length, 4)
+  // Ten land slots, eight kept as basics for the four fetchers: two nonbasics.
+  assert.equal(deck.filter(({ name }) => name.startsWith('Utility')).length, 2)
+  assert.equal(deck.filter(({ name }) => name === 'Forest').length, 8)
+  // Without fetchers the cap of 6 binds instead.
+  const free = apply(builder({ queue: [...draftPool(), ...utilities] }), {
+    type: 'buildStartingDeck',
+    basics: [forest],
+  }).state.deck
+  assert.equal(free.filter(({ name }) => name.startsWith('Utility')).length, 6)
+})
+
 test('basics split by colour demand even when spells already make one colour', () => {
   const swamp = toDeckCard(
     scryfall('Swamp', {

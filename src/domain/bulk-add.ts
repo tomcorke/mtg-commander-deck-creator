@@ -1,14 +1,14 @@
 import { allowedByOwnership, type OwnedQuantities, type OwnershipMode } from './owned-cards.ts'
 import {
   analyseDeck,
-  basicLandPlan,
   isBasicLandName,
   rolesForCard,
   targetKeys,
   type DeckTargets,
   type TargetKey,
 } from '../deck-analysis.ts'
-import { rankLandSuggestions } from '../land-suggestions.ts'
+import { commanderNames } from './commander-catalog.ts'
+import { planBasics, planLandFill } from './land-plan.ts'
 import { toDeckCardFromRecommendation, type Card, type DeckCard } from './card-model.ts'
 import { recommendationDataError } from './deck-data-status.ts'
 import { cardPrice, exceedsDeckBudget, remainingDeckBudget } from './deck-price.ts'
@@ -45,6 +45,10 @@ export type StartingDeckInput = {
   decisions: Record<string, 'add' | 'later' | 'ignore'>
   ignoredCards: string[]
   commanderDetails: { colours: string[] } | null
+  /** The commander key; its names mark the deck's leading commander cards. */
+  commander: string
+  theme: string
+  activeSubThemes: string[]
   deckTargets: DeckTargets
   maxPrice: number | null
   deckBudget: number | null
@@ -68,8 +72,25 @@ export type StartingDeckPlan = {
 const isLandCard = (card: Card | DeckCard) => rolesForCard(card).includes('lands')
 const nonlandRoles = targetKeys.filter((key) => key !== 'lands')
 
+/** Builder fields the land plan's candidates and deck evidence read. */
+export type LandFillCandidateInput = Pick<
+  StartingDeckInput,
+  | 'deck'
+  | 'sideboard'
+  | 'queue'
+  | 'deferredCards'
+  | 'decisions'
+  | 'ignoredCards'
+  | 'maxPrice'
+  | 'powerTarget'
+  | 'collectionMode'
+  | 'collectionSets'
+  | 'ownedCards'
+  | 'ownershipMode'
+>
+
 /** Queue then Later-list cards the player hasn't declined, within the current filters. */
-function draftCandidates(input: StartingDeckInput) {
+function draftCandidates(input: LandFillCandidateInput) {
   const blocked = new Set([
     ...input.deck.map(({ name }) => name),
     ...input.sideboard.map(({ name }) => name),
@@ -94,31 +115,52 @@ function draftCandidates(input: StartingDeckInput) {
   )
 }
 
+/**
+ * Lands Choose lands and a starting deck may plan from: the same queue and Later-list candidates
+ * as a draft, kept to lands a manual Add would accept now. #590 can add more sources here.
+ */
+export function landFillCandidates(
+  input: LandFillCandidateInput,
+  identity: string[],
+  excludeGameChangers: boolean,
+) {
+  return draftCandidates(input).filter(
+    (card) =>
+      isLandCard(card) &&
+      !recommendationDataError(
+        toDeckCardFromRecommendation(card),
+        input.deck,
+        identity,
+        excludeGameChangers,
+      ),
+  )
+}
+
+/** The selected theme and extra themes, as land-role evidence reads them. */
+export const selectedThemes = (input: { theme: string; activeSubThemes: string[] }) =>
+  [input.theme, ...input.activeSubThemes].filter(Boolean)
+
+/** The deck's commanders as land-role evidence reads them: their rules text counts. */
+export const deckCommanders = (input: { commander: string; deck: DeckCard[] }) =>
+  input.deck
+    .slice(0, commanderNames(input.commander).length)
+    .map(({ name, detail }) => ({ name, detail }))
+
 /** Basics for every remaining slot, split by colour demand against the deck's land sources. */
 function basicFill(identity: string[], deck: DeckCard[], basics: DeckCard[]) {
-  const analysis = analyseDeck(deck)
-  const fill = 100 - deck.length
-  const plan = basicLandPlan(
-    identity,
-    analysis.required,
-    analysis.counts.lands,
-    analysis.counts.lands + fill,
-    deck.length,
-    // Only lands count as existing sources here: a draft must not skip a colour's basics because
-    // its spells happen to include mana creatures or rocks of that colour.
-    analyseDeck(deck.filter(isLandCard)).produced,
+  return planBasics(deck, identity, analyseDeck(deck).counts.lands + 100 - deck.length).flatMap(
+    ({ name, count }) => {
+      const basic = basics.find((card) => card.name === name)
+      if (!basic) throw new Error(`${name} is unavailable. Try again shortly.`)
+      return Array.from({ length: count }, () => ({ ...basic }))
+    },
   )
-  return plan.flatMap(({ name, count }) => {
-    const basic = basics.find((card) => card.name === name)
-    if (!basic) throw new Error(`${name} is unavailable. Try again shortly.`)
-    return Array.from({ length: count }, () => ({ ...basic }))
-  })
 }
 
 /**
  * App heuristic, not a tuned list: fill unmet nonland role targets from the ranked queue, then the
- * remaining nonland slots in queue order (which already reflects theme and priority), then
- * nonbasic lands that beat a basic, then basics split by colour demand. Every card passes the same
+ * remaining nonland slots in queue order (which already reflects theme and priority), then the
+ * land plan Choose lands shows (`planLandFill`), then basics split by colour demand. Every card passes the same
  * construction and filter checks as a manual Add. Basics fill any slots left when candidates run
  * out, so the result is always 100 cards.
  */
@@ -173,12 +215,19 @@ export function planStartingDeck(input: StartingDeckInput, basics: DeckCard[]): 
     if (fits(card)) take(card)
   }
 
-  const nonbasicLands = rankLandSuggestions(
-    pool.filter((card) => isLandCard(card)),
+  // The same planner as Choose lands; `fits` re-checks each pick against the growing deck.
+  const lands = planLandFill({
     deck,
-    { excluded: [...taken], identity, landTarget, limit: landSlots },
-  )
-  for (const { card } of nonbasicLands) if (fits(card)) take(card)
+    commanders: deckCommanders(input),
+    themes: selectedThemes(input),
+    identity,
+    landTarget,
+    power: input.powerTarget,
+    candidates: pool.filter((card) => isLandCard(card) && !taken.has(card.name)),
+    remainingBudget: remaining,
+    basicPrice,
+  })
+  for (const { card } of lands.picks) if (fits(card)) take(card)
 
   const fill = 100 - deck.length
   const landsShort = Math.max(0, Math.min(fill, landTarget - analyseDeck(deck).counts.lands))

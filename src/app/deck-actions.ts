@@ -363,9 +363,11 @@ export async function fetchBasic(name: string) {
   }
 }
 
+/** Choose lands: add the kept nonbasics (#589) and the basic split in one step. */
 export async function addBasicLands(
   deps: AppActionContext,
   plan: { name: string; count: number; printing?: ScryfallCard }[],
+  nonbasics: Card[] = [],
 ) {
   const job = deckJob(deps)
   const { closeModal, setBasicLandState } = job.deps
@@ -383,7 +385,7 @@ export async function addBasicLands(
       setBasicLandState('idle')
       return
     }
-    const result = builderAction(deps, { type: 'addBasics', cards })
+    const result = builderAction(deps, { type: 'addBasics', cards, nonbasics })
     if (result.error) throw new Error(result.error)
     setBasicLandState('idle')
     closeModal()

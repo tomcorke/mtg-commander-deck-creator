@@ -2,13 +2,21 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 
 import { scryfallImage, type Card, type ScryfallCard } from '../../domain/card-model.ts'
 import { basicLandNames } from '../../deck-analysis.ts'
-import type { LandSuggestion } from '../../land-suggestions.ts'
+import { appTerms, claimKindLabels } from '../../domain/glossary.ts'
+import {
+  landPlanGroup,
+  landPlanHoldLabels,
+  landPlanReason,
+  type BasicLandCount,
+  type LandPlan,
+  type LandPlanPick,
+} from '../../domain/land-plan.ts'
 import { ArtLoading } from '../../shared/CardArt.tsx'
 import { CardPriceLink, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
-import { CardReference } from '../../shared/CardReference.tsx'
-import { ManaSymbols } from '../../shared/ManaSymbols.tsx'
+import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
+import { ReviewCardTile } from './DeckReviewCard.tsx'
 
 const basicLandSymbols: Record<string, string> = {
   ...Object.fromEntries(Object.entries(basicLandNames).map(([colour, name]) => [name, colour])),
@@ -68,48 +76,164 @@ function BasicLandGallery({
   )
 }
 
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
+
+/** Plan options in dialog groups: fill order, then each group's picks before its alternatives. */
+function planGroups(plan: LandPlan<Card>) {
+  const groups: { label: string; options: LandPlanPick<Card>[] }[] = []
+  const steps = ['fixing', 'earned', 'utility']
+  const options = [...plan.picks, ...plan.alternatives].sort(
+    (a, b) => steps.indexOf(a.step) - steps.indexOf(b.step),
+  )
+  for (const option of options) {
+    const label = landPlanGroup(option)
+    const group = groups.find((entry) => entry.label === label)
+    if (group) group.options.push(option)
+    else groups.push({ label, options: [option] })
+  }
+  return groups
+}
+
+/**
+ * The planned nonbasic lands (#589), grouped by role and pre-selected. Unticking one gives its
+ * slot back to basics; alternatives the plan left out can be ticked while slots remain.
+ */
+function LandPlanSection({
+  plan,
+  landGap,
+  selected,
+  disabled,
+  onToggle,
+  onOpenCard,
+}: {
+  plan: LandPlan<Card>
+  landGap: number
+  selected: string[]
+  disabled: boolean
+  onToggle: (name: string) => void
+  onOpenCard: (card: Card) => void
+}) {
+  const { term, kind } = appTerms.landPlan
+  const full = selected.length >= landGap
+  const reserve = plan.fetchers
+    ? `keeps ${plural(plan.reserve, 'basic')} for your ${plural(plan.fetchers, 'basic-land search')}`
+    : `keeps at least ${plural(plan.reserve, 'basic')}`
+  return (
+    <section className="land-fill-step land-plan" aria-labelledby="nonbasic-land-title">
+      <h3 id="nonbasic-land-title">Planned nonbasic lands</h3>
+      <p>
+        Up to {plural(plan.cap, 'nonbasic land')} for your colours; the plan {reserve}. Untick a
+        land to give its slot to a basic.
+      </p>
+      <p className="generic-pick land-plan-note">
+        <span className="generic-pick-label">{term}</span> {claimKindLabels[kind]}: reasons quote
+        the text that matched, not how well the land does the job.
+      </p>
+      {planGroups(plan).map(({ label, options }) => (
+        <section key={label} className="land-plan-group" aria-label={label}>
+          <h4>{label}</h4>
+          <div className="doctor-card-grid">
+            {options.map((option) => {
+              const { card } = option
+              const checked = selected.includes(card.name)
+              return (
+                <ReviewCardTile
+                  key={card.name}
+                  card={card}
+                  openCard={(item) => onOpenCard(item as Card)}
+                  status={
+                    option.held && option.held !== 'budget' && !checked
+                      ? landPlanHoldLabels[option.held]
+                      : undefined
+                  }
+                  note={
+                    <OracleText text={[landPlanReason(option), ...option.drawbacks].join(' · ')} />
+                  }
+                  selection={{
+                    checked,
+                    label: 'Include',
+                    disabled: disabled || (!checked && full),
+                    onChange: () => onToggle(card.name),
+                  }}
+                >
+                  <p className="land-price">
+                    {card.price ? <CardPriceLink card={card} /> : <span>Unpriced</span>}
+                    {option.overBudget && <strong>Over budget</strong>}
+                  </p>
+                </ReviewCardTile>
+              )
+            })}
+          </div>
+        </section>
+      ))}
+    </section>
+  )
+}
+
 type Props = {
   basicLandState: 'idle' | 'loading' | 'error'
-  basicLands: { name: string; count: number }[]
   legalBasicNames: string[]
   commanderSet: string
   landGap: number
   calculatedLandTarget: number
-  nonbasicLands: LandSuggestion<Card>[]
+  landPlan: LandPlan<Card> | null
+  /** Basics for the slots the chosen nonbasics leave. */
+  planBasics: (chosen: Card[]) => BasicLandCount[]
   cardSearchButton: RefObject<HTMLButtonElement | null>
   opener: RefObject<HTMLButtonElement | null>
   onClose: () => void
-  onAddBasicLands: (lands: { name: string; count: number; printing?: ScryfallCard }[]) => void
+  onAddBasicLands: (
+    lands: { name: string; count: number; printing?: ScryfallCard }[],
+    nonbasics: Card[],
+  ) => void
   onLoadBasicLandPrintings: (
     name: string,
     onPage: (loaded: ScryfallCard[], total: number) => void,
   ) => Promise<ScryfallCard[]>
   onLoadBasicsFromSet: (set: string) => Promise<ScryfallCard[]>
-  onAddRecommendation: (card: Card) => void
   onOpenCard: (card: Card) => void
 }
 
 // eslint-disable-next-line max-lines-per-function -- The dialog markup stays intact to preserve its established focus and accessibility behavior.
 export function BasicLandDialog({
   basicLandState,
-  basicLands,
   legalBasicNames,
   commanderSet,
   landGap,
   calculatedLandTarget,
-  nonbasicLands,
+  landPlan,
+  planBasics,
   cardSearchButton,
   opener,
   onClose,
   onAddBasicLands,
   onLoadBasicLandPrintings,
   onLoadBasicsFromSet,
-  onAddRecommendation,
   onOpenCard,
 }: Props) {
   const dialog = useDialogFocus(true, () => {
     if (basicLandState !== 'loading') onClose()
   })
+  // The plan's picks start selected; a new plan resets the selection.
+  const options = landPlan ? [...landPlan.picks, ...landPlan.alternatives] : []
+  const selectionKey = `${options.map(({ card }) => card.name).join('|')}:${landPlan?.picks.map(({ card }) => card.name).join('|')}`
+  const defaultSelection = landPlan?.picks.map(({ card }) => card.name) ?? []
+  const [selectionState, setSelectionState] = useState({
+    key: selectionKey,
+    names: defaultSelection,
+  })
+  const selected = selectionState.key === selectionKey ? selectionState.names : defaultSelection
+  const chosen = options.filter(({ card }) => selected.includes(card.name)).map(({ card }) => card)
+  // Basics refill the slots the chosen nonbasics leave, so the split follows every tick.
+  const basicLands = planBasics(chosen)
+  const basicGap = landGap - chosen.length
+  const toggleNonbasic = (name: string) =>
+    setSelectionState({
+      key: selectionKey,
+      names: selected.includes(name)
+        ? selected.filter((other) => other !== name)
+        : [...selected, name],
+    })
   const planKey = `${legalBasicNames.join('|')}:${basicLands.map(({ name, count }) => `${name}:${count}`).join('|')}`
   const defaultLandCounts = Object.fromEntries(
     legalBasicNames.map((name) => [
@@ -129,13 +253,13 @@ export function BasicLandDialog({
   const [retryName, setRetryName] = useState('')
   const validCounts = legalBasicNames.every(
     (name) =>
-      Number.isInteger(landCounts[name]) && landCounts[name] >= 0 && landCounts[name] <= landGap,
+      Number.isInteger(landCounts[name]) && landCounts[name] >= 0 && landCounts[name] <= basicGap,
   )
   const landCount = Object.values(landCounts).reduce(
     (sum, count) => sum + (Number.isInteger(count) ? count : 0),
     0,
   )
-  const remaining = landGap - landCount
+  const remaining = basicGap - landCount
   const busy = styleLoading || basicLandState === 'loading'
   const setCount = (name: string, count: number) =>
     setLandCountState({ key: planKey, counts: { ...landCounts, [name]: count } })
@@ -217,51 +341,15 @@ export function BasicLandDialog({
           Room for {landGap} more lands toward your {calculatedLandTarget}-land target. Existing
           cards stay unchanged.
         </p>
-        {nonbasicLands.length > 0 && (
-          <section className="land-fill-step" aria-labelledby="nonbasic-land-title">
-            <h3 id="nonbasic-land-title">Start with nonbasic lands</h3>
-            <p>
-              Ranked against your current colour sources; only lands that beat a basic are shown.
-              Each one you add replaces a basic.
-            </p>
-            <ul className="nonbasic-land-list">
-              {nonbasicLands.map(({ card, benefit, drawback, overBudget }) => (
-                <li key={card.name}>
-                  <CardReference
-                    card={card}
-                    onOpen={() => onOpenCard(card)}
-                    thumbnail
-                    disabled={basicLandState === 'loading'}
-                  />
-                  <p className="land-trade-off">
-                    <span>{benefit}.</span> <span>{drawback}.</span>
-                  </p>
-                  <p className="land-price">
-                    {card.price ? <CardPriceLink card={card} /> : <span>Unpriced</span>}
-                    {overBudget && <strong>Over budget</strong>}
-                  </p>
-                  <button
-                    type="button"
-                    className="compact-action"
-                    aria-label={`Add ${card.name} to deck`}
-                    disabled={basicLandState === 'loading'}
-                    onClick={(event) => {
-                      const next =
-                        event.currentTarget
-                          .closest('li')
-                          ?.nextElementSibling?.querySelector<HTMLButtonElement>(
-                            '.compact-action',
-                          ) ?? dialog.ref.current?.querySelector<HTMLButtonElement>('.modal-close')
-                      onAddRecommendation(card)
-                      next?.focus()
-                    }}
-                  >
-                    Add
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
+        {options.length > 0 && landPlan && (
+          <LandPlanSection
+            plan={landPlan}
+            landGap={landGap}
+            selected={selected}
+            disabled={busy}
+            onToggle={toggleNonbasic}
+            onOpenCard={onOpenCard}
+          />
         )}
         <section
           className="land-fill-step basic-land-split"
@@ -270,7 +358,7 @@ export function BasicLandDialog({
           <div className="basic-land-split-heading">
             <div>
               <h3 id="basic-land-split-title">
-                {nonbasicLands.length > 0 ? 'Then fill the rest with basics' : 'Basic land split'}
+                {options.length > 0 ? 'Then fill the rest with basics' : 'Basic land split'}
               </h3>
               <p>Set the colour balance, then pick art for each basic.</p>
             </div>
@@ -327,8 +415,8 @@ export function BasicLandDialog({
               aria-atomic="true"
             >
               {remaining === 0
-                ? `All ${landGap} basics assigned`
-                : `${landCount} of ${landGap} assigned · ${remaining > 0 ? `add ${remaining} more` : `remove ${-remaining}`}`}
+                ? `All ${basicGap} basics assigned`
+                : `${landCount} of ${basicGap} assigned · ${remaining > 0 ? `add ${remaining} more` : `remove ${-remaining}`}`}
             </p>
           </div>
           <ul className="basic-land-plan">
@@ -359,7 +447,7 @@ export function BasicLandDialog({
                       className="deck-add"
                       aria-label={`One fewer ${name}`}
                       disabled={busy || !(count > 0)}
-                      onClick={() => setCount(name, Math.min(count, landGap) - 1)}
+                      onClick={() => setCount(name, Math.min(count, basicGap) - 1)}
                     >
                       −
                     </button>
@@ -367,7 +455,7 @@ export function BasicLandDialog({
                       id={`basic-count-${name}`}
                       type="number"
                       min="0"
-                      max={landGap}
+                      max={basicGap}
                       step="1"
                       value={Number.isFinite(count) ? count : ''}
                       aria-label={`${name} count`}
@@ -377,7 +465,7 @@ export function BasicLandDialog({
                       type="button"
                       className="deck-add"
                       aria-label={`One more ${name}`}
-                      disabled={busy || remaining <= 0 || !(count < landGap)}
+                      disabled={busy || remaining <= 0 || !(count < basicGap)}
                       onClick={() => setCount(name, (Number.isInteger(count) ? count : 0) + 1)}
                     >
                       +
@@ -455,13 +543,18 @@ export function BasicLandDialog({
             type="button"
             className="primary"
             disabled={
-              basicLandState === 'loading' || landGap === 0 || !validCounts || landCount !== landGap
+              basicLandState === 'loading' ||
+              landGap === 0 ||
+              !validCounts ||
+              landCount !== basicGap
             }
-            onClick={() => onAddBasicLands(plan)}
+            onClick={() => onAddBasicLands(plan, chosen)}
           >
             {basicLandState === 'loading'
               ? 'Adding…'
-              : `Add ${landGap} basic${landGap === 1 ? '' : 's'}`}
+              : chosen.length
+                ? `Add ${plural(landGap, 'land')}`
+                : `Add ${plural(landGap, 'basic')}`}
           </button>
         </div>
       </section>

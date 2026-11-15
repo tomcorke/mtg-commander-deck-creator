@@ -85,7 +85,7 @@ import { openSectionsWithHighlights } from './deck-section-highlight.ts'
 import { DeckBoardLayout, type DeckBoardGroup } from './DeckBoardLayout.tsx'
 
 import { recommendationDataError } from '../../domain/deck-data-status.ts'
-import type { LandSuggestion } from '../../land-suggestions.ts'
+import type { BasicLandCount, LandPlan } from '../../domain/land-plan.ts'
 import { DeckPrice } from '../../shared/DeckPrice.tsx'
 import { OwnedBadge } from '../../shared/OwnedBadge.tsx'
 import { activeOwnershipMode } from '../../domain/owned-cards.ts'
@@ -106,7 +106,8 @@ type BuilderViewModel = {
   basicLandState: 'idle' | 'loading' | 'error'
   basicLands: { name: string; count: number }[]
   landGap: number
-  nonbasicLands: LandSuggestion<Card>[]
+  landPlan: LandPlan<Card> | null
+  landPlanBasics: (chosen: Card[]) => BasicLandCount[]
   showLandFill: boolean
   batchAnnouncement: string
   batchNumber: number
@@ -285,7 +286,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     basicLandState,
     basicLands,
     landGap,
-    nonbasicLands,
+    landPlan,
+    landPlanBasics,
     showLandFill,
     batchAnnouncement,
     batchNumber,
@@ -656,19 +658,18 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
       {showBasicLands && (
         <BasicLandDialog
           basicLandState={basicLandState}
-          basicLands={basicLands}
           legalBasicNames={legalBasicNames}
           commanderSet={deck[0]?.set ?? ''}
           landGap={landGap}
           calculatedLandTarget={calculatedLandTarget}
-          nonbasicLands={nonbasicLands}
+          landPlan={landPlan}
+          planBasics={landPlanBasics}
           cardSearchButton={cardSearchButton}
           opener={landFillTrigger}
           onClose={closeModal}
-          onAddBasicLands={(lands) => void addBasicLands(lands)}
+          onAddBasicLands={(lands, nonbasics) => void addBasicLands(lands, nonbasics)}
           onLoadBasicLandPrintings={loadBasicLandPrintings}
           onLoadBasicsFromSet={loadBasicsFromSet}
-          onAddRecommendation={addRecommendationCard}
           onOpenCard={openGuidanceCard}
         />
       )}

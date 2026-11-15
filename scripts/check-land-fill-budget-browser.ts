@@ -1,15 +1,16 @@
 // #498: Choose lands shows each nonbasic land's price, hides lands over the max price and
-// marks lands that would take the deck past its budget, like recommendations do.
+// marks lands that would take the deck past its budget, like recommendations do. Since #589 the
+// lands form a role-grouped plan: over-budget lands come last and start unticked.
 import assert from 'node:assert/strict'
 import { mkdir } from 'node:fs/promises'
-import { button, openScenario, withBrowser } from './fixtures/browser-harness.ts'
+import { openLandFill, openScenario, withBrowser } from './fixtures/browser-harness.ts'
 import { baseCandidates, basic, commander, fixtureCard, makeState } from './fixtures/b10-browser.ts'
 import { toCard, toDeckCard, type ScryfallCard } from '../src/domain/card-model.ts'
 import type { PersistedDeckState } from '../src/deck-state.ts'
 import { setDisplayPreferences } from './browser-display.ts'
 
 const evidence = process.env.LAND_FILL_BUDGET_EVIDENCE_DIR
-// Synthetic lands: each adds green and has a utility ability, so each beats a basic.
+// Synthetic lands: each adds green and has a utility ability, so each has a land-plan role.
 const land = (name: string, prices: ScryfallCard['prices']) =>
   fixtureCard(name, {
     type_line: 'Land',
@@ -49,13 +50,14 @@ await withBrowser('LAND_FILL_BUDGET', 5189, async (browser, base) => {
       ...records,
     ])
     const { page } = opened
-    await page.locator('.basic-land-button, .land-fill-later button').first().click()
-    const dialog = page.getByRole('dialog', { name: 'Choose lands', exact: true })
-    await dialog.getByRole('heading', { name: 'Start with nonbasic lands' }).waitFor()
-    const rows = dialog.locator('.nonbasic-land-list li')
+    const dialog = await openLandFill(page)
+    await dialog.getByRole('heading', { name: 'Planned nonbasic lands' }).waitFor()
+    const rows = dialog.locator('.land-plan .card-tile')
     const rowText = async () =>
       (await rows.allInnerTexts()).map((text) => text.replace(/\s+/g, ' '))
-    return { ...opened, dialog, rows, rowText }
+    const include = (name: string) =>
+      dialog.getByRole('checkbox', { name: `Include ${name}`, exact: true })
+    return { ...opened, dialog, rows, rowText, include }
   }
 
   // A $100 budget leaves $10 after the $90 deck, so the $300 land is over budget.
@@ -64,15 +66,15 @@ await withBrowser('LAND_FILL_BUDGET', 5189, async (browser, base) => {
     await budget.page.keyboard.press('Escape')
     await budget.dialog.waitFor({ state: 'detached' })
     await setDisplayPreferences(budget.page, { 'Dark mode': dark })
-    await budget.page.locator('.basic-land-button, .land-fill-later button').first().click()
-    await budget.dialog.getByRole('heading', { name: 'Start with nonbasic lands' }).waitFor()
+    await openLandFill(budget.page)
+    await budget.dialog.getByRole('heading', { name: 'Planned nonbasic lands' }).waitFor()
   }
   if (evidence) {
     for (const dark of [false, true]) {
       await reopen(dark)
       for (const width of [1440, 390]) {
         await budget.page.setViewportSize({ width, height: 1000 })
-        await budget.dialog.locator('.nonbasic-land-list').scrollIntoViewIfNeeded()
+        await budget.dialog.locator('.land-plan').scrollIntoViewIfNeeded()
         await budget.dialog.screenshot({
           path: `${evidence}/${process.env.LAND_FILL_BUDGET_LABEL ?? 'after'}-budget-${dark ? 'dark' : 'light'}-${width}.png`,
         })
@@ -87,8 +89,13 @@ await withBrowser('LAND_FILL_BUDGET', 5189, async (browser, base) => {
   assert.doesNotMatch(budgetRows[0], /Over budget/)
   assert.match(budgetRows[1], /Unpriced Grove.*Unpriced/)
   assert.doesNotMatch(budgetRows[1], /Over budget/)
-  // Over-budget lands wait behind the rest, as recommendations do, and say why.
+  // Over-budget lands wait behind the rest, as recommendations do, say why and start unticked.
   assert.match(budgetRows[2], /Pricey Grove.*\$300\.00.*Over budget/)
+  assert.equal(await budget.include('Budget Grove').isChecked(), true)
+  assert.equal(await budget.include('Pricey Grove').isChecked(), false)
+  // The mark informs, it does not block: the player can still tick it.
+  await budget.include('Pricey Grove').check()
+  assert.equal(await budget.include('Pricey Grove').isChecked(), true)
   assert.deepEqual(budget.errors, [])
   await budget.context.close()
 
@@ -100,9 +107,7 @@ await withBrowser('LAND_FILL_BUDGET', 5189, async (browser, base) => {
   assert(!plain.some((text) => /Over budget/.test(text)))
   // Each price links to its seller, like recommendation offers.
   await open1.dialog.getByRole('link', { name: /\$300\.00/ }).waitFor()
-  // Adding the over-budget land still works; the mark informs, it does not block.
-  await button(open1.dialog, 'Add Pricey Grove to deck').click()
-  await open1.page.locator('.deck-board').getByText('Pricey Grove').first().waitFor()
+  assert.equal(await open1.include('Pricey Grove').isChecked(), true)
   assert.deepEqual(open1.errors, [])
   await open1.context.close()
 

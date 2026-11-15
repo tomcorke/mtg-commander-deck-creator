@@ -14,7 +14,13 @@ import {
   targetKeys,
   targetLabels,
 } from '../deck-analysis.ts'
-import { rankLandSuggestions } from '../land-suggestions.ts'
+import { planBasics, planLandFill } from '../domain/land-plan.ts'
+import {
+  deckCommanders,
+  landFillCandidates,
+  selectedThemes,
+  type LandFillCandidateInput,
+} from '../domain/bulk-add.ts'
 import { colourThemes, commanderNames, deckSections } from '../domain/commander-catalog.ts'
 import type { Card, DeckCard, ScryfallCard } from '../domain/card-model.ts'
 import {
@@ -160,6 +166,44 @@ function healthSuggestionCards(deps: BuilderDataDeps, missingHealthRoles: string
   return healthSuggestions
 }
 
+/** The role-aware land plan Choose lands shows (#589); the starting deck runs the same planner. */
+export function buildLandPlan(deps: BuilderDataDeps) {
+  const { deck, commanderDetails, deckTargets } = deps
+  const identity: string[] = commanderDetails?.colours ?? []
+  const input: LandFillCandidateInput = {
+    deck,
+    sideboard: deps.sideboard ?? [],
+    queue: deps.queue ?? [],
+    deferredCards: deps.deferredCards ?? [],
+    decisions: deps.decisions ?? {},
+    ignoredCards: deps.ignoredCards ?? [],
+    maxPrice: deps.maxPrice ?? null,
+    powerTarget: deps.powerTarget ?? 'upgraded',
+    collectionMode: deps.collectionMode,
+    collectionSets: deps.collectionSets ?? [],
+    ownedCards: deps.ownedCards,
+    ownershipMode: deps.ownershipMode,
+  }
+  return planLandFill<Card>({
+    deck,
+    commanders: deckCommanders({ commander: deps.commander ?? '', deck }),
+    themes: selectedThemes({
+      theme: deps.theme ?? '',
+      activeSubThemes: deps.activeSubThemes ?? [],
+    }),
+    identity,
+    landTarget: deckTargets.lands,
+    power: input.powerTarget,
+    candidates: landFillCandidates(
+      input,
+      identity,
+      Boolean(deps.excludeGameChangers || (deps.limitGameChangers && gameChangersAtLimit(deck))),
+    ),
+    maxPrice: deps.maxPrice,
+    remainingBudget: remainingDeckBudget(deps.deckBudget, deck),
+  })
+}
+
 function buildDeckData(deps: BuilderDataDeps) {
   const { deck, commander, commanderDetails, deckTargets } = deps
   const analysis = analyseDeck(deck)
@@ -177,16 +221,11 @@ function buildDeckData(deps: BuilderDataDeps) {
     analysis.produced,
   )
   const landGap = basicLands.reduce((sum, land) => sum + land.count, 0)
-  const nonbasicLands = rankLandSuggestions(deps.queue, deck, {
-    excluded: [...deck, ...deps.sideboard]
-      .map((card: Card) => card.name)
-      .concat(deps.ignoredCards ?? [], Object.keys(deps.decisions ?? {})),
-    identity: commanderDetails?.colours ?? [],
-    landTarget: calculatedLandTarget,
-    limit: Math.min(6, landGap),
-    maxPrice: deps.maxPrice,
-    remainingBudget: remainingDeckBudget(deps.deckBudget, deck),
-  })
+  // Planned only while Choose lands is open: role detection reads every candidate and deck card.
+  const landPlan = deps.activeModal === 'basics' ? buildLandPlan(deps) : null
+  const identity: string[] = commanderDetails?.colours ?? []
+  const landPlanBasics = (chosen: Card[]) =>
+    planBasics(deck, identity, calculatedLandTarget, chosen)
   const showLandFill = landFillReady(deck.length, analysis.counts.lands, calculatedLandTarget)
   const indexedDeck: { card: DeckCard; index: number }[] = deck.map(
     (card: DeckCard, index: number) => ({ card, index }),
@@ -240,7 +279,8 @@ function buildDeckData(deps: BuilderDataDeps) {
     calculatedLandTarget,
     basicLands,
     landGap,
-    nonbasicLands,
+    landPlan,
+    landPlanBasics,
     showLandFill,
     groupedBasics,
     deckGroups,
