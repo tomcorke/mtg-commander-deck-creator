@@ -1109,3 +1109,154 @@ test('mechanic retrieval searches the commander text once, ten new cards at most
   assert.ok(!found.some((card) => card.name === 'Fodder 0'))
   assert.deepEqual(await mechanicRecommendations({ searchCards: assert.fail }, [], [], []), [])
 })
+
+test('land searches are bounded, cached, filtered and silently optional', async () => {
+  const { landSearchCandidates, landSearchReason } = await import('./recommendation-actions.ts')
+  const make = (name: string, price = '1', set = 'tst') => ({
+    ...card(name, 'Land', ['G']),
+    set,
+    prices: { usd: price },
+    oracle_text: '{T}: Add {G}.\n{3}, {T}: Draw a card.',
+    produced_mana: ['G'],
+  })
+  let requests = 0
+  const deps = withBuilderActions({
+    deck: [],
+    sideboard: [],
+    queue: [],
+    deferredCards: [],
+    decisions: {},
+    ignoredCards: ['Ignored Grove'],
+    commander: '',
+    theme: '',
+    activeSubThemes: [],
+    commanderDetails: { colours: ['G'] },
+    powerTarget: 'upgraded',
+    maxPrice: 3,
+    collectionMode: 'only',
+    collectionSets: ['tst'],
+    searchCards: async (query: string, _signal: unknown, order: string, pages: number) => {
+      requests++
+      assert.match(query, /id<=g legal:commander t:land/)
+      assert.doesNotMatch(query, /otag:/)
+      assert.equal(order, 'edhrec')
+      assert.equal(pages, 1)
+      return [
+        make('Good Grove'),
+        make('Expensive Grove', '10'),
+        make('Other Set Grove', '1', 'bad'),
+        make('Ignored Grove'),
+      ]
+    },
+  })
+  const first = await landSearchCandidates(deps)
+  assert.deepEqual(
+    first.map((c) => c.name),
+    ['Good Grove'],
+  )
+  assert.equal(first[0].reason, landSearchReason)
+  const count = requests
+  assert.equal(count, 5) // six core roles, excluding zero-weight fixing
+  await landSearchCandidates(deps)
+  assert.equal(requests, count)
+  const failed = {
+    ...deps,
+    searchCards: async () => {
+      throw new Error('offline')
+    },
+  }
+  assert.deepEqual(await landSearchCandidates(failed), [])
+  assert.deepEqual(await landSearchCandidates({ ...deps, searchCards: async () => [] }), [])
+})
+
+test('land search skips supplied roles and cached cards obey changed preferences', async () => {
+  const { landSearchCandidates } = await import('./recommendation-actions.ts')
+  const raw = (name: string) => ({
+    ...card(name, 'Land', ['G']),
+    prices: { usd: '1' },
+    oracle_text: '{T}: Add {G}.\n{3}, {T}: Draw a card.',
+    produced_mana: ['G'],
+  })
+  const queries: string[] = []
+  const deps = withBuilderActions({
+    deck: [],
+    sideboard: [],
+    queue: ['One', 'Two', 'Three'].map((n) => toCard(raw(n), 'Commander synergy')),
+    deferredCards: [],
+    decisions: {},
+    ignoredCards: [],
+    commander: '',
+    theme: '',
+    activeSubThemes: [],
+    commanderDetails: { colours: ['G'] },
+    powerTarget: 'upgraded',
+    maxPrice: 3,
+    collectionMode: 'none',
+    collectionSets: [],
+    searchCards: async (query: string) => {
+      queries.push(query)
+      return [raw('New Grove')]
+    },
+  })
+  const first = await landSearchCandidates(deps)
+  assert.equal(queries.length, 4)
+  assert.ok(queries.every((q) => !q.includes('o:scry')))
+  assert.deepEqual(first, []) // no search result matches an uncovered role
+  deps.queue = []
+  assert.equal((await landSearchCandidates(deps))[0].name, 'New Grove')
+  const count = queries.length
+  deps.ignoredCards = ['New Grove']
+  assert.deepEqual(await landSearchCandidates(deps), [])
+  assert.equal(queries.length, count)
+})
+
+test('land search caps additions, tolerates queue refresh and retries transport failures', async () => {
+  const { loadLandSearchCandidates, landSearchRoleLimit } =
+    await import('./recommendation-actions.ts')
+  let fail = true
+  let refreshed = false
+  let requests = 0
+  const raw = (name: string) => ({
+    ...card(name, 'Land', ['G']),
+    prices: { usd: '1' },
+    oracle_text: '{T}: Add {G}.\n{3}, {T}: Draw a card.',
+    produced_mana: ['G'],
+  })
+  const deps = withBuilderActions({
+    deck: [],
+    sideboard: [],
+    queue: [] as Card[],
+    deferredCards: [],
+    decisions: {},
+    ignoredCards: [],
+    commander: '',
+    theme: '',
+    activeSubThemes: [],
+    commanderDetails: { colours: ['G'] },
+    powerTarget: 'upgraded',
+    maxPrice: 3,
+    collectionMode: 'none',
+    collectionSets: [],
+    searchCards: async () => {
+      requests++
+      if (fail) throw new Error('offline')
+      if (!refreshed) {
+        refreshed = true
+        // Simulate a printing/pool update during transport, including a duplicate name.
+        deps.dispatchBuilder({
+          type: 'data',
+          changes: { queue: [toCard(raw('Grove 0'), 'Commander synergy')] },
+        })
+      }
+      return Array.from({ length: 175 }, (_, i) => raw(`Grove ${i}`))
+    },
+  })
+  await loadLandSearchCandidates(deps)
+  assert.deepEqual(deps.queue, [])
+  fail = false
+  await loadLandSearchCandidates(deps)
+  assert.ok(requests > 5, 'failed queries must be retried')
+  assert.equal(deps.queue.length, landSearchRoleLimit)
+  assert.equal(deps.queue.filter((c) => c.name === 'Grove 0').length, 1)
+  assert.equal(deps.queue[0].reason, 'Commander synergy')
+})

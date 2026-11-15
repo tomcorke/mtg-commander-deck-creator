@@ -1,4 +1,5 @@
 import { stillNeededCards } from '../domain/owned-cards.ts'
+import { loadLandSearchCandidates } from './recommendation-actions.ts'
 import { printingGroups } from './print-checklist.ts'
 import { builderAction } from './builder-action.ts'
 import { restoreBuilderState } from './builder-restore.ts'
@@ -410,6 +411,10 @@ export function addAllInBatch(deps: AppActionContext) {
 export async function buildStartingDeck(deps: AppActionContext) {
   const job = deckJob(deps)
   const expectedDeck = deps.deck
+  await loadLandSearchCandidates(deps)
+  if (!job.isCurrent()) return ''
+  deps = { ...deps, ...deps.getBuilderState() }
+  if (deps.deck !== expectedDeck) return 'The deck changed while lands loaded. Try again.'
   const colours: string[] = deps.commanderDetails?.colours ?? []
   const names = colours.length
     ? colours.map((colour) => basicLandNames[colour as keyof typeof basicLandNames])

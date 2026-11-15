@@ -1,4 +1,14 @@
 import { builderAction, type AppActionContext } from './builder-action.ts'
+import { deckCommanders, landFillCandidates, selectedThemes } from '../domain/bulk-add.ts'
+import { landSearchReason } from '../domain/land-plan.ts'
+export { landSearchReason } from '../domain/land-plan.ts'
+import { gameChangersAtLimit } from '../domain/play-style.ts'
+import {
+  deckLandRoles,
+  deckLandRoleMatches,
+  detectLandRoles,
+  type LandRole,
+} from '../domain/land-roles.ts'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import { analyseDeck, defaultDeckTargets, rolesForCard, type TargetKey } from '../deck-analysis.ts'
 import { ScryfallRateLimitError } from '../adapters/scryfall.ts'
@@ -63,6 +73,129 @@ export { builderPoolKey as recommendationPoolKey } from '../domain/builder-setti
 export type { AppActionContext } from './builder-action.ts'
 
 export { mergeRecommendationCandidates }
+
+/** App heuristic: widen a role with fewer than three eligible lands. */
+export const landSearchThreshold = 3
+export const landSearchRoleLimit = landSearchThreshold * 3
+const landSearchTerms: Record<LandRole, string> = {
+  fixing: '(o:"any color" or o:"search your library" or o:"add {")',
+  utility: '(o:draw or o:scry or o:surveil or o:token or o:counter)',
+  'creature-land': '(o:"becomes a" or o:"becomes an")',
+  flexible: '(is:mdfc or o:cycling or o:channel)',
+  'land-synergy':
+    '(o:"search your library" or o:"return a land" or o:"land card" or t:gate or t:desert or t:locus)',
+  theme: '(o:creature or o:artifact or o:graveyard or o:counter or o:spell or t:snow)',
+  interaction: '(o:destroy or o:exile or o:damage or o:"can’t" or o:"can\'t")',
+  'colourless-utility': 'o:"{C}"',
+}
+// Shared per adapter function: concurrent/repeated fills reuse successful and empty lookups.
+const landSearchCache = new WeakMap<object, Map<string, Promise<Card[]>>>()
+
+export async function landSearchCandidates(deps: AppActionContext): Promise<Card[]> {
+  if (typeof deps.searchCards !== 'function') return []
+  const identity: string[] = deps.commanderDetails?.colours ?? []
+  const roles = deckLandRoles({
+    identity,
+    deck: deps.deck,
+    commanders: deckCommanders(deps),
+    themes: selectedThemes(deps),
+  })
+  const eligible = (queue: Card[], includeLater = false) =>
+    landFillCandidates(
+      { ...deps, queue, deferredCards: includeLater ? deps.deferredCards : [] },
+      identity,
+      Boolean(
+        deps.excludeGameChangers || (deps.limitGameChangers && gameChangersAtLimit(deps.deck)),
+      ),
+    )
+  const offered = eligible(deps.queue, true)
+  let cache = landSearchCache.get(deps.searchCards)
+  if (!cache) {
+    cache = new Map()
+    landSearchCache.set(deps.searchCards, cache)
+  }
+  const found: Card[] = []
+  for (const role of roles.filter(({ weight }) => weight > 0)) {
+    if (
+      offered.filter((card) =>
+        deckLandRoleMatches(detectLandRoles(card, identity), roles).some(
+          (match) => match.role === role.role,
+        ),
+      ).length >= landSearchThreshold
+    )
+      continue
+    const sets =
+      deps.collectionMode === 'only' && deps.collectionSets.length
+        ? ` (${deps.collectionSets.map((set: string) => `set:${set}`).join(' or ')})`
+        : ''
+    const query = `id<=${identity.join('').toLowerCase() || 'c'} legal:commander t:land ${landSearchTerms[role.role]}${sets}`
+    const key = JSON.stringify([
+      query,
+      deps.excludeGameChangers,
+      deps.excludeTutors,
+      deps.excludeExtraTurns,
+      deps.excludeUnreleased,
+      deps.powerTarget,
+      deps.today,
+    ])
+    let pending = cache.get(key)
+    if (!pending) {
+      pending = localAndLiveCandidates(
+        {
+          ...deps,
+          pendingLocal: undefined,
+          fetchLocalCards: undefined,
+          localCardsIfReady: undefined,
+        },
+        { colours: identity, roles: ['lands'] },
+        query,
+        landSearchReason,
+        true,
+      ).catch(() => {
+        cache.delete(key)
+        return []
+      })
+      cache.set(key, pending)
+    }
+    const cards = await pending
+    found.push(
+      ...eligible(cards.filter((card) => !offered.some((other) => other.name === card.name)))
+        .filter((card) =>
+          deckLandRoleMatches(detectLandRoles(card, identity), roles).some(
+            (match) => match.role === role.role,
+          ),
+        )
+        .slice(0, landSearchRoleLimit),
+    )
+  }
+  return found.filter((card, i) => found.findIndex((other) => other.name === card.name) === i)
+}
+
+/** Only write into the captured deck state; late searches never change a different deck. */
+export async function loadLandSearchCandidates(deps: AppActionContext) {
+  const job = deckJob(deps)
+  const before = deps.getBuilderState()
+  const cards = await landSearchCandidates(deps)
+  const current = deps.getBuilderState()
+  if (
+    !job.isCurrent() ||
+    current.deck !== before.deck ||
+    current.commander !== before.commander ||
+    recommendationPoolKey(current) !== recommendationPoolKey(before) ||
+    !cards.length
+  )
+    return
+  const existing = new Set(
+    [...current.queue, ...current.deferredCards.map(({ card }) => card)].map(({ name }) => name),
+  )
+  const additions = landFillCandidates(
+    { ...current, queue: cards, deferredCards: [] },
+    current.commanderDetails?.colours ?? [],
+    current.excludeGameChangers,
+  ).filter(({ name }) => !existing.has(name))
+  if (additions.length)
+    builderAction(deps, { type: 'data', changes: { queue: [...current.queue, ...additions] } })
+}
 
 export async function fallbackRecommendations(deps: AppActionContext, identityColours: string[]) {
   const { excludeGameChangers, excludeUnreleased, includeCreature } = deps
@@ -239,20 +372,22 @@ async function localAndLiveCandidates(
   query: LocalCardQuery,
   liveQuery: string,
   reason: string,
+  bounded = false,
 ): Promise<Card[]> {
   const pending: PendingLocalQuery[] | undefined = deps.pendingLocal
   const ready = pending && deps.localCardsIfReady ? deps.localCardsIfReady(query) : undefined
+  const search = () => deps.searchCards(liveQuery, undefined, 'edhrec', bounded ? 1 : undefined)
   if (pending && deps.localCardsIfReady && !ready)
     pending.push({ query, roleGap: reason === 'Fills a role gap' })
   const [local, live] = await Promise.allSettled([
     pending && deps.localCardsIfReady
       ? Promise.resolve(ready ?? [])
       : (deps.fetchLocalCards?.(query) ?? Promise.resolve([])),
-    liveQuery ? deps.searchCards(liveQuery, undefined, 'edhrec') : Promise.resolve([]),
+    liveQuery ? search() : Promise.resolve([]),
   ])
   const localCards = local.status === 'fulfilled' ? local.value : []
   if (live.status === 'rejected' && live.reason instanceof ScryfallRateLimitError) throw live.reason
-  const recent = await recentLiveCards(deps, liveQuery)
+  const recent = bounded ? [] : await recentLiveCards(deps, liveQuery)
   if (live.status === 'rejected' && !localCards.length && !recent.length) throw live.reason
   const liveCards = mergeLocalAndLiveCards(live.status === 'fulfilled' ? live.value : [], recent)
   return toLocalAndLiveCards(deps, localCards, liveCards, reason)

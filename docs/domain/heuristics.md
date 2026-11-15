@@ -188,3 +188,21 @@ Costs support generic, ordinary coloured, and colourless symbols; hybrid, X, Phy
 App heuristic, scoring version 10: Balanced and Deck needs first may swap one spell in the visible batch for an off-theme functional card when the batch number is divisible by four (Later-only cycles can jump past these numbers). Theme first, Surprise me and focused-role browsing are unchanged. Eligibility requires finite commander-specific EDHREC inclusion of at least 60%, a nonland card outside the local index, and a ramp, draw, removal or wipes role whose positive target is met but whose count is below target + 2. Highest inclusion wins, with queue order breaking ties. No card names are special-cased. Inclusion describes uploaded decks, not card quality.
 
 The swap uses the filtered queue, respects the remaining deck budget, preserves lands, the creature slot when present and each selected theme's sole representative, and never replaces the first pick. A card already offered needs no swap. Zero targets receive no staple offers. Ignore, Later, price, ownership and set constraints still apply. Ordinary ranking may still offer cards above these bounds. The threshold, cadence and ceiling are uncalibrated app choices; calibration belongs to #98. See [measurement](../functional-staples-591.md).
+
+### Role-aware land search (#590)
+
+When Choose lands opens, and before building a starting deck, each active land role with fewer
+than **3 eligible queue/Later candidates** gets one bounded Scryfall search. This threshold is an
+app heuristic. Zero-weight fixing in mono-colour decks does not trigger a search. Earned roles
+use #588's deck evidence; the returned lands still need its regex role match.
+
+Queries combine `id<=<identity> legal:commander t:land` with a role's Oracle text/type terms
+(and selected sets in Only-sets). They use no Tagger tags. One page, at most 175 cards, is requested
+per deficient role, ordered by `edhrec`: popularity, never commander synergy. There are at most
+eight searches per fill. The shared adapter owns pacing and its normal search cache; an additional
+session cache shares pending results and remembers successful and empty lookups for repeated fills.
+Cached results are rechecked against price, sets, ignored/deck cards and construction filters.
+Failures silently retain queue-only planning. Search results say "Found by land search, not seen
+with this commander" and lose ties at equal planner score to existing candidates. This is weaker
+evidence, not proof of land quality. Broad role terms can miss less popular or unusually worded
+lands; a single page is deliberately not exhaustive. At most nine eligible matches per role enter the queue. Failed lookups are evicted so a later fill can retry through the adapter's cooldown. Starting-deck searches use roles earned before its spell pass; roles earned only by newly added spells wait for a later fill.
