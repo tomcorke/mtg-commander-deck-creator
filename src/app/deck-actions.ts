@@ -370,9 +370,10 @@ export async function addBasicLands(
   nonbasics: Card[] = [],
 ) {
   const job = deckJob(deps)
-  const { closeModal, setBasicLandState } = job.deps
+  const { closeModal, setBasicLandState, setBasicLandError } = job.deps
   const expectedDeck = deps.deck
   setBasicLandState('loading')
+  setBasicLandError?.('')
   try {
     const cards = await Promise.all(
       plan.map(async ({ name, count, printing }) => ({
@@ -386,7 +387,12 @@ export async function addBasicLands(
       return
     }
     const result = builderAction(deps, { type: 'addBasics', cards, nonbasics })
-    if (result.error) throw new Error(result.error)
+    if (result.error) {
+      // A kept land failed a check, so retrying the same plan would fail again: say which.
+      setBasicLandError?.(result.error)
+      setBasicLandState('error')
+      return
+    }
     setBasicLandState('idle')
     closeModal()
   } catch {

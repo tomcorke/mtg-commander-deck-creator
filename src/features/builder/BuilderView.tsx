@@ -104,6 +104,7 @@ type BuilderViewModel = {
   activeSubThemes: string[]
   analysis: ReturnType<typeof analyseDeck>
   basicLandState: 'idle' | 'loading' | 'error'
+  basicLandError: string
   basicLands: { name: string; count: number }[]
   landGap: number
   landPlan: LandPlan<Card> | null
@@ -284,6 +285,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     addRecommendationCard,
     analysis,
     basicLandState,
+    basicLandError,
     basicLands,
     landGap,
     landPlan,
@@ -658,6 +660,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
       {showBasicLands && (
         <BasicLandDialog
           basicLandState={basicLandState}
+          basicLandError={basicLandError}
           legalBasicNames={legalBasicNames}
           commanderSet={deck[0]?.set ?? ''}
           landGap={landGap}

@@ -322,7 +322,7 @@ test('defers land fill, respects current decisions, and recalculates after a non
   const oneSlot = open(Array(99).fill(deck[0]))
   assert.equal(oneSlot.landGap, 1)
   assert.deepEqual(oneSlot.landPlan?.picks, [])
-  assert.equal(oneSlot.landPlan?.alternatives[0].held, 'room')
+  assert.equal(oneSlot.landPlan?.alternatives[0].held, 'reserve')
   const full = open(Array(100).fill(deck[0]))
   assert.equal(full.landGap, 0)
   assert.deepEqual(full.landPlan?.picks, [])

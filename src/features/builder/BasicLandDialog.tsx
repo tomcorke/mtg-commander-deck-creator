@@ -122,13 +122,18 @@ function LandPlanSection({
     <section className="land-fill-step land-plan" aria-labelledby="nonbasic-land-title">
       <h3 id="nonbasic-land-title">Planned nonbasic lands</h3>
       <p>
-        Up to {plural(plan.cap, 'nonbasic land')} for your colours; the plan {reserve}. Untick a
-        land to give its slot to a basic.
+        The plan uses up to {plural(plan.cap, 'nonbasic land')} for your colours and {reserve}.
+        Untick a land to give its slot to a basic.
       </p>
       <p className="generic-pick land-plan-note">
         <span className="generic-pick-label">{term}</span> {claimKindLabels[kind]}: reasons quote
         the text that matched, not how well the land does the job.
       </p>
+      {full && plan.alternatives.length > 0 && (
+        <p className="land-plan-full" aria-live="polite">
+          Every land slot is planned. Untick a land to swap in another.
+        </p>
+      )}
       {planGroups(plan).map(({ label, options }) => (
         <section key={label} className="land-plan-group" aria-label={label}>
           <h4>{label}</h4>
@@ -172,6 +177,8 @@ function LandPlanSection({
 
 type Props = {
   basicLandState: 'idle' | 'loading' | 'error'
+  /** A check the plan failed on confirm; empty when basics failed to load. */
+  basicLandError?: string
   legalBasicNames: string[]
   commanderSet: string
   landGap: number
@@ -197,6 +204,7 @@ type Props = {
 // eslint-disable-next-line max-lines-per-function -- The dialog markup stays intact to preserve its established focus and accessibility behavior.
 export function BasicLandDialog({
   basicLandState,
+  basicLandError,
   legalBasicNames,
   commanderSet,
   landGap,
@@ -527,7 +535,7 @@ export function BasicLandDialog({
         </section>
         {basicLandState === 'error' && (
           <p className="form-error" role="alert">
-            Could not load basic lands. Try again.
+            {basicLandError || 'Could not load basic lands. Try again.'}
           </p>
         )}
         <div className="export-actions">

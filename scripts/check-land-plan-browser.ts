@@ -131,41 +131,43 @@ const state = makeState({
 const upgraded = (page: Page) =>
   page.addInitScript(() => localStorage.setItem('option:powerTarget', JSON.stringify('upgraded')))
 
-if (evidence) await mkdir(evidence, { recursive: true })
-await withBrowser('LAND_PLAN', 5191, async (browser, base) => {
-  const opened = await openScenario(browser, base, state, records, undefined, upgraded)
-  const { page } = opened
-  const dialog = page.getByRole('dialog', { name: 'Choose lands', exact: true })
-  const open = async () => {
-    await openLandFill(page)
-    await page.waitForTimeout(300)
-  }
+type Dialog = ReturnType<Page['getByRole']>
 
-  if (evidence) {
-    for (const dark of [false, true]) {
-      await setDisplayPreferences(page, { 'Dark mode': dark })
-      for (const width of [1440, 390]) {
-        await page.setViewportSize({ width, height: 2400 })
-        await open()
-        const sizes = await dialog.evaluate((node) => ({
-          scroll: node.scrollWidth,
-          client: node.clientWidth,
-        }))
-        assert(sizes.scroll <= sizes.client, `no horizontal scroll at ${width}px`)
-        await dialog.screenshot({
-          path: `${evidence}/${label}-${dark ? 'dark' : 'light'}-${width}.png`,
-        })
-        await page.keyboard.press('Escape')
-        await dialog.waitFor({ state: 'detached' })
-      }
+const openDialog = async (page: Page) => {
+  const dialog = await openLandFill(page)
+  await page.waitForTimeout(300)
+  return dialog
+}
+const closeDialog = async (page: Page, dialog: Dialog) => {
+  await page.keyboard.press('Escape')
+  await dialog.waitFor({ state: 'detached' })
+}
+const noSideScroll = (dialog: Dialog) =>
+  dialog.evaluate((node) => node.scrollWidth <= node.clientWidth)
+
+/** Light and dark, desktop and 390px captures of the whole dialog. */
+async function captureEvidence(page: Page, directory: string) {
+  for (const dark of [false, true]) {
+    await setDisplayPreferences(page, { 'Dark mode': dark })
+    for (const width of [1440, 390]) {
+      // Tall enough that the whole dialog, confirm button included, fits one capture.
+      await page.setViewportSize({ width, height: width < 600 ? 3600 : 2400 })
+      const dialog = await openDialog(page)
+      assert(await noSideScroll(dialog), `no horizontal scroll at ${width}px`)
+      await dialog.screenshot({
+        path: `${directory}/${label}-${dark ? 'dark' : 'light'}-${width}.png`,
+      })
+      await closeDialog(page, dialog)
     }
-    await setDisplayPreferences(page, { 'Dark mode': false })
-    await page.setViewportSize({ width: 1440, height: 1000 })
   }
-  assert.deepEqual(opened.errors, [])
-  if (label === 'before') return
+  await setDisplayPreferences(page, { 'Dark mode': false })
+  await page.setViewportSize({ width: 1440, height: 1000 })
+}
 
-  await open()
+/** The plan as opened: heuristic label, group order, pre-selection and reasons. */
+async function assertPlan(dialog: Dialog) {
+  // Reasons are labelled as a heuristic, like theme-fit reasons (#501).
+  assert.equal(await dialog.locator('.land-plan .generic-pick-label').innerText(), 'Land plan')
   // Fill order: fixing, then the landfall role the commander earned, then utility.
   const groups = await dialog.locator('.land-plan-group h4').allInnerTexts()
   assert.deepEqual(
@@ -190,14 +192,32 @@ await withBrowser('LAND_PLAN', 5191, async (browser, base) => {
   // Each reason quotes the matched text and, for an earned role, the deck evidence.
   const landfall = dialog.locator('.card-tile', { hasText: 'Plan Landfall Grove' })
   assert.match(await landfall.innerText(), /Your commander: “Landfall/)
+  return include
+}
+
+if (evidence) await mkdir(evidence, { recursive: true })
+await withBrowser('LAND_PLAN', 5191, async (browser, base) => {
+  const opened = await openScenario(browser, base, state, records, undefined, upgraded)
+  const { page } = opened
+  if (evidence) await captureEvidence(page, evidence)
+  assert.deepEqual(opened.errors, [])
+  if (label === 'before') return
+
+  // The narrow layout never scrolls sideways, screenshots or not.
+  await page.setViewportSize({ width: 390, height: 900 })
+  const narrow = await openDialog(page)
+  assert(await noSideScroll(narrow), 'no horizontal scroll at 390px')
+  await closeDialog(page, narrow)
+  await page.setViewportSize({ width: 1440, height: 1000 })
+
+  const dialog = await openDialog(page)
+  const include = await assertPlan(dialog)
   const status = dialog.locator('.basic-land-balance p')
   assert.equal(await status.innerText(), 'All 12 basics assigned')
-
   // Unticking gives the slot back to basics, live.
   await include('Plan Passage').uncheck()
   assert.equal(await status.innerText(), 'All 13 basics assigned')
-  const confirm = dialog.getByRole('button', { name: 'Add 18 lands', exact: true })
-  await confirm.click()
+  await dialog.getByRole('button', { name: 'Add 18 lands', exact: true }).click()
   await dialog.waitFor({ state: 'detached' })
   const board = page.locator('.deck-board')
   for (const name of ['Plan Shockland', 'Plan Landfall Grove', 'Plan Saproling Grove'])

@@ -136,6 +136,28 @@ export function landFillCandidates(
   )
 }
 
+/**
+ * The manual Add check for a planned land, run against the deck plus the lands planned before it,
+ * so two Game Changer lands never both take the last Game Changer slot.
+ */
+export function landPlanAllowed(
+  deck: DeckCard[],
+  identity: string[],
+  excludeGameChangers: boolean,
+  limitGameChangers: boolean,
+) {
+  const base = [...deck]
+  return (card: Card, picked: Card[]) => {
+    const planned = [...base, ...picked.map(toDeckCardFromRecommendation)]
+    return !recommendationDataError(
+      toDeckCardFromRecommendation(card),
+      planned,
+      identity,
+      excludeGameChangers || (limitGameChangers && gameChangersAtLimit(planned)),
+    )
+  }
+}
+
 /** The selected theme and extra themes, as land-role evidence reads them. */
 export const selectedThemes = (input: { theme: string; activeSubThemes: string[] }) =>
   [input.theme, ...input.activeSubThemes].filter(Boolean)
@@ -226,6 +248,7 @@ export function planStartingDeck(input: StartingDeckInput, basics: DeckCard[]): 
     candidates: pool.filter((card) => isLandCard(card) && !taken.has(card.name)),
     remainingBudget: remaining,
     basicPrice,
+    allowed: landPlanAllowed(deck, identity, input.excludeGameChangers, input.limitGameChangers),
   })
   for (const { card } of lands.picks) if (fits(card)) take(card)
 

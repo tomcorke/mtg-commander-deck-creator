@@ -18,6 +18,7 @@ import { planBasics, planLandFill } from '../domain/land-plan.ts'
 import {
   deckCommanders,
   landFillCandidates,
+  landPlanAllowed,
   selectedThemes,
   type LandFillCandidateInput,
 } from '../domain/bulk-add.ts'
@@ -201,6 +202,12 @@ export function buildLandPlan(deps: BuilderDataDeps) {
     ),
     maxPrice: deps.maxPrice,
     remainingBudget: remainingDeckBudget(deps.deckBudget, deck),
+    allowed: landPlanAllowed(
+      deck,
+      identity,
+      Boolean(deps.excludeGameChangers),
+      Boolean(deps.limitGameChangers),
+    ),
   })
 }
 

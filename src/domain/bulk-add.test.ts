@@ -12,6 +12,7 @@ import { cardConstructionError } from './commander-construction.ts'
 import { analyseDeck, rolesForCard } from '../deck-analysis.ts'
 import { bulkAddStatus, bulkAddedNames, startingDeckSummary } from './bulk-add.ts'
 import { deckPriceTotal } from './deck-price.ts'
+import { gameChangerLimit } from './play-style.ts'
 
 const scryfall = (name: string, overrides: Partial<ScryfallCard> = {}): ScryfallCard => ({
   name,
@@ -277,6 +278,65 @@ test('a mono starting deck keeps two basics per basic-fetching card', () => {
     basics: [forest],
   }).state.deck
   assert.equal(free.filter(({ name }) => name.startsWith('Utility')).length, 6)
+})
+
+test('Choose lands adds kept nonbasics and basics in one step, off the queue and Later list', () => {
+  const kept = utilityLand('Kept land')
+  const later = utilityLand('Later land')
+  const other = utilityLand('Other land')
+  const state = builder({
+    queue: [kept, other],
+    deferredCards: [{ card: later, eligibleBatch: 3 }],
+  })
+  const result = apply(state, {
+    type: 'addBasics',
+    cards: [{ card: forest, count: 3 }],
+    nonbasics: [kept, later],
+  })
+  assert.equal(result.error, undefined)
+  assert.deepEqual(names(result.state.deck), [
+    'Leader',
+    'Kept land',
+    'Later land',
+    'Forest',
+    'Forest',
+    'Forest',
+  ])
+  assert.deepEqual(names(result.state.queue), ['Other land'])
+  assert.deepEqual(result.state.deferredCards, [])
+})
+
+test('Choose lands rejects the whole plan when a kept land fails a manual Add check', () => {
+  const changer = (name: string) =>
+    card(name, {
+      type_line: 'Land',
+      color_identity: ['G'],
+      cmc: 0,
+      mana_cost: '',
+      oracle_text: '{T}: Add {G}.\n{3}{G}, {T}: Draw a card.',
+      produced_mana: ['G'],
+      game_changer: true,
+    })
+  const add = (state: BuilderState, nonbasics: Card[]) =>
+    apply(state, { type: 'addBasics', cards: [{ card: forest, count: 1 }], nonbasics })
+  const offColour = card('Island land', { type_line: 'Land', color_identity: ['U'] })
+  const rejected = add(builder(), [utilityLand('Fine land'), offColour])
+  assert.match(rejected.error ?? '', /Island land: .*colour identity/)
+  assert.deepEqual(names(rejected.state.deck), ['Leader'])
+
+  // One Game Changer slot left under the limit: one land fits, a second is refused.
+  const changers = Array.from({ length: gameChangerLimit - 1 }, (_, index) =>
+    toDeckCard(scryfall(`GC ${index}`, { game_changer: true })),
+  )
+  const limited = builder({
+    deck: [commander, ...changers],
+    excludeGameChangers: false,
+    limitGameChangers: true,
+  })
+  assert.equal(add(limited, [changer('Changer A')]).error, undefined)
+  const blocked = add(limited, [changer('Changer A'), changer('Changer B')])
+  assert.match(blocked.error ?? '', /^Changer B: Game Changers/)
+  assert.deepEqual(blocked.state.deck, limited.deck)
 })
 
 test('basics split by colour demand even when spells already make one colour', () => {

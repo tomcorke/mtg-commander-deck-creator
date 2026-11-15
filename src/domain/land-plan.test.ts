@@ -160,6 +160,46 @@ test('a planned land that fetches basics raises the reserve', () => {
   // Two slots: Wilds would need two basics kept, so it waits as an option.
   assert.deepEqual(names(result.picks), [])
   assert.deepEqual(names(result.alternatives), ['Wilds'])
+  assert.equal(result.alternatives[0].held, 'reserve')
+})
+
+test('a search for any basic land fixes every identity colour', () => {
+  const wilds = (name: string) =>
+    card(name, {
+      detail: `{T}, Sacrifice ${name}: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.`,
+    })
+  const result = plan(simicDeck(), [wilds('Wilds A'), wilds('Wilds B'), wilds('Wilds C')], {
+    identity: ['G', 'U'],
+  })
+  // Not colourless-only: all three are planned as fixing, and each keeps two basics.
+  assert.deepEqual(names(result.picks), ['Wilds A', 'Wilds B', 'Wilds C'])
+  assert.deepEqual(
+    result.picks.map(({ step }) => step),
+    ['fixing', 'fixing', 'fixing'],
+  )
+  assert.equal(result.reserve, 6)
+})
+
+test('the caller’s Add check runs against the lands planned so far', () => {
+  const lands = [utility('A changer'), utility('B changer'), utility('C plain')]
+  const changers = new Set(['A changer', 'B changer'])
+  // One Game Changer slot left: the second changer waits once the first is planned.
+  const result = plan(greenDeck(), lands, {
+    allowed: (land, picked) =>
+      !changers.has(land.name) || !picked.some(({ name }) => changers.has(name)),
+  })
+  assert.deepEqual(names(result.picks), ['A changer', 'C plain'])
+  assert.deepEqual(
+    result.alternatives.map(({ card, held }) => [card.name, held]),
+    [['B changer', 'rules']],
+  )
+})
+
+test('a full cap is reported as the cap, not the reserve', () => {
+  const utilities = Array.from({ length: 7 }, (_, index) => utility(`Utility ${index}`))
+  const result = plan(greenDeck(), utilities)
+  assert.equal(result.picks.length, 6)
+  assert.equal(result.alternatives[0].held, 'cap')
 })
 
 test('fill order: fixing, then earned roles, then utility', () => {

@@ -116,7 +116,14 @@ export function landDrawbacks(card: AnalysisCard) {
  * and the basic types it fetches that the identity allows or the deck already holds.
  */
 export function landColours(card: AnalysisCard, deck: AnalysisCard[], identity: string[]) {
-  const fetched = typesIn(card.detail.match(/search your library for ([^.]*)/i)?.[1] ?? '').filter(
+  const search = card.detail.match(/search your library for ([^.]*)/i)?.[1] ?? ''
+  const named = typesIn(search)
+  // "A basic land card" with no type finds any identity colour's basic (Evolving Wilds style).
+  const fetched = (
+    named.length || !/\bbasic land\b/i.test(search)
+      ? named
+      : identity.flatMap((colour) => basicLandNames[colour as ManaColour] ?? [])
+  ).filter(
     (type) =>
       identity.includes(typeColour[type]) || deck.some((land) => land.typeLine.includes(type)),
   )
@@ -203,13 +210,16 @@ export type LandPlanPick<T> = {
  * `tapped`: Power's always-tapped limit is reached; `colourless`: the colourless-only limit is
  * reached; `basic`: a basic fills the colours it would add as well.
  */
-export type LandPlanHold = 'budget' | 'room' | 'tapped' | 'colourless' | 'basic'
+export type LandPlanHold =
+  'budget' | 'cap' | 'reserve' | 'tapped' | 'colourless' | 'rules' | 'basic'
 
 export const landPlanHoldLabels: Record<LandPlanHold, string> = {
   budget: 'Over budget',
-  room: 'Over the nonbasic limit',
+  cap: 'Nonbasic cap reached',
+  reserve: 'Slot kept for a basic',
   tapped: 'Tapped-land limit reached',
   colourless: 'Colourless-land limit reached',
+  rules: 'Not addable with the planned lands',
   basic: 'A basic does as well',
 }
 
@@ -251,6 +261,11 @@ export type LandPlanInput<T> = {
   remainingBudget?: number | null
   /** Price kept back for each deck slot still empty after a pick, so basics can fill it. */
   basicPrice?: number
+  /**
+   * Whether a land can still be added after the picks so far, such as under the Game Changer
+   * limit. Callers pass the same check a manual Add makes; omitted means every land is allowed.
+   */
+  allowed?: (card: T, picked: T[]) => boolean
 }
 
 type Candidate<T> = {
@@ -502,7 +517,9 @@ class LandPlanner<T extends PlanCard> {
   holdFor(candidate: Candidate<T>): LandPlanHold | undefined {
     if (!this.fits(candidate.card)) return 'budget'
     if (this.picks.length + 1 > this.roomFor(this.pickFetchers + Number(candidate.fetcher)))
-      return 'room'
+      return this.picks.length + 1 > this.capLeft ? 'cap' : 'reserve'
+    const picked = this.picks.map(({ card }) => card)
+    if (this.input.allowed && !this.input.allowed(candidate.card, picked)) return 'rules'
     if (candidate.tapped === 'always' && this.tappedLeft <= 0) return 'tapped'
     if (candidate.colourlessOnly && this.colourlessLeft <= 0) return 'colourless'
     return undefined
