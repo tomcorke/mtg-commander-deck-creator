@@ -6,7 +6,7 @@ import {
   hasTag,
 } from './creature-types.ts'
 import { opposingAnswerEvidence } from './opposing-strategies.ts'
-import { shortQuote, themeMatchers } from './recommendation-themes.ts'
+import { shortQuote, tagsFor, themeMatchers } from './recommendation-themes.ts'
 
 /**
  * What a nonbasic land can do for a deck (#588). A land can have several roles. Entering tapped
@@ -92,6 +92,8 @@ type Override = { add?: Omit<LandRoleMatch, 'source'>[]; remove?: LandRole[] }
 // Reviewed Oracle-ID corrections for wording the patterns miss or misread. Each entry names the
 // card and the Oracle text checked against Scryfall Oracle bulk data 2026-11-04 (checked
 // 2026-11-14). Overrides add or remove roles; they never widen the patterns.
+const tabernacle =
+  'All creatures have "At the beginning of your upkeep, destroy this creature unless you pay {1}."'
 const landRoleOverrides: Record<string, Override> = {
   // Urborg, Tomb of Yawgmoth: "Each land is a Swamp in addition to its other land types." A static
   // ability, which the activated and triggered patterns skip.
@@ -113,12 +115,11 @@ const landRoleOverrides: Record<string, Override> = {
       { role: 'colourless-utility', evidence: 'You have no maximum hand size.' },
     ],
   },
-  // The Tabernacle at Pendrell Vale: "All creatures have 'At the beginning of your upkeep, destroy
-  // this creature unless you pay {1}.'" A static tax on every creature; it makes no mana.
+  // The Tabernacle at Pendrell Vale: a static tax on every creature; it makes no mana.
   '69b409b3-fa16-4c79-8b46-215a7036ed46': {
     add: [
-      { role: 'interaction', evidence: 'All creatures have an upkeep cost of {1}.' },
-      { role: 'colourless-utility', evidence: 'All creatures have an upkeep cost of {1}.' },
+      { role: 'interaction', evidence: tabernacle },
+      { role: 'colourless-utility', evidence: tabernacle },
     ],
   },
   // Path of Ancestry: its mana rewards "a creature spell that shares a creature type with your
@@ -132,9 +133,6 @@ const landRoleOverrides: Record<string, Override> = {
       },
     ],
   },
-  // Nykthos, Shrine to Nyx: Scryfall `produced_mana` lists every colour, but it adds mana of one
-  // chosen colour equal to devotion. That is big mana, not fixing.
-  '84dc18f0-8225-4b40-a165-b10321e41769': { remove: ['fixing'] },
 }
 
 const colourSymbols = ['W', 'U', 'B', 'R', 'G'] as const
@@ -195,7 +193,7 @@ const minorEffect =
   /^(?:you gain \d+ life|scry \d+|surveil \d+|you get \{E\}|it deals 1 damage to target (?:opponent|player)(?: or planeswalker)?|target player loses 1 life)\.?$/i
 // Triggered drawbacks and upkeep bookkeeping, such as karoo and depletion lands.
 const drawbackEffect =
-  /\bdeals? \d+ damage to you\b|\byou lose \d+ life\b|\bsacrifice (?:it|this land|an? (?:untapped )?(?:[\w-]+ )?land|two (?:untapped )?lands)\b|\bgains control of this land\b|\b(?:storage|depletion|age) counters?\b/i
+  /\bdeals? \d+ damage to you\b|\byou lose \d+ life\b|(?<!\bmay )\bsacrifice (?:it|this land|an? (?:untapped )?(?:[\w-]+ )?land|two (?:untapped )?lands)\b|\bgains control of this land\b|\b(?:storage|depletion|age) counters?\b/i
 const triggerEffect = (line: string) => line.replace(/^[^,]*,\s*/, '')
 const enteringRule =
   /\benters? (?:the battlefield )?tapped\b|^as this land enters\b|^if this land would enter\b|^this land enters\b|\bsacrifice it unless\b/i
@@ -208,7 +206,7 @@ const graveyardMatters =
   /\bgraveyard\b|\bdredge\b|\bflashback\b|\bmill\b|\bsurveil\b|\bunearth\b|\bdelve\b/i
 const countersMatter = /\+1\/\+1 counters?\b|\bproliferate\b|^graft\b/i
 const spellsMatter =
-  /\binstant (?:or|and) sorcery\b|\bnoncreature spells?\b|\bwhenever you cast\b|\binstant or sorcery spells?\b/i
+  /\binstant (?:or|and) sorcery\b|\bnoncreature spells?\b|\bwhenever you cast an? (?:instant|sorcery|noncreature)\b|\binstant or sorcery spells?\b/i
 const artifactsMatter = /\bartifacts? (?:you control|cards?|spells?)\b|\bTreasure\b/
 
 const isColour = (symbol: string) => (colourSymbols as readonly string[]).includes(symbol)
@@ -219,13 +217,23 @@ const fetchTarget = (text: string) => {
     : undefined
 }
 
-/** The rules line that best shows a colour the land adds. */
+const anyColour =
+  /\bmana of any\b|\bany colou?r\b|\bany combination of colou?rs\b|\bdifferent colou?rs\b|\bchosen colou?r\b|\bthat colou?r\b|\bcolou?rs? (?:of|among)\b/i
+// One chosen colour, scaled by devotion or a count (Nykthos, Three Tree City): big mana, not
+// fixing, although Scryfall `produced_mana` lists every colour.
+const chosenColourAmount = /\bchoose a colou?r\. add an amount of mana of that colou?r\b/i
+const namesColour = (text: string) =>
+  /\{[WUBRG](?:\/[WUBRGP])?\}/.test(text) || anyColour.test(text)
+
+/** The rules line that best shows a colour the land adds, or none when only big mana names it. */
 function manaLineFor(colour: string, lines: Line[]) {
-  const manaLines = lines.filter((line) => /\badd\b/i.test(line.text))
+  const manaLines = lines.filter(
+    (line) => /\badd\b/i.test(line.text) && !chosenColourAmount.test(line.text),
+  )
   return (
     manaLines.find((candidate) => candidate.text.includes(`{${colour}}`)) ??
-    manaLines.find((candidate) => /\bmana of any\b|\bany colou?r\b/i.test(candidate.text)) ??
-    manaLines[0]
+    manaLines.find((candidate) => anyColour.test(candidate.text)) ??
+    manaLines.find((candidate) => namesColour(candidate.text))
   )
 }
 
@@ -245,9 +253,11 @@ function fixingEvidence(card: LandRoleCard, typeLine: string, lines: Line[], ide
     if (identity.includes(colour) && !colours.has(colour))
       colours.set(colour, { role: 'fixing', evidence: shortQuote(evidence), source })
   }
+  const bigMana = lines.some((line) => chosenColourAmount.test(line.text))
   for (const colour of card.producedMana.filter(isColour)) {
     const line = manaLineFor(colour, lines)
-    note(colour, line?.original ?? typeLine, line ? 'rules' : 'type')
+    if (line) note(colour, line.original, 'rules')
+    else if (!bigMana) note(colour, typeLine, 'type')
   }
   // CR 305.6: a basic land type grants its mana ability without printed text.
   for (const [type] of typeLine.matchAll(basicTypePattern))
@@ -285,21 +295,25 @@ function typeLineRoles(card: LandRoleCard, typeLine: string): LandRoleMatch[] {
   ]
 }
 
-/** Land-synergy clues: fetching onto the battlefield, sacrificing itself, bounce and recursion. */
-function synergyClue(text: string, cost: string, effect: string) {
+/** Whether a triggered ability is only a minor rider or a drawback, so not a utility role. */
+const minorTriggerEffect = (trigger: string) =>
+  minorEffect.test(trigger) || drawbackEffect.test(trigger)
+
+/**
+ * Land-synergy clues: fetching onto the battlefield, sacrificing itself, bounce and recursion. A
+ * self-sacrifice forced by a drawback trigger (Glimmervoid, City of Traitors) does not count.
+ */
+function synergyClue(text: string, cost: string, effect: string, trigger?: string) {
   const target = fetchTarget(text)
   if (target && (/onto the battlefield/i.test(text) || sacrificeSelf.test(text))) return true
+  const drawback = trigger !== undefined && minorTriggerEffect(trigger)
   return (
     sacrificeSelf.test(cost) ||
-    sacrificeSelf.test(effect) ||
+    (!drawback && sacrificeSelf.test(effect)) ||
     bounce.test(text) ||
     landRecursion.test(text)
   )
 }
-
-/** Whether a triggered ability is only a minor rider or a drawback, so not a utility role. */
-const minorTriggerEffect = (trigger: string) =>
-  minorEffect.test(trigger) || drawbackEffect.test(trigger)
 
 /** Earned theme focuses a rules line names. */
 function themeFocuses(text: string, { hate, entering }: { hate: boolean; entering: boolean }) {
@@ -308,7 +322,8 @@ function themeFocuses(text: string, { hate, entering }: { hate: boolean; enterin
   let typal: string[] = []
   if (typalChoice.test(text)) typal = [chosenTypeFocus]
   else if (!everyCreatureTypePattern.test(text))
-    typal = creatureTypeTags(text.replaceAll('Power-Plant', ''))
+    // "Non-Human creature" names a type the land does not reward.
+    typal = creatureTypeTags(text.replaceAll('Power-Plant', '').replace(/\bnon-[A-Z][\w'-]*/g, ''))
   const graveyard = !hate && !entering && !graveyardDeath.test(text) && graveyardMatters.test(text)
   return [
     ...typal,
@@ -349,7 +364,7 @@ function lineRoles({ text, original }: Line, card: LandRoleCard): LandRoleMatch[
   const entering = !ability && trigger === undefined && enteringRule.test(text)
   return [
     ...roles.map((role) => match(role, original)),
-    ...(synergyClue(text, ability?.cost ?? '', effect)
+    ...(synergyClue(text, ability?.cost ?? '', effect, trigger)
       ? [match('land-synergy', original, 'rules', landsMatterFocus)]
       : []),
     ...themeFocuses(text, { hate, entering }).map((focus) =>
@@ -430,10 +445,14 @@ export type DeckLandRole = {
   focuses: { focus: LandFocus; evidence: LandRoleEvidence[] }[]
 }
 
-type DeckCard = { name: string; typeLine: string; detail: string; tags: string[] }
-type Commander = { name: string; detail: string }
+/** A main-deck card as `deckLandRoles` reads it. */
+export type LandRoleDeckCard = { name: string; typeLine: string; detail: string }
+/** A commander as `deckLandRoles` reads it: its rules text is evidence. */
+export type LandRoleCommander = { name: string; detail: string }
+type DeckCard = LandRoleDeckCard
+type Commander = LandRoleCommander
 
-/** Deck-card evidence threshold, matching sub-theme inference (heuristics.md). */
+/** Main-deck cards needed to earn a focus (heuristics.md). */
 export const landRoleDeckThreshold = 3
 
 const focusThemes: Record<string, readonly string[]> = {
@@ -467,11 +486,21 @@ function focusText(focus: LandFocus): RegExp | undefined {
 const withoutName = (card: { name: string; detail: string }) =>
   card.detail.replaceAll(card.name.split(' // ', 1)[0], 'this card')
 const isLandCard = (card: DeckCard) => isLandLine(card.typeLine.split(' // ', 1)[0])
+/**
+ * Theme tags from rules text only. Type-line tags would make every artifact an Artifacts card
+ * and every creature a card for its own types, so ordinary decks would earn those focuses.
+ */
+const textTags = (card: DeckCard) => ({
+  tags: tagsFor(withoutName(card).replace(/\s*\([^)]*\)/g, ''), ''),
+  typeLine: card.typeLine,
+})
+const graveyardHate = (card: DeckCard) => !!opposingAnswerEvidence(card, 'graveyard')
 
 /**
  * Whether 3+ noncommander main-deck cards show a focus. Theme focuses use `hasTag` on nonland
- * cards. Snow and land types have no theme tag, so they read text instead: nonland cards for snow,
- * and any card for a land type, since Gate and Locus payoffs are often lands themselves.
+ * cards' text tags; graveyard hate does not count for Graveyard. Snow and land types have no theme
+ * tag, so they read text instead: nonland cards for snow, and any card for a land type, since
+ * Gate and Locus payoffs are often lands themselves.
  */
 function deckEvidence(focus: LandFocus, cards: DeckCard[]): LandRoleEvidence[] | undefined {
   const themes = focusThemes[focus] ?? (creatureTypeForTheme(focus) ? [focus] : [])
@@ -479,7 +508,9 @@ function deckEvidence(focus: LandFocus, cards: DeckCard[]): LandRoleEvidence[] |
   const pattern = focusText(focus)
   const matching = cards.filter((card) =>
     themes.length
-      ? !isLandCard(card) && themes.some((theme) => hasTag(card, theme))
+      ? !isLandCard(card) &&
+        !(focus === 'Graveyard' && graveyardHate(card)) &&
+        themes.some((theme) => hasTag(textTags(card), theme))
       : (isSubtype || !isLandCard(card)) && !!pattern?.test(withoutName(card)),
   )
   const names = [...new Set(matching.map((card) => card.name))]
@@ -499,7 +530,7 @@ function creatureThemeCandidates(
     ...commanders.flatMap((commander) => creatureTypeTags(withoutName(commander))),
     ...cards
       .filter((card) => !isLandCard(card))
-      .flatMap((card) => card.tags.filter((tag) => creatureTypeForTheme(tag))),
+      .flatMap((card) => textTags(card).tags.filter((tag) => creatureTypeForTheme(tag))),
   ])
 }
 

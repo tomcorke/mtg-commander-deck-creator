@@ -9,7 +9,9 @@ import {
 } from './land-roles.ts'
 import { tagsFor } from './recommendation-themes.ts'
 
-// Oracle text from Scryfall Oracle bulk data 2026-11-04, trimmed to the fields the detector reads.
+// Modelled on Scryfall Oracle text (bulk data 2026-11-04), trimmed to the fields the detector reads.
+// Current Oracle text says "this land"; most fixtures keep the older self-name wording, so they
+// also cover reading a card's own name as "this land".
 const land = (
   name: string,
   detail: string,
@@ -171,11 +173,22 @@ const reliquaryTower = land('Reliquary Tower', 'You have no maximum hand size.\n
 const nykthos = land(
   'Nykthos, Shrine to Nyx',
   '{T}: Add {C}.\n{2}, {T}: Choose a color. Add an amount of mana of that color equal to your devotion to that color.',
-  {
-    typeLine: 'Legendary Land',
-    producedMana: ['B', 'C', 'G', 'R', 'U', 'W'],
-    oracleId: '84dc18f0-8225-4b40-a165-b10321e41769',
-  },
+  { typeLine: 'Legendary Land', producedMana: ['B', 'C', 'G', 'R', 'U', 'W'] },
+)
+const interplanarBeacon = land(
+  'Interplanar Beacon',
+  'Whenever you cast a planeswalker spell, you gain 1 life.\n{T}: Add {C}.\n{1}, {T}: Add two mana of different colors. Spend this mana only to cast planeswalker spells.',
+  { producedMana: ['B', 'C', 'G', 'R', 'U', 'W'] },
+)
+const glimmervoid = land(
+  'Glimmervoid',
+  'At the beginning of the end step, if you control no artifacts, sacrifice this land.\n{T}: Add one mana of any color.',
+  { producedMana: ['B', 'G', 'R', 'U', 'W'] },
+)
+const drannithRuins = land(
+  'Drannith Ruins',
+  '{T}: Add {C}.\n{2}, {T}: Put two +1/+1 counters on target non-Human creature that entered this turn.',
+  { producedMana: ['C'] },
 )
 
 test('detects a representative land for each of the eight roles, with evidence', () => {
@@ -254,9 +267,23 @@ test('known non-matches: drawbacks, minor riders, changelings, basics and nonlan
     rolesOf(land('Sol Ring', '{T}: Add {C}{C}.', { typeLine: 'Artifact', producedMana: ['C'] })),
     [],
   )
+  // A chosen colour scaled by devotion is big mana, not fixing, despite `produced_mana`.
+  assert.ok(!rolesOf(nykthos).includes('fixing'))
+  // A forced self-sacrifice is a drawback, not land synergy.
+  assert.deepEqual(rolesOf(glimmervoid), ['fixing'])
+  // Planeswalker spells are not spellslinger; a negated type is not typal.
+  assert.ok(!rolesOf(interplanarBeacon).includes('theme:Spellslinger'))
+  assert.ok(!rolesOf(drannithRuins).includes('theme:Humans'))
 })
 
-test('reviewed Oracle-ID overrides add or remove roles', () => {
+test('fixing evidence quotes the line that makes the colours', () => {
+  assert.equal(
+    detectLandRoles(interplanarBeacon, five)[0].evidence,
+    '{1}, {T}: Add two mana of different colors. Spend this mana only to cast planeswalker spells.',
+  )
+})
+
+test('reviewed Oracle-ID overrides add roles', () => {
   assert.deepEqual(
     detectLandRoles(reliquaryTower, five).map(({ role, source }) => [role, source]),
     [
@@ -266,8 +293,6 @@ test('reviewed Oracle-ID overrides add or remove roles', () => {
   )
   // Without its Oracle ID the static text gets no role.
   assert.deepEqual(rolesOf({ ...reliquaryTower, oracleId: undefined }), [])
-  assert.ok(rolesOf({ ...nykthos, oracleId: undefined }).includes('fixing'))
-  assert.ok(!rolesOf(nykthos).includes('fixing'))
 })
 
 test('the land type list is the CR 205.3i nonbasic list, without Scryfall-only Cloud', () => {
@@ -276,13 +301,15 @@ test('the land type list is the CR 205.3i nonbasic list, without Scryfall-only C
   assert.ok(nonbasicLandTypes.includes("Urza's"))
 })
 
+// App deck cards carry `tags` too; the deck gate ignores them and reads rules text.
 const deckCard = (name: string, typeLine: string, detail: string) => ({
   name,
   typeLine,
   detail,
   tags: tagsFor(`${typeLine}\n${detail}`, typeLine),
 })
-const elf = (index: number) => deckCard(`Elf ${index}`, 'Creature — Elf', '{T}: Add {G}.')
+const elf = (index: number) =>
+  deckCard(`Elf ${index}`, 'Creature — Elf', 'Other Elves you control get +1/+1.')
 const filler = (index: number) => deckCard(`Spell ${index}`, 'Sorcery', 'Draw a card.')
 const tatyova = {
   name: 'Tatyova, Benthic Druid',
@@ -372,6 +399,26 @@ test('3+ noncommander main-deck cards earn a theme; commanders and lands do not 
       evidence: [{ source: 'deck', count: 3, examples: ['Elf 1', 'Elf 2', 'Elf 3'] }],
     },
   ])
+  // Type lines alone earn nothing: mana rocks are artifacts and Humans are Humans in any deck.
+  const rock = (name: string) => deckCard(name, 'Artifact', '{T}: Add {C}{C}.')
+  const human = (index: number) =>
+    deckCard(`Human ${index}`, 'Creature — Human Soldier', 'Vigilance')
+  assert.equal(
+    deckLandRoles({
+      identity: ['W'],
+      themes: [],
+      commanders: [],
+      deck: [
+        rock('Sol Ring'),
+        rock('Mind Stone'),
+        rock('Thran Dynamo'),
+        human(1),
+        human(2),
+        human(3),
+      ],
+    }).find(({ role }) => role === 'theme'),
+    undefined,
+  )
   const commanderElf = { name: 'Elf 3', detail: '{T}: Add {G}.' }
   assert.equal(
     deckLandRoles({
