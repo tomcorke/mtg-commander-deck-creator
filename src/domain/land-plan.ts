@@ -62,6 +62,7 @@ export const lifePenalty = 0.1
 export const colourlessOnlyLandLimit = [Infinity, 3, 2, 1, 1, 1] as const
 /** Unselected options the plan lists after its picks. */
 export const landPlanAlternatives = 6
+export const landSearchReason = 'Found by land search, not seen with this commander'
 
 const colours = ['W', 'U', 'B', 'R', 'G'] as const
 const sourceSymbols = [...colours, 'C'] as const
@@ -352,8 +353,8 @@ const byRank = <T extends PlanCard>(
   b: { candidate: Candidate<T>; score: number },
 ) =>
   b.score - a.score ||
-  Number(a.candidate.card.reason?.startsWith('Found by land search') ?? false) -
-    Number(b.candidate.card.reason?.startsWith('Found by land search') ?? false) ||
+  Number(a.candidate.card.reason === landSearchReason) -
+    Number(b.candidate.card.reason === landSearchReason) ||
   b.candidate.inclusion - a.candidate.inclusion ||
   a.candidate.card.name.localeCompare(b.candidate.card.name)
 
@@ -694,10 +695,7 @@ export function landPlanReason(pick: LandPlanPick<unknown>) {
         ? earnedEvidenceText(pick.deckEvidence[0])
         : undefined
   const reason = (pick.card as { reason?: string }).reason
-  return [
-    why ? `${matched} · ${why}` : matched,
-    reason?.startsWith('Found by land search') ? reason : undefined,
-  ]
+  return [why ? `${matched} · ${why}` : matched, reason === landSearchReason ? reason : undefined]
     .filter(Boolean)
     .join(' · ')
 }

@@ -1209,3 +1209,54 @@ test('land search skips supplied roles and cached cards obey changed preferences
   assert.deepEqual(await landSearchCandidates(deps), [])
   assert.equal(queries.length, count)
 })
+
+test('land search caps additions, tolerates queue refresh and retries transport failures', async () => {
+  const { loadLandSearchCandidates, landSearchRoleLimit } =
+    await import('./recommendation-actions.ts')
+  let fail = true
+  let refreshed = false
+  let requests = 0
+  const raw = (name: string) => ({
+    ...card(name, 'Land', ['G']),
+    prices: { usd: '1' },
+    oracle_text: '{T}: Add {G}.\n{3}, {T}: Draw a card.',
+    produced_mana: ['G'],
+  })
+  const deps = withBuilderActions({
+    deck: [],
+    sideboard: [],
+    queue: [] as Card[],
+    deferredCards: [],
+    decisions: {},
+    ignoredCards: [],
+    commander: '',
+    theme: '',
+    activeSubThemes: [],
+    commanderDetails: { colours: ['G'] },
+    powerTarget: 'upgraded',
+    maxPrice: 3,
+    collectionMode: 'none',
+    collectionSets: [],
+    searchCards: async () => {
+      requests++
+      if (fail) throw new Error('offline')
+      if (!refreshed) {
+        refreshed = true
+        // Simulate a printing/pool update during transport, including a duplicate name.
+        deps.dispatchBuilder({
+          type: 'data',
+          changes: { queue: [toCard(raw('Grove 0'), 'Commander synergy')] },
+        })
+      }
+      return Array.from({ length: 175 }, (_, i) => raw(`Grove ${i}`))
+    },
+  })
+  await loadLandSearchCandidates(deps)
+  assert.deepEqual(deps.queue, [])
+  fail = false
+  await loadLandSearchCandidates(deps)
+  assert.ok(requests > 5, 'failed queries must be retried')
+  assert.equal(deps.queue.length, landSearchRoleLimit)
+  assert.equal(deps.queue.filter((c) => c.name === 'Grove 0').length, 1)
+  assert.equal(deps.queue[0].reason, 'Commander synergy')
+})

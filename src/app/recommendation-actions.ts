@@ -1,5 +1,7 @@
 import { builderAction, type AppActionContext } from './builder-action.ts'
 import { deckCommanders, landFillCandidates, selectedThemes } from '../domain/bulk-add.ts'
+import { landSearchReason } from '../domain/land-plan.ts'
+export { landSearchReason } from '../domain/land-plan.ts'
 import { gameChangersAtLimit } from '../domain/play-style.ts'
 import {
   deckLandRoles,
@@ -74,7 +76,7 @@ export { mergeRecommendationCandidates }
 
 /** App heuristic: widen a role with fewer than three eligible lands. */
 export const landSearchThreshold = 3
-export const landSearchReason = 'Found by land search, not seen with this commander'
+export const landSearchRoleLimit = landSearchThreshold * 3
 const landSearchTerms: Record<LandRole, string> = {
   fixing: '(o:"any color" or o:"search your library" or o:"add {")',
   utility: '(o:draw or o:scry or o:surveil or o:token or o:counter)',
@@ -86,7 +88,7 @@ const landSearchTerms: Record<LandRole, string> = {
   interaction: '(o:destroy or o:exile or o:damage or o:"can’t" or o:"can\'t")',
   'colourless-utility': 'o:"{C}"',
 }
-// Shared per adapter function: concurrent/repeated fills reuse even empty or failed lookups.
+// Shared per adapter function: concurrent/repeated fills reuse successful and empty lookups.
 const landSearchCache = new WeakMap<object, Map<string, Promise<Card[]>>>()
 
 export async function landSearchCandidates(deps: AppActionContext): Promise<Card[]> {
@@ -149,18 +151,21 @@ export async function landSearchCandidates(deps: AppActionContext): Promise<Card
         query,
         landSearchReason,
         true,
-      ).catch(() => [])
+      ).catch(() => {
+        cache.delete(key)
+        return []
+      })
       cache.set(key, pending)
     }
     const cards = await pending
     found.push(
-      ...eligible(
-        cards.filter((card) => !offered.some((other) => other.name === card.name)),
-      ).filter((card) =>
-        deckLandRoleMatches(detectLandRoles(card, identity), roles).some(
-          (match) => match.role === role.role,
-        ),
-      ),
+      ...eligible(cards.filter((card) => !offered.some((other) => other.name === card.name)))
+        .filter((card) =>
+          deckLandRoleMatches(detectLandRoles(card, identity), roles).some(
+            (match) => match.role === role.role,
+          ),
+        )
+        .slice(0, landSearchRoleLimit),
     )
   }
   return found.filter((card, i) => found.findIndex((other) => other.name === card.name) === i)
@@ -171,8 +176,25 @@ export async function loadLandSearchCandidates(deps: AppActionContext) {
   const job = deckJob(deps)
   const before = deps.getBuilderState()
   const cards = await landSearchCandidates(deps)
-  if (!job.isCurrent() || deps.getBuilderState() !== before || !cards.length) return
-  builderAction(deps, { type: 'data', changes: { queue: [...before.queue, ...cards] } })
+  const current = deps.getBuilderState()
+  if (
+    !job.isCurrent() ||
+    current.deck !== before.deck ||
+    current.commander !== before.commander ||
+    recommendationPoolKey(current) !== recommendationPoolKey(before) ||
+    !cards.length
+  )
+    return
+  const existing = new Set(
+    [...current.queue, ...current.deferredCards.map(({ card }) => card)].map(({ name }) => name),
+  )
+  const additions = landFillCandidates(
+    { ...current, queue: cards, deferredCards: [] },
+    current.commanderDetails?.colours ?? [],
+    current.excludeGameChangers,
+  ).filter(({ name }) => !existing.has(name))
+  if (additions.length)
+    builderAction(deps, { type: 'data', changes: { queue: [...current.queue, ...additions] } })
 }
 
 export async function fallbackRecommendations(deps: AppActionContext, identityColours: string[]) {

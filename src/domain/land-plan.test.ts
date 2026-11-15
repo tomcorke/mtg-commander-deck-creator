@@ -362,4 +362,9 @@ test('equal-scoring existing lands outrank weaker search evidence', () => {
   const existing = { ...utility('Z Commander Grove'), inclusion: 0 }
   const result = plan([commander()], [searched, existing])
   assert.equal(result.picks[0].card.name, existing.name)
+  const searchPick = [...result.picks, ...result.alternatives].find(
+    (pick) => pick.card.name === searched.name,
+  )
+  assert.ok(searchPick)
+  assert.match(landPlanReason(searchPick), /Found by land search, not seen with this commander/)
 })

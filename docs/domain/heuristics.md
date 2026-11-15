@@ -200,9 +200,9 @@ Queries combine `id<=<identity> legal:commander t:land` with a role's Oracle tex
 (and selected sets in Only-sets). They use no Tagger tags. One page, at most 175 cards, is requested
 per deficient role, ordered by `edhrec`: popularity, never commander synergy. There are at most
 eight searches per fill. The shared adapter owns pacing and its normal search cache; an additional
-session cache shares pending results and remembers empty/failing lookups for repeated fills.
+session cache shares pending results and remembers successful and empty lookups for repeated fills.
 Cached results are rechecked against price, sets, ignored/deck cards and construction filters.
-Failures silently retain queue-only planning. Search results say �Found by land search, not seen
-with this commander� and lose ties at equal planner score to existing candidates. This is weaker
+Failures silently retain queue-only planning. Search results say "Found by land search, not seen
+with this commander" and lose ties at equal planner score to existing candidates. This is weaker
 evidence, not proof of land quality. Broad role terms can miss less popular or unusually worded
-lands; a single page is deliberately not exhaustive.
+lands; a single page is deliberately not exhaustive. At most nine eligible matches per role enter the queue. Failed lookups are evicted so a later fill can retry through the adapter's cooldown. Starting-deck searches use roles earned before its spell pass; roles earned only by newly added spells wait for a later fill.
