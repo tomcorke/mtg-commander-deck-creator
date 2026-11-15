@@ -253,6 +253,12 @@ export const appTerms = {
       'A queued or Later card shown beside a generic pick because it has the same detected role and matches one of your themes. Both checks read card text, so it may not do the job as well.',
     kind: 'heuristic',
   },
+  landPlan: {
+    term: 'Land plan',
+    definition:
+      'Nonbasic lands Choose lands and a starting deck pick by detected role: fixing first, then roles your deck earned, then utility, within a cap by colour count. Reasons quote the text that matched, not how well the land does the job.',
+    kind: 'heuristic',
+  },
   priority: {
     term: 'Priority',
     definition:

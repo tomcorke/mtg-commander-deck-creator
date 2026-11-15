@@ -265,9 +265,13 @@ test('defers land fill, respects current decisions, and recalculates after a non
     typeLine,
     manaCost: typeLine === 'Land' ? '' : '{G}',
     manaValue: typeLine === 'Land' ? 0 : 1,
-    // A utility ability lets these lands beat the untapped Forest they replace.
-    detail: typeLine === 'Land' ? '{T}: Add {G}.\n{2}, {T}: Scry 1.' : '',
+    // A utility ability gives these lands a role in the land plan (#589).
+    detail: typeLine === 'Land' ? '{T}: Add {G}.\n{2}, {T}: Draw a card.' : '',
     producedMana: ['G'],
+    // Land-plan candidates pass the same construction check as a manual Add.
+    commanderLegality: 'legal',
+    colorIdentity: ['G'],
+    gameChanger: false,
     faces: [],
     reason: 'Land or mana',
     tags: [],
@@ -286,33 +290,42 @@ test('defers land fill, respects current decisions, and recalculates after a non
     ignoredCards: ['Ignored'],
     decisions: { Later: 'later', 'Pending ignore': 'ignore' },
   })
-  const early = buildBuilderData(deps)
+  // The plan runs only while Choose lands is open.
+  assert.equal(buildBuilderData(deps).landPlan, null)
+  const early = buildBuilderData({ ...deps, activeModal: 'basics' })
   assert.equal(early.showLandFill, false)
   assert.equal(early.landGap, 32)
   assert.deepEqual(
-    early.nonbasicLands.map(({ card }) => card.name),
+    early.landPlan?.picks.map(({ card }) => card.name),
     ['First land', 'Second land'],
   )
+  // Basics refill whatever the chosen nonbasics leave.
+  assert.deepEqual(early.landPlanBasics([]), [{ name: 'Forest', colour: 'G', count: 32 }])
+  assert.deepEqual(early.landPlanBasics([queue[4]]), [{ name: 'Forest', colour: 'G', count: 31 }])
 
   const deck = Array.from({ length: 58 }, (_, index) => card(`Spell ${index}`, 'Creature'))
   const nearComplete = buildBuilderData({ ...deps, deck })
   assert.equal(nearComplete.showLandFill, true)
   assert.deepEqual(nearComplete.basicLands, [{ name: 'Forest', colour: 'G', count: 32 }])
 
-  const updated = buildBuilderData({ ...deps, deck: [...deck, queue[4]] })
+  const open = (cards: typeof deck) =>
+    buildBuilderData({ ...deps, activeModal: 'basics', deck: cards })
+  const updated = open([...deck, queue[4]])
   assert.equal(updated.landGap, 31)
   assert.deepEqual(updated.basicLands, [{ name: 'Forest', colour: 'G', count: 31 }])
   assert.deepEqual(
-    updated.nonbasicLands.map(({ card }) => card.name),
+    updated.landPlan?.picks.map(({ card }) => card.name),
     ['Second land'],
   )
 
-  const oneSlot = buildBuilderData({ ...deps, deck: Array(99).fill(deck[0]) })
+  // One slot and no Forest yet: the one-basic-per-colour reserve keeps it basic.
+  const oneSlot = open(Array(99).fill(deck[0]))
   assert.equal(oneSlot.landGap, 1)
-  assert.equal(oneSlot.nonbasicLands.length, 1)
-  const full = buildBuilderData({ ...deps, deck: Array(100).fill(deck[0]) })
+  assert.deepEqual(oneSlot.landPlan?.picks, [])
+  assert.equal(oneSlot.landPlan?.alternatives[0].held, 'reserve')
+  const full = open(Array(100).fill(deck[0]))
   assert.equal(full.landGap, 0)
-  assert.deepEqual(full.nonbasicLands, [])
+  assert.deepEqual(full.landPlan?.picks, [])
 })
 
 test('groups planeswalker creatures with planeswalkers', () => {

@@ -145,6 +145,7 @@ export const actionSchema = z.discriminatedUnion('type', [
   z.strictObject({
     type: z.literal('addBasics'),
     cards: z.array(z.strictObject({ card: deckCard, count: count.max(100) })),
+    nonbasics: z.array(card).optional(),
   }),
   z.strictObject({ type: z.literal('addOneBasic'), card: deckCard }),
   z.strictObject({

@@ -67,13 +67,15 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 
 **Land role** — what a nonbasic land is for: fixing, utility ability, creature-land, flexible slot, land synergy, theme or keyword, interaction or hate, or colourless utility. A land can have several. Land synergy and theme or keyword are **earned**: they count only when a selected theme, the commander's text or 3+ main-deck cards show the deck cares. Detected by text heuristics (`src/domain/land-roles.ts`); a match never proves the land does the job well. Distinct from the **land** deck role above.
 
+**Land plan** — the nonbasic lands Choose lands and a starting deck plan for the land slots left (`src/domain/land-plan.ts`): fixing first, then earned roles, then utility, within a nonbasic cap by colour count and a basic reserve for basic-fetching cards. A heuristic draft the player edits, never a solved mana base.
+
 **Theme and extra theme** — up to three declared deck strategies. The first chosen is the **theme**; up to two more are **extra themes**. Start, the builder and Deck review use these names; code calls extra themes sub-themes. A **suggested theme** is one that several recently added cards share; the player chooses **Use** or **Dismiss**. **Tags** are regex-detected card traits used to match them. **Theme cards** are main-deck cards tagged for the theme; the builder tracks them against an editable, heuristic target. In Theme first, an offer that matches no selected theme carries a heuristic **Generic pick** mark. When the queue or Later list holds a card with the same detected role that matches a theme, the offer names it as a heuristic **on-theme alternative** the player can add without leaving the batch.
 
 **Recommendation batch** — a group of up to four candidate cards. The player chooses **Add**, **Later**, **Ignore**, or **More like this** for each. **Undo** reverses the most recent Add, Later or Ignore, even after **Next recommendations**.
 
 **Later & ignored** — the cards the player set aside in earlier batches. **Later** cards return after a few batches; **ignored** cards never return unless restored. From the list the player can add a card, bring a Later card back now, move an ignored card to Later, or un-ignore it.
 
-**Starting deck** — an app-built draft that fills the main deck to 100 from the ranked recommendations, role targets and basic lands. It is a heuristic draft for the player to edit, never a tuned list. **Add all** adds every undecided card in the visible batch. One undo removes either.
+**Starting deck** — an app-built draft that fills the main deck to 100 from the ranked recommendations, role targets, the land plan and basic lands. It is a heuristic draft for the player to edit, never a tuned list. **Add all** adds every undecided card in the visible batch. One undo removes either.
 
 **Signature seed** — a selected main-deck card whose engine is used to find more candidates from EDHREC. Its results show `Seen with <seed>`.
 

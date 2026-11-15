@@ -221,7 +221,8 @@
   outline-offset: 2px;
 }
 .deck-doctor-shell,
-.deck-review-history-modal {
+.deck-review-history-modal,
+.basic-land-modal {
   --doctor-bg: #f4f3fa;
   --doctor-panel: #fff;
   --doctor-soft: #faf9fd;
@@ -236,7 +237,8 @@
   color: var(--doctor-text);
 }
 .deck-doctor-shell.dark,
-.dark .deck-review-history-modal {
+.dark .deck-review-history-modal,
+.dark .basic-land-modal {
   --doctor-bg: #11101d;
   --doctor-panel: #1b1a2a;
   --doctor-soft: #141322;

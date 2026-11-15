@@ -24,6 +24,8 @@ export function useDeckState() {
   const [pendingCardRemoval, setPendingCardRemoval] =
     usePendingConfirmation<DeckCardLocation | null>(null)
   const [basicLandState, setBasicLandState] = useState<'idle' | 'loading' | 'error'>('idle')
+  /** Why Choose lands could not add its plan, when a kept land fails a check (#589). */
+  const [basicLandError, setBasicLandError] = useState('')
   const [selectedManualCard, setSelectedManualCard] = useState<ScryfallCard | null>(null)
   const [manualPrintings, setManualPrintings] = useState<ScryfallCard[]>([])
   const [manualPrinting, setManualPrinting] = useState(0)
@@ -61,6 +63,8 @@ export function useDeckState() {
     setPendingCardRemoval,
     basicLandState,
     setBasicLandState,
+    basicLandError,
+    setBasicLandError,
     selectedManualCard,
     setSelectedManualCard,
     manualPrintings,
