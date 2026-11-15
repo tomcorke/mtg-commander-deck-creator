@@ -120,7 +120,8 @@ test('recognises common ramp and board-wipe wording', () => {
     card({ detail: 'This spell deals 3 damage to each creature.' }),
     card({ detail: 'All creatures get -4/-4 until end of turn.' }),
   ])
-  assert.equal(analysis.counts.ramp, 4)
+  // Two one-shot Treasures are burst mana, which fills no ramp role (#592).
+  assert.equal(analysis.counts.ramp, 3)
   assert.equal(analysis.counts.wipes, 4)
 })
 

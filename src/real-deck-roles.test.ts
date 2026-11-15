@@ -118,7 +118,10 @@ test('instant provider categories do not claim interaction and true overlapping 
     'lands',
     'draw',
   ])
-  assert.deepEqual(rolesForCard(cards.find(({ name }) => name === 'Carrier Thrall')!), ['ramp'])
+  // Carrier Thrall's Scion is burst mana: a real function, but no ramp role (#592).
+  const thrall = cards.find(({ name }) => name === 'Carrier Thrall')!
+  assert.equal(cardFeatures(thrall).mana, 'burst')
+  assert.deepEqual(rolesForCard(thrall), [])
 })
 
 test('a Sun Titan to Rally swap invents no removal or wipe delta', () => {
