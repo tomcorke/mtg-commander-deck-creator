@@ -168,6 +168,7 @@ test('malformed named cards, list entries and envelopes are rejected', async () 
   ])
     await assert.rejects(
       fetchScryfallPrintings('https://example.test/prints', async () => response(body)),
+      /Invalid Scryfall card list/,
     )
   const malformedList = async () => response({ data: [{ name: 'Malformed' }] })
   await assert.rejects(searchScryfallPage('fixture', malformedList), /Invalid Scryfall card list/)

@@ -53,7 +53,9 @@ const cardListSchema = z.object({
 })
 
 function parseCardList(value: unknown, { omitInvalidCards = false } = {}): CardListResponse {
-  const result = cardListSchema.parse(value)
+  const parsed = cardListSchema.safeParse(value)
+  if (!parsed.success) throw new Error('Invalid Scryfall card list')
+  const result = parsed.data
   const cards = result.data.map(parseScryfallCard)
   if (!omitInvalidCards && cards.some((card) => card === undefined))
     throw new Error('Invalid Scryfall card list')
