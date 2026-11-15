@@ -10,6 +10,27 @@ New normalized cards retain `oracle_id` as `oracleId`, along with Commander lega
 
 Relevant code: `src/domain/card-model.ts`, `src/domain/printing.ts`, and `src/adapters/scryfall.ts`.
 
+### Card input audit (#586)
+
+The live adapter validates and normalises named cards, random cards, identifier collection
+results, printing pages, discovery search pages and selected-set collection pages before
+returning cards or caching them. The normaliser fills a missing root `type_line` from distinct
+face type lines in face order. Conversion uses the same fallback for older unchecked inputs.
+It preserves supplied root fields and printing metadata; it does not infer missing Oracle
+identity or mana value from a face.
+
+Malformed list entries, envelopes and individual named/random cards fail the request.
+Identifier collections retain their partial-result policy: malformed entries are omitted
+and unresolved identifiers are reported as not found. Printing progress callbacks receive
+validated cards too. The low-level `fetchScryfallCollection` returns a raw HTTP response;
+its card consumer, `resolveScryfallIdentifiers`, performs validation.
+
+The other card ingress paths already require `isScryfallCard`: the local card-index schema,
+build-time index generation, builder-fetch snapshots and deckbuild contracts/provider data.
+Those paths reject raw face-only records rather than passing a missing type to consumers.
+Session-cache casts read records validated by the live adapter; `AppView`'s manual-card cast
+reads that adapter's builder state.
+
 ## Foil treatments
 
 The app treats a foil tag in Scryfall `promo_types` as applying only to the `foil` finish. This is an app convention because Scryfall does not say which finish a tag applies to. Treatment names and descriptions follow [mtg.wiki: Foil](https://mtg.wiki/page/Foil).
@@ -61,7 +82,7 @@ node --experimental-strip-types scripts/deckbuild/recommend.ts record --live-edh
 
 `DEV_REPLAY_EDHREC` accepts only `synthetic` or `live`. `check:dev-replay` ignores it. The supervisor (`supervise.ts`) never passes `--live-edhrec`, so EDHREC work stops a supervised run.
 
-These scripts still call EDHREC without this guard: `evaluate:local-retrieval --record`, `audit:recommendations` and `scripts/measure-first-batch.ts`. [#583](https://github.com/tomcorke/mtg-commander-deck-creator/issues/583) tracks routing them through it. Until then, treat each run as a live run under this policy and log it.
+`evaluate:local-retrieval --record` and `audit:recommendations` require `--live-edhrec` before any network work and route EDHREC through the same run guard. Evaluation replay remains offline. `scripts/measure-first-batch.ts` uses only synthetic responses (including EDHREC), with no live mode or network fallback.
 
 ### Rate
 

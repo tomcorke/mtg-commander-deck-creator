@@ -1,3 +1,4 @@
+import { scriptEdhrecFetch } from './script-edhrec.ts'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { parseLocalCardIndex } from '../src/domain/local-card-index.ts'
 import { queryLocalCardIndex } from '../src/adapters/local-card-index.ts'
@@ -26,6 +27,11 @@ import {
   type RecommendationDecision,
   type ScryfallCard,
 } from '../src/recommendations.ts'
+
+const auditFetch = scriptEdhrecFetch(
+  'audit:recommendations',
+  process.argv.includes('--live-edhrec'),
+)
 
 const fixtures = [
   ['23426916', 'Wakanda Forever'],
@@ -61,7 +67,7 @@ type Result = {
 }
 
 async function json<T>(url: string, init?: RequestInit) {
-  const response = await fetch(url, { ...init, headers: { ...headers, ...init?.headers } })
+  const response = await auditFetch(url, { ...init, headers: { ...headers, ...init?.headers } })
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${url}`)
   return response.json() as Promise<T>
 }
