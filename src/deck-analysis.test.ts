@@ -20,6 +20,7 @@ import {
   manaGuidanceSymbols,
   landGuidanceBaseline,
   landGuidanceCentreLimits,
+  landGuidanceRangeLimits,
   type AnalysisCard,
   type LandGuidance,
 } from './deck-analysis.ts'
@@ -476,7 +477,7 @@ const spellsAt = (costs: number[], ramp = 0, draw = 0) =>
   )
 const repeat = (value: number, count: number) => Array<number>(count).fill(value)
 
-test('Rabbit/Upgraded regression: a 3.1 average with a heavy top and light ramp asks for more than 35', () => {
+test('Rabbit/Upgraded regression: a 3.1 average with a heavy top and light ramp asks for more than the baseline', () => {
   // 64 spells, average 3.1, ~22% at 5+, 6 ramp, 6 draw: the reported feel of a short mana base.
   const costs = [
     ...repeat(1, 7),
@@ -492,7 +493,7 @@ test('Rabbit/Upgraded regression: a 3.1 average with a heavy top and light ramp 
   assert.ok(guidance.reasons.some((reason) => reason.label.includes('cost 5 or more')))
 })
 
-test('land guidance comparisons: low curve with ramp asks for fewer; same average with flat curve stays near 35', () => {
+test('land guidance comparisons: low curve with ramp asks for fewer; same average with flat curve stays near the baseline', () => {
   const lowCurve = analyseDeck(
     spellsAt([...repeat(1, 14), ...repeat(2, 30), ...repeat(3, 20)], 14, 12),
   )
@@ -551,11 +552,41 @@ test('land guidance scales the average and 5+ reasons with spell count below 40'
   assert.match(curveReason(at(10), 'Average')?.label ?? '', /\(25% weight until 40 spells\)$/)
 })
 
+test('land guidance starts from 38 and new decks default to it (#587)', () => {
+  assert.equal(landGuidanceBaseline, 38)
+  assert.deepEqual(landGuidanceCentreLimits, [34, 42])
+  assert.deepEqual(landGuidanceRangeLimits, [32, 44])
+  assert.equal(defaultDeckTargets.lands, landGuidanceBaseline)
+})
+
+test('land guidance clamps the centre to 34 and 42 for a full deck', () => {
+  // 64 one-drops with 20 ramp and 20 draw: about -9.8 lands before the clamp.
+  const low = analyseDeck(spellsAt(repeat(1, 64), 20, 20)).landGuidance
+  assert.equal(low.centre, 34)
+  assert.deepEqual(low.range, [33, 35])
+  assert.equal(low.centre, sumsToCentre(low))
+  // 64 five-drops with no ramp or draw: about +17 lands before the clamp.
+  const high = analyseDeck(spellsAt(repeat(5, 64))).landGuidance
+  assert.equal(high.centre, 42)
+  assert.deepEqual(high.range, [41, 43])
+  assert.equal(high.centre, sumsToCentre(high))
+})
+
+test('land guidance clamps the widened partial-deck range to 32 and 44', () => {
+  // Under 20 spells the range is centre ±3, so a clamped centre reaches past the outer limits.
+  const low = analyseDeck(spellsAt(repeat(1, 19), 19)).landGuidance
+  assert.equal(low.centre, 34)
+  assert.deepEqual(low.range, [32, 37])
+  const high = analyseDeck(spellsAt(repeat(5, 19))).landGuidance
+  assert.equal(high.centre, 42)
+  assert.deepEqual(high.range, [39, 44])
+})
+
 test('land guidance: one expensive early pick no longer pushes the centre to the clamp', () => {
   const single = analyseDeck(spellsAt([5])).landGuidance
   assert.equal(single.centre, landGuidanceBaseline)
   assert.deepEqual(single.reasons, [])
-  // A few early 5-drops among 3-drops move the centre by a land or two, not to 40.
+  // A few early 5-drops among 3-drops move the centre by a land or two, not to the clamp.
   const early = analyseDeck(spellsAt([...repeat(3, 16), ...repeat(5, 4)], 3, 3)).landGuidance
   assert.ok(Math.abs(early.centre - landGuidanceBaseline) <= 2, `early ${early.centre}`)
 })

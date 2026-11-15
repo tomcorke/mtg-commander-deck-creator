@@ -43,8 +43,22 @@ export type AnalysisCard = {
   oracleId?: string
 }
 
+/**
+ * Land count the guidance heuristic starts from before adjusting for the deck (#587): Karsten's
+ * 2022 Commander formula at average MV 3 with about 10 cheap ramp/draw spells. A heuristic scaled
+ * from 60-card data, not a fitted count; calibration belongs to #98.
+ */
+export const landGuidanceBaseline = 38
+/** Nonland spells at which a partial deck's curve and role counts take full weight. */
+export const landGuidanceFullWeightSpells = 40
+/** Lowest and highest land-guidance centre. */
+export const landGuidanceCentreLimits = [34, 42] as const
+/** Lowest and highest end of the land-guidance range after widening around the centre. */
+export const landGuidanceRangeLimits = [32, 44] as const
+
+/** New decks start at the land-guidance baseline; saved decks keep their stored targets (#587). */
 export const defaultDeckTargets: Readonly<DeckTargets> = Object.freeze({
-  lands: 35,
+  lands: landGuidanceBaseline,
   ramp: 10,
   draw: 10,
   removal: 8,
@@ -397,13 +411,6 @@ export const manaGuidanceSymbols = (identity: string[]): ManaGuidanceSymbol[] =>
   'S',
 ]
 
-/** Land count the guidance heuristic starts from before adjusting for the deck. */
-export const landGuidanceBaseline = 35
-/** Nonland spells at which a partial deck's curve and role counts take full weight. */
-export const landGuidanceFullWeightSpells = 40
-/** Lowest and highest land-guidance centre. */
-export const landGuidanceCentreLimits = [32, 40] as const
-
 export type LandGuidance = {
   baseline: number
   centre: number
@@ -463,10 +470,11 @@ export function estimateLandGuidance(
     ),
   )
   const spread = n >= 50 ? 1 : n >= 20 ? 2 : 3
+  const [minRange, maxRange] = landGuidanceRangeLimits
   return {
     baseline: landGuidanceBaseline,
     centre,
-    range: [Math.max(30, centre - spread), Math.min(42, centre + spread)],
+    range: [Math.max(minRange, centre - spread), Math.min(maxRange, centre + spread)],
     reasons,
     spellCount: n,
   }
@@ -590,7 +598,7 @@ export function basicLandPlan(
   )
 }
 
-// Promote the land fill once most non-land slots are taken (55 of 65 with a 35-land target).
+// Promote the land fill once most non-land slots are taken (52 of 62 with a 38-land target).
 export const landFillReady = (cardCount: number, landCount: number, landTarget: number) =>
   cardCount - landCount >= 100 - landTarget - 10
 

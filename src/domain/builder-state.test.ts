@@ -375,6 +375,16 @@ test('the theme target is kept with the deck and never marks recommendations sta
   )
 })
 
+test('a saved deck keeps its stored land target; new decks start at 38 (#587)', async () => {
+  const { restoreBuilderState } = await import('../app/builder-restore.ts')
+  const { makeState } = await import('../../scripts/fixtures/b10-browser.ts')
+  const saved = makeState()
+  assert.equal(saved.deckTargets.lands, 35)
+  assert.equal(restoreBuilderState(saved, '2026-11-14', 'old').deckTargets.lands, 35)
+  assert.equal(initial().deckTargets.lands, 38)
+  assert.equal(restoreBuilderState(null, '2026-11-14', 'new').deckTargets.lands, 38)
+})
+
 test('expected opponents re-rank answers on commit, persist and reset (#503)', async () => {
   const { restoreBuilderState } = await import('../app/builder-restore.ts')
   const { makeState } = await import('../../scripts/fixtures/b10-browser.ts')
