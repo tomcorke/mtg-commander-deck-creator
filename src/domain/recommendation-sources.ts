@@ -1,5 +1,6 @@
 import type { ScryfallCard } from './card-model.ts'
 import { hasBackFace } from './card-layout.ts'
+import { scryfallTypeLine } from './scryfall-type-line.ts'
 import { defaultFinish, finishPrice, foilTypeFor } from './printing.ts'
 import {
   cardText,
@@ -62,10 +63,11 @@ export function parseEdhrecEntries(
 }
 
 export function toRecommendationCard(card: ScryfallCard, reason: string): RecommendationCard {
+  const typeLine = scryfallTypeLine(card)
   return {
     name: card.name,
     layout: card.layout ?? 'normal',
-    typeLine: card.type_line,
+    typeLine,
     colorIdentity: card.color_identity,
     oracleId: card.oracle_id,
     commanderLegality: card.legalities?.commander,
@@ -97,7 +99,7 @@ export function toRecommendationCard(card: ScryfallCard, reason: string): Recomm
     finish: defaultFinish(card.finishes),
     foilType: foilTypeFor(card, defaultFinish(card.finishes)),
     // Tags come only from gameplay text, never from the query or list that found the card.
-    tags: tagsFor(`${card.type_line}\n${cardText(card)}`, card.type_line),
+    tags: tagsFor(`${typeLine}\n${cardText(card)}`, typeLine),
   }
 }
 
@@ -158,7 +160,7 @@ export function buildEdhrecRecommendations(
         ...toRecommendationCard(
           card,
           slotReason(
-            card.type_line,
+            scryfallTypeLine(card),
             recommendationReasons[entry.tag] ?? entry.header.replace(/ Cards$/, ''),
           ),
         ),

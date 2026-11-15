@@ -68,6 +68,14 @@ test('random commander rejects unavailable and malformed responses', async () =>
 })
 
 test('card search exposes page counts, sorting, warnings, and the cancellation signal', async () => {
+  const card = {
+    name: 'Sol Ring',
+    type_line: 'Artifact',
+    color_identity: [],
+    set: 'tst',
+    collector_number: '1',
+    prints_search_uri: '',
+  }
   const controller = new AbortController()
   const result = await searchScryfallPage(
     'legal:commander name:"Sol Ring"',
@@ -79,7 +87,7 @@ test('card search exposes page counts, sorting, warnings, and the cancellation s
       assert.equal(url.searchParams.get('unique'), 'cards')
       assert.equal(init?.signal, controller.signal)
       return response({
-        data: [{ name: 'Sol Ring' }],
+        data: [card],
         has_more: true,
         total_cards: 200,
         warnings: ['Search warning'],
@@ -92,10 +100,7 @@ test('card search exposes page counts, sorting, warnings, and the cancellation s
   assert.equal(result.total_cards, 200)
   assert.equal(result.has_more, true)
   assert.deepEqual(result.warnings, ['Search warning'])
-  assert.deepEqual(
-    await searchScryfall('test', async () => response({ data: [{ name: 'Sol Ring' }] })),
-    [{ name: 'Sol Ring' }],
-  )
+  assert.deepEqual(await searchScryfall('test', async () => response({ data: [card] })), [card])
 })
 
 test('fetches and caches Scryfall mana-symbol SVG URIs', async () => {
@@ -337,7 +342,14 @@ test('fetchScryfallCollectionCards follows collection search pages', async () =>
 
 test('printings report each page as it arrives with the total count', async () => {
   const pages: [number, number][] = []
-  const card = (number: string) => ({ name: 'Forest', set: 'x', collector_number: number })
+  const card = (number: string) => ({
+    name: 'Forest',
+    type_line: 'Basic Land — Forest',
+    color_identity: ['G'],
+    prints_search_uri: '',
+    set: 'x',
+    collector_number: number,
+  })
   const cards = await fetchScryfallPrintings(
     'https://api.scryfall.com/forest-pages',
     async (input) =>
