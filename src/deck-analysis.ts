@@ -164,13 +164,23 @@ const rulesText = (card: AnalysisCard) => card.detail.replace(/\([^)]*\)/g, '').
  * What a card does for the mana, card-flow and interaction roles. `unknown` means the wording
  * fits a rule only partly, so it gets no role credit.
  * - mana: land-ramp (land onto the battlefield), repeatable (rocks, dorks, Treasure engines),
- *   burst (rituals, one-shot Treasure, sacrifice-for-mana), fixing and land-to-hand.
+ *   conditional (repeating mana or Treasure that needs combat, a sacrifice, a death or an
+ *   intervening "if"), burst (rituals, one-shot Treasure, self-sacrifice for mana), fixing and
+ *   land-to-hand. Only land-ramp and repeatable count as ramp (#592).
  * - draw: net (more than one card, or a repeating draw), cantrip (one card, once), selection
  *   (draw/discard or put-back), impulse (exile and play), and recursion (graveyard to hand).
  * - interaction: opposing (removal) or self (blink and protection of your own permanents).
  */
 export type CardFeatures = {
-  mana: 'land-ramp' | 'repeatable' | 'burst' | 'fixing' | 'land-to-hand' | 'unknown' | null
+  mana:
+    | 'land-ramp'
+    | 'repeatable'
+    | 'conditional'
+    | 'burst'
+    | 'fixing'
+    | 'land-to-hand'
+    | 'unknown'
+    | null
   draw: 'net' | 'cantrip' | 'selection' | 'impulse' | 'recursion' | 'unknown' | null
   interaction: 'opposing' | 'self' | 'unknown' | null
   strategy: ('resource' | 'enabler' | 'payoff' | 'finisher' | 'unknown')[]
@@ -198,6 +208,8 @@ const featureOverrides: Record<string, Partial<CardFeatures>> = {
   '2549bc57-9ffb-4053-9f10-f2a5f792b845': { mana: 'land-ramp' }, // Myriad Landscape
   'aa6723a2-75da-49f5-a1ba-cbfa82c55301': { mana: 'fixing' }, // Opal Palace
   'cfdd5dc6-593e-495a-8cfe-3a56b3c4c7df': { mana: 'repeatable' }, // Temple of the False God
+  // Blinkmoth Urn: its intervening "if" checks only that the Urn is untapped (#592).
+  '08497e8f-3521-48e4-a1e7-c192b485d891': { mana: 'repeatable' },
   // Cross-sentence, controller-relative, modal and indirect resource effects.
   '65bc4f8a-3226-4648-862b-3f62736ff1ae': { mana: 'land-to-hand' }, // Borderland Explorer
   '6832f9e2-294a-44a2-8af9-eb16ccfdfc36': { mana: 'repeatable' }, // Empowered Autogenerator
@@ -230,6 +242,57 @@ const featureOverrides: Record<string, Partial<CardFeatures>> = {
   'ee8cf4b4-2e23-4f01-a9fc-7b47ddda31b7': { interaction: 'self' }, // Thalia's Geistcaller
 }
 
+const manaEffect =
+  /adds? (?:\{|(?:one|two|three|x) mana)|create (?:a|one|two|three|\d+|x) treasure|lands? you control produces? .*additional/i
+// Repeating mana that first needs combat, a sacrifice, a death or an "if" (#592). A tax an
+// opponent declines to pay, as on Smothering Tithe, is not a condition on you.
+const manaCondition =
+  /\b(?:attacks?|block(?:s|ed)?|combat damage|sacrifices?|dies|die)\b|\bif\b(?! (?:that|the) player doesn[’']t)/i
+
+// A cost that uses up the card itself, or a loyalty minus, makes one-shot mana.
+function activatedMana(before: string, colon: number): CardFeatures['mana'] {
+  const cost = before.slice(0, colon)
+  if (/\b(?:sacrifice|exile|discard) this\b/i.test(cost) || /^[−-]/.test(cost)) return 'burst'
+  return /\bif\b/i.test(before.slice(colon)) ? 'conditional' : 'repeatable'
+}
+
+/** One ability that adds mana or creates Treasure, from its first such effect; see `manaFeature`. */
+function manaAbility(ability: string, at: number, permanent: boolean): CardFeatures['mana'] {
+  if (!permanent) return 'burst'
+  // A granted ability, such as a token's, is classified by its own text.
+  const quote = Math.max(ability.lastIndexOf('"', at), ability.lastIndexOf('“', at))
+  const granted = ability.slice(quote + 1)
+  // Saga chapters resolve once; ability words such as "Max speed —" are dropped.
+  if (quote < 0 && /^[IVX]+(?:, [IVX]+)* —/.test(granted)) return 'burst'
+  const prefix = /^\s*(?:[^—"“:,]{1,40}—\s*)?/.exec(granted)![0]
+  const body = granted.slice(prefix.length)
+  const before = body.slice(0, at - quote - 1 - prefix.length)
+  const colon = before.indexOf(':')
+  if (colon >= 0) {
+    // A one-shot token, such as an Eldrazi Spawn, is classified by the ability that makes it,
+    // as Treasure is.
+    const maker = quote < 0 ? -1 : ability.slice(0, quote).search(/\bcreate\b/i)
+    if (maker >= 0 && /\bsacrifice this\b/i.test(before.slice(0, colon)))
+      return manaAbility(ability.slice(0, quote), maker, permanent)
+    return activatedMana(before, colon)
+  }
+  if (/^when\b/i.test(body)) return 'burst'
+  if (/^(?:whenever|at the beginning)\b/i.test(body))
+    return manaCondition.test(before) ? 'conditional' : 'repeatable'
+  return /lands? you control produces? .*additional/i.test(body) ? 'repeatable' : 'unknown'
+}
+
+// Rules-text lines; a modal bullet without its own trigger or cost joins the line that offers it.
+function manaAbilities(text: string) {
+  let head = ''
+  return text.split('\n').map((line) => {
+    const mode = /^•\s*(?:[^—,:]{1,30}—\s*)?/.exec(line)
+    if (!mode) return (head = line)
+    const rest = line.slice(mode[0].length)
+    return /^(?:when|whenever|at the beginning)\b|^[^"“]*?:/i.test(rest) ? rest : `${head} ${rest}`
+  })
+}
+
 function manaFeature(card: AnalysisCard): CardFeatures['mana'] {
   if (isLand(card)) return null
   const text = rulesText(card)
@@ -242,24 +305,15 @@ function manaFeature(card: AnalysisCard): CardFeatures['mana'] {
   if (new RegExp(`${landSearch.source}[^.]*into your hand`, 'i').test(text)) return 'land-to-hand'
   if (/(?:^|\n)\{T\}: Add /i.test(text)) return 'repeatable'
   if (/\{1\}[^.:]*: add (?:one mana|\{[WUBRGC]\}(?!\{))/i.test(text)) return 'fixing'
-  if (
-    /adds? (?:\{|(?:one|two|three|x) mana)|create (?:a|one|two|\d+|x) treasure|lands? you control produces? .*additional/i.test(
-      text,
+  const kinds = manaAbilities(text.replaceAll(card.name, 'this card')).flatMap((ability) => {
+    const match = manaEffect.exec(ability)
+    return match ? [manaAbility(ability, match.index, isPermanent(card))] : []
+  })
+  if (kinds.length)
+    return (
+      (['repeatable', 'conditional', 'burst'] as const).find((kind) => kinds.includes(kind)) ??
+      'unknown'
     )
-  ) {
-    if (
-      !isPermanent(card) ||
-      /sacrifice this \w+[^.:]*: add/i.test(text.replaceAll(card.name, 'this card'))
-    )
-      return 'burst'
-    if (
-      /(?:whenever|at the beginning|:)[^.\n]*(?:add|create)|lands? you control produces? .*additional/i.test(
-        text,
-      )
-    )
-      return 'repeatable'
-    return /when [^.\n]*enters/i.test(text) ? 'burst' : 'unknown'
-  }
   return landSearch.test(text) || card.producedMana.length > 0 ? 'unknown' : null
 }
 
@@ -374,12 +428,11 @@ export function cardFeatures(card: AnalysisCard): CardFeatures {
 }
 
 /**
- * How much of a role need a card meets when ranking: one-shot mana and cantrips fill the ramp
- * and draw roles, but a deck short on them gains less than from repeatable ramp or net draw.
+ * How much of a role need a card meets when ranking: a cantrip fills the draw role, but a deck
+ * short on draw gains less than from net draw. Burst mana fills no ramp role (#592).
  */
 export function roleCredit(card: AnalysisCard): Partial<Record<TargetKey, number>> {
-  const { mana, draw } = cardFeatures(card)
-  return { ramp: mana === 'burst' ? 0.5 : 1, draw: draw === 'cantrip' ? 0.5 : 1 }
+  return { draw: cardFeatures(card).draw === 'cantrip' ? 0.5 : 1 }
 }
 
 /** The five deck-target roles, projected from `cardFeatures`. */
@@ -387,7 +440,7 @@ export function rolesForCard(card: AnalysisCard) {
   const { mana, draw, interaction, wipe } = cardFeatures(card)
   return [
     isLand(card) && 'lands',
-    (mana === 'land-ramp' || mana === 'repeatable' || mana === 'burst') && 'ramp',
+    (mana === 'land-ramp' || mana === 'repeatable') && 'ramp',
     (draw === 'net' || draw === 'cantrip') && 'draw',
     interaction === 'opposing' && wipe !== true && 'removal',
     wipe === true && 'wipes',

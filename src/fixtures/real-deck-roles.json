@@ -2,7 +2,7 @@
   "schema_version": 1,
   "issue": 33,
   "retrieved": "2026-10-25",
-  "method": "AI-assisted manual Oracle review, independent of detector outputs. Each explicit TSV row was authored after reading the card. Serialization only is automated. Six narrower app-policy decisions retain independent_expected and app_review alongside accepted expected labels.",
+  "method": "AI-assisted manual Oracle review, independent of detector outputs. Each explicit TSV row was authored after reading the card. Serialization only is automated. Eight narrower app-policy decisions retain independent_expected and app_review alongside accepted expected labels.",
   "scope_document": "docs/domain/heuristics.md",
   "role_keys": ["land", "ramp", "draw", "removal", "wipe"],
   "decks": [
@@ -4238,12 +4238,20 @@
       "scryfall_url": "https://scryfall.com/card/cmm/142/carrier-thrall?utm_source=api",
       "retrieved": "2026-10-25",
       "expected": {
+        "roles": { "land": false, "ramp": false, "draw": false, "removal": false, "wipe": false },
+        "mana": "burst",
+        "draw": null,
+        "interaction": null,
+        "wipe": false
+      },
+      "independent_expected": {
         "roles": { "land": false, "ramp": true, "draw": false, "removal": false, "wipe": false },
         "mana": "burst",
         "draw": null,
         "interaction": null,
         "wipe": false
       },
+      "app_review": "Retain the burst label but withhold ramp credit (#592): one Scion is one-shot mana, and the ramp target counts only land-ramp and repeatable mana.",
       "review_note": "Death creates a one-shot mana token; burst, not a land."
     },
     "90629e9c-83c0-4eca-b4ed-d0494ded6704": {
@@ -5224,12 +5232,20 @@
       "scryfall_url": "https://scryfall.com/card/2x2/107/dockside-extortionist?utm_source=api",
       "retrieved": "2026-10-25",
       "expected": {
+        "roles": { "land": false, "ramp": false, "draw": false, "removal": false, "wipe": false },
+        "mana": "burst",
+        "draw": null,
+        "interaction": null,
+        "wipe": false
+      },
+      "independent_expected": {
         "roles": { "land": false, "ramp": true, "draw": false, "removal": false, "wipe": false },
         "mana": "burst",
         "draw": null,
         "interaction": null,
         "wipe": false
       },
+      "app_review": "Retain the burst label but withhold ramp credit (#592): one ETB Treasure event is one-shot mana, and the ramp target counts only land-ramp and repeatable mana.",
       "review_note": "One ETB Treasure event, not repeatable output. Published historical deck; not a legality endorsement."
     },
     "70c92f25-32d6-4cda-b961-cf2680bd59ab": {

@@ -85,7 +85,7 @@ test('mana costs and repetition distinguish acceleration, fixing and one-shot re
     ['{1}, {T}: Add one mana of any color.', 'Artifact', 'fixing'],
     ['Add {R}{R}{R}.', 'Instant', 'burst'],
     ['When Fixture enters, create a Treasure token.', 'Creature', 'burst'],
-    ['Whenever you attack, create a Treasure token.', 'Creature', 'repeatable'],
+    ['Whenever you attack, create a Treasure token.', 'Creature', 'conditional'],
     ['Create a Treasure token.', 'Artifact', 'unknown'],
     ['Destroy target creature.', 'Instant', null],
   ] as const)
@@ -97,6 +97,131 @@ test('mana costs and repetition distinguish acceleration, fixing and one-shot re
   assert.deepEqual(features.costs, ['Discard a card'])
   assert.equal(features.draw, 'selection')
   assert.ok(!rolesForCard(card('Discard a card: Draw a card.', 'Creature')).includes('draw'))
+})
+
+// Oracle text from Scryfall bulk data, 2026-11-14; reminder text is stripped before matching.
+const treasure = ' (It’s an artifact with “{T}, Sacrifice this token: Add one mana of any color.”)'
+const rampCases = [
+  // Repeatable: activated mana, granted mana abilities, and unconditional or opponent-driven
+  // triggers.
+  ['Sol Ring', 'Artifact', '{T}: Add {C}{C}.', 'repeatable'],
+  ['Skirk Prospector', 'Creature', 'Sacrifice a Goblin: Add {R}.', 'repeatable'],
+  [
+    'Awakening Zone',
+    'Enchantment',
+    'At the beginning of your upkeep, you may create a 0/1 colorless Eldrazi Spawn creature token. It has "Sacrifice this token: Add {C}."',
+    'repeatable',
+  ],
+  ['Elvish Spirit Guide', 'Creature', 'Exile this card from your hand: Add {G}.', 'burst'],
+  [
+    'Howlsquad Heavy',
+    'Creature',
+    'Start your engines!\nOther Goblins you control have haste.\nAt the beginning of combat on your turn, create a 1/1 red Goblin creature token. That token attacks this combat if able.\nMax speed — {T}: Add {R} for each Goblin you control.',
+    'repeatable',
+  ],
+  [
+    'Cryptolith Rite',
+    'Enchantment',
+    'Creatures you control have "{T}: Add one mana of any color."',
+    'repeatable',
+  ],
+  [
+    'Smothering Tithe',
+    'Enchantment',
+    `Whenever an opponent draws a card, that player may pay {2}. If the player doesn't, you create a Treasure token.${treasure}`,
+    'repeatable',
+  ],
+  [
+    'Black Market Connections',
+    'Enchantment',
+    'At the beginning of your first main phase, choose one or more —\n• Sell Contraband — Create a Treasure token. You lose 1 life.\n• Buy Information — Draw a card. You lose 2 life.',
+    'repeatable',
+  ],
+  // Conditional: combat, a sacrifice, a death or an "if" comes first.
+  [
+    'Crime Novelist',
+    'Creature',
+    'Whenever you sacrifice an artifact, put a +1/+1 counter on this creature and add {R}.',
+    'conditional',
+  ],
+  [
+    'Enterprising Scallywag',
+    'Creature',
+    'At the beginning of your end step, if you descended this turn, create a Treasure token. (You descended if a permanent card was put into your graveyard from anywhere.)',
+    'conditional',
+  ],
+  [
+    'Fable of the Mirror-Breaker',
+    'Enchantment — Saga',
+    'I — Create a 2/2 red Goblin Shaman creature token with "Whenever this token attacks, create a Treasure token."\nII — You may discard up to two cards. If you do, draw that many cards.',
+    'conditional',
+  ],
+  [
+    'Ragavan, Nimble Pilferer',
+    'Creature',
+    'Whenever Ragavan deals combat damage to a player, create a Treasure token and exile the top card of that player’s library. Until end of turn, you may cast that card.',
+    'conditional',
+  ],
+  [
+    'Pitiless Plunderer',
+    'Creature',
+    `Whenever another creature you control dies, create a Treasure token.${treasure}`,
+    'conditional',
+  ],
+  [
+    'Goldspan Dragon',
+    'Creature',
+    'Flying, haste\nWhenever this creature attacks or becomes the target of a spell, create a Treasure token.\nTreasures you control have "{T}, Sacrifice this artifact: Add two mana of any one color."',
+    'conditional',
+  ],
+  // Burst: one-shot spells, triggers, self-sacrifice, Saga chapters and loyalty costs.
+  ['Brightstone Ritual', 'Instant', 'Add {R} for each Goblin on the battlefield.', 'burst'],
+  [
+    'Big Score',
+    'Instant',
+    `As an additional cost to cast this spell, discard a card.\nDraw two cards and create two Treasure tokens.${treasure}`,
+    'burst',
+  ],
+  [
+    'Wily Goblin',
+    'Creature',
+    `When this creature enters, create a Treasure token.${treasure}`,
+    'burst',
+  ],
+  [
+    'Reckless Lackey',
+    'Creature',
+    `First strike, haste\n{2}{R}, Sacrifice this creature: Draw a card and create a Treasure token.${treasure}`,
+    'burst',
+  ],
+  [
+    'Spawn-Gang Commander',
+    'Creature',
+    'Devoid (This card has no color.)\nWhen you cast this spell, create three 0/1 colorless Eldrazi Spawn creature tokens with "Sacrifice this token: Add {C}."\n{1}{C}, Sacrifice an Eldrazi: This creature deals 2 damage to any target.',
+    'burst',
+  ],
+  [
+    'Charming Scoundrel',
+    'Creature',
+    'Haste\nWhen this creature enters, choose one —\n• Discard a card, then draw a card.\n• Create a Treasure token.',
+    'burst',
+  ],
+  ['Saga fixture', 'Enchantment — Saga', 'I — Scry 2.\nII — Add {R}{R}.', 'burst'],
+  [
+    'Chandra, Novice Pyromancer',
+    'Planeswalker',
+    '+1: Elementals you control get +2/+0 until end of turn.\n−1: Add {R}{R}.',
+    'burst',
+  ],
+] as const
+
+test('only repeatable and land-ramp mana count toward the ramp target (#592)', () => {
+  for (const [name, typeLine, detail, expected] of rampCases) {
+    const fixture = { ...card(detail, typeLine), name }
+    assert.equal(cardFeatures(fixture).mana, expected, name)
+    assert.equal(rolesForCard(fixture).includes('ramp'), expected === 'repeatable', name)
+    assert.equal(roleCredit(fixture).ramp, undefined, name)
+  }
 })
 
 test('strategy clues distinguish resources, enablers, payoffs and explicit finishers', () => {

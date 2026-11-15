@@ -56,6 +56,8 @@ Quantity-weighted counts include commanders. Each cell is **baseline → reviewe
 | Plunder the Graves  | 38 → 38 | 7 → 7   | 7 → 9   | 9 → 10           | 2 → 2 |
 | Exquisite Invention | 38 → 38 | 10 → 13 | 12 → 13 | 4 → 9            | 2 → 3 |
 
+**Later change (#592, 2026-11-15):** burst mana no longer fills the ramp role. Carrier Thrall and Dockside Extortionist keep their independent ramp labels in `independent_expected` with an `app_review` note, so Mystic Intellect's current ramp count is 9, not the 10 above. See [ramp counting](domain/heuristics.md#ramp-counting-592).
+
 Run `node --experimental-strip-types --test src/real-deck-roles.test.ts` for 418 per-card checks, six deck-total checks, and three integration checks covering Doctor links/curve, provider labels and swap deltas. Boundary tests in `src/card-features.test.ts` check negative and ambiguous wording as well as positive matches.
 
 No saved targets, schema, ranking weights or UI layouts changed. Costs, timing, resources, most implicit engines, and unreviewed Oracle wording remain heuristic limits; package-aware ranking remains #105. Two existing browser gates fail identically on the baseline and this branch; repair is tracked in #146. The screenshot review uses a separate synthetic Teysa reproduction state, not one of the six published decklists.

@@ -2,6 +2,8 @@
 
 Issue #119. Reviewed against `main@3c84e38` on 2026-10-25. This is a sourced review and implementation proposal, not a behavior change. Defaults, saved targets, and current recommendations remain unchanged here.
 
+> **Superseded in part (#592, 2026-11-15):** burst mana no longer fills the ramp role, and `roleCredit` no longer gives it half credit. See [ramp counting](domain/heuristics.md#ramp-counting-592).
+
 ## Recommendation
 
 - Keep the editable starting targets at **35 lands, 10 ramp, 10 draw, 8 targeted removal, and 3 wipes**. None is a format rule or a universal optimum. Do not replace them with 40 or 43 on the strength of one creator heuristic.
