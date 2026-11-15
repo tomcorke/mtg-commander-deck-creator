@@ -107,6 +107,13 @@ const rampCases = [
   ['Sol Ring', 'Artifact', '{T}: Add {C}{C}.', 'repeatable'],
   ['Skirk Prospector', 'Creature', 'Sacrifice a Goblin: Add {R}.', 'repeatable'],
   [
+    'Awakening Zone',
+    'Enchantment',
+    'At the beginning of your upkeep, you may create a 0/1 colorless Eldrazi Spawn creature token. It has "Sacrifice this token: Add {C}."',
+    'repeatable',
+  ],
+  ['Elvish Spirit Guide', 'Creature', 'Exile this card from your hand: Add {G}.', 'burst'],
+  [
     'Howlsquad Heavy',
     'Creature',
     'Start your engines!\nOther Goblins you control have haste.\nAt the beginning of combat on your turn, create a 1/1 red Goblin creature token. That token attacks this combat if able.\nMax speed — {T}: Add {R} for each Goblin you control.',

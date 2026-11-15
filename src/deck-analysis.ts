@@ -249,6 +249,13 @@ const manaEffect =
 const manaCondition =
   /\b(?:attacks?|block(?:s|ed)?|combat damage|sacrifices?|dies|die)\b|\bif\b(?! (?:that|the) player doesn[’']t)/i
 
+// A cost that uses up the card itself, or a loyalty minus, makes one-shot mana.
+function activatedMana(before: string, colon: number): CardFeatures['mana'] {
+  const cost = before.slice(0, colon)
+  if (/\b(?:sacrifice|exile|discard) this\b/i.test(cost) || /^[−-]/.test(cost)) return 'burst'
+  return /\bif\b/i.test(before.slice(colon)) ? 'conditional' : 'repeatable'
+}
+
 /** One ability that adds mana or creates Treasure, from its first such effect; see `manaFeature`. */
 function manaAbility(ability: string, at: number, permanent: boolean): CardFeatures['mana'] {
   if (!permanent) return 'burst'
@@ -262,9 +269,12 @@ function manaAbility(ability: string, at: number, permanent: boolean): CardFeatu
   const before = body.slice(0, at - quote - 1 - prefix.length)
   const colon = before.indexOf(':')
   if (colon >= 0) {
-    const cost = before.slice(0, colon)
-    if (/\bsacrifice this\b/i.test(cost) || /^[−-]/.test(cost)) return 'burst'
-    return /\bif\b/i.test(before.slice(colon)) ? 'conditional' : 'repeatable'
+    // A one-shot token, such as an Eldrazi Spawn, is classified by the ability that makes it,
+    // as Treasure is.
+    const maker = quote < 0 ? -1 : ability.slice(0, quote).search(/\bcreate\b/i)
+    if (maker >= 0 && /\bsacrifice this\b/i.test(before.slice(0, colon)))
+      return manaAbility(ability.slice(0, quote), maker, permanent)
+    return activatedMana(before, colon)
   }
   if (/^when\b/i.test(body)) return 'burst'
   if (/^(?:whenever|at the beginning)\b/i.test(body))
