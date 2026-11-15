@@ -1653,7 +1653,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                 card,
                                 { board: 'deck', index },
                                 <span className="deck-card-reference">
-                                  <b className="card-quantity">{basics.length}×</b>
                                   <CardReference
                                     card={card}
                                     className="deck-card-name"
@@ -1662,6 +1661,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                                   />
                                 </span>,
                                 <span className="deck-mana">
+                                  <span className="card-quantity">×{basics.length}</span>
                                   <ManaSymbols symbols={card.producedMana} />
                                   {labels.size > 0 && (
                                     <small className="finish-label">

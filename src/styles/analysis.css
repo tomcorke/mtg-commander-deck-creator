@@ -1247,7 +1247,10 @@ li b {
 .deck-board .sideboard-column .deck-card-meta {
   margin-left: auto;
 }
+/* A grouped basic land's count leads its mana, like the shared deck's quantity column, so the
+   row's art and name stay on the group's left edge (#593). */
 .deck-board .card-quantity {
+  margin-right: 6px;
   color: inherit;
   font-size: var(--type-body);
   font-weight: 600;
