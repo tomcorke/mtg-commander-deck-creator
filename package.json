@@ -58,7 +58,8 @@
     "check:theme-alternative:browser": "node --experimental-strip-types scripts/check-theme-alternative-browser.ts",
     "check:deck-combos:browser": "node --experimental-strip-types scripts/check-deck-combos-browser.ts",
     "check:opposing-strategies:browser": "node --experimental-strip-types scripts/check-opposing-strategies-browser.ts",
-    "check:combo-offers:browser": "node --experimental-strip-types scripts/check-combo-offers-browser.ts"
+    "check:combo-offers:browser": "node --experimental-strip-types scripts/check-combo-offers-browser.ts",
+    "check:card-view-error:browser": "node --experimental-strip-types scripts/check-card-view-error-browser.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

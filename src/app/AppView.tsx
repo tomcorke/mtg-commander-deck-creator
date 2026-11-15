@@ -38,6 +38,7 @@ import { PlayStyleStep } from '../features/builder/PlayStyleStep.tsx'
 import { IntroGuide } from '../features/builder/IntroGuide.tsx'
 import { ModalCloseButton } from '../shared/CardDetails.tsx'
 import { useDialogFocus } from '../shared/hooks.ts'
+import { CardViewBoundary } from '../shared/CardViewBoundary.tsx'
 
 export type AppViewProps = {
   state: Record<string, any>
@@ -95,7 +96,16 @@ function SavedDecksModalView({ state, actions }: AppViewProps) {
   )
 }
 
-function DeckCardModalView({ state, actions }: AppViewProps) {
+export function DeckCardModalView(props: AppViewProps) {
+  if (!props.state.showDeckCard) return null
+  return (
+    <CardViewBoundary onClose={props.actions.closeDeckCard}>
+      <DeckCardModalContent {...props} />
+    </CardViewBoundary>
+  )
+}
+
+function DeckCardModalContent({ state, actions }: AppViewProps) {
   const manualCard = state.selectedManualCard as ScryfallCard | null
   const selectedDeckCard = manualCard
     ? {
