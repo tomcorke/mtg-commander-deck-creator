@@ -4,11 +4,12 @@
 // falls below 3:1 against the background around it.
 // CONTRAST_URL may point at a running server.
 import assert from 'node:assert/strict'
-import type { Page } from 'playwright-core'
+import type { Browser, Page } from 'playwright-core'
 import { setDisplayPreferences } from './browser-display.ts'
 import {
   button,
   heading,
+  openLandFill,
   openScenario,
   openSetAside,
   withBrowser,
@@ -16,6 +17,7 @@ import {
 } from './fixtures/browser-harness.ts'
 import { baseCandidates, goalCandidates, themeFirstState } from './fixtures/b10-browser.ts'
 import { offerFixtureComboIndex, withComboIndex } from './fixtures/combo-index.ts'
+import { landPlanGateRecords, landPlanGateState, upgraded } from './fixtures/land-plan.ts'
 import { colourThemes } from '../src/domain/commander-catalog.ts'
 import { toCard } from '../src/domain/card-model.ts'
 
@@ -105,6 +107,11 @@ function textFailures(root?: Element) {
   }
   return [...results]
 }
+/** A control in its hovered or focused state, plus the label text wrapping it, such as a checkbox's. */
+function controlFailures(control: Element) {
+  const label = control.closest('label')
+  return [...textFailures(control), ...(label && label !== control ? textFailures(label) : [])]
+}
 
 async function install(page: Page) {
   // Measure settled colours, not a theme switch or hover transition midway.
@@ -119,6 +126,7 @@ async function install(page: Page) {
       indicatorFailures,
       textFailure,
       textFailures,
+      controlFailures,
     ].join('\n'),
   })
 }
@@ -142,7 +150,7 @@ async function lowContrastStates(page: Page, screen: string) {
       if (!active || active === document.body || active.hasAttribute('data-contrast-seen'))
         return null
       active.setAttribute('data-contrast-seen', '')
-      return (window as any).textFailures(active) as string[]
+      return (window as any).controlFailures(active) as string[]
     })
     if (!found) break
     for (const item of found) results.add(`${screen} focus: ${item}`)
@@ -154,7 +162,7 @@ async function lowContrastStates(page: Page, screen: string) {
     if (!(await control.isVisible())) continue
     await control.hover({ timeout: 1000 }).catch(() => undefined)
     const found = await control.evaluate(
-      (element) => (window as any).textFailures(element) as string[],
+      (element) => (window as any).controlFailures(element) as string[],
     )
     for (const item of found) results.add(`${screen} hover: ${item}`)
   }
@@ -262,6 +270,41 @@ function contrastState() {
   return { ...state, queue: [...queue, toCard(onTheme, 'Commander synergy')] }
 }
 
+/**
+ * Choose lands (#589, #601) with picks, a held alternative and an over-budget land, at rest and
+ * with each control hovered or focused, in every commander colour when themed, and at 390px.
+ */
+async function landPlanContrast(browser: Browser, base: string, theme: (typeof themes)[number]) {
+  const scenario = await openScenario(
+    browser,
+    base,
+    landPlanGateState,
+    landPlanGateRecords,
+    undefined,
+    upgraded,
+  )
+  const { page } = scenario
+  const screen = `${theme.name} Choose lands`
+  try {
+    await setDisplayPreferences(page, theme.values)
+    const dialog = await openLandFill(page)
+    await dialog.locator('.land-plan .doctor-card-status').waitFor()
+    await dialog.locator('.land-price strong').waitFor()
+    const failures = [
+      ...(await lowContrast(page, screen)),
+      ...(await lowContrastStates(page, screen)),
+    ]
+    if (theme.values['Commander art and colours'])
+      failures.push(...(await commanderColourContrast(page, screen)))
+    await page.setViewportSize({ width: 390, height: 900 })
+    failures.push(...(await lowContrast(page, `${theme.name} Narrow Choose lands`)))
+    assert.deepEqual(scenario.errors, [], 'no page errors or unexpected dialogs')
+    return failures
+  } finally {
+    await scenario.context.close()
+  }
+}
+
 await withBrowser('CONTRAST', 5243, async (browser, base) => {
   const failures: string[] = []
   for (const theme of themes) {
@@ -357,6 +400,7 @@ await withBrowser('CONTRAST', 5243, async (browser, base) => {
     } finally {
       await scenario.context.close()
     }
+    failures.push(...(await landPlanContrast(browser, base, theme)))
   }
   assert.deepEqual(failures, [], `colours below WCAG AA contrast:\n${failures.join('\n')}`)
   console.log('Contrast gate passed.')
