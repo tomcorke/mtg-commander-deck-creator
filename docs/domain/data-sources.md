@@ -16,8 +16,8 @@ The live adapter validates and normalises named cards, random cards, identifier 
 results, printing pages, discovery search pages and selected-set collection pages before
 returning cards or caching them. The normaliser fills a missing root `type_line` from distinct
 face type lines in face order. Conversion uses the same fallback for older unchecked inputs.
-It preserves supplied root fields and printing metadata; it does not infer missing Oracle
-identity or mana value from a face.
+It preserves supplied root fields and printing metadata. Reversible gameplay fields are
+normalised as described below.
 
 Malformed list entries, envelopes and individual named/random cards fail the request.
 Identifier collections retain their partial-result policy: malformed entries are omitted
@@ -129,3 +129,25 @@ Committed docs and PRs may quote derived values, such as an inclusion count, a r
 > Provider data: EDHREC, `https://json.edhrec.com/pages/commanders/<slug>.json`, fetched 2026-11-14.
 
 Never commit response bodies or full lists.
+
+## Reversible gameplay fields (#612)
+
+Provider observations checked 2026-11-15 are recorded in the
+[KB reversible-card topic](../../../mtg-knowledge-base/knowledge/topics/providers/card-data.md#scryfall-reversible-card-root-fields).
+The 92 observed printings omit root Oracle identity, mana value, mana cost and colours.
+The live parser fills missing gameplay fields for `reversible_card`: shared face Oracle
+identity, primary-face mana value and cost, the union of face colours, primary power/toughness,
+and distinct face rules texts. Alternate art faces count once; the three observed Omen
+printings retain their primary creature's mana value rather than summing their two halves.
+`manaValueKnown` follows the resulting finite value, including zero. Supplied root values win.
+The existing `scryfallTypeLine` fallback remains the only type-line normalisation.
+
+Root-read audit: both deck and recommendation conversion also normalise unchecked inputs.
+Live adapter identity matching, local/live deduplication, current-card refresh and commander
+discovery identity, sorting and mana filters receive the parser's normalised root fields.
+Mana cost, rules text, power/toughness and images already had face fallbacks; normalisation
+also removes duplicated reversible rules text. Root colour identity, legality, produced mana,
+release/popularity, printing, finish and price fields remain provider root metadata.
+The generated local index requires root identity and finite mana value and rejects incomplete
+records. Builder snapshots use the same converters for gameplay output; session caches hold
+validated live-parser output. No UI changes or new provider claims are involved.

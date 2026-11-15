@@ -28,6 +28,9 @@ export type PrintingLike = Pick<Printing, 'image' | 'set' | 'collectorNumber' | 
   Partial<Pick<Printing, 'price' | 'nonStandard'>>
 
 export type ScryfallCardFace = {
+  oracle_id?: string
+  cmc?: number
+  colors?: string[]
   type_line?: string
   mana_cost?: string
   oracle_text?: string
@@ -47,6 +50,7 @@ export type ScryfallCard = {
   power?: string
   toughness?: string
   produced_mana?: string[]
+  colors?: string[]
   color_identity: string[]
   legalities?: { commander?: string }
   set: string
@@ -71,6 +75,9 @@ export type ScryfallCard = {
 }
 
 const faceSchema = z.object({
+  oracle_id: z.string().optional(),
+  cmc: z.number().optional(),
+  colors: z.array(z.string()).optional(),
   type_line: z.string().optional(),
   mana_cost: z.string().optional(),
   oracle_text: z.string().optional(),
@@ -82,6 +89,7 @@ const scryfallCardSchema = z.object({
   name: z.string().trim().min(1),
   oracle_id: z.string().optional(),
   type_line: z.string(),
+  colors: z.array(z.string()).optional(),
   color_identity: z.array(z.enum(['W', 'U', 'B', 'R', 'G'])),
   set: z.string(),
   collector_number: z.string(),
@@ -130,7 +138,36 @@ export function parseScryfallCard(value: unknown): ScryfallCard | undefined {
   const typeLine =
     raw.type_line === undefined ? scryfallTypeLine({ card_faces: faces.data }) : raw.type_line
   const card = { ...raw, type_line: typeLine || raw.type_line }
-  return isScryfallCard(card) ? card : undefined
+  return isScryfallCard(card) ? normalizeScryfallGameplay(card) : undefined
+}
+
+/** Provider observation (2026-11-15): reversible printings store gameplay fields on faces.
+ * Keep the primary face's mana value, including Omen halves; never sum alternate presentations.
+ */
+export function normalizeScryfallGameplay(card: ScryfallCard): ScryfallCard {
+  if (card.layout !== 'reversible_card') return card
+  const faces = card.card_faces ?? []
+  const front = faces[0]
+  const sharedOracleId =
+    front?.oracle_id && faces.every((face) => face.oracle_id === front.oracle_id)
+      ? front.oracle_id
+      : undefined
+  return {
+    ...card,
+    oracle_id: card.oracle_id ?? sharedOracleId,
+    cmc: card.cmc ?? front?.cmc,
+    colors:
+      card.colors ??
+      (faces.some((face) => face.colors !== undefined)
+        ? [...new Set(faces.flatMap((face) => face.colors ?? []))]
+        : undefined),
+    mana_cost: card.mana_cost ?? front?.mana_cost,
+    oracle_text:
+      card.oracle_text ??
+      [...new Set(faces.map((face) => face.oracle_text).filter(Boolean))].join('\n'),
+    power: card.power ?? front?.power,
+    toughness: card.toughness ?? front?.toughness,
+  }
 }
 
 export type CommanderCard = ScryfallCard & {
@@ -230,39 +267,42 @@ export const toDeckCardFromRecommendation = (card: Card): DeckCard => ({
   foilType: card.foilType,
 })
 
-export const toDeckCard = (card: ScryfallCard): DeckCard => ({
-  name: card.name,
-  layout: card.layout ?? 'normal',
-  typeLine: scryfallTypeLine(card),
-  colorIdentity: card.color_identity,
-  oracleId: card.oracle_id,
-  commanderLegality: card.legalities?.commander,
-  manaValueKnown: Number.isFinite(card.cmc),
-  gameChanger: card.game_changer ?? undefined,
-  manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '',
-  manaValue: card.cmc ?? 0,
-  detail: cardText(card),
-  producedMana: card.produced_mana ?? [],
-  faces:
-    card.card_faces?.map((face) => ({
-      typeLine: face.type_line ?? '',
-      manaCost: face.mana_cost ?? '',
-      detail: face.oracle_text,
-    })) ?? [],
-  power: card.power ?? card.card_faces?.[0]?.power,
-  toughness: card.toughness ?? card.card_faces?.[0]?.toughness,
-  set: card.set,
-  setName: card.set_name,
-  collectorNumber: card.collector_number,
-  scryfallUri: card.scryfall_uri,
-  printsUri: card.prints_search_uri,
-  image: scryfallImage(card),
-  backImage: scryfallBackImage(card),
-  price: card.prices?.usd ?? undefined,
-  priceUri: card.purchase_uris?.tcgplayer,
-  tags: cardTags(card),
-  printing: 0,
-})
+export const toDeckCard = (card: ScryfallCard): DeckCard => {
+  card = normalizeScryfallGameplay(card)
+  return {
+    name: card.name,
+    layout: card.layout ?? 'normal',
+    typeLine: scryfallTypeLine(card),
+    colorIdentity: card.color_identity,
+    oracleId: card.oracle_id,
+    commanderLegality: card.legalities?.commander,
+    manaValueKnown: Number.isFinite(card.cmc),
+    gameChanger: card.game_changer ?? undefined,
+    manaCost: card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? '',
+    manaValue: card.cmc ?? 0,
+    detail: cardText(card),
+    producedMana: card.produced_mana ?? [],
+    faces:
+      card.card_faces?.map((face) => ({
+        typeLine: face.type_line ?? '',
+        manaCost: face.mana_cost ?? '',
+        detail: face.oracle_text,
+      })) ?? [],
+    power: card.power ?? card.card_faces?.[0]?.power,
+    toughness: card.toughness ?? card.card_faces?.[0]?.toughness,
+    set: card.set,
+    setName: card.set_name,
+    collectorNumber: card.collector_number,
+    scryfallUri: card.scryfall_uri,
+    printsUri: card.prints_search_uri,
+    image: scryfallImage(card),
+    backImage: scryfallBackImage(card),
+    price: card.prices?.usd ?? undefined,
+    priceUri: card.purchase_uris?.tcgplayer,
+    tags: cardTags(card),
+    printing: 0,
+  }
+}
 
 /** "2/3" for a creature card, shown after its rules text as printed cards do (#486). */
 export const cardPowerToughness = (card: Pick<DeckCard, 'power' | 'toughness'>) =>
