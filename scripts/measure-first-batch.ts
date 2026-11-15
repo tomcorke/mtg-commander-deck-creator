@@ -13,6 +13,7 @@ import {
 import { fetchEdhrecCommander } from '../src/adapters/edhrec.ts'
 import { baseCandidates, commander, makeState } from './fixtures/b10-browser.ts'
 
+// Synthetic EDHREC fixture; no live mode or network fallback.
 // Immediate synthetic responses through the production caches and paced dispatchers.
 // Measures pool readiness, excluding DOM rendering, startup traffic and real network latency.
 const dispatches: { stage: string; path: string; ms: number }[] = []
