@@ -1,4 +1,5 @@
 import { hasTag } from './creature-types.ts'
+import { scryfallTypeLine } from './scryfall-type-line.ts'
 import { packageScore, typalScore } from './strategy-packages.ts'
 import { opposingAnswerScore } from './opposing-strategies.ts'
 import { activeOwnershipMode, isOwned } from './owned-cards.ts'
@@ -444,7 +445,7 @@ export const cardText = (card: ScryfallCard) =>
     ?.map((face) => face.oracle_text)
     .filter(Boolean)
     .join('\n') ??
-  card.type_line
+  scryfallTypeLine(card)
 export const formatUsdPrice = (price: string | null | undefined) => (price ? `$${price}` : '')
 export const isReleased = (
   card: Pick<ScryfallCard, 'released_at'>,

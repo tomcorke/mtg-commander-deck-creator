@@ -10,6 +10,26 @@ New normalized cards retain `oracle_id` as `oracleId`, along with Commander lega
 
 Relevant code: `src/domain/card-model.ts`, `src/domain/printing.ts`, and `src/adapters/scryfall.ts`.
 
+### Card input audit (#586)
+
+The live adapter validates and normalises named cards, random cards, identifier collection
+results, printing pages, discovery search pages and selected-set collection pages before
+returning cards or caching them. The normaliser fills a missing root `type_line` from distinct
+face type lines in face order. Conversion uses the same fallback for older unchecked inputs.
+It preserves supplied root fields and printing metadata; it does not infer missing Oracle
+identity or mana value from a face.
+
+Malformed list entries are omitted, matching identifier-collection behaviour; malformed list
+envelopes and malformed individual named/random cards fail the request. Printing progress
+callbacks receive validated cards too. The low-level `fetchScryfallCollection` returns a raw
+HTTP response; its card consumer, `resolveScryfallIdentifiers`, performs validation.
+
+The other card ingress paths already require `isScryfallCard`: the local card-index schema,
+build-time index generation, builder-fetch snapshots and deckbuild contracts/provider data.
+Those paths reject raw face-only records rather than passing a missing type to consumers.
+Session-cache casts read records validated by the live adapter; `AppView`'s manual-card cast
+reads that adapter's builder state.
+
 ## Foil treatments
 
 The app treats a foil tag in Scryfall `promo_types` as applying only to the `foil` finish. This is an app convention because Scryfall does not say which finish a tag applies to. Treatment names and descriptions follow [mtg.wiki: Foil](https://mtg.wiki/page/Foil).

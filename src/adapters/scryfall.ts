@@ -1,6 +1,8 @@
+import { z } from 'zod'
 import {
   cardNameKey,
   isScryfallCard,
+  parseScryfallCard,
   type ScryfallCard,
   type ScryfallSet,
 } from '../domain/card-model.ts'
@@ -40,6 +42,22 @@ export type CardListResponse = {
   next_page?: string
   total_cards?: number
   warnings?: string[]
+}
+
+const cardListSchema = z.object({
+  data: z.array(z.unknown()),
+  has_more: z.boolean().optional(),
+  next_page: z.string().optional(),
+  total_cards: z.number().optional(),
+  warnings: z.array(z.string()).optional(),
+})
+
+function parseCardList(value: unknown): CardListResponse {
+  const result = cardListSchema.parse(value)
+  return {
+    ...result,
+    data: result.data.map(parseScryfallCard).filter((card) => card !== undefined),
+  }
 }
 
 export class ScryfallRateLimitError extends ProviderRequestError {
@@ -359,7 +377,9 @@ export async function fetchScryfallCard<T extends ScryfallCard = ScryfallCard>(
       )
       if (response.status === 404) return undefined
       if (!response.ok) throw new Error('Scryfall card unavailable')
-      return (await response.json()) as ScryfallCard
+      const card = parseScryfallCard(await response.json())
+      if (!card) throw new Error('Scryfall card data is incomplete')
+      return card
     },
     signal,
   )
@@ -381,10 +401,9 @@ export async function fetchRandomScryfallCommander(
     { signal },
   )
   if (!response.ok) throw new Error('Random commander unavailable. Please try again.')
-  const card: unknown = await response.json()
+  const card = parseScryfallCard(await response.json())
   signal?.throwIfAborted()
-  if (!isScryfallCard(card))
-    throw new Error('Random commander data is incomplete. Please try again.')
+  if (!card) throw new Error('Random commander data is incomplete. Please try again.')
   return card
 }
 
@@ -455,9 +474,7 @@ export async function resolveScryfallIdentifiers(
         policy,
       )
       if (!response.ok) throw new ProviderRequestError('Scryfall unavailable', response.status)
-      const json = (await response.json()) as { data?: unknown[] } | null
-      if (!Array.isArray(json?.data)) throw new Error('Invalid Scryfall collection response')
-      return json.data.filter(isScryfallCard)
+      return parseCardList(await response.json()).data
     })
     previous = result
     for (const [key, identifier] of batch)
@@ -509,7 +526,7 @@ export async function fetchScryfallPrintings(
       while (url) {
         const response = await requestScryfall(url, fetcher, { signal: sharedSignal })
         if (!response.ok) return undefined
-        const result = (await response.json()) as CardListResponse
+        const result = parseCardList(await response.json())
         printings.push(...result.data)
         onPage?.([...printings], result.total_cards ?? printings.length)
         url = result.has_more && result.next_page ? result.next_page : ''
@@ -593,7 +610,7 @@ export async function searchScryfallPage(
   )
   if (response.status === 404) return { data: [], total_cards: 0, has_more: false }
   if (!response.ok) throw new Error('Scryfall unavailable. Try again.')
-  const result = (await response.json()) as CardListResponse
+  const result = parseCardList(await response.json())
   signal?.throwIfAborted()
   rememberPrintings(cache, result.data)
   return result
@@ -683,7 +700,7 @@ export async function fetchScryfallCollectionCards(
       if (response.status === 404 && !cards.length) return []
       throw new Error('Scryfall unavailable')
     }
-    const result = (await response.json()) as CardListResponse
+    const result = parseCardList(await response.json())
     cards.push(...result.data)
     url = result.has_more && result.next_page ? result.next_page : ''
   }
