@@ -27,7 +27,7 @@ Label every MTG claim in code comments, docs, and UI copy with how strong it is.
 1. **Rule:** the Comprehensive Rules. Changes only with a new rules file.
 2. **Policy:** Wizards' ban list, Commander Brackets, and the Game Changers list. Changes at announcements, so record the date checked.
 3. **Provider data:** what Scryfall or EDHREC returns. Scryfall reflects rules and policy closely; EDHREC is undocumented statistics from user-submitted decks.
-4. **Heuristic:** a community convention or app estimate, such as 35 lands or a regex that detects ramp. Useful, but never a rule, a bracket verdict, or proof of card quality.
+4. **Heuristic:** a community convention or app estimate, such as 38 lands or a regex that detects ramp. Useful, but never a rule, a bracket verdict, or proof of card quality.
 
 Prefer reading rules and policy from Scryfall fields at runtime over hard-coding lists. A hard-coded list needs a source and a check date beside it.
 
