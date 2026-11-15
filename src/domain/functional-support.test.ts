@@ -1,6 +1,8 @@
 // #379 regression and comparison cases: functional mana support and creature-type support.
 // Synthetic cards shaped like the pinned Rabbit/Upgraded recording (docs/evidence/379); names
 // stand for card roles, and inclusion figures are illustrative rather than provider data.
+import { applyBuilderAction, createBuilderState } from './builder-state.ts'
+import { builderPoolKey } from './builder-settings.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -281,4 +283,123 @@ test('the fallback pool keeps nonland mana sources out of the land slot', () => 
   const result = fallbackPool([], [rock, land], false, 'seed')
   assert.equal(result.find(({ name }) => name === 'Sol Ring')!.reason, 'Mana support')
   assert.equal(result.find(({ name }) => name === 'Rabbit Land 1')!.reason, 'Land or mana')
+})
+
+test('met-role staples have bounded offers and retain player constraints', () => {
+  const ring = pool.find((card) => card.name === 'Sol Ring')!
+  const filler = Array.from({ length: 10 }, (_, index) =>
+    toDeckCardFromRecommendation({
+      ...ring,
+      name: `Theme ramp ${index}`,
+      tags: ['Rabbits'],
+    }),
+  )
+  const state = start({
+    deck: [commander, ...filler],
+    batchNumber: 4,
+    preferenceScores: { Rabbits: 100 },
+    includeCreature: false,
+    pool: [
+      ring,
+      ...Array.from({ length: 24 }, (_, index) => ({
+        ...pool.find((card) => card.name === 'Rabbit 1')!,
+        name: `Theme spell ${index}`,
+        typeLine: 'Sorcery',
+        reason: ring.reason,
+      })),
+    ],
+  })
+  assert.ok(!recommend({ ...state, batchNumber: 3 }).batch.some((card) => card.name === ring.name))
+  assert.ok(recommend(state).batch.some((card) => card.name === ring.name))
+  for (const override of [
+    { ignoredCards: [ring.name] },
+    { maxPrice: 0.5 },
+    { collectionMode: 'only' as const, collectionSets: ['other'] },
+    { ownershipMode: 'only' as const, ownedCards: { 'Rabbit 1': 1 } },
+  ]) {
+    assert.ok(
+      !recommend({ ...state, ...override }).batch.some((card) => card.name === ring.name),
+      JSON.stringify(override),
+    )
+  }
+  for (const override of [
+    { recommendationStyle: 'thematic' as const },
+    { deckBudget: 0.1 },
+    { deck: [commander, ...filler, ...filler.slice(0, 2)] },
+  ]) {
+    assert.deepEqual(
+      recommend({ ...state, ...override }).batch,
+      recommend({ ...state, ...override, batchNumber: 3 }).batch,
+    )
+  }
+  let live = {
+    ...createBuilderState('2026-11-15', '591'),
+    ...state,
+    focusedRole: null,
+    queue: recommend({ ...state, batchNumber: 1 }).queue,
+    batchNumber: 1,
+  }
+  live.committedPoolKey = builderPoolKey(live)
+  for (let batch = 2; batch <= 4; batch++) {
+    const next = applyBuilderAction(live, { type: 'nextBatch' })
+    assert.equal(next.error, undefined)
+    live = next.state
+    assert.equal(live.batchNumber, batch)
+    assert.equal(
+      live.queue.slice(0, 4).some((card) => card.name === ring.name),
+      batch === 4,
+    )
+  }
+  for (const override of [
+    { focusedRole: 'ramp' },
+    { deckTargets: { lands: 35, ramp: 0, draw: 10, removal: 8, wipes: 3 } },
+  ])
+    assert.ok(
+      !recommend({ ...state, ...override })
+        .queue.slice(0, 4)
+        .some((card) => card.name === ring.name),
+    )
+  assert.ok(
+    recommend({ ...state, recommendationStyle: 'competitive' }).batch.some(
+      (card) => card.name === ring.name,
+    ),
+  )
+  assert.equal(
+    recommend(state).batch[0].name,
+    recommend({ ...state, batchNumber: 3 }).batch[0].name,
+  )
+  const oneCreature = {
+    ...ring,
+    name: 'Only creature',
+    typeLine: 'Creature',
+    tags: pool.find((card) => card.name === 'Rabbit 1')!.tags,
+    manaValueKnown: true,
+  }
+  const creatureState = {
+    ...state,
+    deck: [
+      ...state.deck,
+      ...pool
+        .filter((card) => card.typeLine.includes('Land'))
+        .slice(0, 20)
+        .map(toDeckCardFromRecommendation),
+    ],
+    includeCreature: true,
+    pool: [oneCreature, ...state.pool],
+  }
+  assert.ok(recommend(creatureState).batch.some((card) => card.name === oneCreature.name))
+  const soleTheme = { ...oneCreature, typeLine: 'Sorcery' }
+  const soleThemeState = {
+    ...state,
+    pool: [soleTheme, ...state.pool.map((card) => ({ ...card, tags: [] }))],
+  }
+  assert.ok(recommend(soleThemeState).batch.some((card) => card.name === soleTheme.name))
+  const result = recommend(state)
+  assert.equal(new Set(result.queue.map((card) => card.name)).size, result.queue.length)
+  assert.equal(
+    result.batch.some((card) => card.typeLine.includes('Creature')),
+    recommend({ ...state, batchNumber: 3 }).batch.some((card) =>
+      card.typeLine.includes('Creature'),
+    ),
+  )
 })

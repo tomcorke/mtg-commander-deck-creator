@@ -44,7 +44,7 @@ export function buildRecommendationContext(
       | 'opposingAnswerTargets'
       | 'comboLinks'
     >
-  > & { prioritizeDeckHealth?: boolean } & Record<string, unknown>,
+  > & { prioritizeDeckHealth?: boolean; focusedRole?: string | null } & Record<string, unknown>,
   candidates: Card[],
   deck: DeckCard[] = settings.deck ?? [],
 ): RecommendationScoreContext {
@@ -58,6 +58,9 @@ export function buildRecommendationContext(
     for (const tag of tags) tagCounts[tag] = (tagCounts[tag] ?? 0) + 1
   const opposingStrategies = normalizeOpposingStrategies(settings.opposingStrategies)
   return {
+    functionalRoleCounts: analysis.counts,
+    functionalRoleTargets: targets,
+    focusedRole: settings.focusedRole,
     theme: settings.theme ?? '',
     activeSubThemes: settings.activeSubThemes ?? [],
     pickedTags: new Set([

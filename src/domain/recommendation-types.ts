@@ -155,6 +155,9 @@ export type ManaSupport = {
   producedMana: Record<string, number>
 }
 export type RecommendationScoreContext = {
+  functionalRoleCounts?: import('../deck-analysis.ts').DeckTargets
+  functionalRoleTargets?: import('../deck-analysis.ts').DeckTargets
+  focusedRole?: string | null
   theme: string
   activeSubThemes: string[]
   pickedTags: Set<string>

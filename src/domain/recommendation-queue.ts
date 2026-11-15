@@ -160,6 +160,8 @@ export function rankRecommendationCards<
     set?: string
     collectionMatch?: boolean
     price?: string
+    inclusion?: number
+    localIndexSnapshot?: boolean
   },
 >(
   cards: T[],
@@ -205,7 +207,12 @@ export function rankRecommendationCards<
     score(card).manaFitPenalty > -recommendationScoreFactorMaximums.manaFitPenalty / 2
   const style = context.recommendationStyle ?? 'balanced'
   const batches = batchRecommendations(ranked, includeCreature, canUse, style, observe)
-  if (style === 'competitive') return budgetLast(batches)
+  const finish = (queue: T[]) => {
+    const ordered = budgetLast(queue)
+    offerFunctionalStaple(ordered, context, includeCreature, cardRoles, canUse)
+    return ordered
+  }
+  if (style === 'competitive') return finish(batches)
   const varied = spreadRoles(
     balanceThemeCoverage(
       batches,
@@ -219,9 +226,7 @@ export function rankRecommendationCards<
     canUse,
     observe,
   )
-  return budgetLast(
-    style === 'thematic' ? keepThemeIdentity(varied, context, canUse, observe) : varied,
-  )
+  return finish(style === 'thematic' ? keepThemeIdentity(varied, context, canUse, observe) : varied)
 }
 
 /**
@@ -481,6 +486,9 @@ type QueueScoreSettings = Pick<
   | 'opposingAnswerTargets'
   | 'powerTarget'
   | 'comboCompletions'
+  | 'functionalRoleCounts'
+  | 'functionalRoleTargets'
+  | 'focusedRole'
 >
 
 const queueScoreSettings = ({
@@ -497,6 +505,9 @@ const queueScoreSettings = ({
   opposingAnswerTargets,
   powerTarget,
   comboCompletions,
+  functionalRoleCounts,
+  functionalRoleTargets,
+  focusedRole,
 }: QueueScoreSettings): QueueScoreSettings => ({
   tagCounts,
   packageCounts,
@@ -511,6 +522,9 @@ const queueScoreSettings = ({
   opposingAnswerTargets,
   powerTarget,
   comboCompletions,
+  functionalRoleCounts,
+  functionalRoleTargets,
+  focusedRole,
 })
 
 export function advanceRecommendationQueue<
@@ -597,6 +611,7 @@ export function advanceRecommendationQueue<
     roleBoosts,
     roleSupply,
     batchNumber: released.batchNumber,
+    focusedRole,
   }
   return {
     queue: rankRecommendationCards(candidates, context, includeCreature, cardRoles),
@@ -604,6 +619,82 @@ export function advanceRecommendationQueue<
     batchNumber: released.batchNumber,
     preferenceScores: scores,
   }
+}
+
+/** App heuristic: one optional functional staple every fourth batch, capped at target + 2. */
+function offerFunctionalStaple<
+  T extends {
+    reason: string
+    typeLine: string
+    tags: string[]
+    inclusion?: number
+    localIndexSnapshot?: boolean
+    price?: string
+  },
+>(
+  queue: T[],
+  context: RecommendationScoreContext,
+  includeCreature: boolean,
+  cardRoles: (card: T) => string[],
+  canUse: (card: T) => boolean,
+) {
+  if (
+    !['balanced', 'competitive'].includes(context.recommendationStyle ?? 'balanced') ||
+    context.focusedRole ||
+    (context.batchNumber ?? 1) % 4 !== 0
+  )
+    return
+  const themes = [context.theme, ...context.activeSubThemes].filter(Boolean)
+  const roles = ['ramp', 'draw', 'removal', 'wipes'] as const
+  const isStaple = (card: T) =>
+    !card.localIndexSnapshot &&
+    Number.isFinite(card.inclusion) &&
+    card.inclusion! >= 60 &&
+    !card.typeLine.includes('Land') &&
+    !themes.some((theme) => hasTag(card, theme)) &&
+    roles.some((role) => cardRoles(card).includes(role))
+  const counts = context.functionalRoleCounts
+  const targets = context.functionalRoleTargets
+  if (!counts || !targets) return
+  const candidates = queue
+    .filter(
+      (card) =>
+        isStaple(card) &&
+        canUse(card) &&
+        roles.some(
+          (role) =>
+            cardRoles(card).includes(role) &&
+            targets[role] > 0 &&
+            counts[role] >= targets[role] &&
+            counts[role] < targets[role] + 2,
+        ),
+    )
+    .filter((card) => !exceedsDeckBudget(card, context.remainingBudget))
+    .sort((a, b) => b.inclusion! - a.inclusion!)
+  const staple = candidates[0]
+  if (!staple || queue.indexOf(staple) < 4) return
+  // Preserve the land slot, the requested creature slot, and each theme's only representative.
+  const displaced = queue
+    .slice(0, 4)
+    .findLastIndex(
+      (card, index, batch) =>
+        !card.typeLine.includes('Land') &&
+        card.reason !== 'Land or mana' &&
+        (!includeCreature ||
+          !card.typeLine.includes('Creature') ||
+          staple.typeLine.includes('Creature') ||
+          batch.filter((pick) => pick.typeLine.includes('Creature')).length > 1) &&
+        !themes.some(
+          (theme) =>
+            hasTag(card, theme) &&
+            !hasTag(staple, theme) &&
+            batch.filter((pick) => hasTag(pick, theme)).length === 1,
+        ) &&
+        index > 0,
+    )
+  if (displaced < 0) return
+  const index = queue.indexOf(staple)
+  ;[queue[displaced], queue[index]] = [staple, queue[displaced]]
 }
 
 export function freshRecommendationCycle() {
