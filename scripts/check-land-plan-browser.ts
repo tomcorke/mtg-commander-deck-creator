@@ -145,18 +145,27 @@ const closeDialog = async (page: Page, dialog: Dialog) => {
 const noSideScroll = (dialog: Dialog) =>
   dialog.evaluate((node) => node.scrollWidth <= node.clientWidth)
 
-/** Light and dark, desktop and 390px captures of the whole dialog. */
+/** The sidebar's land guidance (#379), expanded so each adjustment behind the range shows. */
+async function captureGuidance(page: Page, path: string) {
+  const guidance = page.locator('.land-guidance').first()
+  if (!(await guidance.isVisible())) return
+  await guidance.evaluate((node) => ((node as HTMLDetailsElement).open = true))
+  await guidance.screenshot({ path })
+  await guidance.evaluate((node) => ((node as HTMLDetailsElement).open = false))
+}
+
+/** Light and dark, desktop and 390px captures of the guidance and the whole dialog. */
 async function captureEvidence(page: Page, directory: string) {
   for (const dark of [false, true]) {
     await setDisplayPreferences(page, { 'Dark mode': dark })
     for (const width of [1440, 390]) {
+      const variant = `${dark ? 'dark' : 'light'}-${width}`
       // Tall enough that the whole dialog, confirm button included, fits one capture.
       await page.setViewportSize({ width, height: width < 600 ? 3600 : 2400 })
+      await captureGuidance(page, `${directory}/${label}-guidance-${variant}.png`)
       const dialog = await openDialog(page)
       assert(await noSideScroll(dialog), `no horizontal scroll at ${width}px`)
-      await dialog.screenshot({
-        path: `${directory}/${label}-${dark ? 'dark' : 'light'}-${width}.png`,
-      })
+      await dialog.screenshot({ path: `${directory}/${label}-${variant}.png` })
       await closeDialog(page, dialog)
     }
   }
