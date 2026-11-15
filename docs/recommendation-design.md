@@ -108,7 +108,7 @@ Clicking a mana-value bar highlights matching cards in the deck list. Clicking i
 
 ### Defaults
 
-- Lands: 35
+- Lands: 38 (`landGuidanceBaseline`; saved decks keep their stored target)
 - Ramp: 10
 - Card draw: 10
 - Targeted removal: 8

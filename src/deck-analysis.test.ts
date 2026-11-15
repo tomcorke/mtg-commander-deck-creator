@@ -565,7 +565,7 @@ test('land guidance clamps the centre to 34 and 42 for a full deck', () => {
   assert.equal(low.centre, 34)
   assert.deepEqual(low.range, [33, 35])
   assert.equal(low.centre, sumsToCentre(low))
-  // 64 five-drops with no ramp or draw: about +15 lands before the clamp.
+  // 64 five-drops with no ramp or draw: about +17 lands before the clamp.
   const high = analyseDeck(spellsAt(repeat(5, 64))).landGuidance
   assert.equal(high.centre, 42)
   assert.deepEqual(high.range, [41, 43])
