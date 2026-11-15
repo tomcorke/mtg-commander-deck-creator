@@ -85,7 +85,8 @@ export function ReviewCardTile({
   card: DoctorCard
   status?: string
   openCard: (card: DoctorCard) => void
-  note?: string
+  /** Muted reason text; a node lets callers render mana symbols in quoted rules text. */
+  note?: ReactNode
   fit?: RecommendationScoreRating
   selection?: CardSelection
   quantity?: CardQuantity

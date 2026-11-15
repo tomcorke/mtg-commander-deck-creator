@@ -38,6 +38,20 @@ export const button = (scope: Page | Locator, name: string) =>
   scope.getByRole('button', { name, exact: true })
 export const heading = (page: Page, name: string) =>
   page.getByRole('heading', { name, exact: true })
+
+/**
+ * Open Choose lands from the sidebar. A click while the builder is still settling after load can
+ * be lost, so click again until the dialog shows.
+ */
+export async function openLandFill(page: Page) {
+  const dialog = page.getByRole('dialog', { name: 'Choose lands', exact: true })
+  for (let attempt = 0; attempt < 5 && !(await dialog.isVisible()); attempt += 1) {
+    await page.locator('.basic-land-button, .land-fill-later button').first().click()
+    await dialog.waitFor({ timeout: 2_000 }).catch(() => undefined)
+  }
+  await dialog.waitFor()
+  return dialog
+}
 const recordFor = (provider: Provider, name: string) =>
   [...provider.records, ...allRecords].find(
     (record) => record.name.toLowerCase() === name.toLowerCase(),
@@ -96,7 +110,7 @@ async function mockScryfall(route: Route, provider: Provider) {
   if (url.pathname === '/symbology')
     return route.fulfill({
       json: {
-        data: ['1', '2', '3', '4', '5', '6', '7', 'G'].map((symbol) => ({
+        data: ['1', '2', '3', '4', '5', '6', '7', 'W', 'U', 'B', 'R', 'G', 'C'].map((symbol) => ({
           symbol: `{${symbol}}`,
           english: `Fixture mana ${symbol}`,
           svg_uri: `https://svgs.scryfall.io/card-symbols/${symbol}.svg`,

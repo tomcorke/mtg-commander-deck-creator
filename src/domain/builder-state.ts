@@ -299,7 +299,8 @@ export type BuilderAction =
   | { type: 'addGuidance'; card: Card }
   | { type: 'addCollection'; card: ScryfallCard }
   | { type: 'addSearch'; cards: ScryfallCard[] }
-  | { type: 'addBasics'; cards: { card: DeckCard; count: number }[] }
+  /** Choose lands: the planned nonbasics the player kept (#589), then basics for the rest. */
+  | { type: 'addBasics'; cards: { card: DeckCard; count: number }[]; nonbasics?: Card[] }
   | { type: 'addOneBasic'; card: DeckCard }
   | { type: 'removeCard'; board: 'deck' | 'sideboard'; index: number }
   | { type: 'moveCard'; board: 'deck' | 'sideboard'; index: number }
@@ -828,6 +829,19 @@ function applyAddBasics(
   action: Extract<BuilderAction, { type: 'addBasics' }>,
 ): BuilderActionResult {
   const identity = state.commanderDetails?.colours ?? []
+  const deck = [...state.deck]
+  // Planned nonbasics pass the same checks as a manual Add, each against the deck as it grows.
+  for (const card of action.nonbasics ?? []) {
+    const added = toDeckCardFromRecommendation(card)
+    const error = recommendationDataError(
+      added,
+      deck,
+      identity,
+      excludesGameChangers({ ...state, deck }),
+    )
+    if (error) return invalid(state, `${added.name}: ${error}`)
+    deck.push(added)
+  }
   for (const { card, count } of action.cards) {
     if (!Number.isInteger(count) || count < 0 || count > 100)
       return invalid(state, 'Invalid basic-land count.')
@@ -838,7 +852,15 @@ function applyAddBasics(
   const additions = action.cards.flatMap(({ card, count }) =>
     Array.from({ length: count }, () => ({ ...card })),
   )
-  return done({ ...state, deck: [...state.deck, ...additions].slice(0, 100) })
+  const added = new Set((action.nonbasics ?? []).map(({ name }) => name))
+  return done({
+    ...state,
+    deck: [...deck, ...additions].slice(0, 100),
+    queue: added.size ? state.queue.filter(({ name }) => !added.has(name)) : state.queue,
+    deferredCards: added.size
+      ? state.deferredCards.filter(({ card }) => !added.has(card.name))
+      : state.deferredCards,
+  })
 }
 
 function applyAddOneBasic(

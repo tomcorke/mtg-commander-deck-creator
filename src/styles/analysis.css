@@ -738,35 +738,34 @@
   color: var(--text-muted);
   font-size: var(--type-data);
 }
-.nonbasic-land-list {
-  margin: 0 0 18px;
-  padding: 0;
-  list-style: none;
+/* #589: the planned nonbasics, grouped by role, as Deck Doctor's selectable tiles. */
+.land-plan {
+  margin-bottom: 18px;
 }
-.nonbasic-land-list li {
+.land-plan > .land-plan-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+.land-plan-group {
   display: grid;
-  /* Fixed name column so every description starts at the same x. */
-  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 6px 16px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 8px;
+  margin-top: 14px;
 }
-.nonbasic-land-list .card-reference-name {
-  text-align: left;
-}
-.land-trade-off {
+.land-plan-group h4 {
   margin: 0;
-  color: var(--text-muted);
   font-size: var(--type-data);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 .land-price {
-  display: grid;
-  justify-items: end;
-  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin: 4px 0 0;
   color: var(--text-muted);
   font-size: var(--type-data);
-  white-space: nowrap;
 }
 .land-price a {
   color: var(--text-accent);
@@ -778,15 +777,6 @@
 }
 .land-price strong {
   color: var(--text-warning);
-}
-@media (max-width: 620px) {
-  .nonbasic-land-list li {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-  }
-  .land-trade-off {
-    grid-column: 1 / -1;
-    order: 1;
-  }
 }
 .card-reference-name:has(.card-reference-thumbnail) {
   display: inline-flex;

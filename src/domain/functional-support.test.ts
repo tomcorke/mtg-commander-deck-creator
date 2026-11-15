@@ -285,7 +285,8 @@ test('the fallback pool keeps nonland mana sources out of the land slot', () => 
   assert.equal(result.find(({ name }) => name === 'Rabbit Land 1')!.reason, 'Land or mana')
 })
 
-function metRoleStapleFixture() {
+// eslint-disable-next-line max-lines-per-function -- One build walk-through; splitting it would repeat the setup (#591).
+test('met-role staples have bounded offers and retain player constraints', () => {
   const ring = pool.find((card) => card.name === 'Sol Ring')!
   const filler = Array.from({ length: 10 }, (_, index) =>
     toDeckCardFromRecommendation({
@@ -309,11 +310,6 @@ function metRoleStapleFixture() {
       })),
     ],
   })
-  return { ring, filler, state }
-}
-
-test('met-role staples have bounded offers and retain player constraints', () => {
-  const { ring, filler, state } = metRoleStapleFixture()
   assert.ok(!recommend({ ...state, batchNumber: 3 }).batch.some((card) => card.name === ring.name))
   assert.ok(recommend(state).batch.some((card) => card.name === ring.name))
   for (const override of [
