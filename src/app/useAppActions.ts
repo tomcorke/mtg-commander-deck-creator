@@ -8,6 +8,7 @@ import type { OwnedCard } from '../domain/owned-cards.ts'
 import { rolesForCard } from '../deck-analysis.ts'
 import { focusedRecommendations } from '../domain/recommendation-tuning.ts'
 import { builderAction } from './builder-action.ts'
+import { loadLandSearchCandidates } from './recommendation-actions.ts'
 import type { BuilderSettings } from '../domain/builder-state.ts'
 import { normalizeOpposingAnswerTargets } from '../domain/opposing-strategies.ts'
 import type { OpposingStrategy } from '../domain/recommendation-types.ts'
@@ -213,6 +214,14 @@ async function loadBasicLandPrintings(
   return printings
 }
 
+// Stable identity lets candidate-source caches survive controller renders.
+const cachedCandidateSearch = (
+  query: string,
+  signal?: AbortSignal,
+  order?: string,
+  maxPages?: number,
+) => searchScryfallCached(query, fetch, signal, order, maxPages)
+
 function useRemoteActions(state: AppState, routing: RoutingActions) {
   const recommendationRequest = useRef(0)
   useCurrentCardData(state)
@@ -285,8 +294,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
     ...routing,
     activeModal: state.activeModal,
     // Cached so a sub-theme prefetch is reused when the pool rebuilds.
-    searchCards: (query: string, signal?: AbortSignal, order?: string, maxPages?: number) =>
-      searchScryfallCached(query, fetch, signal, order, maxPages),
+    searchCards: cachedCandidateSearch,
     fetchLocalCards,
     localCardsIfReady,
     localCardIndexStatus,
@@ -595,6 +603,15 @@ export function useAppActions(state: AppState) {
   const appState = { ...state, getCurrentState }
   const routing = useRoutingActions(appState)
   const remote = useRemoteActions(appState, routing)
+  const searchLands = useEffectEvent(() =>
+    loadLandSearchCandidates({
+      ...remote.recommendationDeps,
+      ...appState,
+    }),
+  )
+  useEffect(() => {
+    if (state.activeModal === 'basics') void searchLands()
+  }, [state.activeModal, state.deck, state.theme, state.activeSubThemes])
   const resumeFirstBatch = useEffectEvent(() => remote.start(state.commander, true))
   useEffect(() => {
     // A prepared draft resumes its first batch once its play style is chosen or skipped (A14, #490).

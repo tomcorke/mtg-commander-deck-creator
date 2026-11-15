@@ -353,3 +353,13 @@ test('candidates already in the deck, basics and duplicates are skipped', () => 
   ])
   assert.deepEqual(names(result.picks), ['Twice'])
 })
+
+test('equal-scoring existing lands outrank weaker search evidence', () => {
+  const searched = {
+    ...utility('A Search Grove'),
+    reason: 'Found by land search, not seen with this commander',
+  }
+  const existing = { ...utility('Z Commander Grove'), inclusion: 0 }
+  const result = plan([commander()], [searched, existing])
+  assert.equal(result.picks[0].card.name, existing.name)
+})

@@ -344,7 +344,7 @@ export function planBasics(
     .concat(plan.filter((entry) => !legal.includes(entry.colour as ManaColour)))
 }
 
-type PlanCard = AnalysisCard & { price?: string; inclusion?: number }
+type PlanCard = AnalysisCard & { price?: string; inclusion?: number; reason?: string }
 
 const holdOrder: LandPlanStep[] = ['fixing', 'earned', 'utility']
 const byRank = <T extends PlanCard>(
@@ -352,6 +352,8 @@ const byRank = <T extends PlanCard>(
   b: { candidate: Candidate<T>; score: number },
 ) =>
   b.score - a.score ||
+  Number(a.candidate.card.reason?.startsWith('Found by land search') ?? false) -
+    Number(b.candidate.card.reason?.startsWith('Found by land search') ?? false) ||
   b.candidate.inclusion - a.candidate.inclusion ||
   a.candidate.card.name.localeCompare(b.candidate.card.name)
 
@@ -691,5 +693,11 @@ export function landPlanReason(pick: LandPlanPick<unknown>) {
       : pick.deckEvidence[0]
         ? earnedEvidenceText(pick.deckEvidence[0])
         : undefined
-  return why ? `${matched} · ${why}` : matched
+  const reason = (pick.card as { reason?: string }).reason
+  return [
+    why ? `${matched} · ${why}` : matched,
+    reason?.startsWith('Found by land search') ? reason : undefined,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
