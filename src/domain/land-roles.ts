@@ -485,6 +485,20 @@ function focusText(focus: LandFocus): RegExp | undefined {
 }
 const withoutName = (card: { name: string; detail: string }) =>
   card.detail.replaceAll(card.name.split(' // ', 1)[0], 'this card')
+
+/** Display-only replacement: keep short names out of quotes without changing focus detection. */
+function withoutShortName(text: string, name: string) {
+  const frontName = name.split(' // ', 1)[0]
+  if (!frontName.includes(',')) return text
+  const shortName = frontName.split(',', 1)[0].trim()
+  if (!shortName) return text
+  const escaped = shortName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // Case-sensitive whole names preserve ordinary words such as "will" and longer names.
+  return text.replace(
+    new RegExp(`(?<![\\p{L}\\p{N}_-])${escaped}(?![\\p{L}\\p{N}_-])`, 'gu'),
+    'this card',
+  )
+}
 const isLandCard = (card: DeckCard) => isLandLine(card.typeLine.split(' // ', 1)[0])
 /**
  * Theme tags from rules text only. Type-line tags would make every artifact an Artifacts card
@@ -550,7 +564,13 @@ function earnFocus(
     ...commanders.flatMap((commander) => {
       const quote = pattern && sentencesOf(withoutName(commander)).find((s) => pattern.test(s))
       return quote
-        ? [{ source: 'commander' as const, commander: commander.name, quote: shortQuote(quote) }]
+        ? [
+            {
+              source: 'commander' as const,
+              commander: commander.name,
+              quote: shortQuote(withoutShortName(quote, commander.name)),
+            },
+          ]
         : []
     }),
     ...(deckEvidence(focus, cards) ?? []),

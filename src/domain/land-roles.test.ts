@@ -354,6 +354,41 @@ test('a landfall commander earns land synergy with no theme selected', () => {
   )
 })
 
+test('commander evidence replaces full and short names in single and two-commander decks', () => {
+  const commanders = [
+    {
+      name: 'Omnath, Locus of Rage',
+      detail: 'Whenever you sacrifice a land, Omnath, Locus of Rage and Omnath each deal damage.',
+    },
+    {
+      name: 'Will, Test Commander',
+      detail: "Whenever you sacrifice a land, Will's ability will affect Willow.",
+    },
+    { name: 'Nameless', detail: 'Whenever you sacrifice a land, Nameless draws a card.' },
+  ]
+  const expected = commanders.map((commander, index) => ({
+    source: 'commander',
+    commander: commander.name,
+    quote: [
+      'Whenever you sacrifice a land, this card and this card each deal damage.',
+      "Whenever you sacrifice a land, this card's ability will affect Willow.",
+      'Whenever you sacrifice a land, this card draws a card.',
+    ][index],
+  }))
+  for (const indices of [[0, 1], [2]]) {
+    const roles = deckLandRoles({
+      identity: [],
+      themes: [],
+      commanders: indices.map((index) => commanders[index]),
+      deck: [],
+    })
+    assert.deepEqual(
+      roles.find(({ role }) => role === 'land-synergy')!.focuses[0].evidence,
+      indices.map((index) => expected[index]),
+    )
+  }
+})
+
 test('a selected typal theme earns theme lands for that type and choose-a-type lands', () => {
   const roles = deckLandRoles({
     identity: ['G'],
