@@ -94,15 +94,33 @@ export const isBasicLandName = (name: string) =>
   name === 'Wastes' || Object.values(basicLandNames).includes(name)
 
 const isLandLine = (typeLine: string) => typeLine.includes('Land')
-const frontTypeLine = (card: AnalysisCard) =>
+type TypeCard = { typeLine: string; faces: { typeLine: string }[]; layout?: string }
+const frontTypeLine = (card: TypeCard) =>
   card.faces[0]?.typeLine || card.typeLine.split(' // ', 1)[0]
-const isLand = (card: AnalysisCard) =>
+const isLand = (card: TypeCard) =>
   card.layout === 'modal_dfc'
     ? card.faces.length
       ? card.faces.some((face) => isLandLine(face.typeLine))
       : isLandLine(card.typeLine)
     : isLandLine(frontTypeLine(card))
-const isOptionalLandMdfc = (card: AnalysisCard) => card.layout === 'modal_dfc' && isLand(card)
+/** Shared deck type policy: transforming backs require setup; optional land MDFCs count as lands. */
+export const cardTypeLines = (card: TypeCard) => {
+  if (card.layout === 'modal_dfc' && isLand(card)) {
+    return card.faces.length
+      ? card.faces.filter((face) => isLandLine(face.typeLine)).map((face) => face.typeLine)
+      : ['Land']
+  }
+  return ['transform', 'meld', 'double_faced_token'].includes(card.layout ?? '')
+    ? [frontTypeLine(card)]
+    : [card.typeLine, ...card.faces.map((face) => face.typeLine)]
+}
+export const matchesCardType = (card: AnalysisCard, type: string): boolean =>
+  type === 'Land'
+    ? isLand(card)
+    : type === 'Other'
+      ? ![...cardTypes, 'Land'].some((known) => matchesCardType(card, known))
+      : cardTypeLines(card).some((line) => new RegExp(`\\b${type}\\b`).test(line))
+
 const curveType = (card: AnalysisCard) =>
   card.layout === 'modal_dfc'
     ? card.faces.find((face) => !isLandLine(face.typeLine))?.typeLine
@@ -576,19 +594,7 @@ export function analyseDeck(cards: AnalysisCard[]) {
     targetKeys.map((key) => [key, cards.filter((card) => rolesForCard(card).includes(key)).length]),
   ) as DeckTargets
   const typeCounts = Object.fromEntries(
-    cardTypes.map((type) => [
-      type,
-      cards.filter((card) => {
-        const lines = isOptionalLandMdfc(card)
-          ? card.faces.length
-            ? card.faces.filter((face) => isLandLine(face.typeLine)).map((face) => face.typeLine)
-            : ['Land']
-          : card.layout === 'transform'
-            ? [frontTypeLine(card)]
-            : [card.typeLine, ...card.faces.map((face) => face.typeLine)]
-        return lines.some((line) => new RegExp(`\\b${type}\\b`).test(line))
-      }).length,
-    ]),
+    cardTypes.map((type) => [type, cards.filter((card) => matchesCardType(card, type)).length]),
   ) as Record<(typeof cardTypes)[number], number>
   const averageManaValue = spells.length
     ? spells.reduce((sum, card) => sum + card.manaValue, 0) / spells.length
@@ -623,10 +629,10 @@ const otherPermanentTypes = /\b(?:Artifact|Battle|Creature|Enchantment|Land|Plan
 const otherNonPermanentTypes = /\b(?:Instant|Sorcery)\b/
 
 /** The deck board group: planeswalkers, then `deckSection`, then other (non-)permanents. */
-export function displayDeckSection(card: { typeLine: string; faces: { typeLine: string }[] }) {
-  const typeLines = [card.typeLine, ...card.faces.map((face) => face.typeLine)].join(' ')
+export function displayDeckSection(card: TypeCard) {
+  const typeLines = cardTypeLines(card).join(' ')
   if (planeswalkerType.test(typeLines)) return 'Planeswalkers'
-  const section = deckSection(card.typeLine)
+  const section = deckSection(typeLines)
   if (section !== 'Other') return section
   if (otherPermanentTypes.test(typeLines)) return 'Other Permanents'
   if (otherNonPermanentTypes.test(typeLines)) return 'Other Non-permanents'

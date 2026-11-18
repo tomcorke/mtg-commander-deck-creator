@@ -1,12 +1,12 @@
 import { hasTag } from '../domain/creature-types.ts'
 import {
   analyseDeck,
+  matchesCardType,
   basicLandNames,
   basicLandPlan,
   landFillReady,
   cardTypes,
   deckGuidance,
-  deckSection,
   displayDeckSection,
   addsToSideboard,
   isBasicLandName,
@@ -274,7 +274,7 @@ function buildDeckData(deps: BuilderDataDeps) {
   const displayedTypeCounts = [
     ['Land', analysis.counts.lands],
     ...cardTypes.map((type) => [type, analysis.typeCounts[type]] as const),
-    ['Other', deck.filter((card: Card) => deckSection(card.typeLine) === 'Other').length],
+    ['Other', deck.filter((card: Card) => matchesCardType(card, 'Other')).length],
   ] as const
   const maxTypeCount = Math.max(1, ...displayedTypeCounts.map(([, count]) => count))
   return {
