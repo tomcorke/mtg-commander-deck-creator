@@ -302,6 +302,9 @@ for (const format of ['plain', 'moxfield', 'csv'] as const) {
       { ...raw('Commander'), collector_number: '1', finishes: ['nonfoil', 'foil'] },
       {
         ...raw('Forest'),
+        games: ['paper'],
+        released_at: '2020-01-01',
+        prices: { usd: '0.10' },
         type_line: 'Basic Land — Forest',
         collector_number: '2',
         finishes: ['nonfoil', 'foil'],

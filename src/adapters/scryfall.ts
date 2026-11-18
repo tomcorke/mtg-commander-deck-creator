@@ -8,6 +8,7 @@ import {
 } from '../domain/card-model.ts'
 import type { ScryfallManaSymbol } from '../domain/mana-symbols.ts'
 import { releasedBy } from '../domain/recommendation-sources.ts'
+import { defaultFinish, finishPrice } from '../domain/printing.ts'
 import {
   ProviderRequestError,
   retryTime,
@@ -329,6 +330,44 @@ function cachedRequest(
 
 const collectionResponse = (response: Response) => response.ok || response.status < 500
 
+const defaultBasicNames = new Set(['plains', 'island', 'swamp', 'mountain', 'forest', 'wastes'])
+
+async function defaultBasicPrinting(
+  card: ScryfallCard,
+  fetcher: ScryfallFetcher,
+  signal?: AbortSignal,
+) {
+  if (!defaultBasicNames.has(cardNameKey(card.name))) return card
+  const today = new Date().toISOString().slice(0, 10)
+  const releasedPaper = (printing: ScryfallCard) =>
+    !!printing.released_at &&
+    printing.released_at <= today &&
+    printing.games?.includes('paper') === true &&
+    !printing.digital
+  const priced = (printing: ScryfallCard) =>
+    finishPrice(printing, defaultFinish(printing.finishes)) !== undefined
+  if (releasedPaper(card) && priced(card)) return card
+  const url = new URL(card.prints_search_uri || 'https://api.scryfall.com/cards/search')
+  url.searchParams.set('q', `!"${card.name}" game:paper date<=${today}`)
+  url.searchParams.set('unique', 'prints')
+  url.searchParams.set('order', 'released')
+  url.searchParams.set('dir', 'desc')
+  let fallback = releasedPaper(card) ? card : undefined
+  let page = url.toString()
+  while (page) {
+    const response = await requestScryfall(page, fetcher, { signal })
+    if (!response.ok) break
+    const result = parseCardList(await response.json())
+    const printings = result.data.filter(releasedPaper)
+    const selected = printings.find(priced)
+    if (selected) return selected
+    fallback ??= printings[0]
+    page = result.has_more && result.next_page ? result.next_page : ''
+  }
+  if (!fallback) throw new Error('Released basic land printing unavailable')
+  return fallback
+}
+
 export async function fetchScryfallCollection(
   identifiers: ScryfallIdentifier[],
   fetcher: ScryfallFetcher = fetch,
@@ -384,7 +423,7 @@ export async function fetchScryfallCard<T extends ScryfallCard = ScryfallCard>(
       if (!response.ok) throw new Error('Scryfall card unavailable')
       const card = parseScryfallCard(await response.json())
       if (!card) throw new Error('Scryfall card data is incomplete')
-      return card
+      return defaultBasicPrinting(card, fetcher, sharedSignal)
     },
     signal,
   )
@@ -487,7 +526,12 @@ export async function resolveScryfallIdentifiers(
         cache,
         key,
         job,
-        result.then((cards) => matchingCard(identifier, cards)),
+        result.then(async (cards) => {
+          const card = matchingCard(identifier, cards)
+          return card && identifier.name && !identifier.set && !identifier.oracle_id
+            ? defaultBasicPrinting(card, fetcher, job.controller.signal)
+            : card
+        }),
       )
   }
   const cards = await Promise.all(
