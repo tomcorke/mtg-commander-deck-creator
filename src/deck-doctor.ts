@@ -1,3 +1,4 @@
+import { commanderTriggerLink } from './domain/commander-trigger-links.ts'
 import { hasTag } from './domain/creature-types.ts'
 import {
   analyseDeck,
@@ -94,11 +95,17 @@ function hasKnownSynergy(card: DeckCard, deck: DeckCard[]) {
   return deck.some((other) => other !== card && findSynergyPair([card, other]) !== null)
 }
 
-function unconnectedCards(deck: DeckCard[], themeTags: string[], synergyDeck: DeckCard[]) {
+function unconnectedCards(
+  deck: DeckCard[],
+  themeTags: string[],
+  synergyDeck: DeckCard[],
+  commanders: DeckCard[],
+) {
   return deck.flatMap((card, index) =>
     themeTags.some((tag) => hasTag(card, tag)) ||
     rolesForCard(card).length ||
-    hasKnownSynergy(card, synergyDeck)
+    hasKnownSynergy(card, synergyDeck) ||
+    commanderTriggerLink(card, commanders)
       ? []
       : [{ card, index }],
   )
@@ -240,6 +247,7 @@ export function analyzeDeckDoctor(input: DeckDoctorInput): DeckDoctorFinding[] {
     mainboard,
     [...themeTags, ...detectedReviewThemes(mainboard, input.dismissedSubThemes, themeTags)],
     input.deck,
+    input.deck.slice(0, input.commanderCount),
   ).map(({ card, index }) => ({
     card,
     index: index + input.commanderCount,
