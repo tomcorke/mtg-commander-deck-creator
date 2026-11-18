@@ -1341,3 +1341,38 @@ test('theme evidence quotes the sentence or type line that matched (#501)', () =
   assert.ok(quote.length <= 120 && quote.endsWith('…'), quote)
   assert.equal(themeEvidence(card('Trample'), 'Sacrifice'), undefined)
 })
+
+test('on-theme commander favourites outrank evidence-free local matches in early batches', () => {
+  const context = {
+    theme: 'Voltron',
+    preferenceScores: {},
+    activeSubThemes: [],
+    pickedTags: new Set<string>(),
+    neededRoles: new Set<string>(),
+    cardRoles: [],
+  }
+  const favourite = {
+    name: 'Favourite',
+    reason: 'Commander favourite',
+    inclusion: 67,
+    typeLine: 'Artifact',
+    tags: ['Voltron'],
+  }
+  const local = {
+    name: 'Local',
+    reason: 'Interesting new pick',
+    localIndexSnapshot: true,
+    typeLine: 'Artifact',
+    tags: ['Voltron'],
+  }
+  for (const recommendationStyle of ['thematic', 'balanced'] as const) {
+    const ctx = { ...context, recommendationStyle }
+    assert.ok(
+      recommendationScoreBreakdown(favourite, ctx).total >
+        recommendationScoreBreakdown(local, ctx).total,
+    )
+    const fillers = Array.from({ length: 40 }, (_, i) => ({ ...local, name: `Filler ${i}` }))
+    const ranked = rankRecommendationCards([...fillers, favourite], ctx, false)
+    assert.ok(ranked.slice(0, 4).includes(favourite))
+  }
+})

@@ -426,3 +426,25 @@ test('under Owned only a starting deck drafts no unowned queued or Later card', 
   assert.ok(deck.includes('Owned Rock') && deck.includes('Owned Draw'))
   assert.ok(!deck.includes('Shop Rock') && !deck.includes('Later Rock'))
 })
+test('top commander theme favourites survive local matches, role quotas and draft filters', () => {
+  const favourite = {
+    ...card('Favourite', { oracle_text: 'Equipped creature gets +2/+2.' }),
+    reason: 'Commander favourite',
+    inclusion: 67,
+  }
+  const locals = Array.from({ length: 80 }, (_, i) => ({
+    ...card(`Local ${i}`, { oracle_text: 'Equipped creature gets +2/+2. Draw a card.' }),
+    localIndexSnapshot: true,
+  }))
+  for (const recommendationStyle of ['thematic', 'balanced'] as const) {
+    const state = builder({ theme: 'Voltron', recommendationStyle, queue: [...locals, favourite] })
+    const result = apply(state, { type: 'buildStartingDeck', basics: [forest] })
+    assert.equal(result.error, undefined)
+    assert.ok(result.state.deck.some((c) => c.name === favourite.name))
+    const capped = apply(builder({ ...state, maxPrice: 0.5 }), {
+      type: 'buildStartingDeck',
+      basics: [forest],
+    })
+    assert.ok(!capped.state.deck.some((c) => c.name === favourite.name))
+  }
+})
