@@ -1,3 +1,4 @@
+import { plural } from './land-dialog-copy.ts'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 
 import { scryfallImage, type Card, type ScryfallCard } from '../../domain/card-model.ts'
@@ -77,8 +78,6 @@ function BasicLandGallery({
   )
 }
 
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
-
 /** Plan options in dialog groups: fill order, then each group's picks before its alternatives. */
 function planGroups(plan: LandPlan<Card>) {
   const groups: { label: string; options: LandPlanPick<Card>[] }[] = []
@@ -117,7 +116,7 @@ function LandPlanSection({
   const { term, kind } = appTerms.landPlan
   const full = selected.length >= landGap
   const reserve = plan.fetchers
-    ? `keeps ${plural(plan.reserve, 'basic')} for your ${plural(plan.fetchers, 'basic-land search')}`
+    ? `keeps ${plural(plan.reserve, 'basic')} for your ${plural(plan.fetchers, 'basic-land search', 'basic-land searches')}`
     : `keeps at least ${plural(plan.reserve, 'basic')}`
   return (
     <section className="land-fill-step land-plan" aria-labelledby="nonbasic-land-title">
