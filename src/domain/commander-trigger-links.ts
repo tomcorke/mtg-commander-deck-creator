@@ -5,16 +5,16 @@ const conditions = [
   {
     label: 'combat damage to a player',
     trigger:
-      /\b(?:when|whenever) (?:it|~|a creature you control|one or more creatures you control) deals? combat damage to (?:a player|one or more players|an opponent|one of your opponents)\b/i,
+      /\b(?:when|whenever) (?:it|~|this creature|a creature you control|one or more creatures you control) deals? combat damage to (?:a player|one or more players|an opponent|one of your opponents)\b/i,
     payoff:
-      /\bwhenever (?:a creature|one or more creatures|a creature you control|one or more creatures you control) deals? combat damage to (?:a player|one or more players|an opponent|one of your opponents)\b/i,
+      /\bwhenever (?:a creature|one or more creatures) (?:you control deals? combat damage to (?:a player|one or more players|an opponent|one of your opponents)|deals? combat damage to (?:an opponent|one of your opponents))\b/i,
     repeat:
       /\b(?:a |one or more )?creatures? you control dealing combat damage to (?:a player|one or more players|an opponent|one of your opponents) causes? a triggered ability[^.\n]*triggers? an additional time/i,
   },
   {
     label: 'lands entering under your control',
     trigger:
-      /\b(?:when|whenever) (?:a land|one or more lands) enters?(?: the battlefield)? under your control\b/i,
+      /\b(?:when|whenever) (?:a land|one or more lands) (?:you control enters?|enters?(?: the battlefield)? under your control)\b/i,
   },
   {
     label: 'creatures you control dying',

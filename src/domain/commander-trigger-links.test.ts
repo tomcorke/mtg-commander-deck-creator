@@ -26,6 +26,7 @@ test('combat damage payoffs and explicit repeaters link to a commander trigger',
 
 test('land entry and friendly creature death triggers generalise beyond combat', () => {
   for (const trigger of [
+    'Landfall ? Whenever a land you control enters, draw a card.',
     'Whenever a land enters under your control, draw a card.',
     'Whenever another creature you control dies, draw a card.',
   ])
@@ -34,6 +35,7 @@ test('land entry and friendly creature death triggers generalise beyond combat',
 
 test('unrelated conditions, reminder text, enemy triggers and self-only payoffs do not link', () => {
   for (const text of [
+    'Whenever a creature deals combat damage to a player, draw.',
     'Whenever a creature an opponent controls deals combat damage to a player, draw.',
     'Whenever Payoff deals combat damage to a player, draw.',
     'Whenever a creature you control deals damage to a player, draw.',
@@ -67,4 +69,29 @@ test('Oracle short self-name in Kotis is recognised', () => {
       ],
     ),
   )
+})
+
+test('the second commander can supply the link and this-creature self-reference works', () => {
+  const payoff = {
+    name: 'Payoff',
+    detail: 'Whenever a creature you control deals combat damage to a player, draw a card.',
+  }
+  assert.ok(
+    commanderTriggerLink(payoff, [
+      { name: 'Unrelated', detail: 'Flying' },
+      {
+        name: 'Kotis, the Fangkeeper',
+        detail: 'Whenever Kotis deals combat damage to a player, exile cards.',
+      },
+    ]),
+  )
+  assert.ok(link(payoff.detail, 'Whenever this creature deals combat damage to a player, draw.'))
+})
+
+test('current and older land entry wording link in both directions', () => {
+  const current = 'Landfall ? Whenever a land you control enters, draw a card.'
+  const older = 'Whenever a land enters the battlefield under your control, draw a card.'
+  assert.ok(link(current, older))
+  assert.ok(link(older, current))
+  assert.equal(link('Whenever a land an opponent controls enters, draw.', current), undefined)
 })
