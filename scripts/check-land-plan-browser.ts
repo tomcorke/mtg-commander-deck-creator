@@ -172,6 +172,23 @@ async function assertDetailsRoundTrip(page: Page) {
     'focus returns to the tile',
   )
   await expectChoices('after tile details')
+
+  // Browser Back closes the details; Forward reopens them, still above the same dialog.
+  await forestName.focus()
+  await page.keyboard.press('Enter')
+  await details.waitFor()
+  await page.goBack()
+  await details.waitFor({ state: 'detached' })
+  await expectChoices('after Back')
+  await page.goForward()
+  await details.waitFor()
+  assert.equal(await topmostDialog(details), 'deck-card-title', 'Forward reopens details above')
+  await expectChoices('after Forward')
+  await page.keyboard.press('Escape')
+  await details.waitFor({ state: 'detached' })
+  await page.waitForFunction(() => document.activeElement?.closest('.basic-land-modal'))
+  assert.equal(await focusedLabel(page), 'Show details for Forest', 'focus after Forward')
+  await expectChoices('after Forward and Escape')
   await closeDialog(page, dialog)
 }
 

@@ -21,6 +21,16 @@ test('routeHash preserves view and modal names', () => {
   assert.equal(routeHash('builder', 'doctor-history'), '#build/doctor-history')
 })
 
+test('card details opened from Choose lands remember it beneath them (#645)', () => {
+  const state = { app: 'commander-deck-creator', view: 'builder', modal: 'card', entry: true }
+  assert.equal(parseAppRoute('#build/card', { ...state, beneath: 'basics' })?.beneath, 'basics')
+  assert.equal(parseAppRoute('#build/card', state)?.beneath, undefined)
+  // Only a details entry carries it, and only for Choose lands.
+  const basics = { ...state, modal: 'basics', beneath: 'basics' }
+  assert.equal(parseAppRoute('#build/basics', basics)?.beneath, undefined)
+  assert.equal(parseAppRoute('#build/card', { ...state, beneath: 'search' })?.beneath, undefined)
+})
+
 test('review steps have distinct routes and predictable predecessors, including direct links', () => {
   for (const [index, modal] of reviewRoutes.entries()) {
     const parsed = parseAppRoute(routeHash('builder', modal), null)

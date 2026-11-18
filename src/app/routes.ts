@@ -19,6 +19,8 @@ export type AppHistoryState = {
   modal: AppModal | null
   entry: boolean
   reviewDepth?: number
+  /** The dialog a card details entry stacks over, so Forward reopens details above it (#645). */
+  beneath?: 'basics'
 }
 
 export const appHistoryKey = 'commander-deck-creator'
@@ -122,6 +124,13 @@ export function parseAppRoute(hashValue: string, stateValue: unknown): AppHistor
       Number.isInteger(state.reviewDepth) &&
       Number(state.reviewDepth) > 0
         ? { reviewDepth: state.reviewDepth }
+        : {}),
+      ...(state?.app === appHistoryKey &&
+      state.view === view &&
+      modal === 'card' &&
+      state.modal === modal &&
+      state.beneath === 'basics'
+        ? { beneath: state.beneath }
         : {}),
       entry:
         state?.app === appHistoryKey &&
