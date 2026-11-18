@@ -43,6 +43,7 @@ export function resetBuilder(
     pendingFetches: [],
     completedFetches: [],
     localCandidateBuffer: [],
+    priceCappedFavourites: [],
     comboLinks: [],
     recommendationOptionsChanged: false,
   }

@@ -109,6 +109,8 @@ export const initialStateSchema = stateSchema
     pendingFetches: z.array(z.never()).length(0),
     completedFetches: z.array(z.never()).length(0),
     localCandidateBuffer: z.array(z.never()).length(0),
+    // Session-only price-cap evidence for the builder UI (#632); recipes predate it.
+    priceCappedFavourites: z.array(card).default([]),
     // The CLI has no combo data, so High power never scores combos here (#502).
     comboLinks: z.array(z.never()).length(0).default([]),
   })

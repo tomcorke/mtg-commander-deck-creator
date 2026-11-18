@@ -457,3 +457,31 @@ test('edited answer targets re-rank without a refetch, persist and reset (#565)'
     {},
   )
 })
+
+test('a pool load keeps its price-capped favourites until the next load or a new deck (#632)', () => {
+  const capped = card('Capped favourite')
+  const loaded = apply(freeze(initial({ queue: [card('Alpha')] })), {
+    type: 'poolLoaded',
+    queue: [card('Alpha')],
+    deferredCards: [],
+    poolKey: 'pool-1',
+    priceCappedFavourites: [capped],
+  })
+  assert.deepEqual(loaded.priceCappedFavourites, [capped])
+  // Decisions and re-ranks within the pool keep them; a load without any clears them.
+  const decided = apply(loaded, { type: 'decide', card: loaded.queue[0], decision: 'later' })
+  assert.deepEqual(decided.priceCappedFavourites, [capped])
+  const reloaded = apply(loaded, {
+    type: 'poolLoaded',
+    queue: [card('Alpha')],
+    deferredCards: [],
+    poolKey: 'pool-2',
+  })
+  assert.deepEqual(reloaded.priceCappedFavourites, [])
+  const restarted = apply(loaded, {
+    type: 'startOver',
+    today: '2026-10-26',
+    signatureDeckKey: 'build-2',
+  })
+  assert.deepEqual(restarted.priceCappedFavourites, [])
+})

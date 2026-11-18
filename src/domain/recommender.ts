@@ -1,5 +1,5 @@
 import { buildEdhrecRecommendations, excludedByOptions } from './recommendation-sources.ts'
-import { slotReason } from './recommendation-scoring.ts'
+import { isTopThemeFavourite, slotReason } from './recommendation-scoring.ts'
 import type { EdhrecEntry, RecommendationOptions } from './recommendation-types.ts'
 import { defaultDeckTargets, rolesForCard, type DeckTargets } from '../deck-analysis.ts'
 import { toCard, type ScryfallCard, type Card, type DeckCard } from './card-model.ts'
@@ -301,6 +301,8 @@ export type Recommendation = {
   error?: string
   scores: ScoredCard[]
   exclusions: { name: string; reason: ExclusionReason; detail?: string }[]
+  /** Commander theme favourites the price cap left out, so the builder can say why (#632). */
+  priceCappedFavourites: Card[]
 }
 
 type Rank = typeof rankRecommendationCards<Card>
@@ -323,6 +325,7 @@ export function recommend(
       deferredCards: state.deferredCards,
       scores: [],
       exclusions,
+      priceCappedFavourites: [],
       error:
         state.collectionMode === 'only'
           ? 'Your chosen sets have too few legal cards.'
@@ -369,12 +372,17 @@ export function recommend(
   if (state.focusedRole)
     for (const card of batch) placements.set(card, [...(placements.get(card) ?? []), 'focus'])
   const queued = new Set(queue)
-  for (const card of candidates)
-    if (!queued.has(card))
-      exclusions.push({
-        name: card.name,
-        reason: withinPriceCap(card, state.maxPrice) ? 'outside-collection' : 'over-price-cap',
-      })
+  const unqueued = candidates.filter((card) => !queued.has(card))
+  const capped = (card: Card) => !withinPriceCap(card, state.maxPrice)
+  for (const card of unqueued)
+    exclusions.push({
+      name: card.name,
+      reason: capped(card) ? 'over-price-cap' : 'outside-collection',
+    })
+  const priceCappedFavourites = unqueued.filter(
+    (card) =>
+      capped(card) && isTopThemeFavourite(card, [context.theme, ...context.activeSubThemes]),
+  )
   const scores = queue.map((card, position) => {
     const breakdown = cardScoreBreakdown(card, context, rolesForCard)
     return {
@@ -395,6 +403,7 @@ export function recommend(
     deferredCards,
     scores,
     exclusions,
+    priceCappedFavourites,
   }
 }
 

@@ -77,6 +77,9 @@ import { HealthLane } from './HealthLane.tsx'
 import { GenericPickNote } from './GenericPickNote.tsx'
 import { ComboOfferNote } from './ComboOfferNote.tsx'
 import { ThemeAlternativeNote } from './ThemeAlternativeNote.tsx'
+import { FavouriteHolds } from './FavouriteHolds.tsx'
+import type { FavouriteHoldFacts } from './favourite-hold-copy.ts'
+import type { FavouriteHold } from '../../domain/favourite-holds.ts'
 import { TargetCount, ThemeTargetRow } from './ThemeTargetRow.tsx'
 import { deckTargetActions, landGuidanceLaterNote } from './deck-target-actions.ts'
 import { AddZoneToggle } from '../../shared/AddZoneToggle.tsx'
@@ -150,6 +153,9 @@ type BuilderViewModel = {
   }[]
   guidance: { key: string; strong: boolean; text: string }[]
   healthSuggestions: Card[]
+  favouriteHolds: FavouriteHold<Card>[]
+  favouriteHoldFacts: FavouriteHoldFacts
+  favouriteHoldCommander: string
   highlightedManaValue: number | null
   inferredSubThemes: string[]
   legalBasicNames: string[]
@@ -1232,6 +1238,15 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
                 </button>
               )}
             </div>
+          )}
+          {recommendationState === 'idle' && !model.playStyleStep && (
+            <FavouriteHolds
+              holds={model.favouriteHolds}
+              commander={model.favouriteHoldCommander}
+              facts={model.favouriteHoldFacts}
+              ownedCards={model.ownedCards}
+              onOpen={openGuidanceCard}
+            />
           )}
           {healthSuggestions.length > 0 && (
             <HealthLane

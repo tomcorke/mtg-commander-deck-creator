@@ -761,6 +761,21 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+/* Theme favourites on hold (#632) reuse the lane; each tile carries a reason sentence, so tiles are wider. */
+.favourite-hold-list {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.favourite-hold-reason {
+  margin: 6px 0 0;
+  font-size: var(--type-data);
+  line-height: 1.4;
+}
+.favourite-holds-more {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-data);
+}
 .compact-action {
   padding: 4px 8px;
   border-radius: 5px;

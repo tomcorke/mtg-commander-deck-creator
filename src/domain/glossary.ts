@@ -253,6 +253,12 @@ export const appTerms = {
       'A queued or Later card shown beside a generic pick because it has the same detected role and matches one of your themes. Both checks read card text, so it may not do the job as well.',
     kind: 'heuristic',
   },
+  favouriteHold: {
+    term: 'Theme favourites on hold',
+    definition:
+      'Cards in at least half of this commander’s EDHREC decks that match your theme but wait behind other offers: a creature whose cost the deck cannot yet support, a card over your deck budget, or one above your price limit. Inclusion counts how often decks play a card, not how good it is.',
+    kind: 'heuristic',
+  },
   landPlan: {
     term: 'Land plan',
     definition:

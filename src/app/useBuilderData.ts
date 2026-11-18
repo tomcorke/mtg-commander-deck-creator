@@ -59,6 +59,7 @@ import { opposingStrategyTerms } from '../domain/glossary.ts'
 import { setAsideCards } from '../domain/decision-undo.ts'
 import { gameChangersAtLimit } from '../domain/play-style.ts'
 import { findThemeAlternative, type AlternativeSource } from '../domain/theme-alternative.ts'
+import { themeFavouriteHolds } from '../domain/favourite-holds.ts'
 import type { OpposingStrategy } from '../domain/recommendation-types.ts'
 
 export type BuilderDataDeps = Record<string, any>
@@ -434,15 +435,19 @@ function themeAlternativeFinder(deps: BuilderDataDeps, batch: Card[]) {
   return (card: Card) => findThemeAlternative(card, themes, pool)
 }
 
+// "Finneas" for "Finneas, Ace Archer"; partners join with "and".
+const shortCommanderName = (commander: string) =>
+  commanderNames(commander)
+    .map((name) => name.split(',')[0])
+    .join(' and ')
+
 function recommendationExplainer(
   deps: BuilderDataDeps,
   deckData: ReturnType<typeof buildDeckData>,
   pickedTags: Set<string>,
 ) {
   const { collectionMode, collectionSets, preferenceScores, deckTargets } = deps
-  const commanderName = commanderNames(deps.commander)
-    .map((name) => name.split(',')[0])
-    .join(' and ')
+  const commanderName = shortCommanderName(deps.commander)
   const selectedThemes = selectedThemeNames(deps)
   const marksGeneric = marksGenericPicks(deps)
   const expected = normalizeOpposingStrategies(deps.opposingStrategies)
@@ -508,6 +513,31 @@ function recommendationExplainer(
     return marksGeneric && !explanation.themeFit ? { ...explanation, generic: true } : explanation
   }
   return explainRecommendation
+}
+
+// Theme favourites the queue or price cap holds back, with the evidence their copy quotes (#632).
+function favouriteHoldData(
+  deps: BuilderDataDeps,
+  shown: Card[],
+  context: ReturnType<typeof buildRecommendationContext>,
+) {
+  return {
+    favouriteHolds: themeFavouriteHolds<Card>({
+      queue: deps.queue,
+      shown,
+      priceCapped: deps.priceCappedFavourites ?? [],
+      inDeck: new Set([...deps.deck, ...deps.sideboard].map(({ name }: DeckCard) => name)),
+      context,
+      cardRoles: rolesForCard,
+      limit: Infinity,
+    }),
+    favouriteHoldCommander: shortCommanderName(deps.commander),
+    favouriteHoldFacts: {
+      manaSupport: context.manaSupport,
+      remainingBudget: context.remainingBudget,
+      maxPrice: context.maxPrice,
+    },
+  }
 }
 
 function buildRecommendationData(
@@ -585,6 +615,7 @@ function buildRecommendationData(
   const offerCombos = (card: Card): ComboLink[] => completions.get(card.name) ?? []
   const themeAlternative = themeAlternativeFinder(deps, visibleBatch)
   return {
+    ...favouriteHoldData(deps, visibleBatch, context),
     rawBatch,
     synergyPair,
     pairCards,
