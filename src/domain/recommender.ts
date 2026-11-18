@@ -26,7 +26,7 @@ import type {
 } from './recommendation-types.ts'
 
 /** Bumped whenever scoring, ranking or starting-deck composition changes for the same inputs. */
-export const recommendationScoringVersion = 15
+export const recommendationScoringVersion = 16
 
 /** FNV-1a hash of a seed string, as an unsigned 32-bit integer. */
 const hashSeed = (seed: string) => {

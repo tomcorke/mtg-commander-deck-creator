@@ -484,3 +484,49 @@ test('owned-only theme cards keep the speculative cap after hydration clears the
   assert.equal(result.error, undefined)
   assert.equal(result.state.deck.filter((c) => c.name.startsWith('Owned ')).length, 3)
 })
+
+test('starting drafts stop preferring completed roles while other candidates remain', () => {
+  const removal = (name: string) => card(name, { oracle_text: 'Destroy target creature.' })
+  const wipe = (name: string) => card(name, { oracle_text: 'Destroy all creatures.' })
+  const roles = [ramp, draw, removal, wipe]
+  const queue = [
+    ...roles.flatMap((make, role) =>
+      Array.from({ length: 25 }, (_, i) => make(`Role ${role} ${i}`)),
+    ),
+    ...Array.from({ length: 80 }, (_, i) => card(`Theme filler ${i}`)),
+  ]
+  const state = builder({ queue, recommendationStyle: 'balanced' })
+  const built = apply(state, { type: 'buildStartingDeck', basics: [forest] })
+  assert.equal(built.error, undefined)
+  assert.equal(built.state.deck.length, 100)
+  const counts = analyseDeck(built.state.deck).counts
+  for (const role of ['ramp', 'draw', 'removal', 'wipes'] as const) {
+    assert.ok(counts[role] >= state.deckTargets[role], role)
+    assert.ok(counts[role] <= state.deckTargets[role] + 1, role)
+  }
+  // Exhaustion remains a fallback, rather than replacing available spells with basics.
+  const scarce = builder({ queue: queue.slice(0, 100), recommendationStyle: 'balanced' })
+  const fallback = apply(scarce, { type: 'buildStartingDeck', basics: [forest] })
+  assert.equal(fallback.state.deck.length, 100)
+  assert.equal(analyseDeck(fallback.state.deck).counts.lands, scarce.deckTargets.lands)
+})
+
+test('role quotas prefer a single-role alternative over an already-completed overlapping role', () => {
+  const overlap = card('Ramp and draw', { oracle_text: '{T}: Add {G}. Draw two cards.' })
+  assert.deepEqual(rolesForCard(overlap), ['ramp', 'draw'])
+  const state = builder({
+    deckTargets: { lands: 38, ramp: 1, draw: 1, removal: 0, wipes: 0 },
+    queue: [
+      ramp('First ramp'),
+      overlap,
+      draw('Only draw'),
+      ...Array.from({ length: 80 }, (_, i) => card(`Filler ${i}`)),
+    ],
+  })
+  const result = apply(state, { type: 'buildStartingDeck', basics: [forest] })
+  assert.equal(result.error, undefined)
+  assert.equal(analyseDeck(result.state.deck).counts.ramp, 1)
+  assert.equal(analyseDeck(result.state.deck).counts.draw, 1)
+  assert.ok(result.state.deck.some((c) => c.name === 'Only draw'))
+  assert.ok(!result.state.deck.some((c) => c.name === overlap.name))
+})
