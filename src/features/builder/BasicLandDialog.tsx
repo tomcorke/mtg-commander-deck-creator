@@ -5,6 +5,7 @@ import { scryfallImage, type Card, type ScryfallCard } from '../../domain/card-m
 import { basicLandNames } from '../../deck-analysis.ts'
 import { appTerms, claimKindLabels } from '../../domain/glossary.ts'
 import {
+  basicSplitReason,
   landPlanGroup,
   landPlanHoldLabels,
   landPlanReason,
@@ -400,7 +401,9 @@ export function BasicLandDialog({
               <h3 id="basic-land-split-title">
                 {options.length > 0 ? 'Then fill the rest with basics' : 'Basic land split'}
               </h3>
-              <p>Set the colour balance, then pick art for each basic.</p>
+              <p>
+                {basicSplitReason(basicLands)} Set the colour balance, then pick art for each basic.
+              </p>
             </div>
             {commanderSet && (
               <button
