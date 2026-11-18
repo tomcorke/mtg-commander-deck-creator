@@ -1,4 +1,10 @@
-import { allowedByOwnership, type OwnedQuantities, type OwnershipMode } from './owned-cards.ts'
+import { hasTag } from './creature-types.ts'
+import {
+  allowedByOwnership,
+  ownedCardReason,
+  type OwnedQuantities,
+  type OwnershipMode,
+} from './owned-cards.ts'
 import {
   analyseDeck,
   isBasicLandName,
@@ -199,7 +205,17 @@ export function planStartingDeck(input: StartingDeckInput, basics: DeckCard[]): 
   const basicPrice = Math.max(0, ...basics.map((card) => cardPrice(card) ?? 0))
   let remaining = remainingDeckBudget(input.deckBudget, deck)
 
+  // App heuristic: keep speculative local theme filler to three new spells per draft.
+  // Provider-backed cards are enriched beyond the local snapshot before reaching this pool.
+  const speculativeTheme = (card: Card) =>
+    !isLandCard(card) &&
+    (card.localIndexSnapshot ||
+      card.reason === 'Local card match' ||
+      card.reason === ownedCardReason) &&
+    selectedThemes(input).some((theme) => hasTag(card, theme))
+  let speculativePicks = 0
   const fits = (card: Card) =>
+    !(speculativeTheme(card) && speculativePicks >= 3) &&
     !taken.has(card.name) &&
     !exceedsDeckBudget(
       card,
@@ -212,6 +228,7 @@ export function planStartingDeck(input: StartingDeckInput, basics: DeckCard[]): 
       input.excludeGameChangers || (input.limitGameChangers && gameChangersAtLimit(deck)),
     )
   const take = (card: Card) => {
+    if (speculativeTheme(card)) speculativePicks += 1
     const added = toDeckCardFromRecommendation(card)
     deck.push(added)
     additions.push(added)

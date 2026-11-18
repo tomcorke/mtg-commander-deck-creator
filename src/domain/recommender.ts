@@ -25,8 +25,8 @@ import type {
   BatchPlacementReason,
 } from './recommendation-types.ts'
 
-/** Bumped whenever scoring or ranking changes the order produced from the same inputs. */
-export const recommendationScoringVersion = 14
+/** Bumped whenever scoring, ranking or starting-deck composition changes for the same inputs. */
+export const recommendationScoringVersion = 15
 
 /** FNV-1a hash of a seed string, as an unsigned 32-bit integer. */
 const hashSeed = (seed: string) => {
