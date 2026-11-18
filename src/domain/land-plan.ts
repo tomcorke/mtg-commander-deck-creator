@@ -283,7 +283,14 @@ type Candidate<T> = {
 const fillOrder: Record<LandPlanStep, readonly LandRole[]> = {
   fixing: ['fixing'],
   earned: ['land-synergy', 'theme'],
-  utility: ['utility', 'creature-land', 'flexible', 'interaction', 'colourless-utility'],
+  utility: [
+    'utility',
+    'creature-land',
+    'flexible',
+    'interaction',
+    'colourless-utility',
+    'big-mana',
+  ],
 }
 
 const roleWeight = (roles: readonly DeckLandRole[], role: LandRole) =>
@@ -593,7 +600,10 @@ class LandPlanner<T extends PlanCard> {
     }
   }
 
-  /** Steps 2 and 3: earned roles, then utility, flexible, interaction and colourless utility. */
+  /**
+   * Steps 2 and 3: earned roles, then utility, creature-land, flexible, interaction, colourless
+   * utility and big mana.
+   */
   roleStep(step: 'earned' | 'utility') {
     const ranked = this.candidates
       .filter(
@@ -640,7 +650,7 @@ class LandPlanner<T extends PlanCard> {
 /**
  * Plan the land slots left toward the target (#589). Nonbasics fill in order: fixing while it
  * beats a basic for the colours still short of sources, then roles the deck earned, then utility,
- * flexible, interaction and colourless utility. Within a step lands rank by role score, then EDHREC
+ * creature-land, flexible, interaction, colourless utility and big mana. Within a step lands rank by role score, then EDHREC
  * inclusion, then name. Basics keep the reserve and fill the rest. A heuristic draft, never a
  * solved mana base.
  */
@@ -675,7 +685,11 @@ export const landRoleLabels: Record<LandRole, string> = {
   theme: 'Theme',
   interaction: 'Interaction',
   'colourless-utility': 'Colourless utility',
+  'big-mana': 'Big mana',
 }
+
+/** Shown with every Big mana reason: the match is wording, not a measured payout. */
+export const bigManaCaveat = 'Text match: not proof of useful net mana or enough board support'
 
 /** Why the deck earned a role, in words that name no card (card names render as references). */
 export function earnedEvidenceText(evidence: LandRoleEvidence) {
@@ -684,7 +698,10 @@ export function earnedEvidenceText(evidence: LandRoleEvidence) {
   return `${evidence.count} cards in your deck show it`
 }
 
-/** The reason line for a planned land: the matched text, then why the deck wants that role. */
+/**
+ * The reason line for a planned land: the matched text, then why the deck wants that role. A Big
+ * mana match adds its restrictions and a caveat that the match is not a measured payout.
+ */
 export function landPlanReason(pick: LandPlanPick<unknown>) {
   const matched =
     pick.match.source === 'type' ? `Type line: ${pick.match.evidence}` : `“${pick.match.evidence}”`
@@ -695,7 +712,13 @@ export function landPlanReason(pick: LandPlanPick<unknown>) {
         ? earnedEvidenceText(pick.deckEvidence[0])
         : undefined
   const reason = (pick.card as { reason?: string }).reason
-  return [why ? `${matched} · ${why}` : matched, reason === landSearchReason ? reason : undefined]
+  return [
+    matched,
+    why,
+    ...(pick.match.restrictions ?? []),
+    pick.match.role === 'big-mana' ? bigManaCaveat : undefined,
+    reason === landSearchReason ? reason : undefined,
+  ]
     .filter(Boolean)
     .join(' · ')
 }

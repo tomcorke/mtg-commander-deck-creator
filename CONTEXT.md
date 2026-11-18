@@ -65,7 +65,7 @@ Player-facing names and definitions for these terms live in `src/domain/glossary
 
 **Role** — a deck function detected by heuristics: land, ramp, card draw, targeted removal, or board wipe. **Role targets** are the player's editable counts for each role.
 
-**Land role** — what a nonbasic land is for: fixing, utility ability, creature-land, flexible slot, land synergy, theme or keyword, interaction or hate, or colourless utility. A land can have several. Land synergy and theme or keyword are **earned**: they count only when a selected theme, the commander's text or 3+ main-deck cards show the deck cares. Detected by text heuristics (`src/domain/land-roles.ts`); a match never proves the land does the job well. Distinct from the **land** deck role above.
+**Land role** — what a nonbasic land is for: fixing, utility ability, creature-land, flexible slot, land synergy, theme or keyword, interaction or hate, colourless utility, or big mana (a coloured payout that scales or adds three or more mana, including depletion and storage payouts). A land can have several. Land synergy and theme or keyword are **earned**: they count only when a selected theme, the commander's text or 3+ main-deck cards show the deck cares. Detected by text heuristics (`src/domain/land-roles.ts`); a match never proves the land does the job well. Distinct from the **land** deck role above.
 
 **Land plan** — the nonbasic lands Choose lands and a starting deck plan for the land slots left (`src/domain/land-plan.ts`): fixing first, then earned roles, then utility, within a nonbasic cap by colour count and a basic reserve for basic-fetching cards. A heuristic draft the player edits, never a solved mana base.
 

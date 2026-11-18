@@ -22,6 +22,7 @@ export const landRoleNames = [
   'theme',
   'interaction',
   'colourless-utility',
+  'big-mana',
 ] as const
 export type LandRole = (typeof landRoleNames)[number]
 
@@ -36,6 +37,7 @@ export const coreLandRoles: readonly LandRole[] = [
   'flexible',
   'interaction',
   'colourless-utility',
+  'big-mana',
 ]
 export const earnedLandRoles: readonly LandRole[] = ['land-synergy', 'theme']
 
@@ -58,6 +60,11 @@ export type LandRoleMatch = {
   source: 'rules' | 'type' | 'override'
   /** Set on earned roles only. */
   focus?: LandFocus
+  /**
+   * Big mana only: what limits the payout, such as an activation cost, a spend restriction, the
+   * board count it scales with, or depletion and storage counters. Short display sentences.
+   */
+  restrictions?: string[]
 }
 
 /**
@@ -173,7 +180,8 @@ function activated(line: string) {
   if (cost.includes('.') || cost.length > 120) return undefined
   return { cost, effect: line.slice(colon + 1).trim() }
 }
-const isManaEffect = (effect: string) => /^(?:choose a colou?r\. )?add\b/i.test(effect)
+const isManaEffect = (effect: string) =>
+  /^(?:choose a colou?r\. |for each [^,.]*, )?add\b/i.test(effect)
 const isTrigger = (line: string) => /^(?:when(?:ever)?|at the beginning)\b/i.test(line)
 
 const fetchPattern = /search your library for ([^.]*)/i
@@ -222,6 +230,65 @@ const anyColour =
 // One chosen colour, scaled by devotion or a count (Nykthos, Three Tree City): big mana, not
 // fixing, although Scryfall `produced_mana` lists every colour.
 const chosenColourAmount = /\bchoose a colou?r\. add an amount of mana of that colou?r\b/i
+// Big mana (#596): a coloured payout that scales (with the board, devotion, X or counters) or adds
+// three or more mana at once. Two mana counts only when paid for with a depletion or storage
+// counter; counter wording alone never qualifies. Colourless-only payouts stay colourless utility.
+const scalingAmount = /\bfor each\b|\bequal to\b|\badd x\b|\bwhere x is\b|\ban amount of\b|\{X\}/i
+const amountWords: Record<string, number> = {
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+}
+const counterCost = /\bremove [^,]*\b(depletion|storage) counters?\b/i
+// Banking a storage counter is half of a storage land's mana ability, not a utility effect.
+const storageCharge = /^put (?:a|an|one|two|\w+) storage counters? on this land\.?$/i
+const spendLimit = /^(?:spend this mana only|activate only)\b/i
+
+/**
+ * Big mana's restrictions for one mana ability, or undefined when it is not big mana: the
+ * activation cost, what the amount scales with, depletion or storage counters, and any "Spend this
+ * mana only" or "Activate only" sentence.
+ */
+function bigManaRestrictions(cost: string, effect: string): string[] | undefined {
+  const payout = effect.match(/[^.]*\badd\b[^.]*/i)?.[0] ?? ''
+  const clause = payout.match(/\badd (.*)/i)?.[1]
+  if (!clause || !(/\{[WUBRG](?:\/[WUBRGP])?\}/.test(clause) || /\bcolou?r/i.test(clause)))
+    return undefined
+  const counter = cost.match(counterCost)?.[1]?.toLowerCase()
+  const symbols = Math.max(
+    0,
+    ...[...clause.matchAll(/(?:\{[^}]+\})+/g)].map(([run]) => run.split('{').length - 1),
+  )
+  const amount = Math.max(amountWords[clause.split(' ', 1)[0].toLowerCase()] ?? 0, symbols)
+  if (!scalingAmount.test(payout) && amount < 3 && !(amount === 2 && counter)) return undefined
+  // Station thresholds and ability words ("12+ |", "Federation —") are not part of the cost.
+  const costParts = cost
+    .replace(/^.*[|—]\s*/, '')
+    .split(/,\s*/)
+    .filter((part) => part !== '{T}' && !counterCost.test(part))
+  const scalesWith = /\bstorage counter\b/i.test(payout)
+    ? undefined
+    : (payout.match(/\bfor (each [^,.]*)/i)?.[1] ??
+      payout.match(/\bequal to ([^,.]*)/i)?.[1] ??
+      payout.match(/\bwhere x is ([^,.]*)/i)?.[1])
+  return [
+    ...(costParts.length ? [`Activation cost: ${costParts.join(', ')}`] : []),
+    ...(scalesWith ? [`Scales with ${scalesWith}`] : []),
+    ...(counter === 'depletion' ? ['Limited uses: each one spends a depletion counter'] : []),
+    ...(counter === 'storage' ? ['Pays out only the storage counters it has banked'] : []),
+    ...effect
+      .split(/(?<=\.)\s+/)
+      .filter((sentence) => spendLimit.test(sentence))
+      .map(shortQuote),
+  ]
+}
+
 const namesColour = (text: string) =>
   /\{[WUBRG](?:\/[WUBRGP])?\}/.test(text) || anyColour.test(text)
 
@@ -351,9 +418,12 @@ function lineRoles({ text, original }: Line, card: LandRoleCard): LandRoleMatch[
   if (hate) roles.push('interaction')
   if (isMana && multiMana.test(effect) && card.producedMana.every((symbol) => symbol === 'C'))
     roles.push('colourless-utility')
-  // Lines read as another role, fetches, bounce and recursion are not utility as well.
+  const restrictions = isMana ? bigManaRestrictions(ability.cost, ability.effect) : undefined
+  if (restrictions) roles.push('big-mana')
+  // Lines read as another role, fetches, bounce, recursion and storage charging are not utility.
   const claimed =
     isMana ||
+    (ability !== undefined && storageCharge.test(ability.effect)) ||
     roles.length > 0 ||
     fetchTarget(text) !== undefined ||
     bounce.test(text) ||
@@ -363,7 +433,9 @@ function lineRoles({ text, original }: Line, card: LandRoleCard): LandRoleMatch[
 
   const entering = !ability && trigger === undefined && enteringRule.test(text)
   return [
-    ...roles.map((role) => match(role, original)),
+    ...roles.map((role) =>
+      role === 'big-mana' ? { ...match(role, original), restrictions } : match(role, original),
+    ),
     ...(synergyClue(text, ability?.cost ?? '', effect, trigger)
       ? [match('land-synergy', original, 'rules', landsMatterFocus)]
       : []),

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { analyseDeck, basicLandPlan, type AnalysisCard } from '../deck-analysis.ts'
 import {
+  bigManaCaveat,
   fetchesBasics,
   landPlanGroup,
   landPlanReason,
@@ -367,4 +368,51 @@ test('equal-scoring existing lands outrank weaker search evidence', () => {
   )
   assert.ok(searchPick)
   assert.match(landPlanReason(searchPick), /Found by land search, not seen with this commander/)
+})
+
+// #596: big mana is a core role in the utility step, under the same cap and reserve.
+const bigManaLand = (name: string, overrides: Partial<TestCard> = {}) =>
+  card(name, {
+    producedMana: ['G'],
+    detail: '{2}, {T}: Add {G} for each Forest you control.',
+    ...overrides,
+  })
+
+test('big mana fills in the utility step, after fixing and earned roles', () => {
+  const deck = simicDeck(
+    'Landfall — Whenever a land you control enters, put a +1/+1 counter on it.',
+  )
+  const candidates = [
+    bigManaLand('Forest Coffers', { inclusion: 95 }),
+    landRecursion,
+    dual('Simic dual', ['G', 'U']),
+  ]
+  const result = plan(deck, candidates, { identity: ['G', 'U'] })
+  assert.deepEqual(names(result.picks), ['Simic dual', 'Recursion Grove', 'Forest Coffers'])
+  const pick = result.picks[2]
+  assert.equal(pick.step, 'utility')
+  assert.equal(pick.role, 'big-mana')
+  assert.equal(landPlanGroup(pick), 'Big mana')
+  // The reason quotes the ability, its restrictions and the heuristic caveat.
+  assert.equal(
+    landPlanReason(pick),
+    [
+      '“{2}, {T}: Add {G} for each Forest you control.”',
+      'Activation cost: {2}',
+      'Scales with each Forest you control',
+      bigManaCaveat,
+    ].join(' · '),
+  )
+})
+
+test('big mana stays under the cap and reserve, with no deck-support threshold', () => {
+  // A mono deck with no Forests or creatures still plans it: no board-support check.
+  const lands = Array.from({ length: 8 }, (_, index) => bigManaLand(`Coffers ${index}`))
+  const result = plan([commander()], lands)
+  assert.equal(result.picks.length, 6)
+  assert.ok(result.picks.every(({ role }) => role === 'big-mana'))
+  assert.equal(result.alternatives[0].held, 'cap')
+  // Utility and big mana share the step and the role weight; inclusion then name break ties.
+  const mixed = plan(greenDeck(), [bigManaLand('B coffers'), utility('A utility')])
+  assert.deepEqual(names(mixed.picks), ['A utility', 'B coffers'])
 })

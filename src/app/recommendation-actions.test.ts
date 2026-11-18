@@ -1156,7 +1156,7 @@ test('land searches are bounded, cached, filtered and silently optional', async 
   )
   assert.equal(first[0].reason, landSearchReason)
   const count = requests
-  assert.equal(count, 5) // six core roles, excluding zero-weight fixing
+  assert.equal(count, 6) // seven core roles, excluding zero-weight fixing
   await landSearchCandidates(deps)
   assert.equal(requests, count)
   const failed = {
@@ -1199,7 +1199,7 @@ test('land search skips supplied roles and cached cards obey changed preferences
     },
   })
   const first = await landSearchCandidates(deps)
-  assert.equal(queries.length, 4)
+  assert.equal(queries.length, 5)
   assert.ok(queries.every((q) => !q.includes('o:scry')))
   assert.deepEqual(first, []) // no search result matches an uncovered role
   deps.queue = []
@@ -1208,6 +1208,54 @@ test('land search skips supplied roles and cached cards obey changed preferences
   deps.ignoredCards = ['New Grove']
   assert.deepEqual(await landSearchCandidates(deps), [])
   assert.equal(queries.length, count)
+})
+
+test('a mono deck with no big-mana candidate searches for one and keeps a scaling match', async () => {
+  const { landSearchCandidates } = await import('./recommendation-actions.ts')
+  const raw = (name: string, oracle: string) => ({
+    ...card(name, 'Land', ['B']),
+    prices: { usd: '1' },
+    oracle_text: oracle,
+    produced_mana: ['B'],
+  })
+  const queries: string[] = []
+  const deps = withBuilderActions({
+    deck: [],
+    sideboard: [],
+    queue: [],
+    deferredCards: [],
+    decisions: {},
+    ignoredCards: [],
+    commander: '',
+    theme: '',
+    activeSubThemes: [],
+    commanderDetails: { colours: ['B'] },
+    powerTarget: 'upgraded',
+    maxPrice: 3,
+    collectionMode: 'none',
+    collectionSets: [],
+    searchCards: async (query: string) => {
+      queries.push(query)
+      return query.includes('o:"for each"')
+        ? [
+            raw('Swamp Coffers', '{2}, {T}: Add {B} for each Swamp you control.'),
+            raw('Counter Pit', '{T}: Add {B}. Put a depletion counter on this land.'),
+          ]
+        : []
+    },
+  })
+  const found = await landSearchCandidates(deps)
+  const bigMana = queries.filter((query) => query.includes('o:"storage counter"'))
+  assert.equal(bigMana.length, 1)
+  assert.match(bigMana[0], /^id<=b legal:commander t:land \(o:"for each"/)
+  // Fixed payouts the detector accepts: "Add four", and symbol runs such as {B}{B}{B}{B}.
+  for (const term of ['o:"add four"', 'o:"{B}{B}{B}"', 'o:"{W}{U}{B}{R}{G}"'])
+    assert.ok(bigMana[0].includes(term), term)
+  // Counter wording with one mana is no big-mana match, so only the scaling land is kept.
+  assert.deepEqual(
+    found.map(({ name }) => name),
+    ['Swamp Coffers'],
+  )
 })
 
 test('land search caps additions, tolerates queue refresh and retries transport failures', async () => {
