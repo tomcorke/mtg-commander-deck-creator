@@ -208,3 +208,11 @@ Failures silently retain queue-only planning. Search results say "Found by land 
 with this commander" and lose ties at equal planner score to existing candidates. This is weaker
 evidence, not proof of land quality. Broad role terms can miss less popular or unusually worded
 lands; a single page is deliberately not exhaustive. At most nine eligible matches per role enter the queue. Failed lookups are evicted so a later fill can retry through the adapter's cooldown. Starting-deck searches use roles earned before its spell pass; roles earned only by newly added spells wait for a later fill.
+
+## Starting-deck local theme filler (#619)
+
+A starting deck takes at most three new nonland theme matches whose only provenance is a local-index snapshot, `Local card match`, or `In your collection` (including hydrated owned cards after reload). The cap applies across the theme and extra themes, including role-quota picks and Later candidates. Provider-backed candidates retain their existing order and filters; a missing EDHREC entry is not proof of a bad card. If candidates run out, the existing basic-land fallback can exceed the land target. Player-added cards and manual Add remain unrestricted.
+
+**Voltron limit:** the tag matches `equipped creature`, `enchanted creature`, or `commander you control`. It does not distinguish beneficial enchanted-creature text from hindering or controlling text. Licids, bestow creatures and hostile Auras can count without being useful Voltron support. The cap limits speculative filler; it does not correct this classifier or validate provider-backed matches.
+
+Provenance is limited by the queue merge: a hydrated `Local card match` may retain that reason even if a later provider response lists it, and remain capped. The cap uses stored provenance, not a fresh provider lookup.
