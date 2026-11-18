@@ -1,7 +1,13 @@
 import { plural } from './land-dialog-copy.ts'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 
-import { scryfallImage, type Card, type ScryfallCard } from '../../domain/card-model.ts'
+import {
+  scryfallImage,
+  toDeckCard,
+  type Card,
+  type DeckCard,
+  type ScryfallCard,
+} from '../../domain/card-model.ts'
 import { basicLandNames } from '../../deck-analysis.ts'
 import { appTerms, claimKindLabels } from '../../domain/glossary.ts'
 import {
@@ -16,6 +22,7 @@ import {
 import { reconcileLandSelection, resizeBasicCounts } from './land-dialog-state.ts'
 import { ArtLoading } from '../../shared/CardArt.tsx'
 import { CardPriceLink, ModalCloseButton } from '../../shared/CardDetails.tsx'
+import { CardReference } from '../../shared/CardReference.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
 import { ManaSymbols, OracleText } from '../../shared/ManaSymbols.tsx'
 import { SmallCardImage } from '../../shared/SmallCardImage.tsx'
@@ -198,8 +205,11 @@ type Props = {
     name: string,
     onPage: (loaded: ScryfallCard[], total: number) => void,
   ) => Promise<ScryfallCard[]>
+  /** The printing a basic gets when no art is picked, for its name's preview and details. */
+  onLoadDefaultBasicLand: (name: string) => Promise<ScryfallCard>
   onLoadBasicsFromSet: (set: string) => Promise<ScryfallCard[]>
   onOpenCard: (card: Card) => void
+  onOpenBasicLand: (card: DeckCard) => void
 }
 
 // eslint-disable-next-line max-lines-per-function -- The dialog markup stays intact to preserve its established focus and accessibility behavior.
@@ -217,8 +227,10 @@ export function BasicLandDialog({
   onClose,
   onAddBasicLands,
   onLoadBasicLandPrintings,
+  onLoadDefaultBasicLand,
   onLoadBasicsFromSet,
   onOpenCard,
+  onOpenBasicLand,
 }: Props) {
   const dialog = useDialogFocus(true, () => {
     if (basicLandState !== 'loading') onClose()
@@ -288,6 +300,41 @@ export function BasicLandDialog({
   const [styleError, setStyleError] = useState('')
   const [partial, setPartial] = useState<{ name: string; cards: ScryfallCard[]; total: number }>()
   const [retryName, setRetryName] = useState('')
+  const [defaultPrintings, setDefaultPrintings] = useState<Record<string, ScryfallCard>>({})
+  const basicNamesKey = legalBasicNames.join(',')
+  useEffect(() => {
+    let current = true
+    for (const name of basicNamesKey.split(','))
+      onLoadDefaultBasicLand(name).then(
+        (card) => {
+          if (current) setDefaultPrintings((loaded) => ({ ...loaded, [name]: card }))
+        },
+        // The name still opens details; activation retries the load.
+        () => undefined,
+      )
+    return () => {
+      current = false
+    }
+  }, [basicNamesKey, onLoadDefaultBasicLand])
+  // A name activated before its default printing loads must not open details after the dialog closes.
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  const openBasicLand = async (name: string) => {
+    try {
+      const card =
+        selectedPrintings[name] ?? defaultPrintings[name] ?? (await onLoadDefaultBasicLand(name))
+      if (mounted.current) onOpenBasicLand(toDeckCard(card))
+    } catch {
+      if (!mounted.current) return
+      setRetryName('')
+      setStyleError(`Could not load ${name} details.`)
+    }
+  }
   const validCounts = legalBasicNames.every(
     (name) =>
       Number.isInteger(landCounts[name]) && landCounts[name] >= 0 && landCounts[name] <= basicGap,
@@ -465,6 +512,7 @@ export function BasicLandDialog({
           <ul className="basic-land-plan">
             {legalBasicNames.map((name) => {
               const selected = selectedPrintings[name]
+              const shown = selected ?? defaultPrintings[name]
               const count = landCounts[name]
               const galleryOpen = openGallery === name
               return (
@@ -477,7 +525,10 @@ export function BasicLandDialog({
                     )}
                   </span>
                   <span className="basic-land-name">
-                    <label htmlFor={`basic-count-${name}`}>{name}</label>
+                    <CardReference
+                      card={shown ? toDeckCard(shown) : { name, image: '' }}
+                      onOpen={() => void openBasicLand(name)}
+                    />
                     <small>
                       {selected
                         ? `${printingLabel(selected)} #${selected.collector_number}`
@@ -495,7 +546,6 @@ export function BasicLandDialog({
                       −
                     </button>
                     <input
-                      id={`basic-count-${name}`}
                       type="number"
                       min="0"
                       max={basicGap}

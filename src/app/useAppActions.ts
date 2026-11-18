@@ -215,6 +215,9 @@ async function loadBasicLandPrintings(
   return printings
 }
 
+/** The printing Choose lands adds when no art is picked; the session cache shares it with the add. */
+const loadDefaultBasicLand = (name: string) => fetchScryfallCard(name)
+
 // Stable identity lets candidate-source caches survive controller renders.
 const cachedCandidateSearch = (
   query: string,
@@ -314,6 +317,7 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
   return {
     loadPrintings,
     loadBasicLandPrintings,
+    loadDefaultBasicLand,
     loadBasicsFromSet: (set: string) => searchScryfallCached(`set:${set} t:basic`, fetch),
     recommendationDeps,
     start,
@@ -570,6 +574,7 @@ function useBuilderActions(state: AppState, routing: RoutingActions, remote: Rem
   return {
     ...actions,
     loadBasicLandPrintings: remote.loadBasicLandPrintings,
+    loadDefaultBasicLand: remote.loadDefaultBasicLand,
     loadBasicsFromSet: remote.loadBasicsFromSet,
     loadAutosave: loadWorkspaceDeck,
     loadSavedDeck: loadWorkspaceDeck,

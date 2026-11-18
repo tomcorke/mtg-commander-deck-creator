@@ -32,14 +32,14 @@ const byLength = (records: { name: string }[]) =>
   records.map(({ name }) => name).sort((a, b) => b.length - a.length)
 const names = byLength(allRecords)
 // Basic land types also appear inside type lines ("Land — Forest Island"), so Choose lands looks
-// for its nonbasic and spell names only.
-const landPlanNames = byLength(
-  landPlanGateRecords.filter(({ type_line }) => !type_line.startsWith('Basic Land')),
-)
+// for its nonbasic and spell names across the dialog, and for basic names only in its basic rows.
+const isBasic = ({ type_line }: { type_line: string }) => type_line.startsWith('Basic Land')
+const landPlanNames = byLength(landPlanGateRecords.filter((record) => !isBasic(record)))
+const basicNames = byLength(landPlanGateRecords.filter(isBasic))
 
-async function bareNames(page: Page, screen: string, names: string[]) {
+async function bareNames(page: Page, screen: string, names: string[], scope = 'body') {
   const found = await page.evaluate(
-    ({ names, allowed }) => {
+    ({ names, allowed, scope }) => {
       const pathOf = (element: Element) => {
         const parts = []
         for (
@@ -52,17 +52,19 @@ async function bareNames(page: Page, screen: string, names: string[]) {
           )
         return parts.join(' > ')
       }
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
       const results: string[] = []
-      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        const parent = node.parentElement!
-        const name = names.find((candidate) => node!.textContent!.includes(candidate))
-        if (!name || parent.closest(allowed.join(',')) || !parent.checkVisibility()) continue
-        results.push(`${name} in ${pathOf(parent)}`)
+      for (const root of document.querySelectorAll(scope)) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const parent = node.parentElement!
+          const name = names.find((candidate) => node!.textContent!.includes(candidate))
+          if (!name || parent.closest(allowed.join(',')) || !parent.checkVisibility()) continue
+          results.push(`${name} in ${pathOf(parent)}`)
+        }
       }
       return [...new Set(results)]
     },
-    { names, allowed },
+    { names, allowed, scope },
   )
   return found.map((item) => `${screen}: ${item}`)
 }
@@ -135,6 +137,17 @@ await withBrowser('CARD_REFERENCES', 5242, async (browser, base) => {
     await dialog.locator('.land-plan .doctor-card-status').waitFor()
     await dialog.locator('.land-price strong').waitFor()
     failures.push(...(await bareNames(lands.page, 'Choose lands', landPlanNames)))
+    // Each basic row names its basic (#608); the rows must be there for the check to mean anything.
+    const rows = dialog.locator('.basic-land-plan > li')
+    assert.equal(await rows.count(), basicNames.length, 'a row for each fixture basic')
+    failures.push(
+      ...(await bareNames(
+        lands.page,
+        'Choose lands basic rows',
+        basicNames,
+        '.basic-land-plan > li',
+      )),
+    )
     assert.deepEqual(lands.errors, [], 'no page errors or unexpected dialogs')
   } finally {
     await lands.context.close()

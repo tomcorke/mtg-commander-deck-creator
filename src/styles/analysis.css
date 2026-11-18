@@ -565,7 +565,7 @@
   display: grid;
   min-width: 0;
 }
-.basic-land-name label {
+.basic-land-name .card-reference-name {
   font-weight: 600;
 }
 .basic-land-name small {
