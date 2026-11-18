@@ -60,11 +60,12 @@ async function captureEvidence(page: Page, directory: string) {
 async function assertPlan(dialog: Dialog) {
   // Reasons are labelled as a heuristic, like theme-fit reasons (#501).
   assert.equal(await dialog.locator('.land-plan .generic-pick-label').innerText(), 'Land plan')
-  // Fill order: fixing, then the landfall role the commander earned, then utility.
+  // Fill order: fixing, then the landfall role the commander earned, then the utility step, where
+  // Big mana (#596) groups after Utility's higher-scoring pick.
   const groups = await dialog.locator('.land-plan-group h4').allInnerTexts()
   assert.deepEqual(
     groups.map((text) => text.toLowerCase()),
-    ['fixing', 'landfall and land synergy', 'utility'],
+    ['fixing', 'landfall and land synergy', 'utility', 'big mana'],
   )
   const include = (name: string) =>
     dialog.getByRole('checkbox', { name: `Include ${name}`, exact: true })
@@ -75,6 +76,7 @@ async function assertPlan(dialog: Dialog) {
     'Plan Landfall Grove',
     'Plan Saproling Grove',
     'Plan Passage',
+    'Plan Forest Coffers',
   ])
     assert.equal(await include(name).isChecked(), true, name)
   // Over budget: listed last in its group, unticked and marked.
@@ -84,6 +86,10 @@ async function assertPlan(dialog: Dialog) {
   // Each reason quotes the matched text and, for an earned role, the deck evidence.
   const landfall = dialog.locator('.card-tile', { hasText: 'Plan Landfall Grove' })
   assert.match(await landfall.innerText(), /Your commander: “Landfall/)
+  // Big mana shows its restrictions and says a text match is not a measured payout.
+  const coffers = await dialog.locator('.card-tile', { hasText: 'Plan Forest Coffers' }).innerText()
+  assert.match(coffers, /Scales with each Forest you control/)
+  assert.match(coffers, /not proof of useful net mana or enough board support/)
   return include
 }
 
@@ -105,18 +111,23 @@ await withBrowser('LAND_PLAN', 5191, async (browser, base) => {
   const dialog = await openDialog(page)
   const include = await assertPlan(dialog)
   const status = dialog.locator('.basic-land-balance p')
-  assert.equal(await status.innerText(), 'All 12 basics assigned')
+  assert.equal(await status.innerText(), 'All 11 basics assigned')
   // Unticking gives the slot back to basics, live.
   await include('Plan Passage').uncheck()
-  assert.equal(await status.innerText(), 'All 13 basics assigned')
+  assert.equal(await status.innerText(), 'All 12 basics assigned')
   await dialog.getByRole('button', { name: 'Add 18 lands', exact: true }).click()
   await dialog.waitFor({ state: 'detached' })
   const board = page.locator('.deck-board')
-  for (const name of ['Plan Shockland', 'Plan Landfall Grove', 'Plan Saproling Grove'])
+  for (const name of [
+    'Plan Shockland',
+    'Plan Landfall Grove',
+    'Plan Saproling Grove',
+    'Plan Forest Coffers',
+  ])
     await board.getByText(name, { exact: true }).first().waitFor()
   assert.equal(await board.getByText('Plan Passage', { exact: true }).count(), 0)
   assert.equal(await board.getByText('Plan Pricey Dual', { exact: true }).count(), 0)
-  // 80 cards plus 5 nonbasics and 13 basics.
+  // 80 cards plus 6 nonbasics and 12 basics.
   assert.equal(await page.locator('.narrow-deck-bar').textContent(), '98/100 cards')
   assert.deepEqual(opened.errors, [])
 })

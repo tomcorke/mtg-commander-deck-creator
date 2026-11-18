@@ -256,7 +256,7 @@ export const appTerms = {
   landPlan: {
     term: 'Land plan',
     definition:
-      'Nonbasic lands Choose lands and a starting deck pick by detected role: fixing first, then roles your deck earned, then utility, within a cap by colour count. Reasons quote the text that matched, not how well the land does the job.',
+      'Nonbasic lands Choose lands and a starting deck pick by detected role: fixing first, then roles your deck earned, then utility and big mana, within a cap by colour count. Reasons quote the text that matched, not how well the land does the job.',
     kind: 'heuristic',
   },
   priority: {

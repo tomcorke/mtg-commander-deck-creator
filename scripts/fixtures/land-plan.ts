@@ -1,5 +1,5 @@
 // The #589 land plan fixture: a Simic landfall deck 18 lands short, so Choose lands opens with
-// picks in three role groups and an over-budget alternative. Shared by the land plan, contrast
+// picks in four role groups and an over-budget alternative. Shared by the land plan, contrast
 // and card-reference browser gates.
 import type { Page } from 'playwright-core'
 import { fixtureCard, makeState } from './b10-browser.ts'
@@ -24,6 +24,8 @@ const forest = fixtureCard('Forest', {
   color_identity: ['G'],
   produced_mana: ['G'],
   prices: { usd: '0.10' },
+  // A released paper printing, so the default-printing lookup keeps it (0601583).
+  games: ['paper'],
 })
 const island = fixtureCard('Island', {
   type_line: 'Basic Land — Island',
@@ -32,6 +34,8 @@ const island = fixtureCard('Island', {
   color_identity: ['U'],
   produced_mana: ['U'],
   prices: { usd: '0.10' },
+  // A released paper printing, so the default-printing lookup keeps it (0601583).
+  games: ['paper'],
 })
 const greenSpell = fixtureCard('Plan green spell', {
   type_line: 'Creature — Elf',
@@ -82,6 +86,12 @@ export const landPlanLands = [
     color_identity: ['G'],
     produced_mana: ['G'],
     oracle_text: '{T}: Add {G}.\n{3}{G}, {T}: Create a 1/1 green Saproling creature token.',
+  }),
+  // A scaling-mana land (#596): Big mana, with its activation cost and board count as restrictions.
+  land('Plan Forest Coffers', {
+    color_identity: ['G'],
+    produced_mana: ['G'],
+    oracle_text: '{2}, {T}: Add {G} for each Forest you control.',
   }),
   land('Plan Passage', {
     produced_mana: ['C'],

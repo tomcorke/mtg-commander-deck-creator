@@ -87,6 +87,8 @@ const landSearchTerms: Record<LandRole, string> = {
   theme: '(o:creature or o:artifact or o:graveyard or o:counter or o:spell or t:snow)',
   interaction: '(o:destroy or o:exile or o:damage or o:"can’t" or o:"can\'t")',
   'colourless-utility': 'o:"{C}"',
+  'big-mana':
+    '(o:"for each" or o:"an amount of mana" or o:"add x mana" or o:"add three" or o:"add five" or o:"add six" or o:"depletion counter" or o:"storage counter")',
 }
 // Shared per adapter function: concurrent/repeated fills reuse successful and empty lookups.
 const landSearchCache = new WeakMap<object, Map<string, Promise<Card[]>>>()

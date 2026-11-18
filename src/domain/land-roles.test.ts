@@ -31,6 +31,9 @@ const five = ['W', 'U', 'B', 'R', 'G']
 const rolesOf = (card: LandRoleCard, identity = five) =>
   detectLandRoles(card, identity).map(({ role, focus }) => (focus ? `${role}:${focus}` : role))
 
+const cabalCoffers = land('Cabal Coffers', '{2}, {T}: Add {B} for each Swamp you control.', {
+  producedMana: ['B'],
+})
 const commandTower = land(
   'Command Tower',
   "{T}: Add one mana of any color in your commander's color identity.",
@@ -191,7 +194,7 @@ const drannithRuins = land(
   { producedMana: ['C'] },
 )
 
-test('detects a representative land for each of the eight roles, with evidence', () => {
+test('detects a representative land for each of the nine roles, with evidence', () => {
   const evidence = (card: LandRoleCard, role: string) =>
     detectLandRoles(card, five).find((found) => found.role === role)?.evidence
   assert.equal(evidence(commandTower, 'fixing'), commandTower.detail)
@@ -208,6 +211,7 @@ test('detects a representative land for each of the eight roles, with evidence',
     "When Bojuka Bog enters, exile target player's graveyard.",
   )
   assert.equal(evidence(ancientTomb, 'colourless-utility'), ancientTomb.detail)
+  assert.equal(evidence(cabalCoffers, 'big-mana'), cabalCoffers.detail)
 })
 
 test('reads fixing from basic land types, fetches and identity', () => {
@@ -283,6 +287,109 @@ test('fixing evidence quotes the line that makes the colours', () => {
   )
 })
 
+// Scryfall Oracle bulk data 2026-11-18 (checked 2026-11-18), trimmed as above.
+const gaeasCradle = land('Gaea’s Cradle', '{T}: Add {G} for each creature you control.', {
+  typeLine: 'Legendary Land',
+  producedMana: ['G'],
+})
+const serrasSanctum = land('Serra’s Sanctum', '{T}: Add {W} for each enchantment you control.', {
+  typeLine: 'Legendary Land',
+  producedMana: ['W'],
+})
+const cabalStronghold = land(
+  'Cabal Stronghold',
+  '{T}: Add {C}.\n{3}, {T}: Add {B} for each basic Swamp you control.',
+  { producedMana: ['B', 'C'] },
+)
+const castleGarenbrig = land(
+  'Castle Garenbrig',
+  'This land enters tapped unless you control a Forest.\n{T}: Add {G}.\n{2}{G}{G}, {T}: Add six {G}. Spend this mana only to cast creature spells or activate abilities of creatures.',
+  { producedMana: ['G'] },
+)
+const saprazzanSkerry = land(
+  'Saprazzan Skerry',
+  'This land enters tapped with two depletion counters on it.\n{T}, Remove a depletion counter from this land: Add {U}{U}. If there are no depletion counters on this land, sacrifice it.',
+  { producedMana: ['U'] },
+)
+const dreadshipReef = land(
+  'Dreadship Reef',
+  '{T}: Add {C}.\n{1}, {T}: Put a storage counter on this land.\n{1}, Remove X storage counters from this land: Add X mana in any combination of {U} and/or {B}.',
+  { producedMana: ['B', 'C', 'U'] },
+)
+const landCap = land(
+  'Land Cap',
+  "This land doesn't untap during your untap step if it has a depletion counter on it.\nAt the beginning of your upkeep, remove a depletion counter from this land.\n{T}: Add {W} or {U}. Put a depletion counter on this land.",
+  { producedMana: ['U', 'W'] },
+)
+const gemstoneMine = land(
+  'Gemstone Mine',
+  'This land enters with three mining counters on it.\n{T}, Remove a mining counter from this land: Add one mana of any color. If there are no mining counters on this land, sacrifice it.',
+  { producedMana: ['B', 'G', 'R', 'U', 'W'] },
+)
+const mageRingNetwork = land(
+  'Mage-Ring Network',
+  '{T}: Add {C}.\n{1}, {T}: Put a storage counter on this land.\n{T}, Remove any number of storage counters from this land: Add {C} for each storage counter removed this way.',
+  { producedMana: ['C'] },
+)
+const bigMana = (card: LandRoleCard, identity = five) =>
+  detectLandRoles(card, identity).find(({ role }) => role === 'big-mana')
+
+test('big mana: scaling lands quote the ability and list its restrictions', () => {
+  assert.deepEqual(bigMana(cabalCoffers, ['B']), {
+    role: 'big-mana',
+    evidence: '{2}, {T}: Add {B} for each Swamp you control.',
+    source: 'rules',
+    restrictions: ['Activation cost: {2}', 'Scales with each Swamp you control'],
+  })
+  assert.deepEqual(rolesOf(gaeasCradle, ['G']), ['big-mana'])
+  assert.deepEqual(bigMana(gaeasCradle)?.restrictions, ['Scales with each creature you control'])
+  assert.deepEqual(rolesOf(serrasSanctum, ['W']), ['big-mana'])
+  // The {C} line stays plain mana; the scaling line is big mana.
+  assert.deepEqual(rolesOf(cabalStronghold, ['B']), ['big-mana'])
+  assert.deepEqual(bigMana(cabalStronghold)?.restrictions, [
+    'Activation cost: {3}',
+    'Scales with each basic Swamp you control',
+  ])
+  // A fixed six with a cost and a spend restriction.
+  assert.deepEqual(rolesOf(castleGarenbrig, ['G']), ['big-mana'])
+  assert.deepEqual(bigMana(castleGarenbrig)?.restrictions, [
+    'Activation cost: {2}{G}{G}',
+    'Spend this mana only to cast creature spells or activate abilities of creatures.',
+  ])
+  assert.deepEqual(bigMana(nykthos)?.restrictions, [
+    'Activation cost: {2}',
+    'Scales with your devotion to that color',
+  ])
+})
+
+test('big mana: depletion and storage lands count only with a multi-mana payout', () => {
+  assert.deepEqual(rolesOf(saprazzanSkerry, ['U']), ['big-mana'])
+  assert.deepEqual(bigMana(saprazzanSkerry)?.restrictions, [
+    'Limited uses: each one spends a depletion counter',
+  ])
+  // Banking a storage counter is part of the payout, so it is not utility as well.
+  assert.deepEqual(rolesOf(dreadshipReef, ['U', 'B']), ['fixing', 'big-mana'])
+  assert.deepEqual(bigMana(dreadshipReef)?.restrictions, [
+    'Activation cost: {1}',
+    'Pays out only the storage counters it has banked',
+  ])
+  // Counter wording alone, with one mana per use, is not big mana.
+  assert.equal(bigMana(landCap), undefined)
+  assert.equal(bigMana(gemstoneMine), undefined)
+  // Two mana with no counter cost (karoos, Interplanar Beacon) is not big mana.
+  assert.equal(bigMana(growthChamber), undefined)
+  assert.equal(bigMana(interplanarBeacon), undefined)
+  // Colourless-only payouts stay colourless utility.
+  assert.deepEqual(rolesOf(mageRingNetwork), ['colourless-utility'])
+  assert.deepEqual(rolesOf(ancientTomb), ['colourless-utility'])
+})
+
+test('big mana keeps the chosen-colour fixing exclusion', () => {
+  // Nykthos's `produced_mana` lists every colour; its devotion line is big mana, not fixing.
+  assert.deepEqual(rolesOf(nykthos), ['big-mana'])
+  assert.deepEqual(rolesOf(nykthos, ['G', 'U']), ['big-mana'])
+})
+
 test('reviewed Oracle-ID overrides add roles', () => {
   assert.deepEqual(
     detectLandRoles(reliquaryTower, five).map(({ role, source }) => [role, source]),
@@ -315,7 +422,15 @@ const tatyova = {
   name: 'Tatyova, Benthic Druid',
   detail: 'Landfall — Whenever a land you control enters, you gain 1 life and draw a card.',
 }
-const core = ['fixing', 'utility', 'creature-land', 'flexible', 'interaction', 'colourless-utility']
+const core = [
+  'fixing',
+  'utility',
+  'creature-land',
+  'flexible',
+  'interaction',
+  'colourless-utility',
+  'big-mana',
+]
 
 test('a landfall commander earns land synergy with no theme selected', () => {
   const roles = deckLandRoles({
