@@ -370,3 +370,108 @@ test('printings report each page as it arrives with the total count', async () =
     [2, 2],
   ])
 })
+
+test('name-only basics replace unreleased defaults with released priced paper printings', async () => {
+  const base = {
+    name: 'Forest',
+    type_line: 'Basic Land',
+    color_identity: ['G'],
+    set: 'future',
+    collector_number: '1',
+    prints_search_uri: 'https://api.scryfall.com/cards/search?q=oracleid:forest',
+    released_at: '2999-04-09',
+    prices: { usd: null },
+    games: ['paper'],
+  }
+  const priced = { ...base, set: 'old', released_at: '2020-01-01', prices: { usd: '0.10' } }
+  const fetcher: typeof fetch = async (input) => {
+    const url = new URL(String(input))
+    if (url.pathname === '/cards/named') return response(base)
+    if (url.pathname === '/cards/collection') return response({ data: [base] })
+    return response({
+      data: [
+        base,
+        { ...priced, digital: true, games: ['mtgo'] },
+        { ...priced, prices: { usd: null } },
+        priced,
+      ],
+    })
+  }
+  assert.equal((await fetchScryfallCard('Forest', fetcher)).set, 'old')
+  const collectionFetcher: typeof fetch = (...args) => fetcher(...args)
+  assert.equal(
+    (await fetchScryfallCardsByIdentifiers([{ name: 'Forest' }], collectionFetcher))[0].set,
+    'old',
+  )
+  assert.equal(
+    (
+      await fetchScryfallCardsByIdentifiers(
+        [{ set: 'future', collector_number: '1' }],
+        collectionFetcher,
+      )
+    )[0].set,
+    'future',
+  )
+})
+
+test('basic defaults scan later pages for prices and never fall back to future printings', async () => {
+  const base = {
+    name: 'Wastes',
+    type_line: 'Basic Land',
+    color_identity: [],
+    set: 'old',
+    collector_number: '1',
+    prints_search_uri: 'https://api.scryfall.com/cards/search?q=oracleid:wastes',
+    released_at: '2020-01-01',
+    prices: { usd: null },
+    games: ['paper'],
+  }
+  const priced = { ...base, set: 'priced', prices: { usd: '0.20' } }
+  const fetcher: typeof fetch = async (input) => {
+    const url = new URL(String(input))
+    if (url.pathname === '/cards/named') return response(base)
+    if (url.searchParams.get('page') === '2')
+      return response({
+        data: [priced],
+        has_more: true,
+        next_page: 'https://api.scryfall.com/never-fetch',
+      })
+    assert.equal(url.pathname, '/cards/search')
+    assert.equal(url.searchParams.get('order'), 'released')
+    assert.equal(url.searchParams.get('dir'), 'desc')
+    assert.match(url.searchParams.get('q')!, /game:paper date<=\d{4}-\d{2}-\d{2}/)
+    assert.equal(url.searchParams.get('unique'), 'prints')
+    return response({
+      data: [base],
+      has_more: true,
+      next_page: 'https://api.scryfall.com/cards/search?page=2',
+    })
+  }
+  assert.equal((await fetchScryfallCard('Wastes', fetcher)).set, 'priced')
+  assert.equal(
+    (
+      await fetchScryfallCard('Wastes', async (input) =>
+        response(String(input).includes('/named?') ? base : { data: [base] }),
+      )
+    ).set,
+    'old',
+  )
+  for (const status of [200, 503]) {
+    assert.equal(
+      (
+        await fetchScryfallCard('Wastes', async (input) =>
+          String(input).includes('/named?') ? response(base) : response({ data: [] }, { status }),
+        )
+      ).set,
+      'old',
+    )
+  }
+  await assert.rejects(
+    fetchScryfallCard('Wastes', async (input) =>
+      response(
+        String(input).includes('/named?') ? { ...base, released_at: '2999-04-09' } : { data: [] },
+      ),
+    ),
+    /Released basic land/,
+  )
+})

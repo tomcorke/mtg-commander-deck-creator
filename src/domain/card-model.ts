@@ -58,6 +58,7 @@ export type ScryfallCard = {
   set_type?: string
   lang?: string
   digital?: boolean
+  games?: string[]
   oversized?: boolean
   collector_number: string
   scryfall_uri?: string

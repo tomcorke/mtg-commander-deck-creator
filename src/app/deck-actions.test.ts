@@ -161,7 +161,15 @@ test('basic fill adds the reviewed split without replacing existing cards', asyn
   }
   context.mock.method(globalThis, 'fetch', (input: unknown) => {
     const name = new URL(String(input)).searchParams.get('exact')!
-    return Promise.resolve(Response.json({ ...card(name), type_line: 'Basic Land' }))
+    return Promise.resolve(
+      Response.json({
+        ...card(name),
+        type_line: 'Basic Land',
+        games: ['paper'],
+        released_at: '2020-01-01',
+        prices: { usd: '0.10' },
+      }),
+    )
   })
   await addBasicLands(deps, [
     { name: 'Forest', count: 12 },
