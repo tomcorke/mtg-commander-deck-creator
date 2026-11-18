@@ -322,6 +322,7 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
     chooseRoleFocus,
     chooseMaxPrice,
     loadBasicLandPrintings,
+    loadDefaultBasicLand,
     loadBasicsFromSet,
     deck,
     deckCardModal,
@@ -672,8 +673,10 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           onClose={closeModal}
           onAddBasicLands={(lands, nonbasics) => void addBasicLands(lands, nonbasics)}
           onLoadBasicLandPrintings={loadBasicLandPrintings}
+          onLoadDefaultBasicLand={loadDefaultBasicLand}
           onLoadBasicsFromSet={loadBasicsFromSet}
           onOpenCard={openGuidanceCard}
+          onOpenBasicLand={model.openCardReference}
         />
       )}
       <div className="workspace">
