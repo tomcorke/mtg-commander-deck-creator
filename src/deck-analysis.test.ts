@@ -1,3 +1,4 @@
+import { cardTypes, matchesCardType, displayDeckSection } from './deck-analysis.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
@@ -590,4 +591,46 @@ test('land guidance: one expensive early pick no longer pushes the centre to the
   // A few early 5-drops among 3-drops move the centre by a land or two, not to the clamp.
   const early = analyseDeck(spellsAt([...repeat(3, 16), ...repeat(5, 4)], 3, 3)).landGuidance
   assert.ok(Math.abs(early.centre - landGuidanceBaseline) <= 2, `early ${early.centre}`)
+})
+
+test('Invasion of Fiora counts and groups by its front, with identical type selections', () => {
+  const invasion = card({
+    name: 'Invasion of Fiora // Marchesa, Resolute Monarch',
+    layout: 'transform',
+    typeLine: 'Battle ? Siege // Legendary Creature ? Human Noble',
+    faces: [
+      { typeLine: 'Battle ? Siege', manaCost: '{4}{B}{B}' },
+      { typeLine: 'Legendary Creature ? Human Noble', manaCost: '' },
+    ],
+  })
+  const deck = [invasion, card(), card({ typeLine: 'Artifact Creature' })]
+  const analysis = analyseDeck(deck)
+  assert.equal(analysis.typeCounts.Battle, 1)
+  assert.equal(analysis.typeCounts.Creature, 2)
+  assert.equal(displayDeckSection(invasion), 'Other Permanents')
+  assert.equal(matchesCardType(invasion, 'Creature'), false)
+  assert.equal(matchesCardType(invasion, 'Other'), false)
+  for (const type of cardTypes) {
+    assert.equal(
+      analysis.typeCounts[type],
+      deck.filter((entry) => matchesCardType(entry, type)).length,
+    )
+  }
+  assert.equal(displayDeckSection({ ...invasion, faces: [] }), 'Other Permanents')
+})
+
+test('type selections preserve optional-land MDFC analysis policy', () => {
+  const mdfc = card({
+    layout: 'modal_dfc',
+    typeLine: 'Sorcery // Land',
+    faces: [
+      { typeLine: 'Sorcery', manaCost: '{2}{G}' },
+      { typeLine: 'Land', manaCost: '' },
+    ],
+  })
+  assert.equal(matchesCardType(mdfc, 'Land'), true)
+  assert.equal(matchesCardType(mdfc, 'Sorcery'), false)
+  assert.equal(displayDeckSection(mdfc), 'Lands')
+  assert.equal(matchesCardType(card({ typeLine: 'Planeswalker' }), 'Other'), false)
+  assert.equal(matchesCardType(card({ typeLine: 'Unknown' }), 'Other'), true)
 })

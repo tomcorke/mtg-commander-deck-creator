@@ -1,3 +1,4 @@
+import { matchesCardType } from '../../deck-analysis.ts'
 import type { ReactNode } from 'react'
 import type { TargetKey } from '../../deck-analysis.ts'
 
@@ -209,17 +210,7 @@ export function DeckOverview({
   const typeStats = displayedTypeCounts.map(([type, count]) => ({
     type,
     count,
-    cards: deck.filter((card) =>
-      type === 'Land'
-        ? rolesForCard(card).includes('lands')
-        : type === 'Other'
-          ? ![card.typeLine, ...card.faces.map((face) => face.typeLine)].some((line) =>
-              /\b(?:Creature|Artifact|Enchantment|Instant|Sorcery|Land)\b/.test(line),
-            )
-          : [card.typeLine, ...card.faces.map((face) => face.typeLine)].some((line) =>
-              new RegExp(`\\b${type}\\b`).test(line),
-            ),
-    ),
+    cards: deck.filter((card) => matchesCardType(card, type)),
   }))
   const roleStats = targetKeys.map((key) => ({
     key,
