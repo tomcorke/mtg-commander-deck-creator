@@ -39,7 +39,7 @@ export type AnalysisCard = {
   dataStatus?: 'pending' | 'unavailable'
   detail: string
   producedMana: string[]
-  faces: { typeLine: string; manaCost: string }[]
+  faces: { typeLine: string; manaCost: string; detail?: string }[]
   oracleId?: string
 }
 
@@ -158,7 +158,13 @@ const ambiguousDraw =
   /(?:target player|that player|its controller|their controller|that \w+[’']s controller) (?:may )?draw|(?:can't|cannot|can’t|would) draw/i
 const cardDraw =
   /\bdraws? (?:up to )?(?:(?:a|one|two|three|four|five|six|seven|\d+|that many|x) cards?|cards? equal to)/i
-const rulesText = (card: AnalysisCard) => card.detail.replace(/\([^)]*\)/g, '').trim()
+const rulesText = (card: AnalysisCard) => {
+  // Heuristic: transformation requires setup; only credit the front's available roles (#626).
+  const detail = ['transform', 'meld', 'double_faced_token'].includes(card.layout)
+    ? (card.faces[0]?.detail ?? '')
+    : card.detail
+  return detail.replace(/\([^)]*\)/g, '').trim()
+}
 
 /**
  * What a card does for the mana, card-flow and interaction roles. `unknown` means the wording
@@ -324,7 +330,14 @@ function drawFeature(text: string): CardFeatures['draw'] {
     .filter((effect) =>
       drawWords.test(effect.replace(/^(?:when(?:ever)?|at the beginning)[^,]*,\s*/i, '')),
     )
-  const yours = effects.filter((effect) => cardDraw.test(effect) && !ambiguousDraw.test(effect))
+  const yours = effects.filter(
+    (effect) =>
+      cardDraw.test(effect) &&
+      !ambiguousDraw.test(effect) &&
+      !/discard [^:.]*[,:][^.]*draw/i.test(
+        effect.replace(/^(?:when(?:ever)?|at the beginning)[^,]*,\s*/i, ''),
+      ),
+  )
   if (yours.length) {
     if (
       /draw [^.]*cards?\.\s*(?:then )?discard/i.test(text) ||
@@ -344,7 +357,8 @@ function drawFeature(text: string): CardFeatures['draw'] {
       return 'net'
     return /\bdraws? (?:a|one) card\b/i.test(yours.join(' ')) ? 'cantrip' : 'unknown'
   }
-  if (/(?:^|\n)cycling(?: \{|—)/i.test(text)) return 'cantrip'
+  if (/(?:^|\n)cycling(?: \{|—)/i.test(text)) return 'selection'
+  if (/discard[^.\n]*draw/i.test(text)) return 'selection'
   if (/return [^.]*cards? [^.]*from your graveyard to your hand/i.test(text)) return 'recursion'
   if (effects.length) return 'unknown'
   if (/exile the top [^.]*\.[^.]*you may (?:play|cast)/i.test(text)) return 'impulse'
@@ -402,7 +416,9 @@ function drawBeneficiary(text: string, draw: CardFeatures['draw']): CardFeatures
 export function cardFeatures(card: AnalysisCard): CardFeatures {
   const override = card.oracleId ? featureOverrides[card.oracleId] : undefined
   const text = rulesText(card)
-  const draw = drawFeature(text)
+  const draw = /as an additional cost[^.]*discard[^.]*\.[^.]*draw/i.test(text)
+    ? 'selection'
+    : drawFeature(text)
   const features: CardFeatures = {
     mana: manaFeature(card),
     draw,

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { detectLandRoles } from './domain/land-roles.ts'
 import { cardFeatures, roleCredit, rolesForCard, type AnalysisCard } from './deck-analysis.ts'
 
 const card = (detail: string, typeLine = 'Sorcery'): AnalysisCard => ({
@@ -21,7 +22,10 @@ test('feature boundaries retain positive, negative and ambiguous evidence', () =
     ['mana', 'Draw two cards.', null],
     ['draw', 'Draw two cards.', 'net'],
     ['draw', 'Draw four cards.', 'net'],
-    ['draw', 'Cycling {2}', 'cantrip'],
+    ['draw', 'Whenever you discard a card, draw a card.', 'net'],
+    ['draw', 'Whenever you discard a noncreature, nonland card, draw a card.', 'net'],
+    ['draw', 'When this creature enters, discard two cards, then draw two cards.', 'selection'],
+    ['draw', 'Cycling {2}', 'selection'],
     ['draw', 'Cycling {2}\nDraw four cards.', 'net'],
     ['draw', 'Whenever you activate a cycling ability, create a token.', null],
     ['draw', 'Draw a card.', 'cantrip'],
@@ -243,4 +247,42 @@ test('strategy clues distinguish resources, enablers, payoffs and explicit finis
     'Destroy each chosen thing.',
   ])
     assert.deepEqual(rolesForCard(card(detail)), [], detail)
+})
+
+test('cycling lands and transforming back faces receive no draw-role credit (#626)', () => {
+  const landscape = {
+    ...card('Cycling {G}{U}{R} (Discard this card: Draw a card.)', 'Land'),
+    name: 'Foreboding Landscape',
+  }
+  assert.equal(cardFeatures(landscape).draw, 'selection')
+  assert.deepEqual(rolesForCard(landscape), ['lands'])
+  assert.ok(detectLandRoles(landscape, ['G', 'U', 'R']).some(({ role }) => role === 'flexible'))
+  // Provider text checked 2026-11-18: https://api.scryfall.com/cards/named?exact=Invasion%20of%20Fiora
+  const front =
+    'When this Siege enters, choose one or both —\n• Destroy all legendary creatures.\n• Destroy all nonlegendary creatures.'
+  const back =
+    "Menace, deathtouch\nWhenever Marchesa attacks, remove all counters from up to one target permanent.\nAt the beginning of your upkeep, if you haven't been dealt combat damage since your last turn, you draw a card and you lose 1 life."
+  const battle = {
+    ...card(front + '\n' + back, 'Battle'),
+    name: 'Invasion of Fiora',
+    layout: 'transform',
+    faces: [
+      { typeLine: 'Battle', manaCost: '{4}{B}{B}', detail: front },
+      { typeLine: 'Creature', manaCost: '', detail: back },
+    ],
+  }
+  assert.deepEqual(rolesForCard(battle), ['wipes'])
+  assert.equal(cardFeatures(battle).draw, null)
+  assert.equal(
+    cardFeatures({ ...battle, faces: [{ ...battle.faces[0], detail: 'Draw two cards.' }] }).draw,
+    'net',
+  )
+  for (const text of [
+    'Discard a card: Draw a card.',
+    'As an additional cost to cast this spell, discard a card. Draw two cards.',
+  ]) {
+    assert.equal(cardFeatures(card(text)).draw, 'selection')
+    assert.ok(!rolesForCard(card(text)).includes('draw'))
+  }
+  assert.equal(cardFeatures(card('Discard a card: Draw a card.\nDraw two cards.')).draw, 'net')
 })
