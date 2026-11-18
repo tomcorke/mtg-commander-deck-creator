@@ -119,7 +119,7 @@ These need no new issue:
 - **Extra land plays and Treasure on combat damage are not ramp.** Sword of Forge and Frontier, Sword of Wealth and Power, Grim Hireling and Dragon-Cursed Halls fall outside the #592 rule by design ([heuristics](domain/heuristics.md#ramp-counting-592)).
 - **The current batch does not refresh when a theme is chosen.** Decided in #153; the button's rebuild note says so.
 - **Commander tiles infer themes from the commander's own text** (Indestructible, Zombies, Combat for Kotis), so Voltron is not shown on Start. This is documented in [heuristics](domain/heuristics.md#themes-and-pair-clues).
-- **Land-role and Choose lands follow-ups already open:** #596 (scaling-mana lands), #602 (land-role quote strings), #603 (basic edits reset when the plan changes) and #608 (basic rows and `CardReference`). This audit did not reproduce them separately.
+- **Land-role and Choose lands follow-ups:** #596 (scaling-mana lands) and #608 (basic rows and `CardReference`) are open. #602 (land-role quote strings) and #603 (basic edits reset when the plan changes) were fixed after this run. This audit did not reproduce any of them separately.
 - **Placeholder art.** Rendered art, crop and foil checks need plain `pnpm dev`; they were out of scope.
 
 ### Unconfirmed observations
