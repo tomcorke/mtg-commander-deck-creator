@@ -13,7 +13,7 @@ import { toDeckCardFromRecommendation, type Card, type DeckCard } from './card-m
 import { recommendationDataError } from './deck-data-status.ts'
 import { cardPrice, exceedsDeckBudget, remainingDeckBudget } from './deck-price.ts'
 import { gameChangersAtLimit } from './play-style.ts'
-import { preconFastMana } from './recommendation-scoring.ts'
+import { preconFastMana, isTopThemeFavourite } from './recommendation-scoring.ts'
 import { withinPriceCap } from './recommendation-tuning.ts'
 import type { CollectionMode, DeferredCard, PowerTarget } from './recommendation-types.ts'
 
@@ -223,6 +223,13 @@ export function planStartingDeck(input: StartingDeckInput, basics: DeckCard[]): 
   // Spells never add lands, so the land slots stay reserved through both spell passes.
   const nonlandSlots = () => 100 - deck.length - landSlots
   const spells = pool.filter((card) => !isLandCard(card))
+  // Reserve the commander's strongest theme evidence before role quotas consume spell slots.
+  spells
+    .filter((card) => isTopThemeFavourite(card, selectedThemes(input)))
+    .sort((a, b) => (b.inclusion ?? 0) - (a.inclusion ?? 0))
+    .forEach((card) => {
+      if (nonlandSlots() > 0 && fits(card)) take(card)
+    })
   const counts = analyseDeck(deck).counts
   const unmet = (role: TargetKey) => counts[role] < input.deckTargets[role]
   for (const card of spells) {

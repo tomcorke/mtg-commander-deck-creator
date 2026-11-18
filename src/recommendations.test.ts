@@ -1341,3 +1341,89 @@ test('theme evidence quotes the sentence or type line that matched (#501)', () =
   assert.ok(quote.length <= 120 && quote.endsWith('…'), quote)
   assert.equal(themeEvidence(card('Trample'), 'Sacrifice'), undefined)
 })
+
+test('on-theme commander favourites outrank evidence-free local matches in early batches', () => {
+  const context = {
+    theme: 'Voltron',
+    preferenceScores: {},
+    activeSubThemes: [],
+    pickedTags: new Set<string>(),
+    neededRoles: new Set<string>(),
+    cardRoles: [],
+  }
+  const favourite = {
+    name: 'Favourite',
+    reason: 'Commander favourite',
+    inclusion: 67,
+    typeLine: 'Artifact',
+    tags: ['Voltron'],
+  }
+  const local = {
+    name: 'Local',
+    reason: 'Interesting new pick',
+    localIndexSnapshot: true,
+    typeLine: 'Artifact',
+    tags: ['Voltron'],
+  }
+  for (const recommendationStyle of ['thematic', 'balanced'] as const) {
+    const ctx = { ...context, recommendationStyle }
+    assert.ok(
+      recommendationScoreBreakdown(favourite, ctx).total >
+        recommendationScoreBreakdown(local, ctx).total,
+    )
+    const fillers = Array.from({ length: 40 }, (_, i) => ({ ...local, name: `Filler ${i}` }))
+    const ranked = rankRecommendationCards([...fillers, favourite], ctx, false)
+    assert.ok(ranked.slice(0, 4).includes(favourite))
+  }
+})
+test('favourite placement displaces the last eligible pick while preserving slots and budget', () => {
+  const favourite = {
+    name: 'Majority favourite',
+    reason: 'Commander favourite',
+    inclusion: 67,
+    typeLine: 'Artifact',
+    tags: ['Voltron'],
+    price: '2',
+  }
+  const fillers = Array.from({ length: 12 }, (_, i) => ({
+    ...favourite,
+    name: `Ranked ${i}`,
+    inclusion: 10,
+    tags: ['Voltron', 'Tokens'],
+    typeLine: i === 0 ? 'Creature' : 'Artifact',
+  }))
+  const land = {
+    ...favourite,
+    name: 'Land',
+    reason: 'Land or mana',
+    typeLine: 'Land',
+    inclusion: 0,
+  }
+  for (const recommendationStyle of ['thematic', 'balanced'] as const) {
+    const context = {
+      theme: 'Voltron',
+      activeSubThemes: [],
+      pickedTags: new Set(['Tokens']),
+      preferenceScores: { Tokens: 10 },
+      neededRoles: new Set<string>(),
+      cardRoles: [],
+      recommendationStyle,
+    }
+    const baseline = rankRecommendationCards([...fillers, land], context, true)
+    assert.ok(
+      recommendationScoreBreakdown(fillers[0], context).total >
+        recommendationScoreBreakdown(favourite, context).total,
+    )
+    const ranked = rankRecommendationCards([...fillers, land, favourite], context, true)
+    assert.deepEqual(
+      ranked.slice(0, 4).map((c) => c.name),
+      [baseline[0].name, baseline[1].name, favourite.name, land.name],
+    )
+    const budgeted = rankRecommendationCards(
+      [...fillers.map((c) => ({ ...c, price: '0' })), { ...land, price: '0' }, favourite],
+      { ...context, remainingBudget: 1 },
+      true,
+    )
+    assert.ok(!budgeted.slice(0, 4).some((c) => c.name === favourite.name))
+  }
+})

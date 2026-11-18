@@ -34,9 +34,20 @@ export function manaSupportFromAnalysis(
   }
 }
 
+/** App heuristic: a majority-inclusion commander favourite matching a chosen theme. */
+export function isTopThemeFavourite(card: RecommendationScoreCard, themes: string[]) {
+  return (
+    !card.localIndexSnapshot &&
+    card.reason === 'Commander favourite' &&
+    (card.inclusion ?? 0) >= 50 &&
+    themes.some((theme) => theme && hasTag(card, theme))
+  )
+}
+
 function evidenceScore(
   card: RecommendationScoreCard,
   style: RecommendationScoreContext['recommendationStyle'],
+  onTheme: boolean,
 ) {
   if (card.localIndexSnapshot) return 0
   // EDHREC synergy (0.3 = played 30 points more often with this commander) adds up to 4, capped.
@@ -44,6 +55,11 @@ function evidenceScore(
   const base = Math.min(
     recommendationScoreFactorMaximums.evidence,
     synergyBonus +
+      // App heuristic: commander-specific inclusion strengthens an on-theme favourite.
+      // Keep the existing evidence ceiling and leave generic staples unchanged.
+      (onTheme && card.reason === 'Commander favourite'
+        ? Math.round(Math.max(0, Math.min(100, card.inclusion ?? 0)) / 10)
+        : 0) +
       (card.reason === 'Commander synergy'
         ? 20
         : card.reason === 'Commander favourite'
@@ -54,7 +70,8 @@ function evidenceScore(
             ? 8
             : 12),
   )
-  if (style === 'thematic') return Math.round(base * 0.65)
+  if (style === 'thematic' && !(onTheme && card.reason === 'Commander favourite'))
+    return Math.round(base * 0.65)
   if (style === 'fun' && card.reason === 'Interesting new pick')
     return Math.min(recommendationScoreFactorMaximums.evidence, base + 8)
   if (style === 'competitive')
@@ -307,7 +324,8 @@ export function recommendationScoreBreakdown(
     powerTarget,
   } = context
   const collection = collectionScore(card, context)
-  const evidence = evidenceScore(card, recommendationStyle)
+  const onTheme = [declaredTheme, ...activeSubThemes].some((tag) => tag && hasTag(card, tag))
+  const evidence = evidenceScore(card, recommendationStyle, onTheme)
   const goalThemeWeight = recommendationStyle === 'competitive' ? 0.5 : 1
   const theme =
     declaredTheme && hasTag(card, declaredTheme)
@@ -349,11 +367,7 @@ export function recommendationScoreBreakdown(
   // Without expected opponents this is 0, so existing orders are unchanged (#503).
   const opposingAnswers = opposingAnswerScore(card, context)
   const combo = comboScore(card, context)
-  const popularityPenalty =
-    recommendationStyle === 'thematic' &&
-    (card.reason === 'Commander favourite' || card.reason === 'Popular inclusion')
-      ? -recommendationScoreFactorMaximums.popularityPenalty
-      : 0
+  const popularityPenalty = themePopularityPenalty(card, recommendationStyle, onTheme)
   const total = Math.max(
     0,
     evidence +
@@ -500,4 +514,11 @@ export function preferredPrintingIndex(
     0,
     nonfoilFirstIndex(printings, (printing) => printing.image === printings[0]?.image),
   )
+}
+
+function themePopularityPenalty(card: RecommendationScoreCard, style: string, onTheme: boolean) {
+  return style === 'thematic' &&
+    ((card.reason === 'Commander favourite' && !onTheme) || card.reason === 'Popular inclusion')
+    ? -recommendationScoreFactorMaximums.popularityPenalty
+    : 0
 }

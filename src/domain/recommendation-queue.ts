@@ -3,6 +3,7 @@ import { roleCredit, type AnalysisCard } from '../deck-analysis.ts'
 import {
   compareRecommendationScores,
   recommendationScoreBreakdown,
+  isTopThemeFavourite,
 } from './recommendation-scoring.ts'
 import {
   focusedRecommendations,
@@ -151,6 +152,64 @@ export function cardScoreBreakdown<T extends { reason: string; tags: string[] }>
   })
 }
 
+function preservesBatchThemes<T extends { tags: string[] }>(
+  pick: T,
+  replacement: T,
+  batch: T[],
+  context: RecommendationScoreContext,
+) {
+  return [context.theme, ...context.activeSubThemes]
+    .filter(Boolean)
+    .every(
+      (theme) =>
+        !hasTag(pick, theme) ||
+        hasTag(replacement, theme) ||
+        batch.filter((other) => hasTag(other, theme)).length > 1,
+    )
+}
+
+function offerTopThemeFavourites<
+  T extends RecommendationScoreCard & { name: string; typeLine: string },
+>(
+  ordered: T[],
+  context: RecommendationScoreContext,
+  includeCreature: boolean,
+  canUse: (card: T) => boolean,
+  overBudget: (card: T) => boolean,
+  observe?: PlacementObserver<T>,
+) {
+  const favourites = ordered
+    .filter(
+      (card) =>
+        isTopThemeFavourite(card, [context.theme, ...context.activeSubThemes]) &&
+        canUse(card) &&
+        !overBudget(card),
+    )
+    .sort((a, b) => (b.inclusion ?? 0) - (a.inclusion ?? 0))
+  // One early slot per batch; retain the other slots' existing composition.
+  favourites.forEach((card, index) => {
+    const from = ordered.indexOf(card)
+    const start = index * 4
+    const to = ordered.findLastIndex(
+      (pick, position) =>
+        position >= start &&
+        position < start + 4 &&
+        pick.reason !== 'Land or mana' &&
+        !(
+          includeCreature &&
+          pick.typeLine.includes('Creature') &&
+          !card.typeLine.includes('Creature')
+        ) &&
+        !favourites.slice(0, index).includes(pick) &&
+        preservesBatchThemes(pick, card, ordered.slice(start, start + 4), context),
+    )
+    if (to >= 0 && from > to) {
+      observe?.(card, 'theme-coverage')
+      ;[ordered[to], ordered[from]] = [ordered[from], ordered[to]]
+    }
+  })
+}
+
 export function rankRecommendationCards<
   T extends {
     name: string
@@ -209,6 +268,8 @@ export function rankRecommendationCards<
   const batches = batchRecommendations(ranked, includeCreature, canUse, style, observe)
   const finish = (queue: T[]) => {
     const ordered = budgetLast(queue)
+    if (style === 'thematic' || style === 'balanced')
+      offerTopThemeFavourites(ordered, context, includeCreature, canUse, overBudget, observe)
     offerFunctionalStaple(ordered, context, includeCreature, cardRoles, canUse)
     return ordered
   }
