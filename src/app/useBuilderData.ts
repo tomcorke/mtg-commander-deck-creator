@@ -1,3 +1,4 @@
+import { dismissedThemeCounts } from '../domain/recommendation-themes.ts'
 import { hasTag } from '../domain/creature-types.ts'
 import {
   analyseDeck,
@@ -71,19 +72,14 @@ function buildThemeData(deps: BuilderDataDeps) {
   const secondaryTheme =
     colourThemes[commanderDetails?.colours[1] ?? commanderDetails?.colours[0] ?? 'C']
   const deckCards = deck.slice(commanderNames(deps.commander).length)
-  const dismissedThemeCounts = new Map(
-    dismissedSubThemes.map((item: string) => {
-      const split = item.lastIndexOf(':')
-      return split > 0 ? [item.slice(0, split), Number(item.slice(split + 1))] : [item, Infinity]
-    }),
-  )
+  const dismissals = dismissedThemeCounts(dismissedSubThemes)
   const inferredSubThemes =
     activeSubThemes.length < 2
       ? sharedThemes(deckCards, [theme, ...activeSubThemes])
           .filter(
             (name) =>
               deckCards.filter((card: Card) => hasTag(card, name)).length >
-              (dismissedThemeCounts.get(name) ?? -1),
+              (dismissals.get(name) ?? -1),
           )
           .slice(0, 1)
       : []
@@ -565,6 +561,7 @@ function buildRecommendationData(
       deckTargets: deps.deckTargets,
       theme: deps.theme,
       activeSubThemes: deps.activeSubThemes,
+      dismissedSubThemes: deps.dismissedSubThemes,
       findings,
       rankedCandidates: scoreReplacements(pool, deps.deck)
         .sort((left, right) => compareRecommendationScores(left.score, right.score))

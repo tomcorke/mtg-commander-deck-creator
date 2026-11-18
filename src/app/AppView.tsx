@@ -530,6 +530,7 @@ function DeckReviewScreen({
         commanderColours={state.commanderDetails?.colours ?? []}
         theme={state.theme}
         activeSubThemes={state.activeSubThemes}
+        dismissedSubThemes={state.dismissedSubThemes}
         deckTargets={state.deckTargets}
         chooseDeckTarget={(key, value) => actions.chooseDeckTarget(key, value)}
         analysis={builderData.analysis}

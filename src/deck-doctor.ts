@@ -9,7 +9,11 @@ import {
   type ManaColour,
 } from './deck-analysis.ts'
 import { toDeckCardFromRecommendation, type Card, type DeckCard } from './domain/card-model.ts'
-import { findSynergyPair } from './domain/recommendation-themes.ts'
+import {
+  supportedThemes,
+  findSynergyPair,
+  dismissedThemeCounts,
+} from './domain/recommendation-themes.ts'
 import { cardConstructionError } from './domain/commander-construction.ts'
 import type { ManaAccessSimulation } from './deck-simulation.ts'
 
@@ -52,8 +56,28 @@ export type DeckDoctorInput = {
   commanderCount: number
   theme: string
   activeSubThemes: string[]
+  dismissedSubThemes?: string[]
   deckTargets: DeckTargets
   simulation?: ManaAccessSimulation
+}
+
+/** Heuristic: the strongest theme with at least ten main-deck matches informs review (#621).
+ * Unlike recent-card suggestions, review considers the whole imported deck.
+ * Count-stamped dismissals expire when support grows, matching builder suggestions.
+ */
+export function detectedReviewThemes(
+  mainboard: DeckCard[],
+  dismissedSubThemes: string[] = [],
+  excluded: string[] = [],
+): string[] {
+  const dismissed = dismissedThemeCounts(dismissedSubThemes)
+  return supportedThemes
+    .filter((theme) => !excluded.includes(theme))
+    .map((theme) => ({ theme, count: mainboard.filter((card) => hasTag(card, theme)).length }))
+    .filter(({ theme, count }) => count >= 10 && count > (dismissed.get(theme) ?? -1))
+    .sort((left, right) => right.count - left.count)
+    .slice(0, 1)
+    .map(({ theme }) => theme)
 }
 
 const colours = ['W', 'U', 'B', 'R', 'G'] as const
@@ -109,7 +133,9 @@ function weakConnectionFindings(context: DiagnosisContext): DeckDoctorFinding[] 
       kind: 'weak-connection',
       title: `${names.length} card${names.length === 1 ? '' : 's'} have no detected theme, role, or synergy link`,
       summary: 'These are prompts to review the cards, not cut recommendations.',
-      evidence: ['No selected-theme tag, deck role, or known card-pair synergy detected.'],
+      evidence: [
+        'No selected or undismissed detected-theme tag, deck role, or known card-pair synergy detected.',
+      ],
       cardNames: names,
       supportCount: names.length,
     },
@@ -210,7 +236,11 @@ export function analyzeDeckDoctor(input: DeckDoctorInput): DeckDoctorFinding[] {
   const analysis = analyseDeck(input.deck)
   const themeTags = [...new Set([input.theme, ...input.activeSubThemes].filter(Boolean))]
   const mainboard = input.deck.slice(input.commanderCount)
-  const cuts = unconnectedCards(mainboard, themeTags, input.deck).map(({ card, index }) => ({
+  const cuts = unconnectedCards(
+    mainboard,
+    [...themeTags, ...detectedReviewThemes(mainboard, input.dismissedSubThemes, themeTags)],
+    input.deck,
+  ).map(({ card, index }) => ({
     card,
     index: index + input.commanderCount,
   }))
