@@ -68,6 +68,7 @@ type Props = {
   commanderCount: number
   commanderColours: string[]
   theme: string
+  dismissedSubThemes: string[]
   activeSubThemes: string[]
   deckTargets: DeckTargets
   chooseDeckTarget: (key: TargetKey, value: number) => void
@@ -314,6 +315,7 @@ export function DeckDoctorView({
   commanderCount,
   commanderColours,
   theme,
+  dismissedSubThemes,
   activeSubThemes,
   deckTargets,
   chooseDeckTarget,
@@ -402,10 +404,12 @@ export function DeckDoctorView({
             commanderCount,
             theme,
             activeSubThemes,
+            dismissedSubThemes,
             deckTargets,
             simulation,
           }),
     [
+      dismissedSubThemes,
       activeSubThemes,
       analysis.curvePending,
       commanderCount,

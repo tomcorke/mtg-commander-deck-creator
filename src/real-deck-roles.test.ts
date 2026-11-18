@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { analyseDeck, cardFeatures, rolesForCard, type CardFeatures } from './deck-analysis.ts'
+import {
+  analyseDeck,
+  defaultDeckTargets,
+  cardFeatures,
+  rolesForCard,
+  type CardFeatures,
+} from './deck-analysis.ts'
 import { toCard, toDeckCard, type ScryfallCard } from './domain/card-model.ts'
-import { analyzeDeckDoctor } from './deck-doctor.ts'
+import { analyzeDeckDoctor, detectedReviewThemes } from './deck-doctor.ts'
 import { suggestDeckDoctorChanges } from './deck-doctor-suggestions.ts'
 import { buildEdhrecRecommendations } from './domain/recommendation-sources.ts'
 
@@ -173,3 +179,46 @@ for (const deck of fixture.decks) {
     assert.deepEqual(analyseDeck(cards).counts, expected)
   })
 }
+
+test('Power Hungry import keeps unlinked findings and cuts outside its strongest detected theme', () => {
+  const source = fixture.decks.find(({ name }) => name === 'Power Hungry')!
+  const deck = source.cards.flatMap(({ oracle_id, quantity }) =>
+    Array.from({ length: quantity }, () => toDeckCard(record(fixture.cards[oracle_id].input.name))),
+  )
+  const options = {
+    deck,
+    sideboard: [],
+    commanderCount: 1,
+    commanderColours: ['B', 'R', 'G'],
+    theme: '',
+    activeSubThemes: [],
+    deckTargets: { ...defaultDeckTargets, ramp: analyseDeck(deck).counts.ramp + 1 },
+  }
+  assert.deepEqual(detectedReviewThemes(deck.slice(1)), ['Sacrifice'])
+  const findings = analyzeDeckDoctor(options)
+  const unlinked = findings.find(({ kind }) => kind === 'weak-connection')!
+  assert.ok(unlinked.cardNames.length > 0)
+  const ramp = {
+    ...toCard(record('Sol Ring'), 'Interesting new pick'),
+    name: 'Regression ramp',
+    oracleId: undefined,
+    manaCost: '{1}',
+    manaValue: 1,
+  }
+  const suggestions = suggestDeckDoctorChanges({
+    ...options,
+    findings,
+    rankedCandidates: [{ card: ramp, fit: 90 }],
+    ratedCuts: deck.slice(1).map((card) => ({ card, fit: 0 })),
+  })
+  assert.ok(
+    Object.values(suggestions)
+      .flat()
+      .some(({ cut }) => cut),
+  )
+  assert.ok(
+    Object.values(suggestions)
+      .flat()
+      .every(({ cut }) => !cut?.cutCard.tags.includes('Sacrifice')),
+  )
+})

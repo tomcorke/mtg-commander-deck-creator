@@ -189,6 +189,18 @@ export function unsupportedCommanderThemes(tagCounts: EdhrecThemeCount[]) {
   return tagCounts.filter((tag) => !edhrecThemeName(tag)).map(({ value }) => value)
 }
 
+/** Bare dismissals persist; count-stamped ones expire when matching support grows. */
+export function dismissedThemeCounts(items: string[]) {
+  return new Map(
+    items.map((item) => {
+      const split = item.lastIndexOf(':')
+      return split > 0
+        ? ([item.slice(0, split), Number(item.slice(split + 1))] as const)
+        : ([item, Infinity] as const)
+    }),
+  )
+}
+
 export function sharedThemes(cards: { tags: string[] }[], excluded: string[] = []) {
   const counts = new Map<string, number>()
   for (const card of cards.slice(-12))

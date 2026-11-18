@@ -14,7 +14,7 @@ import { cardConstructionError } from './domain/commander-construction.ts'
 import { recommendedScoreThreshold } from './domain/recommendation-types.ts'
 import { findSynergyPair } from './domain/recommendation-themes.ts'
 import { packageCounts, packagePartsFor, strategyPackages } from './domain/strategy-packages.ts'
-import { deckReviewMode, type DeckDoctorFinding } from './deck-doctor.ts'
+import { detectedReviewThemes, deckReviewMode, type DeckDoctorFinding } from './deck-doctor.ts'
 
 export type DoctorSuggestion = {
   cut?: { cutIndex: number; cutCard: DeckCard }
@@ -30,6 +30,7 @@ type SuggestionInput = {
   deckTargets: DeckTargets
   theme: string
   activeSubThemes: string[]
+  dismissedSubThemes?: string[]
   findings: DeckDoctorFinding[]
   /** Current, preference-filtered replacement pool, in shared-score order. */
   rankedCandidates: RatedCard<Card>[]
@@ -37,6 +38,7 @@ type SuggestionInput = {
 }
 type SuggestionContext = SuggestionInput &
   ReturnType<typeof analyseDeck> & {
+    detectedThemes: string[]
     flagged: Set<string>
     cutFits: Map<DeckCard, number>
     lowFitCeiling: number
@@ -100,6 +102,7 @@ function eligibleCut(card: DeckCard, index: number, context: FindingContext) {
   const findingFlags = finding.kind === 'weak-connection' || finding.kind === 'mana-outlier'
   return (
     index >= commanderCount &&
+    !context.detectedThemes.some((theme) => hasTag(card, theme)) &&
     (flagged.has(card.name) || (cutFits.get(card) ?? Infinity) <= lowFitCeiling) &&
     !(role && roles.includes(role)) &&
     !(tag && hasTag(card, tag)) &&
@@ -296,6 +299,11 @@ export function suggestDeckDoctorChanges(
   const context: SuggestionContext = {
     ...input,
     ...analyseDeck(input.deck),
+    detectedThemes: detectedReviewThemes(
+      input.deck.slice(input.commanderCount),
+      input.dismissedSubThemes,
+      [input.theme, ...input.activeSubThemes],
+    ),
     flagged: new Set(
       input.findings
         .filter(({ kind }) => kind === 'weak-connection' || kind === 'mana-outlier')

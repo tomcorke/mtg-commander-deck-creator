@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import { defaultDeckTargets } from './deck-analysis.ts'
 import {
+  detectedReviewThemes,
   analyzeDeckDoctor,
   applyDeckDoctorSwap,
   applyDeckDoctorSwapPlan,
@@ -552,4 +553,56 @@ test('applies and undoes unequal plans', () => {
     restored.sideboard.map(({ name }) => name),
     ['Cut One'],
   )
+})
+
+test('imported broad detected themes link their cards until dismissed', () => {
+  const deck = [
+    deckCard('Commander'),
+    ...Array.from({ length: 47 }, (_, i) => deckCard(`Voltron ${i}`, { tags: ['Voltron'] })),
+    deckCard('Unrelated'),
+  ]
+  const input = {
+    deck,
+    sideboard: [],
+    commanderCount: 1,
+    theme: '',
+    activeSubThemes: [],
+    deckTargets: defaultDeckTargets,
+  }
+  assert.deepEqual(analyzeDeckDoctor(input).find((f) => f.kind === 'weak-connection')?.cardNames, [
+    'Unrelated',
+  ])
+  assert.equal(
+    analyzeDeckDoctor({ ...input, dismissedSubThemes: ['Voltron:47'] }).find(
+      (f) => f.kind === 'weak-connection',
+    )?.cardNames.length,
+    48,
+  )
+})
+
+test('review detection ignores sparse matches and respects both dismissal formats', () => {
+  const cards = Array.from({ length: 10 }, (_, i) => deckCard(`Match ${i}`, { tags: ['Voltron'] }))
+  assert.deepEqual(detectedReviewThemes(cards.slice(0, 9)), [])
+  assert.deepEqual(detectedReviewThemes(cards), ['Voltron'])
+  assert.deepEqual(detectedReviewThemes(cards, ['Voltron']), [])
+  assert.deepEqual(detectedReviewThemes(cards, ['Voltron:10']), [])
+  assert.deepEqual(detectedReviewThemes(cards, ['Voltron:9']), ['Voltron'])
+  const findings = analyzeDeckDoctor({
+    deck: [deckCard('Commander'), ...cards.slice(0, 2)],
+    sideboard: [cards[2]],
+    commanderCount: 1,
+    theme: '',
+    activeSubThemes: [],
+    deckTargets: defaultDeckTargets,
+  })
+  assert.equal(findings.find((f) => f.kind === 'weak-connection')?.cardNames.length, 2)
+})
+
+test('review detection excludes chosen themes before selecting the strongest remaining theme', () => {
+  const cards = [
+    ...Array.from({ length: 20 }, (_, i) => deckCard(`Chosen ${i}`, { tags: ['Sacrifice'] })),
+    ...Array.from({ length: 15 }, (_, i) => deckCard(`Secondary ${i}`, { tags: ['Voltron'] })),
+  ]
+  assert.deepEqual(detectedReviewThemes(cards, [], ['Sacrifice']), ['Voltron'])
+  assert.deepEqual(detectedReviewThemes(cards, [], ['Sacrifice', 'Voltron']), [])
 })

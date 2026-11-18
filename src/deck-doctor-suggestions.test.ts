@@ -484,3 +484,45 @@ test('a mixed creature and resource token maker is protected as the only enabler
     ['Low B'],
   )
 })
+
+test('cuts skip undismissed detected themes even when flagged or low fit', () => {
+  const themed = Array.from({ length: 47 }, (_, i) => card(`Voltron ${i}`, { tags: ['Voltron'] }))
+  const options = { ...input(themed), theme: '' }
+  options.deck
+    .filter((card) => card.name.startsWith('Strong fit'))
+    .forEach((card) => {
+      card.tags = []
+    })
+  assert.equal(rampSuggestions(options).length, 0)
+  options.findings = [
+    finding(
+      'weak-connections',
+      themed.map((card) => card.name),
+    ),
+  ]
+  assert.deepEqual(suggestDeckDoctorChanges(options)['weak-connections'], [])
+  options.findings = [finding()]
+  assert.equal(rampSuggestions({ ...options, dismissedSubThemes: ['Voltron:47'] }).length, 1)
+})
+
+test('selected themes remain cut candidates while a detected secondary theme is protected', () => {
+  const selected = Array.from({ length: 20 }, (_, i) =>
+    card(`Selected ${i}`, { tags: ['Sacrifice'] }),
+  )
+  const secondary = Array.from({ length: 15 }, (_, i) =>
+    card(`Secondary ${i}`, { tags: ['Voltron'] }),
+  )
+  const options = {
+    ...input([...selected, ...secondary]),
+    theme: 'Sacrifice',
+    activeSubThemes: ['Tokens'],
+  }
+  options.deck
+    .filter((card) => card.name.startsWith('Strong fit'))
+    .forEach((card) => {
+      card.tags = []
+    })
+  const suggestions = rampSuggestions(options)
+  assert.ok(suggestions.length > 0)
+  assert.ok(suggestions.every(({ cut }) => cut?.cutCard.tags.includes('Sacrifice')))
+})
