@@ -663,7 +663,6 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           zoneToggle={zoneToggle}
         />
       )}
-      {deckCardModal}
       {showBasicLands && (
         <BasicLandDialog
           basicLandState={basicLandState}
@@ -685,6 +684,8 @@ export function BuilderView({ model }: { model: BuilderViewModel }) {
           onOpenBasicLand={model.openCardReference}
         />
       )}
+      {/* After Choose lands, so details opened from it render above it (#645). */}
+      {deckCardModal}
       <div className="workspace">
         <section className="recommendations">
           {/* Narrow screens stack the deck panel far below the batch, so keep its essentials in view. */}

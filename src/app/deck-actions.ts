@@ -621,7 +621,13 @@ export async function hydrateDeckCardDetails(deps: AppActionContext, card: DeckC
   }
 }
 
+/** Details opened from Choose lands stack over it, so it keeps its choices beneath them (#645). */
+function keepLandsBeneathDetails(deps: AppActionContext) {
+  if (deps.activeModal === 'basics') deps.setBuilderModeReturn('basics')
+}
+
 export function openGuidanceCard(deps: AppActionContext, card: Card) {
+  keepLandsBeneathDetails(deps)
   const {
     openModal,
     setSelectedCollectionCard,
@@ -682,6 +688,7 @@ export function openCardReference(deps: AppActionContext, card: Card | DeckCard)
     !(deps.activeModal === 'doctor-history' && deps.builderModeReturn)
   )
     deps.setBuilderModeReturn(deps.activeModal)
+  keepLandsBeneathDetails(deps)
   deps.manualPrintingRequest.current?.abort()
   deps.setSelectedManualCard(null)
   const deckIndex = deps.deck.findIndex(

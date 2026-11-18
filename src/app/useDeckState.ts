@@ -12,7 +12,14 @@ const initialSharePayload =
   typeof window === 'undefined' ? null : sharePayloadFromHash(window.location.hash)
 
 type BuilderModeReturn =
-  'review' | 'review-changes' | 'review-confirm' | 'doctor' | 'doctor-history' | 'search' | null
+  | 'review'
+  | 'review-changes'
+  | 'review-confirm'
+  | 'doctor'
+  | 'doctor-history'
+  | 'search'
+  | 'basics'
+  | null
 
 export function useDeckState() {
   const [selectedDeckCardLocation, setSelectedDeckCardLocation] = useState<DeckCardLocation | null>(

@@ -38,6 +38,11 @@ export const appModals: AppModal[] = [
   'owned-cards',
 ]
 
+/** Choose lands stays mounted beneath card details opened from it, keeping its choices (#645). */
+export function chooseLandsOpen(modal: AppModal | null, modeReturn: AppModal | null) {
+  return modal === 'basics' || (modal === 'card' && modeReturn === 'basics')
+}
+
 export const reviewSteps = ['Diagnose', 'Choose changes', 'Confirm'] as const
 export type DeckReviewStep = (typeof reviewSteps)[number]
 export const reviewRoutes = ['review', 'review-changes', 'review-confirm'] as const

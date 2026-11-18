@@ -9,7 +9,7 @@ import { useCommanderState } from './useCommanderState.ts'
 import { useDeckState } from './useDeckState.ts'
 import { useRecommendationState } from './useRecommendationState.ts'
 import { useUiState } from './useUiState.ts'
-import type { AppHistoryState } from './routes.ts'
+import { chooseLandsOpen, type AppHistoryState } from './routes.ts'
 import type { DeckWorkspace } from '../autosaves.ts'
 import { useWorkspaceState } from './useWorkspaceState.ts'
 import { useBuilderState } from './useBuilderState.ts'
@@ -233,7 +233,7 @@ export function useControllerState(
     savedDeckChanged,
     selectedDeckCard,
     showExport: state.activeModal === 'export',
-    showBasicLands: state.activeModal === 'basics',
+    showBasicLands: chooseLandsOpen(state.activeModal, state.builderModeReturn),
     showCardSearch: state.activeModal === 'search',
     showRecommendationSettings: state.activeModal === 'recommendation-settings',
     showOwnedCards: state.activeModal === 'owned-cards',

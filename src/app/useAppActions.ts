@@ -68,6 +68,7 @@ import { useCurrentCardData } from './useCurrentCardData.ts'
 import type { ControllerState } from './useControllerState.ts'
 import {
   appHistoryKey,
+  chooseLandsOpen,
   readAppRoute,
   reviewRouteDepth,
   runOrConfirmReviewExit,
@@ -615,9 +616,11 @@ export function useAppActions(state: AppState) {
       ...appState,
     }),
   )
+  // Card details over Choose lands keep it open, so closing them does not search again.
+  const landsOpen = chooseLandsOpen(state.activeModal, state.builderModeReturn)
   useEffect(() => {
-    if (state.activeModal === 'basics') void searchLands()
-  }, [state.activeModal, state.deck, state.theme, state.activeSubThemes])
+    if (landsOpen) void searchLands()
+  }, [landsOpen, state.deck, state.theme, state.activeSubThemes])
   const resumeFirstBatch = useEffectEvent(() => remote.start(state.commander, true))
   useEffect(() => {
     // A prepared draft resumes its first batch once its play style is chosen or skipped (A14, #490).
