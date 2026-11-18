@@ -316,12 +316,21 @@ export function BasicLandDialog({
       current = false
     }
   }, [basicNamesKey, onLoadDefaultBasicLand])
+  // A name activated before its default printing loads must not open details after the dialog closes.
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
   const openBasicLand = async (name: string) => {
     try {
       const card =
         selectedPrintings[name] ?? defaultPrintings[name] ?? (await onLoadDefaultBasicLand(name))
-      onOpenBasicLand(toDeckCard(card))
+      if (mounted.current) onOpenBasicLand(toDeckCard(card))
     } catch {
+      if (!mounted.current) return
       setRetryName('')
       setStyleError(`Could not load ${name} details.`)
     }
