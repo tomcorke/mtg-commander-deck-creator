@@ -864,8 +864,8 @@ function closeImportAndMaybeReview(
   imported: ImportedDeck,
   openReviewAfterImport: boolean,
 ) {
-  deps.closeModal(true)
-  if (shouldOpenReviewAfterImport(imported, openReviewAfterImport)) deps.openModal('review')
+  const modal = shouldOpenReviewAfterImport(imported, openReviewAfterImport) ? 'review' : null
+  deps.navigateView(deps, 'builder', modal, true)
 }
 
 export async function importDeck(
