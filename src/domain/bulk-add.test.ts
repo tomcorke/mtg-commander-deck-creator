@@ -448,3 +448,39 @@ test('top commander theme favourites survive local matches, role quotas and draf
     assert.ok(!capped.state.deck.some((c) => c.name === favourite.name))
   }
 })
+
+test('starting draft caps speculative theme spells across role and filler passes', () => {
+  const locals = Array.from({ length: 10 }, (_, i) => ({
+    ...draw(`Local ${i}`),
+    tags: ['Voltron'],
+    reason: 'Local card match',
+    localIndexSnapshot: i % 2 === 0,
+  }))
+  const backed = { ...card('Backed'), tags: ['Voltron'], inclusion: 20 }
+  const result = apply(builder({ theme: 'Voltron', queue: [...locals, backed] }), {
+    type: 'buildStartingDeck',
+    basics: [forest],
+  })
+  assert.equal(result.error, undefined)
+  assert.equal(result.state.deck.length, 100)
+  assert.equal(result.state.deck.filter((c) => c.name.startsWith('Local ')).length, 3)
+  assert.ok(result.state.deck.some((c) => c.name === 'Backed'))
+})
+
+test('owned-only theme cards keep the speculative cap after hydration clears the snapshot flag', () => {
+  const locals = Array.from({ length: 10 }, (_, i) => ({
+    ...draw(`Owned ${i}`),
+    tags: ['Voltron'],
+    reason: 'In your collection',
+    localIndexSnapshot: false,
+  }))
+  const state = builder({
+    theme: 'Voltron',
+    queue: locals,
+    ownershipMode: 'only',
+    ownedCards: Object.fromEntries(locals.map((c) => [c.name.toLowerCase(), 1])),
+  })
+  const result = apply(state, { type: 'buildStartingDeck', basics: [forest] })
+  assert.equal(result.error, undefined)
+  assert.equal(result.state.deck.filter((c) => c.name.startsWith('Owned ')).length, 3)
+})
