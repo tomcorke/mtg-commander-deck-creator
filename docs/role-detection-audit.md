@@ -61,3 +61,7 @@ Quantity-weighted counts include commanders. Each cell is **baseline → reviewe
 Run `node --experimental-strip-types --test src/real-deck-roles.test.ts` for 418 per-card checks, six deck-total checks, and three integration checks covering Doctor links/curve, provider labels and swap deltas. Boundary tests in `src/card-features.test.ts` check negative and ambiguous wording as well as positive matches.
 
 No saved targets, schema, ranking weights or UI layouts changed. Costs, timing, resources, most implicit engines, and unreviewed Oracle wording remain heuristic limits; package-aware ranking remains #105. Two existing browser gates fail identically on the baseline and this branch; repair is tracked in #146. The screenshot review uses a separate synthetic Teysa reproduction state, not one of the six published decklists.
+
+## Draw and transforming-face correction (#626)
+
+Heuristic update, 2026-11-18: Foreboding Landscape cycling is selection and Invasion of Fiora receives its front-face wipe role without back-face draw credit. Boundary tests in `src/card-features.test.ts` cover these cases, discard costs, independent draw, and front-face draw. No Oracle-ID overrides were added. Ramp categories from #592 and the separate land-role classifier from #588 are unchanged.
