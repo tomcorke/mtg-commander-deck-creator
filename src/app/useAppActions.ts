@@ -1,3 +1,4 @@
+import { addPendingSubTheme } from './pending-sub-themes.ts'
 import {
   openOwnedCard,
   resolveOwnedCards,
@@ -454,7 +455,7 @@ function queueSubTheme(
   name: string,
   { theme, activeSubThemes }: { theme: string; activeSubThemes: string[] },
 ) {
-  state.setPendingSubThemes((t: string[]) => [...t, name])
+  state.setPendingSubThemes((t: string[]) => addPendingSubTheme(t, name))
   void themeRecommendations(
     { ...remote.recommendationDeps, theme, activeSubThemes, pendingLocal: [] },
     state.commanderDetails?.colours ?? [],
