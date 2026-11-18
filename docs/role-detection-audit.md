@@ -65,3 +65,5 @@ No saved targets, schema, ranking weights or UI layouts changed. Costs, timing, 
 ## Draw and transforming-face correction (#626)
 
 Heuristic update, 2026-11-18: Foreboding Landscape cycling is selection and Invasion of Fiora receives its front-face wipe role without back-face draw credit. Boundary tests in `src/card-features.test.ts` cover these cases, discard costs, independent draw, and front-face draw. No Oracle-ID overrides were added. Ramp categories from #592 and the separate land-role classifier from #588 are unchanged.
+
+Six existing cycling fixtures retain their independent labels with `app_review` notes. Current draw totals fall from 3 to 2 in Power Hungry, 10 to 8 in Nature's Vengeance, and 9 to 7 in Plunder the Graves; other audited totals are unchanged.

@@ -3469,12 +3469,20 @@
       "scryfall_url": "https://scryfall.com/card/dsc/262/barren-moor?utm_source=api",
       "retrieved": "2026-10-25",
       "expected": {
+        "roles": { "land": true, "ramp": false, "draw": false, "removal": false, "wipe": false },
+        "mana": null,
+        "draw": "selection",
+        "interaction": null,
+        "wipe": false
+      },
+      "independent_expected": {
         "roles": { "land": true, "ramp": false, "draw": true, "removal": false, "wipe": false },
         "mana": null,
         "draw": "cantrip",
         "interaction": null,
         "wipe": false
       },
+      "app_review": "#626 (2026-11-18): cycling is selection and earns no draw-role credit.",
       "review_note": "Cycling replaces this card; label the available mode."
     },
     "9167998d-5cac-47d7-99f2-f38122f7b8e7": {
@@ -5179,12 +5187,20 @@
       "scryfall_url": "https://scryfall.com/card/a25/86/dirge-of-dread?utm_source=api",
       "retrieved": "2026-10-25",
       "expected": {
+        "roles": { "land": false, "ramp": false, "draw": false, "removal": false, "wipe": false },
+        "mana": null,
+        "draw": "selection",
+        "interaction": null,
+        "wipe": false
+      },
+      "independent_expected": {
         "roles": { "land": false, "ramp": false, "draw": true, "removal": false, "wipe": false },
         "mana": null,
         "draw": "cantrip",
         "interaction": null,
         "wipe": false
       },
+      "app_review": "#626 (2026-11-18): cycling is selection and earns no draw-role credit.",
       "review_note": "Cycling cantrips; granting fear is not removal."
     },
     "15d8b339-7520-43c9-b2dc-4a936357042b": {
@@ -6362,12 +6378,20 @@
       "scryfall_url": "https://scryfall.com/card/c21/289/forgotten-cave?utm_source=api",
       "retrieved": "2026-10-25",
       "expected": {
+        "roles": { "land": true, "ramp": false, "draw": false, "removal": false, "wipe": false },
+        "mana": null,
+        "draw": "selection",
+        "interaction": null,
+        "wipe": false
+      },
+      "independent_expected": {
         "roles": { "land": true, "ramp": false, "draw": true, "removal": false, "wipe": false },
         "mana": null,
         "draw": "cantrip",
         "interaction": null,
         "wipe": false
       },
+      "app_review": "#626 (2026-11-18): cycling is selection and earns no draw-role credit.",
       "review_note": ""
     },
     "fb431500-152c-4524-b76b-de62922ff57f": {
@@ -9771,12 +9795,20 @@
       "scryfall_url": "https://scryfall.com/card/dmr/253/polluted-mire?utm_source=api",
       "retrieved": "2026-10-25",
       "expected": {
+        "roles": { "land": true, "ramp": false, "draw": false, "removal": false, "wipe": false },
+        "mana": null,
+        "draw": "selection",
+        "interaction": null,
+        "wipe": false
+      },
+      "independent_expected": {
         "roles": { "land": true, "ramp": false, "draw": true, "removal": false, "wipe": false },
         "mana": null,
         "draw": "cantrip",
         "interaction": null,
         "wipe": false
       },
+      "app_review": "#626 (2026-11-18): cycling is selection and earns no draw-role credit.",
       "review_note": ""
     },
     "5330e24a-8568-446e-840a-594cd08bd1bc": {
@@ -11699,12 +11731,20 @@
       "scryfall_url": "https://scryfall.com/card/dmr/256/slippery-karst?utm_source=api",
       "retrieved": "2026-10-25",
       "expected": {
+        "roles": { "land": true, "ramp": false, "draw": false, "removal": false, "wipe": false },
+        "mana": null,
+        "draw": "selection",
+        "interaction": null,
+        "wipe": false
+      },
+      "independent_expected": {
         "roles": { "land": true, "ramp": false, "draw": true, "removal": false, "wipe": false },
         "mana": null,
         "draw": "cantrip",
         "interaction": null,
         "wipe": false
       },
+      "app_review": "#626 (2026-11-18): cycling is selection and earns no draw-role credit.",
       "review_note": ""
     },
     "6ad8011d-3471-4369-9d68-b264cc027487": {
@@ -12959,12 +12999,20 @@
       "scryfall_url": "https://scryfall.com/card/dsc/318/tranquil-thicket?utm_source=api",
       "retrieved": "2026-10-25",
       "expected": {
+        "roles": { "land": true, "ramp": false, "draw": false, "removal": false, "wipe": false },
+        "mana": null,
+        "draw": "selection",
+        "interaction": null,
+        "wipe": false
+      },
+      "independent_expected": {
         "roles": { "land": true, "ramp": false, "draw": true, "removal": false, "wipe": false },
         "mana": null,
         "draw": "cantrip",
         "interaction": null,
         "wipe": false
       },
+      "app_review": "#626 (2026-11-18): cycling is selection and earns no draw-role credit.",
       "review_note": ""
     },
     "20a6d576-a5b2-43b4-8be9-75be001e567d": {
