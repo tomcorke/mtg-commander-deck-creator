@@ -526,3 +526,25 @@ test('selected themes remain cut candidates while a detected secondary theme is 
   assert.ok(suggestions.length > 0)
   assert.ok(suggestions.every(({ cut }) => cut?.cutCard.tags.includes('Sacrifice')))
 })
+
+test('commander trigger payoffs are protected even when low-fit cuts fill a role gap', () => {
+  const payoffs = [
+    'Whenever a creature you control deals combat damage to a player, draw a card.',
+    'Whenever a creature deals combat damage to one of your opponents, exile a card.',
+    'If a creature you control dealing combat damage to a player causes a triggered ability of a permanent you control to trigger, that ability triggers an additional time.',
+  ].map((detail, index) => card(`Trigger payoff ${index}`, { detail }))
+  const setup = input([...payoffs, card('Unlinked')])
+  setup.deck[0] = card('Kotis, the Fangkeeper', {
+    detail: 'Whenever Kotis deals combat damage to a player, exile cards.',
+  })
+  setup.ratedCuts = setup.deck.slice(1).map((card) => ({ card, fit: 0 }))
+  const suggestions = rampSuggestions(setup)
+  assert.ok(suggestions.length)
+  assert.ok(suggestions.every((suggestion) => !payoffs.includes(suggestion.cut!.cutCard)))
+  const findings = analyzeDeckDoctor({ ...setup, sideboard: [] })
+  assert.ok(
+    findings
+      .filter(({ kind }) => kind === 'weak-connection')
+      .every(({ cardNames }) => payoffs.every(({ name }) => !cardNames.includes(name))),
+  )
+})

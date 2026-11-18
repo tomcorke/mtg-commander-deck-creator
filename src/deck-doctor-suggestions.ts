@@ -1,3 +1,4 @@
+import { commanderTriggerLink } from './domain/commander-trigger-links.ts'
 import { hasTag } from './domain/creature-types.ts'
 import {
   analyseDeck,
@@ -102,6 +103,7 @@ function eligibleCut(card: DeckCard, index: number, context: FindingContext) {
   const findingFlags = finding.kind === 'weak-connection' || finding.kind === 'mana-outlier'
   return (
     index >= commanderCount &&
+    !commanderTriggerLink(card, context.deck.slice(0, commanderCount)) &&
     !context.detectedThemes.some((theme) => hasTag(card, theme)) &&
     (flagged.has(card.name) || (cutFits.get(card) ?? Infinity) <= lowFitCeiling) &&
     !(role && roles.includes(role)) &&

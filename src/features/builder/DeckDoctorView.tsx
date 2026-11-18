@@ -1,3 +1,4 @@
+import { commanderTriggerLink } from '../../domain/commander-trigger-links.ts'
 import { matchesCardFilter } from './deck-review-filter.ts'
 import type { OpposingAnswerTargets, OpposingStrategy } from '../../domain/recommendation-types.ts'
 import { hasTag } from '../../domain/creature-types.ts'
@@ -627,6 +628,7 @@ export function DeckDoctorView({
           key={card.name}
           card={card}
           status={status}
+          note={commanderTriggerLink(card, deck.slice(0, commanderCount))}
           openCard={openCard}
           quantity={{
             value: indexes.filter((index) => selectedCutIndexes.includes(index)).length,
@@ -642,6 +644,7 @@ export function DeckDoctorView({
         key={card.name}
         card={card}
         status={status}
+        note={commanderTriggerLink(card, deck.slice(0, commanderCount))}
         openCard={openCard}
         selection={{
           checked: selected,

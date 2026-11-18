@@ -219,3 +219,20 @@ A starting deck takes at most three new nonland theme matches whose only provena
 **Voltron limit:** the tag matches `equipped creature`, `enchanted creature`, or `commander you control`. It does not distinguish beneficial enchanted-creature text from hindering or controlling text. Licids, bestow creatures and hostile Auras can count without being useful Voltron support. The cap limits speculative filler; it does not correct this classifier or validate provider-backed matches.
 
 Provenance is limited by the queue merge: a hydrated `Local card match` may retain that reason even if a later provider response lists it, and remain capped. The cap uses stored provenance, not a fresh provider lookup.
+
+### Commander trigger links in review (#622)
+
+Deck review uses a conservative text heuristic to protect cards that share a commander's
+explicit trigger condition. Supported conditions are combat damage to a player, lands entering
+under your control, and creatures you control dying. Combat payoffs must reward your creatures
+collectively; a payoff for only its own damage is not sufficient. Explicit combat-damage trigger
+repeaters also match. Reminder text is ignored. Either commander in a pair can provide the link.
+Review shows the heuristic explanation in the existing card note, excludes linked cards from
+weak-connection findings, and protects them from all suggested cuts, including role-gap swaps.
+Manual cuts remain available. Recommendation scores are unchanged.
+
+This is an app estimate, not a rules interaction proof or a card-quality judgement. The matcher
+recognises limited English wording, not arbitrary trigger equivalence, creature subtypes,
+intervening conditions, replacement effects, or broad trigger doublers. It may miss valid links
+and may overstate links with additional restrictions. Missing text yields no link. It does not
+simulate whether a trigger can happen in the current game.
