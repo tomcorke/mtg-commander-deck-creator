@@ -187,7 +187,7 @@ function basicFill(identity: string[], deck: DeckCard[], basics: DeckCard[]) {
 
 /**
  * App heuristic, not a tuned list: fill unmet nonland role targets from the ranked queue, then the
- * remaining nonland slots in queue order (which already reflects theme and priority), then the
+ * remaining nonland slots, preferring cards without completed roles in both stages, then the
  * land plan Choose lands shows (`planLandFill`), then basics split by colour demand. Every card passes the same
  * construction and filter checks as a manual Add. Basics fill any slots left when candidates run
  * out, so the result is always 100 cards.
@@ -249,17 +249,34 @@ export function planStartingDeck(input: StartingDeckInput, basics: DeckCard[]): 
     })
   const counts = analyseDeck(deck).counts
   const unmet = (role: TargetKey) => counts[role] < input.deckTargets[role]
-  for (const card of spells) {
-    if (nonlandSlots() <= 0 || !nonlandRoles.some(unmet)) break
-    const roles = rolesForCard(card)
-    if (!roles.some((role) => role !== 'lands' && unmet(role)) || !fits(card)) continue
-    take(card)
-    for (const role of roles) counts[role] += 1
+  const fillRoles = (allowCompletedRoles: boolean) => {
+    for (const card of spells) {
+      if (nonlandSlots() <= 0 || !nonlandRoles.some(unmet)) break
+      const roles = rolesForCard(card)
+      if (!allowCompletedRoles && roles.some((role) => !unmet(role))) continue
+      if (!roles.some((role) => role !== 'lands' && unmet(role)) || !fits(card)) continue
+      take(card)
+      for (const role of roles) counts[role] += 1
+    }
   }
-  for (const card of spells) {
-    if (nonlandSlots() <= 0) break
-    if (fits(card)) take(card)
+  fillRoles(false)
+  fillRoles(true)
+  // The queue was ranked against the original deck. Prefer remaining theme/filler cards
+  // without a completed role before reusing its now-stale role preferences. Keep queue
+  // order within each pass; overlapping roles and favourites can still exceed targets.
+  const fillSpells = (allowCompletedRoles: boolean) => {
+    for (const card of spells) {
+      if (nonlandSlots() <= 0) break
+      const roles = rolesForCard(card)
+      if (!allowCompletedRoles && roles.some((role) => !unmet(role))) continue
+      if (!fits(card)) continue
+      take(card)
+      for (const role of roles) counts[role] += 1
+    }
   }
+
+  fillSpells(false)
+  fillSpells(true)
 
   // The same planner as Choose lands; `fits` re-checks each pick against the growing deck.
   const lands = planLandFill({
