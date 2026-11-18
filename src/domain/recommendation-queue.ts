@@ -14,6 +14,7 @@ import { exceedsDeckBudget } from './deck-price.ts'
 import { allowedByOwnership } from './owned-cards.ts'
 import { recommendationScoreFactorMaximums } from './recommendation-types.ts'
 import type {
+  RecommendationScoreBreakdown,
   CollectionMode,
   DeferredCard,
   RecommendationScoreCard,
@@ -210,6 +211,34 @@ function offerTopThemeFavourites<
   })
 }
 
+/** Cards the set and ownership filters allow, before the price cap. */
+export function rankingEligible<
+  T extends { set?: string; collectionMatch?: boolean; name: string },
+>(cards: T[], context: RecommendationScoreContext) {
+  return (
+    context.collectionMode === 'only' && context.collectionSets?.length
+      ? cards.filter(
+          (card) =>
+            card.collectionMatch || (card.set && context.collectionSets?.includes(card.set)),
+        )
+      : cards
+  ).filter((card) => allowedByOwnership(card, context.ownedCards, context.ownershipMode))
+}
+
+/**
+ * Batches leave out a creature whose mana-fit penalty reaches half its maximum while usable
+ * cards remain, so it waits until the deck has more land, ramp or colour sources.
+ */
+export function waitsForManaSupport(
+  card: { typeLine: string },
+  score: Pick<RecommendationScoreBreakdown, 'manaFitPenalty'>,
+) {
+  return (
+    card.typeLine.includes('Creature') &&
+    score.manaFitPenalty <= -recommendationScoreFactorMaximums.manaFitPenalty / 2
+  )
+}
+
 export function rankRecommendationCards<
   T extends {
     name: string
@@ -229,15 +258,9 @@ export function rankRecommendationCards<
   cardRoles: (card: T) => string[] = () => [],
   observe?: PlacementObserver<T>,
 ) {
-  const eligible = (
-    context.collectionMode === 'only' && context.collectionSets?.length
-      ? cards.filter(
-          (card) =>
-            card.collectionMatch || (card.set && context.collectionSets?.includes(card.set)),
-        )
-      : cards
-  ).filter((card) => allowedByOwnership(card, context.ownedCards, context.ownershipMode))
-  const affordable = eligible.filter((card) => withinPriceCap(card, context.maxPrice))
+  const affordable = rankingEligible(cards, context).filter((card) =>
+    withinPriceCap(card, context.maxPrice),
+  )
   const scores = new Map<T, ReturnType<typeof recommendationScoreBreakdown>>()
   const score = (card: T) => {
     if (!scores.has(card)) scores.set(card, cardScoreBreakdown(card, context, cardRoles))
@@ -261,9 +284,7 @@ export function rankRecommendationCards<
   ]
   const ranked = budgetLast(sorted)
   for (const card of ranked) if (overBudget(card)) observe?.(card, 'over-budget')
-  const canUse = (card: T) =>
-    !card.typeLine.includes('Creature') ||
-    score(card).manaFitPenalty > -recommendationScoreFactorMaximums.manaFitPenalty / 2
+  const canUse = (card: T) => !waitsForManaSupport(card, score(card))
   const style = context.recommendationStyle ?? 'balanced'
   const batches = batchRecommendations(ranked, includeCreature, canUse, style, observe)
   const finish = (queue: T[]) => {

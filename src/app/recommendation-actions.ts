@@ -1027,6 +1027,7 @@ export function rankInitialRecommendations(
     type: 'poolLoaded',
     queue: result.queue,
     deferredCards: result.deferredCards,
+    priceCappedFavourites: result.priceCappedFavourites,
     poolKey: recommendationPoolKey({
       ...deps,
       commander: chosen,

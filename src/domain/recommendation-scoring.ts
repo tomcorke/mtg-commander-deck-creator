@@ -121,9 +121,20 @@ function preferenceScore(
   )
 }
 
+/** What drives a card's mana-fit penalty: too few land and ramp sources, or missing colours. */
+export type ManaFitCause = 'sources' | 'colours'
+
 // ponytail: source-count proxy; consider sampled draws if audits show poor castability rankings.
 function manaFitPenalty(card: RecommendationScoreCard, support?: ManaSupport) {
-  if (!support || !card.manaCost) return 0
+  return manaFitDetail(card, support).penalty
+}
+
+/** The mana-fit penalty (zero or negative) and the larger of its two parts. */
+export function manaFitDetail(
+  card: RecommendationScoreCard,
+  support?: ManaSupport,
+): { penalty: number; cause: ManaFitCause } {
+  if (!support || !card.manaCost) return { penalty: 0, cause: 'sources' }
   const totalSources = support.landCount + support.rampCount
   const targetSources = Math.max(1, support.landTarget + support.rampTarget)
   const sourceDeficit = Math.max(0, targetSources - totalSources) / targetSources
@@ -159,7 +170,10 @@ function manaFitPenalty(card: RecommendationScoreCard, support?: ManaSupport) {
     recommendationScoreFactorMaximums.manaFitPenalty,
     Math.round(Math.max(sourcePenalty, colorPenalty)),
   )
-  return penalty ? -penalty : 0
+  return {
+    penalty: penalty ? -penalty : 0,
+    cause: colorPenalty > sourcePenalty ? 'colours' : 'sources',
+  }
 }
 
 function deckNeedsScore(

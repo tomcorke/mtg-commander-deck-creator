@@ -26,6 +26,7 @@ export function restoreBuilderState(
         lastDecision: null,
         // Another deck's combos; useComboLinksEffect recomputes them for this one.
         comboLinks: [],
+        priceCappedFavourites: [],
       }
     : createBuilderState(today, id)
   if (!saved) return initial

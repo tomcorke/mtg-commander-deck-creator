@@ -149,6 +149,11 @@ export type BuilderState = {
   completedFetches: BuilderFetchWork[]
   localCandidateBuffer: Card[]
   /**
+   * Commander theme favourites the price cap left out of the last pool (#632). Session-only:
+   * the queue never holds them, so only a pool load can say which they are.
+   */
+  priceCappedFavourites: Card[]
+  /**
    * Known combos among the deck and pool, set by the app when combo data loads or the pool
    * changes. Never re-ranks on its own; High power scores the next ranking with it (#502).
    */
@@ -207,6 +212,7 @@ export function createBuilderState(today: string, signatureDeckKey: string): Bui
     pendingFetches: [],
     completedFetches: [],
     localCandidateBuffer: [],
+    priceCappedFavourites: [],
     comboLinks: [],
     signatureQuota: { pages: 0, cards: 0 },
     fetchEpoch: 0,
@@ -295,7 +301,13 @@ export type BuilderAction =
   | { type: 'toggleSet'; code: string }
   | { type: 'commitSettings' }
   | { type: 'nextBatch'; extraSubTheme?: string }
-  | { type: 'poolLoaded'; queue: Card[]; deferredCards: DeferredCard<Card>[]; poolKey: string }
+  | {
+      type: 'poolLoaded'
+      queue: Card[]
+      deferredCards: DeferredCard<Card>[]
+      poolKey: string
+      priceCappedFavourites?: Card[]
+    }
   | { type: 'addGuidance'; card: Card }
   | { type: 'addCollection'; card: ScryfallCard }
   | { type: 'addSearch'; cards: ScryfallCard[] }
@@ -1160,20 +1172,28 @@ function applyOwnedCards(state: BuilderState, list: OwnedCardList | null): Build
   }
 }
 
+function loadPool(
+  state: BuilderState,
+  action: Extract<BuilderAction, { type: 'poolLoaded' }>,
+): BuilderState {
+  return {
+    ...state,
+    hydrationBoundary: state.hydrationBoundary + 1,
+    queue: action.queue,
+    deferredCards: action.deferredCards,
+    priceCappedFavourites: action.priceCappedFavourites ?? [],
+    committedPoolKey: action.poolKey,
+    recommendationOptionsChanged: false,
+  }
+}
+
 /** No mutation, IDs, clock reads, storage, or live requests. */
 function reduceBuilderAction(state: BuilderState, action: BuilderAction): BuilderActionResult {
   switch (action.type) {
     case 'settleFetch':
       return done(state)
     case 'poolLoaded':
-      return done({
-        ...state,
-        hydrationBoundary: state.hydrationBoundary + 1,
-        queue: action.queue,
-        deferredCards: action.deferredCards,
-        committedPoolKey: action.poolKey,
-        recommendationOptionsChanged: false,
-      })
+      return done(loadPool(state, action))
     case 'startOver':
       return done(resetBuilder(state, action))
     case 'beginRecommendations':

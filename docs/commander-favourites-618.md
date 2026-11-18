@@ -36,7 +36,7 @@ The change intentionally promotes majority-inclusion theme favourites in every c
 
 ## Scope
 
-The 50% threshold and one early slot per batch are app heuristics. Filters, budget checks, and player decisions still gate draft eligibility. #591 functional staple offering still runs after favourite placement; #592 ramp classification is unchanged. #619 should build on the favourite reservation before role quotas, and address the remaining evidence-free theme filler selection separately. UI explanations for mana-fit holds are deferred to [#632](https://github.com/tomcorke/mtg-commander-deck-creator/issues/632).
+The 50% threshold and one early slot per batch are app heuristics. Filters, budget checks, and player decisions still gate draft eligibility. #591 functional staple offering still runs after favourite placement; #592 ramp classification is unchanged. #619 should build on the favourite reservation before role quotas, and address the remaining evidence-free theme filler selection separately. The builder explains mana-fit, deck-budget and price-limit holds in a "Theme favourites on hold" lane ([#632](https://github.com/tomcorke/mtg-commander-deck-creator/issues/632)).
 
 ## Peer review
 
