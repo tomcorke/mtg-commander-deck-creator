@@ -4,6 +4,35 @@ import { basic, commander, makeState } from './fixtures/b10-browser.ts'
 
 // Exercise the complete modal -> AppView -> action path, including the found-card retry.
 await withBrowser('DECK_IMPORT', 5248, async (browser, base) => {
+  for (const review of [true, false]) {
+    const scenario = await openScenario(browser, base, makeState())
+    const { page } = scenario
+    try {
+      await page.evaluate(() => {
+        window.location.hash = 'start'
+      })
+      await button(page, 'Import deck').waitFor()
+      await button(page, 'Import deck').click()
+      const dialog = page.getByRole('dialog', { name: 'Import deck', exact: true })
+      await dialog
+        .getByRole('textbox', { name: 'Exported deck list' })
+        .fill(`1 ${commander.name}\n99 ${basic.name}`)
+      await dialog.getByLabel('Commander', { exact: true }).selectOption(commander.name)
+      if (!review) await dialog.getByRole('checkbox').uncheck()
+      await button(dialog, review ? 'Import and review' : 'Import without review').click()
+      await button(
+        page.getByRole('dialog', { name: 'Replace the current deck?' }),
+        'Import and replace',
+      ).click()
+      await dialog.waitFor({ state: 'detached' })
+      assert.equal(new URL(page.url()).hash, review ? '#build/review' : '#build')
+      await page.waitForFunction(() => /^\*?100\/100 /.test(document.title))
+      if (review) await page.getByRole('heading', { name: 'Deck review', exact: true }).waitFor()
+      assert.deepEqual(scenario.errors, [])
+    } finally {
+      await scenario.context.close()
+    }
+  }
   for (const missing of [false, true]) {
     const scenario = await openScenario(browser, base, makeState())
     const { page } = scenario
