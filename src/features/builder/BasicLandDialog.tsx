@@ -11,6 +11,7 @@ import {
   type LandPlan,
   type LandPlanPick,
 } from '../../domain/land-plan.ts'
+import { reconcileLandSelection, resizeBasicCounts } from './land-dialog-state.ts'
 import { ArtLoading } from '../../shared/CardArt.tsx'
 import { CardPriceLink, ModalCloseButton } from '../../shared/CardDetails.tsx'
 import { useDialogFocus } from '../../shared/hooks.ts'
@@ -222,35 +223,63 @@ export function BasicLandDialog({
   const dialog = useDialogFocus(true, () => {
     if (basicLandState !== 'loading') onClose()
   })
-  // The plan's picks start selected; a new plan resets the selection.
   const options = landPlan ? [...landPlan.picks, ...landPlan.alternatives] : []
-  const selectionKey = `${options.map(({ card }) => card.name).join('|')}:${landPlan?.picks.map(({ card }) => card.name).join('|')}`
+  const optionNames = options.map(({ card }) => card.name)
+  const selectionKey = JSON.stringify(optionNames)
   const defaultSelection = landPlan?.picks.map(({ card }) => card.name) ?? []
   const [selectionState, setSelectionState] = useState({
     key: selectionKey,
+    options: optionNames,
     names: defaultSelection,
   })
-  const selected = selectionState.key === selectionKey ? selectionState.names : defaultSelection
+  const selected =
+    selectionState.key === selectionKey
+      ? selectionState.names
+      : reconcileLandSelection(
+          selectionState.options,
+          selectionState.names,
+          optionNames,
+          defaultSelection,
+        )
+  if (selectionState.key !== selectionKey) {
+    setSelectionState({ key: selectionKey, options: optionNames, names: selected })
+  }
   const chosen = options.filter(({ card }) => selected.includes(card.name)).map(({ card }) => card)
-  // Basics refill the slots the chosen nonbasics leave, so the split follows every tick.
   const basicLands = planBasics(chosen)
   const basicGap = landGap - chosen.length
-  const toggleNonbasic = (name: string) =>
-    setSelectionState({
-      key: selectionKey,
-      names: selected.includes(name)
-        ? selected.filter((other) => other !== name)
-        : [...selected, name],
-    })
-  const planKey = `${legalBasicNames.join('|')}:${basicLands.map(({ name, count }) => `${name}:${count}`).join('|')}`
   const defaultLandCounts = Object.fromEntries(
     legalBasicNames.map((name) => [
       name,
       basicLands.find((land) => land.name === name)?.count ?? 0,
     ]),
   )
-  const [landCountState, setLandCountState] = useState({ key: planKey, counts: defaultLandCounts })
-  const landCounts = landCountState.key === planKey ? landCountState.counts : defaultLandCounts
+  const [landCountState, setLandCountState] = useState({
+    gap: basicGap,
+    counts: defaultLandCounts,
+    defaults: defaultLandCounts,
+  })
+  const defaultsChanged =
+    JSON.stringify(landCountState.defaults) !== JSON.stringify(defaultLandCounts)
+  const countsChanged = landCountState.gap !== basicGap || defaultsChanged
+  const landCounts = !countsChanged
+    ? landCountState.counts
+    : resizeBasicCounts(
+        landCountState.counts,
+        basicGap - landCountState.gap,
+        landCountState.defaults,
+        defaultLandCounts,
+      )
+  if (countsChanged) {
+    setLandCountState({ gap: basicGap, counts: landCounts, defaults: defaultLandCounts })
+  }
+  const toggleNonbasic = (name: string) =>
+    setSelectionState({
+      key: selectionKey,
+      options: optionNames,
+      names: selected.includes(name)
+        ? selected.filter((other) => other !== name)
+        : [...selected, name],
+    })
   const [printings, setPrintings] = useState<Record<string, ScryfallCard[]>>({})
   const [selectedPrintings, setSelectedPrintings] = useState<Record<string, ScryfallCard>>({})
   const [openGallery, setOpenGallery] = useState('')
@@ -270,7 +299,11 @@ export function BasicLandDialog({
   const remaining = basicGap - landCount
   const busy = styleLoading || basicLandState === 'loading'
   const setCount = (name: string, count: number) =>
-    setLandCountState({ key: planKey, counts: { ...landCounts, [name]: count } })
+    setLandCountState({
+      gap: basicGap,
+      defaults: defaultLandCounts,
+      counts: { ...landCounts, [name]: count },
+    })
   // One gallery load at a time: loading and progress state are shared across lands.
   const galleryLoading = useRef(false)
   const loadGallery = async (name: string) => {
