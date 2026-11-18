@@ -1248,6 +1248,9 @@ test('a mono deck with no big-mana candidate searches for one and keeps a scalin
   const bigMana = queries.filter((query) => query.includes('o:"storage counter"'))
   assert.equal(bigMana.length, 1)
   assert.match(bigMana[0], /^id<=b legal:commander t:land \(o:"for each"/)
+  // Fixed payouts the detector accepts: "Add four", and symbol runs such as {B}{B}{B}{B}.
+  for (const term of ['o:"add four"', 'o:"{B}{B}{B}"', 'o:"{W}{U}{B}{R}{G}"'])
+    assert.ok(bigMana[0].includes(term), term)
   // Counter wording with one mana is no big-mana match, so only the scaling land is kept.
   assert.deepEqual(
     found.map(({ name }) => name),

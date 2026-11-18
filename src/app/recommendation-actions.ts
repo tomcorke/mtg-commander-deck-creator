@@ -77,6 +77,21 @@ export { mergeRecommendationCandidates }
 /** App heuristic: widen a role with fewer than three eligible lands. */
 export const landSearchThreshold = 3
 export const landSearchRoleLimit = landSearchThreshold * 3
+// Big mana's detector also takes any coloured run of three or more symbols ("{B}{B}{B}{B}",
+// "{W}{U}{B}{R}{G}"); a three-symbol run of one colour finds most of them.
+const bigManaSearchTerms = [
+  'for each',
+  'an amount of mana',
+  'add x mana',
+  'add three',
+  'add four',
+  'add five',
+  'add six',
+  'depletion counter',
+  'storage counter',
+  ...['W', 'U', 'B', 'R', 'G'].map((colour) => `{${colour}}`.repeat(3)),
+  '{W}{U}{B}{R}{G}',
+]
 const landSearchTerms: Record<LandRole, string> = {
   fixing: '(o:"any color" or o:"search your library" or o:"add {")',
   utility: '(o:draw or o:scry or o:surveil or o:token or o:counter)',
@@ -87,8 +102,7 @@ const landSearchTerms: Record<LandRole, string> = {
   theme: '(o:creature or o:artifact or o:graveyard or o:counter or o:spell or t:snow)',
   interaction: '(o:destroy or o:exile or o:damage or o:"can’t" or o:"can\'t")',
   'colourless-utility': 'o:"{C}"',
-  'big-mana':
-    '(o:"for each" or o:"an amount of mana" or o:"add x mana" or o:"add three" or o:"add five" or o:"add six" or o:"depletion counter" or o:"storage counter")',
+  'big-mana': `(${bigManaSearchTerms.map((term) => `o:"${term}"`).join(' or ')})`,
 }
 // Shared per adapter function: concurrent/repeated fills reuse successful and empty lookups.
 const landSearchCache = new WeakMap<object, Map<string, Promise<Card[]>>>()
