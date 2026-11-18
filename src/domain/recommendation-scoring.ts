@@ -364,6 +364,7 @@ export function recommendationScoreBreakdown(
   const manaFit = manaFitPenalty(card, manaSupport)
   const powerFit = powerFitPenalty(card, cardRoles, powerTarget)
   const pkg = Math.round(packagePoints(card, packageCounts, typalCounts) * goalThemeWeight)
+  // Without expected opponents this is 0, so existing orders are unchanged (#503).
   const opposingAnswers = opposingAnswerScore(card, context)
   const combo = comboScore(card, context)
   const popularityPenalty = themePopularityPenalty(card, recommendationStyle, onTheme)

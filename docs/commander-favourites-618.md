@@ -11,29 +11,35 @@ Rank positions below are in the initial composed queue, not measured successive 
 
 ## Results
 
-| Case             | Theme cards in draft before ? after | Majority-inclusion theme favourites drafted before ? after |
-| ---------------- | ----------------------------------- | ---------------------------------------------------------- |
-| rabbit-thematic  | 44 ? 44                             | 0 ? 8 / 8                                                  |
-| rabbit-balanced  | 22 ? 23                             | 7 ? 8 / 8                                                  |
-| krenko-thematic  | 54 ? 54                             | 1 ? 7 / 7                                                  |
-| krenko-balanced  | 45 ? 45                             | 7 ? 7 / 7                                                  |
-| tatyova-thematic | 49 ? 50                             | 0 ? 4 / 4                                                  |
-| tatyova-balanced | 19 ? 20                             | 1 ? 4 / 4                                                  |
-| kotis-thematic   | 53 ? 53                             | 0 ? 5 / 5                                                  |
-| kotis-balanced   | 39 ? 39                             | 5 ? 5 / 5                                                  |
+| Case             | Theme cards in draft before -> after | Majority-inclusion theme favourites drafted before -> after |
+| ---------------- | ------------------------------------ | ----------------------------------------------------------- |
+| rabbit-thematic  | 44 -> 44                             | 0 -> 8 / 8                                                  |
+| rabbit-balanced  | 22 -> 23                             | 7 -> 8 / 8                                                  |
+| krenko-thematic  | 54 -> 54                             | 1 -> 7 / 7                                                  |
+| krenko-balanced  | 45 -> 45                             | 7 -> 7 / 7                                                  |
+| tatyova-thematic | 49 -> 50                             | 0 -> 4 / 4                                                  |
+| tatyova-balanced | 19 -> 21                             | 1 -> 4 / 4                                                  |
+| kotis-thematic   | 53 -> 53                             | 0 -> 5 / 5                                                  |
+| kotis-balanced   | 39 -> 39                             | 5 -> 5 / 5                                                  |
 
-| Kotis card             | Theme first position before ? after | Balanced position before ? after |
-| ---------------------- | ----------------------------------- | -------------------------------- |
-| Swiftfoot Boots        | 144 ? 5                             | 71 ? 5                           |
-| Aqueous Form           | 142 ? 1                             | 75 ? 1                           |
-| Rancor                 | 147 ? 9                             | 79 ? 9                           |
-| Dragonfire Blade       | 152 ? 13                            | 83 ? 13                          |
-| Favor of the Overbeing | 150 ? 17                            | 87 ? 17                          |
+| Kotis card             | Theme first position before -> after | Balanced position before -> after |
+| ---------------------- | ------------------------------------ | --------------------------------- |
+| Swiftfoot Boots        | 144 -> 1                             | 71 -> 7                           |
+| Aqueous Form           | 142 -> 3                             | 75 -> 3                           |
+| Rancor                 | 147 -> 9                             | 79 -> 11                          |
+| Dragonfire Blade       | 152 -> 13                            | 83 -> 15                          |
+| Favor of the Overbeing | 150 -> 17                            | 87 -> 19                          |
 
 All five Kotis majority-inclusion theme favourites are drafted after the change. Theme first previously drafted zero; this reconstructed Balanced baseline already drafted all five, although they were buried in the queue. That differs from the original audit and is disclosed rather than attributed to this fix.
 
-The change intentionally promotes majority-inclusion theme favourites in every comparison build. Krenko?s Skirk Prospector moves from position 1 to 5 in Balanced; some other early role picks move back. Rabbit?s high-cost Byrke remains late in the queue because of mana-fit screening, but the draft includes it. Theme totals stay level or rise in these cases. These are heuristic composition results, not deck quality or win-rate measurements.
+The change intentionally promotes majority-inclusion theme favourites in every comparison build. The reservation replaces the last eligible pick in each early batch, preserving its higher-ranked picks, creature and land slots, and sole theme representatives. Some displaced picks move substantially later in the initial queue; the queue is re-ranked after player decisions. Rabbit's high-cost Byrke remains late in the queue because of mana-fit screening, but the draft includes it. Theme totals stay level or rise in these cases. These are heuristic composition results, not deck quality or win-rate measurements.
 
 ## Scope
 
 The 50% threshold and one early slot per batch are app heuristics. Filters, budget checks, and player decisions still gate draft eligibility. #591 functional staple offering still runs after favourite placement; #592 ramp classification is unchanged. #619 should build on the favourite reservation before role quotas, and address the remaining evidence-free theme filler selection separately. UI explanations for mana-fit holds are deferred to [#632](https://github.com/tomcorke/mtg-commander-deck-creator/issues/632).
+
+## Peer review
+
+Claude Opus 5.5 at high effort found that replacing the first eligible pick delayed the strongest batch picks. Placement now replaces the last eligible pick, with a regression that also checks creature/land slots and budget gating. The tables above were remeasured after this correction. The local measurement harness is `E:/working/agent-sandbox/research/618-measure.mjs`.
+
+The functional staple pass retains priority when it needs to displace a favourite; the favourite remains eligible on the next ranking. Undecided favourites retain their existing deferral schedule; once eligible again, majority-inclusion theme placement may outweigh their skip score penalty. Those optional policy changes were declined to retain the current staple and return behavior.

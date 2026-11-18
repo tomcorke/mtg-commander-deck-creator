@@ -190,7 +190,7 @@ function offerTopThemeFavourites<
   favourites.forEach((card, index) => {
     const from = ordered.indexOf(card)
     const start = index * 4
-    const to = ordered.findIndex(
+    const to = ordered.findLastIndex(
       (pick, position) =>
         position >= start &&
         position < start + 4 &&
