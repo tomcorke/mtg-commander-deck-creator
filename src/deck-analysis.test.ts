@@ -1,7 +1,9 @@
-import { cardTypes, matchesCardType, displayDeckSection } from './deck-analysis.ts'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  cardTypes,
+  matchesCardType,
+  displayDeckSection,
   addZone,
   addsToSideboard,
   analyseDeck,
@@ -597,10 +599,10 @@ test('Invasion of Fiora counts and groups by its front, with identical type sele
   const invasion = card({
     name: 'Invasion of Fiora // Marchesa, Resolute Monarch',
     layout: 'transform',
-    typeLine: 'Battle ? Siege // Legendary Creature ? Human Noble',
+    typeLine: 'Battle — Siege // Legendary Creature — Human Noble',
     faces: [
-      { typeLine: 'Battle ? Siege', manaCost: '{4}{B}{B}' },
-      { typeLine: 'Legendary Creature ? Human Noble', manaCost: '' },
+      { typeLine: 'Battle — Siege', manaCost: '{4}{B}{B}' },
+      { typeLine: 'Legendary Creature — Human Noble', manaCost: '' },
     ],
   })
   const deck = [invasion, card(), card({ typeLine: 'Artifact Creature' })]

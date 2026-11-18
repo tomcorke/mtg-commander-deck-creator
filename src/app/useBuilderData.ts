@@ -1,7 +1,7 @@
-import { matchesCardType } from '../deck-analysis.ts'
 import { hasTag } from '../domain/creature-types.ts'
 import {
   analyseDeck,
+  matchesCardType,
   basicLandNames,
   basicLandPlan,
   landFillReady,

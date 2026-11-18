@@ -1,4 +1,3 @@
-import { matchesCardType } from '../../deck-analysis.ts'
 import type { ReactNode } from 'react'
 import type { TargetKey } from '../../deck-analysis.ts'
 
@@ -7,6 +6,7 @@ import { cardNameKey, type DeckCard } from '../../domain/card-model.ts'
 import { deckRiskIndicators, deckTagCoverage, winConditionCards } from '../../deck-review.ts'
 import {
   analyseDeck,
+  matchesCardType,
   curveBucket,
   isSnowManaSource,
   manaGuidanceSymbols,

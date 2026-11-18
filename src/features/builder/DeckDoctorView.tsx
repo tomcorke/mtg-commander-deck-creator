@@ -1,3 +1,4 @@
+import { matchesCardFilter } from './deck-review-filter.ts'
 import type { OpposingAnswerTargets, OpposingStrategy } from '../../domain/recommendation-types.ts'
 import { hasTag } from '../../domain/creature-types.ts'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -16,7 +17,6 @@ import type {
 import {
   analyseDeck,
   cardTypes,
-  rolesForCard,
   targetKeys,
   targetLabels,
   type DeckTargets,
@@ -131,18 +131,6 @@ const doctorGroupStep = 12
 const emptyDoctorCandidates: Card[] = []
 const typeFilters = ['Land', ...cardTypes] as const
 
-function cardTypeLines(card: DoctorCard) {
-  return [card.typeLine, ...card.faces.map((face) => face.typeLine)]
-}
-
-/** Filters are `type:<Type>`, `role:<TargetKey>`, `tag:<Tag>`, or `all`. */
-function matchesCardFilter(card: DoctorCard, filter: string) {
-  const [kind, value] = filter.split(/:(.*)/)
-  if (kind === 'type') return cardTypeLines(card).some((line) => line.includes(value))
-  if (kind === 'role') return rolesForCard(card).includes(value as TargetKey)
-  if (kind === 'tag') return hasTag(card, value)
-  return true
-}
 function hasCardError(card: Card, deck: DeckCard[], commanderColours: string[]) {
   return Boolean(cardConstructionError(card, deck, commanderColours))
 }
