@@ -19,6 +19,8 @@ export type AppHistoryState = {
   modal: AppModal | null
   entry: boolean
   reviewDepth?: number
+  /** The dialog a card details entry stacks over, so Forward reopens details above it (#645). */
+  beneath?: 'basics'
 }
 
 export const appHistoryKey = 'commander-deck-creator'
@@ -37,6 +39,11 @@ export const appModals: AppModal[] = [
   'recommendation-settings',
   'owned-cards',
 ]
+
+/** Choose lands stays mounted beneath card details opened from it, keeping its choices (#645). */
+export function chooseLandsOpen(modal: AppModal | null, modeReturn: AppModal | null) {
+  return modal === 'basics' || (modal === 'card' && modeReturn === 'basics')
+}
 
 export const reviewSteps = ['Diagnose', 'Choose changes', 'Confirm'] as const
 export type DeckReviewStep = (typeof reviewSteps)[number]
@@ -117,6 +124,13 @@ export function parseAppRoute(hashValue: string, stateValue: unknown): AppHistor
       Number.isInteger(state.reviewDepth) &&
       Number(state.reviewDepth) > 0
         ? { reviewDepth: state.reviewDepth }
+        : {}),
+      ...(state?.app === appHistoryKey &&
+      state.view === view &&
+      modal === 'card' &&
+      state.modal === modal &&
+      state.beneath === 'basics'
+        ? { beneath: state.beneath }
         : {}),
       entry:
         state?.app === appHistoryKey &&

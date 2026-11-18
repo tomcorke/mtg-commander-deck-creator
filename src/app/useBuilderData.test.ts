@@ -293,6 +293,10 @@ test('defers land fill, respects current decisions, and recalculates after a non
   // The plan runs only while Choose lands is open.
   assert.equal(buildBuilderData(deps).landPlan, null)
   const early = buildBuilderData({ ...deps, activeModal: 'basics' })
+  // Card details over Choose lands keep its plan, so its choices survive them (#645).
+  const beneath = buildBuilderData({ ...deps, activeModal: 'card', builderModeReturn: 'basics' })
+  assert.deepEqual(beneath.landPlan, early.landPlan)
+  assert.equal(buildBuilderData({ ...deps, activeModal: 'card' }).landPlan, null)
   assert.equal(early.showLandFill, false)
   assert.equal(early.landGap, 32)
   assert.deepEqual(

@@ -69,7 +69,10 @@ export function DeckCardModal({
     <div
       className="modal-backdrop"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) closeDeckCard()
+        if (event.target !== event.currentTarget) return
+        // The press would otherwise blur the opener that closing just refocused (#645).
+        event.preventDefault()
+        closeDeckCard()
       }}
     >
       <section

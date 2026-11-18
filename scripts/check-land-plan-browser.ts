@@ -93,6 +93,105 @@ async function assertPlan(dialog: Dialog) {
   return include
 }
 
+/** The element under the centre of a locator's box, which tells which dialog is on top. */
+const topmostDialog = (target: ReturnType<Page['locator']>) =>
+  target.evaluate((node) => {
+    const box = node.getBoundingClientRect()
+    const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+    return hit?.closest('[role="dialog"]')?.getAttribute('aria-labelledby') ?? null
+  })
+const focusedLabel = (page: Page) =>
+  page.evaluate(() => {
+    const active = document.activeElement
+    return active?.closest('.basic-land-modal') ? active.getAttribute('aria-label') : null
+  })
+
+/**
+ * #645: card details opened from Choose lands stack above it, and closing them returns to the
+ * same dialog with its choices and focus intact. Drives the issue's repro by keyboard (lower
+ * Forest, open its details, Escape), then the nonbasic tile with backdrop dismissal.
+ */
+async function assertDetailsRoundTrip(page: Page) {
+  const dialog = await openDialog(page)
+  const details = page.locator('.deck-card-modal')
+  const forest = dialog.locator('.basic-land-plan > li', { hasText: 'Forest' })
+  const forestCount = forest.getByRole('spinbutton', { name: 'Forest count', exact: true })
+  const include = (name: string) =>
+    dialog.getByRole('checkbox', { name: `Include ${name}`, exact: true })
+  const artButton = forest.locator('.compact-action')
+
+  // Choices that a remount would reset: an unticked plan land, a lowered count and picked art
+  // with its gallery still open.
+  await include('Plan Passage').uncheck()
+  await artButton.click()
+  await forest.getByRole('group', { name: 'Forest printings' }).getByRole('button').first().click()
+  const art = await forest.locator('.basic-land-name small').innerText()
+  const lowered = Number(await forestCount.inputValue()) - 1
+  await forest.getByRole('button', { name: 'One fewer Forest', exact: true }).click()
+  const expectChoices = async (step: string) => {
+    assert.equal(Number(await forestCount.inputValue()), lowered, `${step}: Forest count`)
+    assert.equal(await include('Plan Passage').isChecked(), false, `${step}: Passage unticked`)
+    assert.equal(await include('Plan Shockland').isChecked(), true, `${step}: Shockland ticked`)
+    assert.equal(await forest.locator('.basic-land-name small').innerText(), art, `${step}: art`)
+    assert.equal(await artButton.getAttribute('aria-expanded'), 'true', `${step}: gallery open`)
+  }
+  assert.notEqual(art, 'Default printing')
+  await expectChoices('before details')
+
+  // The basic row's name, by keyboard.
+  const forestName = forest.getByRole('button', { name: 'Show details for Forest', exact: true })
+  await forestName.focus()
+  await page.keyboard.press('Enter')
+  await details.waitFor()
+  if (evidence) await page.screenshot({ path: `${evidence}/${label}-details-over-lands.png` })
+  assert.equal(await topmostDialog(details), 'deck-card-title', 'details render above')
+  assert(await dialog.isVisible(), 'Choose lands stays open beneath details')
+  await page.keyboard.press('Escape')
+  await details.waitFor({ state: 'detached' })
+  await page.waitForFunction(() => document.activeElement?.closest('.basic-land-modal'))
+  if (evidence) await dialog.screenshot({ path: `${evidence}/${label}-after-details-escape.png` })
+  assert(await dialog.isVisible(), 'Escape closes only the details')
+  assert.equal(await focusedLabel(page), 'Show details for Forest', 'focus returns to the name')
+  await expectChoices('after basic details')
+
+  // A nonbasic plan tile's art, by keyboard, dismissed from the backdrop.
+  const tileArt = dialog
+    .locator('.card-tile', { hasText: 'Plan Shockland' })
+    .locator('.doctor-card-art')
+  await tileArt.focus()
+  await page.keyboard.press('Enter')
+  await details.waitFor()
+  assert.equal(await topmostDialog(details), 'deck-card-title', 'tile details render above')
+  await page.mouse.click(8, 8)
+  await details.waitFor({ state: 'detached' })
+  await page.waitForFunction(() => document.activeElement?.closest('.basic-land-modal'))
+  assert(await dialog.isVisible(), 'backdrop dismissal closes only the details')
+  assert.equal(
+    await focusedLabel(page),
+    'Show details for Plan Shockland',
+    'focus returns to the tile',
+  )
+  await expectChoices('after tile details')
+
+  // Browser Back closes the details; Forward reopens them, still above the same dialog.
+  await forestName.focus()
+  await page.keyboard.press('Enter')
+  await details.waitFor()
+  await page.goBack()
+  await details.waitFor({ state: 'detached' })
+  await expectChoices('after Back')
+  await page.goForward()
+  await details.waitFor()
+  assert.equal(await topmostDialog(details), 'deck-card-title', 'Forward reopens details above')
+  await expectChoices('after Forward')
+  await page.keyboard.press('Escape')
+  await details.waitFor({ state: 'detached' })
+  await page.waitForFunction(() => document.activeElement?.closest('.basic-land-modal'))
+  assert.equal(await focusedLabel(page), 'Show details for Forest', 'focus after Forward')
+  await expectChoices('after Forward and Escape')
+  await closeDialog(page, dialog)
+}
+
 if (evidence) await mkdir(evidence, { recursive: true })
 await withBrowser('LAND_PLAN', 5191, async (browser, base) => {
   const opened = await openScenario(browser, base, state, records, undefined, upgraded)
@@ -107,6 +206,8 @@ await withBrowser('LAND_PLAN', 5191, async (browser, base) => {
   assert(await noSideScroll(narrow), 'no horizontal scroll at 390px')
   await closeDialog(page, narrow)
   await page.setViewportSize({ width: 1440, height: 1000 })
+
+  await assertDetailsRoundTrip(page)
 
   const dialog = await openDialog(page)
   const include = await assertPlan(dialog)

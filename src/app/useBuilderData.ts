@@ -1,4 +1,5 @@
 import { dismissedThemeCounts } from '../domain/recommendation-themes.ts'
+import { chooseLandsOpen } from './routes.ts'
 import { hasTag } from '../domain/creature-types.ts'
 import {
   analyseDeck,
@@ -225,8 +226,11 @@ function buildDeckData(deps: BuilderDataDeps) {
     analysis.produced,
   )
   const landGap = basicLands.reduce((sum, land) => sum + land.count, 0)
-  // Planned only while Choose lands is open: role detection reads every candidate and deck card.
-  const landPlan = deps.activeModal === 'basics' ? buildLandPlan(deps) : null
+  // Planned only while Choose lands is open, details over it included: role detection reads every
+  // candidate and deck card.
+  const landPlan = chooseLandsOpen(deps.activeModal, deps.builderModeReturn)
+    ? buildLandPlan(deps)
+    : null
   const identity: string[] = commanderDetails?.colours ?? []
   const landPlanBasics = (chosen: Card[]) =>
     planBasics(deck, identity, calculatedLandTarget, chosen)

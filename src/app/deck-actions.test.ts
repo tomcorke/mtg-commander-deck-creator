@@ -16,6 +16,7 @@ import {
   undoDeckDoctorSwap,
   hydrateDeckCardDetails,
   openCardReference,
+  openGuidanceCard,
   selectManualCard,
 } from './deck-actions.ts'
 import type { AppActionContext } from './recommendation-actions.ts'
@@ -208,6 +209,23 @@ test('card details preserve every review step and the review underneath history'
   openCardReference(deps, toDeckCard(card('History reference')))
   assert.equal(deps.builderModeReturn, 'review-confirm')
   assert.equal(deps.activeModal, 'card')
+})
+
+test('details opened from Choose lands keep it open beneath them (#645)', () => {
+  const basic = searchDeps()
+  basic.activeModal = 'basics'
+  openCardReference(basic, toDeckCard(card('Forest')))
+  assert.equal(basic.builderModeReturn, 'basics')
+  assert.equal(basic.activeModal, 'card')
+  const tile = searchDeps()
+  tile.activeModal = 'basics'
+  openGuidanceCard(tile, toCard(card('Plan land'), 'Lands'))
+  assert.equal(tile.builderModeReturn, 'basics')
+  assert.equal(tile.activeModal, 'card')
+  // Details opened from the builder itself leave nothing beneath them.
+  const builder = searchDeps()
+  openGuidanceCard(builder, toCard(card('Builder land'), 'Lands'))
+  assert.equal(builder.builderModeReturn, undefined)
 })
 
 test('invalid multi-add changes neither board nor the recommendation queue', () => {

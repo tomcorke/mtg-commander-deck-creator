@@ -68,6 +68,7 @@ import { useCurrentCardData } from './useCurrentCardData.ts'
 import type { ControllerState } from './useControllerState.ts'
 import {
   appHistoryKey,
+  chooseLandsOpen,
   readAppRoute,
   reviewRouteDepth,
   runOrConfirmReviewExit,
@@ -91,6 +92,7 @@ function useRoutingActions(state: AppState) {
       modal,
       entry: Boolean(modal && !replace),
       reviewDepth: reviewRouteDepth(current, modal, replace),
+      ...(modal === 'card' && state.activeModal === 'basics' ? { beneath: 'basics' as const } : {}),
     } satisfies AppHistoryState
     state.setShowBuilder(view === 'builder')
     state.setActiveModal(modal)
@@ -226,6 +228,26 @@ const cachedCandidateSearch = (
   maxPages?: number,
 ) => searchScryfallCached(query, fetch, signal, order, maxPages)
 
+/** What the history listener reads and sets to apply Back, Forward and typed routes. */
+function routeEffectDeps(state: AppState) {
+  return {
+    initialRoute: state.initialRoute,
+    savedCommander: state.savedCommander,
+    historyReady: state.historyReady,
+    setShowBuilder: state.setShowBuilder,
+    setActiveModal: state.setActiveModal,
+    setBuilderModeReturn: state.setBuilderModeReturn,
+    readRoute: readAppRoute,
+    writeRoute: writeAppRoute,
+    appHistoryKey,
+    pendingReviewChanges: state.pendingReviewChanges,
+    reviewNavigation: state.reviewNavigation,
+    reviewNavigationAllowed: state.reviewNavigationAllowed,
+    setShowReviewExitPrompt: state.setShowReviewExitPrompt,
+    setPendingSharePayload: state.setPendingSharePayload,
+  }
+}
+
 function useRemoteActions(state: AppState, routing: RoutingActions) {
   const recommendationRequest = useRef(0)
   useCurrentCardData(state)
@@ -245,25 +267,13 @@ function useRemoteActions(state: AppState, routing: RoutingActions) {
   useSignatureRecommendations(state, () => signatureBatchCommitted(state, loadPrintings))
   useRestoredPrintings(state, loadPrintings)
   useAppEffects({
-    initialRoute: state.initialRoute,
-    savedCommander: state.savedCommander,
-    historyReady: state.historyReady,
-    setShowBuilder: state.setShowBuilder,
-    setActiveModal: state.setActiveModal,
-    readRoute: readAppRoute,
-    writeRoute: writeAppRoute,
-    appHistoryKey,
-    pendingReviewChanges: state.pendingReviewChanges,
-    reviewNavigation: state.reviewNavigation,
-    reviewNavigationAllowed: state.reviewNavigationAllowed,
-    setShowReviewExitPrompt: state.setShowReviewExitPrompt,
+    ...routeEffectDeps(state),
     setSetOptions: state.setSetOptions,
     recommendationState: state.recommendationState,
     currentDeckState: state.currentDeckState,
     workspace: state.workspace,
     deckName: state.deckName,
     showBuilder: state.showBuilder,
-    setPendingSharePayload: state.setPendingSharePayload,
     openModal: routing.openModal,
     commander: state.commander,
     deck: state.deck,
@@ -615,9 +625,11 @@ export function useAppActions(state: AppState) {
       ...appState,
     }),
   )
+  // Card details over Choose lands keep it open, so closing them does not search again.
+  const landsOpen = chooseLandsOpen(state.activeModal, state.builderModeReturn)
   useEffect(() => {
-    if (state.activeModal === 'basics') void searchLands()
-  }, [state.activeModal, state.deck, state.theme, state.activeSubThemes])
+    if (landsOpen) void searchLands()
+  }, [landsOpen, state.deck, state.theme, state.activeSubThemes])
   const resumeFirstBatch = useEffectEvent(() => remote.start(state.commander, true))
   useEffect(() => {
     // A prepared draft resumes its first batch once its play style is chosen or skipped (A14, #490).

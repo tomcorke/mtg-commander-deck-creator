@@ -21,6 +21,7 @@ export function useRouteEffects(deps: AppEffectsDeps) {
     historyReady,
     setShowBuilder,
     setActiveModal,
+    setBuilderModeReturn,
     readRoute,
     writeRoute,
     appHistoryKey,
@@ -47,6 +48,8 @@ export function useRouteEffects(deps: AppEffectsDeps) {
       if (window.history.state?.app !== appHistoryKey) writeRoute(next, true)
       setShowBuilder(next.view === 'builder')
       setActiveModal(next.modal)
+      // Forward to details opened from Choose lands keeps the dialog beneath them.
+      if (next.beneath) setBuilderModeReturn(next.beneath)
     }
     const handleRoute = (direction: 'back' | 'hash') => {
       // A share link pasted into an open tab previews that deck over the current screen.
