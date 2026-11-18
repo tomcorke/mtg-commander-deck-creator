@@ -139,6 +139,51 @@ export function landColours(card: AnalysisCard, deck: AnalysisCard[], identity: 
   ] as SourceSymbol[]
 }
 
+/** App heuristic, not a probability: paid or conditional sources get quarter credit;
+ * copying land colours adds no independent coverage. Direct output and free searches count fully.
+ */
+export function landSourceQuality(card: AnalysisCard, symbol: string) {
+  const text = withoutReminders(card.detail)
+  if (
+    text
+      .split(/[.\n]/)
+      .some(
+        (line) =>
+          /^\s*\{T\}: Add /i.test(line) &&
+          !/only|if |unless|could produce|among lands/i.test(line) &&
+          (line.includes(`{${symbol}}`) ||
+            (/any colou?r/i.test(line) && !/spend this mana only/i.test(text))),
+      )
+  )
+    return 1
+  if (typesIn(card.typeLine).some((type) => typeColour[type] === symbol)) return 1
+  if (/opponent/i.test(text) && /could produce/i.test(text)) return 0.25
+  if (/could produce|among lands/i.test(text)) return 0
+  if (/search your library/i.test(text))
+    return /\{[0-9WUBRGCX]+\}[^.\n]*\{T\}|opponent/i.test(text) ? 0.25 : 1
+  if (/any colou?r/i.test(text))
+    return /\{[0-9WUBRGCX]+\}[^.\n]*\{T\}|only|if |unless|opponent/i.test(text) ? 0.25 : 1
+  return 1
+}
+
+function landSources(deck: AnalysisCard[], identity: string[]) {
+  return Object.fromEntries(
+    sourceSymbols.map((symbol) => [
+      symbol,
+      deck
+        .filter(isLandCard)
+        .reduce(
+          (sum, card) =>
+            sum +
+            (landColours(card, deck, identity).includes(symbol)
+              ? landSourceQuality(card, symbol)
+              : 0),
+          0,
+        ),
+    ]),
+  ) as Record<SourceSymbol, number>
+}
+
 const basicSearch = new RegExp(
   `search your library for [^.]*\\b(?:basic|${basicTypes.join('|')})\\b`,
   'i',
@@ -159,7 +204,7 @@ export function fetchesBasics(card: AnalysisCard) {
  * gap is 1. Pips on cards of mana value 3 or less count double, so early colour needs come first.
  */
 export function sourceGaps(deck: AnalysisCard[], landTarget: number) {
-  const produced = analyseDeck(deck.filter(isLandCard)).produced
+  const produced = landSources(deck, [...colours])
   const demand = Object.fromEntries(
     sourceSymbols.map((symbol) => [
       symbol,
@@ -212,7 +257,7 @@ export type LandPlanPick<T> = {
  * reached; `basic`: a basic fills the colours it would add as well.
  */
 export type LandPlanHold =
-  'budget' | 'cap' | 'reserve' | 'tapped' | 'colourless' | 'rules' | 'basic'
+  'budget' | 'cap' | 'reserve' | 'tapped' | 'colourless' | 'rules' | 'sources' | 'basic'
 
 export const landPlanHoldLabels: Record<LandPlanHold, string> = {
   budget: 'Over budget',
@@ -221,6 +266,7 @@ export const landPlanHoldLabels: Record<LandPlanHold, string> = {
   tapped: 'Tapped-land limit reached',
   colourless: 'Colourless-land limit reached',
   rules: 'Not addable with the planned lands',
+  sources: 'No additional colour coverage needed',
   basic: 'A basic does as well',
 }
 
@@ -314,7 +360,7 @@ const nonbasicLands = (deck: AnalysisCard[], test: (card: AnalysisCard) => boole
 /**
  * Basics for the slots left once `chosen` lands join the deck: `basicLandPlan` split by colour
  * demand against land sources only (spells that make mana never crowd out a colour's basics), then
- * at least one basic for each identity colour the deck has none of, while slots allow.
+ * a pip-scaled floor for each identity colour, including basics already held, while slots allow.
  */
 export function planBasics(
   deck: AnalysisCard[],
@@ -330,26 +376,58 @@ export function planBasics(
     analysis.counts.lands,
     landTarget,
     filled.length,
-    analyseDeck(filled.filter(isLandCard)).produced,
+    landSources(filled, identity),
   )
   const legal = colours.filter((colour) => identity.includes(colour))
-  const missing = legal.filter(
-    (colour) =>
-      !plan.some((entry) => entry.colour === colour) &&
-      !filled.some((card) => card.name === basicLandNames[colour]),
+  // Reserve half the basic pool proportionally to pips; let the rest respond to gaps.
+  const totalBasics =
+    filled.filter(isBasicLand).length + plan.reduce((sum, entry) => sum + entry.count, 0)
+  const demand = legal.reduce((sum, colour) => sum + analysis.required[colour], 0)
+  const floors = new Map(
+    legal.map((colour) => [
+      colour,
+      Math.max(
+        1,
+        Math.floor(
+          totalBasics * 0.5 * (demand ? analysis.required[colour] / demand : 1 / legal.length),
+        ),
+      ),
+    ]),
   )
-  for (const colour of missing) {
-    const largest = plan.reduce<BasicLandCount | undefined>(
-      (best, entry) => (entry.count > 1 && (!best || entry.count > best.count) ? entry : best),
-      undefined,
-    )
-    if (!largest) break
-    largest.count -= 1
-    plan.push({ name: basicLandNames[colour], colour, count: 1 })
+  const held = (colour: string) =>
+    filled.filter(
+      (card) =>
+        isBasicLand(card) && landColours(card, filled, identity).includes(colour as SourceSymbol),
+    ).length
+  for (const colour of legal) {
+    let entry = plan.find((item) => item.colour === colour)
+    while ((entry?.count ?? 0) + held(colour) < floors.get(colour)!) {
+      const donor = plan
+        .filter(
+          (item) =>
+            item.count > 0 &&
+            item.count + held(item.colour) > floors.get(item.colour as ManaColour)!,
+        )
+        .sort((a, b) => b.count - a.count)[0]
+      if (!donor) break
+      donor.count -= 1
+      if (!entry) {
+        entry = { name: basicLandNames[colour], colour, count: 0 }
+        plan.push(entry)
+      }
+      entry.count += 1
+    }
   }
   return legal
     .flatMap((colour) => plan.filter((entry) => entry.colour === colour))
     .concat(plan.filter((entry) => !legal.includes(entry.colour as ManaColour)))
+}
+
+/** Reason for the suggested split; player edits remain authoritative. */
+export function basicSplitReason(basics: BasicLandCount[]) {
+  const largest = [...basics].sort((a, b) => b.count - a.count)[0]
+  const tied = basics.filter((entry) => entry.count === largest?.count).length > 1
+  return `${largest && basics.filter((entry) => entry.count > 0).length >= 2 && !tied ? `The suggested split leans towards ${colourNames[largest.colour as SourceSymbol]} to cover coloured pips after land sources. ` : 'The suggested split balances coloured pips after land sources. '}Paid or conditional sources count less; each colour keeps a pip-scaled basic reserve.`
 }
 
 type PlanCard = AnalysisCard & { price?: string; inclusion?: number; reason?: string }
@@ -538,7 +616,10 @@ class LandPlanner<T extends PlanCard> {
   /** Keep a left-out land as an option; a specific limit replaces "a basic does as well". */
   hold(pick: LandPlanPick<T>, held: LandPlanHold) {
     const known = this.passed.get(pick.card.name)
-    if (!known || (known.held === 'basic' && held !== 'basic'))
+    if (
+      !known ||
+      (['basic', 'sources'].includes(known.held ?? '') && !['basic', 'sources'].includes(held))
+    )
       this.passed.set(pick.card.name, { ...pick, overBudget: held === 'budget', held })
   }
 
@@ -574,9 +655,21 @@ class LandPlanner<T extends PlanCard> {
         const helps = landColours(candidate.card, this.chosen(), identity).filter(
           (symbol) => scaled[symbol] > 0,
         )
-        const gap = helps.reduce((sum, symbol) => sum + scaled[symbol], 0)
-        const beats = helps.length >= 2 && gap - candidate.penalty > basic
-        return { candidate, helps, beats, score: gap + this.roleScore(candidate, ['fixing']) }
+        const gap = helps.reduce(
+          (sum, symbol) => sum + scaled[symbol] * landSourceQuality(candidate.card, symbol),
+          0,
+        )
+        const coverage = landColours(candidate.card, this.chosen(), identity).filter(
+          (symbol) => symbol !== 'C' && landSourceQuality(candidate.card, symbol) === 1,
+        ).length
+        const beats = coverage >= 2 || (helps.length >= 2 && gap - candidate.penalty > basic)
+        return {
+          candidate,
+          helps: helps.filter((symbol) => landSourceQuality(candidate.card, symbol) === 1),
+          coverage,
+          beats,
+          score: gap + this.roleScore(candidate, ['fixing']),
+        }
       })
       .sort(byRank)
     return { ranked, best: ranked.find(({ beats }) => beats) }
@@ -588,11 +681,11 @@ class LandPlanner<T extends PlanCard> {
     const tried = new Set<string>()
     for (;;) {
       const { ranked, best } = this.rankFixing(tried)
-      for (const { candidate, score, helps } of ranked)
+      for (const { candidate, score, helps, coverage } of ranked)
         if (candidate !== best?.candidate)
           this.hold(
             this.describe(candidate, 'fixing', score, helps),
-            this.fits(candidate.card) ? 'basic' : 'budget',
+            this.holdFor(candidate) ?? (coverage >= 2 ? 'sources' : 'basic'),
           )
       if (!best) return
       tried.add(best.candidate.card.name)

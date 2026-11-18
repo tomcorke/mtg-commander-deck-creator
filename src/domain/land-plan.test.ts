@@ -3,6 +3,8 @@ import test from 'node:test'
 import { analyseDeck, basicLandPlan, type AnalysisCard } from '../deck-analysis.ts'
 import {
   bigManaCaveat,
+  landSourceQuality,
+  basicSplitReason,
   fetchesBasics,
   landPlanGroup,
   landPlanReason,
@@ -232,15 +234,15 @@ test('earned roles need deck evidence; utility ranks by score, then inclusion, t
   assert.deepEqual(names(popular.picks), ['B utility', 'A utility'])
 })
 
-test('fixing stops once only one colour is short, since a basic does the same', () => {
+test('direct duals retain coverage value when only one colour is short', () => {
   const deck = [
     ...simicDeck(),
     ...copies(basic('Forest', 'G'), 30),
     ...copies(basic('Island', 'U'), 4),
   ]
   const result = plan(deck, [dual('Simic dual', ['G', 'U'])], { identity: ['G', 'U'] })
-  assert.deepEqual(names(result.picks), [])
-  assert.deepEqual(names(result.alternatives), ['Simic dual'])
+  assert.deepEqual(names(result.picks), ['Simic dual'])
+  assert.deepEqual(names(result.alternatives), [])
 })
 
 test('Power scales the always-tapped cap: Core tolerant, Upgraded moderate, High strict', () => {
@@ -415,4 +417,151 @@ test('big mana stays under the cap and reserve, with no deck-support threshold',
   // Utility and big mana share the step and the role weight; inclusion then name break ties.
   const mixed = plan(greenDeck(), [bigManaLand('B coffers'), utility('A utility')])
   assert.deepEqual(names(mixed.picks), ['A utility', 'B coffers'])
+})
+
+test('Kotis audit: direct Sultai fixing precedes costly and copy-only sources and keeps coloured basics', () => {
+  const deck = [
+    commander('', '{1}{B}{G}{U}'),
+    ...copies(spell('Green', '{G}{G}'), 14),
+    ...copies(spell('Blue', '{U}'), 6),
+    ...copies(spell('Black', '{B}'), 6),
+  ]
+  const weak = [
+    card('Paid rainbow', {
+      producedMana: ['U', 'B', 'G'],
+      detail: '{T}: Add {C}. {1}, {T}: Add one mana of any color.',
+    }),
+    card('Opponent rainbow', {
+      producedMana: ['U', 'B', 'G'],
+      detail: '{T}: Add one mana of any color that a land an opponent controls could produce.',
+    }),
+    card('Copy rainbow', {
+      producedMana: ['U', 'B', 'G'],
+      detail: '{T}: Add one mana of any type that a land you control could produce.',
+    }),
+  ]
+  const direct = [
+    dual('Sultai tri-land', ['U', 'B', 'G']),
+    dual('Simic dual', ['U', 'G']),
+    dual('Dimir dual', ['U', 'B']),
+  ]
+  const result = plan(deck, [...weak, ...direct], { identity: ['U', 'B', 'G'] })
+  assert(direct.every((land) => names(result.picks).includes(land.name)))
+  for (const land of weak) {
+    const index = names(result.picks).indexOf(land.name)
+    assert(index < 0 || direct.every((good) => names(result.picks).indexOf(good.name) < index))
+  }
+  assert(!result.alternatives.some((pick) => direct.includes(pick.card) && pick.held === 'basic'))
+  const basics = planBasics(deck, ['U', 'B', 'G'], 38, [...weak, ...direct])
+  assert(basics.find((entry) => entry.colour === 'U')!.count >= 2)
+  assert(basics.find((entry) => entry.colour === 'B')!.count >= 2)
+  assert.equal(
+    basics.reduce((sum, entry) => sum + entry.count, 0),
+    32,
+  )
+})
+
+test('source quality distinguishes paid searches and rainbow output from direct and copy-only mana', () => {
+  assert.equal(landSourceQuality(dual('Direct dual', ['U', 'G']), 'U'), 1)
+  assert.equal(
+    landSourceQuality(card('Paid', { detail: '{1}, {T}: Add one mana of any color.' }), 'U'),
+    0.25,
+  )
+  assert.equal(
+    landSourceQuality(
+      card('Conditional search', {
+        detail:
+          '{2}, {T}, Sacrifice this land: Destroy target nonbasic land an opponent controls. Search your library for a basic land card.',
+      }),
+      'U',
+    ),
+    0.25,
+  )
+  assert.equal(
+    landSourceQuality(
+      card('Copy', {
+        detail: '{T}: Add one mana of any type that a land you control could produce.',
+      }),
+      'U',
+    ),
+    0,
+  )
+  assert.match(
+    basicSplitReason([
+      { name: 'Forest', colour: 'G', count: 12 },
+      { name: 'Island', colour: 'U', count: 4 },
+    ]),
+    /leans towards green.*coloured pips/,
+  )
+})
+
+test('basic floors scale with pip share and respect held basics and scarce slots', () => {
+  const deck = [
+    commander('', '{U}{B}{G}'),
+    ...copies(spell('Green', '{G}'), 20),
+    ...copies(spell('Blue', '{U}'), 10),
+    ...copies(spell('Black', '{B}'), 10),
+  ]
+  const rainbow = Array.from({ length: 15 }, (_, i) => dual(`Rainbow ${i}`, ['U', 'B', 'G']))
+  const split = planBasics(deck, ['U', 'B', 'G'], 38, rainbow)
+  for (const colour of ['U', 'B'])
+    assert(split.find((entry) => entry.colour === colour)!.count >= 2)
+  const held = [...deck, ...copies(basic('Island', 'U'), 5)]
+  assert.equal(
+    planBasics(held, ['U', 'B', 'G'], 6).reduce((sum, entry) => sum + entry.count, 0),
+    1,
+  )
+  assert.deepEqual(planBasics(held, ['U', 'B', 'G'], 5), [])
+})
+
+test('specific limits replace soft hold labels and weak sources do not claim direct coverage', () => {
+  const deck = simicDeck()
+  const result = plan(
+    deck,
+    Array.from({ length: 15 }, (_, i) => dual(`Dual ${i}`, ['U', 'G'])),
+    { identity: ['U', 'G'] },
+  )
+  assert(result.alternatives.length > 0)
+  assert(result.alternatives.every((pick) => pick.held === 'cap'))
+  const paid = card('Paid', {
+    producedMana: ['U', 'G'],
+    detail: '{1}, {T}: Add one mana of any color.',
+  })
+  const weak = plan(deck, [paid], { identity: ['U', 'G'] }).alternatives[0]
+  assert.equal(weak.held, 'basic')
+  assert.deepEqual(weak.helps, [])
+  assert.doesNotMatch(landPlanReason(weak), /source you lack/)
+})
+
+test('restrictions survive sentence boundaries and free searches retain full credit', () => {
+  assert.equal(
+    landSourceQuality(
+      card('Restricted', {
+        detail: '{T}: Add one mana of any color. Spend this mana only to cast a creature spell.',
+      }),
+      'G',
+    ),
+    0.25,
+  )
+  assert.equal(
+    landSourceQuality(
+      card('Free fetch', {
+        detail:
+          '{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped. Then if you control four or more lands, untap that land.',
+      }),
+      'G',
+    ),
+    1,
+  )
+  assert.equal(
+    landSourceQuality(
+      card('Opponent', {
+        detail: '{T}: Add one mana of any color that a land an opponent controls could produce.',
+      }),
+      'G',
+    ),
+    0.25,
+  )
+  for (const colour of ['G', 'C'])
+    assert.doesNotMatch(basicSplitReason([{ name: 'Basic', colour, count: 20 }]), /leans/)
 })
