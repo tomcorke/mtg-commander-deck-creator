@@ -22,6 +22,9 @@ test('feature boundaries retain positive, negative and ambiguous evidence', () =
     ['mana', 'Draw two cards.', null],
     ['draw', 'Draw two cards.', 'net'],
     ['draw', 'Draw four cards.', 'net'],
+    ['draw', 'Whenever you discard a card, draw a card.', 'net'],
+    ['draw', 'Whenever you discard a noncreature, nonland card, draw a card.', 'net'],
+    ['draw', 'When this creature enters, discard two cards, then draw two cards.', 'selection'],
     ['draw', 'Cycling {2}', 'selection'],
     ['draw', 'Cycling {2}\nDraw four cards.', 'net'],
     ['draw', 'Whenever you activate a cycling ability, create a token.', null],
@@ -256,7 +259,7 @@ test('cycling lands and transforming back faces receive no draw-role credit (#62
   assert.ok(detectLandRoles(landscape, ['G', 'U', 'R']).some(({ role }) => role === 'flexible'))
   // Provider text checked 2026-11-18: https://api.scryfall.com/cards/named?exact=Invasion%20of%20Fiora
   const front =
-    'When this Siege enters, choose one or both ?\n? Destroy all legendary creatures.\n? Destroy all nonlegendary creatures.'
+    'When this Siege enters, choose one or both —\n• Destroy all legendary creatures.\n• Destroy all nonlegendary creatures.'
   const back =
     "Menace, deathtouch\nWhenever Marchesa attacks, remove all counters from up to one target permanent.\nAt the beginning of your upkeep, if you haven't been dealt combat damage since your last turn, you draw a card and you lose 1 life."
   const battle = {

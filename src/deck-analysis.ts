@@ -334,7 +334,9 @@ function drawFeature(text: string): CardFeatures['draw'] {
     (effect) =>
       cardDraw.test(effect) &&
       !ambiguousDraw.test(effect) &&
-      !/discard [^:.]*[,:][^.]*draw/i.test(effect),
+      !/discard [^:.]*[,:][^.]*draw/i.test(
+        effect.replace(/^(?:when(?:ever)?|at the beginning)[^,]*,\s*/i, ''),
+      ),
   )
   if (yours.length) {
     if (
